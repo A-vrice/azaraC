@@ -16,10 +16,10 @@
 #include <chrono>
 
 #define ARDUINO 0
-#include "../include/azaraC.h"
-#include "../include/internal/Decoder.h"
-#include "../include/internal/NmeaFramer.h"
-#include "../include/internal/UbxFramer.h"
+#include "../src/azaraC.h"
+#include "../src/internal/Decoder.h"
+#include "../src/internal/NmeaFramer.h"
+#include "../src/internal/UbxFramer.h"
 #include "../test_helpers.h"
 
 using namespace azaraC;
@@ -204,9 +204,6 @@ static void test_valid_frames(FuzzStats& stats, std::mt19937& rng, int iteration
 
             if (result) {
                 stats.valid_frames++;
-                stats.decode_success++;
-
-            if (result) {
                 stats.decode_success++;
                 if (msg.msg_type == 43) stats.mt43_count++;
                 else if (msg.msg_type == 44) stats.mt44_count++;
