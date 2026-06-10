@@ -1,5 +1,5 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.15.1 with CI-CD
+// AUTO-GENERATED from azarashi 0.16.1 with CI-CD
 // Source module : qzss_dcx_camf_a3_provider_identifier
 // Variable      : qzss_dcx_camf_a3_provider_identifier_fiji
 // Entries       : 5
@@ -14,11 +14,11 @@ namespace def {
 
 [[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_a3_provider_identifier_fiji_lookup(uint8_t id) {
     switch (id) {
-        case 1: return "National Disaster Management Office";
-        case 2: return "Fiji Meteorological Service";
-        case 3: return "Hydrology Section, Fiji Water Authority";
-        case 4: return "Mineral Resources Department";
-        case 5: return "Fiji Broadcasting Corporation";
+        case 1: return std::string_view{"National Disaster Management Office", 35};
+        case 2: return std::string_view{"Fiji Meteorological Service", 27};
+        case 3: return std::string_view{"Hydrology Section, Fiji Water Authority", 39};
+        case 4: return std::string_view{"Mineral Resources Department", 28};
+        case 5: return std::string_view{"Fiji Broadcasting Corporation", 29};
         default: return std::nullopt;
     }
 }

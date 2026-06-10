@@ -29,11 +29,18 @@ def escape(s):
                   .replace("\n", "\\n")
                   .replace("\r", ""))
 
+def sv_literal(s):
+    """Return a std::string_view literal with explicit length to avoid
+    std::char_traits<char>::length() which is not constexpr on older libstdc++."""
+    escaped = escape(s)
+    byte_len = len(escaped.encode("utf-8"))
+    return f'std::string_view{{"{escaped}", {byte_len}}}'
+
 def emit_switch(varname, entries, guard, kt):
     lines = [f"[[nodiscard]] inline constexpr std::optional<std::string_view> {varname}_lookup({kt} id) {{",
              "    switch (id) {"]
     for k, v in sorted(entries.items()):
-        lines.append(f'        case {k}: return "{escape(v)}";')
+        lines.append(f'        case {k}: return {sv_literal(v)};')
     lines += ['        default: return std::nullopt;', "    }", "}"]
     return "\n".join(lines)
 
@@ -42,7 +49,7 @@ def emit_array(varname, entries, guard, kt):
     base, top = keys[0], keys[-1]
     table = [entries.get(i) for i in range(base, top + 1)]
     rows = ",\n    ".join(
-        f'"{escape(v)}"' if v is not None else "std::nullopt" for v in table)
+        sv_literal(v) if v is not None else "std::nullopt" for v in table)
     return "\n".join([
         f"inline constexpr std::optional<std::string_view> {guard}_TABLE[] = {{",
         f"    {rows}", "};",
@@ -57,7 +64,7 @@ def emit_bsearch(varname, entries, guard, kt):
     keys = sorted(entries.keys())
     n = len(keys)
     idx_type = "uint8_t" if n <= 255 else ("uint16_t" if n <= 65535 else "uint32_t")
-    rows = "\n".join(f'    {{{k}u, "{escape(entries[k])}"}},\n' for k in keys)
+    rows = "\n".join(f'    {{{k}u, {sv_literal(entries[k])}}},\n' for k in keys)
     return "\n".join([
         f"struct {guard}_Entry {{ {kt} id; std::string_view label; }};",
         f"inline constexpr {guard}_Entry {guard}_TABLE[] = {{",

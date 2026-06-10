@@ -1,5 +1,5 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.15.1 with CI-CD
+// AUTO-GENERATED from azarashi 0.16.1 with CI-CD
 // Source module : qzss_dcr_jma_marine_forecast_region
 // Variable      : qzss_dcr_jma_marine_forecast_region
 // Entries       : 49
@@ -14,103 +14,103 @@ namespace def {
 
 struct QZSS_DCR_JMA_MARINE_FORECAST_REGION_Entry { uint16_t id; std::string_view label; };
 inline constexpr QZSS_DCR_JMA_MARINE_FORECAST_REGION_Entry QZSS_DCR_JMA_MARINE_FORECAST_REGION_TABLE[] = {
-    {1000u, "日本海北部及びオホーツク海南部"},
+    {1000u, std::string_view{"日本海北部及びオホーツク海南部", 45}},
 
-    {1010u, "サハリン東方海上"},
+    {1010u, std::string_view{"サハリン東方海上", 24}},
 
-    {1020u, "サハリン西方海上"},
+    {1020u, std::string_view{"サハリン西方海上", 24}},
 
-    {1030u, "網走沖"},
+    {1030u, std::string_view{"網走沖", 9}},
 
-    {1040u, "宗谷海峡"},
+    {1040u, std::string_view{"宗谷海峡", 12}},
 
-    {1050u, "北海道西方海上"},
+    {1050u, std::string_view{"北海道西方海上", 21}},
 
-    {1100u, "北海道南方及び東方海上"},
+    {1100u, std::string_view{"北海道南方及び東方海上", 33}},
 
-    {1110u, "北海道東方海上"},
+    {1110u, std::string_view{"北海道東方海上", 21}},
 
-    {1120u, "釧路沖"},
+    {1120u, std::string_view{"釧路沖", 9}},
 
-    {1130u, "日高沖"},
+    {1130u, std::string_view{"日高沖", 9}},
 
-    {1140u, "津軽海峡"},
+    {1140u, std::string_view{"津軽海峡", 12}},
 
-    {1150u, "檜山津軽沖"},
+    {1150u, std::string_view{"檜山津軽沖", 15}},
 
-    {2000u, "三陸沖"},
+    {2000u, std::string_view{"三陸沖", 9}},
 
-    {2010u, "三陸沖東部"},
+    {2010u, std::string_view{"三陸沖東部", 15}},
 
-    {2020u, "三陸沖西部"},
+    {2020u, std::string_view{"三陸沖西部", 15}},
 
-    {3000u, "関東海域"},
+    {3000u, std::string_view{"関東海域", 12}},
 
-    {3010u, "関東海域北部"},
+    {3010u, std::string_view{"関東海域北部", 18}},
 
-    {3020u, "関東海域南部"},
+    {3020u, std::string_view{"関東海域南部", 18}},
 
-    {3100u, "日本海中部"},
+    {3100u, std::string_view{"日本海中部", 15}},
 
-    {3110u, "沿海州南部沖"},
+    {3110u, std::string_view{"沿海州南部沖", 18}},
 
-    {3120u, "秋田沖"},
+    {3120u, std::string_view{"秋田沖", 9}},
 
-    {3130u, "佐渡沖"},
+    {3130u, std::string_view{"佐渡沖", 9}},
 
-    {3140u, "能登沖"},
+    {3140u, std::string_view{"能登沖", 9}},
 
-    {3200u, "東海海域"},
+    {3200u, std::string_view{"東海海域", 12}},
 
-    {3210u, "東海海域東部"},
+    {3210u, std::string_view{"東海海域東部", 18}},
 
-    {3220u, "東海海域西部"},
+    {3220u, std::string_view{"東海海域西部", 18}},
 
-    {3230u, "東海海域南部"},
+    {3230u, std::string_view{"東海海域南部", 18}},
 
-    {4000u, "四国沖及び瀬戸内海"},
+    {4000u, std::string_view{"四国沖及び瀬戸内海", 27}},
 
-    {4010u, "瀬戸内海"},
+    {4010u, std::string_view{"瀬戸内海", 12}},
 
-    {4020u, "四国沖北部"},
+    {4020u, std::string_view{"四国沖北部", 15}},
 
-    {4030u, "四国沖南部"},
+    {4030u, std::string_view{"四国沖南部", 15}},
 
-    {4100u, "日本海西部"},
+    {4100u, std::string_view{"日本海西部", 15}},
 
-    {4110u, "日本海北西部"},
+    {4110u, std::string_view{"日本海北西部", 18}},
 
-    {4120u, "山陰沖東部及び若狭湾付近"},
+    {4120u, std::string_view{"山陰沖東部及び若狭湾付近", 36}},
 
-    {4130u, "山陰沖西部"},
+    {4130u, std::string_view{"山陰沖西部", 15}},
 
-    {5000u, "対馬海峡"},
+    {5000u, std::string_view{"対馬海峡", 12}},
 
-    {5100u, "九州西方海上"},
+    {5100u, std::string_view{"九州西方海上", 18}},
 
-    {5110u, "済州島西海上"},
+    {5110u, std::string_view{"済州島西海上", 18}},
 
-    {5120u, "長崎西海上"},
+    {5120u, std::string_view{"長崎西海上", 15}},
 
-    {5130u, "女島南西海上"},
+    {5130u, std::string_view{"女島南西海上", 18}},
 
-    {5200u, "九州南方海上及び日向灘"},
+    {5200u, std::string_view{"九州南方海上及び日向灘", 33}},
 
-    {5210u, "日向灘"},
+    {5210u, std::string_view{"日向灘", 9}},
 
-    {5220u, "鹿児島海域"},
+    {5220u, std::string_view{"鹿児島海域", 15}},
 
-    {5230u, "奄美海域"},
+    {5230u, std::string_view{"奄美海域", 12}},
 
-    {6000u, "沖縄海域"},
+    {6000u, std::string_view{"沖縄海域", 12}},
 
-    {6010u, "東シナ海南部"},
+    {6010u, std::string_view{"東シナ海南部", 18}},
 
-    {6020u, "沖縄東方海上"},
+    {6020u, std::string_view{"沖縄東方海上", 18}},
 
-    {6030u, "沖縄南方海上"},
+    {6030u, std::string_view{"沖縄南方海上", 18}},
 
-    {10000u, "その他の地方海上予報区"},
+    {10000u, std::string_view{"その他の地方海上予報区", 33}},
 };
 [[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_marine_forecast_region_lookup(uint16_t id) {
     uint8_t lo = 0, hi = 49;

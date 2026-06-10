@@ -1,5 +1,5 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.15.1 with CI-CD
+// AUTO-GENERATED from azarashi 0.16.1 with CI-CD
 // Source module : qzss_dcx_camf_a11_international_library
 // Variable      : qzss_dcx_camf_a11_international_library
 // Entries       : 32
@@ -13,38 +13,38 @@ namespace azaraC {
 namespace def {
 
 inline constexpr std::optional<std::string_view> QZSS_DCX_CAMF_A11_INTERNATIONAL_LIBRARY_TABLE[] = {
-    "",
-    "You are in the danger zone, leave the area immediately. Listen to radio or media for directions and information.",
-    "You are in the danger zone, leave the area immediately and reach the evacuation point indicated by the area plotted in yellow. Listen to radio or media for directions and information.",
-    "Seek shelter in a building immediately. Stay under cover and stay informed.",
-    "Seek out a cellar or interior rooms on lower floors.",
-    "If you are in an alpine terrain, start descending immediately and seek for shelter.",
-    "Quickly move into interior rooms. If you are in a vehicle: Stop driving immediately on the edge of the road. If a building is nearby, seek shelter in that building.",
-    "If you are in open terrain and you cannot find shelter, lie face-down on the ground and protect your head and neck with your hands, in a hollow where possible.",
-    "Prepare for evacuation. Take only the essentials with you, especially ID cards, passport, credit cards and cash. Evacuate only after the instruction of the emergency authorities.",
-    "Prepare emergency food and relief material: Check and restock your equipment and supplies of water, food, medicine, cash and batteries.",
-    "Stay away from glass surfaces such as windows and glass doors. There is a risk of injury from glass splinters.",
-    "Reduce your power consumption to a minimum.",
-    "Reduce your water consumption to a minimum.",
-    "Boil water before drinking it or using it in the kitchen.",
-    "Keep at least one metre away from any conversation partners. Avoid physical contact with other people such as kissing and shaking hands. Wash your hands regularly and thoroughly.",
-    "Do not drink any tap water. Avoid any skin contact with tap water. Only drink mineral water from a bottle. Turn off the water supply to your house.",
-    "Watch out for escaping gas. This can be indicated by hissing noises or a typical gas odour. Do not use matches, lighters or the like: naked flames in combination with leaking gas can lead to explosions and fires.",
-    "Do not go outside and do not use your car.",
-    "Do not touch any objects that seem suspicious to you. Debris can cause additional hazards such as fires and explosions. Inform the emergency services about damage and debris.",
-    "Do not enter smoke-filled rooms. Deadly gases can form there.",
-    "Do not enter cellars or underground car parks.",
-    "Do not leave pets or livestock outside.",
-    "Do not touch any dead animals. Report any findings of dead wild animals to the authorities.",
-    "Avoid driving.",
-    "Avoid all items with metal parts such as umbrellas and bicycles. Do not bathe or shower during a thunderstorm. Bathing and showering can be life-threatening.",
-    "Avoid rooms directly underneath the roof truss. Avoid very large rooms, such as halls, in which the ceiling is not supported by pillars.",
-    "Avoid going outdoors. Keep away from trees, towers and masts. Keep at least 20 m away from power lines. Watch out for flying objects and falling objects.",
-    "Avoid the danger area.",
-    "Avoid going out when it is not necessary.",
-    "This is only a test. You do not have to take any action or to adopt any particular sheltering behaviour.",
-    "This replaces the warning previously in effect for this area.",
-    "Conditions have improved and are no longer expected to meet alert criteria."
+    std::string_view{"", 0},
+    std::string_view{"You are in the danger zone, leave the area immediately. Listen to radio or media for directions and information.", 112},
+    std::string_view{"You are in the danger zone, leave the area immediately and reach the evacuation point indicated by the area plotted in yellow. Listen to radio or media for directions and information.", 183},
+    std::string_view{"Seek shelter in a building immediately. Stay under cover and stay informed.", 75},
+    std::string_view{"Seek out a cellar or interior rooms on lower floors.", 52},
+    std::string_view{"If you are in an alpine terrain, start descending immediately and seek for shelter.", 83},
+    std::string_view{"Quickly move into interior rooms. If you are in a vehicle: Stop driving immediately on the edge of the road. If a building is nearby, seek shelter in that building.", 164},
+    std::string_view{"If you are in open terrain and you cannot find shelter, lie face-down on the ground and protect your head and neck with your hands, in a hollow where possible.", 159},
+    std::string_view{"Prepare for evacuation. Take only the essentials with you, especially ID cards, passport, credit cards and cash. Evacuate only after the instruction of the emergency authorities.", 178},
+    std::string_view{"Prepare emergency food and relief material: Check and restock your equipment and supplies of water, food, medicine, cash and batteries.", 135},
+    std::string_view{"Stay away from glass surfaces such as windows and glass doors. There is a risk of injury from glass splinters.", 110},
+    std::string_view{"Reduce your power consumption to a minimum.", 43},
+    std::string_view{"Reduce your water consumption to a minimum.", 43},
+    std::string_view{"Boil water before drinking it or using it in the kitchen.", 57},
+    std::string_view{"Keep at least one metre away from any conversation partners. Avoid physical contact with other people such as kissing and shaking hands. Wash your hands regularly and thoroughly.", 178},
+    std::string_view{"Do not drink any tap water. Avoid any skin contact with tap water. Only drink mineral water from a bottle. Turn off the water supply to your house.", 147},
+    std::string_view{"Watch out for escaping gas. This can be indicated by hissing noises or a typical gas odour. Do not use matches, lighters or the like: naked flames in combination with leaking gas can lead to explosions and fires.", 212},
+    std::string_view{"Do not go outside and do not use your car.", 42},
+    std::string_view{"Do not touch any objects that seem suspicious to you. Debris can cause additional hazards such as fires and explosions. Inform the emergency services about damage and debris.", 174},
+    std::string_view{"Do not enter smoke-filled rooms. Deadly gases can form there.", 61},
+    std::string_view{"Do not enter cellars or underground car parks.", 46},
+    std::string_view{"Do not leave pets or livestock outside.", 39},
+    std::string_view{"Do not touch any dead animals. Report any findings of dead wild animals to the authorities.", 91},
+    std::string_view{"Avoid driving.", 14},
+    std::string_view{"Avoid all items with metal parts such as umbrellas and bicycles. Do not bathe or shower during a thunderstorm. Bathing and showering can be life-threatening.", 157},
+    std::string_view{"Avoid rooms directly underneath the roof truss. Avoid very large rooms, such as halls, in which the ceiling is not supported by pillars.", 136},
+    std::string_view{"Avoid going outdoors. Keep away from trees, towers and masts. Keep at least 20 m away from power lines. Watch out for flying objects and falling objects.", 153},
+    std::string_view{"Avoid the danger area.", 22},
+    std::string_view{"Avoid going out when it is not necessary.", 41},
+    std::string_view{"This is only a test. You do not have to take any action or to adopt any particular sheltering behaviour.", 104},
+    std::string_view{"This replaces the warning previously in effect for this area.", 61},
+    std::string_view{"Conditions have improved and are no longer expected to meet alert criteria.", 75}
 };
 inline constexpr uint8_t QZSS_DCX_CAMF_A11_INTERNATIONAL_LIBRARY_BASE = 0;
 inline constexpr uint8_t QZSS_DCX_CAMF_A11_INTERNATIONAL_LIBRARY_SIZE = 32;

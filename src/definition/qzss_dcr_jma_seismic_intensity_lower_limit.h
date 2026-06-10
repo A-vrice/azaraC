@@ -1,5 +1,5 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.15.1 with CI-CD
+// AUTO-GENERATED from azarashi 0.16.1 with CI-CD
 // Source module : qzss_dcr_jma_seismic_intensity_lower_limit
 // Variable      : qzss_dcr_jma_seismic_intensity_lower_limit
 // Entries       : 12
@@ -13,21 +13,21 @@ namespace azaraC {
 namespace def {
 
 inline constexpr std::optional<std::string_view> QZSS_DCR_JMA_SEISMIC_INTENSITY_LOWER_LIMIT_TABLE[] = {
-    "震度0",
-    "震度1",
-    "震度2",
-    "震度3",
-    "震度4",
-    "震度5弱",
-    "震度5強",
-    "震度6弱",
-    "震度6強",
-    "震度7",
+    std::string_view{"震度0", 7},
+    std::string_view{"震度1", 7},
+    std::string_view{"震度2", 7},
+    std::string_view{"震度3", 7},
+    std::string_view{"震度4", 7},
+    std::string_view{"震度5弱", 10},
+    std::string_view{"震度5強", 10},
+    std::string_view{"震度6弱", 10},
+    std::string_view{"震度6強", 10},
+    std::string_view{"震度7", 7},
     std::nullopt,
     std::nullopt,
     std::nullopt,
-    "なし",
-    "不明"
+    std::string_view{"なし", 6},
+    std::string_view{"不明", 6}
 };
 inline constexpr uint8_t QZSS_DCR_JMA_SEISMIC_INTENSITY_LOWER_LIMIT_BASE = 1;
 inline constexpr uint8_t QZSS_DCR_JMA_SEISMIC_INTENSITY_LOWER_LIMIT_SIZE = 15;
