@@ -22,7 +22,11 @@ void setup() {
     Serial.begin(115200);
     while (!Serial) { delay(10); }
 
+#if defined(ESP32)
     Serial1.begin(9600, SERIAL_8N1, /*rx=*/20, /*tx=*/21);
+#else
+    Serial1.begin(9600, SERIAL_8N1);
+#endif
     Serial.println(F("[azaraC] ready, waiting for $QZQSM..."));
 }
 

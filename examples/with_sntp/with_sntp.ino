@@ -41,7 +41,11 @@ void setup() {
     while (!getLocalTime(&ti, 5000)) { Serial.print('.'); delay(1000); }
     Serial.println(F(" OK"));
 
+#if defined(ESP32)
     Serial1.begin(9600, SERIAL_8N1, /*rx=*/20, /*tx=*/21);
+#else
+    Serial1.begin(9600, SERIAL_8N1);
+#endif
     Serial.println(F("[azaraC] ready"));
 }
 
