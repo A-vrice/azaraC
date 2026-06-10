@@ -38,7 +38,14 @@ void setup() {
     configTime(9 * 3600, 0, "pool.ntp.org", "time.cloudflare.com");
     Serial.print(F("[sntp] syncing"));
     struct tm ti{};
-    while (!getLocalTime(&ti, 5000)) { Serial.print('.'); delay(1000); }
+    time_t now;
+    while (true) {
+        time(&now);
+        localtime_r(&now, &ti);
+        if (ti.tm_year > (2016 - 1900)) break;
+        Serial.print('.');
+        delay(1000);
+    }
     Serial.println(F(" OK"));
 
 #if defined(ESP32)
