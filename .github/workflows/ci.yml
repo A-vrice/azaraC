@@ -97,7 +97,7 @@ jobs:
           ln -s "$GITHUB_WORKSPACE" "$LIB_DIR/azaraC"
           for sketch in examples/*/; do
             echo "--- $sketch ---"
-            arduino-cli compile --fqbn "${{ matrix.fqbn }}" "$sketch"
+            arduino-cli compile --fqbn "${{ matrix.fqbn }}" "$sketch" --build-property compiler.cpp.extra_flags="-std=gnu++17"
           done
 
   # ── 拡張コンパイルチェック ───────────────────────────────────────────────
