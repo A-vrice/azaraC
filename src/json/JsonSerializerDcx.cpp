@@ -19,13 +19,13 @@ void serializeDcx(const Message& m, Print& out) {
     const Mt44Data& d = m.mt44;
     wf_u(out, "dcx_type", (uint32_t)static_cast<uint8_t>(d.service_kind));
 
-    std::string_view dcx_label = "UNKNOWN";
+    std::string_view dcx_label = std::string_view{"UNKNOWN", 7};
     switch (d.service_kind) {
-        case Mt44ServiceKind::NullMessage:     dcx_label = "NULL"; break;
-        case Mt44ServiceKind::LAlert:          dcx_label = "L_ALERT"; break;
-        case Mt44ServiceKind::JAlert:          dcx_label = "J_ALERT"; break;
-        case Mt44ServiceKind::LocalGovernment: dcx_label = "LOCAL_GOV"; break;
-        case Mt44ServiceKind::OutsideJapan:    dcx_label = "OUTSIDE_JAPAN"; break;
+        case Mt44ServiceKind::NullMessage:     dcx_label = std::string_view{"NULL", 4}; break;
+        case Mt44ServiceKind::LAlert:          dcx_label = std::string_view{"L_ALERT", 7}; break;
+        case Mt44ServiceKind::JAlert:          dcx_label = std::string_view{"J_ALERT", 7}; break;
+        case Mt44ServiceKind::LocalGovernment: dcx_label = std::string_view{"LOCAL_GOV", 9}; break;
+        case Mt44ServiceKind::OutsideJapan:    dcx_label = std::string_view{"OUTSIDE_JAPAN", 13}; break;
         default: break;
     }
     wf_s(out, "dcx_type_label", dcx_label);
