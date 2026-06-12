@@ -8,9 +8,12 @@
 #include <cstdint>
 #include <optional>
 #include <string_view>
+#include "../azaraC.h"
 
 namespace azaraC {
 namespace def {
+
+#if (AZARAC_ENABLE_WEATHER)
 
 struct QZSS_DCR_JMA_WEATHER_RELATED_DISASTER_SUB_CATEGORY_Entry { uint8_t id; std::string_view label; };
 inline constexpr QZSS_DCR_JMA_WEATHER_RELATED_DISASTER_SUB_CATEGORY_Entry QZSS_DCR_JMA_WEATHER_RELATED_DISASTER_SUB_CATEGORY_TABLE[] = {
@@ -46,6 +49,15 @@ inline constexpr QZSS_DCR_JMA_WEATHER_RELATED_DISASTER_SUB_CATEGORY_Entry QZSS_D
     }
     return std::nullopt;
 }
+
+#else
+
+[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_weather_related_disaster_sub_category_lookup(uint8_t id) {
+    (void)id;
+    return std::nullopt;
+}
+
+#endif
 
 } // namespace def
 } // namespace azaraC

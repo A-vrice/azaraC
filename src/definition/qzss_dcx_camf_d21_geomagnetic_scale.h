@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <optional>
 #include <string_view>
+#include "../azaraC.h"
 
 namespace azaraC {
 namespace def {

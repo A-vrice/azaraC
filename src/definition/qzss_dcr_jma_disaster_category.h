@@ -8,9 +8,12 @@
 #include <cstdint>
 #include <optional>
 #include <string_view>
+#include "../azaraC.h"
 
 namespace azaraC {
 namespace def {
+
+#if (AZARAC_LANG_JA)
 
 inline constexpr std::optional<std::string_view> QZSS_DCR_JMA_DISASTER_CATEGORY_TABLE[] = {
     std::string_view{"緊急地震速報", 18},
@@ -34,6 +37,15 @@ inline constexpr uint8_t QZSS_DCR_JMA_DISASTER_CATEGORY_SIZE = 14;
     if (id < QZSS_DCR_JMA_DISASTER_CATEGORY_BASE || id >= QZSS_DCR_JMA_DISASTER_CATEGORY_BASE + QZSS_DCR_JMA_DISASTER_CATEGORY_SIZE) return std::nullopt;
     return QZSS_DCR_JMA_DISASTER_CATEGORY_TABLE[id - QZSS_DCR_JMA_DISASTER_CATEGORY_BASE];
 }
+
+#else
+
+[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_disaster_category_lookup(uint8_t id) {
+    (void)id;
+    return std::nullopt;
+}
+
+#endif
 
 } // namespace def
 } // namespace azaraC

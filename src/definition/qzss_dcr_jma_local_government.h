@@ -8,9 +8,12 @@
 #include <cstdint>
 #include <optional>
 #include <string_view>
+#include "../azaraC.h"
 
 namespace azaraC {
 namespace def {
+
+#if ((AZARAC_ENABLE_VOLCANO || AZARAC_ENABLE_ASH_FALL))
 
 struct QZSS_DCR_JMA_LOCAL_GOVERNMENT_Entry { uint32_t id; std::string_view label; };
 inline constexpr QZSS_DCR_JMA_LOCAL_GOVERNMENT_Entry QZSS_DCR_JMA_LOCAL_GOVERNMENT_TABLE[] = {
@@ -3608,6 +3611,15 @@ inline constexpr QZSS_DCR_JMA_LOCAL_GOVERNMENT_Entry QZSS_DCR_JMA_LOCAL_GOVERNME
     }
     return std::nullopt;
 }
+
+#else
+
+[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_local_government_lookup(uint32_t id) {
+    (void)id;
+    return std::nullopt;
+}
+
+#endif
 
 } // namespace def
 } // namespace azaraC

@@ -8,9 +8,12 @@
 #include <cstdint>
 #include <optional>
 #include <string_view>
+#include "../azaraC.h"
 
 namespace azaraC {
 namespace def {
+
+#if (AZARAC_ENABLE_SEISMIC)
 
 inline constexpr std::optional<std::string_view> QZSS_DCR_JMA_PREFECTURE_TABLE[] = {
     std::string_view{"北海道", 9},
@@ -67,6 +70,15 @@ inline constexpr uint8_t QZSS_DCR_JMA_PREFECTURE_SIZE = 47;
     if (id < QZSS_DCR_JMA_PREFECTURE_BASE || id >= QZSS_DCR_JMA_PREFECTURE_BASE + QZSS_DCR_JMA_PREFECTURE_SIZE) return std::nullopt;
     return QZSS_DCR_JMA_PREFECTURE_TABLE[id - QZSS_DCR_JMA_PREFECTURE_BASE];
 }
+
+#else
+
+[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_prefecture_lookup(uint8_t id) {
+    (void)id;
+    return std::nullopt;
+}
+
+#endif
 
 } // namespace def
 } // namespace azaraC

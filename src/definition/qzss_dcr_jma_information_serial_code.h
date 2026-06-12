@@ -8,9 +8,12 @@
 #include <cstdint>
 #include <optional>
 #include <string_view>
+#include "../azaraC.h"
 
 namespace azaraC {
 namespace def {
+
+#if (AZARAC_ENABLE_NANKAI)
 
 [[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_information_serial_code_lookup(uint8_t id) {
     switch (id) {
@@ -24,6 +27,15 @@ namespace def {
         default: return std::nullopt;
     }
 }
+
+#else
+
+[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_information_serial_code_lookup(uint8_t id) {
+    (void)id;
+    return std::nullopt;
+}
+
+#endif
 
 } // namespace def
 } // namespace azaraC

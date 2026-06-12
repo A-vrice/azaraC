@@ -8,9 +8,12 @@
 #include <cstdint>
 #include <optional>
 #include <string_view>
+#include "../azaraC.h"
 
 namespace azaraC {
 namespace def {
+
+#if ((AZARAC_ENABLE_EEW || AZARAC_ENABLE_HYPOCENTER))
 
 struct QZSS_DCR_JMA_EPICENTER_AND_HYPOCENTER_Entry { uint16_t id; std::string_view label; };
 inline constexpr QZSS_DCR_JMA_EPICENTER_AND_HYPOCENTER_Entry QZSS_DCR_JMA_EPICENTER_AND_HYPOCENTER_TABLE[] = {
@@ -714,6 +717,15 @@ inline constexpr QZSS_DCR_JMA_EPICENTER_AND_HYPOCENTER_Entry QZSS_DCR_JMA_EPICEN
     }
     return std::nullopt;
 }
+
+#else
+
+[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_epicenter_and_hypocenter_lookup(uint16_t id) {
+    (void)id;
+    return std::nullopt;
+}
+
+#endif
 
 } // namespace def
 } // namespace azaraC

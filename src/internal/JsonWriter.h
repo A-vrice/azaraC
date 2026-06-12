@@ -12,6 +12,20 @@
 #  include "PrintShim.h"
 #endif
 
+// ---------------------------------------------------------------------------
+// Language resolution macro
+// ---------------------------------------------------------------------------
+#if AZARAC_LANG_JA && AZARAC_LANG_EN
+#define AZARAC_LOOKUP_LANG(func_ja, func_en, id) \
+    (func_ja(id).has_value() ? func_ja(id) : func_en(id))
+#elif AZARAC_LANG_JA
+#define AZARAC_LOOKUP_LANG(func_ja, func_en, id) func_ja(id)
+#elif AZARAC_LANG_EN
+#define AZARAC_LOOKUP_LANG(func_ja, func_en, id) func_en(id)
+#else
+#define AZARAC_LOOKUP_LANG(func_ja, func_en, id) std::nullopt
+#endif
+
 namespace azaraC {
 namespace internal {
 

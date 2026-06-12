@@ -18,6 +18,44 @@
 #define AZARAC_LANG_EN 0
 #endif
 
+// ---- disaster category control macros ----------------------------------------
+#ifndef AZARAC_ENABLE_EEW
+#define AZARAC_ENABLE_EEW 1
+#endif
+#ifndef AZARAC_ENABLE_HYPOCENTER
+#define AZARAC_ENABLE_HYPOCENTER 1
+#endif
+#ifndef AZARAC_ENABLE_SEISMIC
+#define AZARAC_ENABLE_SEISMIC 1
+#endif
+#ifndef AZARAC_ENABLE_NANKAI
+#define AZARAC_ENABLE_NANKAI 1
+#endif
+#ifndef AZARAC_ENABLE_TSUNAMI
+#define AZARAC_ENABLE_TSUNAMI 1
+#endif
+#ifndef AZARAC_ENABLE_NW_PAC_TSUNAMI
+#define AZARAC_ENABLE_NW_PAC_TSUNAMI 1
+#endif
+#ifndef AZARAC_ENABLE_VOLCANO
+#define AZARAC_ENABLE_VOLCANO 1
+#endif
+#ifndef AZARAC_ENABLE_ASH_FALL
+#define AZARAC_ENABLE_ASH_FALL 1
+#endif
+#ifndef AZARAC_ENABLE_WEATHER
+#define AZARAC_ENABLE_WEATHER 1
+#endif
+#ifndef AZARAC_ENABLE_FLOOD
+#define AZARAC_ENABLE_FLOOD 1
+#endif
+#ifndef AZARAC_ENABLE_TYPHOON
+#define AZARAC_ENABLE_TYPHOON 1
+#endif
+#ifndef AZARAC_ENABLE_MARINE
+#define AZARAC_ENABLE_MARINE 1
+#endif
+
 #include "Message.h"
 #include "Parser.h"
 #include "internal/JsonSerializer.h"
