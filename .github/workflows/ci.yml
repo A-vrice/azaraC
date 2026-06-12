@@ -169,5 +169,5 @@ jobs:
               continue
             fi
             CPP_EXTRA_FLAGS="-std=gnu++17 ${{ matrix.build_flags }}"
-            arduino-cli compile --fqbn "${{ matrix.fqbn }}" "$sketch" --show-properties=expanded --build-property "compiler.cpp.extra_flags=$CPP_EXTRA_FLAGS"
+            arduino-cli compile --fqbn "${{ matrix.fqbn }}" "$sketch" --build-property "compiler.cpp.extra_flags=$CPP_EXTRA_FLAGS"
           done
