@@ -1,5 +1,13 @@
 #pragma once
 // azaraC — QZSS L1S DCX/CAMF + QZQSM decoder for Arduino
+
+// Workaround for arduino:mbed_nano (and other mbed-based cores):
+// pinDefinitions.h defines `abs` as a macro, which breaks std::chrono
+// (and any standard library header that uses abs() as a function).
+// Undefine it before including any headers that might pull in <chrono>.
+#if defined(ARDUINO) && defined(abs)
+#undef abs
+#endif
 //
 // Usage:
 //   #include <azaraC.h>

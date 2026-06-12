@@ -70,6 +70,12 @@ jobs:
             additional_urls: https://github.com/earlephilhower/arduino-pico/releases/download/global/package_rp2040_index.json
             build_flags: ""
 
+          - name: ESP32-C3
+            core: esp32:esp32
+            fqbn: esp32:esp32:esp32c3
+            additional_urls: https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+            build_flags: ""
+
           - name: ESP32-S3
             core: esp32:esp32
             fqbn: esp32:esp32:esp32s3
@@ -119,19 +125,19 @@ jobs:
             core: STMicroelectronics:stm32
             fqbn: STMicroelectronics:stm32:Nucleo_144:pnum=NUCLEO_H563ZI
             additional_urls: https://github.com/stm32duino/BoardManagerFiles/raw/main/package_stmicroelectronics_index.json
-            build_flags: "-Uabs"
+            build_flags: ""
 
           - name: Arduino GIGA R1 WiFi
             core: arduino:mbed_giga
             fqbn: arduino:mbed_giga:giga
             additional_urls: https://downloads.arduino.cc/packages/package_index.json
-            build_flags: "-Uabs"
+            build_flags: ""
 
           - name: nRF52840 Nano 33 BLE
             core: arduino:mbed_nano
             fqbn: arduino:mbed_nano:nano33ble
             additional_urls: https://downloads.arduino.cc/packages/package_index.json
-            build_flags: "-Uabs"
+            build_flags: ""
 
           - name: Teensy 4.0
             core: teensy:avr
@@ -168,6 +174,6 @@ jobs:
               echo "skip $sketch_name on ${{ matrix.name }} because WiFi.h is unavailable"
               continue
             fi
-            CPP_EXTRA_FLAGS="-std=gnu++17 ${{ matrix.build_flags }}"
+            CPP_EXTRA_FLAGS="-std=gnu++17 -Uabs ${{ matrix.build_flags }}"
             arduino-cli compile --fqbn "${{ matrix.fqbn }}" "$sketch" --build-property "compiler.cpp.extra_flags=$CPP_EXTRA_FLAGS"
           done
