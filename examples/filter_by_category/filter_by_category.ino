@@ -141,11 +141,15 @@ void setup() {
     Serial.begin(115200);
     while (!Serial) { delay(10); }
 
-#if defined(ESP32)
-    Serial1.begin(9600, SERIAL_8N1, /*rx=*/20, /*tx=*/21);
-#else
-    Serial1.begin(9600, SERIAL_8N1);
-#endif
+    #if defined(ARDUINO_ARCH_STM32)
+        HardwareSerial Serial1(PA10, PA9);  // RX, TX
+    #endif
+
+    #if defined(ESP32)
+        Serial1.begin(9600, SERIAL_8N1, /*rx=*/20, /*tx=*/21);
+    #else
+        Serial1.begin(9600, SERIAL_8N1);
+    #endif
     Serial.println(F("[azaraC] filter_by_category ready"));
     Serial.println(F("出力カテゴリ:"));
     Serial.println(F("  [ON]  EEW, 震源, 震度, 南海トラフ, 津波, 火山, 降灰, 洪水, 台風"));

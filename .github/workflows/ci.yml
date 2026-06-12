@@ -119,7 +119,7 @@ jobs:
             core: STMicroelectronics:stm32
             fqbn: STMicroelectronics:stm32:Nucleo_144:pnum=NUCLEO_H563ZI
             additional_urls: https://github.com/stm32duino/BoardManagerFiles/raw/main/package_stmicroelectronics_index.json
-            build_flags: "-DENABLE_HWSERIAL1 -DPIN_SERIAL1_TX=PA9 -DPIN_SERIAL1_RX=PA10"
+            build_flags: ""
 
           - name: Arduino GIGA R1 WiFi
             core: arduino:mbed_giga
@@ -169,5 +169,5 @@ jobs:
               continue
             fi
             CPP_EXTRA_FLAGS="-std=gnu++17 ${{ matrix.build_flags }}"
-            arduino-cli compile --fqbn "${{ matrix.fqbn }}" "$sketch" --show-properties=expanded --build-property "compiler.cpp.extra_flags=$CPP_EXTRA_FLAGS"
+            arduino-cli compile --fqbn "${{ matrix.fqbn }}" "$sketch" --build-property "compiler.cpp.extra_flags=$CPP_EXTRA_FLAGS"
           done
