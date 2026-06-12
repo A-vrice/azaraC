@@ -13,7 +13,7 @@
 namespace azaraC {
 namespace def {
 
-#if ((AZARAC_ENABLE_VOLCANO || AZARAC_ENABLE_ASH_FALL))
+#if (AZARAC_ENABLE_VOLCANO || AZARAC_ENABLE_ASH_FALL)
 
 struct QZSS_DCR_JMA_LOCAL_GOVERNMENT_Entry { uint32_t id; std::string_view label; };
 inline constexpr QZSS_DCR_JMA_LOCAL_GOVERNMENT_Entry QZSS_DCR_JMA_LOCAL_GOVERNMENT_TABLE[] = {

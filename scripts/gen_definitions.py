@@ -133,11 +133,17 @@ def build_header(modname, varname, entries, ver, all_varnames):
     elif f"{varname}_en" in all_varnames:
         lang_guard = "AZARAC_LANG_JA"
 
+    def wrap_guard(expr):
+        s = expr.strip()
+        if s.startswith("(") and s.endswith(")"):
+            return s
+        return f"({expr})"
+
     guards = []
     if category_guard:
-        guards.append(f"({category_guard})")
+        guards.append(wrap_guard(category_guard))
     if lang_guard:
-        guards.append(f"({lang_guard})")
+        guards.append(wrap_guard(lang_guard))
 
     if guards:
         full_guard = " && ".join(guards)

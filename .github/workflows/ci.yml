@@ -119,19 +119,19 @@ jobs:
             core: STMicroelectronics:stm32
             fqbn: STMicroelectronics:stm32:Nucleo_144:pnum=NUCLEO_H563ZI
             additional_urls: https://github.com/stm32duino/BoardManagerFiles/raw/main/package_stmicroelectronics_index.json
-            build_flags: ""
+            build_flags: "-Uabs"
 
           - name: Arduino GIGA R1 WiFi
             core: arduino:mbed_giga
             fqbn: arduino:mbed_giga:giga
             additional_urls: https://downloads.arduino.cc/packages/package_index.json
-            build_flags: ""
+            build_flags: "-Uabs"
 
           - name: nRF52840 Nano 33 BLE
             core: arduino:mbed_nano
             fqbn: arduino:mbed_nano:nano33ble
             additional_urls: https://downloads.arduino.cc/packages/package_index.json
-            build_flags: ""
+            build_flags: "-Uabs"
 
           - name: Teensy 4.0
             core: teensy:avr

@@ -13,7 +13,7 @@
 namespace azaraC {
 namespace def {
 
-#if ((AZARAC_ENABLE_EEW || AZARAC_ENABLE_HYPOCENTER))
+#if (AZARAC_ENABLE_EEW || AZARAC_ENABLE_HYPOCENTER)
 
 struct QZSS_DCR_JMA_EPICENTER_AND_HYPOCENTER_Entry { uint16_t id; std::string_view label; };
 inline constexpr QZSS_DCR_JMA_EPICENTER_AND_HYPOCENTER_Entry QZSS_DCR_JMA_EPICENTER_AND_HYPOCENTER_TABLE[] = {
