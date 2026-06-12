@@ -6,9 +6,6 @@
 
 #if defined(ARDUINO) && ARDUINO >= 1
 #  include <Arduino.h>
-#  ifdef abs
-#    undef abs
-#  endif
 #else
 #  include <chrono>
 #endif
