@@ -12,6 +12,9 @@
 #  include "PrintShim.h"
 #endif
 
+// Ensure language macros are defined before use
+#include "../azaraC.h"
+
 // ---------------------------------------------------------------------------
 // Language resolution macro
 // ---------------------------------------------------------------------------
@@ -21,7 +24,6 @@
         if (auto result = func_ja(id); result.has_value()) return result; \
         return func_en(id); \
     }())
-#elif AZARAC_LANG_JA
 #elif AZARAC_LANG_JA
 #define AZARAC_LOOKUP_LANG(func_ja, func_en, id) func_ja(id)
 #elif AZARAC_LANG_EN
