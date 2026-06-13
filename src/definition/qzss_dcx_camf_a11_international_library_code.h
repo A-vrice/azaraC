@@ -1,5 +1,5 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.15.1 with CI-CD
+// AUTO-GENERATED from azarashi 0.16.1 with CI-CD
 // Source module : qzss_dcx_camf_a11_international_library
 // Variable      : qzss_dcx_camf_a11_international_library_code
 // Entries       : 32
@@ -8,43 +8,44 @@
 #include <cstdint>
 #include <optional>
 #include <string_view>
+#include "../azaraC.h"
 
 namespace azaraC {
 namespace def {
 
 inline constexpr std::optional<std::string_view> QZSS_DCX_CAMF_A11_INTERNATIONAL_LIBRARY_CODE_TABLE[] = {
-    "IC-A-01",
-    "IC-A-02",
-    "IC-A-03",
-    "IC-A-04",
-    "IC-A-05",
-    "IC-A-06",
-    "IC-A-07",
-    "IC-A-08",
-    "IC-A-09",
-    "IC-A-10",
-    "IC-A-11",
-    "IC-A-12",
-    "IC-A-13",
-    "IC-A-14",
-    "IC-A-15",
-    "IC-A-16",
-    "IC-A-17",
-    "IC-A-18",
-    "IC-A-19",
-    "IC-A-20",
-    "IC-A-21",
-    "IC-A-22",
-    "IC-A-23",
-    "IC-A-24",
-    "IC-A-25",
-    "IC-A-26",
-    "IC-A-27",
-    "IC-A-28",
-    "IC-A-29",
-    "IC-A-30",
-    "IC-A-31",
-    "IC-A-32"
+    std::string_view{"IC-A-01", 7},
+    std::string_view{"IC-A-02", 7},
+    std::string_view{"IC-A-03", 7},
+    std::string_view{"IC-A-04", 7},
+    std::string_view{"IC-A-05", 7},
+    std::string_view{"IC-A-06", 7},
+    std::string_view{"IC-A-07", 7},
+    std::string_view{"IC-A-08", 7},
+    std::string_view{"IC-A-09", 7},
+    std::string_view{"IC-A-10", 7},
+    std::string_view{"IC-A-11", 7},
+    std::string_view{"IC-A-12", 7},
+    std::string_view{"IC-A-13", 7},
+    std::string_view{"IC-A-14", 7},
+    std::string_view{"IC-A-15", 7},
+    std::string_view{"IC-A-16", 7},
+    std::string_view{"IC-A-17", 7},
+    std::string_view{"IC-A-18", 7},
+    std::string_view{"IC-A-19", 7},
+    std::string_view{"IC-A-20", 7},
+    std::string_view{"IC-A-21", 7},
+    std::string_view{"IC-A-22", 7},
+    std::string_view{"IC-A-23", 7},
+    std::string_view{"IC-A-24", 7},
+    std::string_view{"IC-A-25", 7},
+    std::string_view{"IC-A-26", 7},
+    std::string_view{"IC-A-27", 7},
+    std::string_view{"IC-A-28", 7},
+    std::string_view{"IC-A-29", 7},
+    std::string_view{"IC-A-30", 7},
+    std::string_view{"IC-A-31", 7},
+    std::string_view{"IC-A-32", 7}
 };
 inline constexpr uint8_t QZSS_DCX_CAMF_A11_INTERNATIONAL_LIBRARY_CODE_BASE = 0;
 inline constexpr uint8_t QZSS_DCX_CAMF_A11_INTERNATIONAL_LIBRARY_CODE_SIZE = 32;

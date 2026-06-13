@@ -126,7 +126,11 @@ void setup() {
     connectWiFi();
 
     // GNSSシリアル開始
+#if defined(ESP32)
     Serial1.begin(9600, SERIAL_8N1, /*rx=*/20, /*tx=*/21);
+#else
+    Serial1.begin(9600, SERIAL_8N1);
+#endif
 }
 
 void loop() {

@@ -1,5 +1,5 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.15.1 with CI-CD
+// AUTO-GENERATED from azarashi 0.16.1 with CI-CD
 // Source module : qzss_dcx_camf_ex1_target_area_code
 // Variable      : qzss_dcx_ex1_target_area_code_en
 // Entries       : 1980
@@ -8,3974 +8,3976 @@
 #include <cstdint>
 #include <optional>
 #include <string_view>
+#include "../azaraC.h"
 
 namespace azaraC {
 namespace def {
 
+#if (AZARAC_LANG_EN)
+
 struct QZSS_DCX_EX1_TARGET_AREA_CODE_EN_Entry { uint16_t id; std::string_view label; };
 inline constexpr QZSS_DCX_EX1_TARGET_AREA_CODE_EN_Entry QZSS_DCX_EX1_TARGET_AREA_CODE_EN_TABLE[] = {
-    {1000u, "Hokkaido"},
+    {1000u, std::string_view{"Hokkaido", 8}},
 
-    {1100u, "Sapporo-shi, Hokkaido"},
+    {1100u, std::string_view{"Sapporo-shi, Hokkaido", 21}},
 
-    {1101u, "Chuo-ku, Sapporo-shi"},
+    {1101u, std::string_view{"Chuo-ku, Sapporo-shi", 20}},
 
-    {1102u, "Kita-ku, Sapporo-shi"},
+    {1102u, std::string_view{"Kita-ku, Sapporo-shi", 20}},
 
-    {1103u, "Higashi-ku, Sapporo-shi"},
+    {1103u, std::string_view{"Higashi-ku, Sapporo-shi", 23}},
 
-    {1104u, "Shiroishi-ku, Sapporo-shi"},
+    {1104u, std::string_view{"Shiroishi-ku, Sapporo-shi", 25}},
 
-    {1105u, "Toyohira-ku, Sapporo-shi"},
+    {1105u, std::string_view{"Toyohira-ku, Sapporo-shi", 24}},
 
-    {1106u, "Minami-ku, Sapporo-shi"},
+    {1106u, std::string_view{"Minami-ku, Sapporo-shi", 22}},
 
-    {1107u, "Nishi-ku, Sapporo-shi"},
+    {1107u, std::string_view{"Nishi-ku, Sapporo-shi", 21}},
 
-    {1108u, "Atsubetsu-ku, Sapporo-shi"},
+    {1108u, std::string_view{"Atsubetsu-ku, Sapporo-shi", 25}},
 
-    {1109u, "Teine-ku, Sapporo-shi"},
+    {1109u, std::string_view{"Teine-ku, Sapporo-shi", 21}},
 
-    {1110u, "Kiyota-ku, Sapporo-shi"},
+    {1110u, std::string_view{"Kiyota-ku, Sapporo-shi", 22}},
 
-    {1202u, "Hakodate-shi, Hokkaido"},
+    {1202u, std::string_view{"Hakodate-shi, Hokkaido", 22}},
 
-    {1203u, "Otaru-shi, Hokkaido"},
+    {1203u, std::string_view{"Otaru-shi, Hokkaido", 19}},
 
-    {1204u, "Asahikawa-shi, Hokkaido"},
+    {1204u, std::string_view{"Asahikawa-shi, Hokkaido", 23}},
 
-    {1205u, "Muroran-shi, Hokkaido"},
+    {1205u, std::string_view{"Muroran-shi, Hokkaido", 21}},
 
-    {1206u, "Kushiro-shi, Hokkaido"},
+    {1206u, std::string_view{"Kushiro-shi, Hokkaido", 21}},
 
-    {1207u, "Obihiro-shi, Hokkaido"},
+    {1207u, std::string_view{"Obihiro-shi, Hokkaido", 21}},
 
-    {1208u, "Kitami-shi, Hokkaido"},
+    {1208u, std::string_view{"Kitami-shi, Hokkaido", 20}},
 
-    {1209u, "Yubari-shi, Hokkaido"},
+    {1209u, std::string_view{"Yubari-shi, Hokkaido", 20}},
 
-    {1210u, "Iwamizawa-shi, Hokkaido"},
+    {1210u, std::string_view{"Iwamizawa-shi, Hokkaido", 23}},
 
-    {1211u, "Abashiri-shi, Hokkaido"},
+    {1211u, std::string_view{"Abashiri-shi, Hokkaido", 22}},
 
-    {1212u, "Rumoi-shi, Hokkaido"},
+    {1212u, std::string_view{"Rumoi-shi, Hokkaido", 19}},
 
-    {1213u, "Tomakomai-shi, Hokkaido"},
+    {1213u, std::string_view{"Tomakomai-shi, Hokkaido", 23}},
 
-    {1214u, "Wakkanai-shi, Hokkaido"},
+    {1214u, std::string_view{"Wakkanai-shi, Hokkaido", 22}},
 
-    {1215u, "Bibai-shi, Hokkaido"},
+    {1215u, std::string_view{"Bibai-shi, Hokkaido", 19}},
 
-    {1216u, "Ashibetsu-shi, Hokkaido"},
+    {1216u, std::string_view{"Ashibetsu-shi, Hokkaido", 23}},
 
-    {1217u, "Ebetsu-shi, Hokkaido"},
+    {1217u, std::string_view{"Ebetsu-shi, Hokkaido", 20}},
 
-    {1218u, "Akabira-shi, Hokkaido"},
+    {1218u, std::string_view{"Akabira-shi, Hokkaido", 21}},
 
-    {1219u, "Mombetsu-shi, Hokkaido"},
+    {1219u, std::string_view{"Mombetsu-shi, Hokkaido", 22}},
 
-    {1220u, "Shibetsu-shi, Hokkaido"},
+    {1220u, std::string_view{"Shibetsu-shi, Hokkaido", 22}},
 
-    {1221u, "Nayoro-shi, Hokkaido"},
+    {1221u, std::string_view{"Nayoro-shi, Hokkaido", 20}},
 
-    {1222u, "Mikasa-shi, Hokkaido"},
+    {1222u, std::string_view{"Mikasa-shi, Hokkaido", 20}},
 
-    {1223u, "Nemuro-shi, Hokkaido"},
+    {1223u, std::string_view{"Nemuro-shi, Hokkaido", 20}},
 
-    {1224u, "Chitose-shi, Hokkaido"},
+    {1224u, std::string_view{"Chitose-shi, Hokkaido", 21}},
 
-    {1225u, "Takikawa-shi, Hokkaido"},
+    {1225u, std::string_view{"Takikawa-shi, Hokkaido", 22}},
 
-    {1226u, "Sunagawa-shi, Hokkaido"},
+    {1226u, std::string_view{"Sunagawa-shi, Hokkaido", 22}},
 
-    {1227u, "Utashinai-shi, Hokkaido"},
+    {1227u, std::string_view{"Utashinai-shi, Hokkaido", 23}},
 
-    {1228u, "Fukagawa-shi, Hokkaido"},
+    {1228u, std::string_view{"Fukagawa-shi, Hokkaido", 22}},
 
-    {1229u, "Furano-shi, Hokkaido"},
+    {1229u, std::string_view{"Furano-shi, Hokkaido", 20}},
 
-    {1230u, "Noboribetsu-shi, Hokkaido"},
+    {1230u, std::string_view{"Noboribetsu-shi, Hokkaido", 25}},
 
-    {1231u, "Eniwa-shi, Hokkaido"},
+    {1231u, std::string_view{"Eniwa-shi, Hokkaido", 19}},
 
-    {1233u, "Date-shi, Hokkaido"},
+    {1233u, std::string_view{"Date-shi, Hokkaido", 18}},
 
-    {1234u, "Kitahiroshima-shi, Hokkaido"},
+    {1234u, std::string_view{"Kitahiroshima-shi, Hokkaido", 27}},
 
-    {1235u, "Ishikari-shi, Hokkaido"},
+    {1235u, std::string_view{"Ishikari-shi, Hokkaido", 22}},
 
-    {1236u, "Hokuto-shi, Hokkaido"},
+    {1236u, std::string_view{"Hokuto-shi, Hokkaido", 20}},
 
-    {1303u, "Tobetsu-cho, Hokkaido"},
+    {1303u, std::string_view{"Tobetsu-cho, Hokkaido", 21}},
 
-    {1304u, "Shinshinotsu-mura, Hokkaido"},
+    {1304u, std::string_view{"Shinshinotsu-mura, Hokkaido", 27}},
 
-    {1331u, "Matsumae-cho, Hokkaido"},
+    {1331u, std::string_view{"Matsumae-cho, Hokkaido", 22}},
 
-    {1332u, "Fukushima-cho, Hokkaido"},
+    {1332u, std::string_view{"Fukushima-cho, Hokkaido", 23}},
 
-    {1333u, "Shiriuchi-cho, Hokkaido"},
+    {1333u, std::string_view{"Shiriuchi-cho, Hokkaido", 23}},
 
-    {1334u, "Kikonai-cho, Hokkaido"},
+    {1334u, std::string_view{"Kikonai-cho, Hokkaido", 21}},
 
-    {1337u, "Nanae-cho, Hokkaido"},
+    {1337u, std::string_view{"Nanae-cho, Hokkaido", 19}},
 
-    {1343u, "Shikabe-cho, Hokkaido"},
+    {1343u, std::string_view{"Shikabe-cho, Hokkaido", 21}},
 
-    {1345u, "Mori-machi, Hokkaido"},
+    {1345u, std::string_view{"Mori-machi, Hokkaido", 20}},
 
-    {1346u, "Yakumo-cho, Hokkaido"},
+    {1346u, std::string_view{"Yakumo-cho, Hokkaido", 20}},
 
-    {1347u, "Oshamambe-cho, Hokkaido"},
+    {1347u, std::string_view{"Oshamambe-cho, Hokkaido", 23}},
 
-    {1361u, "Esashi-cho, Hokkaido"},
+    {1361u, std::string_view{"Esashi-cho, Hokkaido", 20}},
 
-    {1362u, "Kaminokuni-cho, Hokkaido"},
+    {1362u, std::string_view{"Kaminokuni-cho, Hokkaido", 24}},
 
-    {1363u, "Assabu-cho, Hokkaido"},
+    {1363u, std::string_view{"Assabu-cho, Hokkaido", 20}},
 
-    {1364u, "Otobe-cho, Hokkaido"},
+    {1364u, std::string_view{"Otobe-cho, Hokkaido", 19}},
 
-    {1367u, "Okushiri-cho, Hokkaido"},
+    {1367u, std::string_view{"Okushiri-cho, Hokkaido", 22}},
 
-    {1370u, "Imakane-cho, Hokkaido"},
+    {1370u, std::string_view{"Imakane-cho, Hokkaido", 21}},
 
-    {1371u, "Setana-cho, Hokkaido"},
+    {1371u, std::string_view{"Setana-cho, Hokkaido", 20}},
 
-    {1391u, "Shimamaki-mura, Hokkaido"},
+    {1391u, std::string_view{"Shimamaki-mura, Hokkaido", 24}},
 
-    {1392u, "Suttsu-cho, Hokkaido"},
+    {1392u, std::string_view{"Suttsu-cho, Hokkaido", 20}},
 
-    {1393u, "Kuromatsunai-cho, Hokkaido"},
+    {1393u, std::string_view{"Kuromatsunai-cho, Hokkaido", 26}},
 
-    {1394u, "Rankoshi-cho, Hokkaido"},
+    {1394u, std::string_view{"Rankoshi-cho, Hokkaido", 22}},
 
-    {1395u, "Niseko-cho, Hokkaido"},
+    {1395u, std::string_view{"Niseko-cho, Hokkaido", 20}},
 
-    {1396u, "Makkari-mura, Hokkaido"},
+    {1396u, std::string_view{"Makkari-mura, Hokkaido", 22}},
 
-    {1397u, "Rusutsu-mura, Hokkaido"},
+    {1397u, std::string_view{"Rusutsu-mura, Hokkaido", 22}},
 
-    {1398u, "Kimobetsu-cho, Hokkaido"},
+    {1398u, std::string_view{"Kimobetsu-cho, Hokkaido", 23}},
 
-    {1399u, "Kyogoku-cho, Hokkaido"},
+    {1399u, std::string_view{"Kyogoku-cho, Hokkaido", 21}},
 
-    {1400u, "Kutchan-cho, Hokkaido"},
+    {1400u, std::string_view{"Kutchan-cho, Hokkaido", 21}},
 
-    {1401u, "Kyowa-cho, Hokkaido"},
+    {1401u, std::string_view{"Kyowa-cho, Hokkaido", 19}},
 
-    {1402u, "Iwanai-cho, Hokkaido"},
+    {1402u, std::string_view{"Iwanai-cho, Hokkaido", 20}},
 
-    {1403u, "Tomari-mura, Hokkaido"},
+    {1403u, std::string_view{"Tomari-mura, Hokkaido", 21}},
 
-    {1404u, "Kamoenai-mura, Hokkaido"},
+    {1404u, std::string_view{"Kamoenai-mura, Hokkaido", 23}},
 
-    {1405u, "Shakotan-cho, Hokkaido"},
+    {1405u, std::string_view{"Shakotan-cho, Hokkaido", 22}},
 
-    {1406u, "Furubira-cho, Hokkaido"},
+    {1406u, std::string_view{"Furubira-cho, Hokkaido", 22}},
 
-    {1407u, "Niki-cho, Hokkaido"},
+    {1407u, std::string_view{"Niki-cho, Hokkaido", 18}},
 
-    {1408u, "Yoichi-cho, Hokkaido"},
+    {1408u, std::string_view{"Yoichi-cho, Hokkaido", 20}},
 
-    {1409u, "Akaigawa-mura, Hokkaido"},
+    {1409u, std::string_view{"Akaigawa-mura, Hokkaido", 23}},
 
-    {1423u, "Namporo-cho, Hokkaido"},
+    {1423u, std::string_view{"Namporo-cho, Hokkaido", 21}},
 
-    {1424u, "Naie-cho, Hokkaido"},
+    {1424u, std::string_view{"Naie-cho, Hokkaido", 18}},
 
-    {1425u, "Kamisunagawa-cho, Hokkaido"},
+    {1425u, std::string_view{"Kamisunagawa-cho, Hokkaido", 26}},
 
-    {1427u, "Yuni-cho, Hokkaido"},
+    {1427u, std::string_view{"Yuni-cho, Hokkaido", 18}},
 
-    {1428u, "Naganuma-cho, Hokkaido"},
+    {1428u, std::string_view{"Naganuma-cho, Hokkaido", 22}},
 
-    {1429u, "Kuriyama-cho, Hokkaido"},
+    {1429u, std::string_view{"Kuriyama-cho, Hokkaido", 22}},
 
-    {1430u, "Tsukigata-cho, Hokkaido"},
+    {1430u, std::string_view{"Tsukigata-cho, Hokkaido", 23}},
 
-    {1431u, "Urausu-cho, Hokkaido"},
+    {1431u, std::string_view{"Urausu-cho, Hokkaido", 20}},
 
-    {1432u, "Shintotsukawa-cho, Hokkaido"},
+    {1432u, std::string_view{"Shintotsukawa-cho, Hokkaido", 27}},
 
-    {1433u, "Moseushi-cho, Hokkaido"},
+    {1433u, std::string_view{"Moseushi-cho, Hokkaido", 22}},
 
-    {1434u, "Chippubetsu-cho, Hokkaido"},
+    {1434u, std::string_view{"Chippubetsu-cho, Hokkaido", 25}},
 
-    {1436u, "Uryu-cho, Hokkaido"},
+    {1436u, std::string_view{"Uryu-cho, Hokkaido", 18}},
 
-    {1437u, "Hokuryu-cho, Hokkaido"},
+    {1437u, std::string_view{"Hokuryu-cho, Hokkaido", 21}},
 
-    {1438u, "Numata-cho, Hokkaido"},
+    {1438u, std::string_view{"Numata-cho, Hokkaido", 20}},
 
-    {1452u, "Takasu-cho, Hokkaido"},
+    {1452u, std::string_view{"Takasu-cho, Hokkaido", 20}},
 
-    {1453u, "Higashikagura-cho, Hokkaido"},
+    {1453u, std::string_view{"Higashikagura-cho, Hokkaido", 27}},
 
-    {1454u, "Toma-cho, Hokkaido"},
+    {1454u, std::string_view{"Toma-cho, Hokkaido", 18}},
 
-    {1455u, "Pippu-cho, Hokkaido"},
+    {1455u, std::string_view{"Pippu-cho, Hokkaido", 19}},
 
-    {1456u, "Aibetsu-cho, Hokkaido"},
+    {1456u, std::string_view{"Aibetsu-cho, Hokkaido", 21}},
 
-    {1457u, "Kamikawa-cho, Hokkaido"},
+    {1457u, std::string_view{"Kamikawa-cho, Hokkaido", 22}},
 
-    {1458u, "Higashikawa-cho, Hokkaido"},
+    {1458u, std::string_view{"Higashikawa-cho, Hokkaido", 25}},
 
-    {1459u, "Biei-cho, Hokkaido"},
+    {1459u, std::string_view{"Biei-cho, Hokkaido", 18}},
 
-    {1460u, "Kamifurano-cho, Hokkaido"},
+    {1460u, std::string_view{"Kamifurano-cho, Hokkaido", 24}},
 
-    {1461u, "Nakafurano-cho, Hokkaido"},
+    {1461u, std::string_view{"Nakafurano-cho, Hokkaido", 24}},
 
-    {1462u, "Minamifurano-cho, Hokkaido"},
+    {1462u, std::string_view{"Minamifurano-cho, Hokkaido", 26}},
 
-    {1463u, "Shimukappu-mura, Hokkaido"},
+    {1463u, std::string_view{"Shimukappu-mura, Hokkaido", 25}},
 
-    {1464u, "Wassamu-cho, Hokkaido"},
+    {1464u, std::string_view{"Wassamu-cho, Hokkaido", 21}},
 
-    {1465u, "Kembuchi-cho, Hokkaido"},
+    {1465u, std::string_view{"Kembuchi-cho, Hokkaido", 22}},
 
-    {1468u, "Shimokawa-cho, Hokkaido"},
+    {1468u, std::string_view{"Shimokawa-cho, Hokkaido", 23}},
 
-    {1469u, "Bifuka-cho, Hokkaido"},
+    {1469u, std::string_view{"Bifuka-cho, Hokkaido", 20}},
 
-    {1470u, "Otoineppu-mura, Hokkaido"},
+    {1470u, std::string_view{"Otoineppu-mura, Hokkaido", 24}},
 
-    {1471u, "Nakagawa-cho, Hokkaido"},
+    {1471u, std::string_view{"Nakagawa-cho, Hokkaido", 22}},
 
-    {1472u, "Horokanai-cho, Hokkaido"},
+    {1472u, std::string_view{"Horokanai-cho, Hokkaido", 23}},
 
-    {1481u, "Mashike-cho, Hokkaido"},
+    {1481u, std::string_view{"Mashike-cho, Hokkaido", 21}},
 
-    {1482u, "Obira-cho, Hokkaido"},
+    {1482u, std::string_view{"Obira-cho, Hokkaido", 19}},
 
-    {1483u, "Tomamae-cho, Hokkaido"},
+    {1483u, std::string_view{"Tomamae-cho, Hokkaido", 21}},
 
-    {1484u, "Haboro-cho, Hokkaido"},
+    {1484u, std::string_view{"Haboro-cho, Hokkaido", 20}},
 
-    {1485u, "Shosambetsu-mura, Hokkaido"},
+    {1485u, std::string_view{"Shosambetsu-mura, Hokkaido", 26}},
 
-    {1486u, "Embetsu-cho, Hokkaido"},
+    {1486u, std::string_view{"Embetsu-cho, Hokkaido", 21}},
 
-    {1487u, "Teshio-cho, Hokkaido"},
+    {1487u, std::string_view{"Teshio-cho, Hokkaido", 20}},
 
-    {1511u, "Sarufutsu-mura, Hokkaido"},
+    {1511u, std::string_view{"Sarufutsu-mura, Hokkaido", 24}},
 
-    {1512u, "Hamatombetsu-cho, Hokkaido"},
+    {1512u, std::string_view{"Hamatombetsu-cho, Hokkaido", 26}},
 
-    {1513u, "Nakatombetsu-cho, Hokkaido"},
+    {1513u, std::string_view{"Nakatombetsu-cho, Hokkaido", 26}},
 
-    {1514u, "Esashi-cho, Hokkaido"},
+    {1514u, std::string_view{"Esashi-cho, Hokkaido", 20}},
 
-    {1516u, "Toyotomi-cho, Hokkaido"},
+    {1516u, std::string_view{"Toyotomi-cho, Hokkaido", 22}},
 
-    {1517u, "Rebun-cho, Hokkaido"},
+    {1517u, std::string_view{"Rebun-cho, Hokkaido", 19}},
 
-    {1518u, "Rishiri-cho, Hokkaido"},
+    {1518u, std::string_view{"Rishiri-cho, Hokkaido", 21}},
 
-    {1519u, "Rishirifuji-cho, Hokkaido"},
+    {1519u, std::string_view{"Rishirifuji-cho, Hokkaido", 25}},
 
-    {1520u, "Horonobe-cho, Hokkaido"},
+    {1520u, std::string_view{"Horonobe-cho, Hokkaido", 22}},
 
-    {1543u, "Bihoro-cho, Hokkaido"},
+    {1543u, std::string_view{"Bihoro-cho, Hokkaido", 20}},
 
-    {1544u, "Tsubetsu-cho, Hokkaido"},
+    {1544u, std::string_view{"Tsubetsu-cho, Hokkaido", 22}},
 
-    {1545u, "Shari-cho, Hokkaido"},
+    {1545u, std::string_view{"Shari-cho, Hokkaido", 19}},
 
-    {1546u, "Kiyosato-cho, Hokkaido"},
+    {1546u, std::string_view{"Kiyosato-cho, Hokkaido", 22}},
 
-    {1547u, "Koshimizu-cho, Hokkaido"},
+    {1547u, std::string_view{"Koshimizu-cho, Hokkaido", 23}},
 
-    {1549u, "Kunneppu-cho, Hokkaido"},
+    {1549u, std::string_view{"Kunneppu-cho, Hokkaido", 22}},
 
-    {1550u, "Oketo-cho, Hokkaido"},
+    {1550u, std::string_view{"Oketo-cho, Hokkaido", 19}},
 
-    {1552u, "Saroma-cho, Hokkaido"},
+    {1552u, std::string_view{"Saroma-cho, Hokkaido", 20}},
 
-    {1555u, "Engaru-cho, Hokkaido"},
+    {1555u, std::string_view{"Engaru-cho, Hokkaido", 20}},
 
-    {1559u, "Yubetsu-cho, Hokkaido"},
+    {1559u, std::string_view{"Yubetsu-cho, Hokkaido", 21}},
 
-    {1560u, "Takinoue-cho, Hokkaido"},
+    {1560u, std::string_view{"Takinoue-cho, Hokkaido", 22}},
 
-    {1561u, "Okoppe-cho, Hokkaido"},
+    {1561u, std::string_view{"Okoppe-cho, Hokkaido", 20}},
 
-    {1562u, "Nishiokoppe-mura, Hokkaido"},
+    {1562u, std::string_view{"Nishiokoppe-mura, Hokkaido", 26}},
 
-    {1563u, "Omu-cho, Hokkaido"},
+    {1563u, std::string_view{"Omu-cho, Hokkaido", 17}},
 
-    {1564u, "Ozora-cho, Hokkaido"},
+    {1564u, std::string_view{"Ozora-cho, Hokkaido", 19}},
 
-    {1571u, "Toyoura-cho, Hokkaido"},
+    {1571u, std::string_view{"Toyoura-cho, Hokkaido", 21}},
 
-    {1575u, "Sobetsu-cho, Hokkaido"},
+    {1575u, std::string_view{"Sobetsu-cho, Hokkaido", 21}},
 
-    {1578u, "Shiraoi-cho, Hokkaido"},
+    {1578u, std::string_view{"Shiraoi-cho, Hokkaido", 21}},
 
-    {1581u, "Atsuma-cho, Hokkaido"},
+    {1581u, std::string_view{"Atsuma-cho, Hokkaido", 20}},
 
-    {1584u, "Toyako-cho, Hokkaido"},
+    {1584u, std::string_view{"Toyako-cho, Hokkaido", 20}},
 
-    {1585u, "Abira-cho, Hokkaido"},
+    {1585u, std::string_view{"Abira-cho, Hokkaido", 19}},
 
-    {1586u, "Mukawa-cho, Hokkaido"},
+    {1586u, std::string_view{"Mukawa-cho, Hokkaido", 20}},
 
-    {1601u, "Hidaka-cho, Hokkaido"},
+    {1601u, std::string_view{"Hidaka-cho, Hokkaido", 20}},
 
-    {1602u, "Biratori-cho, Hokkaido"},
+    {1602u, std::string_view{"Biratori-cho, Hokkaido", 22}},
 
-    {1604u, "Niikappu-cho, Hokkaido"},
+    {1604u, std::string_view{"Niikappu-cho, Hokkaido", 22}},
 
-    {1607u, "Urakawa-cho, Hokkaido"},
+    {1607u, std::string_view{"Urakawa-cho, Hokkaido", 21}},
 
-    {1608u, "Samani-cho, Hokkaido"},
+    {1608u, std::string_view{"Samani-cho, Hokkaido", 20}},
 
-    {1609u, "Erimo-cho, Hokkaido"},
+    {1609u, std::string_view{"Erimo-cho, Hokkaido", 19}},
 
-    {1610u, "Shinhidaka-cho, Hokkaido"},
+    {1610u, std::string_view{"Shinhidaka-cho, Hokkaido", 24}},
 
-    {1631u, "Otofuke-cho, Hokkaido"},
+    {1631u, std::string_view{"Otofuke-cho, Hokkaido", 21}},
 
-    {1632u, "Shihoro-cho, Hokkaido"},
+    {1632u, std::string_view{"Shihoro-cho, Hokkaido", 21}},
 
-    {1633u, "Kamishihoro-cho, Hokkaido"},
+    {1633u, std::string_view{"Kamishihoro-cho, Hokkaido", 25}},
 
-    {1634u, "Shikaoi-cho, Hokkaido"},
+    {1634u, std::string_view{"Shikaoi-cho, Hokkaido", 21}},
 
-    {1635u, "Shintoku-cho, Hokkaido"},
+    {1635u, std::string_view{"Shintoku-cho, Hokkaido", 22}},
 
-    {1636u, "Shimizu-cho, Hokkaido"},
+    {1636u, std::string_view{"Shimizu-cho, Hokkaido", 21}},
 
-    {1637u, "Memuro-cho, Hokkaido"},
+    {1637u, std::string_view{"Memuro-cho, Hokkaido", 20}},
 
-    {1638u, "Nakasatsunai-mura, Hokkaido"},
+    {1638u, std::string_view{"Nakasatsunai-mura, Hokkaido", 27}},
 
-    {1639u, "Sarabetsu-mura, Hokkaido"},
+    {1639u, std::string_view{"Sarabetsu-mura, Hokkaido", 24}},
 
-    {1641u, "Taiki-cho, Hokkaido"},
+    {1641u, std::string_view{"Taiki-cho, Hokkaido", 19}},
 
-    {1642u, "Hiroo-cho, Hokkaido"},
+    {1642u, std::string_view{"Hiroo-cho, Hokkaido", 19}},
 
-    {1643u, "Makubetsu-cho, Hokkaido"},
+    {1643u, std::string_view{"Makubetsu-cho, Hokkaido", 23}},
 
-    {1644u, "Ikeda-cho, Hokkaido"},
+    {1644u, std::string_view{"Ikeda-cho, Hokkaido", 19}},
 
-    {1645u, "Toyokoro-cho, Hokkaido"},
+    {1645u, std::string_view{"Toyokoro-cho, Hokkaido", 22}},
 
-    {1646u, "Hombetsu-cho, Hokkaido"},
+    {1646u, std::string_view{"Hombetsu-cho, Hokkaido", 22}},
 
-    {1647u, "Ashoro-cho, Hokkaido"},
+    {1647u, std::string_view{"Ashoro-cho, Hokkaido", 20}},
 
-    {1648u, "Rikubetsu-cho, Hokkaido"},
+    {1648u, std::string_view{"Rikubetsu-cho, Hokkaido", 23}},
 
-    {1649u, "Urahoro-cho, Hokkaido"},
+    {1649u, std::string_view{"Urahoro-cho, Hokkaido", 21}},
 
-    {1661u, "Kushiro-cho, Hokkaido"},
+    {1661u, std::string_view{"Kushiro-cho, Hokkaido", 21}},
 
-    {1662u, "Akkeshi-cho, Hokkaido"},
+    {1662u, std::string_view{"Akkeshi-cho, Hokkaido", 21}},
 
-    {1663u, "Hamanaka-cho, Hokkaido"},
+    {1663u, std::string_view{"Hamanaka-cho, Hokkaido", 22}},
 
-    {1664u, "Shibecha-cho, Hokkaido"},
+    {1664u, std::string_view{"Shibecha-cho, Hokkaido", 22}},
 
-    {1665u, "Teshikaga-cho, Hokkaido"},
+    {1665u, std::string_view{"Teshikaga-cho, Hokkaido", 23}},
 
-    {1667u, "Tsurui-mura, Hokkaido"},
+    {1667u, std::string_view{"Tsurui-mura, Hokkaido", 21}},
 
-    {1668u, "Shiranuka-cho, Hokkaido"},
+    {1668u, std::string_view{"Shiranuka-cho, Hokkaido", 23}},
 
-    {1691u, "Betsukai-cho, Hokkaido"},
+    {1691u, std::string_view{"Betsukai-cho, Hokkaido", 22}},
 
-    {1692u, "Nakashibetsu-cho, Hokkaido"},
+    {1692u, std::string_view{"Nakashibetsu-cho, Hokkaido", 26}},
 
-    {1693u, "Shibetsu-cho, Hokkaido"},
+    {1693u, std::string_view{"Shibetsu-cho, Hokkaido", 22}},
 
-    {1694u, "Rausu-cho, Hokkaido"},
+    {1694u, std::string_view{"Rausu-cho, Hokkaido", 19}},
 
-    {1695u, "Shikotan-mura, Hokkaido"},
+    {1695u, std::string_view{"Shikotan-mura, Hokkaido", 23}},
 
-    {1696u, "Tomari-mura, Hokkaido"},
+    {1696u, std::string_view{"Tomari-mura, Hokkaido", 21}},
 
-    {1697u, "Ruyabetsu-mura, Hokkaido"},
+    {1697u, std::string_view{"Ruyabetsu-mura, Hokkaido", 24}},
 
-    {1698u, "Rubetsu-mura, Hokkaido"},
+    {1698u, std::string_view{"Rubetsu-mura, Hokkaido", 22}},
 
-    {1699u, "Shana-mura, Hokkaido"},
+    {1699u, std::string_view{"Shana-mura, Hokkaido", 20}},
 
-    {1700u, "Shibetoro-mura, Hokkaido"},
+    {1700u, std::string_view{"Shibetoro-mura, Hokkaido", 24}},
 
-    {2000u, "Aomori"},
+    {2000u, std::string_view{"Aomori", 6}},
 
-    {2201u, "Aomori-shi, Aomori"},
+    {2201u, std::string_view{"Aomori-shi, Aomori", 18}},
 
-    {2202u, "Hirosaki-shi, Aomori"},
+    {2202u, std::string_view{"Hirosaki-shi, Aomori", 20}},
 
-    {2203u, "Hachinohe-shi, Aomori"},
+    {2203u, std::string_view{"Hachinohe-shi, Aomori", 21}},
 
-    {2204u, "Kuroishi-shi, Aomori"},
+    {2204u, std::string_view{"Kuroishi-shi, Aomori", 20}},
 
-    {2205u, "Goshogawara-shi, Aomori"},
+    {2205u, std::string_view{"Goshogawara-shi, Aomori", 23}},
 
-    {2206u, "Towada-shi, Aomori"},
+    {2206u, std::string_view{"Towada-shi, Aomori", 18}},
 
-    {2207u, "Misawa-shi, Aomori"},
+    {2207u, std::string_view{"Misawa-shi, Aomori", 18}},
 
-    {2208u, "Mutsu-shi, Aomori"},
+    {2208u, std::string_view{"Mutsu-shi, Aomori", 17}},
 
-    {2209u, "Tsugaru-shi, Aomori"},
+    {2209u, std::string_view{"Tsugaru-shi, Aomori", 19}},
 
-    {2210u, "Hirakawa-shi, Aomori"},
+    {2210u, std::string_view{"Hirakawa-shi, Aomori", 20}},
 
-    {2301u, "Hiranai-machi, Aomori"},
+    {2301u, std::string_view{"Hiranai-machi, Aomori", 21}},
 
-    {2303u, "Imabetsu-machi, Aomori"},
+    {2303u, std::string_view{"Imabetsu-machi, Aomori", 22}},
 
-    {2304u, "Yomogita-mura, Aomori"},
+    {2304u, std::string_view{"Yomogita-mura, Aomori", 21}},
 
-    {2307u, "Sotogahama-machi, Aomori"},
+    {2307u, std::string_view{"Sotogahama-machi, Aomori", 24}},
 
-    {2321u, "Ajigasawa-machi, Aomori"},
+    {2321u, std::string_view{"Ajigasawa-machi, Aomori", 23}},
 
-    {2323u, "Fukaura-machi, Aomori"},
+    {2323u, std::string_view{"Fukaura-machi, Aomori", 21}},
 
-    {2343u, "Nishimeya-mura, Aomori"},
+    {2343u, std::string_view{"Nishimeya-mura, Aomori", 22}},
 
-    {2361u, "Fujisaki-machi, Aomori"},
+    {2361u, std::string_view{"Fujisaki-machi, Aomori", 22}},
 
-    {2362u, "Owani-machi, Aomori"},
+    {2362u, std::string_view{"Owani-machi, Aomori", 19}},
 
-    {2367u, "Inakadate-mura, Aomori"},
+    {2367u, std::string_view{"Inakadate-mura, Aomori", 22}},
 
-    {2381u, "Itayanagi-machi, Aomori"},
+    {2381u, std::string_view{"Itayanagi-machi, Aomori", 23}},
 
-    {2384u, "Tsuruta-machi, Aomori"},
+    {2384u, std::string_view{"Tsuruta-machi, Aomori", 21}},
 
-    {2387u, "Nakadomari-machi, Aomori"},
+    {2387u, std::string_view{"Nakadomari-machi, Aomori", 24}},
 
-    {2401u, "Noheji-machi, Aomori"},
+    {2401u, std::string_view{"Noheji-machi, Aomori", 20}},
 
-    {2402u, "Shichinohe-machi, Aomori"},
+    {2402u, std::string_view{"Shichinohe-machi, Aomori", 24}},
 
-    {2405u, "Rokunohe-machi, Aomori"},
+    {2405u, std::string_view{"Rokunohe-machi, Aomori", 22}},
 
-    {2406u, "Yokohama-machi, Aomori"},
+    {2406u, std::string_view{"Yokohama-machi, Aomori", 22}},
 
-    {2408u, "Tohoku-machi, Aomori"},
+    {2408u, std::string_view{"Tohoku-machi, Aomori", 20}},
 
-    {2411u, "Rokkasho-mura, Aomori"},
+    {2411u, std::string_view{"Rokkasho-mura, Aomori", 21}},
 
-    {2412u, "Oirase-cho, Aomori"},
+    {2412u, std::string_view{"Oirase-cho, Aomori", 18}},
 
-    {2423u, "Oma-machi, Aomori"},
+    {2423u, std::string_view{"Oma-machi, Aomori", 17}},
 
-    {2424u, "Higashidori-mura, Aomori"},
+    {2424u, std::string_view{"Higashidori-mura, Aomori", 24}},
 
-    {2425u, "Kazamaura-mura, Aomori"},
+    {2425u, std::string_view{"Kazamaura-mura, Aomori", 22}},
 
-    {2426u, "Sai-mura, Aomori"},
+    {2426u, std::string_view{"Sai-mura, Aomori", 16}},
 
-    {2441u, "Sannohe-machi, Aomori"},
+    {2441u, std::string_view{"Sannohe-machi, Aomori", 21}},
 
-    {2442u, "Gonohe-machi, Aomori"},
+    {2442u, std::string_view{"Gonohe-machi, Aomori", 20}},
 
-    {2443u, "Takko-machi, Aomori"},
+    {2443u, std::string_view{"Takko-machi, Aomori", 19}},
 
-    {2445u, "Nambu-cho, Aomori"},
+    {2445u, std::string_view{"Nambu-cho, Aomori", 17}},
 
-    {2446u, "Hashikami-cho, Aomori"},
+    {2446u, std::string_view{"Hashikami-cho, Aomori", 21}},
 
-    {2450u, "Shingo-mura, Aomori"},
+    {2450u, std::string_view{"Shingo-mura, Aomori", 19}},
 
-    {3000u, "Iwate"},
+    {3000u, std::string_view{"Iwate", 5}},
 
-    {3201u, "Morioka-shi, Iwate"},
+    {3201u, std::string_view{"Morioka-shi, Iwate", 18}},
 
-    {3202u, "Miyako-shi, Iwate"},
+    {3202u, std::string_view{"Miyako-shi, Iwate", 17}},
 
-    {3203u, "Ofunato-shi, Iwate"},
+    {3203u, std::string_view{"Ofunato-shi, Iwate", 18}},
 
-    {3205u, "Hanamaki-shi, Iwate"},
+    {3205u, std::string_view{"Hanamaki-shi, Iwate", 19}},
 
-    {3206u, "Kitakami-shi, Iwate"},
+    {3206u, std::string_view{"Kitakami-shi, Iwate", 19}},
 
-    {3207u, "Kuji-shi, Iwate"},
+    {3207u, std::string_view{"Kuji-shi, Iwate", 15}},
 
-    {3208u, "Tono-shi, Iwate"},
+    {3208u, std::string_view{"Tono-shi, Iwate", 15}},
 
-    {3209u, "Ichinoseki-shi, Iwate"},
+    {3209u, std::string_view{"Ichinoseki-shi, Iwate", 21}},
 
-    {3210u, "Rikuzentakata-shi, Iwate"},
+    {3210u, std::string_view{"Rikuzentakata-shi, Iwate", 24}},
 
-    {3211u, "Kamaishi-shi, Iwate"},
+    {3211u, std::string_view{"Kamaishi-shi, Iwate", 19}},
 
-    {3213u, "Ninohe-shi, Iwate"},
+    {3213u, std::string_view{"Ninohe-shi, Iwate", 17}},
 
-    {3214u, "Hachimantai-shi, Iwate"},
+    {3214u, std::string_view{"Hachimantai-shi, Iwate", 22}},
 
-    {3215u, "Oshu-shi, Iwate"},
+    {3215u, std::string_view{"Oshu-shi, Iwate", 15}},
 
-    {3216u, "Takizawa-shi, Iwate"},
+    {3216u, std::string_view{"Takizawa-shi, Iwate", 19}},
 
-    {3301u, "Shizukuishi-cho, Iwate"},
+    {3301u, std::string_view{"Shizukuishi-cho, Iwate", 22}},
 
-    {3302u, "Kuzumaki-machi, Iwate"},
+    {3302u, std::string_view{"Kuzumaki-machi, Iwate", 21}},
 
-    {3303u, "Iwate-machi, Iwate"},
+    {3303u, std::string_view{"Iwate-machi, Iwate", 18}},
 
-    {3321u, "Shiwa-cho, Iwate"},
+    {3321u, std::string_view{"Shiwa-cho, Iwate", 16}},
 
-    {3322u, "Yahaba-cho, Iwate"},
+    {3322u, std::string_view{"Yahaba-cho, Iwate", 17}},
 
-    {3366u, "Nishiwaga-machi, Iwate"},
+    {3366u, std::string_view{"Nishiwaga-machi, Iwate", 22}},
 
-    {3381u, "Kanegasaki-cho, Iwate"},
+    {3381u, std::string_view{"Kanegasaki-cho, Iwate", 21}},
 
-    {3402u, "Hiraizumi-cho, Iwate"},
+    {3402u, std::string_view{"Hiraizumi-cho, Iwate", 20}},
 
-    {3441u, "Sumita-cho, Iwate"},
+    {3441u, std::string_view{"Sumita-cho, Iwate", 17}},
 
-    {3461u, "Otsuchi-cho, Iwate"},
+    {3461u, std::string_view{"Otsuchi-cho, Iwate", 18}},
 
-    {3482u, "Yamada-machi, Iwate"},
+    {3482u, std::string_view{"Yamada-machi, Iwate", 19}},
 
-    {3483u, "Iwaizumi-cho, Iwate"},
+    {3483u, std::string_view{"Iwaizumi-cho, Iwate", 19}},
 
-    {3484u, "Tanohata-mura, Iwate"},
+    {3484u, std::string_view{"Tanohata-mura, Iwate", 20}},
 
-    {3485u, "Fudai-mura, Iwate"},
+    {3485u, std::string_view{"Fudai-mura, Iwate", 17}},
 
-    {3501u, "Karumai-machi, Iwate"},
+    {3501u, std::string_view{"Karumai-machi, Iwate", 20}},
 
-    {3503u, "Noda-mura, Iwate"},
+    {3503u, std::string_view{"Noda-mura, Iwate", 16}},
 
-    {3506u, "Kunohe-mura, Iwate"},
+    {3506u, std::string_view{"Kunohe-mura, Iwate", 18}},
 
-    {3507u, "Hirono-cho, Iwate"},
+    {3507u, std::string_view{"Hirono-cho, Iwate", 17}},
 
-    {3524u, "Ichinohe-machi, Iwate"},
+    {3524u, std::string_view{"Ichinohe-machi, Iwate", 21}},
 
-    {4000u, "Miyagi"},
+    {4000u, std::string_view{"Miyagi", 6}},
 
-    {4100u, "Sendai-shi, Miyagi"},
+    {4100u, std::string_view{"Sendai-shi, Miyagi", 18}},
 
-    {4101u, "Aoba-ku, Sendai-shi"},
+    {4101u, std::string_view{"Aoba-ku, Sendai-shi", 19}},
 
-    {4102u, "Miyagino-ku, Sendai-shi"},
+    {4102u, std::string_view{"Miyagino-ku, Sendai-shi", 23}},
 
-    {4103u, "Wakabayashi-ku, Sendai-shi"},
+    {4103u, std::string_view{"Wakabayashi-ku, Sendai-shi", 26}},
 
-    {4104u, "Taihaku-ku, Sendai-shi"},
+    {4104u, std::string_view{"Taihaku-ku, Sendai-shi", 22}},
 
-    {4105u, "Izumi-ku, Sendai-shi"},
+    {4105u, std::string_view{"Izumi-ku, Sendai-shi", 20}},
 
-    {4202u, "Ishinomaki-shi, Miyagi"},
+    {4202u, std::string_view{"Ishinomaki-shi, Miyagi", 22}},
 
-    {4203u, "Shiogama-shi, Miyagi"},
+    {4203u, std::string_view{"Shiogama-shi, Miyagi", 20}},
 
-    {4205u, "Kesennuma-shi, Miyagi"},
+    {4205u, std::string_view{"Kesennuma-shi, Miyagi", 21}},
 
-    {4206u, "Shiroishi-shi, Miyagi"},
+    {4206u, std::string_view{"Shiroishi-shi, Miyagi", 21}},
 
-    {4207u, "Natori-shi, Miyagi"},
+    {4207u, std::string_view{"Natori-shi, Miyagi", 18}},
 
-    {4208u, "Kakuda-shi, Miyagi"},
+    {4208u, std::string_view{"Kakuda-shi, Miyagi", 18}},
 
-    {4209u, "Tagajo-shi, Miyagi"},
+    {4209u, std::string_view{"Tagajo-shi, Miyagi", 18}},
 
-    {4211u, "Iwanuma-shi, Miyagi"},
+    {4211u, std::string_view{"Iwanuma-shi, Miyagi", 19}},
 
-    {4212u, "Tome-shi, Miyagi"},
+    {4212u, std::string_view{"Tome-shi, Miyagi", 16}},
 
-    {4213u, "Kurihara-shi, Miyagi"},
+    {4213u, std::string_view{"Kurihara-shi, Miyagi", 20}},
 
-    {4214u, "Higashimatsushima-shi, Miyagi"},
+    {4214u, std::string_view{"Higashimatsushima-shi, Miyagi", 29}},
 
-    {4215u, "Osaki-shi, Miyagi"},
+    {4215u, std::string_view{"Osaki-shi, Miyagi", 17}},
 
-    {4216u, "Tomiya-shi, Miyagi"},
+    {4216u, std::string_view{"Tomiya-shi, Miyagi", 18}},
 
-    {4301u, "Zao-machi, Miyagi"},
+    {4301u, std::string_view{"Zao-machi, Miyagi", 17}},
 
-    {4302u, "Shichikashuku-machi, Miyagi"},
+    {4302u, std::string_view{"Shichikashuku-machi, Miyagi", 27}},
 
-    {4321u, "Ogawara-machi, Miyagi"},
+    {4321u, std::string_view{"Ogawara-machi, Miyagi", 21}},
 
-    {4322u, "Murata-machi, Miyagi"},
+    {4322u, std::string_view{"Murata-machi, Miyagi", 20}},
 
-    {4323u, "Shibata-machi, Miyagi"},
+    {4323u, std::string_view{"Shibata-machi, Miyagi", 21}},
 
-    {4324u, "Kawasaki-machi, Miyagi"},
+    {4324u, std::string_view{"Kawasaki-machi, Miyagi", 22}},
 
-    {4341u, "Marumori-machi, Miyagi"},
+    {4341u, std::string_view{"Marumori-machi, Miyagi", 22}},
 
-    {4361u, "Watari-cho, Miyagi"},
+    {4361u, std::string_view{"Watari-cho, Miyagi", 18}},
 
-    {4362u, "Yamamoto-cho, Miyagi"},
+    {4362u, std::string_view{"Yamamoto-cho, Miyagi", 20}},
 
-    {4401u, "Matsushima-machi, Miyagi"},
+    {4401u, std::string_view{"Matsushima-machi, Miyagi", 24}},
 
-    {4404u, "Shichigahama-machi, Miyagi"},
+    {4404u, std::string_view{"Shichigahama-machi, Miyagi", 26}},
 
-    {4406u, "Rifu-cho, Miyagi"},
+    {4406u, std::string_view{"Rifu-cho, Miyagi", 16}},
 
-    {4421u, "Taiwa-cho, Miyagi"},
+    {4421u, std::string_view{"Taiwa-cho, Miyagi", 17}},
 
-    {4422u, "Osato-cho, Miyagi"},
+    {4422u, std::string_view{"Osato-cho, Miyagi", 17}},
 
-    {4424u, "Ohira-mura, Miyagi"},
+    {4424u, std::string_view{"Ohira-mura, Miyagi", 18}},
 
-    {4444u, "Shikama-cho, Miyagi"},
+    {4444u, std::string_view{"Shikama-cho, Miyagi", 19}},
 
-    {4445u, "Kami-machi, Miyagi"},
+    {4445u, std::string_view{"Kami-machi, Miyagi", 18}},
 
-    {4501u, "Wakuya-cho, Miyagi"},
+    {4501u, std::string_view{"Wakuya-cho, Miyagi", 18}},
 
-    {4505u, "Misato-machi, Miyagi"},
+    {4505u, std::string_view{"Misato-machi, Miyagi", 20}},
 
-    {4581u, "Onagawa-cho, Miyagi"},
+    {4581u, std::string_view{"Onagawa-cho, Miyagi", 19}},
 
-    {4606u, "Minamisanriku-cho, Miyagi"},
+    {4606u, std::string_view{"Minamisanriku-cho, Miyagi", 25}},
 
-    {5000u, "Akita"},
+    {5000u, std::string_view{"Akita", 5}},
 
-    {5201u, "Akita-shi, Akita"},
+    {5201u, std::string_view{"Akita-shi, Akita", 16}},
 
-    {5202u, "Noshiro-shi, Akita"},
+    {5202u, std::string_view{"Noshiro-shi, Akita", 18}},
 
-    {5203u, "Yokote-shi, Akita"},
+    {5203u, std::string_view{"Yokote-shi, Akita", 17}},
 
-    {5204u, "Odate-shi, Akita"},
+    {5204u, std::string_view{"Odate-shi, Akita", 16}},
 
-    {5206u, "Oga-shi, Akita"},
+    {5206u, std::string_view{"Oga-shi, Akita", 14}},
 
-    {5207u, "Yuzawa-shi, Akita"},
+    {5207u, std::string_view{"Yuzawa-shi, Akita", 17}},
 
-    {5209u, "Kazuno-shi, Akita"},
+    {5209u, std::string_view{"Kazuno-shi, Akita", 17}},
 
-    {5210u, "Yurihonjo-shi, Akita"},
+    {5210u, std::string_view{"Yurihonjo-shi, Akita", 20}},
 
-    {5211u, "Katagami-shi, Akita"},
+    {5211u, std::string_view{"Katagami-shi, Akita", 19}},
 
-    {5212u, "Daisen-shi, Akita"},
+    {5212u, std::string_view{"Daisen-shi, Akita", 17}},
 
-    {5213u, "Kitaakita-shi, Akita"},
+    {5213u, std::string_view{"Kitaakita-shi, Akita", 20}},
 
-    {5214u, "Nikaho-shi, Akita"},
+    {5214u, std::string_view{"Nikaho-shi, Akita", 17}},
 
-    {5215u, "Semboku-shi, Akita"},
+    {5215u, std::string_view{"Semboku-shi, Akita", 18}},
 
-    {5303u, "Kosaka-machi, Akita"},
+    {5303u, std::string_view{"Kosaka-machi, Akita", 19}},
 
-    {5327u, "Kamikoani-mura, Akita"},
+    {5327u, std::string_view{"Kamikoani-mura, Akita", 21}},
 
-    {5346u, "Fujisato-machi, Akita"},
+    {5346u, std::string_view{"Fujisato-machi, Akita", 21}},
 
-    {5348u, "Mitane-cho, Akita"},
+    {5348u, std::string_view{"Mitane-cho, Akita", 17}},
 
-    {5349u, "Happo-cho, Akita"},
+    {5349u, std::string_view{"Happo-cho, Akita", 16}},
 
-    {5361u, "Gojome-machi, Akita"},
+    {5361u, std::string_view{"Gojome-machi, Akita", 19}},
 
-    {5363u, "Hachirogata-machi, Akita"},
+    {5363u, std::string_view{"Hachirogata-machi, Akita", 24}},
 
-    {5366u, "Ikawa-machi, Akita"},
+    {5366u, std::string_view{"Ikawa-machi, Akita", 18}},
 
-    {5368u, "Ogata-mura, Akita"},
+    {5368u, std::string_view{"Ogata-mura, Akita", 17}},
 
-    {5434u, "Misato-cho, Akita"},
+    {5434u, std::string_view{"Misato-cho, Akita", 17}},
 
-    {5463u, "Ugo-machi, Akita"},
+    {5463u, std::string_view{"Ugo-machi, Akita", 16}},
 
-    {5464u, "Higashinaruse-mura, Akita"},
+    {5464u, std::string_view{"Higashinaruse-mura, Akita", 25}},
 
-    {6000u, "Yamagata"},
+    {6000u, std::string_view{"Yamagata", 8}},
 
-    {6201u, "Yamagata-shi, Yamagata"},
+    {6201u, std::string_view{"Yamagata-shi, Yamagata", 22}},
 
-    {6202u, "Yonezawa-shi, Yamagata"},
+    {6202u, std::string_view{"Yonezawa-shi, Yamagata", 22}},
 
-    {6203u, "Tsuruoka-shi, Yamagata"},
+    {6203u, std::string_view{"Tsuruoka-shi, Yamagata", 22}},
 
-    {6204u, "Sakata-shi, Yamagata"},
+    {6204u, std::string_view{"Sakata-shi, Yamagata", 20}},
 
-    {6205u, "Shinjo-shi, Yamagata"},
+    {6205u, std::string_view{"Shinjo-shi, Yamagata", 20}},
 
-    {6206u, "Sagae-shi, Yamagata"},
+    {6206u, std::string_view{"Sagae-shi, Yamagata", 19}},
 
-    {6207u, "Kaminoyama-shi, Yamagata"},
+    {6207u, std::string_view{"Kaminoyama-shi, Yamagata", 24}},
 
-    {6208u, "Murayama-shi, Yamagata"},
+    {6208u, std::string_view{"Murayama-shi, Yamagata", 22}},
 
-    {6209u, "Nagai-shi, Yamagata"},
+    {6209u, std::string_view{"Nagai-shi, Yamagata", 19}},
 
-    {6210u, "Tendo-shi, Yamagata"},
+    {6210u, std::string_view{"Tendo-shi, Yamagata", 19}},
 
-    {6211u, "Higashine-shi, Yamagata"},
+    {6211u, std::string_view{"Higashine-shi, Yamagata", 23}},
 
-    {6212u, "Obanazawa-shi, Yamagata"},
+    {6212u, std::string_view{"Obanazawa-shi, Yamagata", 23}},
 
-    {6213u, "Nanyo-shi, Yamagata"},
+    {6213u, std::string_view{"Nanyo-shi, Yamagata", 19}},
 
-    {6301u, "Yamanobe-machi, Yamagata"},
+    {6301u, std::string_view{"Yamanobe-machi, Yamagata", 24}},
 
-    {6302u, "Nakayama-machi, Yamagata"},
+    {6302u, std::string_view{"Nakayama-machi, Yamagata", 24}},
 
-    {6321u, "Kahoku-cho, Yamagata"},
+    {6321u, std::string_view{"Kahoku-cho, Yamagata", 20}},
 
-    {6322u, "Nishikawa-machi, Yamagata"},
+    {6322u, std::string_view{"Nishikawa-machi, Yamagata", 25}},
 
-    {6323u, "Asahi-machi, Yamagata"},
+    {6323u, std::string_view{"Asahi-machi, Yamagata", 21}},
 
-    {6324u, "Oe-machi, Yamagata"},
+    {6324u, std::string_view{"Oe-machi, Yamagata", 18}},
 
-    {6341u, "Oishida-machi, Yamagata"},
+    {6341u, std::string_view{"Oishida-machi, Yamagata", 23}},
 
-    {6361u, "Kaneyama-machi, Yamagata"},
+    {6361u, std::string_view{"Kaneyama-machi, Yamagata", 24}},
 
-    {6362u, "Mogami-machi, Yamagata"},
+    {6362u, std::string_view{"Mogami-machi, Yamagata", 22}},
 
-    {6363u, "Funagata-machi, Yamagata"},
+    {6363u, std::string_view{"Funagata-machi, Yamagata", 24}},
 
-    {6364u, "Mamurogawa-machi, Yamagata"},
+    {6364u, std::string_view{"Mamurogawa-machi, Yamagata", 26}},
 
-    {6365u, "Okura-mura, Yamagata"},
+    {6365u, std::string_view{"Okura-mura, Yamagata", 20}},
 
-    {6366u, "Sakegawa-mura, Yamagata"},
+    {6366u, std::string_view{"Sakegawa-mura, Yamagata", 23}},
 
-    {6367u, "Tozawa-mura, Yamagata"},
+    {6367u, std::string_view{"Tozawa-mura, Yamagata", 21}},
 
-    {6381u, "Takahata-machi, Yamagata"},
+    {6381u, std::string_view{"Takahata-machi, Yamagata", 24}},
 
-    {6382u, "Kawanishi-machi, Yamagata"},
+    {6382u, std::string_view{"Kawanishi-machi, Yamagata", 25}},
 
-    {6401u, "Oguni-machi, Yamagata"},
+    {6401u, std::string_view{"Oguni-machi, Yamagata", 21}},
 
-    {6402u, "Shirataka-machi, Yamagata"},
+    {6402u, std::string_view{"Shirataka-machi, Yamagata", 25}},
 
-    {6403u, "Iide-machi, Yamagata"},
+    {6403u, std::string_view{"Iide-machi, Yamagata", 20}},
 
-    {6426u, "Mikawa-machi, Yamagata"},
+    {6426u, std::string_view{"Mikawa-machi, Yamagata", 22}},
 
-    {6428u, "Shiyonai-machi, Yamagata"},
+    {6428u, std::string_view{"Shiyonai-machi, Yamagata", 24}},
 
-    {6461u, "Yuza-machi, Yamagata"},
+    {6461u, std::string_view{"Yuza-machi, Yamagata", 20}},
 
-    {7000u, "Fukushima"},
+    {7000u, std::string_view{"Fukushima", 9}},
 
-    {7201u, "Fukushima-shi, Fukushima"},
+    {7201u, std::string_view{"Fukushima-shi, Fukushima", 24}},
 
-    {7202u, "Aizuwakamatsu-shi, Fukushima"},
+    {7202u, std::string_view{"Aizuwakamatsu-shi, Fukushima", 28}},
 
-    {7203u, "Koriyama-shi, Fukushima"},
+    {7203u, std::string_view{"Koriyama-shi, Fukushima", 23}},
 
-    {7204u, "Iwaki-shi, Fukushima"},
+    {7204u, std::string_view{"Iwaki-shi, Fukushima", 20}},
 
-    {7205u, "Shirakawa-shi, Fukushima"},
+    {7205u, std::string_view{"Shirakawa-shi, Fukushima", 24}},
 
-    {7207u, "Sukagawa-shi, Fukushima"},
+    {7207u, std::string_view{"Sukagawa-shi, Fukushima", 23}},
 
-    {7208u, "Kitakata-shi, Fukushima"},
+    {7208u, std::string_view{"Kitakata-shi, Fukushima", 23}},
 
-    {7209u, "Soma-shi, Fukushima"},
+    {7209u, std::string_view{"Soma-shi, Fukushima", 19}},
 
-    {7210u, "Nihommatsu-shi, Fukushima"},
+    {7210u, std::string_view{"Nihommatsu-shi, Fukushima", 25}},
 
-    {7211u, "Tamura-shi, Fukushima"},
+    {7211u, std::string_view{"Tamura-shi, Fukushima", 21}},
 
-    {7212u, "Minamisoma-shi, Fukushima"},
+    {7212u, std::string_view{"Minamisoma-shi, Fukushima", 25}},
 
-    {7213u, "Date-shi, Fukushima"},
+    {7213u, std::string_view{"Date-shi, Fukushima", 19}},
 
-    {7214u, "Motomiya-shi, Fukushima"},
+    {7214u, std::string_view{"Motomiya-shi, Fukushima", 23}},
 
-    {7301u, "Koori-machi, Fukushima"},
+    {7301u, std::string_view{"Koori-machi, Fukushima", 22}},
 
-    {7303u, "Kunimi-machi, Fukushima"},
+    {7303u, std::string_view{"Kunimi-machi, Fukushima", 23}},
 
-    {7308u, "Kawamata-machi, Fukushima"},
+    {7308u, std::string_view{"Kawamata-machi, Fukushima", 25}},
 
-    {7322u, "Otama-mura, Fukushima"},
+    {7322u, std::string_view{"Otama-mura, Fukushima", 21}},
 
-    {7342u, "Kagamiishi-machi, Fukushima"},
+    {7342u, std::string_view{"Kagamiishi-machi, Fukushima", 27}},
 
-    {7344u, "Tenei-mura, Fukushima"},
+    {7344u, std::string_view{"Tenei-mura, Fukushima", 21}},
 
-    {7362u, "Shimogo-machi, Fukushima"},
+    {7362u, std::string_view{"Shimogo-machi, Fukushima", 24}},
 
-    {7364u, "Hinoemata-mura, Fukushima"},
+    {7364u, std::string_view{"Hinoemata-mura, Fukushima", 25}},
 
-    {7367u, "Tadami-machi, Fukushima"},
+    {7367u, std::string_view{"Tadami-machi, Fukushima", 23}},
 
-    {7368u, "Minamiaizu-machi, Fukushima"},
+    {7368u, std::string_view{"Minamiaizu-machi, Fukushima", 27}},
 
-    {7402u, "Kitashiobara-mura, Fukushima"},
+    {7402u, std::string_view{"Kitashiobara-mura, Fukushima", 28}},
 
-    {7405u, "Nishiaizu-machi, Fukushima"},
+    {7405u, std::string_view{"Nishiaizu-machi, Fukushima", 26}},
 
-    {7407u, "Bandai-machi, Fukushima"},
+    {7407u, std::string_view{"Bandai-machi, Fukushima", 23}},
 
-    {7408u, "Inawashiro-machi, Fukushima"},
+    {7408u, std::string_view{"Inawashiro-machi, Fukushima", 27}},
 
-    {7421u, "Aizubange-machi, Fukushima"},
+    {7421u, std::string_view{"Aizubange-machi, Fukushima", 26}},
 
-    {7422u, "Yugawa-mura, Fukushima"},
+    {7422u, std::string_view{"Yugawa-mura, Fukushima", 22}},
 
-    {7423u, "Yanaizu-machi, Fukushima"},
+    {7423u, std::string_view{"Yanaizu-machi, Fukushima", 24}},
 
-    {7444u, "Mishima-machi, Fukushima"},
+    {7444u, std::string_view{"Mishima-machi, Fukushima", 24}},
 
-    {7445u, "Kaneyama-machi, Fukushima"},
+    {7445u, std::string_view{"Kaneyama-machi, Fukushima", 25}},
 
-    {7446u, "Showa-mura, Fukushima"},
+    {7446u, std::string_view{"Showa-mura, Fukushima", 21}},
 
-    {7447u, "Aizumisato-machi, Fukushima"},
+    {7447u, std::string_view{"Aizumisato-machi, Fukushima", 27}},
 
-    {7461u, "Nishigo-mura, Fukushima"},
+    {7461u, std::string_view{"Nishigo-mura, Fukushima", 23}},
 
-    {7464u, "Izumizaki-mura, Fukushima"},
+    {7464u, std::string_view{"Izumizaki-mura, Fukushima", 25}},
 
-    {7465u, "Nakajima-mura, Fukushima"},
+    {7465u, std::string_view{"Nakajima-mura, Fukushima", 24}},
 
-    {7466u, "Yabuki-machi, Fukushima"},
+    {7466u, std::string_view{"Yabuki-machi, Fukushima", 23}},
 
-    {7481u, "Tanagura-machi, Fukushima"},
+    {7481u, std::string_view{"Tanagura-machi, Fukushima", 25}},
 
-    {7482u, "Yamatsuri-machi, Fukushima"},
+    {7482u, std::string_view{"Yamatsuri-machi, Fukushima", 26}},
 
-    {7483u, "Hanawa-machi, Fukushima"},
+    {7483u, std::string_view{"Hanawa-machi, Fukushima", 23}},
 
-    {7484u, "Samegawa-mura, Fukushima"},
+    {7484u, std::string_view{"Samegawa-mura, Fukushima", 24}},
 
-    {7501u, "Ishikawa-machi, Fukushima"},
+    {7501u, std::string_view{"Ishikawa-machi, Fukushima", 25}},
 
-    {7502u, "Tamakawa-mura, Fukushima"},
+    {7502u, std::string_view{"Tamakawa-mura, Fukushima", 24}},
 
-    {7503u, "Hirata-mura, Fukushima"},
+    {7503u, std::string_view{"Hirata-mura, Fukushima", 22}},
 
-    {7504u, "Asakawa-machi, Fukushima"},
+    {7504u, std::string_view{"Asakawa-machi, Fukushima", 24}},
 
-    {7505u, "Furudono-machi, Fukushima"},
+    {7505u, std::string_view{"Furudono-machi, Fukushima", 25}},
 
-    {7521u, "Miharu-machi, Fukushima"},
+    {7521u, std::string_view{"Miharu-machi, Fukushima", 23}},
 
-    {7522u, "Ono-machi, Fukushima"},
+    {7522u, std::string_view{"Ono-machi, Fukushima", 20}},
 
-    {7541u, "Hirono-machi, Fukushima"},
+    {7541u, std::string_view{"Hirono-machi, Fukushima", 23}},
 
-    {7542u, "Naraha-machi, Fukushima"},
+    {7542u, std::string_view{"Naraha-machi, Fukushima", 23}},
 
-    {7543u, "Tomioka-machi, Fukushima"},
+    {7543u, std::string_view{"Tomioka-machi, Fukushima", 24}},
 
-    {7544u, "Kawauchi-mura, Fukushima"},
+    {7544u, std::string_view{"Kawauchi-mura, Fukushima", 24}},
 
-    {7545u, "Okuma-machi, Fukushima"},
+    {7545u, std::string_view{"Okuma-machi, Fukushima", 22}},
 
-    {7546u, "Futaba-machi, Fukushima"},
+    {7546u, std::string_view{"Futaba-machi, Fukushima", 23}},
 
-    {7547u, "Namie-machi, Fukushima"},
+    {7547u, std::string_view{"Namie-machi, Fukushima", 22}},
 
-    {7548u, "Katsurao-mura, Fukushima"},
+    {7548u, std::string_view{"Katsurao-mura, Fukushima", 24}},
 
-    {7561u, "Shinchi-machi, Fukushima"},
+    {7561u, std::string_view{"Shinchi-machi, Fukushima", 24}},
 
-    {7564u, "Iitate-mura, Fukushima"},
+    {7564u, std::string_view{"Iitate-mura, Fukushima", 22}},
 
-    {8000u, "Ibaraki"},
+    {8000u, std::string_view{"Ibaraki", 7}},
 
-    {8201u, "Mito-shi, Ibaraki"},
+    {8201u, std::string_view{"Mito-shi, Ibaraki", 17}},
 
-    {8202u, "Hitachi-shi, Ibaraki"},
+    {8202u, std::string_view{"Hitachi-shi, Ibaraki", 20}},
 
-    {8203u, "Tsuchiura-shi, Ibaraki"},
+    {8203u, std::string_view{"Tsuchiura-shi, Ibaraki", 22}},
 
-    {8204u, "Koga-shi, Ibaraki"},
+    {8204u, std::string_view{"Koga-shi, Ibaraki", 17}},
 
-    {8205u, "Ishioka-shi, Ibaraki"},
+    {8205u, std::string_view{"Ishioka-shi, Ibaraki", 20}},
 
-    {8207u, "Yuki-shi, Ibaraki"},
+    {8207u, std::string_view{"Yuki-shi, Ibaraki", 17}},
 
-    {8208u, "Ryugasaki-shi, Ibaraki"},
+    {8208u, std::string_view{"Ryugasaki-shi, Ibaraki", 22}},
 
-    {8210u, "Shimotsuma-shi, Ibaraki"},
+    {8210u, std::string_view{"Shimotsuma-shi, Ibaraki", 23}},
 
-    {8211u, "Joso-shi, Ibaraki"},
+    {8211u, std::string_view{"Joso-shi, Ibaraki", 17}},
 
-    {8212u, "Hitachiota-shi, Ibaraki"},
+    {8212u, std::string_view{"Hitachiota-shi, Ibaraki", 23}},
 
-    {8214u, "Takahagi-shi, Ibaraki"},
+    {8214u, std::string_view{"Takahagi-shi, Ibaraki", 21}},
 
-    {8215u, "Kitaibaraki-shi, Ibaraki"},
+    {8215u, std::string_view{"Kitaibaraki-shi, Ibaraki", 24}},
 
-    {8216u, "Kasama-shi, Ibaraki"},
+    {8216u, std::string_view{"Kasama-shi, Ibaraki", 19}},
 
-    {8217u, "Toride-shi, Ibaraki"},
+    {8217u, std::string_view{"Toride-shi, Ibaraki", 19}},
 
-    {8219u, "Ushiku-shi, Ibaraki"},
+    {8219u, std::string_view{"Ushiku-shi, Ibaraki", 19}},
 
-    {8220u, "Tsukuba-shi, Ibaraki"},
+    {8220u, std::string_view{"Tsukuba-shi, Ibaraki", 20}},
 
-    {8221u, "Hitachinaka-shi, Ibaraki"},
+    {8221u, std::string_view{"Hitachinaka-shi, Ibaraki", 24}},
 
-    {8222u, "Kashima-shi, Ibaraki"},
+    {8222u, std::string_view{"Kashima-shi, Ibaraki", 20}},
 
-    {8223u, "Itako-shi, Ibaraki"},
+    {8223u, std::string_view{"Itako-shi, Ibaraki", 18}},
 
-    {8224u, "Moriya-shi, Ibaraki"},
+    {8224u, std::string_view{"Moriya-shi, Ibaraki", 19}},
 
-    {8225u, "Hitachiomiya-shi, Ibaraki"},
+    {8225u, std::string_view{"Hitachiomiya-shi, Ibaraki", 25}},
 
-    {8226u, "Naka-shi, Ibaraki"},
+    {8226u, std::string_view{"Naka-shi, Ibaraki", 17}},
 
-    {8227u, "Chikusei-shi, Ibaraki"},
+    {8227u, std::string_view{"Chikusei-shi, Ibaraki", 21}},
 
-    {8228u, "Bando-shi, Ibaraki"},
+    {8228u, std::string_view{"Bando-shi, Ibaraki", 18}},
 
-    {8229u, "Inashiki-shi, Ibaraki"},
+    {8229u, std::string_view{"Inashiki-shi, Ibaraki", 21}},
 
-    {8230u, "Kasumigaura-shi, Ibaraki"},
+    {8230u, std::string_view{"Kasumigaura-shi, Ibaraki", 24}},
 
-    {8231u, "Sakuragawa-shi, Ibaraki"},
+    {8231u, std::string_view{"Sakuragawa-shi, Ibaraki", 23}},
 
-    {8232u, "Kamisu-shi, Ibaraki"},
+    {8232u, std::string_view{"Kamisu-shi, Ibaraki", 19}},
 
-    {8233u, "Namegata-shi, Ibaraki"},
+    {8233u, std::string_view{"Namegata-shi, Ibaraki", 21}},
 
-    {8234u, "Hokota-shi, Ibaraki"},
+    {8234u, std::string_view{"Hokota-shi, Ibaraki", 19}},
 
-    {8235u, "Tsukubamirai-shi, Ibaraki"},
+    {8235u, std::string_view{"Tsukubamirai-shi, Ibaraki", 25}},
 
-    {8236u, "Omitama-shi, Ibaraki"},
+    {8236u, std::string_view{"Omitama-shi, Ibaraki", 20}},
 
-    {8302u, "Ibaraki-machi, Ibaraki"},
+    {8302u, std::string_view{"Ibaraki-machi, Ibaraki", 22}},
 
-    {8309u, "Oarai-machi, Ibaraki"},
+    {8309u, std::string_view{"Oarai-machi, Ibaraki", 20}},
 
-    {8310u, "Shirosato-machi, Ibaraki"},
+    {8310u, std::string_view{"Shirosato-machi, Ibaraki", 24}},
 
-    {8341u, "Tokai-mura, Ibaraki"},
+    {8341u, std::string_view{"Tokai-mura, Ibaraki", 19}},
 
-    {8364u, "Daigo-machi, Ibaraki"},
+    {8364u, std::string_view{"Daigo-machi, Ibaraki", 20}},
 
-    {8442u, "Miho-mura, Ibaraki"},
+    {8442u, std::string_view{"Miho-mura, Ibaraki", 18}},
 
-    {8443u, "Ami-machi, Ibaraki"},
+    {8443u, std::string_view{"Ami-machi, Ibaraki", 18}},
 
-    {8447u, "Kawachi-machi, Ibaraki"},
+    {8447u, std::string_view{"Kawachi-machi, Ibaraki", 22}},
 
-    {8521u, "Yachiyo-machi, Ibaraki"},
+    {8521u, std::string_view{"Yachiyo-machi, Ibaraki", 22}},
 
-    {8542u, "Goka-machi, Ibaraki"},
+    {8542u, std::string_view{"Goka-machi, Ibaraki", 19}},
 
-    {8546u, "Sakai-machi, Ibaraki"},
+    {8546u, std::string_view{"Sakai-machi, Ibaraki", 20}},
 
-    {8564u, "Tone-machi, Ibaraki"},
+    {8564u, std::string_view{"Tone-machi, Ibaraki", 19}},
 
-    {9000u, "Tochigi"},
+    {9000u, std::string_view{"Tochigi", 7}},
 
-    {9201u, "Utsunomiya-shi, Tochigi"},
+    {9201u, std::string_view{"Utsunomiya-shi, Tochigi", 23}},
 
-    {9202u, "Ashikaga-shi, Tochigi"},
+    {9202u, std::string_view{"Ashikaga-shi, Tochigi", 21}},
 
-    {9203u, "Tochigi-shi, Tochigi"},
+    {9203u, std::string_view{"Tochigi-shi, Tochigi", 20}},
 
-    {9204u, "Sano-shi, Tochigi"},
+    {9204u, std::string_view{"Sano-shi, Tochigi", 17}},
 
-    {9205u, "Kanuma-shi, Tochigi"},
+    {9205u, std::string_view{"Kanuma-shi, Tochigi", 19}},
 
-    {9206u, "Nikko-shi, Tochigi"},
+    {9206u, std::string_view{"Nikko-shi, Tochigi", 18}},
 
-    {9208u, "Oyama-shi, Tochigi"},
+    {9208u, std::string_view{"Oyama-shi, Tochigi", 18}},
 
-    {9209u, "Moka-shi, Tochigi"},
+    {9209u, std::string_view{"Moka-shi, Tochigi", 17}},
 
-    {9210u, "Otawara-shi, Tochigi"},
+    {9210u, std::string_view{"Otawara-shi, Tochigi", 20}},
 
-    {9211u, "Yaita-shi, Tochigi"},
+    {9211u, std::string_view{"Yaita-shi, Tochigi", 18}},
 
-    {9213u, "Nasushiobara-shi, Tochigi"},
+    {9213u, std::string_view{"Nasushiobara-shi, Tochigi", 25}},
 
-    {9214u, "Sakura-shi, Tochigi"},
+    {9214u, std::string_view{"Sakura-shi, Tochigi", 19}},
 
-    {9215u, "Nasukarasuyama-shi, Tochigi"},
+    {9215u, std::string_view{"Nasukarasuyama-shi, Tochigi", 27}},
 
-    {9216u, "Shimotsuke-shi, Tochigi"},
+    {9216u, std::string_view{"Shimotsuke-shi, Tochigi", 23}},
 
-    {9301u, "Kaminokawa-machi, Tochigi"},
+    {9301u, std::string_view{"Kaminokawa-machi, Tochigi", 25}},
 
-    {9342u, "Mashiko-machi, Tochigi"},
+    {9342u, std::string_view{"Mashiko-machi, Tochigi", 22}},
 
-    {9343u, "Motegi-machi, Tochigi"},
+    {9343u, std::string_view{"Motegi-machi, Tochigi", 21}},
 
-    {9344u, "Ichikai-machi, Tochigi"},
+    {9344u, std::string_view{"Ichikai-machi, Tochigi", 22}},
 
-    {9345u, "Haga-machi, Tochigi"},
+    {9345u, std::string_view{"Haga-machi, Tochigi", 19}},
 
-    {9361u, "Mibu-machi, Tochigi"},
+    {9361u, std::string_view{"Mibu-machi, Tochigi", 19}},
 
-    {9364u, "Nogi-machi, Tochigi"},
+    {9364u, std::string_view{"Nogi-machi, Tochigi", 19}},
 
-    {9384u, "Shioya-machi, Tochigi"},
+    {9384u, std::string_view{"Shioya-machi, Tochigi", 21}},
 
-    {9386u, "Takanezawa-machi, Tochigi"},
+    {9386u, std::string_view{"Takanezawa-machi, Tochigi", 25}},
 
-    {9407u, "Nasu-machi, Tochigi"},
+    {9407u, std::string_view{"Nasu-machi, Tochigi", 19}},
 
-    {9411u, "Nakagawa-machi, Tochigi"},
+    {9411u, std::string_view{"Nakagawa-machi, Tochigi", 23}},
 
-    {10000u, "Gumma"},
+    {10000u, std::string_view{"Gumma", 5}},
 
-    {10201u, "Maebashi-shi, Gumma"},
+    {10201u, std::string_view{"Maebashi-shi, Gumma", 19}},
 
-    {10202u, "Takasaki-shi, Gumma"},
+    {10202u, std::string_view{"Takasaki-shi, Gumma", 19}},
 
-    {10203u, "Kiryu-shi, Gumma"},
+    {10203u, std::string_view{"Kiryu-shi, Gumma", 16}},
 
-    {10204u, "Isesaki-shi, Gumma"},
+    {10204u, std::string_view{"Isesaki-shi, Gumma", 18}},
 
-    {10205u, "Ota-shi, Gumma"},
+    {10205u, std::string_view{"Ota-shi, Gumma", 14}},
 
-    {10206u, "Numata-shi, Gumma"},
+    {10206u, std::string_view{"Numata-shi, Gumma", 17}},
 
-    {10207u, "Tatebayashi-shi, Gumma"},
+    {10207u, std::string_view{"Tatebayashi-shi, Gumma", 22}},
 
-    {10208u, "Shibukawa-shi, Gumma"},
+    {10208u, std::string_view{"Shibukawa-shi, Gumma", 20}},
 
-    {10209u, "Fujioka-shi, Gumma"},
+    {10209u, std::string_view{"Fujioka-shi, Gumma", 18}},
 
-    {10210u, "Tomioka-shi, Gumma"},
+    {10210u, std::string_view{"Tomioka-shi, Gumma", 18}},
 
-    {10211u, "Annaka-shi, Gumma"},
+    {10211u, std::string_view{"Annaka-shi, Gumma", 17}},
 
-    {10212u, "Midori-shi, Gumma"},
+    {10212u, std::string_view{"Midori-shi, Gumma", 17}},
 
-    {10344u, "Shinto-mura, Gumma"},
+    {10344u, std::string_view{"Shinto-mura, Gumma", 18}},
 
-    {10345u, "Yoshioka-machi, Gumma"},
+    {10345u, std::string_view{"Yoshioka-machi, Gumma", 21}},
 
-    {10366u, "Ueno-mura, Gumma"},
+    {10366u, std::string_view{"Ueno-mura, Gumma", 16}},
 
-    {10367u, "Kanna-machi, Gumma"},
+    {10367u, std::string_view{"Kanna-machi, Gumma", 18}},
 
-    {10382u, "Shimonita-machi, Gumma"},
+    {10382u, std::string_view{"Shimonita-machi, Gumma", 22}},
 
-    {10383u, "Nammoku-mura, Gumma"},
+    {10383u, std::string_view{"Nammoku-mura, Gumma", 19}},
 
-    {10384u, "Kanra-machi, Gumma"},
+    {10384u, std::string_view{"Kanra-machi, Gumma", 18}},
 
-    {10421u, "Nakanojiyo-machi, Gumma"},
+    {10421u, std::string_view{"Nakanojiyo-machi, Gumma", 23}},
 
-    {10424u, "Naganohara-machi, Gumma"},
+    {10424u, std::string_view{"Naganohara-machi, Gumma", 23}},
 
-    {10425u, "Tsumagoi-mura, Gumma"},
+    {10425u, std::string_view{"Tsumagoi-mura, Gumma", 20}},
 
-    {10426u, "Kusatsu-machi, Gumma"},
+    {10426u, std::string_view{"Kusatsu-machi, Gumma", 20}},
 
-    {10428u, "Takayama-mura, Gumma"},
+    {10428u, std::string_view{"Takayama-mura, Gumma", 20}},
 
-    {10429u, "Higashiagatsuma-machi, Gumma"},
+    {10429u, std::string_view{"Higashiagatsuma-machi, Gumma", 28}},
 
-    {10443u, "Katashina-mura, Gumma"},
+    {10443u, std::string_view{"Katashina-mura, Gumma", 21}},
 
-    {10444u, "Kawaba-mura, Gumma"},
+    {10444u, std::string_view{"Kawaba-mura, Gumma", 18}},
 
-    {10448u, "Showa-mura, Gumma"},
+    {10448u, std::string_view{"Showa-mura, Gumma", 17}},
 
-    {10449u, "Minakami-machi, Gumma"},
+    {10449u, std::string_view{"Minakami-machi, Gumma", 21}},
 
-    {10464u, "Tamamura-machi, Gumma"},
+    {10464u, std::string_view{"Tamamura-machi, Gumma", 21}},
 
-    {10521u, "Itakura-machi, Gumma"},
+    {10521u, std::string_view{"Itakura-machi, Gumma", 20}},
 
-    {10522u, "Meiwa-machi, Gumma"},
+    {10522u, std::string_view{"Meiwa-machi, Gumma", 18}},
 
-    {10523u, "Chiyoda-machi, Gumma"},
+    {10523u, std::string_view{"Chiyoda-machi, Gumma", 20}},
 
-    {10524u, "Oizumi-machi, Gumma"},
+    {10524u, std::string_view{"Oizumi-machi, Gumma", 19}},
 
-    {10525u, "Ora-machi, Gumma"},
+    {10525u, std::string_view{"Ora-machi, Gumma", 16}},
 
-    {11000u, "Saitama"},
+    {11000u, std::string_view{"Saitama", 7}},
 
-    {11100u, "Saitama-shi, Saitama"},
+    {11100u, std::string_view{"Saitama-shi, Saitama", 20}},
 
-    {11101u, "Nishi-ku, Saitama-shi"},
+    {11101u, std::string_view{"Nishi-ku, Saitama-shi", 21}},
 
-    {11102u, "Kita-ku, Saitama-shi"},
+    {11102u, std::string_view{"Kita-ku, Saitama-shi", 20}},
 
-    {11103u, "Omiya-ku, Saitama-shi"},
+    {11103u, std::string_view{"Omiya-ku, Saitama-shi", 21}},
 
-    {11104u, "Minuma-ku, Saitama-shi"},
+    {11104u, std::string_view{"Minuma-ku, Saitama-shi", 22}},
 
-    {11105u, "Chuo-ku, Saitama-shi"},
+    {11105u, std::string_view{"Chuo-ku, Saitama-shi", 20}},
 
-    {11106u, "Sakura-ku, Saitama-shi"},
+    {11106u, std::string_view{"Sakura-ku, Saitama-shi", 22}},
 
-    {11107u, "Urawa-ku, Saitama-shi"},
+    {11107u, std::string_view{"Urawa-ku, Saitama-shi", 21}},
 
-    {11108u, "Minami-ku, Saitama-shi"},
+    {11108u, std::string_view{"Minami-ku, Saitama-shi", 22}},
 
-    {11109u, "Midori-ku, Saitama-shi"},
+    {11109u, std::string_view{"Midori-ku, Saitama-shi", 22}},
 
-    {11110u, "Iwatsuki-ku, Saitama-shi"},
+    {11110u, std::string_view{"Iwatsuki-ku, Saitama-shi", 24}},
 
-    {11201u, "Kawagoe-shi, Saitama"},
+    {11201u, std::string_view{"Kawagoe-shi, Saitama", 20}},
 
-    {11202u, "Kumagaya-shi, Saitama"},
+    {11202u, std::string_view{"Kumagaya-shi, Saitama", 21}},
 
-    {11203u, "Kawaguchi-shi, Saitama"},
+    {11203u, std::string_view{"Kawaguchi-shi, Saitama", 22}},
 
-    {11206u, "Giyoda-shi, Saitama"},
+    {11206u, std::string_view{"Giyoda-shi, Saitama", 19}},
 
-    {11207u, "Chichibu-shi, Saitama"},
+    {11207u, std::string_view{"Chichibu-shi, Saitama", 21}},
 
-    {11208u, "Tokorozawa-shi, Saitama"},
+    {11208u, std::string_view{"Tokorozawa-shi, Saitama", 23}},
 
-    {11209u, "Hanno-shi, Saitama"},
+    {11209u, std::string_view{"Hanno-shi, Saitama", 18}},
 
-    {11210u, "Kazo-shi, Saitama"},
+    {11210u, std::string_view{"Kazo-shi, Saitama", 17}},
 
-    {11211u, "Honjiyo-shi, Saitama"},
+    {11211u, std::string_view{"Honjiyo-shi, Saitama", 20}},
 
-    {11212u, "Higashimatsuyama-shi, Saitama"},
+    {11212u, std::string_view{"Higashimatsuyama-shi, Saitama", 29}},
 
-    {11214u, "Kasukabe-shi, Saitama"},
+    {11214u, std::string_view{"Kasukabe-shi, Saitama", 21}},
 
-    {11215u, "Sayama-shi, Saitama"},
+    {11215u, std::string_view{"Sayama-shi, Saitama", 19}},
 
-    {11216u, "Haniyu-shi, Saitama"},
+    {11216u, std::string_view{"Haniyu-shi, Saitama", 19}},
 
-    {11217u, "Konosu-shi, Saitama"},
+    {11217u, std::string_view{"Konosu-shi, Saitama", 19}},
 
-    {11218u, "Fukaya-shi, Saitama"},
+    {11218u, std::string_view{"Fukaya-shi, Saitama", 19}},
 
-    {11219u, "Ageo-shi, Saitama"},
+    {11219u, std::string_view{"Ageo-shi, Saitama", 17}},
 
-    {11221u, "Soka-shi, Saitama"},
+    {11221u, std::string_view{"Soka-shi, Saitama", 17}},
 
-    {11222u, "Koshigaya-shi, Saitama"},
+    {11222u, std::string_view{"Koshigaya-shi, Saitama", 22}},
 
-    {11223u, "Warabi-shi, Saitama"},
+    {11223u, std::string_view{"Warabi-shi, Saitama", 19}},
 
-    {11224u, "Toda-shi, Saitama"},
+    {11224u, std::string_view{"Toda-shi, Saitama", 17}},
 
-    {11225u, "Iruma-shi, Saitama"},
+    {11225u, std::string_view{"Iruma-shi, Saitama", 18}},
 
-    {11227u, "Asaka-shi, Saitama"},
+    {11227u, std::string_view{"Asaka-shi, Saitama", 18}},
 
-    {11228u, "Shiki-shi, Saitama"},
+    {11228u, std::string_view{"Shiki-shi, Saitama", 18}},
 
-    {11229u, "Wako-shi, Saitama"},
+    {11229u, std::string_view{"Wako-shi, Saitama", 17}},
 
-    {11230u, "Niiza-shi, Saitama"},
+    {11230u, std::string_view{"Niiza-shi, Saitama", 18}},
 
-    {11231u, "Okegawa-shi, Saitama"},
+    {11231u, std::string_view{"Okegawa-shi, Saitama", 20}},
 
-    {11232u, "Kuki-shi, Saitama"},
+    {11232u, std::string_view{"Kuki-shi, Saitama", 17}},
 
-    {11233u, "Kitamoto-shi, Saitama"},
+    {11233u, std::string_view{"Kitamoto-shi, Saitama", 21}},
 
-    {11234u, "Yashio-shi, Saitama"},
+    {11234u, std::string_view{"Yashio-shi, Saitama", 19}},
 
-    {11235u, "Fujimi-shi, Saitama"},
+    {11235u, std::string_view{"Fujimi-shi, Saitama", 19}},
 
-    {11237u, "Misato-shi, Saitama"},
+    {11237u, std::string_view{"Misato-shi, Saitama", 19}},
 
-    {11238u, "Hasuda-shi, Saitama"},
+    {11238u, std::string_view{"Hasuda-shi, Saitama", 19}},
 
-    {11239u, "Sakado-shi, Saitama"},
+    {11239u, std::string_view{"Sakado-shi, Saitama", 19}},
 
-    {11240u, "Satte-shi, Saitama"},
+    {11240u, std::string_view{"Satte-shi, Saitama", 18}},
 
-    {11241u, "Tsurugashima-shi, Saitama"},
+    {11241u, std::string_view{"Tsurugashima-shi, Saitama", 25}},
 
-    {11242u, "Hidaka-shi, Saitama"},
+    {11242u, std::string_view{"Hidaka-shi, Saitama", 19}},
 
-    {11243u, "Yoshikawa-shi, Saitama"},
+    {11243u, std::string_view{"Yoshikawa-shi, Saitama", 22}},
 
-    {11245u, "Fujimino-shi, Saitama"},
+    {11245u, std::string_view{"Fujimino-shi, Saitama", 21}},
 
-    {11246u, "Shiraoka-shi, Saitama"},
+    {11246u, std::string_view{"Shiraoka-shi, Saitama", 21}},
 
-    {11301u, "Ina-machi, Saitama"},
+    {11301u, std::string_view{"Ina-machi, Saitama", 18}},
 
-    {11324u, "Miyoshi-machi, Saitama"},
+    {11324u, std::string_view{"Miyoshi-machi, Saitama", 22}},
 
-    {11326u, "Moroyama-machi, Saitama"},
+    {11326u, std::string_view{"Moroyama-machi, Saitama", 23}},
 
-    {11327u, "Ogose-machi, Saitama"},
+    {11327u, std::string_view{"Ogose-machi, Saitama", 20}},
 
-    {11341u, "Namegawa-machi, Saitama"},
+    {11341u, std::string_view{"Namegawa-machi, Saitama", 23}},
 
-    {11342u, "Ranzan-machi, Saitama"},
+    {11342u, std::string_view{"Ranzan-machi, Saitama", 21}},
 
-    {11343u, "Ogawa-machi, Saitama"},
+    {11343u, std::string_view{"Ogawa-machi, Saitama", 20}},
 
-    {11346u, "Kawajima-machi, Saitama"},
+    {11346u, std::string_view{"Kawajima-machi, Saitama", 23}},
 
-    {11347u, "Yoshimi-machi, Saitama"},
+    {11347u, std::string_view{"Yoshimi-machi, Saitama", 22}},
 
-    {11348u, "Hatoyama-machi, Saitama"},
+    {11348u, std::string_view{"Hatoyama-machi, Saitama", 23}},
 
-    {11349u, "Tokigawa-machi, Saitama"},
+    {11349u, std::string_view{"Tokigawa-machi, Saitama", 23}},
 
-    {11361u, "Yokoze-machi, Saitama"},
+    {11361u, std::string_view{"Yokoze-machi, Saitama", 21}},
 
-    {11362u, "Minano-machi, Saitama"},
+    {11362u, std::string_view{"Minano-machi, Saitama", 21}},
 
-    {11363u, "Nagatoro-machi, Saitama"},
+    {11363u, std::string_view{"Nagatoro-machi, Saitama", 23}},
 
-    {11365u, "Ogano-machi, Saitama"},
+    {11365u, std::string_view{"Ogano-machi, Saitama", 20}},
 
-    {11369u, "Higashichichibu-mura, Saitama"},
+    {11369u, std::string_view{"Higashichichibu-mura, Saitama", 29}},
 
-    {11381u, "Misato-machi, Saitama"},
+    {11381u, std::string_view{"Misato-machi, Saitama", 21}},
 
-    {11383u, "Kamikawa-machi, Saitama"},
+    {11383u, std::string_view{"Kamikawa-machi, Saitama", 23}},
 
-    {11385u, "Kamisato-machi, Saitama"},
+    {11385u, std::string_view{"Kamisato-machi, Saitama", 23}},
 
-    {11408u, "Yorii-machi, Saitama"},
+    {11408u, std::string_view{"Yorii-machi, Saitama", 20}},
 
-    {11442u, "Miyashiro-machi, Saitama"},
+    {11442u, std::string_view{"Miyashiro-machi, Saitama", 24}},
 
-    {11464u, "Sugito-machi, Saitama"},
+    {11464u, std::string_view{"Sugito-machi, Saitama", 21}},
 
-    {11465u, "Matsubushi-machi, Saitama"},
+    {11465u, std::string_view{"Matsubushi-machi, Saitama", 25}},
 
-    {12000u, "Chiba"},
+    {12000u, std::string_view{"Chiba", 5}},
 
-    {12100u, "Chiba-shi, Chiba"},
+    {12100u, std::string_view{"Chiba-shi, Chiba", 16}},
 
-    {12101u, "Chuo-ku, Chiba-shi"},
+    {12101u, std::string_view{"Chuo-ku, Chiba-shi", 18}},
 
-    {12102u, "Hanamigawa-ku, Chiba-shi"},
+    {12102u, std::string_view{"Hanamigawa-ku, Chiba-shi", 24}},
 
-    {12103u, "Inage-ku, Chiba-shi"},
+    {12103u, std::string_view{"Inage-ku, Chiba-shi", 19}},
 
-    {12104u, "Wakaba-ku, Chiba-shi"},
+    {12104u, std::string_view{"Wakaba-ku, Chiba-shi", 20}},
 
-    {12105u, "Midori-ku, Chiba-shi"},
+    {12105u, std::string_view{"Midori-ku, Chiba-shi", 20}},
 
-    {12106u, "Mihama-ku, Chiba-shi"},
+    {12106u, std::string_view{"Mihama-ku, Chiba-shi", 20}},
 
-    {12202u, "Choshi-shi, Chiba"},
+    {12202u, std::string_view{"Choshi-shi, Chiba", 17}},
 
-    {12203u, "Ichikawa-shi, Chiba"},
+    {12203u, std::string_view{"Ichikawa-shi, Chiba", 19}},
 
-    {12204u, "Funabashi-shi, Chiba"},
+    {12204u, std::string_view{"Funabashi-shi, Chiba", 20}},
 
-    {12205u, "Tateyama-shi, Chiba"},
+    {12205u, std::string_view{"Tateyama-shi, Chiba", 19}},
 
-    {12206u, "Kisarazu-shi, Chiba"},
+    {12206u, std::string_view{"Kisarazu-shi, Chiba", 19}},
 
-    {12207u, "Matsudo-shi, Chiba"},
+    {12207u, std::string_view{"Matsudo-shi, Chiba", 18}},
 
-    {12208u, "Noda-shi, Chiba"},
+    {12208u, std::string_view{"Noda-shi, Chiba", 15}},
 
-    {12210u, "Mobara-shi, Chiba"},
+    {12210u, std::string_view{"Mobara-shi, Chiba", 17}},
 
-    {12211u, "Narita-shi, Chiba"},
+    {12211u, std::string_view{"Narita-shi, Chiba", 17}},
 
-    {12212u, "Sakura-shi, Chiba"},
+    {12212u, std::string_view{"Sakura-shi, Chiba", 17}},
 
-    {12213u, "Togane-shi, Chiba"},
+    {12213u, std::string_view{"Togane-shi, Chiba", 17}},
 
-    {12215u, "Asahi-shi, Chiba"},
+    {12215u, std::string_view{"Asahi-shi, Chiba", 16}},
 
-    {12216u, "Narashino-shi, Chiba"},
+    {12216u, std::string_view{"Narashino-shi, Chiba", 20}},
 
-    {12217u, "Kashiwa-shi, Chiba"},
+    {12217u, std::string_view{"Kashiwa-shi, Chiba", 18}},
 
-    {12218u, "Katsura-shi, Chiba"},
+    {12218u, std::string_view{"Katsura-shi, Chiba", 18}},
 
-    {12219u, "Ichihara-shi, Chiba"},
+    {12219u, std::string_view{"Ichihara-shi, Chiba", 19}},
 
-    {12220u, "Nagareyama-shi, Chiba"},
+    {12220u, std::string_view{"Nagareyama-shi, Chiba", 21}},
 
-    {12221u, "Yachiyo-shi, Chiba"},
+    {12221u, std::string_view{"Yachiyo-shi, Chiba", 18}},
 
-    {12222u, "Abiko-shi, Chiba"},
+    {12222u, std::string_view{"Abiko-shi, Chiba", 16}},
 
-    {12223u, "Kamogawa-shi, Chiba"},
+    {12223u, std::string_view{"Kamogawa-shi, Chiba", 19}},
 
-    {12224u, "Kamagaya-shi, Chiba"},
+    {12224u, std::string_view{"Kamagaya-shi, Chiba", 19}},
 
-    {12225u, "Kimitsu-shi, Chiba"},
+    {12225u, std::string_view{"Kimitsu-shi, Chiba", 18}},
 
-    {12226u, "Futtsu-shi, Chiba"},
+    {12226u, std::string_view{"Futtsu-shi, Chiba", 17}},
 
-    {12227u, "Urayasu-shi, Chiba"},
+    {12227u, std::string_view{"Urayasu-shi, Chiba", 18}},
 
-    {12228u, "Yotsukaido-shi, Chiba"},
+    {12228u, std::string_view{"Yotsukaido-shi, Chiba", 21}},
 
-    {12229u, "Sodegaura-shi, Chiba"},
+    {12229u, std::string_view{"Sodegaura-shi, Chiba", 20}},
 
-    {12230u, "Yachimata-shi, Chiba"},
+    {12230u, std::string_view{"Yachimata-shi, Chiba", 20}},
 
-    {12231u, "Inzai-shi, Chiba"},
+    {12231u, std::string_view{"Inzai-shi, Chiba", 16}},
 
-    {12232u, "Shiroi-shi, Chiba"},
+    {12232u, std::string_view{"Shiroi-shi, Chiba", 17}},
 
-    {12233u, "Tomisato-shi, Chiba"},
+    {12233u, std::string_view{"Tomisato-shi, Chiba", 19}},
 
-    {12234u, "Minamiboso-shi, Chiba"},
+    {12234u, std::string_view{"Minamiboso-shi, Chiba", 21}},
 
-    {12235u, "Sosa-shi, Chiba"},
+    {12235u, std::string_view{"Sosa-shi, Chiba", 15}},
 
-    {12236u, "Katori-shi, Chiba"},
+    {12236u, std::string_view{"Katori-shi, Chiba", 17}},
 
-    {12237u, "Sammu-shi, Chiba"},
+    {12237u, std::string_view{"Sammu-shi, Chiba", 16}},
 
-    {12238u, "Isumi-shi, Chiba"},
+    {12238u, std::string_view{"Isumi-shi, Chiba", 16}},
 
-    {12239u, "Oamishirasato-shi, Chiba"},
+    {12239u, std::string_view{"Oamishirasato-shi, Chiba", 24}},
 
-    {12322u, "Shisui-machi, Chiba"},
+    {12322u, std::string_view{"Shisui-machi, Chiba", 19}},
 
-    {12329u, "Sakae-machi, Chiba"},
+    {12329u, std::string_view{"Sakae-machi, Chiba", 18}},
 
-    {12342u, "Kozaki-machi, Chiba"},
+    {12342u, std::string_view{"Kozaki-machi, Chiba", 19}},
 
-    {12347u, "Tako-machi, Chiba"},
+    {12347u, std::string_view{"Tako-machi, Chiba", 17}},
 
-    {12349u, "Tonosho-machi, Chiba"},
+    {12349u, std::string_view{"Tonosho-machi, Chiba", 20}},
 
-    {12403u, "Kujiyukuri-machi, Chiba"},
+    {12403u, std::string_view{"Kujiyukuri-machi, Chiba", 23}},
 
-    {12409u, "Shibayama-machi, Chiba"},
+    {12409u, std::string_view{"Shibayama-machi, Chiba", 22}},
 
-    {12410u, "Yokoshibahikari-machi, Chiba"},
+    {12410u, std::string_view{"Yokoshibahikari-machi, Chiba", 28}},
 
-    {12421u, "Ichinomiya-machi, Chiba"},
+    {12421u, std::string_view{"Ichinomiya-machi, Chiba", 23}},
 
-    {12422u, "Mutsuzawa-machi, Chiba"},
+    {12422u, std::string_view{"Mutsuzawa-machi, Chiba", 22}},
 
-    {12423u, "Chosei-mura, Chiba"},
+    {12423u, std::string_view{"Chosei-mura, Chiba", 18}},
 
-    {12424u, "Shirako-machi, Chiba"},
+    {12424u, std::string_view{"Shirako-machi, Chiba", 20}},
 
-    {12426u, "Nagara-machi, Chiba"},
+    {12426u, std::string_view{"Nagara-machi, Chiba", 19}},
 
-    {12427u, "Chonan-machi, Chiba"},
+    {12427u, std::string_view{"Chonan-machi, Chiba", 19}},
 
-    {12441u, "Otaki-machi, Chiba"},
+    {12441u, std::string_view{"Otaki-machi, Chiba", 18}},
 
-    {12443u, "Onjiyuku-machi, Chiba"},
+    {12443u, std::string_view{"Onjiyuku-machi, Chiba", 21}},
 
-    {12463u, "Kiyonan-machi, Chiba"},
+    {12463u, std::string_view{"Kiyonan-machi, Chiba", 20}},
 
-    {13000u, "Tokyo"},
+    {13000u, std::string_view{"Tokyo", 5}},
 
-    {13101u, "Chiyoda-ku, Tokyo"},
+    {13101u, std::string_view{"Chiyoda-ku, Tokyo", 17}},
 
-    {13102u, "Chuo-ku, Tokyo"},
+    {13102u, std::string_view{"Chuo-ku, Tokyo", 14}},
 
-    {13103u, "Minato-ku, Tokyo"},
+    {13103u, std::string_view{"Minato-ku, Tokyo", 16}},
 
-    {13104u, "Shinjuku-ku, Tokyo"},
+    {13104u, std::string_view{"Shinjuku-ku, Tokyo", 18}},
 
-    {13105u, "Bunkyo-ku, Tokyo"},
+    {13105u, std::string_view{"Bunkyo-ku, Tokyo", 16}},
 
-    {13106u, "Taito-ku, Tokyo"},
+    {13106u, std::string_view{"Taito-ku, Tokyo", 15}},
 
-    {13107u, "Sumida-ku, Tokyo"},
+    {13107u, std::string_view{"Sumida-ku, Tokyo", 16}},
 
-    {13108u, "Koto-ku, Tokyo"},
+    {13108u, std::string_view{"Koto-ku, Tokyo", 14}},
 
-    {13109u, "Shinagawa-ku, Tokyo"},
+    {13109u, std::string_view{"Shinagawa-ku, Tokyo", 19}},
 
-    {13110u, "Meguro-ku, Tokyo"},
+    {13110u, std::string_view{"Meguro-ku, Tokyo", 16}},
 
-    {13111u, "Ota-ku, Tokyo"},
+    {13111u, std::string_view{"Ota-ku, Tokyo", 13}},
 
-    {13112u, "Setagaya-ku, Tokyo"},
+    {13112u, std::string_view{"Setagaya-ku, Tokyo", 18}},
 
-    {13113u, "Shibuya-ku, Tokyo"},
+    {13113u, std::string_view{"Shibuya-ku, Tokyo", 17}},
 
-    {13114u, "Nakano-ku, Tokyo"},
+    {13114u, std::string_view{"Nakano-ku, Tokyo", 16}},
 
-    {13115u, "Suginami-ku, Tokyo"},
+    {13115u, std::string_view{"Suginami-ku, Tokyo", 18}},
 
-    {13116u, "Toshima-ku, Tokyo"},
+    {13116u, std::string_view{"Toshima-ku, Tokyo", 17}},
 
-    {13117u, "Kita-ku, Tokyo"},
+    {13117u, std::string_view{"Kita-ku, Tokyo", 14}},
 
-    {13118u, "Arakawa-ku, Tokyo"},
+    {13118u, std::string_view{"Arakawa-ku, Tokyo", 17}},
 
-    {13119u, "Itabashi-ku, Tokyo"},
+    {13119u, std::string_view{"Itabashi-ku, Tokyo", 18}},
 
-    {13120u, "Nerima-ku, Tokyo"},
+    {13120u, std::string_view{"Nerima-ku, Tokyo", 16}},
 
-    {13121u, "Adachi-ku, Tokyo"},
+    {13121u, std::string_view{"Adachi-ku, Tokyo", 16}},
 
-    {13122u, "Katsushika-ku, Tokyo"},
+    {13122u, std::string_view{"Katsushika-ku, Tokyo", 20}},
 
-    {13123u, "Edogawa-ku, Tokyo"},
+    {13123u, std::string_view{"Edogawa-ku, Tokyo", 17}},
 
-    {13201u, "Hachioji-shi, Tokyo"},
+    {13201u, std::string_view{"Hachioji-shi, Tokyo", 19}},
 
-    {13202u, "Tachikawa-shi, Tokyo"},
+    {13202u, std::string_view{"Tachikawa-shi, Tokyo", 20}},
 
-    {13203u, "Musashino-shi, Tokyo"},
+    {13203u, std::string_view{"Musashino-shi, Tokyo", 20}},
 
-    {13204u, "Mitaka-shi, Tokyo"},
+    {13204u, std::string_view{"Mitaka-shi, Tokyo", 17}},
 
-    {13205u, "Ome-shi, Tokyo"},
+    {13205u, std::string_view{"Ome-shi, Tokyo", 14}},
 
-    {13206u, "Fuchu-shi, Tokyo"},
+    {13206u, std::string_view{"Fuchu-shi, Tokyo", 16}},
 
-    {13207u, "Akishima-shi, Tokyo"},
+    {13207u, std::string_view{"Akishima-shi, Tokyo", 19}},
 
-    {13208u, "Chofu-shi, Tokyo"},
+    {13208u, std::string_view{"Chofu-shi, Tokyo", 16}},
 
-    {13209u, "Machida-shi, Tokyo"},
+    {13209u, std::string_view{"Machida-shi, Tokyo", 18}},
 
-    {13210u, "Koganei-shi, Tokyo"},
+    {13210u, std::string_view{"Koganei-shi, Tokyo", 18}},
 
-    {13211u, "Kodaira-shi, Tokyo"},
+    {13211u, std::string_view{"Kodaira-shi, Tokyo", 18}},
 
-    {13212u, "Hino-shi, Tokyo"},
+    {13212u, std::string_view{"Hino-shi, Tokyo", 15}},
 
-    {13213u, "Higashimurayama-shi, Tokyo"},
+    {13213u, std::string_view{"Higashimurayama-shi, Tokyo", 26}},
 
-    {13214u, "Kokubunji-shi, Tokyo"},
+    {13214u, std::string_view{"Kokubunji-shi, Tokyo", 20}},
 
-    {13215u, "Kunitachi-shi, Tokyo"},
+    {13215u, std::string_view{"Kunitachi-shi, Tokyo", 20}},
 
-    {13218u, "Fussa-shi, Tokyo"},
+    {13218u, std::string_view{"Fussa-shi, Tokyo", 16}},
 
-    {13219u, "Komae-shi, Tokyo"},
+    {13219u, std::string_view{"Komae-shi, Tokyo", 16}},
 
-    {13220u, "Higashiyamato-shi, Tokyo"},
+    {13220u, std::string_view{"Higashiyamato-shi, Tokyo", 24}},
 
-    {13221u, "Kiyose-shi, Tokyo"},
+    {13221u, std::string_view{"Kiyose-shi, Tokyo", 17}},
 
-    {13222u, "Higashikurume-shi, Tokyo"},
+    {13222u, std::string_view{"Higashikurume-shi, Tokyo", 24}},
 
-    {13223u, "Musashimurayama-shi, Tokyo"},
+    {13223u, std::string_view{"Musashimurayama-shi, Tokyo", 26}},
 
-    {13224u, "Tama-shi, Tokyo"},
+    {13224u, std::string_view{"Tama-shi, Tokyo", 15}},
 
-    {13225u, "Inagi-shi, Tokyo"},
+    {13225u, std::string_view{"Inagi-shi, Tokyo", 16}},
 
-    {13227u, "Hamura-shi, Tokyo"},
+    {13227u, std::string_view{"Hamura-shi, Tokyo", 17}},
 
-    {13228u, "Akiruno-shi, Tokyo"},
+    {13228u, std::string_view{"Akiruno-shi, Tokyo", 18}},
 
-    {13229u, "Nishitokyo-shi, Tokyo"},
+    {13229u, std::string_view{"Nishitokyo-shi, Tokyo", 21}},
 
-    {13303u, "Mizuho-machi, Tokyo"},
+    {13303u, std::string_view{"Mizuho-machi, Tokyo", 19}},
 
-    {13305u, "Hinode-machi, Tokyo"},
+    {13305u, std::string_view{"Hinode-machi, Tokyo", 19}},
 
-    {13307u, "Hinohara-mura, Tokyo"},
+    {13307u, std::string_view{"Hinohara-mura, Tokyo", 20}},
 
-    {13308u, "Okutama-machi, Tokyo"},
+    {13308u, std::string_view{"Okutama-machi, Tokyo", 20}},
 
-    {13361u, "Oshima-machi, Tokyo"},
+    {13361u, std::string_view{"Oshima-machi, Tokyo", 19}},
 
-    {13362u, "Toshima-mura, Tokyo"},
+    {13362u, std::string_view{"Toshima-mura, Tokyo", 19}},
 
-    {13363u, "Niijima-mura, Tokyo"},
+    {13363u, std::string_view{"Niijima-mura, Tokyo", 19}},
 
-    {13364u, "Kozushima-mura, Tokyo"},
+    {13364u, std::string_view{"Kozushima-mura, Tokyo", 21}},
 
-    {13381u, "Miyake-mura, Tokyo"},
+    {13381u, std::string_view{"Miyake-mura, Tokyo", 18}},
 
-    {13382u, "Mikurajima-mura, Tokyo"},
+    {13382u, std::string_view{"Mikurajima-mura, Tokyo", 22}},
 
-    {13401u, "Hachijo-machi, Tokyo"},
+    {13401u, std::string_view{"Hachijo-machi, Tokyo", 20}},
 
-    {13402u, "Aogashima-mura, Tokyo"},
+    {13402u, std::string_view{"Aogashima-mura, Tokyo", 21}},
 
-    {13421u, "Ogasawara-mura, Tokyo"},
+    {13421u, std::string_view{"Ogasawara-mura, Tokyo", 21}},
 
-    {14000u, "Kanagawa"},
+    {14000u, std::string_view{"Kanagawa", 8}},
 
-    {14100u, "Yokohama-shi, Kanagawa"},
+    {14100u, std::string_view{"Yokohama-shi, Kanagawa", 22}},
 
-    {14101u, "Tsurumi-ku, Yokohama-shi"},
+    {14101u, std::string_view{"Tsurumi-ku, Yokohama-shi", 24}},
 
-    {14102u, "Kanagawa-ku, Yokohama-shi"},
+    {14102u, std::string_view{"Kanagawa-ku, Yokohama-shi", 25}},
 
-    {14103u, "Nishi-ku, Yokohama-shi"},
+    {14103u, std::string_view{"Nishi-ku, Yokohama-shi", 22}},
 
-    {14104u, "Naka-ku, Yokohama-shi"},
+    {14104u, std::string_view{"Naka-ku, Yokohama-shi", 21}},
 
-    {14105u, "Minami-ku, Yokohama-shi"},
+    {14105u, std::string_view{"Minami-ku, Yokohama-shi", 23}},
 
-    {14106u, "Hodogaya-ku, Yokohama-shi"},
+    {14106u, std::string_view{"Hodogaya-ku, Yokohama-shi", 25}},
 
-    {14107u, "Isogo-ku, Yokohama-shi"},
+    {14107u, std::string_view{"Isogo-ku, Yokohama-shi", 22}},
 
-    {14108u, "Kanazawa-ku, Yokohama-shi"},
+    {14108u, std::string_view{"Kanazawa-ku, Yokohama-shi", 25}},
 
-    {14109u, "Kohoku-ku, Yokohama-shi"},
+    {14109u, std::string_view{"Kohoku-ku, Yokohama-shi", 23}},
 
-    {14110u, "Totsuka-ku, Yokohama-shi"},
+    {14110u, std::string_view{"Totsuka-ku, Yokohama-shi", 24}},
 
-    {14111u, "Konan-ku, Yokohama-shi"},
+    {14111u, std::string_view{"Konan-ku, Yokohama-shi", 22}},
 
-    {14112u, "Asahi-ku, Yokohama-shi"},
+    {14112u, std::string_view{"Asahi-ku, Yokohama-shi", 22}},
 
-    {14113u, "Midori-ku, Yokohama-shi"},
+    {14113u, std::string_view{"Midori-ku, Yokohama-shi", 23}},
 
-    {14114u, "Seya-ku, Yokohama-shi"},
+    {14114u, std::string_view{"Seya-ku, Yokohama-shi", 21}},
 
-    {14115u, "Sakae-ku, Yokohama-shi"},
+    {14115u, std::string_view{"Sakae-ku, Yokohama-shi", 22}},
 
-    {14116u, "Izumi-ku, Yokohama-shi"},
+    {14116u, std::string_view{"Izumi-ku, Yokohama-shi", 22}},
 
-    {14117u, "Aoba-ku, Yokohama-shi"},
+    {14117u, std::string_view{"Aoba-ku, Yokohama-shi", 21}},
 
-    {14118u, "Tsuzuki-ku, Yokohama-shi"},
+    {14118u, std::string_view{"Tsuzuki-ku, Yokohama-shi", 24}},
 
-    {14130u, "Kawasaki-shi, Kanagawa"},
+    {14130u, std::string_view{"Kawasaki-shi, Kanagawa", 22}},
 
-    {14131u, "Kawasaki-ku, Kawasaki-shi"},
+    {14131u, std::string_view{"Kawasaki-ku, Kawasaki-shi", 25}},
 
-    {14132u, "Saiwai-ku, Kawasaki-shi"},
+    {14132u, std::string_view{"Saiwai-ku, Kawasaki-shi", 23}},
 
-    {14133u, "Nakahara-ku, Kawasaki-shi"},
+    {14133u, std::string_view{"Nakahara-ku, Kawasaki-shi", 25}},
 
-    {14134u, "Takatsu-ku, Kawasaki-shi"},
+    {14134u, std::string_view{"Takatsu-ku, Kawasaki-shi", 24}},
 
-    {14135u, "Tama-ku, Kawasaki-shi"},
+    {14135u, std::string_view{"Tama-ku, Kawasaki-shi", 21}},
 
-    {14136u, "Miyamae-ku, Kawasaki-shi"},
+    {14136u, std::string_view{"Miyamae-ku, Kawasaki-shi", 24}},
 
-    {14137u, "Asao-ku, Kawasaki-shi"},
+    {14137u, std::string_view{"Asao-ku, Kawasaki-shi", 21}},
 
-    {14150u, "Sagamihara-shi, Kanagawa"},
+    {14150u, std::string_view{"Sagamihara-shi, Kanagawa", 24}},
 
-    {14151u, "Midori-ku, Sagamihara-shi"},
+    {14151u, std::string_view{"Midori-ku, Sagamihara-shi", 25}},
 
-    {14152u, "Chuo-ku, Sagamihara-shi"},
+    {14152u, std::string_view{"Chuo-ku, Sagamihara-shi", 23}},
 
-    {14153u, "Minami-ku, Sagamihara-shi"},
+    {14153u, std::string_view{"Minami-ku, Sagamihara-shi", 25}},
 
-    {14201u, "Yokosuka-shi, Kanagawa"},
+    {14201u, std::string_view{"Yokosuka-shi, Kanagawa", 22}},
 
-    {14203u, "Hiratsuka-shi, Kanagawa"},
+    {14203u, std::string_view{"Hiratsuka-shi, Kanagawa", 23}},
 
-    {14204u, "Kamakura-shi, Kanagawa"},
+    {14204u, std::string_view{"Kamakura-shi, Kanagawa", 22}},
 
-    {14205u, "Fujisawa-shi, Kanagawa"},
+    {14205u, std::string_view{"Fujisawa-shi, Kanagawa", 22}},
 
-    {14206u, "Odawara-shi, Kanagawa"},
+    {14206u, std::string_view{"Odawara-shi, Kanagawa", 21}},
 
-    {14207u, "Chigasaki-shi, Kanagawa"},
+    {14207u, std::string_view{"Chigasaki-shi, Kanagawa", 23}},
 
-    {14208u, "Zushi-shi, Kanagawa"},
+    {14208u, std::string_view{"Zushi-shi, Kanagawa", 19}},
 
-    {14210u, "Miura-shi, Kanagawa"},
+    {14210u, std::string_view{"Miura-shi, Kanagawa", 19}},
 
-    {14211u, "Hadano-shi, Kanagawa"},
+    {14211u, std::string_view{"Hadano-shi, Kanagawa", 20}},
 
-    {14212u, "Atsugi-shi, Kanagawa"},
+    {14212u, std::string_view{"Atsugi-shi, Kanagawa", 20}},
 
-    {14213u, "Yamato-shi, Kanagawa"},
+    {14213u, std::string_view{"Yamato-shi, Kanagawa", 20}},
 
-    {14214u, "Isehara-shi, Kanagawa"},
+    {14214u, std::string_view{"Isehara-shi, Kanagawa", 21}},
 
-    {14215u, "Ebina-shi, Kanagawa"},
+    {14215u, std::string_view{"Ebina-shi, Kanagawa", 19}},
 
-    {14216u, "Zama-shi, Kanagawa"},
+    {14216u, std::string_view{"Zama-shi, Kanagawa", 18}},
 
-    {14217u, "Minamiashigara-shi, Kanagawa"},
+    {14217u, std::string_view{"Minamiashigara-shi, Kanagawa", 28}},
 
-    {14218u, "Ayase-shi, Kanagawa"},
+    {14218u, std::string_view{"Ayase-shi, Kanagawa", 19}},
 
-    {14301u, "Hayama-machi, Kanagawa"},
+    {14301u, std::string_view{"Hayama-machi, Kanagawa", 22}},
 
-    {14321u, "Samukawa-machi, Kanagawa"},
+    {14321u, std::string_view{"Samukawa-machi, Kanagawa", 24}},
 
-    {14341u, "Oiso-machi, Kanagawa"},
+    {14341u, std::string_view{"Oiso-machi, Kanagawa", 20}},
 
-    {14342u, "Ninomiya-machi, Kanagawa"},
+    {14342u, std::string_view{"Ninomiya-machi, Kanagawa", 24}},
 
-    {14361u, "Nakai-machi, Kanagawa"},
+    {14361u, std::string_view{"Nakai-machi, Kanagawa", 21}},
 
-    {14362u, "Oi-machi, Kanagawa"},
+    {14362u, std::string_view{"Oi-machi, Kanagawa", 18}},
 
-    {14363u, "Matsuda-machi, Kanagawa"},
+    {14363u, std::string_view{"Matsuda-machi, Kanagawa", 23}},
 
-    {14364u, "Yamakita-machi, Kanagawa"},
+    {14364u, std::string_view{"Yamakita-machi, Kanagawa", 24}},
 
-    {14366u, "Kaisei-machi, Kanagawa"},
+    {14366u, std::string_view{"Kaisei-machi, Kanagawa", 22}},
 
-    {14382u, "Hakone-machi, Kanagawa"},
+    {14382u, std::string_view{"Hakone-machi, Kanagawa", 22}},
 
-    {14383u, "Manatsuru-machi, Kanagawa"},
+    {14383u, std::string_view{"Manatsuru-machi, Kanagawa", 25}},
 
-    {14384u, "Yugawara-machi, Kanagawa"},
+    {14384u, std::string_view{"Yugawara-machi, Kanagawa", 24}},
 
-    {14401u, "Aikawa-machi, Kanagawa"},
+    {14401u, std::string_view{"Aikawa-machi, Kanagawa", 22}},
 
-    {14402u, "Kiyokawa-mura, Kanagawa"},
+    {14402u, std::string_view{"Kiyokawa-mura, Kanagawa", 23}},
 
-    {15000u, "Niigata"},
+    {15000u, std::string_view{"Niigata", 7}},
 
-    {15100u, "Niigata-shi, Niigata"},
+    {15100u, std::string_view{"Niigata-shi, Niigata", 20}},
 
-    {15101u, "Kita-ku, Niigata-shi"},
+    {15101u, std::string_view{"Kita-ku, Niigata-shi", 20}},
 
-    {15102u, "Higashi-ku, Niigata-shi"},
+    {15102u, std::string_view{"Higashi-ku, Niigata-shi", 23}},
 
-    {15103u, "Chuo-ku, Niigata-shi"},
+    {15103u, std::string_view{"Chuo-ku, Niigata-shi", 20}},
 
-    {15104u, "Konan-ku, Niigata-shi"},
+    {15104u, std::string_view{"Konan-ku, Niigata-shi", 21}},
 
-    {15105u, "Akiha-ku, Niigata-shi"},
+    {15105u, std::string_view{"Akiha-ku, Niigata-shi", 21}},
 
-    {15106u, "Minami-ku, Niigata-shi"},
+    {15106u, std::string_view{"Minami-ku, Niigata-shi", 22}},
 
-    {15107u, "Nishi-ku, Niigata-shi"},
+    {15107u, std::string_view{"Nishi-ku, Niigata-shi", 21}},
 
-    {15108u, "Nishikan-ku, Niigata-shi"},
+    {15108u, std::string_view{"Nishikan-ku, Niigata-shi", 24}},
 
-    {15202u, "Nagaoka-shi, Niigata"},
+    {15202u, std::string_view{"Nagaoka-shi, Niigata", 20}},
 
-    {15204u, "Sanjo-shi, Niigata"},
+    {15204u, std::string_view{"Sanjo-shi, Niigata", 18}},
 
-    {15205u, "Kashiwazaki-shi, Niigata"},
+    {15205u, std::string_view{"Kashiwazaki-shi, Niigata", 24}},
 
-    {15206u, "Shibata-shi, Niigata"},
+    {15206u, std::string_view{"Shibata-shi, Niigata", 20}},
 
-    {15208u, "Ojiya-shi, Niigata"},
+    {15208u, std::string_view{"Ojiya-shi, Niigata", 18}},
 
-    {15209u, "Kamo-shi, Niigata"},
+    {15209u, std::string_view{"Kamo-shi, Niigata", 17}},
 
-    {15210u, "Tokamachi-shi, Niigata"},
+    {15210u, std::string_view{"Tokamachi-shi, Niigata", 22}},
 
-    {15211u, "Mitsuke-shi, Niigata"},
+    {15211u, std::string_view{"Mitsuke-shi, Niigata", 20}},
 
-    {15212u, "Murakami-shi, Niigata"},
+    {15212u, std::string_view{"Murakami-shi, Niigata", 21}},
 
-    {15213u, "Tsubame-shi, Niigata"},
+    {15213u, std::string_view{"Tsubame-shi, Niigata", 20}},
 
-    {15216u, "Itoigawa-shi, Niigata"},
+    {15216u, std::string_view{"Itoigawa-shi, Niigata", 21}},
 
-    {15217u, "Myoko-shi, Niigata"},
+    {15217u, std::string_view{"Myoko-shi, Niigata", 18}},
 
-    {15218u, "Gosen-shi, Niigata"},
+    {15218u, std::string_view{"Gosen-shi, Niigata", 18}},
 
-    {15222u, "Joetsu-shi, Niigata"},
+    {15222u, std::string_view{"Joetsu-shi, Niigata", 19}},
 
-    {15223u, "Agano-shi, Niigata"},
+    {15223u, std::string_view{"Agano-shi, Niigata", 18}},
 
-    {15224u, "Sado-shi, Niigata"},
+    {15224u, std::string_view{"Sado-shi, Niigata", 17}},
 
-    {15225u, "Uonuma-shi, Niigata"},
+    {15225u, std::string_view{"Uonuma-shi, Niigata", 19}},
 
-    {15226u, "Minamiuonuma-shi, Niigata"},
+    {15226u, std::string_view{"Minamiuonuma-shi, Niigata", 25}},
 
-    {15227u, "Tainai-shi, Niigata"},
+    {15227u, std::string_view{"Tainai-shi, Niigata", 19}},
 
-    {15307u, "Seiro-machi, Niigata"},
+    {15307u, std::string_view{"Seiro-machi, Niigata", 20}},
 
-    {15342u, "Yahiko-mura, Niigata"},
+    {15342u, std::string_view{"Yahiko-mura, Niigata", 20}},
 
-    {15361u, "Tagami-machi, Niigata"},
+    {15361u, std::string_view{"Tagami-machi, Niigata", 21}},
 
-    {15385u, "Aga-machi, Niigata"},
+    {15385u, std::string_view{"Aga-machi, Niigata", 18}},
 
-    {15405u, "Izumozaki-machi, Niigata"},
+    {15405u, std::string_view{"Izumozaki-machi, Niigata", 24}},
 
-    {15461u, "Yuzawa-machi, Niigata"},
+    {15461u, std::string_view{"Yuzawa-machi, Niigata", 21}},
 
-    {15482u, "Tsunan-machi, Niigata"},
+    {15482u, std::string_view{"Tsunan-machi, Niigata", 21}},
 
-    {15504u, "Kariwa-mura, Niigata"},
+    {15504u, std::string_view{"Kariwa-mura, Niigata", 20}},
 
-    {15581u, "Sekikawa-mura, Niigata"},
+    {15581u, std::string_view{"Sekikawa-mura, Niigata", 22}},
 
-    {15586u, "Awashimaura-mura, Niigata"},
+    {15586u, std::string_view{"Awashimaura-mura, Niigata", 25}},
 
-    {16000u, "Toyama"},
+    {16000u, std::string_view{"Toyama", 6}},
 
-    {16201u, "Toyama-shi, Toyama"},
+    {16201u, std::string_view{"Toyama-shi, Toyama", 18}},
 
-    {16202u, "Takaoka-shi, Toyama"},
+    {16202u, std::string_view{"Takaoka-shi, Toyama", 19}},
 
-    {16204u, "Uozu-shi, Toyama"},
+    {16204u, std::string_view{"Uozu-shi, Toyama", 16}},
 
-    {16205u, "Himi-shi, Toyama"},
+    {16205u, std::string_view{"Himi-shi, Toyama", 16}},
 
-    {16206u, "Namerikawa-shi, Toyama"},
+    {16206u, std::string_view{"Namerikawa-shi, Toyama", 22}},
 
-    {16207u, "Kurobe-shi, Toyama"},
+    {16207u, std::string_view{"Kurobe-shi, Toyama", 18}},
 
-    {16208u, "Tonami-shi, Toyama"},
+    {16208u, std::string_view{"Tonami-shi, Toyama", 18}},
 
-    {16209u, "Oyabe-shi, Toyama"},
+    {16209u, std::string_view{"Oyabe-shi, Toyama", 17}},
 
-    {16210u, "Nanto-shi, Toyama"},
+    {16210u, std::string_view{"Nanto-shi, Toyama", 17}},
 
-    {16211u, "Imizu-shi, Toyama"},
+    {16211u, std::string_view{"Imizu-shi, Toyama", 17}},
 
-    {16321u, "Funahashi-mura, Toyama"},
+    {16321u, std::string_view{"Funahashi-mura, Toyama", 22}},
 
-    {16322u, "Kamiichi-machi, Toyama"},
+    {16322u, std::string_view{"Kamiichi-machi, Toyama", 22}},
 
-    {16323u, "Tateyama-machi, Toyama"},
+    {16323u, std::string_view{"Tateyama-machi, Toyama", 22}},
 
-    {16342u, "Nyuzen-machi, Toyama"},
+    {16342u, std::string_view{"Nyuzen-machi, Toyama", 20}},
 
-    {16343u, "Asahi-machi, Toyama"},
+    {16343u, std::string_view{"Asahi-machi, Toyama", 19}},
 
-    {17000u, "Ishikawa"},
+    {17000u, std::string_view{"Ishikawa", 8}},
 
-    {17201u, "Kanazawa-shi, Ishikawa"},
+    {17201u, std::string_view{"Kanazawa-shi, Ishikawa", 22}},
 
-    {17202u, "Nanao-shi, Ishikawa"},
+    {17202u, std::string_view{"Nanao-shi, Ishikawa", 19}},
 
-    {17203u, "Komatsu-shi, Ishikawa"},
+    {17203u, std::string_view{"Komatsu-shi, Ishikawa", 21}},
 
-    {17204u, "Wajima-shi, Ishikawa"},
+    {17204u, std::string_view{"Wajima-shi, Ishikawa", 20}},
 
-    {17205u, "Suzu-shi, Ishikawa"},
+    {17205u, std::string_view{"Suzu-shi, Ishikawa", 18}},
 
-    {17206u, "Kaga-shi, Ishikawa"},
+    {17206u, std::string_view{"Kaga-shi, Ishikawa", 18}},
 
-    {17207u, "Hakui-shi, Ishikawa"},
+    {17207u, std::string_view{"Hakui-shi, Ishikawa", 19}},
 
-    {17209u, "Kahoku-shi, Ishikawa"},
+    {17209u, std::string_view{"Kahoku-shi, Ishikawa", 20}},
 
-    {17210u, "Hakusan-shi, Ishikawa"},
+    {17210u, std::string_view{"Hakusan-shi, Ishikawa", 21}},
 
-    {17211u, "Nomi-shi, Ishikawa"},
+    {17211u, std::string_view{"Nomi-shi, Ishikawa", 18}},
 
-    {17212u, "Nonoichi-shi, Ishikawa"},
+    {17212u, std::string_view{"Nonoichi-shi, Ishikawa", 22}},
 
-    {17324u, "Kawakita-machi, Ishikawa"},
+    {17324u, std::string_view{"Kawakita-machi, Ishikawa", 24}},
 
-    {17361u, "Tsubata-machi, Ishikawa"},
+    {17361u, std::string_view{"Tsubata-machi, Ishikawa", 23}},
 
-    {17365u, "Uchinada-machi, Ishikawa"},
+    {17365u, std::string_view{"Uchinada-machi, Ishikawa", 24}},
 
-    {17384u, "Shika-machi, Ishikawa"},
+    {17384u, std::string_view{"Shika-machi, Ishikawa", 21}},
 
-    {17386u, "Hodatsushimizu-cho, Ishikawa"},
+    {17386u, std::string_view{"Hodatsushimizu-cho, Ishikawa", 28}},
 
-    {17407u, "Nakanoto-machi, Ishikawa"},
+    {17407u, std::string_view{"Nakanoto-machi, Ishikawa", 24}},
 
-    {17461u, "Anamizu-machi, Ishikawa"},
+    {17461u, std::string_view{"Anamizu-machi, Ishikawa", 23}},
 
-    {17463u, "Noto-cho, Ishikawa"},
+    {17463u, std::string_view{"Noto-cho, Ishikawa", 18}},
 
-    {18000u, "Fukui"},
+    {18000u, std::string_view{"Fukui", 5}},
 
-    {18201u, "Fukui-shi, Fukui"},
+    {18201u, std::string_view{"Fukui-shi, Fukui", 16}},
 
-    {18202u, "Tsuruga-shi, Fukui"},
+    {18202u, std::string_view{"Tsuruga-shi, Fukui", 18}},
 
-    {18204u, "Obama-shi, Fukui"},
+    {18204u, std::string_view{"Obama-shi, Fukui", 16}},
 
-    {18205u, "Ono-shi, Fukui"},
+    {18205u, std::string_view{"Ono-shi, Fukui", 14}},
 
-    {18206u, "Katsuyama-shi, Fukui"},
+    {18206u, std::string_view{"Katsuyama-shi, Fukui", 20}},
 
-    {18207u, "Sabae-shi, Fukui"},
+    {18207u, std::string_view{"Sabae-shi, Fukui", 16}},
 
-    {18208u, "Awara-shi, Fukui"},
+    {18208u, std::string_view{"Awara-shi, Fukui", 16}},
 
-    {18209u, "Echizen-shi, Fukui"},
+    {18209u, std::string_view{"Echizen-shi, Fukui", 18}},
 
-    {18210u, "Sakai-shi, Fukui"},
+    {18210u, std::string_view{"Sakai-shi, Fukui", 16}},
 
-    {18322u, "Eiheiji-cho, Fukui"},
+    {18322u, std::string_view{"Eiheiji-cho, Fukui", 18}},
 
-    {18382u, "Ikeda-cho, Fukui"},
+    {18382u, std::string_view{"Ikeda-cho, Fukui", 16}},
 
-    {18404u, "Minamiechizen-cho, Fukui"},
+    {18404u, std::string_view{"Minamiechizen-cho, Fukui", 24}},
 
-    {18423u, "Echizen-cho, Fukui"},
+    {18423u, std::string_view{"Echizen-cho, Fukui", 18}},
 
-    {18442u, "Mihama-cho, Fukui"},
+    {18442u, std::string_view{"Mihama-cho, Fukui", 17}},
 
-    {18481u, "Takahama-cho, Fukui"},
+    {18481u, std::string_view{"Takahama-cho, Fukui", 19}},
 
-    {18483u, "Oi-cho, Fukui"},
+    {18483u, std::string_view{"Oi-cho, Fukui", 13}},
 
-    {18501u, "Wakasa-cho, Fukui"},
+    {18501u, std::string_view{"Wakasa-cho, Fukui", 17}},
 
-    {19000u, "Yamanashi"},
+    {19000u, std::string_view{"Yamanashi", 9}},
 
-    {19201u, "Kofu-shi, Yamanashi"},
+    {19201u, std::string_view{"Kofu-shi, Yamanashi", 19}},
 
-    {19202u, "Fujiyoshida-shi, Yamanashi"},
+    {19202u, std::string_view{"Fujiyoshida-shi, Yamanashi", 26}},
 
-    {19204u, "Tsuru-shi, Yamanashi"},
+    {19204u, std::string_view{"Tsuru-shi, Yamanashi", 20}},
 
-    {19205u, "Yamanashi-shi, Yamanashi"},
+    {19205u, std::string_view{"Yamanashi-shi, Yamanashi", 24}},
 
-    {19206u, "Otsuki-shi, Yamanashi"},
+    {19206u, std::string_view{"Otsuki-shi, Yamanashi", 21}},
 
-    {19207u, "Nirasaki-shi, Yamanashi"},
+    {19207u, std::string_view{"Nirasaki-shi, Yamanashi", 23}},
 
-    {19208u, "Minamiarupusu-shi, Yamanashi"},
+    {19208u, std::string_view{"Minamiarupusu-shi, Yamanashi", 28}},
 
-    {19209u, "Hokuto-shi, Yamanashi"},
+    {19209u, std::string_view{"Hokuto-shi, Yamanashi", 21}},
 
-    {19210u, "Kai-shi, Yamanashi"},
+    {19210u, std::string_view{"Kai-shi, Yamanashi", 18}},
 
-    {19211u, "Fuefuki-shi, Yamanashi"},
+    {19211u, std::string_view{"Fuefuki-shi, Yamanashi", 22}},
 
-    {19212u, "Uenohara-shi, Yamanashi"},
+    {19212u, std::string_view{"Uenohara-shi, Yamanashi", 23}},
 
-    {19213u, "Koshu-shi, Yamanashi"},
+    {19213u, std::string_view{"Koshu-shi, Yamanashi", 20}},
 
-    {19214u, "Chuo-shi, Yamanashi"},
+    {19214u, std::string_view{"Chuo-shi, Yamanashi", 19}},
 
-    {19346u, "Ichikawamisato-cho, Yamanashi"},
+    {19346u, std::string_view{"Ichikawamisato-cho, Yamanashi", 29}},
 
-    {19364u, "Hayakawa-cho, Yamanashi"},
+    {19364u, std::string_view{"Hayakawa-cho, Yamanashi", 23}},
 
-    {19365u, "Minobu-cho, Yamanashi"},
+    {19365u, std::string_view{"Minobu-cho, Yamanashi", 21}},
 
-    {19366u, "Nambu-cho, Yamanashi"},
+    {19366u, std::string_view{"Nambu-cho, Yamanashi", 20}},
 
-    {19368u, "Fujikawa-cho, Yamanashi"},
+    {19368u, std::string_view{"Fujikawa-cho, Yamanashi", 23}},
 
-    {19384u, "Showa-cho, Yamanashi"},
+    {19384u, std::string_view{"Showa-cho, Yamanashi", 20}},
 
-    {19422u, "Doshi-mura, Yamanashi"},
+    {19422u, std::string_view{"Doshi-mura, Yamanashi", 21}},
 
-    {19423u, "Nishikatsura-cho, Yamanashi"},
+    {19423u, std::string_view{"Nishikatsura-cho, Yamanashi", 27}},
 
-    {19424u, "Oshino-mura, Yamanashi"},
+    {19424u, std::string_view{"Oshino-mura, Yamanashi", 22}},
 
-    {19425u, "Yamanakako-mura, Yamanashi"},
+    {19425u, std::string_view{"Yamanakako-mura, Yamanashi", 26}},
 
-    {19429u, "Narusawa-mura, Yamanashi"},
+    {19429u, std::string_view{"Narusawa-mura, Yamanashi", 24}},
 
-    {19430u, "Fujikawaguchiko-machi, Yamanashi"},
+    {19430u, std::string_view{"Fujikawaguchiko-machi, Yamanashi", 32}},
 
-    {19442u, "Kosuge-mura, Yamanashi"},
+    {19442u, std::string_view{"Kosuge-mura, Yamanashi", 22}},
 
-    {19443u, "Tabayama-mura, Yamanashi"},
+    {19443u, std::string_view{"Tabayama-mura, Yamanashi", 24}},
 
-    {20000u, "Nagano"},
+    {20000u, std::string_view{"Nagano", 6}},
 
-    {20201u, "Nagano-shi, Nagano"},
+    {20201u, std::string_view{"Nagano-shi, Nagano", 18}},
 
-    {20202u, "Matsumoto-shi, Nagano"},
+    {20202u, std::string_view{"Matsumoto-shi, Nagano", 21}},
 
-    {20203u, "Ueda-shi, Nagano"},
+    {20203u, std::string_view{"Ueda-shi, Nagano", 16}},
 
-    {20204u, "Okaya-shi, Nagano"},
+    {20204u, std::string_view{"Okaya-shi, Nagano", 17}},
 
-    {20205u, "Iida-shi, Nagano"},
+    {20205u, std::string_view{"Iida-shi, Nagano", 16}},
 
-    {20206u, "Suwa-shi, Nagano"},
+    {20206u, std::string_view{"Suwa-shi, Nagano", 16}},
 
-    {20207u, "Suzaka-shi, Nagano"},
+    {20207u, std::string_view{"Suzaka-shi, Nagano", 18}},
 
-    {20208u, "Komoro-shi, Nagano"},
+    {20208u, std::string_view{"Komoro-shi, Nagano", 18}},
 
-    {20209u, "Ina-shi, Nagano"},
+    {20209u, std::string_view{"Ina-shi, Nagano", 15}},
 
-    {20210u, "Komagane-shi, Nagano"},
+    {20210u, std::string_view{"Komagane-shi, Nagano", 20}},
 
-    {20211u, "Nakano-shi, Nagano"},
+    {20211u, std::string_view{"Nakano-shi, Nagano", 18}},
 
-    {20212u, "Omachi-shi, Nagano"},
+    {20212u, std::string_view{"Omachi-shi, Nagano", 18}},
 
-    {20213u, "Iiyama-shi, Nagano"},
+    {20213u, std::string_view{"Iiyama-shi, Nagano", 18}},
 
-    {20214u, "Chino-shi, Nagano"},
+    {20214u, std::string_view{"Chino-shi, Nagano", 17}},
 
-    {20215u, "Shiojiri-shi, Nagano"},
+    {20215u, std::string_view{"Shiojiri-shi, Nagano", 20}},
 
-    {20217u, "Saku-shi, Nagano"},
+    {20217u, std::string_view{"Saku-shi, Nagano", 16}},
 
-    {20218u, "Chikuma-shi, Nagano"},
+    {20218u, std::string_view{"Chikuma-shi, Nagano", 19}},
 
-    {20219u, "Tomi-shi, Nagano"},
+    {20219u, std::string_view{"Tomi-shi, Nagano", 16}},
 
-    {20220u, "Azumino-shi, Nagano"},
+    {20220u, std::string_view{"Azumino-shi, Nagano", 19}},
 
-    {20303u, "Koumi-machi, Nagano"},
+    {20303u, std::string_view{"Koumi-machi, Nagano", 19}},
 
-    {20304u, "Kawakami-mura, Nagano"},
+    {20304u, std::string_view{"Kawakami-mura, Nagano", 21}},
 
-    {20305u, "Minamimaki-mura, Nagano"},
+    {20305u, std::string_view{"Minamimaki-mura, Nagano", 23}},
 
-    {20306u, "Minamiaiki-mura, Nagano"},
+    {20306u, std::string_view{"Minamiaiki-mura, Nagano", 23}},
 
-    {20307u, "Kitaaiki-mura, Nagano"},
+    {20307u, std::string_view{"Kitaaiki-mura, Nagano", 21}},
 
-    {20309u, "Sakuho-machi, Nagano"},
+    {20309u, std::string_view{"Sakuho-machi, Nagano", 20}},
 
-    {20321u, "Karuizawa-machi, Nagano"},
+    {20321u, std::string_view{"Karuizawa-machi, Nagano", 23}},
 
-    {20323u, "Miyota-machi, Nagano"},
+    {20323u, std::string_view{"Miyota-machi, Nagano", 20}},
 
-    {20324u, "Tateshina-machi, Nagano"},
+    {20324u, std::string_view{"Tateshina-machi, Nagano", 23}},
 
-    {20349u, "Aoki-mura, Nagano"},
+    {20349u, std::string_view{"Aoki-mura, Nagano", 17}},
 
-    {20350u, "Nagawa-machi, Nagano"},
+    {20350u, std::string_view{"Nagawa-machi, Nagano", 20}},
 
-    {20361u, "Shimosuwa-machi, Nagano"},
+    {20361u, std::string_view{"Shimosuwa-machi, Nagano", 23}},
 
-    {20362u, "Fujimi-machi, Nagano"},
+    {20362u, std::string_view{"Fujimi-machi, Nagano", 20}},
 
-    {20363u, "Hara-mura, Nagano"},
+    {20363u, std::string_view{"Hara-mura, Nagano", 17}},
 
-    {20382u, "Tatsuno-machi, Nagano"},
+    {20382u, std::string_view{"Tatsuno-machi, Nagano", 21}},
 
-    {20383u, "Minowa-machi, Nagano"},
+    {20383u, std::string_view{"Minowa-machi, Nagano", 20}},
 
-    {20384u, "Iijima-machi, Nagano"},
+    {20384u, std::string_view{"Iijima-machi, Nagano", 20}},
 
-    {20385u, "Minamiminowa-mura, Nagano"},
+    {20385u, std::string_view{"Minamiminowa-mura, Nagano", 25}},
 
-    {20386u, "Nakagawa-mura, Nagano"},
+    {20386u, std::string_view{"Nakagawa-mura, Nagano", 21}},
 
-    {20388u, "Miyada-mura, Nagano"},
+    {20388u, std::string_view{"Miyada-mura, Nagano", 19}},
 
-    {20402u, "Matsukawa-machi, Nagano"},
+    {20402u, std::string_view{"Matsukawa-machi, Nagano", 23}},
 
-    {20403u, "Takamori-machi, Nagano"},
+    {20403u, std::string_view{"Takamori-machi, Nagano", 22}},
 
-    {20404u, "Anan-cho, Nagano"},
+    {20404u, std::string_view{"Anan-cho, Nagano", 16}},
 
-    {20407u, "Achi-mura, Nagano"},
+    {20407u, std::string_view{"Achi-mura, Nagano", 17}},
 
-    {20409u, "Hiraya-mura, Nagano"},
+    {20409u, std::string_view{"Hiraya-mura, Nagano", 19}},
 
-    {20410u, "Neba-mura, Nagano"},
+    {20410u, std::string_view{"Neba-mura, Nagano", 17}},
 
-    {20411u, "Shimojo-mura, Nagano"},
+    {20411u, std::string_view{"Shimojo-mura, Nagano", 20}},
 
-    {20412u, "Urugi-mura, Nagano"},
+    {20412u, std::string_view{"Urugi-mura, Nagano", 18}},
 
-    {20413u, "Tenryu-mura, Nagano"},
+    {20413u, std::string_view{"Tenryu-mura, Nagano", 19}},
 
-    {20414u, "Yasuoka-mura, Nagano"},
+    {20414u, std::string_view{"Yasuoka-mura, Nagano", 20}},
 
-    {20415u, "Takagi-mura, Nagano"},
+    {20415u, std::string_view{"Takagi-mura, Nagano", 19}},
 
-    {20416u, "Toyooka-mura, Nagano"},
+    {20416u, std::string_view{"Toyooka-mura, Nagano", 20}},
 
-    {20417u, "Oshika-mura, Nagano"},
+    {20417u, std::string_view{"Oshika-mura, Nagano", 19}},
 
-    {20422u, "Agematsu-machi, Nagano"},
+    {20422u, std::string_view{"Agematsu-machi, Nagano", 22}},
 
-    {20423u, "Nagiso-machi, Nagano"},
+    {20423u, std::string_view{"Nagiso-machi, Nagano", 20}},
 
-    {20425u, "Kiso-mura, Nagano"},
+    {20425u, std::string_view{"Kiso-mura, Nagano", 17}},
 
-    {20429u, "Otaki-mura, Nagano"},
+    {20429u, std::string_view{"Otaki-mura, Nagano", 18}},
 
-    {20430u, "Okuwa-mura, Nagano"},
+    {20430u, std::string_view{"Okuwa-mura, Nagano", 18}},
 
-    {20432u, "Kiso-machi, Nagano"},
+    {20432u, std::string_view{"Kiso-machi, Nagano", 18}},
 
-    {20446u, "Omi-mura, Nagano"},
+    {20446u, std::string_view{"Omi-mura, Nagano", 16}},
 
-    {20448u, "Ikusaka-mura, Nagano"},
+    {20448u, std::string_view{"Ikusaka-mura, Nagano", 20}},
 
-    {20450u, "Yamagata-mura, Nagano"},
+    {20450u, std::string_view{"Yamagata-mura, Nagano", 21}},
 
-    {20451u, "Asahi-mura, Nagano"},
+    {20451u, std::string_view{"Asahi-mura, Nagano", 18}},
 
-    {20452u, "Chikuhoku-mura, Nagano"},
+    {20452u, std::string_view{"Chikuhoku-mura, Nagano", 22}},
 
-    {20481u, "Ikeda-machi, Nagano"},
+    {20481u, std::string_view{"Ikeda-machi, Nagano", 19}},
 
-    {20482u, "Matsukawa-mura, Nagano"},
+    {20482u, std::string_view{"Matsukawa-mura, Nagano", 22}},
 
-    {20485u, "Hakuba-mura, Nagano"},
+    {20485u, std::string_view{"Hakuba-mura, Nagano", 19}},
 
-    {20486u, "Otari-mura, Nagano"},
+    {20486u, std::string_view{"Otari-mura, Nagano", 18}},
 
-    {20521u, "Sakaki-machi, Nagano"},
+    {20521u, std::string_view{"Sakaki-machi, Nagano", 20}},
 
-    {20541u, "Obuse-machi, Nagano"},
+    {20541u, std::string_view{"Obuse-machi, Nagano", 19}},
 
-    {20543u, "Takayama-mura, Nagano"},
+    {20543u, std::string_view{"Takayama-mura, Nagano", 21}},
 
-    {20561u, "Yamanouchi-machi, Nagano"},
+    {20561u, std::string_view{"Yamanouchi-machi, Nagano", 24}},
 
-    {20562u, "Kijimadaira-mura, Nagano"},
+    {20562u, std::string_view{"Kijimadaira-mura, Nagano", 24}},
 
-    {20563u, "Nozawaonsen-mura, Nagano"},
+    {20563u, std::string_view{"Nozawaonsen-mura, Nagano", 24}},
 
-    {20583u, "Shinano-machi, Nagano"},
+    {20583u, std::string_view{"Shinano-machi, Nagano", 21}},
 
-    {20588u, "Ogawa-mura, Nagano"},
+    {20588u, std::string_view{"Ogawa-mura, Nagano", 18}},
 
-    {20590u, "Iizuna-machi, Nagano"},
+    {20590u, std::string_view{"Iizuna-machi, Nagano", 20}},
 
-    {20602u, "Sakae-mura, Nagano"},
+    {20602u, std::string_view{"Sakae-mura, Nagano", 18}},
 
-    {21000u, "Gifu"},
+    {21000u, std::string_view{"Gifu", 4}},
 
-    {21201u, "Gifu-shi, Gifu"},
+    {21201u, std::string_view{"Gifu-shi, Gifu", 14}},
 
-    {21202u, "Ogaki-shi, Gifu"},
+    {21202u, std::string_view{"Ogaki-shi, Gifu", 15}},
 
-    {21203u, "Takayama-shi, Gifu"},
+    {21203u, std::string_view{"Takayama-shi, Gifu", 18}},
 
-    {21204u, "Tajimi-shi, Gifu"},
+    {21204u, std::string_view{"Tajimi-shi, Gifu", 16}},
 
-    {21205u, "Seki-shi, Gifu"},
+    {21205u, std::string_view{"Seki-shi, Gifu", 14}},
 
-    {21206u, "Nakatsugawa-shi, Gifu"},
+    {21206u, std::string_view{"Nakatsugawa-shi, Gifu", 21}},
 
-    {21207u, "Mino-shi, Gifu"},
+    {21207u, std::string_view{"Mino-shi, Gifu", 14}},
 
-    {21208u, "Mizunami-shi, Gifu"},
+    {21208u, std::string_view{"Mizunami-shi, Gifu", 18}},
 
-    {21209u, "Hashima-shi, Gifu"},
+    {21209u, std::string_view{"Hashima-shi, Gifu", 17}},
 
-    {21210u, "Ena-shi, Gifu"},
+    {21210u, std::string_view{"Ena-shi, Gifu", 13}},
 
-    {21211u, "Minokamo-shi, Gifu"},
+    {21211u, std::string_view{"Minokamo-shi, Gifu", 18}},
 
-    {21212u, "Toki-shi, Gifu"},
+    {21212u, std::string_view{"Toki-shi, Gifu", 14}},
 
-    {21213u, "Kakamigahara-shi, Gifu"},
+    {21213u, std::string_view{"Kakamigahara-shi, Gifu", 22}},
 
-    {21214u, "Kani-shi, Gifu"},
+    {21214u, std::string_view{"Kani-shi, Gifu", 14}},
 
-    {21215u, "Yamagata-shi, Gifu"},
+    {21215u, std::string_view{"Yamagata-shi, Gifu", 18}},
 
-    {21216u, "Mizuho-shi, Gifu"},
+    {21216u, std::string_view{"Mizuho-shi, Gifu", 16}},
 
-    {21217u, "Hida-shi, Gifu"},
+    {21217u, std::string_view{"Hida-shi, Gifu", 14}},
 
-    {21218u, "Motosu-shi, Gifu"},
+    {21218u, std::string_view{"Motosu-shi, Gifu", 16}},
 
-    {21219u, "Gujo-shi, Gifu"},
+    {21219u, std::string_view{"Gujo-shi, Gifu", 14}},
 
-    {21220u, "Gero-shi, Gifu"},
+    {21220u, std::string_view{"Gero-shi, Gifu", 14}},
 
-    {21221u, "Kaizu-shi, Gifu"},
+    {21221u, std::string_view{"Kaizu-shi, Gifu", 15}},
 
-    {21302u, "Ginan-cho, Gifu"},
+    {21302u, std::string_view{"Ginan-cho, Gifu", 15}},
 
-    {21303u, "Kasamatsu-cho, Gifu"},
+    {21303u, std::string_view{"Kasamatsu-cho, Gifu", 19}},
 
-    {21341u, "Yoro-cho, Gifu"},
+    {21341u, std::string_view{"Yoro-cho, Gifu", 14}},
 
-    {21361u, "Tarui-cho, Gifu"},
+    {21361u, std::string_view{"Tarui-cho, Gifu", 15}},
 
-    {21362u, "Sekigahara-cho, Gifu"},
+    {21362u, std::string_view{"Sekigahara-cho, Gifu", 20}},
 
-    {21381u, "Godo-cho, Gifu"},
+    {21381u, std::string_view{"Godo-cho, Gifu", 14}},
 
-    {21382u, "Wanouchi-cho, Gifu"},
+    {21382u, std::string_view{"Wanouchi-cho, Gifu", 18}},
 
-    {21383u, "Ampachi-cho, Gifu"},
+    {21383u, std::string_view{"Ampachi-cho, Gifu", 17}},
 
-    {21401u, "Ibigawa-cho, Gifu"},
+    {21401u, std::string_view{"Ibigawa-cho, Gifu", 17}},
 
-    {21403u, "Ono-cho, Gifu"},
+    {21403u, std::string_view{"Ono-cho, Gifu", 13}},
 
-    {21404u, "Ikeda-cho, Gifu"},
+    {21404u, std::string_view{"Ikeda-cho, Gifu", 15}},
 
-    {21421u, "Kitagata-cho, Gifu"},
+    {21421u, std::string_view{"Kitagata-cho, Gifu", 18}},
 
-    {21501u, "Sakahogi-cho, Gifu"},
+    {21501u, std::string_view{"Sakahogi-cho, Gifu", 18}},
 
-    {21502u, "Tomika-cho, Gifu"},
+    {21502u, std::string_view{"Tomika-cho, Gifu", 16}},
 
-    {21503u, "Kawabe-cho, Gifu"},
+    {21503u, std::string_view{"Kawabe-cho, Gifu", 16}},
 
-    {21504u, "Hichiso-cho, Gifu"},
+    {21504u, std::string_view{"Hichiso-cho, Gifu", 17}},
 
-    {21505u, "Yaotsu-cho, Gifu"},
+    {21505u, std::string_view{"Yaotsu-cho, Gifu", 16}},
 
-    {21506u, "Shirakawa-cho, Gifu"},
+    {21506u, std::string_view{"Shirakawa-cho, Gifu", 19}},
 
-    {21507u, "Higashishirakawa-mura, Gifu"},
+    {21507u, std::string_view{"Higashishirakawa-mura, Gifu", 27}},
 
-    {21521u, "Mitake-cho, Gifu"},
+    {21521u, std::string_view{"Mitake-cho, Gifu", 16}},
 
-    {21604u, "Shirakawa-mura, Gifu"},
+    {21604u, std::string_view{"Shirakawa-mura, Gifu", 20}},
 
-    {22000u, "Shizuoka"},
+    {22000u, std::string_view{"Shizuoka", 8}},
 
-    {22100u, "Shizuoka-shi, Shizuoka"},
+    {22100u, std::string_view{"Shizuoka-shi, Shizuoka", 22}},
 
-    {22101u, "Aoi-ku, Shizuoka-shi"},
+    {22101u, std::string_view{"Aoi-ku, Shizuoka-shi", 20}},
 
-    {22102u, "Suruga-ku, Shizuoka-shi"},
+    {22102u, std::string_view{"Suruga-ku, Shizuoka-shi", 23}},
 
-    {22103u, "Shimizu-ku, Shizuoka-shi"},
+    {22103u, std::string_view{"Shimizu-ku, Shizuoka-shi", 24}},
 
-    {22130u, "Hamamatsu-shi, Shizuoka"},
+    {22130u, std::string_view{"Hamamatsu-shi, Shizuoka", 23}},
 
-    {22131u, "Naka-ku, Hamamatsu-shi"},
+    {22131u, std::string_view{"Naka-ku, Hamamatsu-shi", 22}},
 
-    {22132u, "Higashi-ku, Hamamatsu-shi"},
+    {22132u, std::string_view{"Higashi-ku, Hamamatsu-shi", 25}},
 
-    {22133u, "Nishi-ku, Hamamatsu-shi"},
+    {22133u, std::string_view{"Nishi-ku, Hamamatsu-shi", 23}},
 
-    {22134u, "Minami-ku, Hamamatsu-shi"},
+    {22134u, std::string_view{"Minami-ku, Hamamatsu-shi", 24}},
 
-    {22135u, "Kita-ku, Hamamatsu-shi"},
+    {22135u, std::string_view{"Kita-ku, Hamamatsu-shi", 22}},
 
-    {22136u, "Hamakita-ku, Hamamatsu-shi"},
+    {22136u, std::string_view{"Hamakita-ku, Hamamatsu-shi", 26}},
 
-    {22137u, "Tenryu-ku, Hamamatsu-shi"},
+    {22137u, std::string_view{"Tenryu-ku, Hamamatsu-shi", 24}},
 
-    {22138u, "Naka-ku, Hamamatsu-shi"},
+    {22138u, std::string_view{"Naka-ku, Hamamatsu-shi", 22}},
 
-    {22139u, "Hamakita-ku, Hamamatsu-shi"},
+    {22139u, std::string_view{"Hamakita-ku, Hamamatsu-shi", 26}},
 
-    {22140u, "Tenryu-ku, Hamamatsu-shi"},
+    {22140u, std::string_view{"Tenryu-ku, Hamamatsu-shi", 24}},
 
-    {22203u, "Numazu-shi, Shizuoka"},
+    {22203u, std::string_view{"Numazu-shi, Shizuoka", 20}},
 
-    {22205u, "Atami-shi, Shizuoka"},
+    {22205u, std::string_view{"Atami-shi, Shizuoka", 19}},
 
-    {22206u, "Mishima-shi, Shizuoka"},
+    {22206u, std::string_view{"Mishima-shi, Shizuoka", 21}},
 
-    {22207u, "Fujinomiya-shi, Shizuoka"},
+    {22207u, std::string_view{"Fujinomiya-shi, Shizuoka", 24}},
 
-    {22208u, "Ito-shi, Shizuoka"},
+    {22208u, std::string_view{"Ito-shi, Shizuoka", 17}},
 
-    {22209u, "Shimada-shi, Shizuoka"},
+    {22209u, std::string_view{"Shimada-shi, Shizuoka", 21}},
 
-    {22210u, "Fuji-shi, Shizuoka"},
+    {22210u, std::string_view{"Fuji-shi, Shizuoka", 18}},
 
-    {22211u, "Iwata-shi, Shizuoka"},
+    {22211u, std::string_view{"Iwata-shi, Shizuoka", 19}},
 
-    {22212u, "Yaizu-shi, Shizuoka"},
+    {22212u, std::string_view{"Yaizu-shi, Shizuoka", 19}},
 
-    {22213u, "Kakegawa-shi, Shizuoka"},
+    {22213u, std::string_view{"Kakegawa-shi, Shizuoka", 22}},
 
-    {22214u, "Fujieda-shi, Shizuoka"},
+    {22214u, std::string_view{"Fujieda-shi, Shizuoka", 21}},
 
-    {22215u, "Gotemba-shi, Shizuoka"},
+    {22215u, std::string_view{"Gotemba-shi, Shizuoka", 21}},
 
-    {22216u, "Fukuroi-shi, Shizuoka"},
+    {22216u, std::string_view{"Fukuroi-shi, Shizuoka", 21}},
 
-    {22219u, "Shimoda-shi, Shizuoka"},
+    {22219u, std::string_view{"Shimoda-shi, Shizuoka", 21}},
 
-    {22220u, "Susono-shi, Shizuoka"},
+    {22220u, std::string_view{"Susono-shi, Shizuoka", 20}},
 
-    {22221u, "Kosai-shi, Shizuoka"},
+    {22221u, std::string_view{"Kosai-shi, Shizuoka", 19}},
 
-    {22222u, "Izu-shi, Shizuoka"},
+    {22222u, std::string_view{"Izu-shi, Shizuoka", 17}},
 
-    {22223u, "Omaezaki-shi, Shizuoka"},
+    {22223u, std::string_view{"Omaezaki-shi, Shizuoka", 22}},
 
-    {22224u, "Kikugawa-shi, Shizuoka"},
+    {22224u, std::string_view{"Kikugawa-shi, Shizuoka", 22}},
 
-    {22225u, "Izunokuni-shi, Shizuoka"},
+    {22225u, std::string_view{"Izunokuni-shi, Shizuoka", 23}},
 
-    {22226u, "Makinohara-shi, Shizuoka"},
+    {22226u, std::string_view{"Makinohara-shi, Shizuoka", 24}},
 
-    {22301u, "Higashiizu-cho, Shizuoka"},
+    {22301u, std::string_view{"Higashiizu-cho, Shizuoka", 24}},
 
-    {22302u, "Kawazu-cho, Shizuoka"},
+    {22302u, std::string_view{"Kawazu-cho, Shizuoka", 20}},
 
-    {22304u, "Minamiizu-cho, Shizuoka"},
+    {22304u, std::string_view{"Minamiizu-cho, Shizuoka", 23}},
 
-    {22305u, "Matsuzaki-cho, Shizuoka"},
+    {22305u, std::string_view{"Matsuzaki-cho, Shizuoka", 23}},
 
-    {22306u, "Nishiizu-cho, Shizuoka"},
+    {22306u, std::string_view{"Nishiizu-cho, Shizuoka", 22}},
 
-    {22325u, "Kannami-cho, Shizuoka"},
+    {22325u, std::string_view{"Kannami-cho, Shizuoka", 21}},
 
-    {22341u, "Shimizu-cho, Shizuoka"},
+    {22341u, std::string_view{"Shimizu-cho, Shizuoka", 21}},
 
-    {22342u, "Nagaizumi-cho, Shizuoka"},
+    {22342u, std::string_view{"Nagaizumi-cho, Shizuoka", 23}},
 
-    {22344u, "Oyama-cho, Shizuoka"},
+    {22344u, std::string_view{"Oyama-cho, Shizuoka", 19}},
 
-    {22424u, "Yoshida-cho, Shizuoka"},
+    {22424u, std::string_view{"Yoshida-cho, Shizuoka", 21}},
 
-    {22429u, "Kawanehon-cho, Shizuoka"},
+    {22429u, std::string_view{"Kawanehon-cho, Shizuoka", 23}},
 
-    {22461u, "Mori-machi, Shizuoka"},
+    {22461u, std::string_view{"Mori-machi, Shizuoka", 20}},
 
-    {23000u, "Aichi"},
+    {23000u, std::string_view{"Aichi", 5}},
 
-    {23100u, "Nagoya-shi, Aichi"},
+    {23100u, std::string_view{"Nagoya-shi, Aichi", 17}},
 
-    {23101u, "Chikusa-ku, Nagoya-shi"},
+    {23101u, std::string_view{"Chikusa-ku, Nagoya-shi", 22}},
 
-    {23102u, "Higashi-ku, Nagoya-shi"},
+    {23102u, std::string_view{"Higashi-ku, Nagoya-shi", 22}},
 
-    {23103u, "Kita-ku, Nagoya-shi"},
+    {23103u, std::string_view{"Kita-ku, Nagoya-shi", 19}},
 
-    {23104u, "Nishi-ku, Nagoya-shi"},
+    {23104u, std::string_view{"Nishi-ku, Nagoya-shi", 20}},
 
-    {23105u, "Nakamura-ku, Nagoya-shi"},
+    {23105u, std::string_view{"Nakamura-ku, Nagoya-shi", 23}},
 
-    {23106u, "Naka-ku, Nagoya-shi"},
+    {23106u, std::string_view{"Naka-ku, Nagoya-shi", 19}},
 
-    {23107u, "Showa-ku, Nagoya-shi"},
+    {23107u, std::string_view{"Showa-ku, Nagoya-shi", 20}},
 
-    {23108u, "Mizuho-ku, Nagoya-shi"},
+    {23108u, std::string_view{"Mizuho-ku, Nagoya-shi", 21}},
 
-    {23109u, "Atsuta-ku, Nagoya-shi"},
+    {23109u, std::string_view{"Atsuta-ku, Nagoya-shi", 21}},
 
-    {23110u, "Nakagawa-ku, Nagoya-shi"},
+    {23110u, std::string_view{"Nakagawa-ku, Nagoya-shi", 23}},
 
-    {23111u, "Minato-ku, Nagoya-shi"},
+    {23111u, std::string_view{"Minato-ku, Nagoya-shi", 21}},
 
-    {23112u, "Minami-ku, Nagoya-shi"},
+    {23112u, std::string_view{"Minami-ku, Nagoya-shi", 21}},
 
-    {23113u, "Moriyama-ku, Nagoya-shi"},
+    {23113u, std::string_view{"Moriyama-ku, Nagoya-shi", 23}},
 
-    {23114u, "Midori-ku, Nagoya-shi"},
+    {23114u, std::string_view{"Midori-ku, Nagoya-shi", 21}},
 
-    {23115u, "Meito-ku, Nagoya-shi"},
+    {23115u, std::string_view{"Meito-ku, Nagoya-shi", 20}},
 
-    {23116u, "Tempaku-ku, Nagoya-shi"},
+    {23116u, std::string_view{"Tempaku-ku, Nagoya-shi", 22}},
 
-    {23201u, "Toyohashi-shi, Aichi"},
+    {23201u, std::string_view{"Toyohashi-shi, Aichi", 20}},
 
-    {23202u, "Okazaki-shi, Aichi"},
+    {23202u, std::string_view{"Okazaki-shi, Aichi", 18}},
 
-    {23203u, "Ichinomiya-shi, Aichi"},
+    {23203u, std::string_view{"Ichinomiya-shi, Aichi", 21}},
 
-    {23204u, "Seto-shi, Aichi"},
+    {23204u, std::string_view{"Seto-shi, Aichi", 15}},
 
-    {23205u, "Handa-shi, Aichi"},
+    {23205u, std::string_view{"Handa-shi, Aichi", 16}},
 
-    {23206u, "Kasugai-shi, Aichi"},
+    {23206u, std::string_view{"Kasugai-shi, Aichi", 18}},
 
-    {23207u, "Toyokawa-shi, Aichi"},
+    {23207u, std::string_view{"Toyokawa-shi, Aichi", 19}},
 
-    {23208u, "Tsushima-shi, Aichi"},
+    {23208u, std::string_view{"Tsushima-shi, Aichi", 19}},
 
-    {23209u, "Hekinan-shi, Aichi"},
+    {23209u, std::string_view{"Hekinan-shi, Aichi", 18}},
 
-    {23210u, "Kariya-shi, Aichi"},
+    {23210u, std::string_view{"Kariya-shi, Aichi", 17}},
 
-    {23211u, "Toyota-shi, Aichi"},
+    {23211u, std::string_view{"Toyota-shi, Aichi", 17}},
 
-    {23212u, "Anjo-shi, Aichi"},
+    {23212u, std::string_view{"Anjo-shi, Aichi", 15}},
 
-    {23213u, "Nishio-shi, Aichi"},
+    {23213u, std::string_view{"Nishio-shi, Aichi", 17}},
 
-    {23214u, "Gamagori-shi, Aichi"},
+    {23214u, std::string_view{"Gamagori-shi, Aichi", 19}},
 
-    {23215u, "Inuyama-shi, Aichi"},
+    {23215u, std::string_view{"Inuyama-shi, Aichi", 18}},
 
-    {23216u, "Tokoname-shi, Aichi"},
+    {23216u, std::string_view{"Tokoname-shi, Aichi", 19}},
 
-    {23217u, "Konan-shi, Aichi"},
+    {23217u, std::string_view{"Konan-shi, Aichi", 16}},
 
-    {23219u, "Komaki-shi, Aichi"},
+    {23219u, std::string_view{"Komaki-shi, Aichi", 17}},
 
-    {23220u, "Inazawa-shi, Aichi"},
+    {23220u, std::string_view{"Inazawa-shi, Aichi", 18}},
 
-    {23221u, "Shinshiro-shi, Aichi"},
+    {23221u, std::string_view{"Shinshiro-shi, Aichi", 20}},
 
-    {23222u, "Tokai-shi, Aichi"},
+    {23222u, std::string_view{"Tokai-shi, Aichi", 16}},
 
-    {23223u, "Obu-shi, Aichi"},
+    {23223u, std::string_view{"Obu-shi, Aichi", 14}},
 
-    {23224u, "Chita-shi, Aichi"},
+    {23224u, std::string_view{"Chita-shi, Aichi", 16}},
 
-    {23225u, "Chiryu-shi, Aichi"},
+    {23225u, std::string_view{"Chiryu-shi, Aichi", 17}},
 
-    {23226u, "Owariasahi-shi, Aichi"},
+    {23226u, std::string_view{"Owariasahi-shi, Aichi", 21}},
 
-    {23227u, "Takahama-shi, Aichi"},
+    {23227u, std::string_view{"Takahama-shi, Aichi", 19}},
 
-    {23228u, "Iwakura-shi, Aichi"},
+    {23228u, std::string_view{"Iwakura-shi, Aichi", 18}},
 
-    {23229u, "Toyoake-shi, Aichi"},
+    {23229u, std::string_view{"Toyoake-shi, Aichi", 18}},
 
-    {23230u, "Nisshin-shi, Aichi"},
+    {23230u, std::string_view{"Nisshin-shi, Aichi", 18}},
 
-    {23231u, "Tahara-shi, Aichi"},
+    {23231u, std::string_view{"Tahara-shi, Aichi", 17}},
 
-    {23232u, "Aisai-shi, Aichi"},
+    {23232u, std::string_view{"Aisai-shi, Aichi", 16}},
 
-    {23233u, "Kiyosu-shi, Aichi"},
+    {23233u, std::string_view{"Kiyosu-shi, Aichi", 17}},
 
-    {23234u, "Kitanagoya-shi, Aichi"},
+    {23234u, std::string_view{"Kitanagoya-shi, Aichi", 21}},
 
-    {23235u, "Yatomi-shi, Aichi"},
+    {23235u, std::string_view{"Yatomi-shi, Aichi", 17}},
 
-    {23236u, "Miyoshi-shi, Aichi"},
+    {23236u, std::string_view{"Miyoshi-shi, Aichi", 18}},
 
-    {23237u, "Ama-shi, Aichi"},
+    {23237u, std::string_view{"Ama-shi, Aichi", 14}},
 
-    {23238u, "Nagakute-shi, Aichi"},
+    {23238u, std::string_view{"Nagakute-shi, Aichi", 19}},
 
-    {23302u, "Togo-cho, Aichi"},
+    {23302u, std::string_view{"Togo-cho, Aichi", 15}},
 
-    {23342u, "Toyoyama-cho, Aichi"},
+    {23342u, std::string_view{"Toyoyama-cho, Aichi", 19}},
 
-    {23361u, "Oguchi-cho, Aichi"},
+    {23361u, std::string_view{"Oguchi-cho, Aichi", 17}},
 
-    {23362u, "Fuso-cho, Aichi"},
+    {23362u, std::string_view{"Fuso-cho, Aichi", 15}},
 
-    {23424u, "Oharu-cho, Aichi"},
+    {23424u, std::string_view{"Oharu-cho, Aichi", 16}},
 
-    {23425u, "Kanie-cho, Aichi"},
+    {23425u, std::string_view{"Kanie-cho, Aichi", 16}},
 
-    {23427u, "Tobishima-mura, Aichi"},
+    {23427u, std::string_view{"Tobishima-mura, Aichi", 21}},
 
-    {23441u, "Agui-cho, Aichi"},
+    {23441u, std::string_view{"Agui-cho, Aichi", 15}},
 
-    {23442u, "Higashiura-cho, Aichi"},
+    {23442u, std::string_view{"Higashiura-cho, Aichi", 21}},
 
-    {23445u, "Minamichita-cho, Aichi"},
+    {23445u, std::string_view{"Minamichita-cho, Aichi", 22}},
 
-    {23446u, "Mihama-cho, Aichi"},
+    {23446u, std::string_view{"Mihama-cho, Aichi", 17}},
 
-    {23447u, "Taketoyo-cho, Aichi"},
+    {23447u, std::string_view{"Taketoyo-cho, Aichi", 19}},
 
-    {23501u, "Kota-cho, Aichi"},
+    {23501u, std::string_view{"Kota-cho, Aichi", 15}},
 
-    {23561u, "Shitara-cho, Aichi"},
+    {23561u, std::string_view{"Shitara-cho, Aichi", 18}},
 
-    {23562u, "Toei-cho, Aichi"},
+    {23562u, std::string_view{"Toei-cho, Aichi", 15}},
 
-    {23563u, "Toyone-mura, Aichi"},
+    {23563u, std::string_view{"Toyone-mura, Aichi", 18}},
 
-    {24000u, "Mie"},
+    {24000u, std::string_view{"Mie", 3}},
 
-    {24201u, "Tsu-shi, Mie"},
+    {24201u, std::string_view{"Tsu-shi, Mie", 12}},
 
-    {24202u, "Yokkaichi-shi, Mie"},
+    {24202u, std::string_view{"Yokkaichi-shi, Mie", 18}},
 
-    {24203u, "Ise-shi, Mie"},
+    {24203u, std::string_view{"Ise-shi, Mie", 12}},
 
-    {24204u, "Matsusaka-shi, Mie"},
+    {24204u, std::string_view{"Matsusaka-shi, Mie", 18}},
 
-    {24205u, "Kuwana-shi, Mie"},
+    {24205u, std::string_view{"Kuwana-shi, Mie", 15}},
 
-    {24207u, "Suzuka-shi, Mie"},
+    {24207u, std::string_view{"Suzuka-shi, Mie", 15}},
 
-    {24208u, "Nabari-shi, Mie"},
+    {24208u, std::string_view{"Nabari-shi, Mie", 15}},
 
-    {24209u, "Owase-shi, Mie"},
+    {24209u, std::string_view{"Owase-shi, Mie", 14}},
 
-    {24210u, "Kameyama-shi, Mie"},
+    {24210u, std::string_view{"Kameyama-shi, Mie", 17}},
 
-    {24211u, "Toba-shi, Mie"},
+    {24211u, std::string_view{"Toba-shi, Mie", 13}},
 
-    {24212u, "Kumano-shi, Mie"},
+    {24212u, std::string_view{"Kumano-shi, Mie", 15}},
 
-    {24214u, "Inabe-shi, Mie"},
+    {24214u, std::string_view{"Inabe-shi, Mie", 14}},
 
-    {24215u, "Shima-shi, Mie"},
+    {24215u, std::string_view{"Shima-shi, Mie", 14}},
 
-    {24216u, "Iga-shi, Mie"},
+    {24216u, std::string_view{"Iga-shi, Mie", 12}},
 
-    {24303u, "Kisosaki-cho, Mie"},
+    {24303u, std::string_view{"Kisosaki-cho, Mie", 17}},
 
-    {24324u, "Toin-cho, Mie"},
+    {24324u, std::string_view{"Toin-cho, Mie", 13}},
 
-    {24341u, "Komono-cho, Mie"},
+    {24341u, std::string_view{"Komono-cho, Mie", 15}},
 
-    {24343u, "Asahi-cho, Mie"},
+    {24343u, std::string_view{"Asahi-cho, Mie", 14}},
 
-    {24344u, "Kawagoe-cho, Mie"},
+    {24344u, std::string_view{"Kawagoe-cho, Mie", 16}},
 
-    {24441u, "Taki-cho, Mie"},
+    {24441u, std::string_view{"Taki-cho, Mie", 13}},
 
-    {24442u, "Meiwa-cho, Mie"},
+    {24442u, std::string_view{"Meiwa-cho, Mie", 14}},
 
-    {24443u, "Odai-cho, Mie"},
+    {24443u, std::string_view{"Odai-cho, Mie", 13}},
 
-    {24461u, "Tamaki-cho, Mie"},
+    {24461u, std::string_view{"Tamaki-cho, Mie", 15}},
 
-    {24470u, "Watarai-cho, Mie"},
+    {24470u, std::string_view{"Watarai-cho, Mie", 16}},
 
-    {24471u, "Taiki-cho, Mie"},
+    {24471u, std::string_view{"Taiki-cho, Mie", 14}},
 
-    {24472u, "Minamiise-cho, Mie"},
+    {24472u, std::string_view{"Minamiise-cho, Mie", 18}},
 
-    {24543u, "Kihoku-cho, Mie"},
+    {24543u, std::string_view{"Kihoku-cho, Mie", 15}},
 
-    {24561u, "Mihama-cho, Mie"},
+    {24561u, std::string_view{"Mihama-cho, Mie", 15}},
 
-    {24562u, "Kiho-cho, Mie"},
+    {24562u, std::string_view{"Kiho-cho, Mie", 13}},
 
-    {25000u, "Shiga"},
+    {25000u, std::string_view{"Shiga", 5}},
 
-    {25201u, "Otsu-shi, Shiga"},
+    {25201u, std::string_view{"Otsu-shi, Shiga", 15}},
 
-    {25202u, "Hikone-shi, Shiga"},
+    {25202u, std::string_view{"Hikone-shi, Shiga", 17}},
 
-    {25203u, "Nagahama-shi, Shiga"},
+    {25203u, std::string_view{"Nagahama-shi, Shiga", 19}},
 
-    {25204u, "Omihachiman-shi, Shiga"},
+    {25204u, std::string_view{"Omihachiman-shi, Shiga", 22}},
 
-    {25206u, "Kusatsu-shi, Shiga"},
+    {25206u, std::string_view{"Kusatsu-shi, Shiga", 18}},
 
-    {25207u, "Moriyama-shi, Shiga"},
+    {25207u, std::string_view{"Moriyama-shi, Shiga", 19}},
 
-    {25208u, "Ritto-shi, Shiga"},
+    {25208u, std::string_view{"Ritto-shi, Shiga", 16}},
 
-    {25209u, "Koka-shi, Shiga"},
+    {25209u, std::string_view{"Koka-shi, Shiga", 15}},
 
-    {25210u, "Yasu-shi, Shiga"},
+    {25210u, std::string_view{"Yasu-shi, Shiga", 15}},
 
-    {25211u, "Konan-shi, Shiga"},
+    {25211u, std::string_view{"Konan-shi, Shiga", 16}},
 
-    {25212u, "Takashima-shi, Shiga"},
+    {25212u, std::string_view{"Takashima-shi, Shiga", 20}},
 
-    {25213u, "Higashiomi-shi, Shiga"},
+    {25213u, std::string_view{"Higashiomi-shi, Shiga", 21}},
 
-    {25214u, "Maibara-shi, Shiga"},
+    {25214u, std::string_view{"Maibara-shi, Shiga", 18}},
 
-    {25383u, "Hino-cho, Shiga"},
+    {25383u, std::string_view{"Hino-cho, Shiga", 15}},
 
-    {25384u, "Riyuo-cho, Shiga"},
+    {25384u, std::string_view{"Riyuo-cho, Shiga", 16}},
 
-    {25425u, "Aisho-cho, Shiga"},
+    {25425u, std::string_view{"Aisho-cho, Shiga", 16}},
 
-    {25441u, "Toyosato-cho, Shiga"},
+    {25441u, std::string_view{"Toyosato-cho, Shiga", 19}},
 
-    {25442u, "Kora-cho, Shiga"},
+    {25442u, std::string_view{"Kora-cho, Shiga", 15}},
 
-    {25443u, "Taga-cho, Shiga"},
+    {25443u, std::string_view{"Taga-cho, Shiga", 15}},
 
-    {26000u, "Kyoto"},
+    {26000u, std::string_view{"Kyoto", 5}},
 
-    {26100u, "Kyoto-shi, Kyoto"},
+    {26100u, std::string_view{"Kyoto-shi, Kyoto", 16}},
 
-    {26101u, "Kita-ku, Kyoto-shi"},
+    {26101u, std::string_view{"Kita-ku, Kyoto-shi", 18}},
 
-    {26102u, "Kamigyo-ku, Kyoto-shi"},
+    {26102u, std::string_view{"Kamigyo-ku, Kyoto-shi", 21}},
 
-    {26103u, "Sakyo-ku, Kyoto-shi"},
+    {26103u, std::string_view{"Sakyo-ku, Kyoto-shi", 19}},
 
-    {26104u, "Nakagyo-ku, Kyoto-shi"},
+    {26104u, std::string_view{"Nakagyo-ku, Kyoto-shi", 21}},
 
-    {26105u, "Higashiyama-ku, Kyoto-shi"},
+    {26105u, std::string_view{"Higashiyama-ku, Kyoto-shi", 25}},
 
-    {26106u, "Shimogyo-ku, Kyoto-shi"},
+    {26106u, std::string_view{"Shimogyo-ku, Kyoto-shi", 22}},
 
-    {26107u, "Minami-ku, Kyoto-shi"},
+    {26107u, std::string_view{"Minami-ku, Kyoto-shi", 20}},
 
-    {26108u, "Ukyo-ku, Kyoto-shi"},
+    {26108u, std::string_view{"Ukyo-ku, Kyoto-shi", 18}},
 
-    {26109u, "Fushimi-ku, Kyoto-shi"},
+    {26109u, std::string_view{"Fushimi-ku, Kyoto-shi", 21}},
 
-    {26110u, "Yamashina-ku, Kyoto-shi"},
+    {26110u, std::string_view{"Yamashina-ku, Kyoto-shi", 23}},
 
-    {26111u, "Nishikyo-ku, Kyoto-shi"},
+    {26111u, std::string_view{"Nishikyo-ku, Kyoto-shi", 22}},
 
-    {26201u, "Fukuchiyama-shi, Kyoto"},
+    {26201u, std::string_view{"Fukuchiyama-shi, Kyoto", 22}},
 
-    {26202u, "Maizuru-shi, Kyoto"},
+    {26202u, std::string_view{"Maizuru-shi, Kyoto", 18}},
 
-    {26203u, "Ayabe-shi, Kyoto"},
+    {26203u, std::string_view{"Ayabe-shi, Kyoto", 16}},
 
-    {26204u, "Uji-shi, Kyoto"},
+    {26204u, std::string_view{"Uji-shi, Kyoto", 14}},
 
-    {26205u, "Miyazu-shi, Kyoto"},
+    {26205u, std::string_view{"Miyazu-shi, Kyoto", 17}},
 
-    {26206u, "Kameoka-shi, Kyoto"},
+    {26206u, std::string_view{"Kameoka-shi, Kyoto", 18}},
 
-    {26207u, "Joyo-shi, Kyoto"},
+    {26207u, std::string_view{"Joyo-shi, Kyoto", 15}},
 
-    {26208u, "Muko-shi, Kyoto"},
+    {26208u, std::string_view{"Muko-shi, Kyoto", 15}},
 
-    {26209u, "Nagaokakyo-shi, Kyoto"},
+    {26209u, std::string_view{"Nagaokakyo-shi, Kyoto", 21}},
 
-    {26210u, "Yawata-shi, Kyoto"},
+    {26210u, std::string_view{"Yawata-shi, Kyoto", 17}},
 
-    {26211u, "Kyotanabe-shi, Kyoto"},
+    {26211u, std::string_view{"Kyotanabe-shi, Kyoto", 20}},
 
-    {26212u, "Kyotango-shi, Kyoto"},
+    {26212u, std::string_view{"Kyotango-shi, Kyoto", 19}},
 
-    {26213u, "Nantan-shi, Kyoto"},
+    {26213u, std::string_view{"Nantan-shi, Kyoto", 17}},
 
-    {26214u, "Kizugawa-shi, Kyoto"},
+    {26214u, std::string_view{"Kizugawa-shi, Kyoto", 19}},
 
-    {26303u, "Oyamazaki-cho, Kyoto"},
+    {26303u, std::string_view{"Oyamazaki-cho, Kyoto", 20}},
 
-    {26322u, "Kumiyama-cho, Kyoto"},
+    {26322u, std::string_view{"Kumiyama-cho, Kyoto", 19}},
 
-    {26343u, "Ide-cho, Kyoto"},
+    {26343u, std::string_view{"Ide-cho, Kyoto", 14}},
 
-    {26344u, "Ujitawara-cho, Kyoto"},
+    {26344u, std::string_view{"Ujitawara-cho, Kyoto", 20}},
 
-    {26364u, "Kasagi-cho, Kyoto"},
+    {26364u, std::string_view{"Kasagi-cho, Kyoto", 17}},
 
-    {26365u, "Wazuka-cho, Kyoto"},
+    {26365u, std::string_view{"Wazuka-cho, Kyoto", 17}},
 
-    {26366u, "Seika-cho, Kyoto"},
+    {26366u, std::string_view{"Seika-cho, Kyoto", 16}},
 
-    {26367u, "Minamiyamashiro-mura, Kyoto"},
+    {26367u, std::string_view{"Minamiyamashiro-mura, Kyoto", 27}},
 
-    {26407u, "Kyotamba-cho, Kyoto"},
+    {26407u, std::string_view{"Kyotamba-cho, Kyoto", 19}},
 
-    {26463u, "Ine-cho, Kyoto"},
+    {26463u, std::string_view{"Ine-cho, Kyoto", 14}},
 
-    {26465u, "Yosano-cho, Kyoto"},
+    {26465u, std::string_view{"Yosano-cho, Kyoto", 17}},
 
-    {27000u, "Osaka"},
+    {27000u, std::string_view{"Osaka", 5}},
 
-    {27100u, "Osaka-shi, Osaka"},
+    {27100u, std::string_view{"Osaka-shi, Osaka", 16}},
 
-    {27101u, "Kita-ku, Osaka-shi"},
+    {27101u, std::string_view{"Kita-ku, Osaka-shi", 18}},
 
-    {27102u, "Miyakojima-ku, Osaka-shi"},
+    {27102u, std::string_view{"Miyakojima-ku, Osaka-shi", 24}},
 
-    {27103u, "Fukushima-ku, Osaka-shi"},
+    {27103u, std::string_view{"Fukushima-ku, Osaka-shi", 23}},
 
-    {27104u, "Konohana-ku, Osaka-shi"},
+    {27104u, std::string_view{"Konohana-ku, Osaka-shi", 22}},
 
-    {27105u, "Higashi-ku, Osaka-shi"},
+    {27105u, std::string_view{"Higashi-ku, Osaka-shi", 21}},
 
-    {27106u, "Nishi-ku, Osaka-shi"},
+    {27106u, std::string_view{"Nishi-ku, Osaka-shi", 19}},
 
-    {27107u, "Minato-ku, Osaka-shi"},
+    {27107u, std::string_view{"Minato-ku, Osaka-shi", 20}},
 
-    {27108u, "Taisho-ku, Osaka-shi"},
+    {27108u, std::string_view{"Taisho-ku, Osaka-shi", 20}},
 
-    {27109u, "Tennoji-ku, Osaka-shi"},
+    {27109u, std::string_view{"Tennoji-ku, Osaka-shi", 21}},
 
-    {27110u, "Minami-ku, Osaka-shi"},
+    {27110u, std::string_view{"Minami-ku, Osaka-shi", 20}},
 
-    {27111u, "Naniwa-ku, Osaka-shi"},
+    {27111u, std::string_view{"Naniwa-ku, Osaka-shi", 20}},
 
-    {27112u, "Oyodo-ku, Osaka-shi"},
+    {27112u, std::string_view{"Oyodo-ku, Osaka-shi", 19}},
 
-    {27113u, "Nishiyodogawa-ku, Osaka-shi"},
+    {27113u, std::string_view{"Nishiyodogawa-ku, Osaka-shi", 27}},
 
-    {27114u, "Higashiyodogawa-ku, Osaka-shi"},
+    {27114u, std::string_view{"Higashiyodogawa-ku, Osaka-shi", 29}},
 
-    {27115u, "Higashinari-ku, Osaka-shi"},
+    {27115u, std::string_view{"Higashinari-ku, Osaka-shi", 25}},
 
-    {27116u, "Ikuno-ku, Osaka-shi"},
+    {27116u, std::string_view{"Ikuno-ku, Osaka-shi", 19}},
 
-    {27117u, "Asahi-ku, Osaka-shi"},
+    {27117u, std::string_view{"Asahi-ku, Osaka-shi", 19}},
 
-    {27118u, "Joto-ku, Osaka-shi"},
+    {27118u, std::string_view{"Joto-ku, Osaka-shi", 18}},
 
-    {27119u, "Abeno-ku, Osaka-shi"},
+    {27119u, std::string_view{"Abeno-ku, Osaka-shi", 19}},
 
-    {27120u, "Sumiyoshi-ku, Osaka-shi"},
+    {27120u, std::string_view{"Sumiyoshi-ku, Osaka-shi", 23}},
 
-    {27121u, "Higashisumiyoshi-ku, Osaka-shi"},
+    {27121u, std::string_view{"Higashisumiyoshi-ku, Osaka-shi", 30}},
 
-    {27122u, "Nishinari-ku, Osaka-shi"},
+    {27122u, std::string_view{"Nishinari-ku, Osaka-shi", 23}},
 
-    {27123u, "Yodogawa-ku, Osaka-shi"},
+    {27123u, std::string_view{"Yodogawa-ku, Osaka-shi", 22}},
 
-    {27124u, "Tsurumi-ku, Osaka-shi"},
+    {27124u, std::string_view{"Tsurumi-ku, Osaka-shi", 21}},
 
-    {27125u, "Suminoe-ku, Osaka-shi"},
+    {27125u, std::string_view{"Suminoe-ku, Osaka-shi", 21}},
 
-    {27126u, "Hirano-ku, Osaka-shi"},
+    {27126u, std::string_view{"Hirano-ku, Osaka-shi", 20}},
 
-    {27127u, "Kita-ku, Osaka-shi"},
+    {27127u, std::string_view{"Kita-ku, Osaka-shi", 18}},
 
-    {27128u, "Chuo-ku, Osaka-shi"},
+    {27128u, std::string_view{"Chuo-ku, Osaka-shi", 18}},
 
-    {27140u, "Sakai-shi, Osaka"},
+    {27140u, std::string_view{"Sakai-shi, Osaka", 16}},
 
-    {27141u, "Sakai-ku, Sakai-shi"},
+    {27141u, std::string_view{"Sakai-ku, Sakai-shi", 19}},
 
-    {27142u, "Naka-ku, Sakai-shi"},
+    {27142u, std::string_view{"Naka-ku, Sakai-shi", 18}},
 
-    {27143u, "Higashi-ku, Sakai-shi"},
+    {27143u, std::string_view{"Higashi-ku, Sakai-shi", 21}},
 
-    {27144u, "Nishi-ku, Sakai-shi"},
+    {27144u, std::string_view{"Nishi-ku, Sakai-shi", 19}},
 
-    {27145u, "Minami-ku, Sakai-shi"},
+    {27145u, std::string_view{"Minami-ku, Sakai-shi", 20}},
 
-    {27146u, "Kita-ku, Sakai-shi"},
+    {27146u, std::string_view{"Kita-ku, Sakai-shi", 18}},
 
-    {27147u, "Mihara-ku, Sakai-shi"},
+    {27147u, std::string_view{"Mihara-ku, Sakai-shi", 20}},
 
-    {27202u, "Kishiwada-shi, Osaka"},
+    {27202u, std::string_view{"Kishiwada-shi, Osaka", 20}},
 
-    {27203u, "Toyonaka-shi, Osaka"},
+    {27203u, std::string_view{"Toyonaka-shi, Osaka", 19}},
 
-    {27204u, "Ikeda-shi, Osaka"},
+    {27204u, std::string_view{"Ikeda-shi, Osaka", 16}},
 
-    {27205u, "Suita-shi, Osaka"},
+    {27205u, std::string_view{"Suita-shi, Osaka", 16}},
 
-    {27206u, "Izumiotsu-shi, Osaka"},
+    {27206u, std::string_view{"Izumiotsu-shi, Osaka", 20}},
 
-    {27207u, "Takatsuki-shi, Osaka"},
+    {27207u, std::string_view{"Takatsuki-shi, Osaka", 20}},
 
-    {27208u, "Kaizuka-shi, Osaka"},
+    {27208u, std::string_view{"Kaizuka-shi, Osaka", 18}},
 
-    {27209u, "Moriguchi-shi, Osaka"},
+    {27209u, std::string_view{"Moriguchi-shi, Osaka", 20}},
 
-    {27210u, "Hirakata-shi, Osaka"},
+    {27210u, std::string_view{"Hirakata-shi, Osaka", 19}},
 
-    {27211u, "Ibaraki-shi, Osaka"},
+    {27211u, std::string_view{"Ibaraki-shi, Osaka", 18}},
 
-    {27212u, "Yao-shi, Osaka"},
+    {27212u, std::string_view{"Yao-shi, Osaka", 14}},
 
-    {27213u, "Izumisano-shi, Osaka"},
+    {27213u, std::string_view{"Izumisano-shi, Osaka", 20}},
 
-    {27214u, "Tondabayashi-shi, Osaka"},
+    {27214u, std::string_view{"Tondabayashi-shi, Osaka", 23}},
 
-    {27215u, "Neyagawa-shi, Osaka"},
+    {27215u, std::string_view{"Neyagawa-shi, Osaka", 19}},
 
-    {27216u, "Kawachinagano-shi, Osaka"},
+    {27216u, std::string_view{"Kawachinagano-shi, Osaka", 24}},
 
-    {27217u, "Matsubara-shi, Osaka"},
+    {27217u, std::string_view{"Matsubara-shi, Osaka", 20}},
 
-    {27218u, "Daito-shi, Osaka"},
+    {27218u, std::string_view{"Daito-shi, Osaka", 16}},
 
-    {27219u, "Izumi-shi, Osaka"},
+    {27219u, std::string_view{"Izumi-shi, Osaka", 16}},
 
-    {27220u, "Mino-shi, Osaka"},
+    {27220u, std::string_view{"Mino-shi, Osaka", 15}},
 
-    {27221u, "Kashiwara-shi, Osaka"},
+    {27221u, std::string_view{"Kashiwara-shi, Osaka", 20}},
 
-    {27222u, "Habikino-shi, Osaka"},
+    {27222u, std::string_view{"Habikino-shi, Osaka", 19}},
 
-    {27223u, "Kadoma-shi, Osaka"},
+    {27223u, std::string_view{"Kadoma-shi, Osaka", 17}},
 
-    {27224u, "Settsu-shi, Osaka"},
+    {27224u, std::string_view{"Settsu-shi, Osaka", 17}},
 
-    {27225u, "Takaishi-shi, Osaka"},
+    {27225u, std::string_view{"Takaishi-shi, Osaka", 19}},
 
-    {27226u, "Fujiidera-shi, Osaka"},
+    {27226u, std::string_view{"Fujiidera-shi, Osaka", 20}},
 
-    {27227u, "Higashiosaka-shi, Osaka"},
+    {27227u, std::string_view{"Higashiosaka-shi, Osaka", 23}},
 
-    {27228u, "Sennan-shi, Osaka"},
+    {27228u, std::string_view{"Sennan-shi, Osaka", 17}},
 
-    {27229u, "Shijiyonawate-shi, Osaka"},
+    {27229u, std::string_view{"Shijiyonawate-shi, Osaka", 24}},
 
-    {27230u, "Katano-shi, Osaka"},
+    {27230u, std::string_view{"Katano-shi, Osaka", 17}},
 
-    {27231u, "Osakasayama-shi, Osaka"},
+    {27231u, std::string_view{"Osakasayama-shi, Osaka", 22}},
 
-    {27232u, "Hannan-shi, Osaka"},
+    {27232u, std::string_view{"Hannan-shi, Osaka", 17}},
 
-    {27301u, "Shimamoto-cho, Osaka"},
+    {27301u, std::string_view{"Shimamoto-cho, Osaka", 20}},
 
-    {27321u, "Toyono-cho, Osaka"},
+    {27321u, std::string_view{"Toyono-cho, Osaka", 17}},
 
-    {27322u, "Nose-cho, Osaka"},
+    {27322u, std::string_view{"Nose-cho, Osaka", 15}},
 
-    {27341u, "Tadaoka-cho, Osaka"},
+    {27341u, std::string_view{"Tadaoka-cho, Osaka", 18}},
 
-    {27361u, "Kumatori-cho, Osaka"},
+    {27361u, std::string_view{"Kumatori-cho, Osaka", 19}},
 
-    {27362u, "Tajiri-cho, Osaka"},
+    {27362u, std::string_view{"Tajiri-cho, Osaka", 17}},
 
-    {27366u, "Misaki-cho, Osaka"},
+    {27366u, std::string_view{"Misaki-cho, Osaka", 17}},
 
-    {27381u, "Taishi-cho, Osaka"},
+    {27381u, std::string_view{"Taishi-cho, Osaka", 17}},
 
-    {27382u, "Kanan-cho, Osaka"},
+    {27382u, std::string_view{"Kanan-cho, Osaka", 16}},
 
-    {27383u, "Chihayaakasaka-mura, Osaka"},
+    {27383u, std::string_view{"Chihayaakasaka-mura, Osaka", 26}},
 
-    {28000u, "Hyogo"},
+    {28000u, std::string_view{"Hyogo", 5}},
 
-    {28100u, "Kobe-shi, Hyogo"},
+    {28100u, std::string_view{"Kobe-shi, Hyogo", 15}},
 
-    {28101u, "Higashinada-ku, Kobe-shi"},
+    {28101u, std::string_view{"Higashinada-ku, Kobe-shi", 24}},
 
-    {28102u, "Nada-ku, Kobe-shi"},
+    {28102u, std::string_view{"Nada-ku, Kobe-shi", 17}},
 
-    {28103u, "Fukiai-ku, Kobe-shi"},
+    {28103u, std::string_view{"Fukiai-ku, Kobe-shi", 19}},
 
-    {28104u, "Ikuta-ku, Kobe-shi"},
+    {28104u, std::string_view{"Ikuta-ku, Kobe-shi", 18}},
 
-    {28105u, "Hyogo-ku, Kobe-shi"},
+    {28105u, std::string_view{"Hyogo-ku, Kobe-shi", 18}},
 
-    {28106u, "Nagata-ku, Kobe-shi"},
+    {28106u, std::string_view{"Nagata-ku, Kobe-shi", 19}},
 
-    {28107u, "Suma-ku, Kobe-shi"},
+    {28107u, std::string_view{"Suma-ku, Kobe-shi", 17}},
 
-    {28108u, "Tarumi-ku, Kobe-shi"},
+    {28108u, std::string_view{"Tarumi-ku, Kobe-shi", 19}},
 
-    {28109u, "Kita-ku, Kobe-shi"},
+    {28109u, std::string_view{"Kita-ku, Kobe-shi", 17}},
 
-    {28110u, "Chuo-ku, Kobe-shi"},
+    {28110u, std::string_view{"Chuo-ku, Kobe-shi", 17}},
 
-    {28111u, "Nishi-ku, Kobe-shi"},
+    {28111u, std::string_view{"Nishi-ku, Kobe-shi", 18}},
 
-    {28201u, "Himeji-shi, Hyogo"},
+    {28201u, std::string_view{"Himeji-shi, Hyogo", 17}},
 
-    {28202u, "Amagasaki-shi, Hyogo"},
+    {28202u, std::string_view{"Amagasaki-shi, Hyogo", 20}},
 
-    {28203u, "Akashi-shi, Hyogo"},
+    {28203u, std::string_view{"Akashi-shi, Hyogo", 17}},
 
-    {28204u, "Nishinomiya-shi, Hyogo"},
+    {28204u, std::string_view{"Nishinomiya-shi, Hyogo", 22}},
 
-    {28205u, "Sumoto-shi, Hyogo"},
+    {28205u, std::string_view{"Sumoto-shi, Hyogo", 17}},
 
-    {28206u, "Ashiya-shi, Hyogo"},
+    {28206u, std::string_view{"Ashiya-shi, Hyogo", 17}},
 
-    {28207u, "Itami-shi, Hyogo"},
+    {28207u, std::string_view{"Itami-shi, Hyogo", 16}},
 
-    {28208u, "Aioi-shi, Hyogo"},
+    {28208u, std::string_view{"Aioi-shi, Hyogo", 15}},
 
-    {28209u, "Toyoka-shi, Hyogo"},
+    {28209u, std::string_view{"Toyoka-shi, Hyogo", 17}},
 
-    {28210u, "Kakogawa-shi, Hyogo"},
+    {28210u, std::string_view{"Kakogawa-shi, Hyogo", 19}},
 
-    {28212u, "Ako-shi, Hyogo"},
+    {28212u, std::string_view{"Ako-shi, Hyogo", 14}},
 
-    {28213u, "Nishiwaki-shi, Hyogo"},
+    {28213u, std::string_view{"Nishiwaki-shi, Hyogo", 20}},
 
-    {28214u, "Takarazuka-shi, Hyogo"},
+    {28214u, std::string_view{"Takarazuka-shi, Hyogo", 21}},
 
-    {28215u, "Miki-shi, Hyogo"},
+    {28215u, std::string_view{"Miki-shi, Hyogo", 15}},
 
-    {28216u, "Takasago-shi, Hyogo"},
+    {28216u, std::string_view{"Takasago-shi, Hyogo", 19}},
 
-    {28217u, "Kawanishi-shi, Hyogo"},
+    {28217u, std::string_view{"Kawanishi-shi, Hyogo", 20}},
 
-    {28218u, "Ono-shi, Hyogo"},
+    {28218u, std::string_view{"Ono-shi, Hyogo", 14}},
 
-    {28219u, "Sanda-shi, Hyogo"},
+    {28219u, std::string_view{"Sanda-shi, Hyogo", 16}},
 
-    {28220u, "Kasai-shi, Hyogo"},
+    {28220u, std::string_view{"Kasai-shi, Hyogo", 16}},
 
-    {28221u, "Tambasasayama-shi, Hyogo"},
+    {28221u, std::string_view{"Tambasasayama-shi, Hyogo", 24}},
 
-    {28222u, "Yabu-shi, Hyogo"},
+    {28222u, std::string_view{"Yabu-shi, Hyogo", 15}},
 
-    {28223u, "Tamba-shi, Hyogo"},
+    {28223u, std::string_view{"Tamba-shi, Hyogo", 16}},
 
-    {28224u, "Minamiawaji-shi, Hyogo"},
+    {28224u, std::string_view{"Minamiawaji-shi, Hyogo", 22}},
 
-    {28225u, "Asago-shi, Hyogo"},
+    {28225u, std::string_view{"Asago-shi, Hyogo", 16}},
 
-    {28226u, "Awaji-shi, Hyogo"},
+    {28226u, std::string_view{"Awaji-shi, Hyogo", 16}},
 
-    {28227u, "Shiso-shi, Hyogo"},
+    {28227u, std::string_view{"Shiso-shi, Hyogo", 16}},
 
-    {28228u, "Kato-shi, Hyogo"},
+    {28228u, std::string_view{"Kato-shi, Hyogo", 15}},
 
-    {28229u, "Tatsuno-shi, Hyogo"},
+    {28229u, std::string_view{"Tatsuno-shi, Hyogo", 18}},
 
-    {28301u, "Inagawa-cho, Hyogo"},
+    {28301u, std::string_view{"Inagawa-cho, Hyogo", 18}},
 
-    {28365u, "Taka-cho, Hyogo"},
+    {28365u, std::string_view{"Taka-cho, Hyogo", 15}},
 
-    {28381u, "Inami-cho, Hyogo"},
+    {28381u, std::string_view{"Inami-cho, Hyogo", 16}},
 
-    {28382u, "Harima-cho, Hyogo"},
+    {28382u, std::string_view{"Harima-cho, Hyogo", 17}},
 
-    {28442u, "Ichikawa-cho, Hyogo"},
+    {28442u, std::string_view{"Ichikawa-cho, Hyogo", 19}},
 
-    {28443u, "Fukusaki-cho, Hyogo"},
+    {28443u, std::string_view{"Fukusaki-cho, Hyogo", 19}},
 
-    {28446u, "Kamikawa-cho, Hyogo"},
+    {28446u, std::string_view{"Kamikawa-cho, Hyogo", 19}},
 
-    {28464u, "Taishi-cho, Hyogo"},
+    {28464u, std::string_view{"Taishi-cho, Hyogo", 17}},
 
-    {28481u, "Kamigori-cho, Hyogo"},
+    {28481u, std::string_view{"Kamigori-cho, Hyogo", 19}},
 
-    {28501u, "Sayo-cho, Hyogo"},
+    {28501u, std::string_view{"Sayo-cho, Hyogo", 15}},
 
-    {28585u, "Kami-cho, Hyogo"},
+    {28585u, std::string_view{"Kami-cho, Hyogo", 15}},
 
-    {28586u, "Shinonsen-cho, Hyogo"},
+    {28586u, std::string_view{"Shinonsen-cho, Hyogo", 20}},
 
-    {29000u, "Nara"},
+    {29000u, std::string_view{"Nara", 4}},
 
-    {29201u, "Nara-shi, Nara"},
+    {29201u, std::string_view{"Nara-shi, Nara", 14}},
 
-    {29202u, "Yamatotakada-shi, Nara"},
+    {29202u, std::string_view{"Yamatotakada-shi, Nara", 22}},
 
-    {29203u, "Yamatokoriyama-shi, Nara"},
+    {29203u, std::string_view{"Yamatokoriyama-shi, Nara", 24}},
 
-    {29204u, "Tenri-shi, Nara"},
+    {29204u, std::string_view{"Tenri-shi, Nara", 15}},
 
-    {29205u, "Kashihara-shi, Nara"},
+    {29205u, std::string_view{"Kashihara-shi, Nara", 19}},
 
-    {29206u, "Sakurai-shi, Nara"},
+    {29206u, std::string_view{"Sakurai-shi, Nara", 17}},
 
-    {29207u, "Gojo-shi, Nara"},
+    {29207u, std::string_view{"Gojo-shi, Nara", 14}},
 
-    {29208u, "Gose-shi, Nara"},
+    {29208u, std::string_view{"Gose-shi, Nara", 14}},
 
-    {29209u, "Ikoma-shi, Nara"},
+    {29209u, std::string_view{"Ikoma-shi, Nara", 15}},
 
-    {29210u, "Kashiba-shi, Nara"},
+    {29210u, std::string_view{"Kashiba-shi, Nara", 17}},
 
-    {29211u, "Katsuragi-shi, Nara"},
+    {29211u, std::string_view{"Katsuragi-shi, Nara", 19}},
 
-    {29212u, "Uda-shi, Nara"},
+    {29212u, std::string_view{"Uda-shi, Nara", 13}},
 
-    {29322u, "Yamazoe-mura, Nara"},
+    {29322u, std::string_view{"Yamazoe-mura, Nara", 18}},
 
-    {29342u, "Heguri-cho, Nara"},
+    {29342u, std::string_view{"Heguri-cho, Nara", 16}},
 
-    {29343u, "Sango-cho, Nara"},
+    {29343u, std::string_view{"Sango-cho, Nara", 15}},
 
-    {29344u, "Ikaruga-cho, Nara"},
+    {29344u, std::string_view{"Ikaruga-cho, Nara", 17}},
 
-    {29345u, "Ando-cho, Nara"},
+    {29345u, std::string_view{"Ando-cho, Nara", 14}},
 
-    {29361u, "Kawanishi-cho, Nara"},
+    {29361u, std::string_view{"Kawanishi-cho, Nara", 19}},
 
-    {29362u, "Miyake-cho, Nara"},
+    {29362u, std::string_view{"Miyake-cho, Nara", 16}},
 
-    {29363u, "Tawaramoto-cho, Nara"},
+    {29363u, std::string_view{"Tawaramoto-cho, Nara", 20}},
 
-    {29385u, "Soni-mura, Nara"},
+    {29385u, std::string_view{"Soni-mura, Nara", 15}},
 
-    {29386u, "Mitsue-mura, Nara"},
+    {29386u, std::string_view{"Mitsue-mura, Nara", 17}},
 
-    {29401u, "Takatori-cho, Nara"},
+    {29401u, std::string_view{"Takatori-cho, Nara", 18}},
 
-    {29402u, "Asuka-mura, Nara"},
+    {29402u, std::string_view{"Asuka-mura, Nara", 16}},
 
-    {29424u, "Kammaki-cho, Nara"},
+    {29424u, std::string_view{"Kammaki-cho, Nara", 17}},
 
-    {29425u, "Oji-cho, Nara"},
+    {29425u, std::string_view{"Oji-cho, Nara", 13}},
 
-    {29426u, "Koriyo-cho, Nara"},
+    {29426u, std::string_view{"Koriyo-cho, Nara", 16}},
 
-    {29427u, "Kawai-cho, Nara"},
+    {29427u, std::string_view{"Kawai-cho, Nara", 15}},
 
-    {29441u, "Yoshino-cho, Nara"},
+    {29441u, std::string_view{"Yoshino-cho, Nara", 17}},
 
-    {29442u, "Oyodo-cho, Nara"},
+    {29442u, std::string_view{"Oyodo-cho, Nara", 15}},
 
-    {29443u, "Shimoichi-cho, Nara"},
+    {29443u, std::string_view{"Shimoichi-cho, Nara", 19}},
 
-    {29444u, "Kurotaki-mura, Nara"},
+    {29444u, std::string_view{"Kurotaki-mura, Nara", 19}},
 
-    {29446u, "Tenkawa-mura, Nara"},
+    {29446u, std::string_view{"Tenkawa-mura, Nara", 18}},
 
-    {29447u, "Nosegawa-mura, Nara"},
+    {29447u, std::string_view{"Nosegawa-mura, Nara", 19}},
 
-    {29449u, "Totsukawa-mura, Nara"},
+    {29449u, std::string_view{"Totsukawa-mura, Nara", 20}},
 
-    {29450u, "Shimokitayama-mura, Nara"},
+    {29450u, std::string_view{"Shimokitayama-mura, Nara", 24}},
 
-    {29451u, "Kamikitayama-mura, Nara"},
+    {29451u, std::string_view{"Kamikitayama-mura, Nara", 23}},
 
-    {29452u, "Kawakami-mura, Nara"},
+    {29452u, std::string_view{"Kawakami-mura, Nara", 19}},
 
-    {29453u, "Higashiyoshino-mura, Nara"},
+    {29453u, std::string_view{"Higashiyoshino-mura, Nara", 25}},
 
-    {30000u, "Wakayama"},
+    {30000u, std::string_view{"Wakayama", 8}},
 
-    {30201u, "Wakayama-shi, Wakayama"},
+    {30201u, std::string_view{"Wakayama-shi, Wakayama", 22}},
 
-    {30202u, "Kainan-shi, Wakayama"},
+    {30202u, std::string_view{"Kainan-shi, Wakayama", 20}},
 
-    {30203u, "Hashimoto-shi, Wakayama"},
+    {30203u, std::string_view{"Hashimoto-shi, Wakayama", 23}},
 
-    {30204u, "Arida-shi, Wakayama"},
+    {30204u, std::string_view{"Arida-shi, Wakayama", 19}},
 
-    {30205u, "Gobo-shi, Wakayama"},
+    {30205u, std::string_view{"Gobo-shi, Wakayama", 18}},
 
-    {30206u, "Tanabe-shi, Wakayama"},
+    {30206u, std::string_view{"Tanabe-shi, Wakayama", 20}},
 
-    {30207u, "Shingu-shi, Wakayama"},
+    {30207u, std::string_view{"Shingu-shi, Wakayama", 20}},
 
-    {30208u, "Kinokawa-shi, Wakayama"},
+    {30208u, std::string_view{"Kinokawa-shi, Wakayama", 22}},
 
-    {30209u, "Iwade-shi, Wakayama"},
+    {30209u, std::string_view{"Iwade-shi, Wakayama", 19}},
 
-    {30304u, "Kimino-cho, Wakayama"},
+    {30304u, std::string_view{"Kimino-cho, Wakayama", 20}},
 
-    {30341u, "Katsuragi-cho, Wakayama"},
+    {30341u, std::string_view{"Katsuragi-cho, Wakayama", 23}},
 
-    {30343u, "Kudoyama-cho, Wakayama"},
+    {30343u, std::string_view{"Kudoyama-cho, Wakayama", 22}},
 
-    {30344u, "Koya-cho, Wakayama"},
+    {30344u, std::string_view{"Koya-cho, Wakayama", 18}},
 
-    {30361u, "Yuasa-cho, Wakayama"},
+    {30361u, std::string_view{"Yuasa-cho, Wakayama", 19}},
 
-    {30362u, "Hirogawa-cho, Wakayama"},
+    {30362u, std::string_view{"Hirogawa-cho, Wakayama", 22}},
 
-    {30366u, "Aridagawa-cho, Wakayama"},
+    {30366u, std::string_view{"Aridagawa-cho, Wakayama", 23}},
 
-    {30381u, "Mihama-cho, Wakayama"},
+    {30381u, std::string_view{"Mihama-cho, Wakayama", 20}},
 
-    {30382u, "Hidaka-cho, Wakayama"},
+    {30382u, std::string_view{"Hidaka-cho, Wakayama", 20}},
 
-    {30383u, "Yura-cho, Wakayama"},
+    {30383u, std::string_view{"Yura-cho, Wakayama", 18}},
 
-    {30390u, "Inami-cho, Wakayama"},
+    {30390u, std::string_view{"Inami-cho, Wakayama", 19}},
 
-    {30391u, "Minabe-cho, Wakayama"},
+    {30391u, std::string_view{"Minabe-cho, Wakayama", 20}},
 
-    {30392u, "Hidakagawa-cho, Wakayama"},
+    {30392u, std::string_view{"Hidakagawa-cho, Wakayama", 24}},
 
-    {30401u, "Shirahama-cho, Wakayama"},
+    {30401u, std::string_view{"Shirahama-cho, Wakayama", 23}},
 
-    {30404u, "Kamitonda-cho, Wakayama"},
+    {30404u, std::string_view{"Kamitonda-cho, Wakayama", 23}},
 
-    {30406u, "Susami-cho, Wakayama"},
+    {30406u, std::string_view{"Susami-cho, Wakayama", 20}},
 
-    {30421u, "Nachikatsura-cho, Wakayama"},
+    {30421u, std::string_view{"Nachikatsura-cho, Wakayama", 26}},
 
-    {30422u, "Taiji-cho, Wakayama"},
+    {30422u, std::string_view{"Taiji-cho, Wakayama", 19}},
 
-    {30424u, "Kozagawa-cho, Wakayama"},
+    {30424u, std::string_view{"Kozagawa-cho, Wakayama", 22}},
 
-    {30427u, "Kitayama-mura, Wakayama"},
+    {30427u, std::string_view{"Kitayama-mura, Wakayama", 23}},
 
-    {30428u, "Kushimoto-cho, Wakayama"},
+    {30428u, std::string_view{"Kushimoto-cho, Wakayama", 23}},
 
-    {31000u, "Tottori"},
+    {31000u, std::string_view{"Tottori", 7}},
 
-    {31201u, "Tottori-shi, Tottori"},
+    {31201u, std::string_view{"Tottori-shi, Tottori", 20}},
 
-    {31202u, "Yonago-shi, Tottori"},
+    {31202u, std::string_view{"Yonago-shi, Tottori", 19}},
 
-    {31203u, "Kurayoshi-shi, Tottori"},
+    {31203u, std::string_view{"Kurayoshi-shi, Tottori", 22}},
 
-    {31204u, "Sakaiminato-shi, Tottori"},
+    {31204u, std::string_view{"Sakaiminato-shi, Tottori", 24}},
 
-    {31302u, "Iwami-cho, Tottori"},
+    {31302u, std::string_view{"Iwami-cho, Tottori", 18}},
 
-    {31325u, "Wakasa-cho, Tottori"},
+    {31325u, std::string_view{"Wakasa-cho, Tottori", 19}},
 
-    {31328u, "Chizu-cho, Tottori"},
+    {31328u, std::string_view{"Chizu-cho, Tottori", 18}},
 
-    {31329u, "Yazu-cho, Tottori"},
+    {31329u, std::string_view{"Yazu-cho, Tottori", 17}},
 
-    {31364u, "Misasa-cho, Tottori"},
+    {31364u, std::string_view{"Misasa-cho, Tottori", 19}},
 
-    {31370u, "Yurihama-cho, Tottori"},
+    {31370u, std::string_view{"Yurihama-cho, Tottori", 21}},
 
-    {31371u, "Kotoura-cho, Tottori"},
+    {31371u, std::string_view{"Kotoura-cho, Tottori", 20}},
 
-    {31372u, "Hokuei-cho, Tottori"},
+    {31372u, std::string_view{"Hokuei-cho, Tottori", 19}},
 
-    {31384u, "Hiezu-son, Tottori"},
+    {31384u, std::string_view{"Hiezu-son, Tottori", 18}},
 
-    {31386u, "Daisen-cho, Tottori"},
+    {31386u, std::string_view{"Daisen-cho, Tottori", 19}},
 
-    {31389u, "Nambu-cho, Tottori"},
+    {31389u, std::string_view{"Nambu-cho, Tottori", 18}},
 
-    {31390u, "Hoki-cho, Tottori"},
+    {31390u, std::string_view{"Hoki-cho, Tottori", 17}},
 
-    {31401u, "Nichinan-cho, Tottori"},
+    {31401u, std::string_view{"Nichinan-cho, Tottori", 21}},
 
-    {31402u, "Hino-cho, Tottori"},
+    {31402u, std::string_view{"Hino-cho, Tottori", 17}},
 
-    {31403u, "Kofu-cho, Tottori"},
+    {31403u, std::string_view{"Kofu-cho, Tottori", 17}},
 
-    {32000u, "Shimane"},
+    {32000u, std::string_view{"Shimane", 7}},
 
-    {32201u, "Matsue-shi, Shimane"},
+    {32201u, std::string_view{"Matsue-shi, Shimane", 19}},
 
-    {32202u, "Hamada-shi, Shimane"},
+    {32202u, std::string_view{"Hamada-shi, Shimane", 19}},
 
-    {32203u, "Izumo-shi, Shimane"},
+    {32203u, std::string_view{"Izumo-shi, Shimane", 18}},
 
-    {32204u, "Masuda-shi, Shimane"},
+    {32204u, std::string_view{"Masuda-shi, Shimane", 19}},
 
-    {32205u, "Oda-shi, Shimane"},
+    {32205u, std::string_view{"Oda-shi, Shimane", 16}},
 
-    {32206u, "Yasugi-shi, Shimane"},
+    {32206u, std::string_view{"Yasugi-shi, Shimane", 19}},
 
-    {32207u, "Gotsu-shi, Shimane"},
+    {32207u, std::string_view{"Gotsu-shi, Shimane", 18}},
 
-    {32209u, "Unnan-shi, Shimane"},
+    {32209u, std::string_view{"Unnan-shi, Shimane", 18}},
 
-    {32343u, "Okuizumo-cho, Shimane"},
+    {32343u, std::string_view{"Okuizumo-cho, Shimane", 21}},
 
-    {32386u, "Iinan-cho, Shimane"},
+    {32386u, std::string_view{"Iinan-cho, Shimane", 18}},
 
-    {32441u, "Kawamoto-machi, Shimane"},
+    {32441u, std::string_view{"Kawamoto-machi, Shimane", 23}},
 
-    {32448u, "Misato-cho, Shimane"},
+    {32448u, std::string_view{"Misato-cho, Shimane", 19}},
 
-    {32449u, "Onan-cho, Shimane"},
+    {32449u, std::string_view{"Onan-cho, Shimane", 17}},
 
-    {32501u, "Tsuwano-cho, Shimane"},
+    {32501u, std::string_view{"Tsuwano-cho, Shimane", 20}},
 
-    {32505u, "Yoshika-cho, Shimane"},
+    {32505u, std::string_view{"Yoshika-cho, Shimane", 20}},
 
-    {32525u, "Ama-cho, Shimane"},
+    {32525u, std::string_view{"Ama-cho, Shimane", 16}},
 
-    {32526u, "Nishinoshima-cho, Shimane"},
+    {32526u, std::string_view{"Nishinoshima-cho, Shimane", 25}},
 
-    {32527u, "Chibu-mura, Shimane"},
+    {32527u, std::string_view{"Chibu-mura, Shimane", 19}},
 
-    {32528u, "Okinoshima-cho, Shimane"},
+    {32528u, std::string_view{"Okinoshima-cho, Shimane", 23}},
 
-    {33000u, "Okayama"},
+    {33000u, std::string_view{"Okayama", 7}},
 
-    {33100u, "Okayama-shi, Okayama"},
+    {33100u, std::string_view{"Okayama-shi, Okayama", 20}},
 
-    {33101u, "Kita-ku, Okayama-shi"},
+    {33101u, std::string_view{"Kita-ku, Okayama-shi", 20}},
 
-    {33102u, "Naka-ku, Okayama-shi"},
+    {33102u, std::string_view{"Naka-ku, Okayama-shi", 20}},
 
-    {33103u, "Higashi-ku, Okayama-shi"},
+    {33103u, std::string_view{"Higashi-ku, Okayama-shi", 23}},
 
-    {33104u, "Minami-ku, Okayama-shi"},
+    {33104u, std::string_view{"Minami-ku, Okayama-shi", 22}},
 
-    {33202u, "Kurashiki-shi, Okayama"},
+    {33202u, std::string_view{"Kurashiki-shi, Okayama", 22}},
 
-    {33203u, "Tsuyama-shi, Okayama"},
+    {33203u, std::string_view{"Tsuyama-shi, Okayama", 20}},
 
-    {33204u, "Tamano-shi, Okayama"},
+    {33204u, std::string_view{"Tamano-shi, Okayama", 19}},
 
-    {33205u, "Kasaoka-shi, Okayama"},
+    {33205u, std::string_view{"Kasaoka-shi, Okayama", 20}},
 
-    {33207u, "Ibara-shi, Okayama"},
+    {33207u, std::string_view{"Ibara-shi, Okayama", 18}},
 
-    {33208u, "Sojiya-shi, Okayama"},
+    {33208u, std::string_view{"Sojiya-shi, Okayama", 19}},
 
-    {33209u, "Takahashi-shi, Okayama"},
+    {33209u, std::string_view{"Takahashi-shi, Okayama", 22}},
 
-    {33210u, "Niimi-shi, Okayama"},
+    {33210u, std::string_view{"Niimi-shi, Okayama", 18}},
 
-    {33211u, "Bizen-shi, Okayama"},
+    {33211u, std::string_view{"Bizen-shi, Okayama", 18}},
 
-    {33212u, "Setouchi-shi, Okayama"},
+    {33212u, std::string_view{"Setouchi-shi, Okayama", 21}},
 
-    {33213u, "Akaiwa-shi, Okayama"},
+    {33213u, std::string_view{"Akaiwa-shi, Okayama", 19}},
 
-    {33214u, "Maniwa-shi, Okayama"},
+    {33214u, std::string_view{"Maniwa-shi, Okayama", 19}},
 
-    {33215u, "Mimasaka-shi, Okayama"},
+    {33215u, std::string_view{"Mimasaka-shi, Okayama", 21}},
 
-    {33216u, "Asakuchi-shi, Okayama"},
+    {33216u, std::string_view{"Asakuchi-shi, Okayama", 21}},
 
-    {33346u, "Wake-cho, Okayama"},
+    {33346u, std::string_view{"Wake-cho, Okayama", 17}},
 
-    {33423u, "Hayashima-cho, Okayama"},
+    {33423u, std::string_view{"Hayashima-cho, Okayama", 22}},
 
-    {33445u, "Satosho-cho, Okayama"},
+    {33445u, std::string_view{"Satosho-cho, Okayama", 20}},
 
-    {33461u, "Yakage-cho, Okayama"},
+    {33461u, std::string_view{"Yakage-cho, Okayama", 19}},
 
-    {33586u, "Shinjiyo-son, Okayama"},
+    {33586u, std::string_view{"Shinjiyo-son, Okayama", 21}},
 
-    {33606u, "Kagamino-cho, Okayama"},
+    {33606u, std::string_view{"Kagamino-cho, Okayama", 21}},
 
-    {33622u, "Shoo-cho, Okayama"},
+    {33622u, std::string_view{"Shoo-cho, Okayama", 17}},
 
-    {33623u, "Nagi-cho, Okayama"},
+    {33623u, std::string_view{"Nagi-cho, Okayama", 17}},
 
-    {33643u, "Nishiawakura-son, Okayama"},
+    {33643u, std::string_view{"Nishiawakura-son, Okayama", 25}},
 
-    {33663u, "Kumenan-cho, Okayama"},
+    {33663u, std::string_view{"Kumenan-cho, Okayama", 20}},
 
-    {33666u, "Misaki-cho, Okayama"},
+    {33666u, std::string_view{"Misaki-cho, Okayama", 19}},
 
-    {33681u, "Kibichuo-cho, Okayama"},
+    {33681u, std::string_view{"Kibichuo-cho, Okayama", 21}},
 
-    {34000u, "Hiroshima"},
+    {34000u, std::string_view{"Hiroshima", 9}},
 
-    {34100u, "Hiroshima-shi, Hiroshima"},
+    {34100u, std::string_view{"Hiroshima-shi, Hiroshima", 24}},
 
-    {34101u, "Naka-ku, Hiroshima-shi"},
+    {34101u, std::string_view{"Naka-ku, Hiroshima-shi", 22}},
 
-    {34102u, "Higashi-ku, Hiroshima-shi"},
+    {34102u, std::string_view{"Higashi-ku, Hiroshima-shi", 25}},
 
-    {34103u, "Minami-ku, Hiroshima-shi"},
+    {34103u, std::string_view{"Minami-ku, Hiroshima-shi", 24}},
 
-    {34104u, "Nishi-ku, Hiroshima-shi"},
+    {34104u, std::string_view{"Nishi-ku, Hiroshima-shi", 23}},
 
-    {34105u, "Asaminami-ku, Hiroshima-shi"},
+    {34105u, std::string_view{"Asaminami-ku, Hiroshima-shi", 27}},
 
-    {34106u, "Asakita-ku, Hiroshima-shi"},
+    {34106u, std::string_view{"Asakita-ku, Hiroshima-shi", 25}},
 
-    {34107u, "Aki-ku, Hiroshima-shi"},
+    {34107u, std::string_view{"Aki-ku, Hiroshima-shi", 21}},
 
-    {34108u, "Saeki-ku, Hiroshima-shi"},
+    {34108u, std::string_view{"Saeki-ku, Hiroshima-shi", 23}},
 
-    {34202u, "Kure-shi, Hiroshima"},
+    {34202u, std::string_view{"Kure-shi, Hiroshima", 19}},
 
-    {34203u, "Takehara-shi, Hiroshima"},
+    {34203u, std::string_view{"Takehara-shi, Hiroshima", 23}},
 
-    {34204u, "Mihara-shi, Hiroshima"},
+    {34204u, std::string_view{"Mihara-shi, Hiroshima", 21}},
 
-    {34205u, "Onomichi-shi, Hiroshima"},
+    {34205u, std::string_view{"Onomichi-shi, Hiroshima", 23}},
 
-    {34207u, "Fukuyama-shi, Hiroshima"},
+    {34207u, std::string_view{"Fukuyama-shi, Hiroshima", 23}},
 
-    {34208u, "Fuchu-shi, Hiroshima"},
+    {34208u, std::string_view{"Fuchu-shi, Hiroshima", 20}},
 
-    {34209u, "Miyoshi-shi, Hiroshima"},
+    {34209u, std::string_view{"Miyoshi-shi, Hiroshima", 22}},
 
-    {34210u, "Shobara-shi, Hiroshima"},
+    {34210u, std::string_view{"Shobara-shi, Hiroshima", 22}},
 
-    {34211u, "Otake-shi, Hiroshima"},
+    {34211u, std::string_view{"Otake-shi, Hiroshima", 20}},
 
-    {34212u, "Higashihiroshima-shi, Hiroshima"},
+    {34212u, std::string_view{"Higashihiroshima-shi, Hiroshima", 31}},
 
-    {34213u, "Hatsukaichi-shi, Hiroshima"},
+    {34213u, std::string_view{"Hatsukaichi-shi, Hiroshima", 26}},
 
-    {34214u, "Akitakata-shi, Hiroshima"},
+    {34214u, std::string_view{"Akitakata-shi, Hiroshima", 24}},
 
-    {34215u, "Etajima-shi, Hiroshima"},
+    {34215u, std::string_view{"Etajima-shi, Hiroshima", 22}},
 
-    {34302u, "Fuchu-cho, Hiroshima"},
+    {34302u, std::string_view{"Fuchu-cho, Hiroshima", 20}},
 
-    {34304u, "Kaita-cho, Hiroshima"},
+    {34304u, std::string_view{"Kaita-cho, Hiroshima", 20}},
 
-    {34307u, "Kumano-cho, Hiroshima"},
+    {34307u, std::string_view{"Kumano-cho, Hiroshima", 21}},
 
-    {34309u, "Saka-cho, Hiroshima"},
+    {34309u, std::string_view{"Saka-cho, Hiroshima", 19}},
 
-    {34368u, "Akiota-cho, Hiroshima"},
+    {34368u, std::string_view{"Akiota-cho, Hiroshima", 21}},
 
-    {34369u, "Kitahiroshima-cho, Hiroshima"},
+    {34369u, std::string_view{"Kitahiroshima-cho, Hiroshima", 28}},
 
-    {34431u, "Osakikamijima-cho, Hiroshima"},
+    {34431u, std::string_view{"Osakikamijima-cho, Hiroshima", 28}},
 
-    {34462u, "Sera-cho, Hiroshima"},
+    {34462u, std::string_view{"Sera-cho, Hiroshima", 19}},
 
-    {34545u, "Jinsekikogen-cho, Hiroshima"},
+    {34545u, std::string_view{"Jinsekikogen-cho, Hiroshima", 27}},
 
-    {35000u, "Yamaguchi"},
+    {35000u, std::string_view{"Yamaguchi", 9}},
 
-    {35201u, "Shimonoseki-shi, Yamaguchi"},
+    {35201u, std::string_view{"Shimonoseki-shi, Yamaguchi", 26}},
 
-    {35202u, "Ube-shi, Yamaguchi"},
+    {35202u, std::string_view{"Ube-shi, Yamaguchi", 18}},
 
-    {35203u, "Yamaguchi-shi, Yamaguchi"},
+    {35203u, std::string_view{"Yamaguchi-shi, Yamaguchi", 24}},
 
-    {35204u, "Hagi-shi, Yamaguchi"},
+    {35204u, std::string_view{"Hagi-shi, Yamaguchi", 19}},
 
-    {35206u, "Hofu-shi, Yamaguchi"},
+    {35206u, std::string_view{"Hofu-shi, Yamaguchi", 19}},
 
-    {35207u, "Kudamatsu-shi, Yamaguchi"},
+    {35207u, std::string_view{"Kudamatsu-shi, Yamaguchi", 24}},
 
-    {35208u, "Iwakuni-shi, Yamaguchi"},
+    {35208u, std::string_view{"Iwakuni-shi, Yamaguchi", 22}},
 
-    {35210u, "Hikari-shi, Yamaguchi"},
+    {35210u, std::string_view{"Hikari-shi, Yamaguchi", 21}},
 
-    {35211u, "Nagato-shi, Yamaguchi"},
+    {35211u, std::string_view{"Nagato-shi, Yamaguchi", 21}},
 
-    {35212u, "Yanai-shi, Yamaguchi"},
+    {35212u, std::string_view{"Yanai-shi, Yamaguchi", 20}},
 
-    {35213u, "Mine-shi, Yamaguchi"},
+    {35213u, std::string_view{"Mine-shi, Yamaguchi", 19}},
 
-    {35215u, "Shunan-shi, Yamaguchi"},
+    {35215u, std::string_view{"Shunan-shi, Yamaguchi", 21}},
 
-    {35216u, "Sanyoonoda-shi, Yamaguchi"},
+    {35216u, std::string_view{"Sanyoonoda-shi, Yamaguchi", 25}},
 
-    {35305u, "Suooshima-cho, Yamaguchi"},
+    {35305u, std::string_view{"Suooshima-cho, Yamaguchi", 24}},
 
-    {35321u, "Waki-cho, Yamaguchi"},
+    {35321u, std::string_view{"Waki-cho, Yamaguchi", 19}},
 
-    {35341u, "Kaminoseki-cho, Yamaguchi"},
+    {35341u, std::string_view{"Kaminoseki-cho, Yamaguchi", 25}},
 
-    {35343u, "Tabuse-cho, Yamaguchi"},
+    {35343u, std::string_view{"Tabuse-cho, Yamaguchi", 21}},
 
-    {35344u, "Hirao-cho, Yamaguchi"},
+    {35344u, std::string_view{"Hirao-cho, Yamaguchi", 20}},
 
-    {35502u, "Abu-cho, Yamaguchi"},
+    {35502u, std::string_view{"Abu-cho, Yamaguchi", 18}},
 
-    {36000u, "Tokushima"},
+    {36000u, std::string_view{"Tokushima", 9}},
 
-    {36201u, "Tokushima-shi, Tokushima"},
+    {36201u, std::string_view{"Tokushima-shi, Tokushima", 24}},
 
-    {36202u, "Naruto-shi, Tokushima"},
+    {36202u, std::string_view{"Naruto-shi, Tokushima", 21}},
 
-    {36203u, "Komatsushima-shi, Tokushima"},
+    {36203u, std::string_view{"Komatsushima-shi, Tokushima", 27}},
 
-    {36204u, "Anan-shi, Tokushima"},
+    {36204u, std::string_view{"Anan-shi, Tokushima", 19}},
 
-    {36205u, "Yoshinogawa-shi, Tokushima"},
+    {36205u, std::string_view{"Yoshinogawa-shi, Tokushima", 26}},
 
-    {36206u, "Awa-shi, Tokushima"},
+    {36206u, std::string_view{"Awa-shi, Tokushima", 18}},
 
-    {36207u, "Mima-shi, Tokushima"},
+    {36207u, std::string_view{"Mima-shi, Tokushima", 19}},
 
-    {36208u, "Miyoshi-shi, Tokushima"},
+    {36208u, std::string_view{"Miyoshi-shi, Tokushima", 22}},
 
-    {36301u, "Katsura-cho, Tokushima"},
+    {36301u, std::string_view{"Katsura-cho, Tokushima", 22}},
 
-    {36302u, "Kamikatsu-cho, Tokushima"},
+    {36302u, std::string_view{"Kamikatsu-cho, Tokushima", 24}},
 
-    {36321u, "Sanagochi-son, Tokushima"},
+    {36321u, std::string_view{"Sanagochi-son, Tokushima", 24}},
 
-    {36341u, "Ishii-cho, Tokushima"},
+    {36341u, std::string_view{"Ishii-cho, Tokushima", 20}},
 
-    {36342u, "Kamiyama-cho, Tokushima"},
+    {36342u, std::string_view{"Kamiyama-cho, Tokushima", 23}},
 
-    {36368u, "Naka-cho, Tokushima"},
+    {36368u, std::string_view{"Naka-cho, Tokushima", 19}},
 
-    {36383u, "Mugi-cho, Tokushima"},
+    {36383u, std::string_view{"Mugi-cho, Tokushima", 19}},
 
-    {36387u, "Minami-cho, Tokushima"},
+    {36387u, std::string_view{"Minami-cho, Tokushima", 21}},
 
-    {36388u, "Kaiyo-cho, Tokushima"},
+    {36388u, std::string_view{"Kaiyo-cho, Tokushima", 20}},
 
-    {36401u, "Matsushige-cho, Tokushima"},
+    {36401u, std::string_view{"Matsushige-cho, Tokushima", 25}},
 
-    {36402u, "Kitajima-cho, Tokushima"},
+    {36402u, std::string_view{"Kitajima-cho, Tokushima", 23}},
 
-    {36403u, "Aizumi-cho, Tokushima"},
+    {36403u, std::string_view{"Aizumi-cho, Tokushima", 21}},
 
-    {36404u, "Itano-cho, Tokushima"},
+    {36404u, std::string_view{"Itano-cho, Tokushima", 20}},
 
-    {36405u, "Kamiita-cho, Tokushima"},
+    {36405u, std::string_view{"Kamiita-cho, Tokushima", 22}},
 
-    {36468u, "Tsurugi-cho, Tokushima"},
+    {36468u, std::string_view{"Tsurugi-cho, Tokushima", 22}},
 
-    {36489u, "Higashimiyoshi-cho, Tokushima"},
+    {36489u, std::string_view{"Higashimiyoshi-cho, Tokushima", 29}},
 
-    {37000u, "Kagawa"},
+    {37000u, std::string_view{"Kagawa", 6}},
 
-    {37201u, "Takamatsu-shi, Kagawa"},
+    {37201u, std::string_view{"Takamatsu-shi, Kagawa", 21}},
 
-    {37202u, "Marugame-shi, Kagawa"},
+    {37202u, std::string_view{"Marugame-shi, Kagawa", 20}},
 
-    {37203u, "Sakaide-shi, Kagawa"},
+    {37203u, std::string_view{"Sakaide-shi, Kagawa", 19}},
 
-    {37204u, "Zentsuji-shi, Kagawa"},
+    {37204u, std::string_view{"Zentsuji-shi, Kagawa", 20}},
 
-    {37205u, "Kanonji-shi, Kagawa"},
+    {37205u, std::string_view{"Kanonji-shi, Kagawa", 19}},
 
-    {37206u, "Sanuki-shi, Kagawa"},
+    {37206u, std::string_view{"Sanuki-shi, Kagawa", 18}},
 
-    {37207u, "Higashikagawa-shi, Kagawa"},
+    {37207u, std::string_view{"Higashikagawa-shi, Kagawa", 25}},
 
-    {37208u, "Mitoyo-shi, Kagawa"},
+    {37208u, std::string_view{"Mitoyo-shi, Kagawa", 18}},
 
-    {37322u, "Tonosho-cho, Kagawa"},
+    {37322u, std::string_view{"Tonosho-cho, Kagawa", 19}},
 
-    {37324u, "Shodoshima-cho, Kagawa"},
+    {37324u, std::string_view{"Shodoshima-cho, Kagawa", 22}},
 
-    {37341u, "Miki-cho, Kagawa"},
+    {37341u, std::string_view{"Miki-cho, Kagawa", 16}},
 
-    {37364u, "Naoshima-cho, Kagawa"},
+    {37364u, std::string_view{"Naoshima-cho, Kagawa", 20}},
 
-    {37386u, "Utazu-cho, Kagawa"},
+    {37386u, std::string_view{"Utazu-cho, Kagawa", 17}},
 
-    {37387u, "Ayagawa-cho, Kagawa"},
+    {37387u, std::string_view{"Ayagawa-cho, Kagawa", 19}},
 
-    {37403u, "Kotohira-cho, Kagawa"},
+    {37403u, std::string_view{"Kotohira-cho, Kagawa", 20}},
 
-    {37404u, "Tadotsu-cho, Kagawa"},
+    {37404u, std::string_view{"Tadotsu-cho, Kagawa", 19}},
 
-    {37406u, "Manno-cho, Kagawa"},
+    {37406u, std::string_view{"Manno-cho, Kagawa", 17}},
 
-    {38000u, "Ehime"},
+    {38000u, std::string_view{"Ehime", 5}},
 
-    {38201u, "Matsuyama-shi, Ehime"},
+    {38201u, std::string_view{"Matsuyama-shi, Ehime", 20}},
 
-    {38202u, "Imabari-shi, Ehime"},
+    {38202u, std::string_view{"Imabari-shi, Ehime", 18}},
 
-    {38203u, "Uwajima-shi, Ehime"},
+    {38203u, std::string_view{"Uwajima-shi, Ehime", 18}},
 
-    {38204u, "Yawatahama-shi, Ehime"},
+    {38204u, std::string_view{"Yawatahama-shi, Ehime", 21}},
 
-    {38205u, "Niihama-shi, Ehime"},
+    {38205u, std::string_view{"Niihama-shi, Ehime", 18}},
 
-    {38206u, "Saijo-shi, Ehime"},
+    {38206u, std::string_view{"Saijo-shi, Ehime", 16}},
 
-    {38207u, "Ozu-shi, Ehime"},
+    {38207u, std::string_view{"Ozu-shi, Ehime", 14}},
 
-    {38210u, "Iyo-shi, Ehime"},
+    {38210u, std::string_view{"Iyo-shi, Ehime", 14}},
 
-    {38213u, "Shikokuchuo-shi, Ehime"},
+    {38213u, std::string_view{"Shikokuchuo-shi, Ehime", 22}},
 
-    {38214u, "Seiyo-shi, Ehime"},
+    {38214u, std::string_view{"Seiyo-shi, Ehime", 16}},
 
-    {38215u, "Toon-shi, Ehime"},
+    {38215u, std::string_view{"Toon-shi, Ehime", 15}},
 
-    {38356u, "Kamijima-cho, Ehime"},
+    {38356u, std::string_view{"Kamijima-cho, Ehime", 19}},
 
-    {38386u, "Kumakogen-cho, Ehime"},
+    {38386u, std::string_view{"Kumakogen-cho, Ehime", 20}},
 
-    {38401u, "Masaki-cho, Ehime"},
+    {38401u, std::string_view{"Masaki-cho, Ehime", 17}},
 
-    {38402u, "Tobe-cho, Ehime"},
+    {38402u, std::string_view{"Tobe-cho, Ehime", 15}},
 
-    {38422u, "Uchiko-cho, Ehime"},
+    {38422u, std::string_view{"Uchiko-cho, Ehime", 17}},
 
-    {38442u, "Ikata-cho, Ehime"},
+    {38442u, std::string_view{"Ikata-cho, Ehime", 16}},
 
-    {38484u, "Matsuno-cho, Ehime"},
+    {38484u, std::string_view{"Matsuno-cho, Ehime", 18}},
 
-    {38488u, "Kihoku-cho, Ehime"},
+    {38488u, std::string_view{"Kihoku-cho, Ehime", 17}},
 
-    {38506u, "Ainan-cho, Ehime"},
+    {38506u, std::string_view{"Ainan-cho, Ehime", 16}},
 
-    {39000u, "Kochi"},
+    {39000u, std::string_view{"Kochi", 5}},
 
-    {39201u, "Kochi-shi, Kochi"},
+    {39201u, std::string_view{"Kochi-shi, Kochi", 16}},
 
-    {39202u, "Muroto-shi, Kochi"},
+    {39202u, std::string_view{"Muroto-shi, Kochi", 17}},
 
-    {39203u, "Aki-shi, Kochi"},
+    {39203u, std::string_view{"Aki-shi, Kochi", 14}},
 
-    {39204u, "Nankoku-shi, Kochi"},
+    {39204u, std::string_view{"Nankoku-shi, Kochi", 18}},
 
-    {39205u, "Tosa-shi, Kochi"},
+    {39205u, std::string_view{"Tosa-shi, Kochi", 15}},
 
-    {39206u, "Susaki-shi, Kochi"},
+    {39206u, std::string_view{"Susaki-shi, Kochi", 17}},
 
-    {39208u, "Sukumo-shi, Kochi"},
+    {39208u, std::string_view{"Sukumo-shi, Kochi", 17}},
 
-    {39209u, "Tosashimizu-shi, Kochi"},
+    {39209u, std::string_view{"Tosashimizu-shi, Kochi", 22}},
 
-    {39210u, "Shimanto-shi, Kochi"},
+    {39210u, std::string_view{"Shimanto-shi, Kochi", 19}},
 
-    {39211u, "Konan-shi, Kochi"},
+    {39211u, std::string_view{"Konan-shi, Kochi", 16}},
 
-    {39212u, "Kami-shi, Kochi"},
+    {39212u, std::string_view{"Kami-shi, Kochi", 15}},
 
-    {39301u, "Toyo-cho, Kochi"},
+    {39301u, std::string_view{"Toyo-cho, Kochi", 15}},
 
-    {39302u, "Nahari-cho, Kochi"},
+    {39302u, std::string_view{"Nahari-cho, Kochi", 17}},
 
-    {39303u, "Tano-cho, Kochi"},
+    {39303u, std::string_view{"Tano-cho, Kochi", 15}},
 
-    {39304u, "Yasuda-cho, Kochi"},
+    {39304u, std::string_view{"Yasuda-cho, Kochi", 17}},
 
-    {39305u, "Kitagawa-mura, Kochi"},
+    {39305u, std::string_view{"Kitagawa-mura, Kochi", 20}},
 
-    {39306u, "Umaji-mura, Kochi"},
+    {39306u, std::string_view{"Umaji-mura, Kochi", 17}},
 
-    {39307u, "Geisei-mura, Kochi"},
+    {39307u, std::string_view{"Geisei-mura, Kochi", 18}},
 
-    {39341u, "Motoyama-cho, Kochi"},
+    {39341u, std::string_view{"Motoyama-cho, Kochi", 19}},
 
-    {39344u, "Otoyo-cho, Kochi"},
+    {39344u, std::string_view{"Otoyo-cho, Kochi", 16}},
 
-    {39363u, "Tosa-cho, Kochi"},
+    {39363u, std::string_view{"Tosa-cho, Kochi", 15}},
 
-    {39364u, "Okawa-mura, Kochi"},
+    {39364u, std::string_view{"Okawa-mura, Kochi", 17}},
 
-    {39386u, "Ino-cho, Kochi"},
+    {39386u, std::string_view{"Ino-cho, Kochi", 14}},
 
-    {39387u, "Niyodogawa-cho, Kochi"},
+    {39387u, std::string_view{"Niyodogawa-cho, Kochi", 21}},
 
-    {39401u, "Nakatosa-cho, Kochi"},
+    {39401u, std::string_view{"Nakatosa-cho, Kochi", 19}},
 
-    {39402u, "Sakawa-cho, Kochi"},
+    {39402u, std::string_view{"Sakawa-cho, Kochi", 17}},
 
-    {39403u, "Ochi-cho, Kochi"},
+    {39403u, std::string_view{"Ochi-cho, Kochi", 15}},
 
-    {39405u, "Yusuhara-cho, Kochi"},
+    {39405u, std::string_view{"Yusuhara-cho, Kochi", 19}},
 
-    {39410u, "Hidaka-mura, Kochi"},
+    {39410u, std::string_view{"Hidaka-mura, Kochi", 18}},
 
-    {39411u, "Tsuno-cho, Kochi"},
+    {39411u, std::string_view{"Tsuno-cho, Kochi", 16}},
 
-    {39412u, "Shimanto-cho, Kochi"},
+    {39412u, std::string_view{"Shimanto-cho, Kochi", 19}},
 
-    {39424u, "Otsuki-cho, Kochi"},
+    {39424u, std::string_view{"Otsuki-cho, Kochi", 17}},
 
-    {39427u, "Mihara-mura, Kochi"},
+    {39427u, std::string_view{"Mihara-mura, Kochi", 18}},
 
-    {39428u, "Kuroshio-cho, Kochi"},
+    {39428u, std::string_view{"Kuroshio-cho, Kochi", 19}},
 
-    {40000u, "Fukuoka"},
+    {40000u, std::string_view{"Fukuoka", 7}},
 
-    {40100u, "Kitakyushu-shi, Fukuoka"},
+    {40100u, std::string_view{"Kitakyushu-shi, Fukuoka", 23}},
 
-    {40101u, "Moji-ku, Kitakyushu-shi"},
+    {40101u, std::string_view{"Moji-ku, Kitakyushu-shi", 23}},
 
-    {40102u, "Kokura-ku, Kitakyushu-shi"},
+    {40102u, std::string_view{"Kokura-ku, Kitakyushu-shi", 25}},
 
-    {40103u, "Wakamatsu-ku, Kitakyushu-shi"},
+    {40103u, std::string_view{"Wakamatsu-ku, Kitakyushu-shi", 28}},
 
-    {40104u, "Yahata-ku, Kitakyushu-shi"},
+    {40104u, std::string_view{"Yahata-ku, Kitakyushu-shi", 25}},
 
-    {40105u, "Tobata-ku, Kitakyushu-shi"},
+    {40105u, std::string_view{"Tobata-ku, Kitakyushu-shi", 25}},
 
-    {40106u, "Kokurakita-ku, Kitakyushu-shi"},
+    {40106u, std::string_view{"Kokurakita-ku, Kitakyushu-shi", 29}},
 
-    {40107u, "Kokuraminami-ku, Kitakyushu-shi"},
+    {40107u, std::string_view{"Kokuraminami-ku, Kitakyushu-shi", 31}},
 
-    {40108u, "Yahatahigashi-ku, Kitakyushu-shi"},
+    {40108u, std::string_view{"Yahatahigashi-ku, Kitakyushu-shi", 32}},
 
-    {40109u, "Yahatanishi-ku, Kitakyushu-shi"},
+    {40109u, std::string_view{"Yahatanishi-ku, Kitakyushu-shi", 30}},
 
-    {40130u, "Fukuoka-shi, Fukuoka"},
+    {40130u, std::string_view{"Fukuoka-shi, Fukuoka", 20}},
 
-    {40131u, "Higashi-ku, Fukuoka-shi"},
+    {40131u, std::string_view{"Higashi-ku, Fukuoka-shi", 23}},
 
-    {40132u, "Hakata-ku, Fukuoka-shi"},
+    {40132u, std::string_view{"Hakata-ku, Fukuoka-shi", 22}},
 
-    {40133u, "Chuo-ku, Fukuoka-shi"},
+    {40133u, std::string_view{"Chuo-ku, Fukuoka-shi", 20}},
 
-    {40134u, "Minami-ku, Fukuoka-shi"},
+    {40134u, std::string_view{"Minami-ku, Fukuoka-shi", 22}},
 
-    {40135u, "Nishi-ku, Fukuoka-shi"},
+    {40135u, std::string_view{"Nishi-ku, Fukuoka-shi", 21}},
 
-    {40136u, "Jonan-ku, Fukuoka-shi"},
+    {40136u, std::string_view{"Jonan-ku, Fukuoka-shi", 21}},
 
-    {40137u, "Sawara-ku, Fukuoka-shi"},
+    {40137u, std::string_view{"Sawara-ku, Fukuoka-shi", 22}},
 
-    {40202u, "Omuta-shi, Fukuoka"},
+    {40202u, std::string_view{"Omuta-shi, Fukuoka", 18}},
 
-    {40203u, "Kurume-shi, Fukuoka"},
+    {40203u, std::string_view{"Kurume-shi, Fukuoka", 19}},
 
-    {40204u, "Nogata-shi, Fukuoka"},
+    {40204u, std::string_view{"Nogata-shi, Fukuoka", 19}},
 
-    {40205u, "Iizuka-shi, Fukuoka"},
+    {40205u, std::string_view{"Iizuka-shi, Fukuoka", 19}},
 
-    {40206u, "Tagawa-shi, Fukuoka"},
+    {40206u, std::string_view{"Tagawa-shi, Fukuoka", 19}},
 
-    {40207u, "Yanagawa-shi, Fukuoka"},
+    {40207u, std::string_view{"Yanagawa-shi, Fukuoka", 21}},
 
-    {40210u, "Yame-shi, Fukuoka"},
+    {40210u, std::string_view{"Yame-shi, Fukuoka", 17}},
 
-    {40211u, "Chikugo-shi, Fukuoka"},
+    {40211u, std::string_view{"Chikugo-shi, Fukuoka", 20}},
 
-    {40212u, "Okawa-shi, Fukuoka"},
+    {40212u, std::string_view{"Okawa-shi, Fukuoka", 18}},
 
-    {40213u, "Yukuhashi-shi, Fukuoka"},
+    {40213u, std::string_view{"Yukuhashi-shi, Fukuoka", 22}},
 
-    {40214u, "Buzen-shi, Fukuoka"},
+    {40214u, std::string_view{"Buzen-shi, Fukuoka", 18}},
 
-    {40215u, "Nakama-shi, Fukuoka"},
+    {40215u, std::string_view{"Nakama-shi, Fukuoka", 19}},
 
-    {40216u, "Ogori-shi, Fukuoka"},
+    {40216u, std::string_view{"Ogori-shi, Fukuoka", 18}},
 
-    {40217u, "Chikushino-shi, Fukuoka"},
+    {40217u, std::string_view{"Chikushino-shi, Fukuoka", 23}},
 
-    {40218u, "Kasuga-shi, Fukuoka"},
+    {40218u, std::string_view{"Kasuga-shi, Fukuoka", 19}},
 
-    {40219u, "Onojo-shi, Fukuoka"},
+    {40219u, std::string_view{"Onojo-shi, Fukuoka", 18}},
 
-    {40220u, "Munakata-shi, Fukuoka"},
+    {40220u, std::string_view{"Munakata-shi, Fukuoka", 21}},
 
-    {40221u, "Dazaifu-shi, Fukuoka"},
+    {40221u, std::string_view{"Dazaifu-shi, Fukuoka", 20}},
 
-    {40223u, "Koga-shi, Fukuoka"},
+    {40223u, std::string_view{"Koga-shi, Fukuoka", 17}},
 
-    {40224u, "Fukutsu-shi, Fukuoka"},
+    {40224u, std::string_view{"Fukutsu-shi, Fukuoka", 20}},
 
-    {40225u, "Ukiha-shi, Fukuoka"},
+    {40225u, std::string_view{"Ukiha-shi, Fukuoka", 18}},
 
-    {40226u, "Miyawaka-shi, Fukuoka"},
+    {40226u, std::string_view{"Miyawaka-shi, Fukuoka", 21}},
 
-    {40227u, "Kama-shi, Fukuoka"},
+    {40227u, std::string_view{"Kama-shi, Fukuoka", 17}},
 
-    {40228u, "Asakura-shi, Fukuoka"},
+    {40228u, std::string_view{"Asakura-shi, Fukuoka", 20}},
 
-    {40229u, "Miyama-shi, Fukuoka"},
+    {40229u, std::string_view{"Miyama-shi, Fukuoka", 19}},
 
-    {40230u, "Itoshima-shi, Fukuoka"},
+    {40230u, std::string_view{"Itoshima-shi, Fukuoka", 21}},
 
-    {40231u, "Nakagawa-shi, Fukuoka"},
+    {40231u, std::string_view{"Nakagawa-shi, Fukuoka", 21}},
 
-    {40341u, "Umi-machi, Fukuoka"},
+    {40341u, std::string_view{"Umi-machi, Fukuoka", 18}},
 
-    {40342u, "Sasaguri-machi, Fukuoka"},
+    {40342u, std::string_view{"Sasaguri-machi, Fukuoka", 23}},
 
-    {40343u, "Shime-machi, Fukuoka"},
+    {40343u, std::string_view{"Shime-machi, Fukuoka", 20}},
 
-    {40344u, "Sue-machi, Fukuoka"},
+    {40344u, std::string_view{"Sue-machi, Fukuoka", 18}},
 
-    {40345u, "Shingu-machi, Fukuoka"},
+    {40345u, std::string_view{"Shingu-machi, Fukuoka", 21}},
 
-    {40348u, "Hisayama-machi, Fukuoka"},
+    {40348u, std::string_view{"Hisayama-machi, Fukuoka", 23}},
 
-    {40349u, "Kasuya-machi, Fukuoka"},
+    {40349u, std::string_view{"Kasuya-machi, Fukuoka", 21}},
 
-    {40381u, "Ashiya-machi, Fukuoka"},
+    {40381u, std::string_view{"Ashiya-machi, Fukuoka", 21}},
 
-    {40382u, "Mizumaki-machi, Fukuoka"},
+    {40382u, std::string_view{"Mizumaki-machi, Fukuoka", 23}},
 
-    {40383u, "Okagaki-machi, Fukuoka"},
+    {40383u, std::string_view{"Okagaki-machi, Fukuoka", 22}},
 
-    {40384u, "Onga-cho, Fukuoka"},
+    {40384u, std::string_view{"Onga-cho, Fukuoka", 17}},
 
-    {40401u, "Kotake-machi, Fukuoka"},
+    {40401u, std::string_view{"Kotake-machi, Fukuoka", 21}},
 
-    {40402u, "Kurate-machi, Fukuoka"},
+    {40402u, std::string_view{"Kurate-machi, Fukuoka", 21}},
 
-    {40421u, "Keisen-machi, Fukuoka"},
+    {40421u, std::string_view{"Keisen-machi, Fukuoka", 21}},
 
-    {40447u, "Chikuzen-machi, Fukuoka"},
+    {40447u, std::string_view{"Chikuzen-machi, Fukuoka", 23}},
 
-    {40448u, "Toho-mura, Fukuoka"},
+    {40448u, std::string_view{"Toho-mura, Fukuoka", 18}},
 
-    {40503u, "Tachiarai-machi, Fukuoka"},
+    {40503u, std::string_view{"Tachiarai-machi, Fukuoka", 24}},
 
-    {40522u, "Oki-machi, Fukuoka"},
+    {40522u, std::string_view{"Oki-machi, Fukuoka", 18}},
 
-    {40544u, "Hirokawa-machi, Fukuoka"},
+    {40544u, std::string_view{"Hirokawa-machi, Fukuoka", 23}},
 
-    {40601u, "Kawara-machi, Fukuoka"},
+    {40601u, std::string_view{"Kawara-machi, Fukuoka", 21}},
 
-    {40602u, "Soeda-machi, Fukuoka"},
+    {40602u, std::string_view{"Soeda-machi, Fukuoka", 20}},
 
-    {40604u, "Itoda-machi, Fukuoka"},
+    {40604u, std::string_view{"Itoda-machi, Fukuoka", 20}},
 
-    {40605u, "Kawasaki-machi, Fukuoka"},
+    {40605u, std::string_view{"Kawasaki-machi, Fukuoka", 23}},
 
-    {40608u, "Oto-machi, Fukuoka"},
+    {40608u, std::string_view{"Oto-machi, Fukuoka", 18}},
 
-    {40609u, "Aka-mura, Fukuoka"},
+    {40609u, std::string_view{"Aka-mura, Fukuoka", 17}},
 
-    {40610u, "Fukuchi-machi, Fukuoka"},
+    {40610u, std::string_view{"Fukuchi-machi, Fukuoka", 22}},
 
-    {40621u, "Kanda-machi, Fukuoka"},
+    {40621u, std::string_view{"Kanda-machi, Fukuoka", 20}},
 
-    {40625u, "Miyako-machi, Fukuoka"},
+    {40625u, std::string_view{"Miyako-machi, Fukuoka", 21}},
 
-    {40642u, "Yoshitomi-machi, Fukuoka"},
+    {40642u, std::string_view{"Yoshitomi-machi, Fukuoka", 24}},
 
-    {40646u, "Koge-machi, Fukuoka"},
+    {40646u, std::string_view{"Koge-machi, Fukuoka", 19}},
 
-    {40647u, "Chikujo-machi, Fukuoka"},
+    {40647u, std::string_view{"Chikujo-machi, Fukuoka", 22}},
 
-    {41000u, "Saga"},
+    {41000u, std::string_view{"Saga", 4}},
 
-    {41201u, "Saga-shi, Saga"},
+    {41201u, std::string_view{"Saga-shi, Saga", 14}},
 
-    {41202u, "Karatsu-shi, Saga"},
+    {41202u, std::string_view{"Karatsu-shi, Saga", 17}},
 
-    {41203u, "Tosu-shi, Saga"},
+    {41203u, std::string_view{"Tosu-shi, Saga", 14}},
 
-    {41204u, "Taku-shi, Saga"},
+    {41204u, std::string_view{"Taku-shi, Saga", 14}},
 
-    {41205u, "Imari-shi, Saga"},
+    {41205u, std::string_view{"Imari-shi, Saga", 15}},
 
-    {41206u, "Takeo-shi, Saga"},
+    {41206u, std::string_view{"Takeo-shi, Saga", 15}},
 
-    {41207u, "Kashima-shi, Saga"},
+    {41207u, std::string_view{"Kashima-shi, Saga", 17}},
 
-    {41208u, "Ogi-shi, Saga"},
+    {41208u, std::string_view{"Ogi-shi, Saga", 13}},
 
-    {41209u, "Ureshino-shi, Saga"},
+    {41209u, std::string_view{"Ureshino-shi, Saga", 18}},
 
-    {41210u, "Kanzaki-shi, Saga"},
+    {41210u, std::string_view{"Kanzaki-shi, Saga", 17}},
 
-    {41327u, "Yoshinogari-cho, Saga"},
+    {41327u, std::string_view{"Yoshinogari-cho, Saga", 21}},
 
-    {41341u, "Kiyama-cho, Saga"},
+    {41341u, std::string_view{"Kiyama-cho, Saga", 16}},
 
-    {41345u, "Kamimine-cho, Saga"},
+    {41345u, std::string_view{"Kamimine-cho, Saga", 18}},
 
-    {41346u, "Miyaki-cho, Saga"},
+    {41346u, std::string_view{"Miyaki-cho, Saga", 16}},
 
-    {41387u, "Genkai-cho, Saga"},
+    {41387u, std::string_view{"Genkai-cho, Saga", 16}},
 
-    {41401u, "Arita-cho, Saga"},
+    {41401u, std::string_view{"Arita-cho, Saga", 15}},
 
-    {41423u, "Omachi-cho, Saga"},
+    {41423u, std::string_view{"Omachi-cho, Saga", 16}},
 
-    {41424u, "Kohoku-machi, Saga"},
+    {41424u, std::string_view{"Kohoku-machi, Saga", 18}},
 
-    {41425u, "Shiroishi-cho, Saga"},
+    {41425u, std::string_view{"Shiroishi-cho, Saga", 19}},
 
-    {41441u, "Tara-cho, Saga"},
+    {41441u, std::string_view{"Tara-cho, Saga", 14}},
 
-    {42000u, "Nagasaki"},
+    {42000u, std::string_view{"Nagasaki", 8}},
 
-    {42201u, "Nagasaki-shi, Nagasaki"},
+    {42201u, std::string_view{"Nagasaki-shi, Nagasaki", 22}},
 
-    {42202u, "Sasebo-shi, Nagasaki"},
+    {42202u, std::string_view{"Sasebo-shi, Nagasaki", 20}},
 
-    {42203u, "Shimabara-shi, Nagasaki"},
+    {42203u, std::string_view{"Shimabara-shi, Nagasaki", 23}},
 
-    {42204u, "Isahaya-shi, Nagasaki"},
+    {42204u, std::string_view{"Isahaya-shi, Nagasaki", 21}},
 
-    {42205u, "Omura-shi, Nagasaki"},
+    {42205u, std::string_view{"Omura-shi, Nagasaki", 19}},
 
-    {42207u, "Hirado-shi, Nagasaki"},
+    {42207u, std::string_view{"Hirado-shi, Nagasaki", 20}},
 
-    {42208u, "Matsura-shi, Nagasaki"},
+    {42208u, std::string_view{"Matsura-shi, Nagasaki", 21}},
 
-    {42209u, "Tsushima-shi, Nagasaki"},
+    {42209u, std::string_view{"Tsushima-shi, Nagasaki", 22}},
 
-    {42210u, "Iki-shi, Nagasaki"},
+    {42210u, std::string_view{"Iki-shi, Nagasaki", 17}},
 
-    {42211u, "Goto-shi, Nagasaki"},
+    {42211u, std::string_view{"Goto-shi, Nagasaki", 18}},
 
-    {42212u, "Saikai-shi, Nagasaki"},
+    {42212u, std::string_view{"Saikai-shi, Nagasaki", 20}},
 
-    {42213u, "Unzen-shi, Nagasaki"},
+    {42213u, std::string_view{"Unzen-shi, Nagasaki", 19}},
 
-    {42214u, "Minamishimabara-shi, Nagasaki"},
+    {42214u, std::string_view{"Minamishimabara-shi, Nagasaki", 29}},
 
-    {42307u, "Nagayo-cho, Nagasaki"},
+    {42307u, std::string_view{"Nagayo-cho, Nagasaki", 20}},
 
-    {42308u, "Togitsu-cho, Nagasaki"},
+    {42308u, std::string_view{"Togitsu-cho, Nagasaki", 21}},
 
-    {42321u, "Higashisonogi-cho, Nagasaki"},
+    {42321u, std::string_view{"Higashisonogi-cho, Nagasaki", 27}},
 
-    {42322u, "Kawatana-cho, Nagasaki"},
+    {42322u, std::string_view{"Kawatana-cho, Nagasaki", 22}},
 
-    {42323u, "Hasami-cho, Nagasaki"},
+    {42323u, std::string_view{"Hasami-cho, Nagasaki", 20}},
 
-    {42383u, "Ojika-cho, Nagasaki"},
+    {42383u, std::string_view{"Ojika-cho, Nagasaki", 19}},
 
-    {42391u, "Saza-cho, Nagasaki"},
+    {42391u, std::string_view{"Saza-cho, Nagasaki", 18}},
 
-    {42411u, "Shinkamigoto-cho, Nagasaki"},
+    {42411u, std::string_view{"Shinkamigoto-cho, Nagasaki", 26}},
 
-    {43000u, "Kumamoto"},
+    {43000u, std::string_view{"Kumamoto", 8}},
 
-    {43100u, "Kumamoto-shi, Kumamoto"},
+    {43100u, std::string_view{"Kumamoto-shi, Kumamoto", 22}},
 
-    {43101u, "Chuo-ku, Kumamoto-shi"},
+    {43101u, std::string_view{"Chuo-ku, Kumamoto-shi", 21}},
 
-    {43102u, "Higashi-ku, Kumamoto-shi"},
+    {43102u, std::string_view{"Higashi-ku, Kumamoto-shi", 24}},
 
-    {43103u, "Nishi-ku, Kumamoto-shi"},
+    {43103u, std::string_view{"Nishi-ku, Kumamoto-shi", 22}},
 
-    {43104u, "Minami-ku, Kumamoto-shi"},
+    {43104u, std::string_view{"Minami-ku, Kumamoto-shi", 23}},
 
-    {43105u, "Kita-ku, Kumamoto-shi"},
+    {43105u, std::string_view{"Kita-ku, Kumamoto-shi", 21}},
 
-    {43202u, "Yatsushiro-shi, Kumamoto"},
+    {43202u, std::string_view{"Yatsushiro-shi, Kumamoto", 24}},
 
-    {43203u, "Hitoyoshi-shi, Kumamoto"},
+    {43203u, std::string_view{"Hitoyoshi-shi, Kumamoto", 23}},
 
-    {43204u, "Arao-shi, Kumamoto"},
+    {43204u, std::string_view{"Arao-shi, Kumamoto", 18}},
 
-    {43205u, "Minamata-shi, Kumamoto"},
+    {43205u, std::string_view{"Minamata-shi, Kumamoto", 22}},
 
-    {43206u, "Tamana-shi, Kumamoto"},
+    {43206u, std::string_view{"Tamana-shi, Kumamoto", 20}},
 
-    {43208u, "Yamaga-shi, Kumamoto"},
+    {43208u, std::string_view{"Yamaga-shi, Kumamoto", 20}},
 
-    {43210u, "Kikuchi-shi, Kumamoto"},
+    {43210u, std::string_view{"Kikuchi-shi, Kumamoto", 21}},
 
-    {43211u, "Uto-shi, Kumamoto"},
+    {43211u, std::string_view{"Uto-shi, Kumamoto", 17}},
 
-    {43212u, "Kamiamakusa-shi, Kumamoto"},
+    {43212u, std::string_view{"Kamiamakusa-shi, Kumamoto", 25}},
 
-    {43213u, "Uki-shi, Kumamoto"},
+    {43213u, std::string_view{"Uki-shi, Kumamoto", 17}},
 
-    {43214u, "Aso-shi, Kumamoto"},
+    {43214u, std::string_view{"Aso-shi, Kumamoto", 17}},
 
-    {43215u, "Amakusa-shi, Kumamoto"},
+    {43215u, std::string_view{"Amakusa-shi, Kumamoto", 21}},
 
-    {43216u, "Koshi-shi, Kumamoto"},
+    {43216u, std::string_view{"Koshi-shi, Kumamoto", 19}},
 
-    {43348u, "Misato-machi, Kumamoto"},
+    {43348u, std::string_view{"Misato-machi, Kumamoto", 22}},
 
-    {43364u, "Gyokuto-machi, Kumamoto"},
+    {43364u, std::string_view{"Gyokuto-machi, Kumamoto", 23}},
 
-    {43367u, "Nankan-machi, Kumamoto"},
+    {43367u, std::string_view{"Nankan-machi, Kumamoto", 22}},
 
-    {43368u, "Nagasu-machi, Kumamoto"},
+    {43368u, std::string_view{"Nagasu-machi, Kumamoto", 22}},
 
-    {43369u, "Nagomi-machi, Kumamoto"},
+    {43369u, std::string_view{"Nagomi-machi, Kumamoto", 22}},
 
-    {43403u, "Ozu-machi, Kumamoto"},
+    {43403u, std::string_view{"Ozu-machi, Kumamoto", 19}},
 
-    {43404u, "Kikuyo-machi, Kumamoto"},
+    {43404u, std::string_view{"Kikuyo-machi, Kumamoto", 22}},
 
-    {43423u, "Minamioguni-machi, Kumamoto"},
+    {43423u, std::string_view{"Minamioguni-machi, Kumamoto", 27}},
 
-    {43424u, "Oguni-machi, Kumamoto"},
+    {43424u, std::string_view{"Oguni-machi, Kumamoto", 21}},
 
-    {43425u, "Ubuyama-mura, Kumamoto"},
+    {43425u, std::string_view{"Ubuyama-mura, Kumamoto", 22}},
 
-    {43428u, "Takamori-machi, Kumamoto"},
+    {43428u, std::string_view{"Takamori-machi, Kumamoto", 24}},
 
-    {43432u, "Nishihara-mura, Kumamoto"},
+    {43432u, std::string_view{"Nishihara-mura, Kumamoto", 24}},
 
-    {43433u, "Minamiaso-mura, Kumamoto"},
+    {43433u, std::string_view{"Minamiaso-mura, Kumamoto", 24}},
 
-    {43441u, "Mifune-machi, Kumamoto"},
+    {43441u, std::string_view{"Mifune-machi, Kumamoto", 22}},
 
-    {43442u, "Kashima-machi, Kumamoto"},
+    {43442u, std::string_view{"Kashima-machi, Kumamoto", 23}},
 
-    {43443u, "Mashiki-machi, Kumamoto"},
+    {43443u, std::string_view{"Mashiki-machi, Kumamoto", 23}},
 
-    {43444u, "Kosa-machi, Kumamoto"},
+    {43444u, std::string_view{"Kosa-machi, Kumamoto", 20}},
 
-    {43447u, "Yamato-cho, Kumamoto"},
+    {43447u, std::string_view{"Yamato-cho, Kumamoto", 20}},
 
-    {43468u, "Hikawa-cho, Kumamoto"},
+    {43468u, std::string_view{"Hikawa-cho, Kumamoto", 20}},
 
-    {43482u, "Ashikita-machi, Kumamoto"},
+    {43482u, std::string_view{"Ashikita-machi, Kumamoto", 24}},
 
-    {43484u, "Tsunagi-machi, Kumamoto"},
+    {43484u, std::string_view{"Tsunagi-machi, Kumamoto", 23}},
 
-    {43501u, "Nishiki-machi, Kumamoto"},
+    {43501u, std::string_view{"Nishiki-machi, Kumamoto", 23}},
 
-    {43505u, "Taragi-machi, Kumamoto"},
+    {43505u, std::string_view{"Taragi-machi, Kumamoto", 22}},
 
-    {43506u, "Yunomae-machi, Kumamoto"},
+    {43506u, std::string_view{"Yunomae-machi, Kumamoto", 23}},
 
-    {43507u, "Mizukami-mura, Kumamoto"},
+    {43507u, std::string_view{"Mizukami-mura, Kumamoto", 23}},
 
-    {43510u, "Sagara-mura, Kumamoto"},
+    {43510u, std::string_view{"Sagara-mura, Kumamoto", 21}},
 
-    {43511u, "Itsuki-mura, Kumamoto"},
+    {43511u, std::string_view{"Itsuki-mura, Kumamoto", 21}},
 
-    {43512u, "Yamae-mura, Kumamoto"},
+    {43512u, std::string_view{"Yamae-mura, Kumamoto", 20}},
 
-    {43513u, "Kuma-mura, Kumamoto"},
+    {43513u, std::string_view{"Kuma-mura, Kumamoto", 19}},
 
-    {43514u, "Asagiri-cho, Kumamoto"},
+    {43514u, std::string_view{"Asagiri-cho, Kumamoto", 21}},
 
-    {43531u, "Reihoku-machi, Kumamoto"},
+    {43531u, std::string_view{"Reihoku-machi, Kumamoto", 23}},
 
-    {44000u, "Oita"},
+    {44000u, std::string_view{"Oita", 4}},
 
-    {44201u, "Oita-shi, Oita"},
+    {44201u, std::string_view{"Oita-shi, Oita", 14}},
 
-    {44202u, "Beppu-shi, Oita"},
+    {44202u, std::string_view{"Beppu-shi, Oita", 15}},
 
-    {44203u, "Nakatsu-shi, Oita"},
+    {44203u, std::string_view{"Nakatsu-shi, Oita", 17}},
 
-    {44204u, "Hita-shi, Oita"},
+    {44204u, std::string_view{"Hita-shi, Oita", 14}},
 
-    {44205u, "Saiki-shi, Oita"},
+    {44205u, std::string_view{"Saiki-shi, Oita", 15}},
 
-    {44206u, "Usuki-shi, Oita"},
+    {44206u, std::string_view{"Usuki-shi, Oita", 15}},
 
-    {44207u, "Tsukumi-shi, Oita"},
+    {44207u, std::string_view{"Tsukumi-shi, Oita", 17}},
 
-    {44208u, "Taketa-shi, Oita"},
+    {44208u, std::string_view{"Taketa-shi, Oita", 16}},
 
-    {44209u, "Bungotakada-shi, Oita"},
+    {44209u, std::string_view{"Bungotakada-shi, Oita", 21}},
 
-    {44210u, "Kitsuki-shi, Oita"},
+    {44210u, std::string_view{"Kitsuki-shi, Oita", 17}},
 
-    {44211u, "Usa-shi, Oita"},
+    {44211u, std::string_view{"Usa-shi, Oita", 13}},
 
-    {44212u, "Bungoono-shi, Oita"},
+    {44212u, std::string_view{"Bungoono-shi, Oita", 18}},
 
-    {44213u, "Yufu-shi, Oita"},
+    {44213u, std::string_view{"Yufu-shi, Oita", 14}},
 
-    {44214u, "Kunisaki-shi, Oita"},
+    {44214u, std::string_view{"Kunisaki-shi, Oita", 18}},
 
-    {44322u, "Himeshima-mura, Oita"},
+    {44322u, std::string_view{"Himeshima-mura, Oita", 20}},
 
-    {44341u, "Hiji-machi, Oita"},
+    {44341u, std::string_view{"Hiji-machi, Oita", 16}},
 
-    {44461u, "Kokonoe-machi, Oita"},
+    {44461u, std::string_view{"Kokonoe-machi, Oita", 19}},
 
-    {44462u, "Kusu-machi, Oita"},
+    {44462u, std::string_view{"Kusu-machi, Oita", 16}},
 
-    {45000u, "Miyazaki"},
+    {45000u, std::string_view{"Miyazaki", 8}},
 
-    {45201u, "Miyazaki-shi, Miyazaki"},
+    {45201u, std::string_view{"Miyazaki-shi, Miyazaki", 22}},
 
-    {45202u, "Miyakonojo-shi, Miyazaki"},
+    {45202u, std::string_view{"Miyakonojo-shi, Miyazaki", 24}},
 
-    {45203u, "Nobeoka-shi, Miyazaki"},
+    {45203u, std::string_view{"Nobeoka-shi, Miyazaki", 21}},
 
-    {45204u, "Nichinan-shi, Miyazaki"},
+    {45204u, std::string_view{"Nichinan-shi, Miyazaki", 22}},
 
-    {45205u, "Kobayashi-shi, Miyazaki"},
+    {45205u, std::string_view{"Kobayashi-shi, Miyazaki", 23}},
 
-    {45206u, "Hyuga-shi, Miyazaki"},
+    {45206u, std::string_view{"Hyuga-shi, Miyazaki", 19}},
 
-    {45207u, "Kushima-shi, Miyazaki"},
+    {45207u, std::string_view{"Kushima-shi, Miyazaki", 21}},
 
-    {45208u, "Saito-shi, Miyazaki"},
+    {45208u, std::string_view{"Saito-shi, Miyazaki", 19}},
 
-    {45209u, "Ebino-shi, Miyazaki"},
+    {45209u, std::string_view{"Ebino-shi, Miyazaki", 19}},
 
-    {45341u, "Mimata-cho, Miyazaki"},
+    {45341u, std::string_view{"Mimata-cho, Miyazaki", 20}},
 
-    {45361u, "Takaharu-cho, Miyazaki"},
+    {45361u, std::string_view{"Takaharu-cho, Miyazaki", 22}},
 
-    {45382u, "Kunitomi-cho, Miyazaki"},
+    {45382u, std::string_view{"Kunitomi-cho, Miyazaki", 22}},
 
-    {45383u, "Aya-cho, Miyazaki"},
+    {45383u, std::string_view{"Aya-cho, Miyazaki", 17}},
 
-    {45401u, "Takanabe-cho, Miyazaki"},
+    {45401u, std::string_view{"Takanabe-cho, Miyazaki", 22}},
 
-    {45402u, "Shintomi-cho, Miyazaki"},
+    {45402u, std::string_view{"Shintomi-cho, Miyazaki", 22}},
 
-    {45403u, "Nishimera-son, Miyazaki"},
+    {45403u, std::string_view{"Nishimera-son, Miyazaki", 23}},
 
-    {45404u, "Kijo-cho, Miyazaki"},
+    {45404u, std::string_view{"Kijo-cho, Miyazaki", 18}},
 
-    {45405u, "Kawaminami-cho, Miyazaki"},
+    {45405u, std::string_view{"Kawaminami-cho, Miyazaki", 24}},
 
-    {45406u, "Tsuno-cho, Miyazaki"},
+    {45406u, std::string_view{"Tsuno-cho, Miyazaki", 19}},
 
-    {45421u, "Kadogawa-cho, Miyazaki"},
+    {45421u, std::string_view{"Kadogawa-cho, Miyazaki", 22}},
 
-    {45429u, "Morotsuka-son, Miyazaki"},
+    {45429u, std::string_view{"Morotsuka-son, Miyazaki", 23}},
 
-    {45430u, "Shiiba-son, Miyazaki"},
+    {45430u, std::string_view{"Shiiba-son, Miyazaki", 20}},
 
-    {45431u, "Misato-cho, Miyazaki"},
+    {45431u, std::string_view{"Misato-cho, Miyazaki", 20}},
 
-    {45441u, "Takachiho-cho, Miyazaki"},
+    {45441u, std::string_view{"Takachiho-cho, Miyazaki", 23}},
 
-    {45442u, "Hinokage-cho, Miyazaki"},
+    {45442u, std::string_view{"Hinokage-cho, Miyazaki", 22}},
 
-    {45443u, "Gokase-cho, Miyazaki"},
+    {45443u, std::string_view{"Gokase-cho, Miyazaki", 20}},
 
-    {46000u, "Kagoshima"},
+    {46000u, std::string_view{"Kagoshima", 9}},
 
-    {46201u, "Kagoshima-shi, Kagoshima"},
+    {46201u, std::string_view{"Kagoshima-shi, Kagoshima", 24}},
 
-    {46203u, "Kanoya-shi, Kagoshima"},
+    {46203u, std::string_view{"Kanoya-shi, Kagoshima", 21}},
 
-    {46204u, "Makurazaki-shi, Kagoshima"},
+    {46204u, std::string_view{"Makurazaki-shi, Kagoshima", 25}},
 
-    {46206u, "Akune-shi, Kagoshima"},
+    {46206u, std::string_view{"Akune-shi, Kagoshima", 20}},
 
-    {46208u, "Izumi-shi, Kagoshima"},
+    {46208u, std::string_view{"Izumi-shi, Kagoshima", 20}},
 
-    {46210u, "Ibusuki-shi, Kagoshima"},
+    {46210u, std::string_view{"Ibusuki-shi, Kagoshima", 22}},
 
-    {46213u, "Nishinoomote-shi, Kagoshima"},
+    {46213u, std::string_view{"Nishinoomote-shi, Kagoshima", 27}},
 
-    {46214u, "Tarumizu-shi, Kagoshima"},
+    {46214u, std::string_view{"Tarumizu-shi, Kagoshima", 23}},
 
-    {46215u, "Satsumasendai-shi, Kagoshima"},
+    {46215u, std::string_view{"Satsumasendai-shi, Kagoshima", 28}},
 
-    {46216u, "Hioki-shi, Kagoshima"},
+    {46216u, std::string_view{"Hioki-shi, Kagoshima", 20}},
 
-    {46217u, "Soo-shi, Kagoshima"},
+    {46217u, std::string_view{"Soo-shi, Kagoshima", 18}},
 
-    {46218u, "Kirishima-shi, Kagoshima"},
+    {46218u, std::string_view{"Kirishima-shi, Kagoshima", 24}},
 
-    {46219u, "Ichikikushikino-shi, Kagoshima"},
+    {46219u, std::string_view{"Ichikikushikino-shi, Kagoshima", 30}},
 
-    {46220u, "Minamisatsuma-shi, Kagoshima"},
+    {46220u, std::string_view{"Minamisatsuma-shi, Kagoshima", 28}},
 
-    {46221u, "Shibushi-shi, Kagoshima"},
+    {46221u, std::string_view{"Shibushi-shi, Kagoshima", 23}},
 
-    {46222u, "Amami-shi, Kagoshima"},
+    {46222u, std::string_view{"Amami-shi, Kagoshima", 20}},
 
-    {46223u, "Minamikyushu-shi, Kagoshima"},
+    {46223u, std::string_view{"Minamikyushu-shi, Kagoshima", 27}},
 
-    {46224u, "Isa-shi, Kagoshima"},
+    {46224u, std::string_view{"Isa-shi, Kagoshima", 18}},
 
-    {46225u, "Aira-shi, Kagoshima"},
+    {46225u, std::string_view{"Aira-shi, Kagoshima", 19}},
 
-    {46303u, "Mishima-mura, Kagoshima"},
+    {46303u, std::string_view{"Mishima-mura, Kagoshima", 23}},
 
-    {46304u, "Toshima-mura, Kagoshima"},
+    {46304u, std::string_view{"Toshima-mura, Kagoshima", 23}},
 
-    {46392u, "Satsuma-cho, Kagoshima"},
+    {46392u, std::string_view{"Satsuma-cho, Kagoshima", 22}},
 
-    {46404u, "Nagashima-cho, Kagoshima"},
+    {46404u, std::string_view{"Nagashima-cho, Kagoshima", 24}},
 
-    {46452u, "Yusui-cho, Kagoshima"},
+    {46452u, std::string_view{"Yusui-cho, Kagoshima", 20}},
 
-    {46468u, "Osaki-cho, Kagoshima"},
+    {46468u, std::string_view{"Osaki-cho, Kagoshima", 20}},
 
-    {46482u, "Higashikushira-cho, Kagoshima"},
+    {46482u, std::string_view{"Higashikushira-cho, Kagoshima", 29}},
 
-    {46490u, "Kinko-cho, Kagoshima"},
+    {46490u, std::string_view{"Kinko-cho, Kagoshima", 20}},
 
-    {46491u, "Minamiosumi-cho, Kagoshima"},
+    {46491u, std::string_view{"Minamiosumi-cho, Kagoshima", 26}},
 
-    {46492u, "Kimotsuki-cho, Kagoshima"},
+    {46492u, std::string_view{"Kimotsuki-cho, Kagoshima", 24}},
 
-    {46501u, "Nakatane-cho, Kagoshima"},
+    {46501u, std::string_view{"Nakatane-cho, Kagoshima", 23}},
 
-    {46502u, "Minamitane-cho, Kagoshima"},
+    {46502u, std::string_view{"Minamitane-cho, Kagoshima", 25}},
 
-    {46505u, "Yakushima-cho, Kagoshima"},
+    {46505u, std::string_view{"Yakushima-cho, Kagoshima", 24}},
 
-    {46523u, "Yamato-son, Kagoshima"},
+    {46523u, std::string_view{"Yamato-son, Kagoshima", 21}},
 
-    {46524u, "Uken-son, Kagoshima"},
+    {46524u, std::string_view{"Uken-son, Kagoshima", 19}},
 
-    {46525u, "Setouchi-cho, Kagoshima"},
+    {46525u, std::string_view{"Setouchi-cho, Kagoshima", 23}},
 
-    {46527u, "Tatsugo-cho, Kagoshima"},
+    {46527u, std::string_view{"Tatsugo-cho, Kagoshima", 22}},
 
-    {46529u, "Kikai-cho, Kagoshima"},
+    {46529u, std::string_view{"Kikai-cho, Kagoshima", 20}},
 
-    {46530u, "Tokunoshima-cho, Kagoshima"},
+    {46530u, std::string_view{"Tokunoshima-cho, Kagoshima", 26}},
 
-    {46531u, "Amagi-cho, Kagoshima"},
+    {46531u, std::string_view{"Amagi-cho, Kagoshima", 20}},
 
-    {46532u, "Isen-cho, Kagoshima"},
+    {46532u, std::string_view{"Isen-cho, Kagoshima", 19}},
 
-    {46533u, "Wadomari-cho, Kagoshima"},
+    {46533u, std::string_view{"Wadomari-cho, Kagoshima", 23}},
 
-    {46534u, "China-cho, Kagoshima"},
+    {46534u, std::string_view{"China-cho, Kagoshima", 20}},
 
-    {46535u, "Yoron-cho, Kagoshima"},
+    {46535u, std::string_view{"Yoron-cho, Kagoshima", 20}},
 
-    {47000u, "Okinawa"},
+    {47000u, std::string_view{"Okinawa", 7}},
 
-    {47201u, "Naha-shi, Okinawa"},
+    {47201u, std::string_view{"Naha-shi, Okinawa", 17}},
 
-    {47205u, "Ginowan-shi, Okinawa"},
+    {47205u, std::string_view{"Ginowan-shi, Okinawa", 20}},
 
-    {47207u, "Ishigaki-shi, Okinawa"},
+    {47207u, std::string_view{"Ishigaki-shi, Okinawa", 21}},
 
-    {47208u, "Urasoe-shi, Okinawa"},
+    {47208u, std::string_view{"Urasoe-shi, Okinawa", 19}},
 
-    {47209u, "Nago-shi, Okinawa"},
+    {47209u, std::string_view{"Nago-shi, Okinawa", 17}},
 
-    {47210u, "Itoman-shi, Okinawa"},
+    {47210u, std::string_view{"Itoman-shi, Okinawa", 19}},
 
-    {47211u, "Okinawa-shi, Okinawa"},
+    {47211u, std::string_view{"Okinawa-shi, Okinawa", 20}},
 
-    {47212u, "Tomigusuku-shi, Okinawa"},
+    {47212u, std::string_view{"Tomigusuku-shi, Okinawa", 23}},
 
-    {47213u, "Uruma-shi, Okinawa"},
+    {47213u, std::string_view{"Uruma-shi, Okinawa", 18}},
 
-    {47214u, "Miyakojima-shi, Okinawa"},
+    {47214u, std::string_view{"Miyakojima-shi, Okinawa", 23}},
 
-    {47215u, "Nanjo-shi, Okinawa"},
+    {47215u, std::string_view{"Nanjo-shi, Okinawa", 18}},
 
-    {47301u, "Kunigami-son, Okinawa"},
+    {47301u, std::string_view{"Kunigami-son, Okinawa", 21}},
 
-    {47302u, "Ogimi-son, Okinawa"},
+    {47302u, std::string_view{"Ogimi-son, Okinawa", 18}},
 
-    {47303u, "Higashi-son, Okinawa"},
+    {47303u, std::string_view{"Higashi-son, Okinawa", 20}},
 
-    {47306u, "Nakijin-son, Okinawa"},
+    {47306u, std::string_view{"Nakijin-son, Okinawa", 20}},
 
-    {47308u, "Motobu-cho, Okinawa"},
+    {47308u, std::string_view{"Motobu-cho, Okinawa", 19}},
 
-    {47311u, "Onna-son, Okinawa"},
+    {47311u, std::string_view{"Onna-son, Okinawa", 17}},
 
-    {47313u, "Ginoza-son, Okinawa"},
+    {47313u, std::string_view{"Ginoza-son, Okinawa", 19}},
 
-    {47314u, "Kin-cho, Okinawa"},
+    {47314u, std::string_view{"Kin-cho, Okinawa", 16}},
 
-    {47315u, "Ie-son, Okinawa"},
+    {47315u, std::string_view{"Ie-son, Okinawa", 15}},
 
-    {47324u, "Yomitan-son, Okinawa"},
+    {47324u, std::string_view{"Yomitan-son, Okinawa", 20}},
 
-    {47325u, "Kadena-cho, Okinawa"},
+    {47325u, std::string_view{"Kadena-cho, Okinawa", 19}},
 
-    {47326u, "Chiyatan-cho, Okinawa"},
+    {47326u, std::string_view{"Chiyatan-cho, Okinawa", 21}},
 
-    {47327u, "Kitanakagusuku-son, Okinawa"},
+    {47327u, std::string_view{"Kitanakagusuku-son, Okinawa", 27}},
 
-    {47328u, "Nakagusuku-son, Okinawa"},
+    {47328u, std::string_view{"Nakagusuku-son, Okinawa", 23}},
 
-    {47329u, "Nishihara-cho, Okinawa"},
+    {47329u, std::string_view{"Nishihara-cho, Okinawa", 22}},
 
-    {47348u, "Yonabaru-cho, Okinawa"},
+    {47348u, std::string_view{"Yonabaru-cho, Okinawa", 21}},
 
-    {47350u, "Haebaru-cho, Okinawa"},
+    {47350u, std::string_view{"Haebaru-cho, Okinawa", 20}},
 
-    {47353u, "Tokashiki-son, Okinawa"},
+    {47353u, std::string_view{"Tokashiki-son, Okinawa", 22}},
 
-    {47354u, "Zamami-son, Okinawa"},
+    {47354u, std::string_view{"Zamami-son, Okinawa", 19}},
 
-    {47355u, "Aguni-son, Okinawa"},
+    {47355u, std::string_view{"Aguni-son, Okinawa", 18}},
 
-    {47356u, "Tonaki-son, Okinawa"},
+    {47356u, std::string_view{"Tonaki-son, Okinawa", 19}},
 
-    {47357u, "Minamidaito-son, Okinawa"},
+    {47357u, std::string_view{"Minamidaito-son, Okinawa", 24}},
 
-    {47358u, "Kitadaito-son, Okinawa"},
+    {47358u, std::string_view{"Kitadaito-son, Okinawa", 22}},
 
-    {47359u, "Iheya-son, Okinawa"},
+    {47359u, std::string_view{"Iheya-son, Okinawa", 18}},
 
-    {47360u, "Izena-son, Okinawa"},
+    {47360u, std::string_view{"Izena-son, Okinawa", 18}},
 
-    {47361u, "Kumejima-cho, Okinawa"},
+    {47361u, std::string_view{"Kumejima-cho, Okinawa", 21}},
 
-    {47362u, "Yaese-cho, Okinawa"},
+    {47362u, std::string_view{"Yaese-cho, Okinawa", 18}},
 
-    {47375u, "Tarama-son, Okinawa"},
+    {47375u, std::string_view{"Tarama-son, Okinawa", 19}},
 
-    {47381u, "Taketomi-cho, Okinawa"},
+    {47381u, std::string_view{"Taketomi-cho, Okinawa", 21}},
 
-    {47382u, "Yonaguni-cho, Okinawa"},
+    {47382u, std::string_view{"Yonaguni-cho, Okinawa", 21}},
 };
 [[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_ex1_target_area_code_en_lookup(uint16_t id) {
-#if AZARAC_LANG_EN
     uint16_t lo = 0, hi = 1980;
     while (lo < hi) {
         uint16_t mid = static_cast<uint16_t>(lo + (hi - lo) / 2);
@@ -3984,11 +3986,16 @@ inline constexpr QZSS_DCX_EX1_TARGET_AREA_CODE_EN_Entry QZSS_DCX_EX1_TARGET_AREA
         else hi = mid;
     }
     return std::nullopt;
+}
+
 #else
+
+[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_ex1_target_area_code_en_lookup(uint16_t id) {
     (void)id;
     return std::nullopt;
-#endif
 }
+
+#endif
 
 } // namespace def
 } // namespace azaraC

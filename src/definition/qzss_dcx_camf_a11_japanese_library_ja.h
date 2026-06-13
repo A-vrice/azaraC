@@ -1,5 +1,5 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.15.1 with CI-CD
+// AUTO-GENERATED from azarashi 0.16.1 with CI-CD
 // Source module : qzss_dcx_camf_a11_japanese_library
 // Variable      : qzss_dcx_camf_a11_japanese_library_ja
 // Entries       : 38
@@ -8,87 +8,90 @@
 #include <cstdint>
 #include <optional>
 #include <string_view>
+#include "../azaraC.h"
 
 namespace azaraC {
 namespace def {
 
+#if (AZARAC_LANG_JA)
+
 struct QZSS_DCX_CAMF_A11_JAPANESE_LIBRARY_JA_Entry { uint16_t id; std::string_view label; };
 inline constexpr QZSS_DCX_CAMF_A11_JAPANESE_LIBRARY_JA_Entry QZSS_DCX_CAMF_A11_JAPANESE_LIBRARY_JA_TABLE[] = {
-    {0u, ""},
+    {0u, std::string_view{"", 0}},
 
-    {1u, "直ちに命を守るための最善の行動を。"},
+    {1u, std::string_view{"直ちに命を守るための最善の行動を。", 51}},
 
-    {126u, "これは、DCX のテストです。"},
+    {126u, std::string_view{"これは、DCX のテストです。", 40}},
 
-    {127u, "直ちに命を守るための最善の行動を。"},
+    {127u, std::string_view{"直ちに命を守るための最善の行動を。", 51}},
 
-    {128u, "ミサイル発射。ミサイル発射。ミサイルが発射されたものとみられます。建物の中、又は地下に避難して下さい。"},
+    {128u, std::string_view{"ミサイル発射。ミサイル発射。ミサイルが発射されたものとみられます。建物の中、又は地下に避難して下さい。", 153}},
 
-    {129u, "ミサイル通過。ミサイル通過。先程のミサイルは通過したものとみられます。避難の呼びかけを解除します。不審なものには決して近寄らず直ちに警察や消防などに連絡して下さい。"},
+    {129u, std::string_view{"ミサイル通過。ミサイル通過。先程のミサイルは通過したものとみられます。避難の呼びかけを解除します。不審なものには決して近寄らず直ちに警察や消防などに連絡して下さい。", 246}},
 
-    {130u, "先程のミサイルは、海に落下したものとみられます。避難の呼びかけを解除します。不審なものには決して近寄らず直ちに警察や消防などに連絡して下さい。"},
+    {130u, std::string_view{"先程のミサイルは、海に落下したものとみられます。避難の呼びかけを解除します。不審なものには決して近寄らず直ちに警察や消防などに連絡して下さい。", 213}},
 
-    {131u, "先程のミサイルは、我が国には飛来しないものとみられます。避難の呼びかけを解除します。"},
+    {131u, std::string_view{"先程のミサイルは、我が国には飛来しないものとみられます。避難の呼びかけを解除します。", 126}},
 
-    {132u, "直ちに避難。直ちに避難。直ちに建物の中、又は地下に避難して下さい。ミサイルが、周辺に落下するものとみられます。直ちに避難して下さい。"},
+    {132u, std::string_view{"直ちに避難。直ちに避難。直ちに建物の中、又は地下に避難して下さい。ミサイルが、周辺に落下するものとみられます。直ちに避難して下さい。", 198}},
 
-    {133u, "先程のミサイルは、迎撃により破壊されました。ミサイルの破片の落下の可能性があります。続報を伝達しますので、引き続き屋内に避難して下さい。"},
+    {133u, std::string_view{"先程のミサイルは、迎撃により破壊されました。ミサイルの破片の落下の可能性があります。続報を伝達しますので、引き続き屋内に避難して下さい。", 204}},
 
-    {134u, "ミサイル落下。ミサイル落下。ミサイルが、周辺に落下したものとみられます。続報を伝達しますので、引き続き屋内に避難して下さい。"},
+    {134u, std::string_view{"ミサイル落下。ミサイル落下。ミサイルが、周辺に落下したものとみられます。続報を伝達しますので、引き続き屋内に避難して下さい。", 186}},
 
-    {135u, "先程のミサイルは、我が国には落下しないものとみられます。避難の呼びかけを解除します。"},
+    {135u, std::string_view{"先程のミサイルは、我が国には落下しないものとみられます。避難の呼びかけを解除します。", 126}},
 
-    {136u, "これは、Jアラートのテストです。"},
+    {136u, std::string_view{"これは、Jアラートのテストです。", 46}},
 
-    {255u, "直ちに命を守るための最善の行動を。"},
+    {255u, std::string_view{"直ちに命を守るための最善の行動を。", 51}},
 
-    {256u, "留まれ。"},
+    {256u, std::string_view{"留まれ。", 12}},
 
-    {257u, "留まれ。頑丈なものの下/中。"},
+    {257u, std::string_view{"留まれ。頑丈なものの下/中。", 40}},
 
-    {258u, "留まれ。3階以上。"},
+    {258u, std::string_view{"留まれ。3階以上。", 25}},
 
-    {259u, "留まれ。地下。"},
+    {259u, std::string_view{"留まれ。地下。", 21}},
 
-    {260u, "留まれ。山。"},
+    {260u, std::string_view{"留まれ。山。", 18}},
 
-    {261u, "留まれ。水場。"},
+    {261u, std::string_view{"留まれ。水場。", 21}},
 
-    {262u, "留まれ。工場等化学系を取扱う建物。"},
+    {262u, std::string_view{"留まれ。工場等化学系を取扱う建物。", 51}},
 
-    {263u, "留まれ。崖等崩れやすい場所。"},
+    {263u, std::string_view{"留まれ。崖等崩れやすい場所。", 42}},
 
-    {512u, "向かえ。"},
+    {512u, std::string_view{"向かえ。", 12}},
 
-    {513u, "向かえ。頑丈なものの下/中。"},
+    {513u, std::string_view{"向かえ。頑丈なものの下/中。", 40}},
 
-    {514u, "向かえ。3階以上。"},
+    {514u, std::string_view{"向かえ。3階以上。", 25}},
 
-    {515u, "向かえ。地下。"},
+    {515u, std::string_view{"向かえ。地下。", 21}},
 
-    {516u, "向かえ。山。"},
+    {516u, std::string_view{"向かえ。山。", 18}},
 
-    {517u, "向かえ。水場。"},
+    {517u, std::string_view{"向かえ。水場。", 21}},
 
-    {518u, "向かえ。工場等化学系を取扱う建物。"},
+    {518u, std::string_view{"向かえ。工場等化学系を取扱う建物。", 51}},
 
-    {519u, "向かえ。崖等崩れやすい場所。"},
+    {519u, std::string_view{"向かえ。崖等崩れやすい場所。", 42}},
 
-    {768u, "離れろ。"},
+    {768u, std::string_view{"離れろ。", 12}},
 
-    {769u, "離れろ。頑丈なものの下/中。"},
+    {769u, std::string_view{"離れろ。頑丈なものの下/中。", 40}},
 
-    {770u, "離れろ。3階以上。"},
+    {770u, std::string_view{"離れろ。3階以上。", 25}},
 
-    {771u, "離れろ。地下。"},
+    {771u, std::string_view{"離れろ。地下。", 21}},
 
-    {772u, "離れろ。山。"},
+    {772u, std::string_view{"離れろ。山。", 18}},
 
-    {773u, "離れろ。水場。"},
+    {773u, std::string_view{"離れろ。水場。", 21}},
 
-    {774u, "離れろ。工場等化学系を取扱う建物。"},
+    {774u, std::string_view{"離れろ。工場等化学系を取扱う建物。", 51}},
 
-    {775u, "離れろ。崖等崩れやすい場所。"},
+    {775u, std::string_view{"離れろ。崖等崩れやすい場所。", 42}},
 };
 [[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_a11_japanese_library_ja_lookup(uint16_t id) {
     uint8_t lo = 0, hi = 38;
@@ -100,6 +103,15 @@ inline constexpr QZSS_DCX_CAMF_A11_JAPANESE_LIBRARY_JA_Entry QZSS_DCX_CAMF_A11_J
     }
     return std::nullopt;
 }
+
+#else
+
+[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_a11_japanese_library_ja_lookup(uint16_t id) {
+    (void)id;
+    return std::nullopt;
+}
+
+#endif
 
 } // namespace def
 } // namespace azaraC

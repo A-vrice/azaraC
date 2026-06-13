@@ -12,8 +12,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+
       - name: clean test files
         run: make -C test clean
+
       - name: Build & run
         run: make -C test run
 
@@ -27,6 +29,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           persist-credentials: false
+
       - name: Run fuzz test
         run: make -C test fuzz FUZZ_ITERATIONS=100000
 
@@ -37,19 +40,48 @@ jobs:
     needs: host-test
     steps:
       - uses: actions/checkout@v6
+
       - name: Run Arduino Lint
         uses: arduino/arduino-lint-action@v2
         with:
           library-manager: submit
           compliance: strict
 
-  # ── Arduino (ESP32-C3) コンパイルチェック ─────────────────────────────
-  arduino-compile:
-    name: arduino-cli compile (ESP32-C3)
+  # ── 必須コンパイルチェック ───────────────────────────────────────────────
+  arduino-compile-required:
+    name: compile required (${{ matrix.name }})
     runs-on: ubuntu-latest
     needs:
       - host-test
       - arduino-lint
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: RP2040 Pico
+            core: rp2040:rp2040
+            fqbn: rp2040:rp2040:rpipico
+            additional_urls: https://github.com/earlephilhower/arduino-pico/releases/download/global/package_rp2040_index.json
+            build_flags: ""
+
+          - name: RP2350 Pico 2
+            core: rp2040:rp2040
+            fqbn: rp2040:rp2040:rpipico2
+            additional_urls: https://github.com/earlephilhower/arduino-pico/releases/download/global/package_rp2040_index.json
+            build_flags: ""
+
+          - name: ESP32-C3
+            core: esp32:esp32
+            fqbn: esp32:esp32:esp32c3
+            additional_urls: https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+            build_flags: ""
+
+          - name: ESP32-S3
+            core: esp32:esp32
+            fqbn: esp32:esp32:esp32s3
+            additional_urls: https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+            build_flags: ""
+
     steps:
       - uses: actions/checkout@v6
 
@@ -58,20 +90,127 @@ jobs:
         with:
           version: "1.x"
 
-      - name: Install ESP32 core
+      - name: Configure board manager
         run: |
           arduino-cli config init
-          arduino-cli config add board_manager.additional_urls https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+          arduino-cli config add board_manager.additional_urls "${{ matrix.additional_urls }}"
           arduino-cli core update-index
-          arduino-cli core install esp32:esp32
+
+      - name: Install core
+        run: arduino-cli core install "${{ matrix.core }}"
 
       - name: Compile examples
         run: |
           LIB_DIR=$(arduino-cli config get directories.user)/libraries
           mkdir -p "$LIB_DIR"
           ln -s "$GITHUB_WORKSPACE" "$LIB_DIR/azaraC"
-          BOARD=esp32:esp32:esp32c3
           for sketch in examples/*/; do
             echo "--- $sketch ---"
-            arduino-cli compile --fqbn $BOARD "$sketch"
+            CPP_EXTRA_FLAGS="-std=gnu++17 ${{ matrix.build_flags }}"
+            # Added --clean to invalidate build cache
+            arduino-cli compile --clean --fqbn "${{ matrix.fqbn }}" "$sketch" --build-property "compiler.cpp.extra_flags=$CPP_EXTRA_FLAGS"
           done
+
+  # ── 拡張コンパイルチェック ───────────────────────────────────────────────
+  arduino-compile-extended:
+    name: compile extended (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    needs:
+      - host-test
+      - arduino-lint
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: STM32 Nucleo H563ZI
+            core: STMicroelectronics:stm32
+            fqbn: STMicroelectronics:stm32:Nucleo_144:pnum=NUCLEO_H563ZI
+            additional_urls: https://github.com/stm32duino/BoardManagerFiles/raw/main/package_stmicroelectronics_index.json
+            build_flags: "-DENABLE_HWSERIAL1 -DPIN_SERIAL_RX=PA9 -DPIN_SERIAL_TX=PA10"
+
+          - name: Arduino GIGA R1 WiFi
+            core: arduino:mbed_giga
+            fqbn: arduino:mbed_giga:giga
+            additional_urls: https://downloads.arduino.cc/packages/package_index.json
+            build_flags: ""
+
+          - name: nRF52840 Nano 33 BLE
+            core: arduino:mbed_nano
+            fqbn: arduino:mbed_nano:nano33ble
+            additional_urls: https://downloads.arduino.cc/packages/package_index.json
+            build_flags: ""
+
+          - name: Teensy 4.0
+            core: teensy:avr
+            fqbn: teensy:avr:teensy40
+            additional_urls: https://www.pjrc.com/teensy/package_teensy_index.json
+            build_flags: ""
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install Arduino CLI
+        uses: arduino/setup-arduino-cli@v2
+        with:
+          version: "1.x"
+
+      - name: Configure board manager
+        run: |
+          arduino-cli config init
+          arduino-cli config add board_manager.additional_urls "${{ matrix.additional_urls }}"
+          arduino-cli core update-index
+
+      - name: Install core
+        run: arduino-cli core install "${{ matrix.core }}"
+
+      - name: Patch core headers for chrono macro conflicts
+        if: >-
+          matrix.name == 'STM32 Nucleo H563ZI' ||
+          matrix.name == 'nRF52840 Nano 33 BLE' ||
+          matrix.name == 'Arduino GIGA R1 WiFi'
+        run: |
+          # Wrap #include <chrono> with pragma push_macro/pop_macro to isolate macro conflicts
+          PATCH_SCRIPT='s/#include <chrono>/#pragma push_macro("abs")\n#pragma push_macro("min")\n#pragma push_macro("max")\n#pragma push_macro("round")\n#undef abs\n#undef min\n#undef max\n#undef round\n#include <chrono>\n#pragma pop_macro("round")\n#pragma pop_macro("max")\n#pragma pop_macro("min")\n#pragma pop_macro("abs")/'
+          # Apply to all headers and sources in the installed cores
+          find ~/.arduino15/packages/ -type f \( -name "*.h" -o -name "*.cpp" -o -name "*.c" \) -exec sed -i "$PATCH_SCRIPT" {} + 2>/dev/null || true
+
+      - name: Compile examples
+        run: |
+          LIB_DIR=$(arduino-cli config get directories.user)/libraries
+          mkdir -p "$LIB_DIR"
+          ln -s "$GITHUB_WORKSPACE" "$LIB_DIR/azaraC"
+          for sketch in examples/*/; do
+            echo "--- $sketch ---"
+            sketch_name=$(basename "$sketch")
+            if [[ ("${{ matrix.name }}" == "Teensy 4.0" || "${{ matrix.name }}" == "STM32 Nucleo H563ZI" || "${{ matrix.name }}" == "Arduino GIGA R1 WiFi" || "${{ matrix.name }}" == "nRF52840 Nano 33 BLE") && ("$sketch_name" == "wifi_client" || "$sketch_name" == "with_sntp") ]]; then
+              echo "skip $sketch_name on ${{ matrix.name }} because WiFi.h is unavailable"
+              continue
+            fi
+            CPP_EXTRA_FLAGS="-std=gnu++17 ${{ matrix.build_flags }}"
+            # IMPORTANT: Added --clean flag to invalidate build cache and ensure patched files are recompiled
+            arduino-cli compile --clean --fqbn "${{ matrix.fqbn }}" "$sketch" --build-property "compiler.cpp.extra_flags=$CPP_EXTRA_FLAGS"
+          done
+
+  # ── 結果集約 ──────────────────────────────────────────────────────────────
+  summary:
+    name: CI Summary
+    runs-on: ubuntu-latest
+    needs:
+      - host-test
+      - fuzz-test
+      - arduino-lint
+      - arduino-compile-required
+      - arduino-compile-extended
+    if: always()
+    steps:
+      - name: Check extended compile results
+        run: |
+          echo "## CI Results" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| host-test | ${{ needs.host-test.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| fuzz-test | ${{ needs.fuzz-test.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| arduino-lint | ${{ needs.arduino-lint.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| arduino-compile-required | ${{ needs.arduino-compile-required.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| arduino-compile-extended | ${{ needs.arduino-compile-extended.result }} |" >> $GITHUB_STEP_SUMMARY

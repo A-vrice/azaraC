@@ -19,13 +19,13 @@ void serializeDcx(const Message& m, Print& out) {
     const Mt44Data& d = m.mt44;
     wf_u(out, "dcx_type", (uint32_t)static_cast<uint8_t>(d.service_kind));
 
-    std::string_view dcx_label = "UNKNOWN";
+    std::string_view dcx_label = std::string_view{"UNKNOWN", 7};
     switch (d.service_kind) {
-        case Mt44ServiceKind::NullMessage:     dcx_label = "NULL"; break;
-        case Mt44ServiceKind::LAlert:          dcx_label = "L_ALERT"; break;
-        case Mt44ServiceKind::JAlert:          dcx_label = "J_ALERT"; break;
-        case Mt44ServiceKind::LocalGovernment: dcx_label = "LOCAL_GOV"; break;
-        case Mt44ServiceKind::OutsideJapan:    dcx_label = "OUTSIDE_JAPAN"; break;
+        case Mt44ServiceKind::NullMessage:     dcx_label = std::string_view{"NULL", 4}; break;
+        case Mt44ServiceKind::LAlert:          dcx_label = std::string_view{"L_ALERT", 7}; break;
+        case Mt44ServiceKind::JAlert:          dcx_label = std::string_view{"J_ALERT", 7}; break;
+        case Mt44ServiceKind::LocalGovernment: dcx_label = std::string_view{"LOCAL_GOV", 9}; break;
+        case Mt44ServiceKind::OutsideJapan:    dcx_label = std::string_view{"OUTSIDE_JAPAN", 13}; break;
         default: break;
     }
     wf_s(out, "dcx_type_label", dcx_label);
@@ -56,7 +56,7 @@ void serializeDcx(const Message& m, Print& out) {
     // A11 Guidance to react library
     wf_u(out, "a11_guidance", d.camf.a11);
     wf_s(out, "a11_guidance_label",
-        qzss_dcx_camf_a11_japanese_library_ja_lookup(d.camf.a11));
+        AZARAC_LOOKUP_LANG(qzss_dcx_camf_a11_japanese_library_ja_lookup, qzss_dcx_camf_a11_japanese_library_en_lookup, d.camf.a11));
 
     // A17/A18 Specific Settings
     wf_u(out, "a17_specific_subject", d.camf.a17);
@@ -167,7 +167,7 @@ void serializeDcx(const Message& m, Print& out) {
     if (d.ex_kind == ExtendedKind::LAlertOrLocal) {
         wf_u(out, "ex1_target_area", d.ex_lalert_local.ex1);
         wf_s(out, "ex1_target_area_label",
-            qzss_dcx_ex1_target_area_code_ja_lookup(d.ex_lalert_local.ex1));
+            AZARAC_LOOKUP_LANG(qzss_dcx_ex1_target_area_code_ja_lookup, qzss_dcx_ex1_target_area_code_en_lookup, d.ex_lalert_local.ex1));
 
         // Decoded target area code (when main ellipse is absent)
         if (dec.target_area_code_present) {
@@ -231,7 +231,7 @@ void serializeDcx(const Message& m, Print& out) {
             out.print('[');
             for (uint8_t i = 0; i < dec.city_code_count; ++i) {
                 if (i) writeChar(out, ',');
-                std::optional<std::string_view> label = qzss_dcx_ex1_target_area_code_ja_lookup(dec.city_codes[i]);
+                std::optional<std::string_view> label = AZARAC_LOOKUP_LANG(qzss_dcx_ex1_target_area_code_ja_lookup, qzss_dcx_ex1_target_area_code_en_lookup, dec.city_codes[i]);
                 writeOptStr(out, label);
             }
             out.print(']');

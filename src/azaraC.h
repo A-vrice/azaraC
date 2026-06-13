@@ -1,5 +1,13 @@
 #pragma once
 // azaraC — QZSS L1S DCX/CAMF + QZQSM decoder for Arduino
+
+// Workaround for arduino:mbed_nano (and other mbed-based cores):
+// pinDefinitions.h defines `abs` as a macro, which breaks std::chrono
+// (and any standard library header that uses abs() as a function).
+// Undefine it before including any headers that might pull in <chrono>.
+#if defined(ARDUINO) && defined(abs)
+#undef abs
+#endif
 //
 // Usage:
 //   #include <azaraC.h>
@@ -16,6 +24,44 @@
 
 #ifndef AZARAC_LANG_EN
 #define AZARAC_LANG_EN 0
+#endif
+
+// ---- disaster category control macros ----------------------------------------
+#ifndef AZARAC_ENABLE_EEW
+#define AZARAC_ENABLE_EEW 1
+#endif
+#ifndef AZARAC_ENABLE_HYPOCENTER
+#define AZARAC_ENABLE_HYPOCENTER 1
+#endif
+#ifndef AZARAC_ENABLE_SEISMIC
+#define AZARAC_ENABLE_SEISMIC 1
+#endif
+#ifndef AZARAC_ENABLE_NANKAI
+#define AZARAC_ENABLE_NANKAI 1
+#endif
+#ifndef AZARAC_ENABLE_TSUNAMI
+#define AZARAC_ENABLE_TSUNAMI 1
+#endif
+#ifndef AZARAC_ENABLE_NW_PAC_TSUNAMI
+#define AZARAC_ENABLE_NW_PAC_TSUNAMI 1
+#endif
+#ifndef AZARAC_ENABLE_VOLCANO
+#define AZARAC_ENABLE_VOLCANO 1
+#endif
+#ifndef AZARAC_ENABLE_ASH_FALL
+#define AZARAC_ENABLE_ASH_FALL 1
+#endif
+#ifndef AZARAC_ENABLE_WEATHER
+#define AZARAC_ENABLE_WEATHER 1
+#endif
+#ifndef AZARAC_ENABLE_FLOOD
+#define AZARAC_ENABLE_FLOOD 1
+#endif
+#ifndef AZARAC_ENABLE_TYPHOON
+#define AZARAC_ENABLE_TYPHOON 1
+#endif
+#ifndef AZARAC_ENABLE_MARINE
+#define AZARAC_ENABLE_MARINE 1
 #endif
 
 #include "Message.h"

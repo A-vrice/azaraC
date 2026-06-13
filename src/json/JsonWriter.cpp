@@ -95,7 +95,7 @@ void writeStr(Print& out, std::string_view s) {
 }
 
 void writeOptStr(Print& out, std::optional<std::string_view> s) {
-    writeStr(out, s.value_or(""));
+    writeStr(out, s.value_or(std::string_view{"", 0}));
 }
 
 void writeHex(Print& out, uint8_t v) {
