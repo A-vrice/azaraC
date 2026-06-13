@@ -106,7 +106,9 @@ jobs:
           ln -s "$GITHUB_WORKSPACE" "$LIB_DIR/azaraC"
           for sketch in examples/*/; do
             echo "--- $sketch ---"
-            arduino-cli compile --fqbn "${{ matrix.fqbn }}" "$sketch" --build-property compiler.cpp.extra_flags="-std=gnu++17" ${{ matrix.build_flags }}
+            CPP_EXTRA_FLAGS="-std=gnu++17 ${{ matrix.build_flags }}"
+            # Added --clean to invalidate build cache
+            arduino-cli compile --clean --fqbn "${{ matrix.fqbn }}" "$sketch" --build-property "compiler.cpp.extra_flags=$CPP_EXTRA_FLAGS"
           done
 
   # ── 拡張コンパイルチェック ───────────────────────────────────────────────
@@ -162,16 +164,16 @@ jobs:
       - name: Install core
         run: arduino-cli core install "${{ matrix.core }}"
 
-      - name: Patch mbed core abs macro
+      - name: Patch core headers for chrono macro conflicts
         if: >-
           matrix.name == 'STM32 Nucleo H563ZI' ||
           matrix.name == 'nRF52840 Nano 33 BLE' ||
           matrix.name == 'Arduino GIGA R1 WiFi'
         run: |
-          CORE_PATH=$(arduino-cli config get directories.user)/packages/${{ matrix.core }}/variants/"**"/Arduino.h
-          if [ -f "$CORE_PATH" ]; then
-            sed -i 's|#define abs __builtin_abs|// #define abs __builtin_abs|g' "$CORE_PATH"
-          fi
+          # Wrap #include <chrono> with pragma push_macro/pop_macro to isolate macro conflicts
+          PATCH_SCRIPT='s/#include <chrono>/#pragma push_macro("abs")\n#pragma push_macro("min")\n#pragma push_macro("max")\n#pragma push_macro("round")\n#undef abs\n#undef min\n#undef max\n#undef round\n#include <chrono>\n#pragma pop_macro("round")\n#pragma pop_macro("max")\n#pragma pop_macro("min")\n#pragma pop_macro("abs")/'
+          # Apply to all headers and sources in the installed cores
+          find ~/.arduino15/packages/ -type f \( -name "*.h" -o -name "*.cpp" -o -name "*.c" \) -exec sed -i "$PATCH_SCRIPT" {} + 2>/dev/null || true
 
       - name: Compile examples
         run: |
@@ -186,7 +188,8 @@ jobs:
               continue
             fi
             CPP_EXTRA_FLAGS="-std=gnu++17 ${{ matrix.build_flags }}"
-            arduino-cli compile --fqbn "${{ matrix.fqbn }}" "$sketch" --build-property "compiler.cpp.extra_flags=$CPP_EXTRA_FLAGS"
+            # IMPORTANT: Added --clean flag to invalidate build cache and ensure patched files are recompiled
+            arduino-cli compile --clean --fqbn "${{ matrix.fqbn }}" "$sketch" --build-property "compiler.cpp.extra_flags=$CPP_EXTRA_FLAGS"
           done
 
   # ── 結果集約 ──────────────────────────────────────────────────────────────
