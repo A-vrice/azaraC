@@ -162,6 +162,17 @@ jobs:
       - name: Install core
         run: arduino-cli core install "${{ matrix.core }}"
 
+      - name: Patch mbed core abs macro
+        if: >-
+          matrix.name == 'STM32 Nucleo H563ZI' ||
+          matrix.name == 'nRF52840 Nano 33 BLE' ||
+          matrix.name == 'Arduino GIGA R1 WiFi'
+        run: |
+          CORE_PATH=$(arduino-cli config get directories.user)/packages/${{ matrix.core }}/variants/"**"/Arduino.h
+          if [ -f "$CORE_PATH" ]; then
+            sed -i 's|#define abs __builtin_abs|// #define abs __builtin_abs|g' "$CORE_PATH"
+          fi
+
       - name: Compile examples
         run: |
           LIB_DIR=$(arduino-cli config get directories.user)/libraries
@@ -170,10 +181,33 @@ jobs:
           for sketch in examples/*/; do
             echo "--- $sketch ---"
             sketch_name=$(basename "$sketch")
-            if [[ ("${{ matrix.name }}" == "Teensy 4.0" ||  "${{ matrix.name }}" == "STM32 Nucleo H563ZI") && ("$sketch_name" == "wifi_client" || "$sketch_name" == "with_sntp") ]]; then
+            if [[ ("${{ matrix.name }}" == "Teensy 4.0" || "${{ matrix.name }}" == "STM32 Nucleo H563ZI" || "${{ matrix.name }}" == "Arduino GIGA R1 WiFi" || "${{ matrix.name }}" == "nRF52840 Nano 33 BLE") && ("$sketch_name" == "wifi_client" || "$sketch_name" == "with_sntp") ]]; then
               echo "skip $sketch_name on ${{ matrix.name }} because WiFi.h is unavailable"
               continue
             fi
-            CPP_EXTRA_FLAGS="-std=gnu++17 -Uabs ${{ matrix.build_flags }}"
+            CPP_EXTRA_FLAGS="-std=gnu++17 ${{ matrix.build_flags }}"
             arduino-cli compile --fqbn "${{ matrix.fqbn }}" "$sketch" --build-property "compiler.cpp.extra_flags=$CPP_EXTRA_FLAGS"
           done
+
+  # ── 結果集約 ──────────────────────────────────────────────────────────────
+  summary:
+    name: CI Summary
+    runs-on: ubuntu-latest
+    needs:
+      - host-test
+      - fuzz-test
+      - arduino-lint
+      - arduino-compile-required
+      - arduino-compile-extended
+    if: always()
+    steps:
+      - name: Check extended compile results
+        run: |
+          echo "## CI Results" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| host-test | ${{ needs.host-test.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| fuzz-test | ${{ needs.fuzz-test.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| arduino-lint | ${{ needs.arduino-lint.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| arduino-compile-required | ${{ needs.arduino-compile-required.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| arduino-compile-extended | ${{ needs.arduino-compile-extended.result }} |" >> $GITHUB_STEP_SUMMARY
