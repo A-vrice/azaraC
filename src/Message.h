@@ -241,13 +241,6 @@ struct Mt44Decoded {
     Mt44ServiceKind service_kind;
     bool is_null_message;
 
-    // Decoded text labels
-    const char* country_name;
-    const char* provider_name;
-    const char* hazard_name;
-    const char* severity_name;
-    const char* guidance_text;
-
     // Main ellipse (A12-A16) - decoded to WGS84
     // present if A12..A16 are not all zero
     bool main_ellipse_present;

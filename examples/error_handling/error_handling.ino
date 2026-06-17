@@ -10,6 +10,7 @@
 
 #include <azaraC.h>
 
+
 azaraC::Parser  parser;
 azaraC::Message msg;
 
@@ -146,7 +147,11 @@ void setup() {
     Serial.begin(115200);
     while (!Serial) { delay(10); }
 
-    Serial1.begin(9600, SERIAL_8N1, /*rx=*/20, /*tx=*/21);
+    #if defined(ESP32)
+        Serial1.begin(9600, SERIAL_8N1, /*rx=*/20, /*tx=*/21);
+    #else
+        Serial1.begin(9600, SERIAL_8N1);
+    #endif
     Serial.println(F("[azaraC] error_handling ready"));
     Serial.println(F("Waiting for QZSS messages..."));
 }

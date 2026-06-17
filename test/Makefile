@@ -14,7 +14,8 @@ ifeq ($(OS),Windows_NT)
   ifneq ($(MINGW64_BIN),)
     export PATH := $(PATH);$(MINGW64_BIN)
   endif
-  LDFLAGS = -Wl,--stack,33554432
+  # メモリ割り当て増加: 64MBスタック + 256MBヒープ
+  LDFLAGS = -Wl,--stack,67108864 -Wl,--heap,268435456
 else
   TEST_BIN   = run_tests
   RUN_PREFIX = ./
@@ -49,8 +50,8 @@ LIB_SRCS = \
 	../src/json/JsonSerializer.cpp \
 	../src/json/JsonSerializerDcx.cpp \
 	../src/json/JsonSerializerQzqsm.cpp \
-	../src/helper/DcxHelper.cpp \
-	../src/helper/Dedup.cpp
+	../src/internal/DcxHelper.cpp \
+	../src/internal/Dedup.cpp
 
 # Object files - サブディレクトリの.oはそのまま保持、ライブラリはカレントに
 TEST_OBJS = $(TEST_SRCS:.cpp=.o)
@@ -58,7 +59,7 @@ LIB_OBJS = $(notdir $(LIB_SRCS:.cpp=.o))
 OBJS = $(TEST_OBJS) $(LIB_OBJS)
 
 # VPATH for library sources
-VPATH = ../src:../src/decoder:../src/framer:../src/json:../src/helper
+VPATH = ../src:../src/decoder:../src/framer:../src/json:../src/internal
 
 .PHONY: all clean run fuzz
 

@@ -4,18 +4,18 @@
 
 A QZSS DCR DCX Decoder for Arduino.
 
-## Description
+## これは何？
 
-AzaraCは準天頂衛星みちびきが送信する災害通報メッセージのデコーダーであるazarashiをArduino向けに移植したものです。QZSS L1S信号を用いた災害通報の**DCX/CAMF**(MT=44)および**DC Report/QZQSM**(MT=43)に対応しており、ESP32シリーズなどのArduino互換ボード向けに設計されています。外部ライブラリには依存していません。
-定義テーブル(`definition/*.h`)は[azarashi](https://github.com/nbtk/azarashi)の
-`definition/*.py`からGitHub Actionsでの自動生成を行っています。azarashiのバージョンが更新されるとPRが自動作成されるため、常にazarashiと同じ定義が維持されます。
+AzaraCは準天頂衛星みちびきが送信する災害通報メッセージのデコーダーである[azarashi](https://github.com/nbtk/azarashi)をArduino向けに移植したものです。QZSS L1S信号を用いた災害通報の**DCX/CAMF**(MT=44)および**DC Report/QZQSM**(MT=43)に対応しており、ESP32シリーズなどのArduino互換ボード向けに設計されています。外部ライブラリには依存していません。
+
+変換に使用する定義テーブル(`definition/*.h`)はazarashiの`definition/*.py`からGitHub Actionsで自動生成を行っています。azarashiのバージョンが更新されるとPRが自動作成されるため、常にazarashiと同じ出力が期待できます。
 
 ## 対応メッセージ
 
-| msg_type | 規格            | 名称                             |
-| -------- | --------------- | -------------------------------- |
-| 43       | IS-QZSS-DCR-016 | JMA DC Report (QZQSM) — 全12種   |
-| 44       | IS-QZSS-DCX-003 | DCX / CAMF (L-Alert, J-Alert 等) |
+| msg_type | 規格            | 名称            |
+| -------- | --------------- | --------------- |
+| 43       | IS-QZSS-DCR-016 | DCR 12種類      |
+| 44       | IS-QZSS-DCX-003 | DCX / CAMF など |
 
 ### MT=43 防災カテゴリ一覧
 
@@ -36,23 +36,24 @@ AzaraCは準天頂衛星みちびきが送信する災害通報メッセージ�
 
 ### MT=44 サービス種別
 
-| service_kind    | 名称                             | 判定条件                 |
-| --------------- | -------------------------------- | ------------------------ |
-| LAlert          | L-Alert (地方自治体向け緊急速報) | A2=111 (Japan) & A3=1-4  |
-| JAlert          | J-Alert (全国瞬時警報システム)   | A2=111 (Japan) & A3=0    |
-| LocalGovernment | 地方自治体送信情報               | A2=111 (Japan) & A3=5-31 |
-| OutsideJapan    | 国外向け情報                     | A2≠111                   |
-| NullMessage     | Null Message                     | A1=0                     |
-| Unknown         | 不明                             | 上記以外                 |
+| 種別            | 名称                             |
+| --------------- | -------------------------------- |
+| LAlert          | L-Alert (地方自治体向け緊急速報) |
+| JAlert          | J-Alert (全国瞬時警報システム)   |
+| LocalGovernment | 地方自治体送信情報               |
+| OutsideJapan    | 国外向け情報                     |
+| NullMessage     | Null Message                     |
+| Unknown         | 不明                             |
 
-## 動作環境
+## 推奨環境など
 
-| 項目            | 値                                          |
-| --------------- | ------------------------------------------- |
-| 主要ターゲット  | ESP32-C3 (FreeRTOS / Arduino framework)     |
-| Arduino コア    | esp32 ≥ 3.x                                 |
-| ホストテスト    | g++ -std=c++17 (Linux / macOS / WSL)        |
-| GNSS モジュール | u-blox (UBX-RXM-SFRBX) / NMEA $QZQSM 出力機 |
+| 項目            | 値                                                                                                         |
+| --------------- | ---------------------------------------------------------------------------------------------------------- |
+| 主要ターゲット  | ESP32-C3 (FreeRTOS / Arduino framework)                                                                    |
+| ビルド確認済み  | ESP32-S3/C3, Teensy4.0, Nano 33 BLE, Giga R1 Wi-Fi, STM32 Nucleo H563ZI                                    |
+| 推奨環境        | Arduino系ボード(C++17の標準APIがある程度利用できる/RAMが256kb程度ある), L1S信号が受信できるGPSモジュール。 |
+| ホストテスト    | g++ -std=c++17 (Linux / macOS / WSL / Windows)                                                             |
+| GNSS モジュール | u-blox (UBX-RXM-SFRBX) / NMEA $QZQSM 出力機                                                                |
 
 [注意] AzaraCはC++17で記述されています。利用の際は、お使いのIDEのC++コンパイラ設定を17以上にしてください。多くのボードメーカでは標準設定がC++11となっており、AzaraCライブラリのコンパイル時にエラーが発生する可能性があります。
 
@@ -101,14 +102,14 @@ void loop() {
 
 ### UBX (RXM-SFRBX) を使用する場合
 
-u-blox の設定:
+u-blox(u-center2など) の設定:
 
 ```
 CFG-MSGOUT-UBX_RXM_SFRBX_UART1 = 1
 CFG-SIGNAL-QZSS_L1S_ENA        = 1
 ```
 
-コードはNMEAと同じです。`Parser`が自動判別します。
+コードはNMEAと同じものが使えます。`Parser`が自動判別します。
 
 ### UNIX時刻付き（メッセージから年月を含めた日時情報を取得したい場合）
 
@@ -133,7 +134,7 @@ bool feed(uint8_t byte, Message& out, uint32_t now_unix = 0);
 void reset();  // フレーマ・重複フィルタをリセット
 ```
 
-重複除去は **{svid, msg_type, crc24}** のリングバッファで行います。デフォルトスロット数は 8 としています。複数 SV を受信する場合は 32 や 128 などに適宜調整してください:
+重複除去は **{svid, msg_type, crc24}** のリングバッファで行います。デフォルトの保存数は8メッセージです。複数衛星から受信する場合は32や128など、衛星数に応じて適宜調整してください:
 
 ```cpp
 #define AZARAC_DEDUP_SLOTS 32
@@ -161,7 +162,7 @@ void reset();  // フレーマ・重複フィルタをリセット
 
 ### `azaraC::toJson(msg, out)`
 
-`Message`をJSONにシリアライズして任意の`Print&` に出力します。`Serial`, `WiFiClient`, `StringPrint`（テスト用）などを渡せます。
+`Message`をJSON形式で`Print`系に渡せます。`Serial`, `WiFiClient`, `StringPrint`（テスト用）などを渡せます。
 
 ### `azaraC::Message`
 
@@ -387,7 +388,7 @@ A17フィールドにより、メイン楕円の精度向上や追加情報が�
 | [error_handling](examples/error_handling/)         | エラーハンドリングと統計       |
 | [wifi_client](examples/wifi_client/)               | Wi-Fiクライアント出力          |
 
-### error_handling の詳細
+### エラーハンドリングの詳細
 
 `examples/error_handling/` では、メッセージの妥当性チェックと受信統計を表示する方法を示しています。
 
@@ -477,22 +478,22 @@ make -C test run MINGW64_BIN=
 
 ### メッセージが受信されない場合
 
-1. **配線を確認**: GNSSのTXがESP32のRXに接続されているか確認
-1. **C++17を有効化**: Arduino IDE → ツール → C++ Standard → C++17
-1. **ボードサポートを確認**: ESP32 コア ≥ 3.x
-1. **ライブラリのインストール**: azaraCがlibrariesフォルダにあるか確認
+1. **配線を確認**: GNSSのTXがESP32のRXに接続されているか確認してみてください。
+2. **C++17を有効化**: Arduino IDE → ツール → C++ Standard → C++17
+3. **ボードのサポートを確認**: Arduino系のエントリー気だと動かない場合があります。
+4. **ライブラリのインストール**: azaraCがlibrariesフォルダにあるか確認してみてください。
 
 ### コンパイルエラーが発生する場合
 
-1. **バッファサイズを確認**: 大きなメッセージの場合、Serialのバッファを増やす
-2. **メモリ不足を確認**: ESP32-C3のメモリ使用量を確認
-3. \*_ボードサポートを確認_: ESP32 コア ≥ 3.x
-4. **ライブラリのインストール**: azaraCがlibrariesフォルダにあるか確認
+1. **バッファサイズを確認**: 大きなメッセージの場合、Serialのバッファを増やしてみてください。
+2. **メモリ不足を確認**: ボードのメモリ使用量を確認してみてください。
+3. **ボードサポートを確認**: ESP32 コア ≥ 3.x
+4. **ライブラリのインストール**: azaraCがlibrariesフォルダにあるか確認してみてください。
 
 ### JSON出力が不正な場合
 
-1. \*_バッファサイズを確認_: 大きなメッセージの場合、Serialのバッファを増やす
-2. \*_メモリ不足を確認_: ESP32-C3のメモリ使用量を確認
+1. **バッファサイズを確認**: 大きなメッセージの場合、Serialのバッファを増やす
+2. **メモリ不足を確認**: ESP32-C3のメモリ使用量を確認
 
 ---
 

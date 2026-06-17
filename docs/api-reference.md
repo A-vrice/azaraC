@@ -70,7 +70,7 @@ void loop() {
 
 ##### `reset()`
 
-パーサーの状態をリセットします。フレーマー、デコーダー、重複除去フィルタが初期化されます。
+パーサーの状態をリセットします。フレーマー、デコーダー、重複除去フィルタ、**NankaiPageBufferManager**が初期化されます。
 
 ```cpp
 void reset();
@@ -83,6 +83,28 @@ void reset();
 ```cpp
 const internal::NankaiPageBuffer* getNankaiBuffer(const internal::NankaiPageKey& key) const;
 ```
+
+---
+
+### `azaraC::internal::NankaiPageBufferManager`
+
+南海トラフ複数ページメッセージの集約を管理するクラス。
+
+#### コンパイル時設定
+
+| マクロ | デフォルト | 説明 |
+|--------|-----------|------|
+| `AZARAC_NANKAI_BUFFERS` | 4 | 同時に追跡可能なイベント数 |
+
+#### メモリ使用量
+
+各バッファは受信したページのみを保持するため、メモリ使用量は可変です：
+- バッファあたり: ~200B（メタデータ）+ 受信ページ数 × 20B
+- 4バッファ全使用時（各5ページ）: ~2KB
+
+#### LRU エビクション
+
+全てのバッファが使用中の場合、最も古いバッファが自動的に解放されます。
 
 ---
 

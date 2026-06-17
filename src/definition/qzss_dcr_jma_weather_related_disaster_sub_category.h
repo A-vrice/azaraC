@@ -1,5 +1,5 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.15.1 with CI-CD
+// AUTO-GENERATED from azarashi 0.16.1 with CI-CD
 // Source module : qzss_dcr_jma_weather_related_disaster_sub_category
 // Variable      : qzss_dcr_jma_weather_related_disaster_sub_category
 // Entries       : 11
@@ -8,33 +8,36 @@
 #include <cstdint>
 #include <optional>
 #include <string_view>
+#include "../azaraC.h"
 
 namespace azaraC {
 namespace def {
 
+#if (AZARAC_ENABLE_WEATHER)
+
 struct QZSS_DCR_JMA_WEATHER_RELATED_DISASTER_SUB_CATEGORY_Entry { uint8_t id; std::string_view label; };
 inline constexpr QZSS_DCR_JMA_WEATHER_RELATED_DISASTER_SUB_CATEGORY_Entry QZSS_DCR_JMA_WEATHER_RELATED_DISASTER_SUB_CATEGORY_TABLE[] = {
-    {1u, "暴風雪特別警報"},
+    {1u, std::string_view{"暴風雪特別警報", 21}},
 
-    {2u, "大雨特別警報"},
+    {2u, std::string_view{"大雨特別警報", 18}},
 
-    {3u, "暴風特別警報"},
+    {3u, std::string_view{"暴風特別警報", 18}},
 
-    {4u, "大雪特別警報"},
+    {4u, std::string_view{"大雪特別警報", 18}},
 
-    {5u, "波浪特別警報"},
+    {5u, std::string_view{"波浪特別警報", 18}},
 
-    {6u, "高潮特別警報"},
+    {6u, std::string_view{"高潮特別警報", 18}},
 
-    {7u, "全ての気象特別警報"},
+    {7u, std::string_view{"全ての気象特別警報", 27}},
 
-    {21u, "記録的短時間大雨情報"},
+    {21u, std::string_view{"記録的短時間大雨情報", 30}},
 
-    {22u, "竜巻注意情報"},
+    {22u, std::string_view{"竜巻注意情報", 18}},
 
-    {23u, "土砂災害警戒情報"},
+    {23u, std::string_view{"土砂災害警戒情報", 24}},
 
-    {31u, "その他の警報等情報要素"},
+    {31u, std::string_view{"その他の警報等情報要素", 33}},
 };
 [[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_weather_related_disaster_sub_category_lookup(uint8_t id) {
     uint8_t lo = 0, hi = 11;
@@ -46,6 +49,15 @@ inline constexpr QZSS_DCR_JMA_WEATHER_RELATED_DISASTER_SUB_CATEGORY_Entry QZSS_D
     }
     return std::nullopt;
 }
+
+#else
+
+[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_weather_related_disaster_sub_category_lookup(uint8_t id) {
+    (void)id;
+    return std::nullopt;
+}
+
+#endif
 
 } // namespace def
 } // namespace azaraC

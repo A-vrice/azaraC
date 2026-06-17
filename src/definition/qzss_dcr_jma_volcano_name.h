@@ -1,5 +1,5 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.15.1 with CI-CD
+// AUTO-GENERATED from azarashi 0.16.1 with CI-CD
 // Source module : qzss_dcr_jma_volcano_name
 // Variable      : qzss_dcr_jma_volcano_name
 // Entries       : 121
@@ -8,253 +8,256 @@
 #include <cstdint>
 #include <optional>
 #include <string_view>
+#include "../azaraC.h"
 
 namespace azaraC {
 namespace def {
 
+#if (AZARAC_ENABLE_VOLCANO)
+
 struct QZSS_DCR_JMA_VOLCANO_NAME_Entry { uint16_t id; std::string_view label; };
 inline constexpr QZSS_DCR_JMA_VOLCANO_NAME_Entry QZSS_DCR_JMA_VOLCANO_NAME_TABLE[] = {
-    {101u, "知床硫黄山"},
+    {101u, std::string_view{"知床硫黄山", 15}},
 
-    {102u, "羅臼岳"},
+    {102u, std::string_view{"羅臼岳", 9}},
 
-    {103u, "摩周"},
+    {103u, std::string_view{"摩周", 6}},
 
-    {104u, "アトサヌプリ"},
+    {104u, std::string_view{"アトサヌプリ", 18}},
 
-    {105u, "雌阿寒岳"},
+    {105u, std::string_view{"雌阿寒岳", 12}},
 
-    {106u, "丸山"},
+    {106u, std::string_view{"丸山", 6}},
 
-    {107u, "大雪山"},
+    {107u, std::string_view{"大雪山", 9}},
 
-    {108u, "十勝岳"},
+    {108u, std::string_view{"十勝岳", 9}},
 
-    {109u, "樽前山"},
+    {109u, std::string_view{"樽前山", 9}},
 
-    {110u, "恵庭岳"},
+    {110u, std::string_view{"恵庭岳", 9}},
 
-    {111u, "倶多楽"},
+    {111u, std::string_view{"倶多楽", 9}},
 
-    {112u, "有珠山"},
+    {112u, std::string_view{"有珠山", 9}},
 
-    {113u, "北海道駒ヶ岳"},
+    {113u, std::string_view{"北海道駒ヶ岳", 18}},
 
-    {114u, "恵山"},
+    {114u, std::string_view{"恵山", 6}},
 
-    {115u, "渡島大島"},
+    {115u, std::string_view{"渡島大島", 12}},
 
-    {116u, "利尻山"},
+    {116u, std::string_view{"利尻山", 9}},
 
-    {117u, "羊蹄山"},
+    {117u, std::string_view{"羊蹄山", 9}},
 
-    {118u, "ニセコ"},
+    {118u, std::string_view{"ニセコ", 9}},
 
-    {119u, "天頂山"},
+    {119u, std::string_view{"天頂山", 9}},
 
-    {120u, "雄阿寒岳"},
+    {120u, std::string_view{"雄阿寒岳", 12}},
 
-    {151u, "茂世路岳"},
+    {151u, std::string_view{"茂世路岳", 12}},
 
-    {152u, "散布山"},
+    {152u, std::string_view{"散布山", 9}},
 
-    {153u, "指臼岳"},
+    {153u, std::string_view{"指臼岳", 9}},
 
-    {154u, "小田萌山"},
+    {154u, std::string_view{"小田萌山", 12}},
 
-    {155u, "択捉焼山"},
+    {155u, std::string_view{"択捉焼山", 12}},
 
-    {156u, "択捉阿登佐岳"},
+    {156u, std::string_view{"択捉阿登佐岳", 18}},
 
-    {157u, "ベルタルベ山"},
+    {157u, std::string_view{"ベルタルベ山", 18}},
 
-    {158u, "爺爺岳"},
+    {158u, std::string_view{"爺爺岳", 9}},
 
-    {159u, "羅臼山"},
+    {159u, std::string_view{"羅臼山", 9}},
 
-    {160u, "泊山"},
+    {160u, std::string_view{"泊山", 6}},
 
-    {161u, "ルルイ岳"},
+    {161u, std::string_view{"ルルイ岳", 12}},
 
-    {201u, "恐山"},
+    {201u, std::string_view{"恐山", 6}},
 
-    {202u, "岩木山"},
+    {202u, std::string_view{"岩木山", 9}},
 
-    {203u, "八甲田山"},
+    {203u, std::string_view{"八甲田山", 12}},
 
-    {204u, "十和田"},
+    {204u, std::string_view{"十和田", 9}},
 
-    {205u, "秋田焼山"},
+    {205u, std::string_view{"秋田焼山", 12}},
 
-    {206u, "八幡平"},
+    {206u, std::string_view{"八幡平", 9}},
 
-    {207u, "岩手山"},
+    {207u, std::string_view{"岩手山", 9}},
 
-    {208u, "秋田駒ヶ岳"},
+    {208u, std::string_view{"秋田駒ヶ岳", 15}},
 
-    {209u, "鳥海山"},
+    {209u, std::string_view{"鳥海山", 9}},
 
-    {210u, "栗駒山"},
+    {210u, std::string_view{"栗駒山", 9}},
 
-    {211u, "鳴子"},
+    {211u, std::string_view{"鳴子", 6}},
 
-    {212u, "蔵王山"},
+    {212u, std::string_view{"蔵王山", 9}},
 
-    {213u, "吾妻山"},
+    {213u, std::string_view{"吾妻山", 9}},
 
-    {214u, "安達太良山"},
+    {214u, std::string_view{"安達太良山", 15}},
 
-    {215u, "磐梯山"},
+    {215u, std::string_view{"磐梯山", 9}},
 
-    {216u, "燧ヶ岳"},
+    {216u, std::string_view{"燧ヶ岳", 9}},
 
-    {217u, "肘折"},
+    {217u, std::string_view{"肘折", 6}},
 
-    {218u, "沼沢"},
+    {218u, std::string_view{"沼沢", 6}},
 
-    {301u, "那須岳"},
+    {301u, std::string_view{"那須岳", 9}},
 
-    {302u, "日光白根山"},
+    {302u, std::string_view{"日光白根山", 15}},
 
-    {303u, "赤城山"},
+    {303u, std::string_view{"赤城山", 9}},
 
-    {304u, "榛名山"},
+    {304u, std::string_view{"榛名山", 9}},
 
-    {305u, "草津白根山"},
+    {305u, std::string_view{"草津白根山", 15}},
 
-    {306u, "浅間山"},
+    {306u, std::string_view{"浅間山", 9}},
 
-    {307u, "新潟焼山"},
+    {307u, std::string_view{"新潟焼山", 12}},
 
-    {308u, "妙高山"},
+    {308u, std::string_view{"妙高山", 9}},
 
-    {309u, "弥陀ヶ原"},
+    {309u, std::string_view{"弥陀ヶ原", 12}},
 
-    {310u, "焼岳"},
+    {310u, std::string_view{"焼岳", 6}},
 
-    {311u, "乗鞍岳"},
+    {311u, std::string_view{"乗鞍岳", 9}},
 
-    {312u, "御嶽山"},
+    {312u, std::string_view{"御嶽山", 9}},
 
-    {313u, "白山"},
+    {313u, std::string_view{"白山", 6}},
 
-    {314u, "富士山"},
+    {314u, std::string_view{"富士山", 9}},
 
-    {315u, "箱根山"},
+    {315u, std::string_view{"箱根山", 9}},
 
-    {316u, "伊豆東部火山群"},
+    {316u, std::string_view{"伊豆東部火山群", 21}},
 
-    {317u, "伊豆大島"},
+    {317u, std::string_view{"伊豆大島", 12}},
 
-    {318u, "新島"},
+    {318u, std::string_view{"新島", 6}},
 
-    {319u, "神津島"},
+    {319u, std::string_view{"神津島", 9}},
 
-    {320u, "三宅島"},
+    {320u, std::string_view{"三宅島", 9}},
 
-    {321u, "八丈島"},
+    {321u, std::string_view{"八丈島", 9}},
 
-    {322u, "青ヶ島"},
+    {322u, std::string_view{"青ヶ島", 9}},
 
-    {323u, "ベヨネース列岩"},
+    {323u, std::string_view{"ベヨネース列岩", 21}},
 
-    {324u, "須美寿島"},
+    {324u, std::string_view{"須美寿島", 12}},
 
-    {325u, "伊豆鳥島"},
+    {325u, std::string_view{"伊豆鳥島", 12}},
 
-    {326u, "西之島"},
+    {326u, std::string_view{"西之島", 9}},
 
-    {327u, "海徳海山"},
+    {327u, std::string_view{"海徳海山", 12}},
 
-    {328u, "噴火浅根"},
+    {328u, std::string_view{"噴火浅根", 12}},
 
-    {329u, "硫黄島"},
+    {329u, std::string_view{"硫黄島", 9}},
 
-    {330u, "北福徳堆"},
+    {330u, std::string_view{"北福徳堆", 12}},
 
-    {331u, "福徳岡ノ場"},
+    {331u, std::string_view{"福徳岡ノ場", 15}},
 
-    {333u, "高原山"},
+    {333u, std::string_view{"高原山", 9}},
 
-    {334u, "横岳"},
+    {334u, std::string_view{"横岳", 6}},
 
-    {335u, "アカンダナ山"},
+    {335u, std::string_view{"アカンダナ山", 18}},
 
-    {336u, "利島"},
+    {336u, std::string_view{"利島", 6}},
 
-    {337u, "御蔵島"},
+    {337u, std::string_view{"御蔵島", 9}},
 
-    {338u, "孀婦岩"},
+    {338u, std::string_view{"孀婦岩", 9}},
 
-    {339u, "海形海山"},
+    {339u, std::string_view{"海形海山", 12}},
 
-    {340u, "南日吉海山"},
+    {340u, std::string_view{"南日吉海山", 15}},
 
-    {341u, "日光海山"},
+    {341u, std::string_view{"日光海山", 12}},
 
-    {342u, "男体山"},
+    {342u, std::string_view{"男体山", 9}},
 
-    {350u, "草津白根山(白根山(湯釜付近))"},
+    {350u, std::string_view{"草津白根山(白根山(湯釜付近))", 40}},
 
-    {351u, "草津白根山(本白根山)"},
+    {351u, std::string_view{"草津白根山(本白根山)", 29}},
 
-    {401u, "三瓶山"},
+    {401u, std::string_view{"三瓶山", 9}},
 
-    {502u, "九重山"},
+    {502u, std::string_view{"九重山", 9}},
 
-    {503u, "阿蘇山"},
+    {503u, std::string_view{"阿蘇山", 9}},
 
-    {504u, "雲仙岳"},
+    {504u, std::string_view{"雲仙岳", 9}},
 
-    {505u, "霧島山"},
+    {505u, std::string_view{"霧島山", 9}},
 
-    {506u, "桜島"},
+    {506u, std::string_view{"桜島", 6}},
 
-    {507u, "開聞岳"},
+    {507u, std::string_view{"開聞岳", 9}},
 
-    {508u, "薩摩硫黄島"},
+    {508u, std::string_view{"薩摩硫黄島", 15}},
 
-    {509u, "口永良部島"},
+    {509u, std::string_view{"口永良部島", 15}},
 
-    {510u, "中之島"},
+    {510u, std::string_view{"中之島", 9}},
 
-    {511u, "諏訪之瀬島"},
+    {511u, std::string_view{"諏訪之瀬島", 15}},
 
-    {512u, "阿武火山群"},
+    {512u, std::string_view{"阿武火山群", 15}},
 
-    {513u, "鶴見岳・伽藍岳"},
+    {513u, std::string_view{"鶴見岳・伽藍岳", 21}},
 
-    {514u, "由布岳"},
+    {514u, std::string_view{"由布岳", 9}},
 
-    {515u, "福江火山群"},
+    {515u, std::string_view{"福江火山群", 15}},
 
-    {516u, "米丸・住吉池"},
+    {516u, std::string_view{"米丸・住吉池", 18}},
 
-    {517u, "若尊"},
+    {517u, std::string_view{"若尊", 6}},
 
-    {518u, "池田・山川"},
+    {518u, std::string_view{"池田・山川", 15}},
 
-    {519u, "口之島"},
+    {519u, std::string_view{"口之島", 9}},
 
-    {550u, "霧島山(御鉢)"},
+    {550u, std::string_view{"霧島山(御鉢)", 17}},
 
-    {551u, "霧島山(新燃岳)"},
+    {551u, std::string_view{"霧島山(新燃岳)", 20}},
 
-    {552u, "霧島山(えびの高原(硫黄山)周辺)"},
+    {552u, std::string_view{"霧島山(えびの高原(硫黄山)周辺)", 43}},
 
-    {553u, "霧島山(大幡池)"},
+    {553u, std::string_view{"霧島山(大幡池)", 20}},
 
-    {601u, "硫黄鳥島"},
+    {601u, std::string_view{"硫黄鳥島", 12}},
 
-    {602u, "西表島北北東海底火山"},
+    {602u, std::string_view{"西表島北北東海底火山", 30}},
 
-    {900u, "全国の活火山"},
+    {900u, std::string_view{"全国の活火山", 18}},
 
-    {901u, "その他の活火山"},
+    {901u, std::string_view{"その他の活火山", 21}},
 
-    {902u, "新たな活火山"},
+    {902u, std::string_view{"新たな活火山", 18}},
 
-    {4000u, "その他の火山"},
+    {4000u, std::string_view{"その他の火山", 18}},
 };
 [[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_volcano_name_lookup(uint16_t id) {
     uint8_t lo = 0, hi = 121;
@@ -266,6 +269,15 @@ inline constexpr QZSS_DCR_JMA_VOLCANO_NAME_Entry QZSS_DCR_JMA_VOLCANO_NAME_TABLE
     }
     return std::nullopt;
 }
+
+#else
+
+[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_volcano_name_lookup(uint16_t id) {
+    (void)id;
+    return std::nullopt;
+}
+
+#endif
 
 } // namespace def
 } // namespace azaraC

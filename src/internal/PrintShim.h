@@ -6,6 +6,7 @@
 #include <cstdio>
 #include <cstdint>
 #include <string_view>
+#include <string>
 
 class Print {
 public:
@@ -21,6 +22,63 @@ public:
     virtual void println(const char* s){ if (s) fputs(s, stdout); putchar('\n'); }
     virtual void println(std::string_view s) { print(s); putchar('\n'); }
     virtual void print(const void* s)  { if (s) fputs(static_cast<const char*>(s), stdout); }
+};
+
+// ホストテスト用: 動的バッファ（オーバーフローフリー）
+// すべてのprint/writeメソッドをオーバーライドしてバッファに追加
+class StringPrint : public Print {
+    std::string _buf;
+
+public:
+    size_t write(uint8_t c) override {
+        _buf += static_cast<char>(c);
+        return 1;
+    }
+
+    size_t write(const char* s, size_t size) override {
+        if (s && size) {
+            _buf.append(s, size);
+            return size;
+        }
+        return 0;
+    }
+
+    void print(char c) override {
+        _buf += c;
+    }
+
+    void print(const char* s) override {
+        if (s) _buf += s;
+    }
+
+    void print(std::string_view s) override {
+        if (!s.empty()) _buf.append(s.data(), s.size());
+    }
+
+    void print(int v) override {
+        _buf += std::to_string(v);
+    }
+
+    void print(unsigned int v) override {
+        _buf += std::to_string(v);
+    }
+
+    void println() override {
+        _buf += '\n';
+    }
+
+    void println(const char* s) override {
+        if (s) _buf += s;
+        _buf += '\n';
+    }
+
+    void println(std::string_view s) override {
+        if (!s.empty()) _buf.append(s.data(), s.size());
+        _buf += '\n';
+    }
+
+    const std::string& str() const { return _buf; }
+    void clear() { _buf.clear(); }
 };
 
 inline constexpr const char* F(const char* s) { return s; }

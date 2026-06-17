@@ -1,6 +1,4 @@
-// test/json/test_json.cpp — JSONシリアライズテスト
-// JsonSerializer の出力検証
-
+// test/json/test_json.cpp - JsonSerializer の出力検証
 #define ARDUINO 0
 #include "../src/azaraC.h"
 #include "../src/internal/PrintShim.h"
@@ -11,26 +9,11 @@
 
 using namespace azaraC;
 
-// ── Print → std::string アダプタ ────────────────────────────────────────────
-struct StringPrint : public Print {
-    std::string buf;
-    size_t write(uint8_t c) override { buf += (char)c; return 1; }
-    size_t write(const char* s, size_t size) override { if (s && size) buf.append(s, size); return size; }
-    void print(char c)         override { write(c); }
-    void print(const char* s)  override { if (s) buf += s; }
-    void print(int v)          override { buf += std::to_string(v); }
-    void print(unsigned int v) override { buf += std::to_string(v); }
-    void println()             override { buf += '\n'; }
-};
-
 static bool has(const std::string& s, const char* sub) {
     return s.find(sub) != std::string::npos;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// MT=44 DCX JSON 出力テスト
-// ═══════════════════════════════════════════════════════════════════════════════
-
+// ══════════════════════════════════════════════════════════════════════════════╁E// MT=44 DCX JSON 出力テスチE// ══════════════════════════════════════════════════════════════════════════════╁E
 TEST_CASE("JSON Serialization: MT=44 DCX L-Alert") {
     Message m{};
     m.msg_type        = 44; m.svid = 193; m.crc24 = 0xABCDEF;
@@ -47,7 +30,7 @@ TEST_CASE("JSON Serialization: MT=44 DCX L-Alert") {
 
     StringPrint sp;
     internal::JsonSerializer::serialize(m, sp);
-    const auto& s = sp.buf;
+    const auto& s = sp.str();
 
     CHECK(has(s, "\"msg_type\":44"));
     CHECK(has(s, "\"dcx_type\":1"));
@@ -79,7 +62,7 @@ TEST_CASE("JSON Serialization: MT=44 DCX J-Alert") {
 
     StringPrint sp;
     internal::JsonSerializer::serialize(m, sp);
-    const auto& s = sp.buf;
+    const auto& s = sp.str();
 
     CHECK(has(s, "\"msg_type\":44"));
     CHECK(has(s, "\"dcx_type\":2"));
@@ -114,7 +97,7 @@ TEST_CASE("JSON Serialization: MT=44 DCX Local Government") {
 
     StringPrint sp;
     internal::JsonSerializer::serialize(m, sp);
-    const auto& s = sp.buf;
+    const auto& s = sp.str();
 
     CHECK(has(s, "\"msg_type\":44"));
     CHECK(has(s, "\"dcx_type\":3"));
@@ -137,7 +120,7 @@ TEST_CASE("JSON Serialization: MT=44 DCX Outside Japan") {
 
     StringPrint sp;
     internal::JsonSerializer::serialize(m, sp);
-    const auto& s = sp.buf;
+    const auto& s = sp.str();
 
     CHECK(has(s, "\"msg_type\":44"));
     CHECK(has(s, "\"dcx_type\":4"));
@@ -156,7 +139,7 @@ TEST_CASE("JSON Serialization: MT=44 DCX Null Message") {
 
     StringPrint sp;
     internal::JsonSerializer::serialize(m, sp);
-    const auto& s = sp.buf;
+    const auto& s = sp.str();
 
     CHECK(has(s, "\"msg_type\":44"));
     CHECK(has(s, "\"dcx_type\":0"));
@@ -174,7 +157,7 @@ TEST_CASE("JSON Serialization: MT=44 DCX Unknown") {
 
     StringPrint sp;
     internal::JsonSerializer::serialize(m, sp);
-    const auto& s = sp.buf;
+    const auto& s = sp.str();
 
     CHECK(has(s, "\"msg_type\":44"));
     CHECK(has(s, "\"dcx_type\":5"));
@@ -195,7 +178,7 @@ TEST_CASE("JSON Serialization: MT=44 DCX main ellipse") {
 
     StringPrint sp;
     internal::JsonSerializer::serialize(m, sp);
-    const auto& s = sp.buf;
+    const auto& s = sp.str();
 
     CHECK(has(s,"\"svid\":193"));
     CHECK(has(s,"\"msg_type\":44"));
@@ -205,10 +188,7 @@ TEST_CASE("JSON Serialization: MT=44 DCX main ellipse") {
     CHECK(has(s,"\"lon_deg\":139.600"));
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// MT=43 DCR JSON 出力テスト
-// ═══════════════════════════════════════════════════════════════════════════════
-
+// ══════════════════════════════════════════════════════════════════════════════╁E// MT=43 DCR JSON 出力テスチE// ══════════════════════════════════════════════════════════════════════════════╁E
 TEST_CASE("JSON Serialization: MT=43 EEW") {
     Message m{};
     m.msg_type = 43;
@@ -221,7 +201,7 @@ TEST_CASE("JSON Serialization: MT=43 EEW") {
 
     StringPrint sp;
     internal::JsonSerializer::serialize(m, sp);
-    const auto& s = sp.buf;
+    const auto& s = sp.str();
 
     CHECK(has(s,"\"disaster_category\":1"));
     CHECK(has(s,"\"detail\":{"));
@@ -241,7 +221,7 @@ TEST_CASE("JSON Serialization: MT=43 Seismic Intensity") {
 
     StringPrint sp;
     internal::JsonSerializer::serialize(m, sp);
-    const auto& s = sp.buf;
+    const auto& s = sp.str();
 
     CHECK(has(s,"\"disaster_category\":3"));
     CHECK(has(s,"\"entries\":["));
@@ -262,7 +242,7 @@ TEST_CASE("JSON Serialization: MT=43 Hypocenter") {
 
     StringPrint sp;
     internal::JsonSerializer::serialize(m, sp);
-    const auto& s = sp.buf;
+    const auto& s = sp.str();
 
     CHECK(has(s, "\"disaster_category\":2"));
     CHECK(has(s, "\"detail\":{"));
@@ -286,7 +266,7 @@ TEST_CASE("JSON Serialization: MT=43 Tsunami") {
 
     StringPrint sp;
     internal::JsonSerializer::serialize(m, sp);
-    const auto& s = sp.buf;
+    const auto& s = sp.str();
 
     CHECK(has(s, "\"disaster_category\":5"));
     CHECK(has(s, "\"detail\":{"));
@@ -311,7 +291,7 @@ TEST_CASE("JSON Serialization: MT=43 Nankai Trough") {
 
     StringPrint sp;
     internal::JsonSerializer::serialize(m, sp);
-    const auto& s = sp.buf;
+    const auto& s = sp.str();
 
     CHECK(has(s, "\"disaster_category\":4"));
     CHECK(has(s, "\"detail\":{"));
@@ -332,7 +312,7 @@ TEST_CASE("JSON Serialization: MT=43 NW Pacific Tsunami") {
 
     StringPrint sp;
     internal::JsonSerializer::serialize(m, sp);
-    const auto& s = sp.buf;
+    const auto& s = sp.str();
 
     CHECK(has(s, "\"disaster_category\":6"));
     CHECK(has(s, "\"detail\":{"));
@@ -353,7 +333,7 @@ TEST_CASE("JSON Serialization: MT=43 Volcano") {
 
     StringPrint sp;
     internal::JsonSerializer::serialize(m, sp);
-    const auto& s = sp.buf;
+    const auto& s = sp.str();
 
     CHECK(has(s, "\"disaster_category\":8"));
     CHECK(has(s, "\"detail\":{"));
@@ -379,7 +359,7 @@ TEST_CASE("JSON Serialization: MT=43 Ash Fall") {
 
     StringPrint sp;
     internal::JsonSerializer::serialize(m, sp);
-    const auto& s = sp.buf;
+    const auto& s = sp.str();
 
     CHECK(has(s, "\"disaster_category\":9"));
     CHECK(has(s, "\"detail\":{"));
@@ -404,7 +384,7 @@ TEST_CASE("JSON Serialization: MT=43 Weather") {
 
     StringPrint sp;
     internal::JsonSerializer::serialize(m, sp);
-    const auto& s = sp.buf;
+    const auto& s = sp.str();
 
     CHECK(has(s, "\"disaster_category\":10"));
     CHECK(has(s, "\"detail\":{"));
@@ -427,7 +407,7 @@ TEST_CASE("JSON Serialization: MT=43 Flood") {
 
     StringPrint sp;
     internal::JsonSerializer::serialize(m, sp);
-    const auto& s = sp.buf;
+    const auto& s = sp.str();
 
     CHECK(has(s, "\"disaster_category\":11"));
     CHECK(has(s, "\"detail\":{"));
@@ -453,7 +433,7 @@ TEST_CASE("JSON Serialization: MT=43 Typhoon") {
 
     StringPrint sp;
     internal::JsonSerializer::serialize(m, sp);
-    const auto& s = sp.buf;
+    const auto& s = sp.str();
 
     CHECK(has(s, "\"disaster_category\":12"));
     CHECK(has(s, "\"detail\":{"));
@@ -478,7 +458,7 @@ TEST_CASE("JSON Serialization: MT=43 Marine") {
 
     StringPrint sp;
     internal::JsonSerializer::serialize(m, sp);
-    const auto& s = sp.buf;
+    const auto& s = sp.str();
 
     CHECK(has(s, "\"disaster_category\":14"));
     CHECK(has(s, "\"detail\":{"));
@@ -487,15 +467,13 @@ TEST_CASE("JSON Serialization: MT=43 Marine") {
     CHECK(has(s, "\"region\":100"));
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// JSON 構造検証
-// ═══════════════════════════════════════════════════════════════════════════════
-
+// ══════════════════════════════════════════════════════════════════════════════╁E// JSON 構造検証
+// ══════════════════════════════════════════════════════════════════════════════╁E
 TEST_CASE("JSON Serialization: Balanced braces/brackets") {
     auto test_balanced = [](const Message& m) {
         StringPrint sp;
         internal::JsonSerializer::serialize(m, sp);
-        const auto& s = sp.buf;
+        const auto& s = sp.str();
         int brace = 0, bracket = 0; bool in_str = false; char prev = 0;
         for (char c : s) {
             if (c == '"' && prev != '\\') in_str = !in_str;

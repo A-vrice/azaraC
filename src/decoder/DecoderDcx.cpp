@@ -189,11 +189,6 @@ bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix)
     azaraC::Mt44Decoded& dec = d.mt44_decoded;
     dec.service_kind = d.service_kind;
     dec.is_null_message = d.is_null_message;
-    dec.country_name = nullptr;
-    dec.provider_name = nullptr;
-    dec.hazard_name = nullptr;
-    dec.severity_name = nullptr;
-    dec.guidance_text = nullptr;
     dec.main_ellipse_present = false;
     dec.target_area_code_present = false;
     dec.jalert_prefecture_mode = false;

@@ -228,22 +228,41 @@ TEST_CASE("NankaiPageBufferManager") {
 TEST_CASE("NankaiPageBufferManager buffer limit") {
     NankaiPageBufferManager manager;
     
-    SUBCASE("Max buffers is 4") {
+    SUBCASE("Max buffers is configurable") {
         uint32_t now = currentMillis();
-        for (uint8_t i = 0; i < 4; i++) {
+        // Fill all buffers
+        for (uint8_t i = 0; i < NankaiPageBufferManager::MAX_BUFFERS; i++) {
             NankaiPageKey key = {i, 1234567890};
             uint8_t text[18] = {'T', 'e', 's', 't', 0};
             manager.addPage(key, 1, 1, text, now);
         }
         
-        NankaiPageKey key5 = {4, 1234567890};
-        uint8_t text[18] = {'T', 'e', 's', 't', 0};
-        manager.addPage(key5, 1, 1, text, now);
+        // Adding one more should evict the oldest
+        NankaiPageKey key_new = {NankaiPageBufferManager::MAX_BUFFERS, 1234567890};
+        uint8_t text[18] = {'N', 'e', 'w', 0};
+        manager.addPage(key_new, 1, 1, text, now);
         
+        // Oldest buffer (key 0) should be evicted
         NankaiPageKey key0 = {0, 1234567890};
         CHECK(manager.getBuffer(key0) == nullptr);
         
-        CHECK(manager.getBuffer(key5) != nullptr);
+        // New buffer should exist
+        CHECK(manager.getBuffer(key_new) != nullptr);
+    }
+    
+    SUBCASE("Active count tracks buffer usage") {
+        uint32_t now = currentMillis();
+        CHECK(manager.getActiveCount() == 0);
+        
+        for (uint8_t i = 0; i < 3; i++) {
+            NankaiPageKey key = {i, 1234567890};
+            uint8_t text[18] = {'T', 'e', 's', 't', 0};
+            manager.addPage(key, 1, 1, text, now);
+            CHECK(manager.getActiveCount() == (i + 1));
+        }
+        
+        manager.clearAll();
+        CHECK(manager.getActiveCount() == 0);
     }
 }
 
