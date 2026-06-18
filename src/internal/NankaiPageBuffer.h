@@ -4,6 +4,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <climits>
 #include "TimeFields.h"
 
 namespace azaraC {
@@ -56,7 +57,7 @@ struct NankaiPageBuffer {
     struct PageData {
         uint8_t page_num;       // 1-based page number
         uint8_t text[TEXT_PER_PAGE];  // 18 bytes of text data
-        
+
         // Sort by page_num for ordered output
         bool operator<(const PageData& other) const {
             return page_num < other.page_num;
@@ -67,7 +68,7 @@ struct NankaiPageBuffer {
     uint8_t total_pages = 0;
     uint8_t received_pages = 0;
     uint32_t last_update_ms = 0;
-    
+
     // Variable-length storage: only received pages are stored
     PageData pages[MAX_PAGES];  // Sparse array, valid entries: [0..received_pages-1]
 
@@ -108,7 +109,7 @@ struct NankaiPageBuffer {
             memcpy(pages[received_pages].text, text_data, TEXT_PER_PAGE);
             received_pages++;
             last_update_ms = current_ms;
-            
+
             // Keep pages sorted by page_num for ordered output
             // Simple insertion sort (received_pages is small, typically < 10)
             for (uint8_t i = received_pages - 1; i > 0; --i) {
@@ -120,7 +121,7 @@ struct NankaiPageBuffer {
                     break;
                 }
             }
-            
+
             return true;
         }
 
