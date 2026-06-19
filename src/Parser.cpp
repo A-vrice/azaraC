@@ -11,16 +11,26 @@ bool Parser::feed(uint8_t byte, Message& out, uint32_t report_unix) {
     // --- カスタムフレーマ（排他モード）---
     if (_custom) {
         if (!_custom->feed(byte, frame)) return false;
-        if (!_decoder.decode(frame, out, report_unix)) return false;
+        // AUTO モードと同様に decoded を中間変数として使い、out への書き込みは最後に行う
+        Message decoded;
+        if (!_decoder.decode(frame, decoded, report_unix)) return false;
         
         // Nankai Trough page aggregation
-        if (out.payload_type == MsgPayloadType::Mt43 &&
-            out.mt43.disaster_category == 4) {
-            return processNankaiAggregation(out, out, internal::getMillis());
+        if (decoded.payload_type == MsgPayloadType::Mt43 &&
+            decoded.mt43.disaster_category == 4) {
+            // decoded と out を別オブジェクトにすることでエイリアシング UB を回避
+            if (!processNankaiAggregation(decoded, out, internal::getMillis())) {
+                return false;
+            }
+            // Aggregation complete - check dedup before outputting
+            internal::DedupKey key{ out.svid, out.msg_type, out.crc24 };
+            if (_dedup.isDuplicate(key)) return false;
+            return true;
         }
         
-        internal::DedupKey key{ out.svid, out.msg_type, out.crc24 };
+        internal::DedupKey key{ decoded.svid, decoded.msg_type, decoded.crc24 };
         if (_dedup.isDuplicate(key)) return false;
+        out = decoded;
         return true;
     }
 
@@ -51,7 +61,13 @@ bool Parser::feed(uint8_t byte, Message& out, uint32_t report_unix) {
     // Nankai Trough page aggregation
     if (decoded.payload_type == MsgPayloadType::Mt43 &&
         decoded.mt43.disaster_category == 4) {
-        return processNankaiAggregation(decoded, out, internal::getMillis());
+        if (!processNankaiAggregation(decoded, out, internal::getMillis())) {
+            return false;
+        }
+        // Aggregation complete - check dedup before outputting
+        internal::DedupKey key{ out.svid, out.msg_type, out.crc24 };
+        if (_dedup.isDuplicate(key)) return false;
+        return true;
     }
     
     // 重複チェック

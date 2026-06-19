@@ -5,6 +5,9 @@
 // Entries       : 6
 // Strategy      : switch
 
+// NOTE: This function may return nullptr for unknown IDs.
+// Callers MUST perform a null-check before using the result.
+
 #include <cstdint>
 #include <optional>
 #include <string_view>
@@ -13,10 +16,9 @@
 namespace azaraC {
 namespace def {
 
-
 #if (AZARAC_ENABLE_DCX_CAMF)
 
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_d16_lightning_intensity_lookup(uint8_t id) {
+[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_d16_lightning_intensity_lookup(uint8_t id) noexcept {
     switch (id) {
         case 0: return std::string_view{"LAL 1 - No thunderstorms", 24};
         case 1: return std::string_view{"LAL 2 - Isolated thunderstorms. Light rain will occasionally reach the ground. Lightning is very infrequent, 1 to 5 cloud to ground strikes in a 5-minute period.", 161};
@@ -28,10 +30,9 @@ namespace def {
     }
 }
 
-
 #else
 
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_d16_lightning_intensity_lookup(uint8_t id) {
+[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_d16_lightning_intensity_lookup(uint8_t id) noexcept {
     (void)id;
     return std::nullopt;
 }

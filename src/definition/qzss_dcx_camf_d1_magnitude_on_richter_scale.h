@@ -5,6 +5,9 @@
 // Entries       : 9
 // Strategy      : switch
 
+// NOTE: This function may return nullptr for unknown IDs.
+// Callers MUST perform a null-check before using the result.
+
 #include <cstdint>
 #include <optional>
 #include <string_view>
@@ -13,10 +16,9 @@
 namespace azaraC {
 namespace def {
 
-
 #if (AZARAC_ENABLE_DCX_CAMF)
 
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_d1_magnitude_on_richter_scale_lookup(uint8_t id) {
+[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_d1_magnitude_on_richter_scale_lookup(uint8_t id) noexcept {
     switch (id) {
         case 0: return std::string_view{"1.0-1.9 - Micro", 15};
         case 1: return std::string_view{"2.0-2.9 - Minor", 15};
@@ -31,10 +33,9 @@ namespace def {
     }
 }
 
-
 #else
 
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_d1_magnitude_on_richter_scale_lookup(uint8_t id) {
+[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_d1_magnitude_on_richter_scale_lookup(uint8_t id) noexcept {
     (void)id;
     return std::nullopt;
 }

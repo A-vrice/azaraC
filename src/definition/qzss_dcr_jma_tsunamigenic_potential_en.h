@@ -5,6 +5,9 @@
 // Entries       : 6
 // Strategy      : switch
 
+// NOTE: This function may return nullptr for unknown IDs.
+// Callers MUST perform a null-check before using the result.
+
 #include <cstdint>
 #include <optional>
 #include <string_view>
@@ -15,7 +18,7 @@ namespace def {
 
 #if (AZARAC_ENABLE_NW_PAC_TSUNAMI) && (AZARAC_LANG_EN)
 
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_tsunamigenic_potential_en_lookup(uint8_t id) {
+[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_tsunamigenic_potential_en_lookup(uint8_t id) noexcept {
     switch (id) {
         case 0: return std::string_view{"There is No Possibility of a Tsunami", 36};
         case 1: return std::string_view{"There is a Possibility of a Destructive Ocean-Wide Tsunami", 58};
@@ -29,7 +32,7 @@ namespace def {
 
 #else
 
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_tsunamigenic_potential_en_lookup(uint8_t id) {
+[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_tsunamigenic_potential_en_lookup(uint8_t id) noexcept {
     (void)id;
     return std::nullopt;
 }

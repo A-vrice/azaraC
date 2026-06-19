@@ -5,6 +5,9 @@
 // Entries       : 11
 // Strategy      : array
 
+// NOTE: This function may return nullptr for unknown IDs.
+// Callers MUST perform a null-check before using the result.
+
 #include <cstdint>
 #include <optional>
 #include <string_view>
@@ -12,7 +15,6 @@
 
 namespace azaraC {
 namespace def {
-
 
 #if (AZARAC_ENABLE_DCX_CAMF)
 
@@ -31,15 +33,14 @@ inline constexpr std::optional<std::string_view> QZSS_DCX_CAMF_D12_HAIL_SCALE_TA
 };
 inline constexpr uint8_t QZSS_DCX_CAMF_D12_HAIL_SCALE_BASE = 0;
 inline constexpr uint8_t QZSS_DCX_CAMF_D12_HAIL_SCALE_SIZE = 11;
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_d12_hail_scale_lookup(uint8_t id) {
+[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_d12_hail_scale_lookup(uint8_t id) noexcept {
     if (id < QZSS_DCX_CAMF_D12_HAIL_SCALE_BASE || id >= QZSS_DCX_CAMF_D12_HAIL_SCALE_BASE + QZSS_DCX_CAMF_D12_HAIL_SCALE_SIZE) return std::nullopt;
     return QZSS_DCX_CAMF_D12_HAIL_SCALE_TABLE[id - QZSS_DCX_CAMF_D12_HAIL_SCALE_BASE];
 }
 
-
 #else
 
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_d12_hail_scale_lookup(uint8_t id) {
+[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_d12_hail_scale_lookup(uint8_t id) noexcept {
     (void)id;
     return std::nullopt;
 }

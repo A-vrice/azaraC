@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 // azaraC - src/internal/JsonWriter.h
 // Common JSON writer helpers for serializers
 
@@ -21,7 +21,7 @@
 #if AZARAC_LANG_JA && AZARAC_LANG_EN
 #define AZARAC_LOOKUP_LANG(func_ja, func_en, id) \
     ([&]() { \
-        if (auto result = func_ja(id); result.has_value()) return result; \
+        if (auto result = func_ja(id); result) return result; \
         return func_en(id); \
     }())
 #elif AZARAC_LANG_JA
@@ -53,6 +53,7 @@ void wk(Print& out, std::string_view k);
 void wf_u(Print& out, std::string_view k, uint32_t v, bool last = false);
 void wf_d(Print& out, std::string_view k, double v, bool last = false);
 void wf_s(Print& out, std::string_view k, std::optional<std::string_view> v, bool last = false);
+void wf_s(Print& out, std::string_view k, const char* v, bool last = false);
 
 // ---------------------------------------------------------------------------
 // Helpers for repeated structures

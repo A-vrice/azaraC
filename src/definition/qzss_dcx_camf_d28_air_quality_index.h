@@ -5,6 +5,9 @@
 // Entries       : 6
 // Strategy      : switch
 
+// NOTE: This function may return nullptr for unknown IDs.
+// Callers MUST perform a null-check before using the result.
+
 #include <cstdint>
 #include <optional>
 #include <string_view>
@@ -15,7 +18,7 @@ namespace def {
 
 #if (AZARAC_ENABLE_DCX_CAMF)
 
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_d28_air_quality_index_lookup(uint8_t id) {
+[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_d28_air_quality_index_lookup(uint8_t id) noexcept {
     switch (id) {
         case 0: return std::string_view{"Index value 0 - 50. Good. Green. Advisory: None.", 48};
         case 1: return std::string_view{"Index value 51 - 100. Moderate. Yellow. Unusually sensitive individuals should consider limiting prolonged outdoor exertion.", 124};
@@ -29,7 +32,7 @@ namespace def {
 
 #else
 
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_d28_air_quality_index_lookup(uint8_t id) {
+[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_d28_air_quality_index_lookup(uint8_t id) noexcept {
     (void)id;
     return std::nullopt;
 }

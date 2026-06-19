@@ -5,6 +5,9 @@
 // Entries       : 4
 // Strategy      : switch
 
+// NOTE: This function may return nullptr for unknown IDs.
+// Callers MUST perform a null-check before using the result.
+
 #include <cstdint>
 #include <optional>
 #include <string_view>
@@ -13,10 +16,9 @@
 namespace azaraC {
 namespace def {
 
-
 #if (AZARAC_ENABLE_DCX_CAMF)
 
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_d32_biohazard_level_lookup(uint8_t id) {
+[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_d32_biohazard_level_lookup(uint8_t id) noexcept {
     switch (id) {
         case 0: return std::string_view{"Biohazard Level 1/4: Often pertains to agents that include viruses and bacteria, this biosafety level requires minimal precaution, such as wearing face masks and maintaining no close contact. The biological hazard examples in the first level include E. coli and other non-infectious bacteria.", 292};
         case 1: return std::string_view{"Biohazard Level 2/4: Usually causing severe diseases to humans, the second level classifies agents that can be transmitted through direct contact with infected materials. HIV and hepatitis B are some biological hazard examples that pose moderate risks to humans.", 262};
@@ -26,10 +28,9 @@ namespace def {
     }
 }
 
-
 #else
 
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_d32_biohazard_level_lookup(uint8_t id) {
+[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_d32_biohazard_level_lookup(uint8_t id) noexcept {
     (void)id;
     return std::nullopt;
 }

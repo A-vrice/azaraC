@@ -5,6 +5,9 @@
 // Entries       : 12
 // Strategy      : array
 
+// NOTE: This function may return nullptr for unknown IDs.
+// Callers MUST perform a null-check before using the result.
+
 #include <cstdint>
 #include <optional>
 #include <string_view>
@@ -15,34 +18,34 @@ namespace def {
 
 #if (AZARAC_LANG_EN)
 
-inline constexpr std::optional<std::string_view> QZSS_DCR_JMA_DISASTER_CATEGORY_EN_TABLE[] = {
-    std::string_view{"Earthquake Early Warning", 24},
-    std::string_view{"Hypocenter", 10},
-    std::string_view{"Seismic Intensity", 17},
-    std::string_view{"Nankai Trough Earthquake", 24},
-    std::string_view{"Tsunami", 7},
-    std::string_view{"Northwest Pacific Tsunami", 25},
-    std::nullopt,
-    std::string_view{"Volcano", 7},
-    std::string_view{"Ash Fall", 8},
-    std::string_view{"Weather", 7},
-    std::string_view{"Flood", 5},
-    std::string_view{"Typhoon", 7},
-    std::nullopt,
-    std::string_view{"Marine", 6}
+inline constexpr const char* QZSS_DCR_JMA_DISASTER_CATEGORY_EN_TABLE[] = {
+    "Earthquake Early Warning",
+    "Hypocenter",
+    "Seismic Intensity",
+    "Nankai Trough Earthquake",
+    "Tsunami",
+    "Northwest Pacific Tsunami",
+    nullptr,
+    "Volcano",
+    "Ash Fall",
+    "Weather",
+    "Flood",
+    "Typhoon",
+    nullptr,
+    "Marine"
 };
 inline constexpr uint8_t QZSS_DCR_JMA_DISASTER_CATEGORY_EN_BASE = 1;
 inline constexpr uint8_t QZSS_DCR_JMA_DISASTER_CATEGORY_EN_SIZE = 14;
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_disaster_category_en_lookup(uint8_t id) {
-    if (id < QZSS_DCR_JMA_DISASTER_CATEGORY_EN_BASE || id >= QZSS_DCR_JMA_DISASTER_CATEGORY_EN_BASE + QZSS_DCR_JMA_DISASTER_CATEGORY_EN_SIZE) return std::nullopt;
+[[nodiscard]] inline constexpr const char* qzss_dcr_jma_disaster_category_en_lookup(uint8_t id) noexcept {
+    if (id < QZSS_DCR_JMA_DISASTER_CATEGORY_EN_BASE || id >= QZSS_DCR_JMA_DISASTER_CATEGORY_EN_BASE + QZSS_DCR_JMA_DISASTER_CATEGORY_EN_SIZE) return nullptr;
     return QZSS_DCR_JMA_DISASTER_CATEGORY_EN_TABLE[id - QZSS_DCR_JMA_DISASTER_CATEGORY_EN_BASE];
 }
 
 #else
 
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_disaster_category_en_lookup(uint8_t id) {
+[[nodiscard]] inline constexpr const char* qzss_dcr_jma_disaster_category_en_lookup(uint8_t id) noexcept {
     (void)id;
-    return std::nullopt;
+    return nullptr;
 }
 
 #endif

@@ -38,7 +38,12 @@ WiFiClient wifiClient;
 
 // 再接続管理
 uint32_t lastReconnectAttempt = 0;
+uint32_t lastTcpAttempt = 0;
 const uint32_t RECONNECT_INTERVAL = 5000;
+bool serverConnected = false;  // 接続状態フラグ
+
+// GNSSから取得した最新のUNIX時刻をキャッシュする変数
+static uint32_t cached_gnss_unix_time = 0;
 
 // Wi-Fi接続
 void connectWiFi() {
@@ -48,7 +53,7 @@ void connectWiFi() {
     WiFi.begin(WIFI_SSID, WIFI_PASS);
 
     int attempts = 0;
-    while (WiFi.status() != WL_CONNECTED && attempts < 10) {
+    while (WiFi.status() != WL_CONNECTED && attempts < 20) {
         delay(500);
         Serial.print(F("."));
         attempts++;
@@ -63,12 +68,15 @@ void connectWiFi() {
     }
 }
 
-// TCPサーバー接続
+// TCPサーバー接続（切断時のみ再接続を試みる）
 bool connectServer() {
+    // 既に接続中の場合は何もしない
     if (wifiClient.connected()) {
+        serverConnected = true;
         return true;
     }
 
+    // 接続試行
     Serial.print(F("[tcp] connecting to "));
     Serial.print(SERVER_HOST);
     Serial.print(F(":"));
@@ -76,27 +84,30 @@ bool connectServer() {
 
     if (wifiClient.connect(SERVER_HOST, SERVER_PORT)) {
         Serial.println(F("[tcp] connected"));
+        serverConnected = true;
         return true;
     } else {
         Serial.println(F("[tcp] connection failed"));
+        serverConnected = false;
         return false;
     }
 }
 
+// カスタムPrintクラス: WiFiClientに出力
+class WifiPrint : public Print {
+public:
+    WiFiClient& client;
+    WifiPrint(WiFiClient& c) : client(c) {}
+    size_t write(uint8_t c) override { return client.write(c); }
+    size_t write(const uint8_t* buf, size_t len) override { return client.write(buf, len); }
+};
+
 // JSONをWiFiClientに送信
 bool sendJson(const azaraC::Message& msg) {
     if (!wifiClient.connected()) {
+        serverConnected = false;
         return false;
     }
-
-    // カスタムPrintクラス: WiFiClientに出力
-    class WifiPrint : public Print {
-    public:
-        WiFiClient& client;
-        WifiPrint(WiFiClient& c) : client(c) {}
-        size_t write(uint8_t c) override { return client.write(c); }
-        size_t write(const uint8_t* buf, size_t len) override { return client.write(buf, len); }
-    };
 
     WifiPrint wifiPrint(wifiClient);
     azaraC::toJson(msg, wifiPrint);
@@ -118,7 +129,8 @@ void setStatusLED(bool on) {
 
 void setup() {
     Serial.begin(115200);
-    while (!Serial) { delay(10); }
+    uint32_t start = millis();
+    while (!Serial && (millis() - start < 5000)) { delay(10); } // 5秒タイムアウト
 
     Serial.println(F("[azaraC] wifi_client ready"));
 
@@ -137,6 +149,7 @@ void loop() {
     // Wi-Fi接続確認
     if (WiFi.status() != WL_CONNECTED) {
         setStatusLED(false);
+        serverConnected = false;  // サーバー接続も切断
         uint32_t now = millis();
         if (now - lastReconnectAttempt > RECONNECT_INTERVAL) {
             lastReconnectAttempt = now;
@@ -144,18 +157,23 @@ void loop() {
         }
     } else {
         setStatusLED(true);
-    }
-
-    // TCP接続確認
-    if (WiFi.status() == WL_CONNECTED) {
-        connectServer();
+        // サーバーが切断されている場合のみ再接続を試みる
+        // WiFi 接続が確立している場合のみ connectServer() を呼ぶ
+        if (!serverConnected) {
+            uint32_t now = millis();
+            if (now - lastTcpAttempt > RECONNECT_INTERVAL) {
+                lastTcpAttempt = now;
+                connectServer();
+            }
+        }
     }
 
     // メッセージ受信処理
     while (Serial1.available()) {
         uint8_t b = static_cast<uint8_t>(Serial1.read());
 
-        if (parser.feed(b, msg)) {
+        // 第3引数にUNIX時刻を渡すことで、DCR/DCX電文の「年」を正確に算出できます
+        if (parser.feed(b, msg, cached_gnss_unix_time)) {
             // Serialにも出力
             azaraC::toJson(msg, Serial);
             Serial.println();

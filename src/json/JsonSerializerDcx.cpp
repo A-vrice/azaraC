@@ -120,45 +120,71 @@ void serializeDcx(const Message& m, Print& out) {
     if (d.camf.b4_present) {
         wk(out, "detailed_info");
         out.print('{');
-        bool wroteAny = false;
-        wf_u(out, "a4_code", d.camf.a4, /*last=*/true);
-        wroteAny = true;
-        if (d.camf.b4_d1_present)  { if (wroteAny) writeChar(out, ','); wf_u(out, "d1_magnitude", d.camf.b4_d1, /*last=*/true); wroteAny = true; }
-        if (d.camf.b4_d2_present)  { if (wroteAny) writeChar(out, ','); wf_u(out, "d2_seismic_coeff", d.camf.b4_d2, /*last=*/true); wroteAny = true; }
-        if (d.camf.b4_d3_present)  { if (wroteAny) writeChar(out, ','); wf_u(out, "d3_azimuth", d.camf.b4_d3, /*last=*/true); wroteAny = true; }
-        if (d.camf.b4_d4_present)  { if (wroteAny) writeChar(out, ','); wf_u(out, "d4_vector_length", d.camf.b4_d4, /*last=*/true); wroteAny = true; }
-        if (d.camf.b4_d5_present)  { if (wroteAny) writeChar(out, ','); wf_u(out, "d5_wave_height", d.camf.b4_d5, /*last=*/true); wroteAny = true; }
-        if (d.camf.b4_d6_present)  { if (wroteAny) writeChar(out, ','); wf_u(out, "d6_temp_range", d.camf.b4_d6, /*last=*/true); wroteAny = true; }
-        if (d.camf.b4_d7_present)  { if (wroteAny) writeChar(out, ','); wf_u(out, "d7_hurricane_cat", d.camf.b4_d7, /*last=*/true); wroteAny = true; }
-        if (d.camf.b4_d8_present)  { if (wroteAny) writeChar(out, ','); wf_u(out, "d8_wind_speed", d.camf.b4_d8, /*last=*/true); wroteAny = true; }
-        if (d.camf.b4_d9_present)  { if (wroteAny) writeChar(out, ','); wf_u(out, "d9_rainfall", d.camf.b4_d9, /*last=*/true); wroteAny = true; }
-        if (d.camf.b4_d10_present) { if (wroteAny) writeChar(out, ','); wf_u(out, "d10_damage", d.camf.b4_d10, /*last=*/true); wroteAny = true; }
-        if (d.camf.b4_d11_present) { if (wroteAny) writeChar(out, ','); wf_u(out, "d11_tornado_prob", d.camf.b4_d11, /*last=*/true); wroteAny = true; }
-        if (d.camf.b4_d12_present) { if (wroteAny) writeChar(out, ','); wf_u(out, "d12_hail_scale", d.camf.b4_d12, /*last=*/true); wroteAny = true; }
-        if (d.camf.b4_d13_present) { if (wroteAny) writeChar(out, ','); wf_u(out, "d13_visibility", d.camf.b4_d13, /*last=*/true); wroteAny = true; }
-        if (d.camf.b4_d14_present) { if (wroteAny) writeChar(out, ','); wf_u(out, "d14_snow_depth", d.camf.b4_d14, /*last=*/true); wroteAny = true; }
-        if (d.camf.b4_d15_present) { if (wroteAny) writeChar(out, ','); wf_u(out, "d15_flood_severity", d.camf.b4_d15, /*last=*/true); wroteAny = true; }
-        if (d.camf.b4_d16_present) { if (wroteAny) writeChar(out, ','); wf_u(out, "d16_lightning", d.camf.b4_d16, /*last=*/true); wroteAny = true; }
-        if (d.camf.b4_d17_present) { if (wroteAny) writeChar(out, ','); wf_u(out, "d17_fog_level", d.camf.b4_d17, /*last=*/true); wroteAny = true; }
-        if (d.camf.b4_d18_present) { if (wroteAny) writeChar(out, ','); wf_u(out, "d18_drought", d.camf.b4_d18, /*last=*/true); wroteAny = true; }
-        if (d.camf.b4_d19_present) { if (wroteAny) writeChar(out, ','); wf_u(out, "d19_avalanche", d.camf.b4_d19, /*last=*/true); wroteAny = true; }
-        if (d.camf.b4_d20_present) { if (wroteAny) writeChar(out, ','); wf_u(out, "d20_ash_fall", d.camf.b4_d20, /*last=*/true); wroteAny = true; }
-        if (d.camf.b4_d21_present) { if (wroteAny) writeChar(out, ','); wf_u(out, "d21_geomagnetic", d.camf.b4_d21, /*last=*/true); wroteAny = true; }
-        if (d.camf.b4_d22_present) { if (wroteAny) writeChar(out, ','); wf_u(out, "d22_terrorism", d.camf.b4_d22, /*last=*/true); wroteAny = true; }
-        if (d.camf.b4_d23_present) { if (wroteAny) writeChar(out, ','); wf_u(out, "d23_fire_risk", d.camf.b4_d23, /*last=*/true); wroteAny = true; }
-        if (d.camf.b4_d24_present) { if (wroteAny) writeChar(out, ','); wf_u(out, "d24_water_quality", d.camf.b4_d24, /*last=*/true); wroteAny = true; }
-        if (d.camf.b4_d25_present) { if (wroteAny) writeChar(out, ','); wf_u(out, "d25_uv_index", d.camf.b4_d25, /*last=*/true); wroteAny = true; }
-        if (d.camf.b4_d26_present) { if (wroteAny) writeChar(out, ','); wf_u(out, "d26_cases_per_100k", d.camf.b4_d26, /*last=*/true); wroteAny = true; }
-        if (d.camf.b4_d27_present) { if (wroteAny) writeChar(out, ','); wf_u(out, "d27_noise", d.camf.b4_d27, /*last=*/true); wroteAny = true; }
-        if (d.camf.b4_d28_present) { if (wroteAny) writeChar(out, ','); wf_u(out, "d28_air_quality", d.camf.b4_d28, /*last=*/true); wroteAny = true; }
-        if (d.camf.b4_d29_present) { if (wroteAny) writeChar(out, ','); wf_u(out, "d29_outage_duration", d.camf.b4_d29, /*last=*/true); wroteAny = true; }
-        if (d.camf.b4_d30_present) { if (wroteAny) writeChar(out, ','); wf_u(out, "d30_nuclear_scale", d.camf.b4_d30, /*last=*/true); wroteAny = true; }
-        if (d.camf.b4_d31_present) { if (wroteAny) writeChar(out, ','); wf_u(out, "d31_chemical_type", d.camf.b4_d31, /*last=*/true); wroteAny = true; }
-        if (d.camf.b4_d32_present) { if (wroteAny) writeChar(out, ','); wf_u(out, "d32_biohazard_level", d.camf.b4_d32, /*last=*/true); wroteAny = true; }
-        if (d.camf.b4_d33_present) { if (wroteAny) writeChar(out, ','); wf_u(out, "d33_biohazard_type", d.camf.b4_d33, /*last=*/true); wroteAny = true; }
-        if (d.camf.b4_d34_present) { if (wroteAny) writeChar(out, ','); wf_u(out, "d34_explosive_type", d.camf.b4_d34, /*last=*/true); wroteAny = true; }
-        if (d.camf.b4_d35_present) { if (wroteAny) writeChar(out, ','); wf_u(out, "d35_infection_type", d.camf.b4_d35, /*last=*/true); wroteAny = true; }
-        if (d.camf.b4_d36_present) { if (wroteAny) writeChar(out, ','); wf_u(out, "d36_typhoon_cat", d.camf.b4_d36, /*last=*/true); wroteAny = true; }
+
+        // Collect all present D-fields to determine the last one
+        struct DField {
+            const char* name;
+            uint32_t value;
+            bool present;
+        };
+
+        DField fields[] = {
+            {"a4_code", d.camf.a4, true},
+            {"d1_magnitude", d.camf.b4_d1, d.camf.b4_d1_present},
+            {"d2_seismic_coeff", d.camf.b4_d2, d.camf.b4_d2_present},
+            {"d3_azimuth", d.camf.b4_d3, d.camf.b4_d3_present},
+            {"d4_vector_length", d.camf.b4_d4, d.camf.b4_d4_present},
+            {"d5_wave_height", d.camf.b4_d5, d.camf.b4_d5_present},
+            {"d6_temp_range", d.camf.b4_d6, d.camf.b4_d6_present},
+            {"d7_hurricane_cat", d.camf.b4_d7, d.camf.b4_d7_present},
+            {"d8_wind_speed", d.camf.b4_d8, d.camf.b4_d8_present},
+            {"d9_rainfall", d.camf.b4_d9, d.camf.b4_d9_present},
+            {"d10_damage", d.camf.b4_d10, d.camf.b4_d10_present},
+            {"d11_tornado_prob", d.camf.b4_d11, d.camf.b4_d11_present},
+            {"d12_hail_scale", d.camf.b4_d12, d.camf.b4_d12_present},
+            {"d13_visibility", d.camf.b4_d13, d.camf.b4_d13_present},
+            {"d14_snow_depth", d.camf.b4_d14, d.camf.b4_d14_present},
+            {"d15_flood_severity", d.camf.b4_d15, d.camf.b4_d15_present},
+            {"d16_lightning", d.camf.b4_d16, d.camf.b4_d16_present},
+            {"d17_fog_level", d.camf.b4_d17, d.camf.b4_d17_present},
+            {"d18_drought", d.camf.b4_d18, d.camf.b4_d18_present},
+            {"d19_avalanche", d.camf.b4_d19, d.camf.b4_d19_present},
+            {"d20_ash_fall", d.camf.b4_d20, d.camf.b4_d20_present},
+            {"d21_geomagnetic", d.camf.b4_d21, d.camf.b4_d21_present},
+            {"d22_terrorism", d.camf.b4_d22, d.camf.b4_d22_present},
+            {"d23_fire_risk", d.camf.b4_d23, d.camf.b4_d23_present},
+            {"d24_water_quality", d.camf.b4_d24, d.camf.b4_d24_present},
+            {"d25_uv_index", d.camf.b4_d25, d.camf.b4_d25_present},
+            {"d26_cases_per_100k", d.camf.b4_d26, d.camf.b4_d26_present},
+            {"d27_noise", d.camf.b4_d27, d.camf.b4_d27_present},
+            {"d28_air_quality", d.camf.b4_d28, d.camf.b4_d28_present},
+            {"d29_outage_duration", d.camf.b4_d29, d.camf.b4_d29_present},
+            {"d30_nuclear_scale", d.camf.b4_d30, d.camf.b4_d30_present},
+            {"d31_chemical_type", d.camf.b4_d31, d.camf.b4_d31_present},
+            {"d32_biohazard_level", d.camf.b4_d32, d.camf.b4_d32_present},
+            {"d33_biohazard_type", d.camf.b4_d33, d.camf.b4_d33_present},
+            {"d34_explosive_type", d.camf.b4_d34, d.camf.b4_d34_present},
+            {"d35_infection_type", d.camf.b4_d35, d.camf.b4_d35_present},
+            {"d36_typhoon_cat", d.camf.b4_d36, d.camf.b4_d36_present},
+        };
+
+        // Count present fields
+        int presentCount = 0;
+        for (int i = 0; i < 37; i++) {
+            if (fields[i].present) {
+                presentCount++;
+            }
+        }
+
+        // Output fields with proper comma handling
+        int outputCount = 0;
+        for (int i = 0; i < 37; i++) {
+            if (!fields[i].present) continue;
+            bool isLast = (outputCount == presentCount - 1);
+            wf_u(out, fields[i].name, fields[i].value, isLast);
+            outputCount++;
+        }
+
         out.print('}');
         writeChar(out, ',');
     }

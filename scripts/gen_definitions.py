@@ -126,18 +126,27 @@ def escape(s):
                   .replace("\n", "\\n")
                   .replace("\r", ""))
 
-def sv_literal(s):
-    """Return a std::string_view literal with explicit length to avoid
-    std::char_traits<char>::length() which is not constexpr on older libstdc++."""
+def c_str_literal(s):
+    """Return a C-string literal for const char* return type."""
     escaped = escape(s)
-    byte_len = len(s.encode("utf-8"))
-    return f'std::string_view{{"{escaped}", {byte_len}}}'
+    return f'"{escaped}"'
 
 def emit_switch(varname, entries, guard, kt):
-    lines = [f"[[nodiscard]] inline constexpr std::optional<std::string_view> {varname}_lookup({kt} id) {{",
+    lines = [f"[[nodiscard]] inline constexpr const char* {varname}_lookup({kt} id) noexcept {{",
              "    switch (id) {"]
     for k, v in sorted(entries.items()):
-        lines.append(f'        case {k}: return {sv_literal(v)};')
+        lines.append(f'        case {k}: return {c_str_literal(v)};')
+    lines += ['        default: return nullptr;', "    }", "}"]
+    return "\n".join(lines)
+
+def emit_switch_optional(varname, entries, guard, kt):
+    lines = [f"[[nodiscard]] inline constexpr std::optional<std::string_view> {varname}_lookup({kt} id) noexcept {{",
+             "    switch (id) {"]
+    for k, v in sorted(entries.items()):
+        if v is not None:
+            lines.append(f'        case {k}: return std::string_view{{{c_str_literal(v)}, {len(v)}}};')
+        else:
+            lines.append(f'        case {k}: return std::nullopt;')
     lines += ['        default: return std::nullopt;', "    }", "}"]
     return "\n".join(lines)
 
@@ -146,13 +155,29 @@ def emit_array(varname, entries, guard, kt):
     base, top = keys[0], keys[-1]
     table = [entries.get(i) for i in range(base, top + 1)]
     rows = ",\n    ".join(
-        sv_literal(v) if v is not None else "std::nullopt" for v in table)
+        c_str_literal(v) if v is not None else "nullptr" for v in table)
+    return "\n".join([
+        f"inline constexpr const char* {guard}_TABLE[] = {{",
+        f"    {rows}", "};",
+        f"inline constexpr {kt} {guard}_BASE = {base};",
+        f"inline constexpr {kt} {guard}_SIZE = {top - base + 1};",
+        f"[[nodiscard]] inline constexpr const char* {varname}_lookup({kt} id) noexcept {{",
+        f"    if (id < {guard}_BASE || id >= {guard}_BASE + {guard}_SIZE) return nullptr;",
+        f"    return {guard}_TABLE[id - {guard}_BASE];", "}",
+    ])
+
+def emit_array_optional(varname, entries, guard, kt):
+    keys = sorted(entries.keys())
+    base, top = keys[0], keys[-1]
+    table = [entries.get(i) for i in range(base, top + 1)]
+    rows = ",\n    ".join(
+        f'std::string_view{{{c_str_literal(v)}, {len(v)}}}' if v is not None else "std::nullopt" for v in table)
     return "\n".join([
         f"inline constexpr std::optional<std::string_view> {guard}_TABLE[] = {{",
         f"    {rows}", "};",
         f"inline constexpr {kt} {guard}_BASE = {base};",
         f"inline constexpr {kt} {guard}_SIZE = {top - base + 1};",
-        f"[[nodiscard]] inline constexpr std::optional<std::string_view> {varname}_lookup({kt} id) {{",
+        f"[[nodiscard]] inline constexpr std::optional<std::string_view> {varname}_lookup({kt} id) noexcept {{",
         f"    if (id < {guard}_BASE || id >= {guard}_BASE + {guard}_SIZE) return std::nullopt;",
         f"    return {guard}_TABLE[id - {guard}_BASE];", "}",
     ])
@@ -161,12 +186,32 @@ def emit_bsearch(varname, entries, guard, kt):
     keys = sorted(entries.keys())
     n = len(keys)
     idx_type = "uint8_t" if n <= 255 else ("uint16_t" if n <= 65535 else "uint32_t")
-    rows = "\n".join(f'    {{{k}u, {sv_literal(entries[k])}}},\n' for k in keys)
+    rows = "\n".join(f'    {{{k}u, {c_str_literal(entries[k])}}},' for k in keys)
     return "\n".join([
-        f"struct {guard}_Entry {{ {kt} id; std::string_view label; }};",
+        f"struct {guard}_Entry {{ {kt} id; const char* label; }};",
         f"inline constexpr {guard}_Entry {guard}_TABLE[] = {{",
         rows + "};",
-        f"[[nodiscard]] inline constexpr std::optional<std::string_view> {varname}_lookup({kt} id) {{",
+        f"[[nodiscard]] inline constexpr const char* {varname}_lookup({kt} id) noexcept {{",
+        f"    {idx_type} lo = 0, hi = {n};",
+        "    while (lo < hi) {",
+        f"        {idx_type} mid = static_cast<{idx_type}>(lo + (hi - lo) / 2);",
+        f"        if ({guard}_TABLE[mid].id == id) return {guard}_TABLE[mid].label;",
+        f"        if ({guard}_TABLE[mid].id < id) lo = mid + 1;",
+        "        else hi = mid;",
+        "    }",
+        "    return nullptr;", "}",
+    ])
+
+def emit_bsearch_optional(varname, entries, guard, kt):
+    keys = sorted(entries.keys())
+    n = len(keys)
+    idx_type = "uint8_t" if n <= 255 else ("uint16_t" if n <= 65535 else "uint32_t")
+    rows = "\n".join(f'    {{{k}u, std::string_view{{{c_str_literal(entries[k])}, {len(entries[k])}}}}},' for k in keys)
+    return "\n".join([
+        f"struct {guard}_Entry {{ {kt} id; std::optional<std::string_view> label; }};",
+        f"inline constexpr {guard}_Entry {guard}_TABLE[] = {{",
+        rows + "};",
+        f"[[nodiscard]] inline constexpr std::optional<std::string_view> {varname}_lookup({kt} id) noexcept {{",
         f"    {idx_type} lo = 0, hi = {n};",
         "    while (lo < hi) {",
         f"        {idx_type} mid = static_cast<{idx_type}>(lo + (hi - lo) / 2);",
@@ -177,16 +222,29 @@ def emit_bsearch(varname, entries, guard, kt):
         "    return std::nullopt;", "}",
     ])
 
-def build_header(modname, varname, entries, ver, all_varnames):
+def build_header(modname, varname, entries, ver, all_varnames, obj=None):
     keys = [k for k in entries.keys() if isinstance(k, int)]
     if not keys: return None
-    int_entries = {k: entries[k] for k in keys}
+    # Filter entries to only include string values for lookup
+    int_entries = {k: entries[k] for k in keys if isinstance(entries[k], str)}
+    if not int_entries: return None
     guard = varname.upper()
     kt    = key_type(keys)
     strat = choose(keys)
-    if   strat == "switch": body = emit_switch(varname, int_entries, guard, kt)
-    elif strat == "array":  body = emit_array(varname, int_entries, guard, kt)
-    else:                   body = emit_bsearch(varname, int_entries, guard, kt)
+    
+    # Check if this is a QzssDcrDefinition with undefined attribute
+    use_optional = False
+    if obj is not None and hasattr(obj, 'undefined') and obj.undefined is not None:
+        use_optional = True
+    
+    if use_optional:
+        if   strat == "switch": body = emit_switch_optional(varname, int_entries, guard, kt)
+        elif strat == "array":  body = emit_array_optional(varname, int_entries, guard, kt)
+        else:                   body = emit_bsearch_optional(varname, int_entries, guard, kt)
+    else:
+        if   strat == "switch": body = emit_switch(varname, int_entries, guard, kt)
+        elif strat == "array":  body = emit_array(varname, int_entries, guard, kt)
+        else:                   body = emit_bsearch(varname, int_entries, guard, kt)
 
     category_guard = GUARD_MAP.get(varname)
     lang_guard = None
@@ -212,8 +270,12 @@ def build_header(modname, varname, entries, ver, all_varnames):
     if guards:
         full_guard = " && ".join(guards)
         wrapped_body = f"#if {full_guard}\n\n{body}\n\n#else\n\n"
-        wrapped_body += f"[[nodiscard]] inline constexpr std::optional<std::string_view> {varname}_lookup({kt} id) {{\n"
-        wrapped_body += "    (void)id;\n    return std::nullopt;\n}\n\n#endif\n"
+        if use_optional:
+            wrapped_body += f"[[nodiscard]] inline constexpr std::optional<std::string_view> {varname}_lookup({kt} id) noexcept {{\n"
+            wrapped_body += "    (void)id;\n    return std::nullopt;\n}\n\n#endif\n"
+        else:
+            wrapped_body += f"[[nodiscard]] inline constexpr const char* {varname}_lookup({kt} id) noexcept {{\n"
+            wrapped_body += "    (void)id;\n    return nullptr;\n}\n\n#endif\n"
     else:
         wrapped_body = f"{body}\n"
 
@@ -224,6 +286,8 @@ def build_header(modname, varname, entries, ver, all_varnames):
         f"// Variable      : {varname}\n"
         f"// Entries       : {len(keys)}\n"
         f"// Strategy      : {strat}\n\n"
+        f"// NOTE: This function may return nullptr for unknown IDs.\n"
+        f"// Callers MUST perform a null-check before using the result.\n\n"
         f"#include <cstdint>\n"
         f"#include <optional>\n"
         f"#include <string_view>\n"
@@ -258,20 +322,29 @@ def run(out_dir):
             if attr.startswith("_"): continue
             obj = getattr(mod, attr)
             if not isinstance(obj, dict): continue
-            hdr = build_header(modname, attr, obj, ver, all_varnames)
+            hdr = build_header(modname, attr, obj, ver, all_varnames, obj)
             if hdr is None: continue
             with open(os.path.join(out_dir, f"{attr}.h"), "w", encoding="utf-8") as f:
                 f.write(hdr)
             generated.append(attr)
     # _index.h
+    extra_headers = [
+        "ublox_qzss_svid_prn_map.h",
+        "qzss_dcx_camf_a3_provider_identifier.h",
+    ]
+    extra_includes = ""
+    for h in extra_headers:
+        if os.path.exists(os.path.join(out_dir, h)):
+            extra_includes += f'#include "{h}"\n'
+        else:
+            print(f"[WARN] Extra header not found: {h}", file=sys.stderr)
     idx = (
         "#pragma once\n"
         f"// AUTO-GENERATED from azarashi {ver} — do not edit\n"
-        f"// {len(generated)} definition headers\n\n"
+        f"// {len(generated)} generated + extra definition headers\n\n"
         + "\n".join(f'#include "{a}.h"' for a in sorted(generated))
         + "\n"
-        + '#include "ublox_qzss_svid_prn_map.h"\n'
-        + '#include "qzss_dcx_camf_a3_provider_identifier.h"\n'
+        + extra_includes
     )
     with open(os.path.join(out_dir, "_index.h"), "w", encoding="utf-8") as f:
         f.write(idx)

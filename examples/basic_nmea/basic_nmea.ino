@@ -21,7 +21,8 @@ uint32_t cached_gnss_unix_time = 0;
 
 void setup() {
     Serial.begin(115200);
-    while (!Serial) { delay(10); }
+    uint32_t start = millis();
+    while (!Serial && (millis() - start < 5000)) { delay(10); } // 5秒タイムアウト
 
 #if defined(ESP32)
     Serial1.begin(9600, SERIAL_8N1, /*rx=*/20, /*tx=*/21);

@@ -124,6 +124,16 @@ void wf_s(Print& out, std::string_view k, std::optional<std::string_view> v, boo
     wk(out, k); writeOptStr(out, v); if (!last) writeChar(out, ',');
 }
 
+void wf_s(Print& out, std::string_view k, const char* v, bool last) {
+    wk(out, k);
+    if (v) {
+        writeStr(out, std::string_view(v));
+    } else {
+        out.print("null");
+    }
+    if (!last) writeChar(out, ',');
+}
+
 // ---------------------------------------------------------------------------
 // Helpers for repeated structures
 // ---------------------------------------------------------------------------

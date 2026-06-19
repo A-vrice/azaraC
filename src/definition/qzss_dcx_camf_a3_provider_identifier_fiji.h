@@ -5,6 +5,9 @@
 // Entries       : 5
 // Strategy      : switch
 
+// NOTE: This function may return nullptr for unknown IDs.
+// Callers MUST perform a null-check before using the result.
+
 #include <cstdint>
 #include <optional>
 #include <string_view>
@@ -15,7 +18,7 @@ namespace def {
 
 #if (AZARAC_ENABLE_DCX_CAMF)
 
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_a3_provider_identifier_fiji_lookup(uint8_t id) {
+[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_a3_provider_identifier_fiji_lookup(uint8_t id) noexcept {
     switch (id) {
         case 1: return std::string_view{"National Disaster Management Office", 35};
         case 2: return std::string_view{"Fiji Meteorological Service", 27};
@@ -28,7 +31,7 @@ namespace def {
 
 #else
 
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_a3_provider_identifier_fiji_lookup(uint8_t id) {
+[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_a3_provider_identifier_fiji_lookup(uint8_t id) noexcept {
     (void)id;
     return std::nullopt;
 }

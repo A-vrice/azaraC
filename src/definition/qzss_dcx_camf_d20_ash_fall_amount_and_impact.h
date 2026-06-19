@@ -5,6 +5,9 @@
 // Entries       : 5
 // Strategy      : switch
 
+// NOTE: This function may return nullptr for unknown IDs.
+// Callers MUST perform a null-check before using the result.
+
 #include <cstdint>
 #include <optional>
 #include <string_view>
@@ -15,7 +18,7 @@ namespace def {
 
 #if (AZARAC_ENABLE_DCX_CAMF)
 
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_d20_ash_fall_amount_and_impact_lookup(uint8_t id) {
+[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_d20_ash_fall_amount_and_impact_lookup(uint8_t id) noexcept {
     switch (id) {
         case 0: return std::string_view{"Less than 1 mm ash thickness. Possible impact: Will act as an irritant to lungs and eyes. Possible minor damage to vehicles, houses and equipment caused by fine abrasive ash. Possible contamination of water supplies, particularly roof-fed tank supplies. Dust may affect road visibility and traction for an extended period.", 322};
         case 1: return std::string_view{"1-5 mm ash thickness. Possible impact: Will act as an irritant to lungs and eyes. Minor damage to vehicles, houses and equipment caused by fine abrasive ash. Possible contamination of water supplies, particularly roof-fed tank supplies. Electricity and water supplies may be cut or limited. Dust may affect road visibility and traction for an extended period. Roads may need to be cleared to reduce the dust nuisance and prevent storm-water systems from becoming blocked. Possible crop damage. Some livestock may be affected.", 525};
@@ -28,7 +31,7 @@ namespace def {
 
 #else
 
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_d20_ash_fall_amount_and_impact_lookup(uint8_t id) {
+[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_d20_ash_fall_amount_and_impact_lookup(uint8_t id) noexcept {
     (void)id;
     return std::nullopt;
 }

@@ -5,6 +5,9 @@
 // Entries       : 5
 // Strategy      : switch
 
+// NOTE: This function may return nullptr for unknown IDs.
+// Callers MUST perform a null-check before using the result.
+
 #include <cstdint>
 #include <optional>
 #include <string_view>
@@ -13,10 +16,9 @@
 namespace azaraC {
 namespace def {
 
-
 #if (AZARAC_ENABLE_DCX_CAMF)
 
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_d17_fog_level_lookup(uint8_t id) {
+[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_d17_fog_level_lookup(uint8_t id) noexcept {
     switch (id) {
         case 0: return std::string_view{"Level 1 of 5: Slight fog or Mist. On land, object appear hazy or blurry. Road and rail traffic are unhindered. On sea, horizon cannot be seen. Lights and landmarks can be seen at working distances.", 197};
         case 1: return std::string_view{"Level 2 of 5: Slight fog. On land, railroad traffic takes additional caution. On sea, Lights on passing vessel are generally not distinct at distances under 1 mile. Fog signals are sounded.", 189};
@@ -27,10 +29,9 @@ namespace def {
     }
 }
 
-
 #else
 
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_d17_fog_level_lookup(uint8_t id) {
+[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_d17_fog_level_lookup(uint8_t id) noexcept {
     (void)id;
     return std::nullopt;
 }

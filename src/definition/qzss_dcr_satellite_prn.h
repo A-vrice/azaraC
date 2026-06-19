@@ -5,6 +5,9 @@
 // Entries       : 5
 // Strategy      : switch
 
+// NOTE: This function may return nullptr for unknown IDs.
+// Callers MUST perform a null-check before using the result.
+
 #include <cstdint>
 #include <optional>
 #include <string_view>
@@ -13,7 +16,7 @@
 namespace azaraC {
 namespace def {
 
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_satellite_prn_lookup(uint8_t id) {
+[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_satellite_prn_lookup(uint8_t id) noexcept {
     switch (id) {
         case 55: return std::string_view{"PRN183", 6};
         case 56: return std::string_view{"PRN184", 6};

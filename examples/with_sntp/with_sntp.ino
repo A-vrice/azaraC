@@ -26,7 +26,8 @@ azaraC::Message msg;
 // ── setup ───────────────────────────────────────────────────────────────────
 void setup() {
     Serial.begin(115200);
-    while (!Serial) { delay(10); }
+    uint32_t start = millis();
+    while (!Serial && (millis() - start < 5000)) { delay(10); } // 5秒タイムアウト
 
     // Wi-Fi
     WiFi.begin(WIFI_SSID, WIFI_PASS);
@@ -63,37 +64,47 @@ void loop() {
         // ※ 万一 SNTP 未同期で 2000 年以前の古い時刻が返る場合でも、
         //   azaraC 内部で未同期と判定され、年の解決がスキップされるため
         //   電文の生データ (月・日・時・分) 自体は安全に取得できます。
-        uint32_t now = static_cast<uint32_t>(time(nullptr));
+        // time_t は 64-bit 環境 (ESP-IDF newlib) で long long の可能性があるため、
+        // 負値 (エラー) をガードしてから uint32_t にキャストする。
+        time_t now_t = time(nullptr);
+        uint32_t now = (now_t > 0) ? static_cast<uint32_t>(now_t) : 0;
 
         if (parser.feed(static_cast<uint8_t>(Serial1.read()), msg, now)) {
             // ── EEW および DCX 災害警報のみ警告出力（他は通常 JSON）──────────
-            if (msg.msg_type == 43 && msg.mt43.disaster_category == 1) {
-                Serial.print(F("[EEW] epicenter="));
-                Serial.print(msg.mt43.eew.epicenter);
-                Serial.print(F(" mag="));
-                Serial.print(msg.mt43.eew.magnitude / 10);
-                Serial.print('.');
-                Serial.print(msg.mt43.eew.magnitude % 10);
-                Serial.print(F(" depth="));
-                Serial.print(msg.mt43.eew.depth);
-                Serial.println(F("km"));
+            // 安全なアクセサを使用してunionメンバーにアクセス
+            if (msg.msg_type == 43) {
+                const azaraC::Mt43Data* mt43 = msg.getMt43();
+                if (mt43 && mt43->disaster_category == 1) {
+                    Serial.print(F("[EEW] epicenter="));
+                    Serial.print(mt43->eew.epicenter);
+                    Serial.print(F(" mag="));
+                    Serial.print(mt43->eew.magnitude / 10);
+                    Serial.print('.');
+                    Serial.print(mt43->eew.magnitude % 10);
+                    Serial.print(F(" depth="));
+                    Serial.print(mt43->eew.depth);
+                    Serial.println(F("km"));
+                }
             } else if (msg.msg_type == 44) {
-                Serial.print(F("[DCX] "));
-                switch (msg.mt44.service_kind) {
-                    case azaraC::Mt44ServiceKind::LAlert:          Serial.print(F("L-Alert")); break;
-                    case azaraC::Mt44ServiceKind::JAlert:          Serial.print(F("J-Alert")); break;
-                    case azaraC::Mt44ServiceKind::LocalGovernment: Serial.print(F("Local Gov")); break;
-                    case azaraC::Mt44ServiceKind::OutsideJapan:    Serial.print(F("Outside Japan")); break;
-                    case azaraC::Mt44ServiceKind::NullMessage:     Serial.print(F("Null Message")); break;
-                    default:                                       Serial.print(F("Unknown")); break;
+                const azaraC::Mt44Data* mt44 = msg.getMt44();
+                if (mt44) {
+                    Serial.print(F("[DCX] "));
+                    switch (mt44->service_kind) {
+                        case azaraC::Mt44ServiceKind::LAlert:          Serial.print(F("L-Alert")); break;
+                        case azaraC::Mt44ServiceKind::JAlert:          Serial.print(F("J-Alert")); break;
+                        case azaraC::Mt44ServiceKind::LocalGovernment: Serial.print(F("Local Gov")); break;
+                        case azaraC::Mt44ServiceKind::OutsideJapan:    Serial.print(F("Outside Japan")); break;
+                        case azaraC::Mt44ServiceKind::NullMessage:     Serial.print(F("Null Message")); break;
+                        default:                                       Serial.print(F("Unknown")); break;
+                    }
+                    if (mt44->mt44_decoded.main_ellipse_present) {
+                        Serial.print(F(" | Lat: "));
+                        Serial.print(mt44->mt44_decoded.main_ellipse.lat_deg, 3);
+                        Serial.print(F(" Lon: "));
+                        Serial.print(mt44->mt44_decoded.main_ellipse.lon_deg, 3);
+                    }
+                    Serial.println();
                 }
-                if (msg.mt44.mt44_decoded.main_ellipse_present) {
-                    Serial.print(F(" | Lat: "));
-                    Serial.print(msg.mt44.mt44_decoded.main_ellipse.lat_deg, 3);
-                    Serial.print(F(" Lon: "));
-                    Serial.print(msg.mt44.mt44_decoded.main_ellipse.lon_deg, 3);
-                }
-                Serial.println();
             }
 
             // 全メッセージを JSON で Serial 出力

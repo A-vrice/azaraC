@@ -28,6 +28,10 @@
 azaraC::Parser  parser;
 azaraC::Message msg;
 
+// GNSSから取得した最新のUNIX時刻をキャッシュする変数
+// (UBX-NAV-PVT 等から別途パースして更新する想定)
+static uint32_t cached_gnss_unix_time = 0;
+
 // 出力したい災害カテゴリを設定（true = 出力する）
 struct CategoryFilter {
     bool eew          = true;   // 1: 緊急地震速報
@@ -80,7 +84,7 @@ bool shouldOutput(uint8_t category) {
         case 11: return filter.flood;
         case 12: return filter.typhoon;
         case 14: return filter.marine;
-        default: return true; // 未知のカテゴリは常に出力
+        default: return false; // 未知のカテゴリは出力しない（安全のため）
     }
 }
 
@@ -109,6 +113,7 @@ void printMt43Details(const azaraC::Message& msg) {
             Serial.print(mt43->hypo.magnitude / 10);
             Serial.print(F("."));
             Serial.print(mt43->hypo.magnitude % 10);
+            Serial.println();
             break;
         }
         case 3: { // Seismic Intensity
@@ -140,7 +145,8 @@ void printMt43Details(const azaraC::Message& msg) {
 
 void setup() {
     Serial.begin(115200);
-    while (!Serial) { delay(10); }
+    uint32_t start = millis();
+    while (!Serial && (millis() - start < 5000)) { delay(10); } // 5秒タイムアウト
 
     #if defined(ESP32)
         Serial1.begin(9600, SERIAL_8N1, /*rx=*/20, /*tx=*/21);
@@ -157,7 +163,8 @@ void loop() {
     while (Serial1.available()) {
         uint8_t b = static_cast<uint8_t>(Serial1.read());
 
-        if (parser.feed(b, msg)) {
+        // 第3引数にUNIX時刻を渡すことで、DCR/DCX電文の「年」を正確に算出できます
+        if (parser.feed(b, msg, cached_gnss_unix_time)) {
             if (msg.msg_type == 43) {
                 const azaraC::Mt43Data* mt43 = msg.getMt43();
                 if (mt43 && shouldOutput(mt43->disaster_category)) {
@@ -168,7 +175,9 @@ void loop() {
                     printMt43Details(msg);
                 }
             } else if (msg.msg_type == 44) {
-                // DCX メッセージは常に出力
+                // DCX (MT=44) はカテゴリフィルタの対象外のため、常に出力する。
+                // MT=43 と同様にフィルタリングしたい場合は shouldOutput() に
+                // MT=44 用の分岐を追加すること。
                 Serial.print(F("[MT44] SVID="));
                 Serial.println(msg.svid);
                 azaraC::toJson(msg, Serial);

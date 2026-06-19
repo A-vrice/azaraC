@@ -1,6 +1,6 @@
 #pragma once
 // AUTO-GENERATED from azarashi 0.16.1 — do not edit
-// 102 definition headers
+// 98 generated + extra definition headers
 
 #include "qzss_dcr_jma_ash_fall_warning_code.h"
 #include "qzss_dcr_jma_coastal_region_en.h"
@@ -52,7 +52,6 @@
 #include "qzss_dcx_camf_a3_provider_identifier_australia.h"
 #include "qzss_dcx_camf_a3_provider_identifier_fiji.h"
 #include "qzss_dcx_camf_a3_provider_identifier_japan.h"
-#include "qzss_dcx_camf_a3_provider_identifier_map.h"
 #include "qzss_dcx_camf_a3_provider_identifier_thailand.h"
 #include "qzss_dcx_camf_a4_hazard_category.h"
 #include "qzss_dcx_camf_a4_hazard_definition.h"
@@ -92,8 +91,6 @@
 #include "qzss_dcx_camf_d34_explosive_hazard_type.h"
 #include "qzss_dcx_camf_d35_infection_type.h"
 #include "qzss_dcx_camf_d36_typhoon_category.h"
-#include "qzss_dcx_camf_d3_azimuth_from_centre_of_main_ellipse_to_epicentre.h"
-#include "qzss_dcx_camf_d4_vector_length_between_centre_of_main_ellipse_and_epicentre.h"
 #include "qzss_dcx_camf_d5_wave_height.h"
 #include "qzss_dcx_camf_d6_temperature_range.h"
 #include "qzss_dcx_camf_d7_hurricane_category.h"

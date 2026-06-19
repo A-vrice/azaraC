@@ -272,13 +272,13 @@ B4DetailedInfo decodeB4DetailedInfo(uint16_t a18, uint8_t a4_code) {
             break;
         case 80: // Hurricane: D7[131:133](3b) D8[134:137](4b) D9[138:140](3b)
             r.d7 = (a18 >> 12) & 0x07;  // spec[131:133] → a18[14:12]
-            r.d8 = (a18 >> 8)  & 0x0F;  // spec[134:137] → a18[10:7]  (14-137=7, but 4 bits → 10:7)
-            r.d9 = (a18 >> 5)  & 0x07;  // spec[138:140] → a18[7:5]   (14-140=5, 3 bits → 7:5)
+            r.d8 = (a18 >> 8)  & 0x0F;  // spec[134:137] → a18[11:8]
+            r.d9 = (a18 >> 5)  & 0x07;  // spec[138:140] → a18[7:5]
             r.d7_present = true; r.d8_present = true; r.d9_present = true;
             break;
         case 82: // Typhoon: D36[131:133](3b) D8[134:137](4b) D9[138:140](3b)
             r.d36 = (a18 >> 12) & 0x07;  // spec[131:133] → a18[14:12]
-            r.d8  = (a18 >> 8)  & 0x0F;  // spec[134:137] → a18[10:7]
+            r.d8  = (a18 >> 8)  & 0x0F;  // spec[134:137] → a18[11:8]
             r.d9  = (a18 >> 5)  & 0x07;  // spec[138:140] → a18[7:5]
             r.d36_present = true; r.d8_present = true; r.d9_present = true;
             break;

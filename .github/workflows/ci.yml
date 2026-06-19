@@ -106,6 +106,12 @@ jobs:
           ln -s "$GITHUB_WORKSPACE" "$LIB_DIR/azaraC"
           for sketch in examples/*/; do
             echo "--- $sketch ---"
+            sketch_name=$(basename "$sketch")
+            # Skip RTOS example on non-ESP32 boards (requires FreeRTOS)
+            if [[ "$sketch_name" == "rtos_freertos" && "${{ matrix.name }}" != "ESP32-C3" && "${{ matrix.name }}" != "ESP32-S3" ]]; then
+              echo "skip $sketch_name on ${{ matrix.name }} (requires ESP32 FreeRTOS)"
+              continue
+            fi
             CPP_EXTRA_FLAGS="-std=gnu++17 ${{ matrix.build_flags }}"
             # Added --clean to invalidate build cache
             arduino-cli compile --clean --fqbn "${{ matrix.fqbn }}" "$sketch" --build-property "compiler.cpp.extra_flags=$CPP_EXTRA_FLAGS"
@@ -185,6 +191,11 @@ jobs:
             sketch_name=$(basename "$sketch")
             if [[ ("${{ matrix.name }}" == "Teensy 4.0" || "${{ matrix.name }}" == "STM32 Nucleo H563ZI" || "${{ matrix.name }}" == "Arduino GIGA R1 WiFi" || "${{ matrix.name }}" == "nRF52840 Nano 33 BLE") && ("$sketch_name" == "wifi_client" || "$sketch_name" == "with_sntp") ]]; then
               echo "skip $sketch_name on ${{ matrix.name }} because WiFi.h is unavailable"
+              continue
+            fi
+            # Skip RTOS example on non-ESP32 boards (requires FreeRTOS)
+            if [[ "$sketch_name" == "rtos_freertos" ]]; then
+              echo "skip $sketch_name on ${{ matrix.name }} (requires ESP32 FreeRTOS)"
               continue
             fi
             CPP_EXTRA_FLAGS="-std=gnu++17 ${{ matrix.build_flags }}"

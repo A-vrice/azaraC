@@ -5,6 +5,9 @@
 // Entries       : 8
 // Strategy      : switch
 
+// NOTE: This function may return nullptr for unknown IDs.
+// Callers MUST perform a null-check before using the result.
+
 #include <cstdint>
 #include <optional>
 #include <string_view>
@@ -15,23 +18,22 @@ namespace def {
 
 #if (AZARAC_ENABLE_EEW)
 
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_long_period_ground_motion_upper_limit_lookup(uint8_t id) {
+[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_long_period_ground_motion_upper_limit_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 0: return std::string_view{"None", 4};
-        case 1: return std::string_view{"長周期地震動階級1未満", 31};
-        case 2: return std::string_view{"長周期地震動階級1", 25};
-        case 3: return std::string_view{"長周期地震動階級2", 25};
-        case 4: return std::string_view{"長周期地震動階級3", 25};
-        case 5: return std::string_view{"長周期地震動階級4", 25};
-        case 6: return std::string_view{"〜程度以上", 15};
-        case 7: return std::string_view{"不明", 6};
+        case 1: return std::string_view{"長周期地震動階級1未満", 11};
+        case 2: return std::string_view{"長周期地震動階級1", 9};
+        case 3: return std::string_view{"長周期地震動階級2", 9};
+        case 4: return std::string_view{"長周期地震動階級3", 9};
+        case 5: return std::string_view{"長周期地震動階級4", 9};
+        case 6: return std::string_view{"〜程度以上", 5};
+        case 7: return std::string_view{"不明", 2};
         default: return std::nullopt;
     }
 }
 
 #else
 
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_long_period_ground_motion_upper_limit_lookup(uint8_t id) {
+[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_long_period_ground_motion_upper_limit_lookup(uint8_t id) noexcept {
     (void)id;
     return std::nullopt;
 }

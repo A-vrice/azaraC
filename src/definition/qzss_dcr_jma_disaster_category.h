@@ -5,6 +5,9 @@
 // Entries       : 12
 // Strategy      : array
 
+// NOTE: This function may return nullptr for unknown IDs.
+// Callers MUST perform a null-check before using the result.
+
 #include <cstdint>
 #include <optional>
 #include <string_view>
@@ -15,34 +18,34 @@ namespace def {
 
 #if (AZARAC_LANG_JA)
 
-inline constexpr std::optional<std::string_view> QZSS_DCR_JMA_DISASTER_CATEGORY_TABLE[] = {
-    std::string_view{"緊急地震速報", 18},
-    std::string_view{"震源", 6},
-    std::string_view{"震度", 6},
-    std::string_view{"南海トラフ地震", 21},
-    std::string_view{"津波", 6},
-    std::string_view{"北西太平洋津波", 21},
-    std::nullopt,
-    std::string_view{"火山", 6},
-    std::string_view{"降灰", 6},
-    std::string_view{"気象", 6},
-    std::string_view{"洪水", 6},
-    std::string_view{"台風", 6},
-    std::nullopt,
-    std::string_view{"海上", 6}
+inline constexpr const char* QZSS_DCR_JMA_DISASTER_CATEGORY_TABLE[] = {
+    "緊急地震速報",
+    "震源",
+    "震度",
+    "南海トラフ地震",
+    "津波",
+    "北西太平洋津波",
+    nullptr,
+    "火山",
+    "降灰",
+    "気象",
+    "洪水",
+    "台風",
+    nullptr,
+    "海上"
 };
 inline constexpr uint8_t QZSS_DCR_JMA_DISASTER_CATEGORY_BASE = 1;
 inline constexpr uint8_t QZSS_DCR_JMA_DISASTER_CATEGORY_SIZE = 14;
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_disaster_category_lookup(uint8_t id) {
-    if (id < QZSS_DCR_JMA_DISASTER_CATEGORY_BASE || id >= QZSS_DCR_JMA_DISASTER_CATEGORY_BASE + QZSS_DCR_JMA_DISASTER_CATEGORY_SIZE) return std::nullopt;
+[[nodiscard]] inline constexpr const char* qzss_dcr_jma_disaster_category_lookup(uint8_t id) noexcept {
+    if (id < QZSS_DCR_JMA_DISASTER_CATEGORY_BASE || id >= QZSS_DCR_JMA_DISASTER_CATEGORY_BASE + QZSS_DCR_JMA_DISASTER_CATEGORY_SIZE) return nullptr;
     return QZSS_DCR_JMA_DISASTER_CATEGORY_TABLE[id - QZSS_DCR_JMA_DISASTER_CATEGORY_BASE];
 }
 
 #else
 
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_disaster_category_lookup(uint8_t id) {
+[[nodiscard]] inline constexpr const char* qzss_dcr_jma_disaster_category_lookup(uint8_t id) noexcept {
     (void)id;
-    return std::nullopt;
+    return nullptr;
 }
 
 #endif

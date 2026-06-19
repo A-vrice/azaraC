@@ -134,7 +134,7 @@ bool feed(uint8_t byte, Message& out, uint32_t now_unix = 0);
 void reset();  // フレーマ・重複フィルタをリセット
 ```
 
-重複除去は **{svid, msg_type, crc24}** のリングバッファで行います。デフォルトの保存数は8メッセージです。複数衛星から受信する場合は32や128など、衛星数に応じて適宜調整してください:
+重複除去は **{svid, msg_type, crc24}** のリングバッファで行います。デフォルトの保存数は8メッセージです。複数衛星から受信する場合などで重複がみられる場合は32や128などに適宜調整してください:
 
 ```cpp
 #define AZARAC_DEDUP_SLOTS 32
@@ -162,7 +162,7 @@ void reset();  // フレーマ・重複フィルタをリセット
 
 ### `azaraC::toJson(msg, out)`
 
-`Message`をJSON形式で`Print`系に渡せます。`Serial`, `WiFiClient`, `StringPrint`（テスト用）などを渡せます。
+`Message`をJSON形式で`Print`系に渡せます。`Serial`, `WiFiClient`などに渡せます。
 
 ### `azaraC::Message`
 

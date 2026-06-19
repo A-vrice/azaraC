@@ -5,6 +5,8 @@
 #include <chrono>
 #include "doctest.h"
 #include "../src/internal/NankaiPageBuffer.h"
+#include "../src/Parser.h"
+#include "../test_helpers.h"
 
 using namespace azaraC::internal;
 
@@ -312,4 +314,52 @@ TEST_CASE("UTF-8 text handling") {
         buffer.getText(result, sizeof(result));
         CHECK(std::string(result) == "南海トラフ地震");
     }
+}
+
+TEST_CASE("Parser Nankai duplicate suppression in AUTO mode") {
+    azaraC::Parser parser;
+    azaraC::Message msg;
+    
+    // Construct a 1-page Nankai Trough message manually
+    uint8_t bits[32] = {};
+    setBits(bits, 0, 8, 0x53);       // Preamble
+    setBits(bits, 8, 6, 43);         // msg_type
+    setBits(bits, 14, 3, 1);         // report_classification
+    setBits(bits, 17, 4, 4);         // disaster_category = 4 (Nankai Trough)
+    setBits(bits, 25, 16, 0);        // event_time
+    setBits(bits, 41, 2, 0);         // information_type
+    setBits(bits, 53, 4, 1);         // info_code
+    // Text: 18 bytes (all zeros is fine)
+    setBits(bits, 201, 6, 1);        // page = 1
+    setBits(bits, 207, 6, 1);        // total_page = 1
+    setBits(bits, 214, 6, 1);        // version = 1
+    
+    uint32_t crc = crc24qRef(bits, 226);
+    setBits(bits, 226, 24, crc);
+    
+    std::string nmea = makeNmeaQzqsm(58, bits);
+    
+    bool output1 = false;
+    for (size_t i = 0; i < nmea.length(); i++) {
+        if (parser.feed(nmea[i], msg, 0)) {
+            output1 = true;
+            break;
+        }
+    }
+    
+    CHECK(output1 == true);
+    CHECK(msg.valid == true);
+    CHECK(msg.payload_type == azaraC::MsgPayloadType::Mt43);
+    CHECK(msg.mt43.disaster_category == 4);
+    
+    // Feed the exact same message again, it should be suppressed
+    bool output2 = false;
+    for (size_t i = 0; i < nmea.length(); i++) {
+        if (parser.feed(nmea[i], msg, 0)) {
+            output2 = true;
+            break;
+        }
+    }
+    
+    CHECK(output2 == false); // Should be suppressed!
 }
