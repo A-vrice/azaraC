@@ -33,26 +33,37 @@ void JsonSerializer::serialize(const Message& msg, Print& out) {
     using namespace azaraC::def;
     out.print('{');
     wf_u(out, "svid",     msg.svid);
+    wf_s(out, "svid_label",
+        qzss_dcr_satellite_prn_lookup(msg.svid));
     wf_u(out, "msg_type", msg.msg_type);
-    wf_u(out, "crc24",    msg.crc24);
+    wf_s(out, "msg_type_label",
+        qzss_dcr_message_type_lookup(msg.msg_type));
+    wf_x(out, "crc24",    msg.crc24);
 
     if (msg.msg_type == 44) {
         serializeDcx(msg, out);
 
     } else if (msg.msg_type == 43) {
-        const Mt43Data& d = msg.mt43;
-        wf_u(out, "report_classification", d.report_classification);
+        // Use safe accessor for Mt43Data
+        const Mt43Data* d = msg.getMt43();
+        if (!d) {
+            wf_s(out, "note", "invalid_mt43", /*last=*/true);
+            out.print('}');
+            return;
+        }
+        
+        wf_u(out, "report_classification", d->report_classification);
         wf_s(out, "report_classification_label",
-            AZARAC_LOOKUP_LANG(qzss_dcr_jma_report_classification_lookup, qzss_dcr_jma_report_classification_en_lookup, d.report_classification));
-        wf_u(out, "disaster_category", d.disaster_category);
+            AZARAC_LOOKUP_LANG(qzss_dcr_jma_report_classification_lookup, qzss_dcr_jma_report_classification_en_lookup, d->report_classification));
+        wf_u(out, "disaster_category", d->disaster_category);
         wf_s(out, "disaster_category_label",
-            AZARAC_LOOKUP_LANG(qzss_dcr_jma_disaster_category_lookup, qzss_dcr_jma_disaster_category_en_lookup, d.disaster_category));
-        wf_u(out, "information_type", d.information_type);
+            AZARAC_LOOKUP_LANG(qzss_dcr_jma_disaster_category_lookup, qzss_dcr_jma_disaster_category_en_lookup, d->disaster_category));
+        wf_u(out, "information_type", d->information_type);
         wf_s(out, "information_type_label",
-            AZARAC_LOOKUP_LANG(qzss_dcr_jma_information_type_lookup, qzss_dcr_jma_information_type_en_lookup, d.information_type));
-        writeDHM(out, "report_time", d.event_time);
+            AZARAC_LOOKUP_LANG(qzss_dcr_jma_information_type_lookup, qzss_dcr_jma_information_type_en_lookup, d->information_type));
+        writeDHM(out, "report_time", d->event_time);
         wk(out, "detail"); out.print('{');
-        switch (d.disaster_category) {
+        switch (d->disaster_category) {
             case  1: serializeEEW       (msg, out); break;
             case  2: serializeHypocenter(msg, out); break;
             case  3: serializeSeismic   (msg, out); break;

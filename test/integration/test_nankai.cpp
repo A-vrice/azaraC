@@ -350,7 +350,10 @@ TEST_CASE("Parser Nankai duplicate suppression in AUTO mode") {
     CHECK(output1 == true);
     CHECK(msg.valid == true);
     CHECK(msg.payload_type == azaraC::MsgPayloadType::Mt43);
-    CHECK(msg.mt43.disaster_category == 4);
+    
+    const Mt43Data* mt43 = msg.getMt43();
+    REQUIRE(mt43 != nullptr);
+    CHECK(mt43->disaster_category == 4);
     
     // Feed the exact same message again, it should be suppressed
     bool output2 = false;

@@ -116,7 +116,7 @@ const internal::NankaiPageBuffer* getNankaiBuffer(const internal::NankaiPageKey&
 
 | フィールド | 型 | 説明 |
 |-----------|-----|------|
-| `svid` | `uint8_t` | 衛星ID (QZSS: 193-202) |
+| `svid` | `uint8_t` | 衛星ID (QZSS L1S: 183-192) |
 | `msg_type` | `uint8_t` | メッセージタイプ (43=QZQSM, 44=DCX) |
 | `crc24` | `uint32_t` | CRC-24Qチェックサム |
 | `valid` | `bool` | メッセージの妥当性フラグ |
@@ -474,7 +474,7 @@ void processMessage(const azaraC::Message& msg) {
     }
     
     // SVID範囲チェック
-    if (msg.svid < 193 || msg.svid > 202) {
+    if (msg.svid < 183 || msg.svid > 192) {
         Serial.print(F("[WARN] Unexpected SVID: "));
         Serial.println(msg.svid);
     }

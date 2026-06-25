@@ -111,7 +111,7 @@ filter.weather = false;    // 気象警報を出力しない
 **機能**:
 
 - メッセージ妥当性チェック (`msg.valid`)
-- SVID範囲チェック (QZSS: 193-202)
+- SVID範囲チェック (QZSS L1S: 183-191)
 - `disaster_category` 範囲チェック (MT=43)
 - `service_kind` チェック (MT=44)
 - 日付・時刻の妥当性チェック
@@ -127,8 +127,8 @@ bool validateMessage(const azaraC::Message& msg) {
         Serial.println(F("[WARN] Invalid message flag"));
         return false;
     }
-    // SVIDの範囲チェック (QZSS: 193-202)
-    if (msg.svid < 193 || msg.svid > 202) {
+    // SVIDの範囲チェック (QZSS L1S: 183-191)
+    if (msg.svid < 183 || msg.svid > 191) {
         Serial.print(F("[WARN] Unexpected SVID: "));
         Serial.println(msg.svid);
     }
@@ -162,7 +162,7 @@ Valid messages:    48
 Duplicate skipped: 2
 MT=43 (QZQSM):     30
 MT=44 (DCX):       18
-Last SVID:         193
+Last SVID:         184
 Valid ratio:       96%
 ========================
 

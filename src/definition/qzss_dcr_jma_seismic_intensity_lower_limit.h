@@ -19,21 +19,21 @@ namespace def {
 #if (AZARAC_ENABLE_EEW)
 
 inline constexpr std::optional<std::string_view> QZSS_DCR_JMA_SEISMIC_INTENSITY_LOWER_LIMIT_TABLE[] = {
-    std::string_view{"震度0", 3},
-    std::string_view{"震度1", 3},
-    std::string_view{"震度2", 3},
-    std::string_view{"震度3", 3},
-    std::string_view{"震度4", 3},
-    std::string_view{"震度5弱", 4},
-    std::string_view{"震度5強", 4},
-    std::string_view{"震度6弱", 4},
-    std::string_view{"震度6強", 4},
-    std::string_view{"震度7", 3},
+    std::string_view{"震度0", 7},
+    std::string_view{"震度1", 7},
+    std::string_view{"震度2", 7},
+    std::string_view{"震度3", 7},
+    std::string_view{"震度4", 7},
+    std::string_view{"震度5弱", 10},
+    std::string_view{"震度5強", 10},
+    std::string_view{"震度6弱", 10},
+    std::string_view{"震度6強", 10},
+    std::string_view{"震度7", 7},
     std::nullopt,
     std::nullopt,
     std::nullopt,
-    std::string_view{"なし", 2},
-    std::string_view{"不明", 2}
+    std::string_view{"なし", 6},
+    std::string_view{"不明", 6}
 };
 inline constexpr uint8_t QZSS_DCR_JMA_SEISMIC_INTENSITY_LOWER_LIMIT_BASE = 1;
 inline constexpr uint8_t QZSS_DCR_JMA_SEISMIC_INTENSITY_LOWER_LIMIT_SIZE = 15;

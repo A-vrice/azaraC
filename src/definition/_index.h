@@ -95,6 +95,8 @@
 #include "qzss_dcx_camf_d6_temperature_range.h"
 #include "qzss_dcx_camf_d7_hurricane_category.h"
 #include "qzss_dcx_camf_d8_wind_speed.h"
+#include "qzss_dcx_camf_d3_azimuth_from_centre_of_main_ellipse_to_epicentre.h"
+#include "qzss_dcx_camf_d4_vector_length_between_centre_of_main_ellipse_and_epicentre.h"
 #include "qzss_dcx_camf_d9_rainfall_amounts.h"
 #include "qzss_dcx_camf_ex9_target_area_code_en.h"
 #include "qzss_dcx_camf_ex9_target_area_code_ja.h"

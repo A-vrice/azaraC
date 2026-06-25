@@ -1,6 +1,7 @@
 // azaraC - src/internal/UbxFramer.cpp
 
 #include "internal/UbxFramer.h"
+#include "definition/_index.h"
 #include <cstring>
 
 namespace azaraC {
@@ -90,7 +91,17 @@ bool UbxFramer::parse(Frame& out) {
             }
         }
     }
-    out.svid   = svId;
+    // Convert ublox svId to L1S PRN if possible, otherwise keep original
+    auto prn_str = def::ublox_qzss_svid_prn_map_lookup(svId);
+    if (prn_str.has_value()) {
+        out.svid = 0;
+        for (char c : prn_str.value()) {
+            out.svid = out.svid * 10 + (c - '0');
+        }
+    } else {
+        out.svid = svId;
+    }
+    
     out.source = FrameSource::UBX;
     return true;
 }

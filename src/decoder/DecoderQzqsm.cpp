@@ -23,12 +23,14 @@ bool Decoder::decodeQzqsm(const uint8_t* bits, Message& out, uint32_t report_uni
     uint8_t ver = getBits(bits, 214, 6);
     if (ver != 1) return false;  // unsupported version
 
-    out.payload_type = MsgPayloadType::Mt43;
-    Mt43Data& d = out.mt43;
+    // Initialize Mt43Data payload using placement new
+    out.initPayload<Mt43Data>();
+    Mt43Data* d = out.getMt43();
+    if (!d) return false;
 
-    d.report_classification = getBits(bits, 14,  3);
-    d.disaster_category     = getBits(bits, 17,  4);
-    d.information_type      = getBits(bits, 41,  2);
+    d->report_classification = getBits(bits, 14,  3);
+    d->disaster_category     = getBits(bits, 17,  4);
+    d->information_type      = getBits(bits, 41,  2);
 
     // report_time: month(4b)+day(5b)+hour(5b)+min(6b) at bit 21
     uint8_t  rt_month  = getBits(bits, 21, 4);
@@ -38,13 +40,13 @@ bool Decoder::decodeQzqsm(const uint8_t* bits, Message& out, uint32_t report_uni
 
     // Resolve event_time using report_unix as baseline.
     // report_unix should be UNIX time from GPS module (recommended for Arduino/ESP32).
-    d.event_time = resolveTime(rt_month, rt_day, rt_hour, rt_minute, report_unix);
-    uint32_t event_unix = d.event_time.unix_time;
+    d->event_time = resolveTime(rt_month, rt_day, rt_hour, rt_minute, report_unix);
+    uint32_t event_unix = d->event_time.unix_time;
 
     // Use event_unix for sub-decoder DHM resolution (report_time baseline)
     uint32_t sub_base = (event_unix > 0) ? event_unix : report_unix;
 
-    switch (d.disaster_category) {
+    switch (d->disaster_category) {
         case  1: decodeEEW       (bits, out, sub_base); break;
         case  2: decodeHypocenter(bits, out, sub_base); break;
         case  3: decodeSeismic   (bits, out, sub_base); break;
@@ -68,25 +70,34 @@ bool Decoder::decodeQzqsm(const uint8_t* bits, Message& out, uint32_t report_uni
 // EEW  (disaster_category == 1)
 // ---------------------------------------------------------------------------
 void Decoder::decodeEEW(const uint8_t* b, Message& out, uint32_t report_unix) {
-    Mt43Data& d = out.mt43;
-    d.eew.long_period_lower = getBits(b, 47, 3);
-    d.eew.long_period_upper = getBits(b, 50, 3);
+    Mt43Data* d = out.getMt43();
+    if (!d) return;
+    
+    EewData* eew = d->getEew();
+    if (!eew) {
+        d->initAs<EewData>();
+        eew = d->getEew();
+        if (!eew) return;
+    }
+    
+    eew->long_period_lower = getBits(b, 47, 3);
+    eew->long_period_upper = getBits(b, 50, 3);
 
     // notifications: 3 × 9 bits at [53..79]
-    d.eew.notification_count = readNotifications(b, 53, d.eew.notification);
+    eew->notification_count = readNotifications(b, 53, eew->notification);
 
-    d.eew.quake_time   = extractDHM(b, 80, report_unix);
-    d.eew.depth        = getBits(b,  96, 9);
-    d.eew.magnitude    = getBits(b, 105, 7);
-    d.eew.epicenter    = getBits(b, 112, 10);
-    d.eew.intensity_lower = getBits(b, 122, 4);
-    d.eew.intensity_upper = getBits(b, 126, 4);
+    eew->quake_time   = extractDHM(b, 80, report_unix);
+    eew->depth        = getBits(b,  96, 9);
+    eew->magnitude    = getBits(b, 105, 7);
+    eew->epicenter    = getBits(b, 112, 10);
+    eew->intensity_lower = getBits(b, 122, 4);
+    eew->intensity_upper = getBits(b, 126, 4);
 
     // EEW forecast regions: 80-bit bitmask at [130..209], bit i set = region (i+1) alerted
-    d.eew.region_count = 0;
-    for (uint8_t i = 0; i < 80 && d.eew.region_count < 80; ++i) {
+    eew->region_count = 0;
+    for (uint8_t i = 0; i < 80 && eew->region_count < 80; ++i) {
         if (getBits(b, 130 + i, 1)) {
-            d.eew.regions[d.eew.region_count++] = i + 1;
+            eew->regions[eew->region_count++] = i + 1;
         }
     }
 }
@@ -95,31 +106,49 @@ void Decoder::decodeEEW(const uint8_t* b, Message& out, uint32_t report_unix) {
 // Hypocenter  (disaster_category == 2)
 // ---------------------------------------------------------------------------
 void Decoder::decodeHypocenter(const uint8_t* b, Message& out, uint32_t report_unix) {
-    Mt43Data& d = out.mt43;
-    d.hypo.notification_count = readNotifications(b, 53, d.hypo.notification);
-    d.hypo.quake_time = extractDHM(b,  80, report_unix);
-    d.hypo.depth      = getBits(b,  96, 9);
-    d.hypo.magnitude  = getBits(b, 105, 7);
-    d.hypo.epicenter  = getBits(b, 112, 10);
-    d.hypo.coords     = extractLatLon(b, 122);  // 41 bits
+    Mt43Data* d = out.getMt43();
+    if (!d) return;
+    
+    HypocenterData* hypo = d->getHypocenter();
+    if (!hypo) {
+        d->initAs<HypocenterData>();
+        hypo = d->getHypocenter();
+        if (!hypo) return;
+    }
+    
+    hypo->notification_count = readNotifications(b, 53, hypo->notification);
+    hypo->quake_time = extractDHM(b,  80, report_unix);
+    hypo->depth      = getBits(b,  96, 9);
+    hypo->magnitude  = getBits(b, 105, 7);
+    hypo->epicenter  = getBits(b, 112, 10);
+    hypo->coords     = extractLatLon(b, 122);  // 41 bits
 }
 
 // ---------------------------------------------------------------------------
 // Seismic Intensity  (disaster_category == 3)
 // ---------------------------------------------------------------------------
 void Decoder::decodeSeismic(const uint8_t* b, Message& out, uint32_t report_unix) {
-    Mt43Data& d = out.mt43;
-    d.seis.quake_time = extractDHM(b, 53, report_unix);  // day(5)+hour(5)+min(6) at [53]
-    d.seis.count = 0;
+    Mt43Data* d = out.getMt43();
+    if (!d) return;
+    
+    SeismicData* seis = d->getSeismic();
+    if (!seis) {
+        d->initAs<SeismicData>();
+        seis = d->getSeismic();
+        if (!seis) return;
+    }
+    
+    seis->quake_time = extractDHM(b, 53, report_unix);  // day(5)+hour(5)+min(6) at [53]
+    seis->count = 0;
     for (uint8_t i = 0; i < 16; ++i) {
         uint16_t off = 69 + i * 9;
         uint8_t es = getBits(b, off,     3);
         uint8_t pl = getBits(b, off + 3, 6);
         if (es == 0 && pl == 0) break;
-        if (d.seis.count < 16) {
-            d.seis.entries[d.seis.count].intensity_code  = es;
-            d.seis.entries[d.seis.count].prefecture_code = pl;
-            ++d.seis.count;
+        if (seis->count < 16) {
+            seis->entries[seis->count].intensity_code  = es;
+            seis->entries[seis->count].prefecture_code = pl;
+            ++seis->count;
         }
     }
 }
@@ -128,13 +157,22 @@ void Decoder::decodeSeismic(const uint8_t* b, Message& out, uint32_t report_unix
 // Nankai Trough  (disaster_category == 4)
 // ---------------------------------------------------------------------------
 void Decoder::decodeNankai(const uint8_t* b, Message& out) {
-    Mt43Data& d = out.mt43;
-    d.nankai.info_code   = getBits(b, 53, 4);
-    d.nankai.page        = getBits(b, 201, 6);
-    d.nankai.total_page  = getBits(b, 207, 6);
+    Mt43Data* d = out.getMt43();
+    if (!d) return;
+    
+    NankaiData* nankai = d->getNankai();
+    if (!nankai) {
+        d->initAs<NankaiData>();
+        nankai = d->getNankai();
+        if (!nankai) return;
+    }
+    
+    nankai->info_code   = getBits(b, 53, 4);
+    nankai->page        = getBits(b, 201, 6);
+    nankai->total_page  = getBits(b, 207, 6);
     // 18 bytes of text: bits [57..200] = 18×8 = 144 bits
     for (uint8_t i = 0; i < 18; ++i)
-        d.nankai.text[i] = getBits(b, 57 + i * 8, 8);
+        nankai->text[i] = getBits(b, 57 + i * 8, 8);
 }
 
 // ---------------------------------------------------------------------------
@@ -142,21 +180,30 @@ void Decoder::decodeNankai(const uint8_t* b, Message& out) {
 // arrival time sub-field: nextday(1)+hour(5)+minute(6) = 12 bits
 // ---------------------------------------------------------------------------
 void Decoder::decodeTsunami(const uint8_t* b, Message& out, uint32_t report_unix) {
-    (void)report_unix; // Used indirectly via d.event_time.unix_time
-    Mt43Data& d = out.mt43;
-    d.tsunami.warning_code = getBits(b, 80, 4);
-    d.tsunami.count = 0;
+    (void)report_unix; // Used indirectly via d->event_time.unix_time
+    Mt43Data* d = out.getMt43();
+    if (!d) return;
+    
+    TsunamiData* tsunami = d->getTsunami();
+    if (!tsunami) {
+        d->initAs<TsunamiData>();
+        tsunami = d->getTsunami();
+        if (!tsunami) return;
+    }
+    
+    tsunami->warning_code = getBits(b, 80, 4);
+    tsunami->count = 0;
     for (uint8_t i = 0; i < 5; ++i) {
         uint16_t off = 84 + i * 26;
         // Terminal decision by region_code only (IS-QZSS-DCR-016: region_code=0 means end)
         uint16_t region = getBits(b, off, 10);
         if (region == 0) break;
-        TsunamiEntry& e = d.tsunami.entries[d.tsunami.count++];
+        TsunamiEntry& e = tsunami->entries[tsunami->count++];
         // region(10) + height(4) + arrival(12)
         e.region_code      = region;
         e.height_code      = getBits(b, off + 10,  4);
         e.arrival_time_raw = getBits(b, off + 14, 12);
-        e.arrival_time     = resolveArrivalTime(e.arrival_time_raw, d.event_time.unix_time);
+        e.arrival_time     = resolveArrivalTime(e.arrival_time_raw, d->event_time.unix_time);
     }
 }
 
@@ -164,21 +211,30 @@ void Decoder::decodeTsunami(const uint8_t* b, Message& out, uint32_t report_unix
 // NW Pacific Tsunami  (disaster_category == 6)
 // ---------------------------------------------------------------------------
 void Decoder::decodeNwPacTsu(const uint8_t* b, Message& out, uint32_t report_unix) {
-    (void)report_unix; // Used indirectly via d.event_time.unix_time
-    Mt43Data& d = out.mt43;
-    d.nw_pac.potential = getBits(b, 53, 3);
-    d.nw_pac.count = 0;
+    (void)report_unix; // Used indirectly via d->event_time.unix_time
+    Mt43Data* d = out.getMt43();
+    if (!d) return;
+    
+    NwPacTsunamiData* nw_pac = d->getNwPac();
+    if (!nw_pac) {
+        d->initAs<NwPacTsunamiData>();
+        nw_pac = d->getNwPac();
+        if (!nw_pac) return;
+    }
+    
+    nw_pac->potential = getBits(b, 53, 3);
+    nw_pac->count = 0;
     for (uint8_t i = 0; i < 5; ++i) {
         uint16_t off = 56 + i * 28;
         // Terminal decision by region_code only (IS-QZSS-DCR-016: region_code=0 means end)
         uint16_t region = getBits(b, off, 7);
         if (region == 0) break;
-        NwPacTsunamiEntry& e = d.nw_pac.entries[d.nw_pac.count++];
+        NwPacTsunamiEntry& e = nw_pac->entries[nw_pac->count++];
         // region(7) + arrival(12) + height(9)
         e.region_code      = region;
         e.arrival_time_raw = getBits(b, off +  7, 12);
         e.height_code      = getBits(b, off + 19,  9);
-        e.arrival_time     = resolveArrivalTime(e.arrival_time_raw, d.event_time.unix_time);
+        e.arrival_time     = resolveArrivalTime(e.arrival_time_raw, d->event_time.unix_time);
     }
 }
 
@@ -186,16 +242,25 @@ void Decoder::decodeNwPacTsu(const uint8_t* b, Message& out, uint32_t report_uni
 // Volcano  (disaster_category == 8)
 // ---------------------------------------------------------------------------
 void Decoder::decodeVolcano(const uint8_t* b, Message& out, uint32_t report_unix) {
-    Mt43Data& d = out.mt43;
-    d.vol.ambiguity      = getBits(b, 50, 3);
-    d.vol.activity_time  = extractDHM(b, 53, report_unix);
-    d.vol.warning_code   = getBits(b, 69, 7);
-    d.vol.volcano_name   = getBits(b, 76, 12);
-    d.vol.lg_count = 0;
+    Mt43Data* d = out.getMt43();
+    if (!d) return;
+    
+    VolcanoData* vol = d->getVolcano();
+    if (!vol) {
+        d->initAs<VolcanoData>();
+        vol = d->getVolcano();
+        if (!vol) return;
+    }
+    
+    vol->ambiguity      = getBits(b, 50, 3);
+    vol->activity_time  = extractDHM(b, 53, report_unix);
+    vol->warning_code   = getBits(b, 69, 7);
+    vol->volcano_name   = getBits(b, 76, 12);
+    vol->lg_count = 0;
     for (uint8_t i = 0; i < 5; ++i) {
         uint32_t lg = getBits(b, 88 + i * 23, 23);
         if (lg == 0) break;
-        d.vol.local_govs[d.vol.lg_count++] = lg;
+        vol->local_govs[vol->lg_count++] = lg;
     }
 }
 
@@ -203,18 +268,27 @@ void Decoder::decodeVolcano(const uint8_t* b, Message& out, uint32_t report_unix
 // Ash Fall  (disaster_category == 9)
 // ---------------------------------------------------------------------------
 void Decoder::decodeAshFall(const uint8_t* b, Message& out, uint32_t report_unix) {
-    Mt43Data& d = out.mt43;
-    d.ash.activity_time = extractDHM(b, 53, report_unix);
-    d.ash.warning_type  = getBits(b, 69, 2);
-    d.ash.volcano_name  = getBits(b, 71, 12);
-    d.ash.count = 0;
+    Mt43Data* d = out.getMt43();
+    if (!d) return;
+    
+    AshFallData* ash = d->getAshFall();
+    if (!ash) {
+        d->initAs<AshFallData>();
+        ash = d->getAshFall();
+        if (!ash) return;
+    }
+    
+    ash->activity_time = extractDHM(b, 53, report_unix);
+    ash->warning_type  = getBits(b, 69, 2);
+    ash->volcano_name  = getBits(b, 71, 12);
+    ash->count = 0;
     for (uint8_t i = 0; i < 4; ++i) {
         uint16_t off = 83 + i * 29;
         if (getBits(b, off, 29) == 0) break;
-        d.ash.entries_time[d.ash.count] = getBits(b, off,      3);
-        d.ash.entries_code[d.ash.count] = getBits(b, off +  3, 3);
-        d.ash.entries_lg  [d.ash.count] = getBits(b, off +  6, 23);
-        ++d.ash.count;
+        ash->entries_time[ash->count] = getBits(b, off,      3);
+        ash->entries_code[ash->count] = getBits(b, off +  3, 3);
+        ash->entries_lg  [ash->count] = getBits(b, off +  6, 23);
+        ++ash->count;
     }
 }
 
@@ -222,15 +296,24 @@ void Decoder::decodeAshFall(const uint8_t* b, Message& out, uint32_t report_unix
 // Weather  (disaster_category == 10)
 // ---------------------------------------------------------------------------
 void Decoder::decodeWeather(const uint8_t* b, Message& out) {
-    Mt43Data& d = out.mt43;
-    d.wx.warning_state = getBits(b, 53, 3);
-    d.wx.count = 0;
+    Mt43Data* d = out.getMt43();
+    if (!d) return;
+    
+    WeatherData* wx = d->getWeather();
+    if (!wx) {
+        d->initAs<WeatherData>();
+        wx = d->getWeather();
+        if (!wx) return;
+    }
+    
+    wx->warning_state = getBits(b, 53, 3);
+    wx->count = 0;
     for (uint8_t i = 0; i < 6; ++i) {
         uint16_t off = 56 + i * 24;
         if (getBits(b, off, 24) == 0) break;
-        d.wx.entries[d.wx.count].sub_category = getBits(b, off,      5);
-        d.wx.entries[d.wx.count].region_code  = getBits(b, off +  5, 19);
-        ++d.wx.count;
+        wx->entries[wx->count].sub_category = getBits(b, off,      5);
+        wx->entries[wx->count].region_code  = getBits(b, off +  5, 19);
+        ++wx->count;
     }
 }
 
@@ -238,20 +321,29 @@ void Decoder::decodeWeather(const uint8_t* b, Message& out) {
 // Flood  (disaster_category == 11)
 // ---------------------------------------------------------------------------
 void Decoder::decodeFlood(const uint8_t* b, Message& out) {
-    Mt43Data& d = out.mt43;
-    d.flood.count = 0;
+    Mt43Data* d = out.getMt43();
+    if (!d) return;
+    
+    FloodData* flood = d->getFlood();
+    if (!flood) {
+        d->initAs<FloodData>();
+        flood = d->getFlood();
+        if (!flood) return;
+    }
+    
+    flood->count = 0;
     for (uint8_t i = 0; i < 3; ++i) {
         uint16_t off = 53 + i * 44;
         // IS-QZSS-DCR-016: If no object, corresponding Lv and Pl are "0".
         // Region 1 Lv Effective Range is 1-15 (0=unused), so 44-bit zero means no entry.
         // Use getBits64 to safely read all 44 bits (getBits only returns uint32_t).
         if (getBits64(b, off, 44) == 0) break;
-        d.flood.entries[d.flood.count].warning_level = getBits(b, off, 4);
+        flood->entries[flood->count].warning_level = getBits(b, off, 4);
         // 40-bit region code — read as two 20-bit halves
         uint64_t hi = getBits(b, off +  4, 20);
         uint64_t lo = getBits(b, off + 24, 20);
-        d.flood.entries[d.flood.count].region_code = (hi << 20) | lo;
-        ++d.flood.count;
+        flood->entries[flood->count].region_code = (hi << 20) | lo;
+        ++flood->count;
     }
 }
 
@@ -259,16 +351,25 @@ void Decoder::decodeFlood(const uint8_t* b, Message& out) {
 // Marine  (disaster_category == 14)
 // ---------------------------------------------------------------------------
 void Decoder::decodeMarine(const uint8_t* b, Message& out) {
-    Mt43Data& d = out.mt43;
-    d.marine.count = 0;
+    Mt43Data* d = out.getMt43();
+    if (!d) return;
+    
+    MarineData* marine = d->getMarine();
+    if (!marine) {
+        d->initAs<MarineData>();
+        marine = d->getMarine();
+        if (!marine) return;
+    }
+    
+    marine->count = 0;
     for (uint8_t i = 0; i < 8; ++i) {
         uint16_t off = 53 + i * 19;
         uint8_t  dw  = getBits(b, off,      5);
         uint16_t pl  = getBits(b, off +  5, 14);
         if (dw == 0 && pl == 0) break;
-        d.marine.entries[d.marine.count].warning_code = dw;
-        d.marine.entries[d.marine.count].region_code  = pl;
-        ++d.marine.count;
+        marine->entries[marine->count].warning_code = dw;
+        marine->entries[marine->count].region_code  = pl;
+        ++marine->count;
     }
 }
 
@@ -291,26 +392,35 @@ void Decoder::decodeMarine(const uint8_t* b, Message& out) {
 //   [214..219] Vn  Version Number (6 bits)
 // ---------------------------------------------------------------------------
 void Decoder::decodeTyphoon(const uint8_t* b, Message& out, uint32_t report_unix) {
-    Mt43Data& d = out.mt43;
-    d.typh.reference_time = extractDHM(b, 53, report_unix);
-    d.typh.ref_type  = getBits(b,  69, 3);
+    Mt43Data* d = out.getMt43();
+    if (!d) return;
+    
+    TyphoonData* typh = d->getTyphoon();
+    if (!typh) {
+        d->initAs<TyphoonData>();
+        typh = d->getTyphoon();
+        if (!typh) return;
+    }
+    
+    typh->reference_time = extractDHM(b, 53, report_unix);
+    typh->ref_type  = getBits(b,  69, 3);
     // Skip Spare2 [72..79] (8 bits)
-    d.typh.elapsed   = getBits(b,  80, 7);
-    d.typh.number    = getBits(b,  87, 7);
-    d.typh.scale     = getBits(b,  94, 4);
-    d.typh.intensity = getBits(b,  98, 4);
+    typh->elapsed   = getBits(b,  80, 7);
+    typh->number    = getBits(b,  87, 7);
+    typh->scale     = getBits(b,  94, 4);
+    typh->intensity = getBits(b,  98, 4);
 
     // LatLon: 41 bits at [102..142]
-    d.typh.coords = extractLatLon(b, 102);
+    typh->coords = extractLatLon(b, 102);
 
     // Central Pressure: 11 bits at [143..153]
-    d.typh.pressure = getBits(b, 143, 11);
+    typh->pressure = getBits(b, 143, 11);
 
     // Maximum wind speed: 7 bits at [154..160]
-    d.typh.max_wind = getBits(b, 154, 7);
+    typh->max_wind = getBits(b, 154, 7);
 
     // Maximum wind gust speed: 7 bits at [161..167]
-    d.typh.max_gust = getBits(b, 161, 7);
+    typh->max_gust = getBits(b, 161, 7);
 }
 
 } // namespace internal

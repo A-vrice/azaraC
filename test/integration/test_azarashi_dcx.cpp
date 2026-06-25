@@ -19,8 +19,11 @@ TEST_CASE("DCX: Null Message") {
     REQUIRE(decodeNmea(nmea, msg));
     CHECK(msg.msg_type == 44);
     CHECK(msg.payload_type == MsgPayloadType::Mt44);
-    CHECK(msg.mt44.service_kind == Mt44ServiceKind::NullMessage);
-    CHECK(msg.mt44.is_null_message == true);
+    
+    const Mt44Data* mt44 = msg.getMt44();
+    REQUIRE(mt44 != nullptr);
+    CHECK(mt44->service_kind == Mt44ServiceKind::NullMessage);
+    CHECK(mt44->is_null_message == true);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -34,11 +37,14 @@ TEST_CASE("DCX: Outside Japan - Fiji Tsunami") {
     REQUIRE(decodeNmea(nmea, msg));
     CHECK(msg.msg_type == 44);
     CHECK(msg.payload_type == MsgPayloadType::Mt44);
-    CHECK(msg.mt44.service_kind == Mt44ServiceKind::OutsideJapan);
-    CHECK(msg.mt44.camf.a2 == 71);   // Fiji
-    CHECK(msg.mt44.camf.a3 == 0);    // Undefined Provider
-    CHECK(msg.mt44.camf.a5 == 3);    // Extreme severity
-    CHECK(msg.mt44.ex_outside.vn == 16); // version 16
+    
+    const Mt44Data* mt44 = msg.getMt44();
+    REQUIRE(mt44 != nullptr);
+    CHECK(mt44->service_kind == Mt44ServiceKind::OutsideJapan);
+    CHECK(mt44->camf.a2 == 71);   // Fiji
+    CHECK(mt44->camf.a3 == 0);    // Undefined Provider
+    CHECK(mt44->camf.a5 == 3);    // Extreme severity
+    CHECK(mt44->ex_outside.vn == 16); // version 16
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -53,11 +59,14 @@ TEST_CASE("DCX: L-Alert - CBRNE Air Strike") {
     REQUIRE(decodeNmea(nmea, msg));
     CHECK(msg.msg_type == 44);
     CHECK(msg.payload_type == MsgPayloadType::Mt44);
-    CHECK(msg.mt44.service_kind == Mt44ServiceKind::LAlert);
-    CHECK(msg.mt44.camf.a2 == 111);  // Japan
-    CHECK(msg.mt44.camf.a3 == 1);    // Foundation for MultiMedia Communications
-    CHECK(msg.mt44.ex_lalert_local.ex1 == 1101); // Chuo-ku, Sapporo-shi
-    CHECK(msg.mt44.ex_lalert_local.vn == 1);
+    
+    const Mt44Data* mt44 = msg.getMt44();
+    REQUIRE(mt44 != nullptr);
+    CHECK(mt44->service_kind == Mt44ServiceKind::LAlert);
+    CHECK(mt44->camf.a2 == 111);  // Japan
+    CHECK(mt44->camf.a3 == 1);    // Foundation for MultiMedia Communications
+    CHECK(mt44->ex_lalert_local.ex1 == 1101); // Chuo-ku, Sapporo-shi
+    CHECK(mt44->ex_lalert_local.vn == 1);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -73,9 +82,12 @@ TEST_CASE("DCX: J-Alert - Missile Attack") {
     REQUIRE(decodeNmea(nmea, msg));
     CHECK(msg.msg_type == 44);
     CHECK(msg.payload_type == MsgPayloadType::Mt44);
-    CHECK(msg.mt44.service_kind == Mt44ServiceKind::JAlert);
-    CHECK(msg.mt44.camf.a2 == 111);  // Japan
-    CHECK(msg.mt44.camf.a3 == 3);    // Related Ministries (FDMA -> J-Alert)
-    CHECK(msg.mt44.camf.a5 == 3);    // Extreme severity
-    CHECK(msg.mt44.ex_jalert.vn == 1);
+    
+    const Mt44Data* mt44 = msg.getMt44();
+    REQUIRE(mt44 != nullptr);
+    CHECK(mt44->service_kind == Mt44ServiceKind::JAlert);
+    CHECK(mt44->camf.a2 == 111);  // Japan
+    CHECK(mt44->camf.a3 == 3);    // Related Ministries (FDMA -> J-Alert)
+    CHECK(mt44->camf.a5 == 3);    // Extreme severity
+    CHECK(mt44->ex_jalert.vn == 1);
 }

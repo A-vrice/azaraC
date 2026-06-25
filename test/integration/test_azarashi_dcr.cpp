@@ -71,9 +71,15 @@ TEST_CASE("DCR: Nankai Trough 20 messages - page tracking") {
         REQUIRE(decodeNmea(cases[i].nmea, msg));
         CHECK(msg.msg_type == 43);
         CHECK(msg.payload_type == MsgPayloadType::Mt43);
-        CHECK(msg.mt43.disaster_category == 4);
-        CHECK(msg.mt43.nankai.page == cases[i].expected_page);
-        CHECK(msg.mt43.nankai.total_page == cases[i].expected_total);
+        
+        const Mt43Data* mt43 = msg.getMt43();
+        REQUIRE(mt43 != nullptr);
+        CHECK(mt43->disaster_category == 4);
+        
+        const NankaiData* nankai = mt43->getNankai();
+        REQUIRE(nankai != nullptr);
+        CHECK(nankai->page == cases[i].expected_page);
+        CHECK(nankai->total_page == cases[i].expected_total);
     }
 }
 
@@ -118,13 +124,19 @@ TEST_CASE("DCR: Ash Fall Detailed 5 messages - field verification") {
         REQUIRE(decodeNmea(cases[i].nmea, msg));
         CHECK(msg.msg_type == 43);
         CHECK(msg.payload_type == MsgPayloadType::Mt43);
-        CHECK(msg.mt43.disaster_category == 9);
-        CHECK(msg.mt43.ash.volcano_name == cases[i].expected_volcano);
-        CHECK(msg.mt43.ash.warning_type == cases[i].expected_warning_type);
-        CHECK(msg.mt43.ash.count == cases[i].expected_entry_count);
-        CHECK(msg.mt43.ash.entries_time[0] == cases[i].expected_time_0);
-        CHECK(msg.mt43.ash.entries_code[0] == cases[i].expected_code_0);
-        CHECK(msg.mt43.ash.entries_lg[0] == cases[i].expected_lg_0);
+        
+        const Mt43Data* mt43 = msg.getMt43();
+        REQUIRE(mt43 != nullptr);
+        CHECK(mt43->disaster_category == 9);
+        
+        const AshFallData* ash = mt43->getAshFall();
+        REQUIRE(ash != nullptr);
+        CHECK(ash->volcano_name == cases[i].expected_volcano);
+        CHECK(ash->warning_type == cases[i].expected_warning_type);
+        CHECK(ash->count == cases[i].expected_entry_count);
+        CHECK(ash->entries_time[0] == cases[i].expected_time_0);
+        CHECK(ash->entries_code[0] == cases[i].expected_code_0);
+        CHECK(ash->entries_lg[0] == cases[i].expected_lg_0);
     }
 }
 
@@ -161,11 +173,17 @@ TEST_CASE("DCR: Weather 3 messages - field verification") {
         REQUIRE(decodeNmea(cases[i].nmea, msg));
         CHECK(msg.msg_type == 43);
         CHECK(msg.payload_type == MsgPayloadType::Mt43);
-        CHECK(msg.mt43.disaster_category == 10);
-        CHECK(msg.mt43.wx.warning_state == cases[i].expected_state);
-        CHECK(msg.mt43.wx.count == cases[i].expected_count);
-        CHECK(msg.mt43.wx.entries[0].sub_category == cases[i].expected_sub_0);
-        CHECK(msg.mt43.wx.entries[0].region_code == cases[i].expected_region_0);
+        
+        const Mt43Data* mt43 = msg.getMt43();
+        REQUIRE(mt43 != nullptr);
+        CHECK(mt43->disaster_category == 10);
+        
+        const WeatherData* wx = mt43->getWeather();
+        REQUIRE(wx != nullptr);
+        CHECK(wx->warning_state == cases[i].expected_state);
+        CHECK(wx->count == cases[i].expected_count);
+        CHECK(wx->entries[0].sub_category == cases[i].expected_sub_0);
+        CHECK(wx->entries[0].region_code == cases[i].expected_region_0);
     }
 }
 
@@ -180,9 +198,15 @@ TEST_CASE("DCR: EEW Long Period Ground Motion - exhaustive") {
     REQUIRE(decodeNmea(nmea, msg));
     CHECK(msg.msg_type == 43);
     CHECK(msg.payload_type == MsgPayloadType::Mt43);
-    CHECK(msg.mt43.disaster_category == 1);
-    CHECK(msg.mt43.eew.long_period_lower == 3);
-    CHECK(msg.mt43.eew.long_period_upper == 3);
+    
+    const Mt43Data* mt43 = msg.getMt43();
+    REQUIRE(mt43 != nullptr);
+    CHECK(mt43->disaster_category == 1);
+    
+    const EewData* eew = mt43->getEew();
+    REQUIRE(eew != nullptr);
+    CHECK(eew->long_period_lower == 3);
+    CHECK(eew->long_period_upper == 3);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -220,13 +244,24 @@ TEST_CASE("DCR: Tsunami arrival time boundary - arrived (hour=31, min=63)") {
     uint32_t crc = crc24qRef(bits, 226);
     setBits(bits, 226, 24, crc);
 
-    TestDecoder::testDecodeTsunami(bits, msg, 1777122000u);
+    // Use full decode flow to properly initialize Mt43Data
+    Frame frame{};
+    memcpy(frame.bits, bits, 32);
+    frame.svid = 55;
+    frame.source = FrameSource::NMEA;
+    Decoder dec;
+    REQUIRE(dec.decode(frame, msg, 1777122000u));
 
-    REQUIRE(msg.mt43.tsunami.count >= 1);
+    const Mt43Data* mt43 = msg.getMt43();
+    REQUIRE(mt43 != nullptr);
+    
+    const TsunamiData* tsunami = mt43->getTsunami();
+    REQUIRE(tsunami != nullptr);
+    CHECK(tsunami->count >= 1);
     // 到達済みの場合、AzaraCではhour=0, minute=0, unix_time=0 にクリアする
-    CHECK(msg.mt43.tsunami.entries[0].arrival_time.hour == 0);
-    CHECK(msg.mt43.tsunami.entries[0].arrival_time.minute == 0);
-    CHECK(msg.mt43.tsunami.entries[0].arrival_time.unix_time == 0);
+    CHECK(tsunami->entries[0].arrival_time.hour == 0);
+    CHECK(tsunami->entries[0].arrival_time.minute == 0);
+    CHECK(tsunami->entries[0].arrival_time.unix_time == 0);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -241,7 +276,10 @@ TEST_CASE("DCR: NW Pacific Tsunami - Tsunamigenic Potential patterns") {
         REQUIRE(decodeNmea(nmea, msg));
         CHECK(msg.msg_type == 43);
         CHECK(msg.payload_type == MsgPayloadType::Mt43);
-        CHECK(msg.mt43.disaster_category == 6);
+        
+        const Mt43Data* mt43 = msg.getMt43();
+        REQUIRE(mt43 != nullptr);
+        CHECK(mt43->disaster_category == 6);
     }
     // Pattern 2: potential=2 (広域津波の可能性あり)
     {
@@ -250,6 +288,9 @@ TEST_CASE("DCR: NW Pacific Tsunami - Tsunamigenic Potential patterns") {
         REQUIRE(decodeNmea(nmea, msg));
         CHECK(msg.msg_type == 43);
         CHECK(msg.payload_type == MsgPayloadType::Mt43);
-        CHECK(msg.mt43.disaster_category == 6);
+        
+        const Mt43Data* mt43 = msg.getMt43();
+        REQUIRE(mt43 != nullptr);
+        CHECK(mt43->disaster_category == 6);
     }
 }

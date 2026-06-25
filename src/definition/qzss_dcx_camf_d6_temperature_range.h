@@ -19,22 +19,22 @@ namespace def {
 #if (AZARAC_ENABLE_DCX_CAMF)
 
 inline constexpr std::optional<std::string_view> QZSS_DCX_CAMF_D6_TEMPERATURE_RANGE_TABLE[] = {
-    std::string_view{"T ≤ -30°C", 9},
-    std::string_view{"-30°C < T ≤ -25°C", 17},
-    std::string_view{"-25°C < T ≤ -20°C", 17},
-    std::string_view{"-20°C < T ≤ -15°C", 17},
-    std::string_view{"-15°C < T ≤ -10°C", 17},
-    std::string_view{"-10°C < T ≤ -5°C", 16},
-    std::string_view{"-5°C < T ≤ 0°C", 14},
-    std::string_view{"0°C < T ≤ 5°C", 13},
-    std::string_view{"5°C < T ≤ 10°C", 14},
-    std::string_view{"10°C < T ≤ 15°C", 15},
-    std::string_view{"15°C < T ≤ 20°C", 15},
-    std::string_view{"20°C < T ≤ 25°C", 15},
-    std::string_view{"25°C < T ≤ 30°C", 15},
-    std::string_view{"30°C < T ≤ 35°C", 15},
-    std::string_view{"35°C < T ≤ 45°C", 15},
-    std::string_view{"T > 45°C", 8}
+    std::string_view{"T ≤ -30°C", 12},
+    std::string_view{"-30°C < T ≤ -25°C", 21},
+    std::string_view{"-25°C < T ≤ -20°C", 21},
+    std::string_view{"-20°C < T ≤ -15°C", 21},
+    std::string_view{"-15°C < T ≤ -10°C", 21},
+    std::string_view{"-10°C < T ≤ -5°C", 20},
+    std::string_view{"-5°C < T ≤ 0°C", 18},
+    std::string_view{"0°C < T ≤ 5°C", 17},
+    std::string_view{"5°C < T ≤ 10°C", 18},
+    std::string_view{"10°C < T ≤ 15°C", 19},
+    std::string_view{"15°C < T ≤ 20°C", 19},
+    std::string_view{"20°C < T ≤ 25°C", 19},
+    std::string_view{"25°C < T ≤ 30°C", 19},
+    std::string_view{"30°C < T ≤ 35°C", 19},
+    std::string_view{"35°C < T ≤ 45°C", 19},
+    std::string_view{"T > 45°C", 9}
 };
 inline constexpr uint8_t QZSS_DCX_CAMF_D6_TEMPERATURE_RANGE_BASE = 0;
 inline constexpr uint8_t QZSS_DCX_CAMF_D6_TEMPERATURE_RANGE_SIZE = 16;

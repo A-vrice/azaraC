@@ -95,46 +95,56 @@ void printMt43Details(const azaraC::Message& msg) {
 
     switch (mt43->disaster_category) {
         case 1: { // EEW
+            const azaraC::EewData* eew = mt43->getEew();
+            if (!eew) break;
             Serial.print(F("  震源: "));
-            Serial.print(mt43->eew.epicenter);
+            Serial.print(eew->epicenter);
             Serial.print(F(" マグニチュード: "));
-            Serial.print(mt43->eew.magnitude / 10);
+            Serial.print(eew->magnitude / 10);
             Serial.print(F("."));
-            Serial.print(mt43->eew.magnitude % 10);
+            Serial.print(eew->magnitude % 10);
             Serial.print(F(" 深さ: "));
-            Serial.print(mt43->eew.depth);
+            Serial.print(eew->depth);
             Serial.println(F("km"));
             break;
         }
         case 2: { // Hypocenter
+            const azaraC::HypocenterData* hypo = mt43->getHypocenter();
+            if (!hypo) break;
             Serial.print(F("  震源: "));
-            Serial.print(mt43->hypo.epicenter);
+            Serial.print(hypo->epicenter);
             Serial.print(F(" マグニチュード: "));
-            Serial.print(mt43->hypo.magnitude / 10);
+            Serial.print(hypo->magnitude / 10);
             Serial.print(F("."));
-            Serial.print(mt43->hypo.magnitude % 10);
+            Serial.print(hypo->magnitude % 10);
             Serial.println();
             break;
         }
         case 3: { // Seismic Intensity
+            const azaraC::SeismicData* seis = mt43->getSeismic();
+            if (!seis) break;
             Serial.print(F("  観測地点数: "));
-            Serial.println(mt43->seis.count);
+            Serial.println(seis->count);
             break;
         }
         case 5: { // Tsunami
+            const azaraC::TsunamiData* tsunami = mt43->getTsunami();
+            if (!tsunami) break;
             Serial.print(F("  警報コード: "));
-            Serial.print(mt43->tsunami.warning_code);
+            Serial.print(tsunami->warning_code);
             Serial.print(F(" 海域数: "));
-            Serial.println(mt43->tsunami.count);
+            Serial.println(tsunami->count);
             break;
         }
         case 12: { // Typhoon
+            const azaraC::TyphoonData* typh = mt43->getTyphoon();
+            if (!typh) break;
             Serial.print(F("  台風番号: "));
-            Serial.print(mt43->typh.number);
+            Serial.print(typh->number);
             Serial.print(F(" 中心気圧: "));
-            Serial.print(mt43->typh.pressure);
+            Serial.print(typh->pressure);
             Serial.print(F("hPa 最大風速: "));
-            Serial.print(mt43->typh.max_wind);
+            Serial.print(typh->max_wind);
             Serial.println(F("m/s"));
             break;
         }

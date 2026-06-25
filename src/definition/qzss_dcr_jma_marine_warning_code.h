@@ -20,15 +20,15 @@ namespace def {
 
 [[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_marine_warning_code_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 0: return std::string_view{"海上警報解除", 6};
-        case 10: return std::string_view{"海上着氷警報", 6};
-        case 11: return std::string_view{"海上濃霧警報", 6};
-        case 12: return std::string_view{"海上うねり警報", 7};
-        case 20: return std::string_view{"海上風警報", 5};
-        case 21: return std::string_view{"海上強風警報", 6};
-        case 22: return std::string_view{"海上暴風警報", 6};
-        case 23: return std::string_view{"海上台風警報", 6};
-        case 31: return std::string_view{"その他の警報等情報要素 海上警報", 16};
+        case 0: return std::string_view{"海上警報解除", 18};
+        case 10: return std::string_view{"海上着氷警報", 18};
+        case 11: return std::string_view{"海上濃霧警報", 18};
+        case 12: return std::string_view{"海上うねり警報", 21};
+        case 20: return std::string_view{"海上風警報", 15};
+        case 21: return std::string_view{"海上強風警報", 18};
+        case 22: return std::string_view{"海上暴風警報", 18};
+        case 23: return std::string_view{"海上台風警報", 18};
+        case 31: return std::string_view{"その他の警報等情報要素 海上警報", 46};
         default: return std::nullopt;
     }
 }

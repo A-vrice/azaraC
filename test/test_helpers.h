@@ -145,6 +145,37 @@ inline bool decodeNmea(const char* nmea, Message& msg) {
     return dec.decode(frame, msg, 0);
 }
 
+// ── NMEAフレーマー専用ヘルパー（Decoder を経由しない）─────────────────────────
+// NmeaFramer のパーサー動作のみをテストする。チェックサム検証を含む。
+
+inline bool feedNmeaRaw(const char* nmea, Frame& out) {
+    NmeaFramer framer;
+    for (int i = 0; nmea[i]; i++) {
+        if (framer.feed((uint8_t)nmea[i], out)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// 指定した16進文字数の $QZQSM 文を生成（チェックサム付き）
+inline std::string makeNmeaQzqsmHex(int num_hex_chars) {
+    std::string s = "$QZQSM,55,";
+    for (int i = 0; i < num_hex_chars; i++) {
+        char hex[2];
+        snprintf(hex, sizeof(hex), "%X", i % 16);
+        s += hex;
+    }
+    uint8_t xsum = 0;
+    for (size_t i = 1; i < s.size(); i++) {
+        xsum ^= (uint8_t)s[i];
+    }
+    char tail[6];
+    snprintf(tail, sizeof(tail), "*%02X\r\n", xsum);
+    s += tail;
+    return s;
+}
+
 // ── テスト用デコーダー（protected関数を公開） ─────────────────────────────────
 
 struct TestDecoder : Decoder {

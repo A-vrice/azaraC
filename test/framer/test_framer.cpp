@@ -11,8 +11,9 @@ using namespace azaraC;
 // ── UBX Tests ──────────────────────────────────────────────────────────────
 
 TEST_CASE("UBX Framer Basic") {
+    // svId=2 (u-blox) -> PRN184 (QZS-2 L1S)
     uint8_t bits[32] = {0x53, 0xAB};
-    auto pkt = makeUbxSfrbx(193, bits);
+    auto pkt = makeUbxSfrbx(2, bits);
 
     UbxFramer framer;
     Frame out;
@@ -22,13 +23,13 @@ TEST_CASE("UBX Framer Basic") {
     }
 
     REQUIRE(found);
-    CHECK(out.svid == 193);
+    CHECK(out.svid == 184);  // svId=2 -> PRN184
     CHECK(out.bits[0] == 0x53);
 }
 
 TEST_CASE("UBX Checksum Error") {
     uint8_t bits[32] = {0};
-    auto pkt = makeUbxSfrbx(193, bits);
+    auto pkt = makeUbxSfrbx(2, bits);
     pkt[10] ^= 0xFF; // Corrupt header/payload
 
     UbxFramer framer;
@@ -41,8 +42,9 @@ TEST_CASE("UBX Checksum Error") {
 }
 
 TEST_CASE("UBX Garbage Recovery") {
+    // svId=3 (u-blox) -> PRN185 (QZS-4 L1S)
     uint8_t bits[32] = {0x9A};
-    auto pkt = makeUbxSfrbx(194, bits);
+    auto pkt = makeUbxSfrbx(3, bits);
 
     UbxFramer framer;
     Frame out;
@@ -55,7 +57,7 @@ TEST_CASE("UBX Garbage Recovery") {
         if (framer.feed(b, out)) { found = true; break; }
     }
     REQUIRE(found);
-    CHECK(out.svid == 194);
+    CHECK(out.svid == 185);  // svId=3 -> PRN185
 }
 
 TEST_CASE("UBX: SFRBX basic decode") {
@@ -69,16 +71,17 @@ TEST_CASE("UBX: SFRBX basic decode") {
         if (framer.feed(b, ubx_frame)) { found = true; break; }
     }
     REQUIRE(found);
-    CHECK(ubx_frame.svid == 2);
+    CHECK(ubx_frame.svid == 184);
     CHECK(ubx_frame.bits[0] == 0x53);
 }
 
 TEST_CASE("UBX: SFRBX round-trip with NMEA") {
+    // svId=7 (u-blox) -> PRN189 (QZS-3 L1S)
     uint8_t nav_bits[32] = {};
     nav_bits[0] = 0x53;
     nav_bits[1] = 0x2F;
 
-    auto pkt = makeUbxSfrbx(56, nav_bits);
+    auto pkt = makeUbxSfrbx(7, nav_bits);
 
     UbxFramer framer;
     Frame ubx_frame;
@@ -87,12 +90,13 @@ TEST_CASE("UBX: SFRBX round-trip with NMEA") {
         if (framer.feed(b, ubx_frame)) { found = true; break; }
     }
     REQUIRE(found);
-    CHECK(ubx_frame.svid == 56);
+    CHECK(ubx_frame.svid == 189);  // svId=7 -> PRN189
 }
 
 TEST_CASE("UBX: SFRBX with different svid") {
+    // svId=4 (u-blox) -> PRN186 (QZS-1R L1S)
     uint8_t nav_bits[32] = {0x9A, 0xCD};
-    auto pkt = makeUbxSfrbx(57, nav_bits);
+    auto pkt = makeUbxSfrbx(4, nav_bits);
 
     UbxFramer framer;
     Frame ubx_frame;
@@ -101,7 +105,7 @@ TEST_CASE("UBX: SFRBX with different svid") {
         if (framer.feed(b, ubx_frame)) { found = true; break; }
     }
     REQUIRE(found);
-    CHECK(ubx_frame.svid == 57);
+    CHECK(ubx_frame.svid == 186);  // svId=4 -> PRN186
 }
 
 TEST_CASE("UBX: Checksum error rejection") {
@@ -131,15 +135,16 @@ TEST_CASE("UBX: Garbage recovery") {
         if (framer.feed(b, ubx_frame)) { found = true; break; }
     }
     REQUIRE(found);
-    CHECK(ubx_frame.svid == 3);
+    CHECK(ubx_frame.svid == 185);
 }
 
 // ── NMEA Tests ──────────────────────────────────────────────────────────────
 
 TEST_CASE("NMEA Framer Basic") {
+    // $QZQSM svid=56 -> PRN184 (QZS-2 L1S)
     uint8_t bits[32];
     for(int i=0; i<32; ++i) bits[i] = i;
-    auto pkt = makeNmeaQzqsm(193, bits);
+    auto pkt = makeNmeaQzqsm(56, bits);
 
     NmeaFramer framer;
     Frame out;
@@ -148,13 +153,13 @@ TEST_CASE("NMEA Framer Basic") {
         if (framer.feed((uint8_t)c, out)) { found = true; break; }
     }
     REQUIRE(found);
-    CHECK(out.svid == 193);
+    CHECK(out.svid == 184);  // NMEA 56 + 128 = PRN184
     CHECK(out.bits[1] == 1);
 }
 
 TEST_CASE("NMEA Checksum Error") {
     uint8_t bits[32] = {0};
-    auto pkt = makeNmeaQzqsm(193, bits);
+    auto pkt = makeNmeaQzqsm(56, bits);
     pkt[pkt.size() - 3] = '0'; // Corrupt checksum last digit
 
     NmeaFramer framer;
@@ -167,8 +172,9 @@ TEST_CASE("NMEA Checksum Error") {
 }
 
 TEST_CASE("NMEA Garbage Recovery") {
+    // $QZQSM svid=57 -> PRN185 (QZS-4 L1S)
     uint8_t bits[32] = {0x12, 0x34};
-    auto pkt = makeNmeaQzqsm(195, bits);
+    auto pkt = makeNmeaQzqsm(57, bits);
 
     NmeaFramer framer;
     Frame out;
@@ -183,7 +189,7 @@ TEST_CASE("NMEA Garbage Recovery") {
         if (framer.feed((uint8_t)c, out)) { found = true; break; }
     }
     REQUIRE(found);
-    CHECK(out.svid == 195);
+    CHECK(out.svid == 185);  // NMEA 57 + 128 = PRN185
 }
 
 TEST_CASE("NMEA Oversize Recovery") {
@@ -194,35 +200,42 @@ TEST_CASE("NMEA Oversize Recovery") {
         framer.feed('A', out); // Fill buffer beyond capacity
     }
     // Should have reset internally. Try valid one now.
+    // $QZQSM svid=61 -> PRN189 (QZS-3 L1S)
     uint8_t bits[32] = {0x55};
-    auto pkt = makeNmeaQzqsm(199, bits);
+    auto pkt = makeNmeaQzqsm(61, bits);
     bool found = false;
     for (char c : pkt) {
         if (framer.feed((uint8_t)c, out)) { found = true; break; }
     }
     REQUIRE(found);
+    CHECK(out.svid == 189);  // NMEA 61 + 128 = PRN189
 }
 
 // ── NMEA ペイロード長検証 ────────────────────────────────────────────────────
+// NmeaFramer のみをテスト（Decoder を経由しない）
 
 TEST_CASE("NMEA: 62文字の拒否") {
-    char nmea[256];
-    strcpy(nmea, "$QZQSM,55,");
-    for (int i = 0; i < 62; i++) sprintf(nmea + strlen(nmea), "%X", i % 16);
-    uint8_t xsum = 0;
-    for (size_t i = 1; i < strlen(nmea); i++) xsum ^= (uint8_t)nmea[i];
-    sprintf(nmea + strlen(nmea), "*%02X\r\n", xsum);
-    Message msg{};
-    CHECK_FALSE(decodeNmea(nmea, msg));
+    Frame out{};
+    auto nmea = makeNmeaQzqsmHex(62);
+    CHECK_FALSE(feedNmeaRaw(nmea.c_str(), out));
 }
 
-TEST_CASE("NMEA: 64文字の拒否") {
-    char nmea[256];
-    strcpy(nmea, "$QZQSM,55,");
-    for (int i = 0; i < 64; i++) sprintf(nmea + strlen(nmea), "%X", i % 16);
-    uint8_t xsum = 0;
-    for (size_t i = 1; i < strlen(nmea); i++) xsum ^= (uint8_t)nmea[i];
-    sprintf(nmea + strlen(nmea), "*%02X\r\n", xsum);
-    Message msg{};
-    CHECK_FALSE(decodeNmea(nmea, msg));
+TEST_CASE("NMEA: 63文字の受け入れ") {
+    Frame out{};
+    auto nmea = makeNmeaQzqsmHex(63);
+    CHECK(feedNmeaRaw(nmea.c_str(), out));
+    CHECK(out.svid == 183);  // NMEA 55 + 128 = PRN183
+}
+
+TEST_CASE("NMEA: 64文字の受け入れ") {
+    Frame out{};
+    auto nmea = makeNmeaQzqsmHex(64);
+    CHECK(feedNmeaRaw(nmea.c_str(), out));
+    CHECK(out.svid == 183);  // NMEA 55 + 128 = PRN183
+}
+
+TEST_CASE("NMEA: 65文字の拒否") {
+    Frame out{};
+    auto nmea = makeNmeaQzqsmHex(65);
+    CHECK_FALSE(feedNmeaRaw(nmea.c_str(), out));
 }

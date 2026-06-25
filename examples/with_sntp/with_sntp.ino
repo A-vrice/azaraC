@@ -75,14 +75,16 @@ void loop() {
             if (msg.msg_type == 43) {
                 const azaraC::Mt43Data* mt43 = msg.getMt43();
                 if (mt43 && mt43->disaster_category == 1) {
+                    const azaraC::EewData* eew = mt43->getEew();
+                    if (!eew) return;
                     Serial.print(F("[EEW] epicenter="));
-                    Serial.print(mt43->eew.epicenter);
+                    Serial.print(eew->epicenter);
                     Serial.print(F(" mag="));
-                    Serial.print(mt43->eew.magnitude / 10);
+                    Serial.print(eew->magnitude / 10);
                     Serial.print('.');
-                    Serial.print(mt43->eew.magnitude % 10);
+                    Serial.print(eew->magnitude % 10);
                     Serial.print(F(" depth="));
-                    Serial.print(mt43->eew.depth);
+                    Serial.print(eew->depth);
                     Serial.println(F("km"));
                 }
             } else if (msg.msg_type == 44) {

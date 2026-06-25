@@ -14,20 +14,22 @@ bool Parser::feed(uint8_t byte, Message& out, uint32_t report_unix) {
         // AUTO モードと同様に decoded を中間変数として使い、out への書き込みは最後に行う
         Message decoded;
         if (!_decoder.decode(frame, decoded, report_unix)) return false;
-        
+
         // Nankai Trough page aggregation
-        if (decoded.payload_type == MsgPayloadType::Mt43 &&
-            decoded.mt43.disaster_category == 4) {
-            // decoded と out を別オブジェクトにすることでエイリアシング UB を回避
-            if (!processNankaiAggregation(decoded, out, internal::getMillis())) {
-                return false;
+        if (decoded.payload_type == MsgPayloadType::Mt43) {
+            const Mt43Data* mt43 = decoded.getMt43();
+            if (mt43 && mt43->disaster_category == 4) {
+                // decoded と out を別オブジェクトにすることでエイリアシング UB を回避
+                if (!processNankaiAggregation(decoded, out, internal::getMillis())) {
+                    return false;
+                }
+                // Aggregation complete - check dedup before outputting
+                internal::DedupKey key{ out.svid, out.msg_type, out.crc24 };
+                if (_dedup.isDuplicate(key)) return false;
+                return true;
             }
-            // Aggregation complete - check dedup before outputting
-            internal::DedupKey key{ out.svid, out.msg_type, out.crc24 };
-            if (_dedup.isDuplicate(key)) return false;
-            return true;
         }
-        
+
         internal::DedupKey key{ decoded.svid, decoded.msg_type, decoded.crc24 };
         if (_dedup.isDuplicate(key)) return false;
         out = decoded;
@@ -59,17 +61,19 @@ bool Parser::feed(uint8_t byte, Message& out, uint32_t report_unix) {
     if (!_decoder.decode(frame, decoded, report_unix)) return false;
 
     // Nankai Trough page aggregation
-    if (decoded.payload_type == MsgPayloadType::Mt43 &&
-        decoded.mt43.disaster_category == 4) {
-        if (!processNankaiAggregation(decoded, out, internal::getMillis())) {
-            return false;
+    if (decoded.payload_type == MsgPayloadType::Mt43) {
+        const Mt43Data* mt43 = decoded.getMt43();
+        if (mt43 && mt43->disaster_category == 4) {
+            if (!processNankaiAggregation(decoded, out, internal::getMillis())) {
+                return false;
+            }
+            // Aggregation complete - check dedup before outputting
+            internal::DedupKey key{ out.svid, out.msg_type, out.crc24 };
+            if (_dedup.isDuplicate(key)) return false;
+            return true;
         }
-        // Aggregation complete - check dedup before outputting
-        internal::DedupKey key{ out.svid, out.msg_type, out.crc24 };
-        if (_dedup.isDuplicate(key)) return false;
-        return true;
     }
-    
+
     // 重複チェック
     internal::DedupKey key{ decoded.svid, decoded.msg_type, decoded.crc24 };
     if (_dedup.isDuplicate(key)) return false;
@@ -78,42 +82,56 @@ bool Parser::feed(uint8_t byte, Message& out, uint32_t report_unix) {
     return true;
 }
 
-bool Parser::processNankaiAggregation(const Message& decoded, Message& out, uint32_t current_ms) {
-    const Mt43Data& d = decoded.mt43;
-    
+bool Parser::processNankaiAggregation(const Message& decoded, Message& out, uint64_t current_ms) {
+    const Mt43Data* d = decoded.getMt43();
+    if (!d) return false;
+
+    const NankaiData* nankai = d->getNankai();
+    if (!nankai) return false;
+
     // Create key for this event (svid NOT included - see design doc)
     internal::NankaiPageKey key;
-    key.info_code = d.nankai.info_code;
-    key.event_time_unix = d.event_time.unix_time;
-    
+    key.info_code = nankai->info_code;
+    key.event_time_unix = d->event_time.unix_time;
+
     // Add page to buffer
     internal::NankaiPageBuffer* completed = _nankaiBuffers.addPage(
         key,
-        d.nankai.page,
-        d.nankai.total_page,
-        d.nankai.text,
+        nankai->page,
+        nankai->total_page,
+        nankai->text,
         current_ms
     );
-    
+
     if (completed) {
         // All pages received - copy decoded message and add aggregated text
         out = decoded;
-        
-        // Explicitly initialize to deterministic defaults (textLen == 0 path)
-        out.mt43.nankai.is_aggregated = false;
-        out.mt43.nankai.aggregated_len = 0;
-        
-        // Copy aggregated text to message
-        uint16_t textLen = completed->getTextLength();
-        if (textLen > 0 && textLen < static_cast<uint16_t>(sizeof(out.mt43.nankai.aggregated_text))) {
-            completed->getText(out.mt43.nankai.aggregated_text, sizeof(out.mt43.nankai.aggregated_text));
-            out.mt43.nankai.aggregated_len = textLen;
-            out.mt43.nankai.is_aggregated = true;
+
+        // Get the Mt43Data from the copied message
+        Mt43Data* outMt43 = out.getMt43();
+        if (outMt43) {
+            NankaiData* outNankai = outMt43->getNankai();
+            if (outNankai) {
+                // Explicitly initialize to deterministic defaults (textLen == 0 path)
+                outNankai->is_aggregated = false;
+                outNankai->aggregated_len = 0;
+
+                // Copy aggregated text to message
+                uint16_t textLen = completed->getTextLength();
+                if (textLen >= static_cast<uint16_t>(sizeof(outNankai->aggregated_text))) {
+                    return false;
+                }
+                if (textLen > 0) {
+                    completed->getText(outNankai->aggregated_text, sizeof(outNankai->aggregated_text));
+                    outNankai->aggregated_len = textLen;
+                    outNankai->is_aggregated = true;
+                }
+            }
         }
-        
+
         return true;
     }
-    
+
     // Not complete yet - don't output
     return false;
 }

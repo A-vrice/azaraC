@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 // azaraC - src/internal/JsonWriter.h
 // Common JSON writer helpers for serializers
 
@@ -51,6 +51,7 @@ void wk(Print& out, std::string_view k);
 
 // "key":value,
 void wf_u(Print& out, std::string_view k, uint32_t v, bool last = false);
+void wf_x(Print& out, std::string_view k, uint32_t v, bool last = false);
 void wf_d(Print& out, std::string_view k, double v, bool last = false);
 void wf_s(Print& out, std::string_view k, std::optional<std::string_view> v, bool last = false);
 void wf_s(Print& out, std::string_view k, const char* v, bool last = false);

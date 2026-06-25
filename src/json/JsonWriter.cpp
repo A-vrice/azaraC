@@ -116,6 +116,21 @@ void wf_u(Print& out, std::string_view k, uint32_t v, bool last) {
     wk(out, k); writeUint32(out, v); if (!last) writeChar(out, ',');
 }
 
+void wf_x(Print& out, std::string_view k, uint32_t v, bool last) {
+    wk(out, k);
+    char buf[11];
+    buf[0] = '0'; buf[1] = 'x';
+    const char hex[] = "0123456789ABCDEF";
+    for (int i = 0; i < 8; ++i) {
+        buf[2 + i] = hex[(v >> (28 - i * 4)) & 0xF];
+    }
+    buf[10] = '\0';
+    out.print('"');
+    out.print(buf);
+    out.print('"');
+    if (!last) writeChar(out, ',');
+}
+
 void wf_d(Print& out, std::string_view k, double v, bool last) {
     wk(out, k); writeDouble(out, v); if (!last) writeChar(out, ',');
 }

@@ -40,7 +40,7 @@ private:
 
     // Process Nankai Trough page aggregation
     // Returns true if message should be output (page aggregation complete or not Nankai)
-    bool processNankaiAggregation(const Message& decoded, Message& out, uint32_t current_ms);
+    bool processNankaiAggregation(const Message& decoded, Message& out, uint64_t current_ms);
 };
 
 } // namespace azaraC

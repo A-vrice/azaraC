@@ -20,10 +20,10 @@ namespace def {
 
 [[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_typhoon_scale_category_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 0: return std::string_view{"なし", 2};
-        case 1: return std::string_view{"大型", 2};
-        case 2: return std::string_view{"超大型", 3};
-        case 15: return std::string_view{"その他の大きさ階級分類", 11};
+        case 0: return std::string_view{"なし", 6};
+        case 1: return std::string_view{"大型", 6};
+        case 2: return std::string_view{"超大型", 9};
+        case 15: return std::string_view{"その他の大きさ階級分類", 33};
         default: return std::nullopt;
     }
 }

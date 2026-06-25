@@ -20,8 +20,8 @@ namespace def {
 
 [[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_weather_warning_state_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 1: return std::string_view{"発表", 2};
-        case 2: return std::string_view{"解除", 2};
+        case 1: return std::string_view{"発表", 6};
+        case 2: return std::string_view{"解除", 6};
         default: return std::nullopt;
     }
 }

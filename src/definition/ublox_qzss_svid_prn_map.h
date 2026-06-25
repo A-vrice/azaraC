@@ -15,6 +15,7 @@ namespace def {
 
 [[nodiscard]] inline constexpr std::optional<std::string_view> ublox_qzss_svid_prn_map_lookup(uint8_t id) {
     switch (id) {
+        case 1: return std::string_view{"183", 3};
         case 2: return std::string_view{"184", 3};
         case 3: return std::string_view{"185", 3};
         case 4: return std::string_view{"186", 3};

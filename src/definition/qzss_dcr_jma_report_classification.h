@@ -20,10 +20,10 @@ namespace def {
 
 [[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_report_classification_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 1: return std::string_view{"最優先", 3};
-        case 2: return std::string_view{"優先", 2};
-        case 3: return std::string_view{"通常", 2};
-        case 7: return std::string_view{"訓練/試験", 5};
+        case 1: return std::string_view{"最優先", 9};
+        case 2: return std::string_view{"優先", 6};
+        case 3: return std::string_view{"通常", 6};
+        case 7: return std::string_view{"訓練/試験", 13};
         default: return std::nullopt;
     }
 }

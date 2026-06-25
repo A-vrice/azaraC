@@ -210,7 +210,7 @@ if (msg.msg_type == 43) {
 
 ```json
 {
-  "svid": 193,
+  "svid": 184,
   "msg_type": 43,
   "crc24": 12345678,
   "report_classification": 1,
@@ -241,7 +241,7 @@ if (msg.msg_type == 43) {
 
 ```json
 {
-  "svid": 193,
+  "svid": 189,
   "msg_type": 43,
   "disaster_category": 12,
   "disaster_category_label": "台風情報",
@@ -267,7 +267,7 @@ if (msg.msg_type == 43) {
 
 ```json
 {
-  "svid": 193,
+  "svid": 184,
   "msg_type": 44,
   "crc24": 11259375,
   "service_kind": 1,
@@ -299,7 +299,7 @@ if (msg.msg_type == 43) {
 
 ```json
 {
-  "svid": 193,
+  "svid": 184,
   "msg_type": 44,
   "service_kind": 2,
   "service_kind_label": "J_ALERT",
@@ -395,7 +395,7 @@ A17フィールドにより、メイン楕円の精度向上や追加情報が�
 **機能**:
 
 - メッセージ妥当性チェック (`msg.valid`)
-- SVID範囲チェック (QZSS: 193-202)
+- SVID範囲チェック (QZSS L1S: 183-192)
 - `disaster_category` 範囲チェック (MT=43)
 - `service_kind` チェック (MT=44)
 - 日付・時刻の妥当性チェック
@@ -410,7 +410,7 @@ Valid messages:    48
 Duplicate skipped: 2
 MT=43 (QZQSM):     30
 MT=44 (DCX):       18
-Last SVID:         193
+Last SVID:         184
 Valid ratio:       96%
 ========================
 ```

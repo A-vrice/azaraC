@@ -14,6 +14,77 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.9.0] - 2026-06-25
+
+### Added
+
+- **MT=43 情報優先度（DP）のパースとJSON出力**:
+  - `Message.h`: `Mt43Data` に `dp` (Disaster Priority) フィールドを追加
+  - `DecoderQzqsm.cpp`: `decodeMt43` で DP をパースし、重複除去バッファの優先順位判定に使用
+  - `JsonSerializerQzqsm.cpp`: `writeMt43` で `dp` をJSONに出力（1-99, 0=未定義）
+  - `test/integration/test_decoder_qzqsm.cpp`: DP 関連テストの追加
+
+### Changed
+
+- **冗長なファイル削除**:
+  - testの一部を整理・統合
+- **`.gitignore`の更新**:
+  - `.plans/` と `data/` を追加。
+
+### Documentation
+
+- `DecoderQzqsm.cpp`: MT=43 DP フィールドのパースロジックに関するコメントを追加
+
+### Fixed
+
+- `DecoderQzqsm.cpp`: `current_message_id` の重複除去バッファへの格納位置修正
+  - 既存の格納位置（477,478）から `MT43_MESSAGE_ID_OFFSET`（348）に移動
+  - これにより、重複除去バッファが正しく機能するようになる
+
+## [0.8.0] - 2026-06-19
+
+### Added
+
+- **Nankai Trough ページ集約機能**:
+  - `NankaiPageBuffer` / `NankaiPageBufferManager`: スパースページ対応のメモリ効率の良い集約バッファを実装。
+  - `Parser`: 複数ページにまたがる南海トラフ地震メッセージの集約ロジックを追加。
+  - `test/integration/test_nankai.cpp`: ページ集約の統合テストを追加。
+- **UDP ネットワーク送受信モジュール**:
+  - `UdpReceiver` / `UdpTransmitter`: QZSS DCR データの中継・送信をモジュールを追加。
+  - Wi-Fi クライアントサンプル (`examples/wifi_client/`) に UDP リレーサンプルを追加。
+- **RTOS (FreeRTOS) 対応**:
+  - `examples/rtos_freertos/`: FreeRTOS 環境での NMEA/UBX 同時処理サンプルを追加。
+- **JsonWriter ユーティリティ**:
+  - `src/internal/JsonWriter.h` / `JsonWriter.cpp`: プリミティブ型・共通データ構造のJSONシリアライズヘルパーを追加。
+- **PrintShim ホストテスト対応**:
+  - `src/internal/PrintShim.h`: ホストサイドテスト向けストリーム出力オーバーロードを追加。
+- **Fuzz テスト基盤**:
+  - `test/fuzz/fuzz_decoder.cpp`: デコーダの堅牢性検証用ファズテストを追加。
+- **カテゴリフィルタリングサンプル**:
+  - `examples/filter_by_category/`: 特定の disaster_category のみをフィルタリングして出力するサンプルを追加。
+- **定義ファイル自動生成パイプラインの強化**:
+  - `scripts/gen_definitions.py` の改善と CI ワークフロー (`update-definitions.yml`) の更新。
+- **CI/CD の拡充**:
+  - ホストテスト・ファズテスト・多プラットフォーム Arduino コンパイルを統合した GitHub Actions ワークフロー。
+  - CodeQL セキュリティ解析ワークフローの追加。
+
+### Changed
+
+- `library.properties`: `version=0.8.0` に更新。
+- `src/Parser.cpp`: Nankai Trough ページ集約ロジックの統合。
+- `src/internal/JsonSerializer.h` / `JsonSerializer.cpp`: JsonWriter ユーティリティとの統合。
+- `examples/` 全般: API の一般的な使い方に合わせてサンプルを改善。
+- `TimeFields.h`: 時刻フィールド処理の更新。
+- `.gitignore`: ネットワーク関連ファイル・CI 関連ファイルを追加。
+
+### Fixed
+
+- ESP32-C3 での `Serial2` 設定の修正。
+- 一部ボード定義でのオプション名の修正。
+- README.md の UTF-8 文字化けを修正。
+
+---
+
 ## [0.7.0] - 2026-06-07
 
 ### Added

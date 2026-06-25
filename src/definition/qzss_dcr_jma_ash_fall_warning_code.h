@@ -20,11 +20,11 @@ namespace def {
 
 [[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_ash_fall_warning_code_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 1: return std::string_view{"少量の降灰", 5};
-        case 2: return std::string_view{"やや多量の降灰", 7};
-        case 3: return std::string_view{"多量の降灰", 5};
-        case 4: return std::string_view{"小さな噴石の落下", 8};
-        case 7: return std::string_view{"その他の防災気象情報要素2", 13};
+        case 1: return std::string_view{"少量の降灰", 15};
+        case 2: return std::string_view{"やや多量の降灰", 21};
+        case 3: return std::string_view{"多量の降灰", 15};
+        case 4: return std::string_view{"小さな噴石の落下", 24};
+        case 7: return std::string_view{"その他の防災気象情報要素2", 37};
         default: return std::nullopt;
     }
 }

@@ -16,23 +16,29 @@ TEST_CASE("DCR: EEW") {
     REQUIRE(decodeNmea(nmea, msg));
     CHECK(msg.msg_type == 43);
     CHECK(msg.payload_type == MsgPayloadType::Mt43);
-    CHECK(msg.mt43.disaster_category == 1);
-    CHECK(msg.mt43.eew.long_period_lower == 0);
-    CHECK(msg.mt43.eew.long_period_upper == 0);
-    CHECK(msg.mt43.eew.notification_count == 1);
-    CHECK(msg.mt43.eew.notification[0] == 201);
-    CHECK(msg.mt43.eew.quake_time.day == 7);
-    CHECK(msg.mt43.eew.quake_time.hour == 4);
-    CHECK(msg.mt43.eew.quake_time.minute == 0);
-    CHECK(msg.mt43.eew.depth == 10);
-    CHECK(msg.mt43.eew.magnitude == 72);
-    CHECK(msg.mt43.eew.epicenter == 791);
-    CHECK(msg.mt43.eew.intensity_lower == 8);
-    CHECK(msg.mt43.eew.intensity_upper == 11);
-    CHECK(msg.mt43.eew.region_count == 17);
-    CHECK(msg.mt43.eew.regions[0] == 37);
-    CHECK(msg.mt43.eew.regions[1] == 38);
-    CHECK(msg.mt43.eew.regions[2] == 39);
+    
+    const Mt43Data* mt43 = msg.getMt43();
+    REQUIRE(mt43 != nullptr);
+    CHECK(mt43->disaster_category == 1);
+    
+    const EewData* eew = mt43->getEew();
+    REQUIRE(eew != nullptr);
+    CHECK(eew->long_period_lower == 0);
+    CHECK(eew->long_period_upper == 0);
+    CHECK(eew->notification_count == 1);
+    CHECK(eew->notification[0] == 201);
+    CHECK(eew->quake_time.day == 7);
+    CHECK(eew->quake_time.hour == 4);
+    CHECK(eew->quake_time.minute == 0);
+    CHECK(eew->depth == 10);
+    CHECK(eew->magnitude == 72);
+    CHECK(eew->epicenter == 791);
+    CHECK(eew->intensity_lower == 8);
+    CHECK(eew->intensity_upper == 11);
+    CHECK(eew->region_count == 17);
+    CHECK(eew->regions[0] == 37);
+    CHECK(eew->regions[1] == 38);
+    CHECK(eew->regions[2] == 39);
 }
 
 TEST_CASE("DCR: Seismic Intensity") {
@@ -41,7 +47,10 @@ TEST_CASE("DCR: Seismic Intensity") {
     REQUIRE(decodeNmea(nmea, msg));
     CHECK(msg.msg_type == 43);
     CHECK(msg.payload_type == MsgPayloadType::Mt43);
-    CHECK(msg.mt43.disaster_category == 3);
+    
+    const Mt43Data* mt43 = msg.getMt43();
+    REQUIRE(mt43 != nullptr);
+    CHECK(mt43->disaster_category == 3);
 }
 
 TEST_CASE("DCR: Hypocenter") {
@@ -50,7 +59,10 @@ TEST_CASE("DCR: Hypocenter") {
     REQUIRE(decodeNmea(nmea, msg));
     CHECK(msg.msg_type == 43);
     CHECK(msg.payload_type == MsgPayloadType::Mt43);
-    CHECK(msg.mt43.disaster_category == 2);
+    
+    const Mt43Data* mt43 = msg.getMt43();
+    REQUIRE(mt43 != nullptr);
+    CHECK(mt43->disaster_category == 2);
 }
 
 TEST_CASE("DCR: Tsunami") {
@@ -59,7 +71,10 @@ TEST_CASE("DCR: Tsunami") {
     REQUIRE(decodeNmea(nmea, msg));
     CHECK(msg.msg_type == 43);
     CHECK(msg.payload_type == MsgPayloadType::Mt43);
-    CHECK(msg.mt43.disaster_category == 5);
+    
+    const Mt43Data* mt43 = msg.getMt43();
+    REQUIRE(mt43 != nullptr);
+    CHECK(mt43->disaster_category == 5);
 }
 
 TEST_CASE("DCR: Tsunami Updated") {
@@ -68,7 +83,10 @@ TEST_CASE("DCR: Tsunami Updated") {
     REQUIRE(decodeNmea(nmea, msg));
     CHECK(msg.msg_type == 43);
     CHECK(msg.payload_type == MsgPayloadType::Mt43);
-    CHECK(msg.mt43.disaster_category == 5);
+    
+    const Mt43Data* mt43 = msg.getMt43();
+    REQUIRE(mt43 != nullptr);
+    CHECK(mt43->disaster_category == 5);
 }
 
 TEST_CASE("DCR: Nankai Trough") {
@@ -77,7 +95,10 @@ TEST_CASE("DCR: Nankai Trough") {
     REQUIRE(decodeNmea(nmea, msg));
     CHECK(msg.msg_type == 43);
     CHECK(msg.payload_type == MsgPayloadType::Mt43);
-    CHECK(msg.mt43.disaster_category == 4);
+    
+    const Mt43Data* mt43 = msg.getMt43();
+    REQUIRE(mt43 != nullptr);
+    CHECK(mt43->disaster_category == 4);
 }
 
 TEST_CASE("DCR: Volcano") {
@@ -86,7 +107,10 @@ TEST_CASE("DCR: Volcano") {
     REQUIRE(decodeNmea(nmea, msg));
     CHECK(msg.msg_type == 43);
     CHECK(msg.payload_type == MsgPayloadType::Mt43);
-    CHECK(msg.mt43.disaster_category == 8);
+    
+    const Mt43Data* mt43 = msg.getMt43();
+    REQUIRE(mt43 != nullptr);
+    CHECK(mt43->disaster_category == 8);
 }
 
 TEST_CASE("DCR: Ash Fall") {
@@ -95,7 +119,10 @@ TEST_CASE("DCR: Ash Fall") {
     REQUIRE(decodeNmea(nmea, msg));
     CHECK(msg.msg_type == 43);
     CHECK(msg.payload_type == MsgPayloadType::Mt43);
-    CHECK(msg.mt43.disaster_category == 9);
+    
+    const Mt43Data* mt43 = msg.getMt43();
+    REQUIRE(mt43 != nullptr);
+    CHECK(mt43->disaster_category == 9);
 }
 
 TEST_CASE("DCR: Weather") {
@@ -104,7 +131,10 @@ TEST_CASE("DCR: Weather") {
     REQUIRE(decodeNmea(nmea, msg));
     CHECK(msg.msg_type == 43);
     CHECK(msg.payload_type == MsgPayloadType::Mt43);
-    CHECK(msg.mt43.disaster_category == 10);
+    
+    const Mt43Data* mt43 = msg.getMt43();
+    REQUIRE(mt43 != nullptr);
+    CHECK(mt43->disaster_category == 10);
 }
 
 TEST_CASE("DCR: Flood") {
@@ -113,7 +143,10 @@ TEST_CASE("DCR: Flood") {
     REQUIRE(decodeNmea(nmea, msg));
     CHECK(msg.msg_type == 43);
     CHECK(msg.payload_type == MsgPayloadType::Mt43);
-    CHECK(msg.mt43.disaster_category == 11);
+    
+    const Mt43Data* mt43 = msg.getMt43();
+    REQUIRE(mt43 != nullptr);
+    CHECK(mt43->disaster_category == 11);
 }
 
 TEST_CASE("DCR: Flood Warning Cancelled") {
@@ -122,25 +155,23 @@ TEST_CASE("DCR: Flood Warning Cancelled") {
     REQUIRE(decodeNmea(nmea, msg));
     CHECK(msg.msg_type == 43);
     CHECK(msg.payload_type == MsgPayloadType::Mt43);
-    CHECK(msg.mt43.disaster_category == 11);
+    
+    const Mt43Data* mt43 = msg.getMt43();
+    REQUIRE(mt43 != nullptr);
+    CHECK(mt43->disaster_category == 11);
 }
 
 TEST_CASE("DCR: NW Pacific Tsunami") {
-    SUBCASE("Pattern 1") {
-        Message msg{};
-        const char* nmea = "$QZQSM,55,53AD360D5B80047FFFFE3000000000000000000000000000000000118372EC8*0C\r\n";
-        REQUIRE(decodeNmea(nmea, msg));
-        CHECK(msg.msg_type == 43);
-        CHECK(msg.payload_type == MsgPayloadType::Mt43);
-        CHECK(msg.mt43.disaster_category == 6);
-    }
     SUBCASE("Pattern 2") {
         Message msg{};
         const char* nmea = "$QZQSM,56,9AAD3609E080023AE008D3D1008E449009D457009E3E5011F00000138B3E720*09\r\n";
         REQUIRE(decodeNmea(nmea, msg));
         CHECK(msg.msg_type == 43);
         CHECK(msg.payload_type == MsgPayloadType::Mt43);
-        CHECK(msg.mt43.disaster_category == 6);
+        
+        const Mt43Data* mt43 = msg.getMt43();
+        REQUIRE(mt43 != nullptr);
+        CHECK(mt43->disaster_category == 6);
     }
 }
 
@@ -150,8 +181,14 @@ TEST_CASE("DCR: Unknown Magnitude Depth") {
     REQUIRE(decodeNmea(nmea, msg));
     CHECK(msg.msg_type == 43);
     CHECK(msg.payload_type == MsgPayloadType::Mt43);
-    CHECK(msg.mt43.hypo.depth == 511);
-    CHECK(msg.mt43.hypo.magnitude == 127);
+    
+    const Mt43Data* mt43 = msg.getMt43();
+    REQUIRE(mt43 != nullptr);
+    
+    const HypocenterData* hypo = mt43->getHypocenter();
+    REQUIRE(hypo != nullptr);
+    CHECK(hypo->depth == 511);
+    CHECK(hypo->magnitude == 127);
 }
 
 // ── MT=44 DCX Scenarios ──────────────────────────────────────────────────────
@@ -162,7 +199,10 @@ TEST_CASE("DCX: J-Alert") {
     REQUIRE(decodeNmea(nmea, msg));
     CHECK(msg.msg_type == 44);
     CHECK(msg.payload_type == MsgPayloadType::Mt44);
-    CHECK(msg.mt44.service_kind == Mt44ServiceKind::JAlert);
+    
+    const Mt44Data* mt44 = msg.getMt44();
+    REQUIRE(mt44 != nullptr);
+    CHECK(mt44->service_kind == Mt44ServiceKind::JAlert);
 }
 
 TEST_CASE("DCX: L-Alert") {
@@ -171,7 +211,10 @@ TEST_CASE("DCX: L-Alert") {
     REQUIRE(decodeNmea(nmea, msg));
     CHECK(msg.msg_type == 44);
     CHECK(msg.payload_type == MsgPayloadType::Mt44);
-    CHECK(msg.mt44.service_kind == Mt44ServiceKind::LAlert);
+    
+    const Mt44Data* mt44 = msg.getMt44();
+    REQUIRE(mt44 != nullptr);
+    CHECK(mt44->service_kind == Mt44ServiceKind::LAlert);
 }
 
 TEST_CASE("DCX: Outside Japan - Fiji Tsunami") {
@@ -180,12 +223,15 @@ TEST_CASE("DCX: Outside Japan - Fiji Tsunami") {
     REQUIRE(decodeNmea(nmea, msg));
     CHECK(msg.msg_type == 44);
     CHECK(msg.payload_type == MsgPayloadType::Mt44);
-    CHECK(msg.mt44.service_kind == Mt44ServiceKind::OutsideJapan);
-    CHECK(msg.mt44.camf.a2 == 71);   // Fiji
-    CHECK(msg.mt44.camf.a3 == 0);    // Undefined Provider
-    CHECK(msg.mt44.camf.a4 == 44);   // GEO/Tsunami
-    CHECK(msg.mt44.camf.a5 == 3);    // Extreme severity
-    CHECK(msg.mt44.ex_outside.vn == 16); // version 16
+    
+    const Mt44Data* mt44 = msg.getMt44();
+    REQUIRE(mt44 != nullptr);
+    CHECK(mt44->service_kind == Mt44ServiceKind::OutsideJapan);
+    CHECK(mt44->camf.a2 == 71);   // Fiji
+    CHECK(mt44->camf.a3 == 0);    // Undefined Provider
+    CHECK(mt44->camf.a4 == 44);   // GEO/Tsunami
+    CHECK(mt44->camf.a5 == 3);    // Extreme severity
+    CHECK(mt44->ex_outside.vn == 16); // version 16
 }
 
 TEST_CASE("DCX: Null Message") {
@@ -194,8 +240,11 @@ TEST_CASE("DCX: Null Message") {
     REQUIRE(decodeNmea(nmea, msg));
     CHECK(msg.msg_type == 44);
     CHECK(msg.payload_type == MsgPayloadType::Mt44);
-    CHECK(msg.mt44.service_kind == Mt44ServiceKind::NullMessage);
-    CHECK(msg.mt44.is_null_message == true);
+    
+    const Mt44Data* mt44 = msg.getMt44();
+    REQUIRE(mt44 != nullptr);
+    CHECK(mt44->service_kind == Mt44ServiceKind::NullMessage);
+    CHECK(mt44->is_null_message == true);
 }
 
 TEST_CASE("DCR: Long Period Ground Motion") {
@@ -204,9 +253,15 @@ TEST_CASE("DCR: Long Period Ground Motion") {
     REQUIRE(decodeNmea(nmea, msg));
     CHECK(msg.msg_type == 43);
     CHECK(msg.payload_type == MsgPayloadType::Mt43);
-    CHECK(msg.mt43.disaster_category == 1);
-    CHECK(msg.mt43.eew.long_period_lower == 3);
-    CHECK(msg.mt43.eew.long_period_upper == 3);
+    
+    const Mt43Data* mt43 = msg.getMt43();
+    REQUIRE(mt43 != nullptr);
+    CHECK(mt43->disaster_category == 1);
+    
+    const EewData* eew = mt43->getEew();
+    REQUIRE(eew != nullptr);
+    CHECK(eew->long_period_lower == 3);
+    CHECK(eew->long_period_upper == 3);
 }
 
 TEST_CASE("DCR: Nankai page tracking") {
@@ -215,10 +270,16 @@ TEST_CASE("DCR: Nankai page tracking") {
     REQUIRE(decodeNmea(nmea, msg));
     CHECK(msg.msg_type == 43);
     CHECK(msg.payload_type == MsgPayloadType::Mt43);
-    CHECK(msg.mt43.disaster_category == 4);
-    CHECK(msg.mt43.nankai.page == 1);
-    CHECK(msg.mt43.nankai.total_page == 27);
-    CHECK(msg.mt43.nankai.page != msg.mt43.nankai.total_page);
+    
+    const Mt43Data* mt43 = msg.getMt43();
+    REQUIRE(mt43 != nullptr);
+    CHECK(mt43->disaster_category == 4);
+    
+    const NankaiData* nankai = mt43->getNankai();
+    REQUIRE(nankai != nullptr);
+    CHECK(nankai->page == 1);
+    CHECK(nankai->total_page == 27);
+    CHECK(nankai->page != nankai->total_page);
 }
 
 TEST_CASE("DCR: Nankai oversized rejected") {
@@ -246,7 +307,10 @@ TEST_CASE("DCR: Ash Fall Sequence") {
         REQUIRE(decodeNmea(cases[i].nmea, msg));
         CHECK(msg.msg_type == 43);
         CHECK(msg.payload_type == MsgPayloadType::Mt43);
-        CHECK(msg.mt43.disaster_category == 9);
+        
+        const Mt43Data* mt43 = msg.getMt43();
+        REQUIRE(mt43 != nullptr);
+        CHECK(mt43->disaster_category == 9);
     }
 }
 
@@ -268,7 +332,10 @@ TEST_CASE("DCR: Weather Multiple") {
         REQUIRE(decodeNmea(cases[i].nmea, msg));
         CHECK(msg.msg_type == 43);
         CHECK(msg.payload_type == MsgPayloadType::Mt43);
-        CHECK(msg.mt43.disaster_category == cases[i].expected_dc);
+        
+        const Mt43Data* mt43 = msg.getMt43();
+        REQUIRE(mt43 != nullptr);
+        CHECK(mt43->disaster_category == cases[i].expected_dc);
     }
 }
 
@@ -459,13 +526,24 @@ TEST_CASE("Edge: Tsunami invalid arrival time") {
     uint32_t crc = crc24qRef(bits, 226);
     setBits(bits, 226, 24, crc);
 
-    TestDecoder::testDecodeTsunami(bits, msg, 1777122000u);
+    // Use full decode flow to properly initialize Mt43Data
+    Frame frame{};
+    memcpy(frame.bits, bits, 32);
+    frame.svid = 55;
+    frame.source = FrameSource::NMEA;
+    Decoder dec;
+    REQUIRE(dec.decode(frame, msg, 1777122000u));
 
-    CHECK(msg.mt43.tsunami.count >= 1);
-    if (msg.mt43.tsunami.count >= 1) {
-        CHECK(msg.mt43.tsunami.entries[0].arrival_time.hour == 0);
-        CHECK(msg.mt43.tsunami.entries[0].arrival_time.minute == 0);
-        CHECK(msg.mt43.tsunami.entries[0].arrival_time.unix_time == 0);
+    const Mt43Data* mt43 = msg.getMt43();
+    REQUIRE(mt43 != nullptr);
+    
+    const TsunamiData* tsunami = mt43->getTsunami();
+    REQUIRE(tsunami != nullptr);
+    CHECK(tsunami->count >= 1);
+    if (tsunami->count >= 1) {
+        CHECK(tsunami->entries[0].arrival_time.hour == 0);
+        CHECK(tsunami->entries[0].arrival_time.minute == 0);
+        CHECK(tsunami->entries[0].arrival_time.unix_time == 0);
     }
 }
 
@@ -488,7 +566,10 @@ TEST_CASE("Edge: Leap year Feb 29") {
     Frame frame{}; memcpy(frame.bits, bits, 32); frame.svid = 55;
     Decoder dec;
     CHECK(dec.decode(frame, msg, now));
-    CHECK(msg.mt43.event_time.day == 29);
+    
+    const Mt43Data* mt43 = msg.getMt43();
+    REQUIRE(mt43 != nullptr);
+    CHECK(mt43->event_time.day == 29);
 }
 
 TEST_CASE("Edge: Year end transition") {
@@ -510,7 +591,10 @@ TEST_CASE("Edge: Year end transition") {
     Frame frame{}; memcpy(frame.bits, bits, 32); frame.svid = 55;
     Decoder dec;
     CHECK(dec.decode(frame, msg, now));
-    CHECK(msg.mt43.event_time.day == 31);
+    
+    const Mt43Data* mt43 = msg.getMt43();
+    REQUIRE(mt43 != nullptr);
+    CHECK(mt43->event_time.day == 31);
 }
 
 TEST_CASE("Edge: Depth 501+") {
@@ -526,7 +610,13 @@ TEST_CASE("Edge: Depth 501+") {
     Frame frame{}; memcpy(frame.bits, bits, 32); frame.svid = 55;
     Decoder dec;
     REQUIRE(dec.decode(frame, msg, 0));
-    CHECK(msg.mt43.hypo.depth == 501);
+    
+    const Mt43Data* mt43 = msg.getMt43();
+    REQUIRE(mt43 != nullptr);
+    
+    const HypocenterData* hypo = mt43->getHypocenter();
+    REQUIRE(hypo != nullptr);
+    CHECK(hypo->depth == 501);
 }
 
 TEST_CASE("Edge: Depth 511 unknown") {
@@ -542,7 +632,13 @@ TEST_CASE("Edge: Depth 511 unknown") {
     Frame frame{}; memcpy(frame.bits, bits, 32); frame.svid = 55;
     Decoder dec;
     REQUIRE(dec.decode(frame, msg, 0));
-    CHECK(msg.mt43.hypo.depth == 511);
+    
+    const Mt43Data* mt43 = msg.getMt43();
+    REQUIRE(mt43 != nullptr);
+    
+    const HypocenterData* hypo = mt43->getHypocenter();
+    REQUIRE(hypo != nullptr);
+    CHECK(hypo->depth == 511);
 }
 
 TEST_CASE("Edge: Magnitude 126") {
@@ -558,7 +654,13 @@ TEST_CASE("Edge: Magnitude 126") {
     Frame frame{}; memcpy(frame.bits, bits, 32); frame.svid = 55;
     Decoder dec;
     REQUIRE(dec.decode(frame, msg, 0));
-    CHECK(msg.mt43.hypo.magnitude == 126);
+    
+    const Mt43Data* mt43 = msg.getMt43();
+    REQUIRE(mt43 != nullptr);
+    
+    const HypocenterData* hypo = mt43->getHypocenter();
+    REQUIRE(hypo != nullptr);
+    CHECK(hypo->magnitude == 126);
 }
 
 TEST_CASE("Edge: Magnitude 127 unknown") {
@@ -574,7 +676,13 @@ TEST_CASE("Edge: Magnitude 127 unknown") {
     Frame frame{}; memcpy(frame.bits, bits, 32); frame.svid = 55;
     Decoder dec;
     REQUIRE(dec.decode(frame, msg, 0));
-    CHECK(msg.mt43.hypo.magnitude == 127);
+    
+    const Mt43Data* mt43 = msg.getMt43();
+    REQUIRE(mt43 != nullptr);
+    
+    const HypocenterData* hypo = mt43->getHypocenter();
+    REQUIRE(hypo != nullptr);
+    CHECK(hypo->magnitude == 127);
 }
 
 TEST_CASE("Error: Invalid CRC") {

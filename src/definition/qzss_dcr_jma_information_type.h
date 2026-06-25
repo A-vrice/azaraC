@@ -20,9 +20,9 @@ namespace def {
 
 [[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_information_type_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 0: return std::string_view{"発表", 2};
-        case 1: return std::string_view{"訂正", 2};
-        case 2: return std::string_view{"取消", 2};
+        case 0: return std::string_view{"発表", 6};
+        case 1: return std::string_view{"訂正", 6};
+        case 2: return std::string_view{"取消", 6};
         default: return std::nullopt;
     }
 }

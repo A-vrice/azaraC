@@ -20,12 +20,12 @@ namespace def {
 
 [[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_long_period_ground_motion_lower_limit_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 1: return std::string_view{"長周期地震動階級1未満", 11};
-        case 2: return std::string_view{"長周期地震動階級1", 9};
-        case 3: return std::string_view{"長周期地震動階級2", 9};
-        case 4: return std::string_view{"長周期地震動階級3", 9};
-        case 5: return std::string_view{"長周期地震動階級4", 9};
-        case 7: return std::string_view{"不明", 2};
+        case 1: return std::string_view{"長周期地震動階級1未満", 31};
+        case 2: return std::string_view{"長周期地震動階級1", 25};
+        case 3: return std::string_view{"長周期地震動階級2", 25};
+        case 4: return std::string_view{"長周期地震動階級3", 25};
+        case 5: return std::string_view{"長周期地震動階級4", 25};
+        case 7: return std::string_view{"不明", 6};
         default: return std::nullopt;
     }
 }

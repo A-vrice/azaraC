@@ -47,27 +47,33 @@ TEST_CASE("decodeEEW: 基本的なEEWメッセージのデコード") {
 
     uint32_t now_unix = 1704067200u;
     msg.payload_type = MsgPayloadType::Mt43;
-    msg.mt43.disaster_category = 1;
+    msg.initPayload<Mt43Data>();
+    Mt43Data* mt43 = msg.getMt43();
+    if (mt43) mt43->disaster_category = 1;
     TestDecoder::testDecodeEEW(bits, msg, now_unix);
 
-    CHECK(msg.mt43.disaster_category == 1);
-    CHECK(msg.mt43.eew.long_period_lower == 3);
-    CHECK(msg.mt43.eew.long_period_upper == 5);
-    CHECK(msg.mt43.eew.notification_count == 2);
-    CHECK(msg.mt43.eew.notification[0] == 100);
-    CHECK(msg.mt43.eew.notification[1] == 200);
-    CHECK(msg.mt43.eew.quake_time.day == 15);
-    CHECK(msg.mt43.eew.quake_time.hour == 10);
-    CHECK(msg.mt43.eew.quake_time.minute == 30);
-    CHECK(msg.mt43.eew.depth == 50);
-    CHECK(msg.mt43.eew.magnitude == 65);
-    CHECK(msg.mt43.eew.epicenter == 25);
-    CHECK(msg.mt43.eew.intensity_lower == 3);
-    CHECK(msg.mt43.eew.intensity_upper == 7);
-    CHECK(msg.mt43.eew.region_count == 3);
-    CHECK(msg.mt43.eew.regions[0] == 1);
-    CHECK(msg.mt43.eew.regions[1] == 5);
-    CHECK(msg.mt43.eew.regions[2] == 10);
+    REQUIRE(mt43 != nullptr);
+    CHECK(mt43->disaster_category == 1);
+    
+    const EewData* eew = mt43->getEew();
+    REQUIRE(eew != nullptr);
+    CHECK(eew->long_period_lower == 3);
+    CHECK(eew->long_period_upper == 5);
+    CHECK(eew->notification_count == 2);
+    CHECK(eew->notification[0] == 100);
+    CHECK(eew->notification[1] == 200);
+    CHECK(eew->quake_time.day == 15);
+    CHECK(eew->quake_time.hour == 10);
+    CHECK(eew->quake_time.minute == 30);
+    CHECK(eew->depth == 50);
+    CHECK(eew->magnitude == 65);
+    CHECK(eew->epicenter == 25);
+    CHECK(eew->intensity_lower == 3);
+    CHECK(eew->intensity_upper == 7);
+    CHECK(eew->region_count == 3);
+    CHECK(eew->regions[0] == 1);
+    CHECK(eew->regions[1] == 5);
+    CHECK(eew->regions[2] == 10);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -121,14 +127,17 @@ TEST_CASE("decodeDcx: L-Alert メッセージのデコード") {
 
     CHECK(msg.valid == true);
     CHECK(msg.payload_type == MsgPayloadType::Mt44);
-    CHECK(msg.mt44.service_kind == Mt44ServiceKind::LAlert);
-    CHECK(msg.mt44.sd.sdmt == 0);
-    CHECK(msg.mt44.sd.sdm == 0x1FF);
-    CHECK(msg.mt44.camf.a1 == 1);
-    CHECK(msg.mt44.camf.a2 == 111);
-    CHECK(msg.mt44.camf.a3 == 1);
-    CHECK(msg.mt44.ex_lalert_local.ex1 == 1100);
-    CHECK(msg.mt44.ex_lalert_local.vn == 1);
+    
+    const Mt44Data* mt44 = msg.getMt44();
+    REQUIRE(mt44 != nullptr);
+    CHECK(mt44->service_kind == Mt44ServiceKind::LAlert);
+    CHECK(mt44->sd.sdmt == 0);
+    CHECK(mt44->sd.sdm == 0x1FF);
+    CHECK(mt44->camf.a1 == 1);
+    CHECK(mt44->camf.a2 == 111);
+    CHECK(mt44->camf.a3 == 1);
+    CHECK(mt44->ex_lalert_local.ex1 == 1100);
+    CHECK(mt44->ex_lalert_local.vn == 1);
 }
 
 TEST_CASE("decodeDcx: J-Alert メッセージのデコード") {
@@ -168,12 +177,15 @@ TEST_CASE("decodeDcx: J-Alert メッセージのデコード") {
 
     CHECK(msg.valid == true);
     CHECK(msg.payload_type == MsgPayloadType::Mt44);
-    CHECK(msg.mt44.service_kind == Mt44ServiceKind::JAlert);
-    CHECK(msg.mt44.camf.a2 == 111);
-    CHECK(msg.mt44.camf.a3 == 2);
-    CHECK(msg.mt44.ex_jalert.ex8 == 0);
-    CHECK(msg.mt44.ex_jalert.ex9 == 3);
-    CHECK(msg.mt44.ex_jalert.vn == 1);
+    
+    const Mt44Data* mt44 = msg.getMt44();
+    REQUIRE(mt44 != nullptr);
+    CHECK(mt44->service_kind == Mt44ServiceKind::JAlert);
+    CHECK(mt44->camf.a2 == 111);
+    CHECK(mt44->camf.a3 == 2);
+    CHECK(mt44->ex_jalert.ex8 == 0);
+    CHECK(mt44->ex_jalert.ex9 == 3);
+    CHECK(mt44->ex_jalert.vn == 1);
 }
 
 TEST_CASE("decodeDcx: Local Government メッセージのデコード") {
@@ -216,16 +228,19 @@ TEST_CASE("decodeDcx: Local Government メッセージのデコード") {
 
     CHECK(msg.valid == true);
     CHECK(msg.payload_type == MsgPayloadType::Mt44);
-    CHECK(msg.mt44.service_kind == Mt44ServiceKind::LocalGovernment);
-    CHECK(msg.mt44.camf.a3 == 4);
-    CHECK(msg.mt44.ex_lalert_local.ex1 == 1100);
-    CHECK(msg.mt44.ex_lalert_local.ex2 == 1);
-    CHECK(msg.mt44.ex_lalert_local.ex3 == 91522);
-    CHECK(msg.mt44.ex_lalert_local.ex4 == 68950);
-    CHECK(msg.mt44.ex_lalert_local.ex5 == 13);
-    CHECK(msg.mt44.ex_lalert_local.ex6 == 11);
-    CHECK(msg.mt44.ex_lalert_local.ex7 == 96);
-    CHECK(msg.mt44.ex_lalert_local.vn == 1);
+    
+    const Mt44Data* mt44 = msg.getMt44();
+    REQUIRE(mt44 != nullptr);
+    CHECK(mt44->service_kind == Mt44ServiceKind::LocalGovernment);
+    CHECK(mt44->camf.a3 == 4);
+    CHECK(mt44->ex_lalert_local.ex1 == 1100);
+    CHECK(mt44->ex_lalert_local.ex2 == 1);
+    CHECK(mt44->ex_lalert_local.ex3 == 91522);
+    CHECK(mt44->ex_lalert_local.ex4 == 68950);
+    CHECK(mt44->ex_lalert_local.ex5 == 13);
+    CHECK(mt44->ex_lalert_local.ex6 == 11);
+    CHECK(mt44->ex_lalert_local.ex7 == 96);
+    CHECK(mt44->ex_lalert_local.vn == 1);
 }
 
 TEST_CASE("decodeDcx: Outside Japan メッセージのデコード") {
@@ -265,9 +280,12 @@ TEST_CASE("decodeDcx: Outside Japan メッセージのデコード") {
 
     CHECK(msg.valid == true);
     CHECK(msg.payload_type == MsgPayloadType::Mt44);
-    CHECK(msg.mt44.service_kind == Mt44ServiceKind::OutsideJapan);
-    CHECK(msg.mt44.camf.a2 == 32);
-    CHECK(msg.mt44.ex_outside.vn == 5);
+    
+    const Mt44Data* mt44 = msg.getMt44();
+    REQUIRE(mt44 != nullptr);
+    CHECK(mt44->service_kind == Mt44ServiceKind::OutsideJapan);
+    CHECK(mt44->camf.a2 == 32);
+    CHECK(mt44->ex_outside.vn == 5);
 }
 
 TEST_CASE("decodeDcx: NULL Message のデコード") {
@@ -284,8 +302,11 @@ TEST_CASE("decodeDcx: NULL Message のデコード") {
 
     CHECK(msg.valid == true);
     CHECK(msg.payload_type == MsgPayloadType::Mt44);
-    CHECK(msg.mt44.service_kind == Mt44ServiceKind::NullMessage);
-    CHECK(msg.mt44.is_null_message == true);
+    
+    const Mt44Data* mt44 = msg.getMt44();
+    REQUIRE(mt44 != nullptr);
+    CHECK(mt44->service_kind == Mt44ServiceKind::NullMessage);
+    CHECK(mt44->is_null_message == true);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -435,12 +456,15 @@ TEST_CASE("DCX B1: L-AlertメッセージでのB1解析") {
 
     CHECK(result == true);
     CHECK(msg.valid == true);
-    CHECK(msg.mt44.service_kind == Mt44ServiceKind::LAlert);
-    CHECK(msg.mt44.camf.b1_present == true);
-    CHECK(msg.mt44.camf.b1_c1 == 5);
-    CHECK(msg.mt44.camf.b1_c2 == 3);
-    CHECK(msg.mt44.camf.b1_c3 == 2);
-    CHECK(msg.mt44.camf.b1_c4 == 1);
+    
+    const Mt44Data* mt44 = msg.getMt44();
+    REQUIRE(mt44 != nullptr);
+    CHECK(mt44->service_kind == Mt44ServiceKind::LAlert);
+    CHECK(mt44->camf.b1_present == true);
+    CHECK(mt44->camf.b1_c1 == 5);
+    CHECK(mt44->camf.b1_c2 == 3);
+    CHECK(mt44->camf.b1_c3 == 2);
+    CHECK(mt44->camf.b1_c4 == 1);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -492,10 +516,13 @@ TEST_CASE("DCX B2: ハザード中心オフセットが主楕円座標に反映�
 
     REQUIRE(result == true);
     CHECK(msg.valid == true);
-    CHECK(msg.mt44.service_kind == Mt44ServiceKind::LAlert);
-    CHECK(msg.mt44.camf.b2_present == true);
-    CHECK(msg.mt44.camf.b2_c5 == 63);
-    CHECK(msg.mt44.camf.b2_c6 == 63);
+    
+    const Mt44Data* mt44 = msg.getMt44();
+    REQUIRE(mt44 != nullptr);
+    CHECK(mt44->service_kind == Mt44ServiceKind::LAlert);
+    CHECK(mt44->camf.b2_present == true);
+    CHECK(mt44->camf.b2_c5 == 63);
+    CHECK(mt44->camf.b2_c6 == 63);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -547,10 +574,13 @@ TEST_CASE("DCX B3: 副楕円パラメータが camf に反映される") {
 
     REQUIRE(result == true);
     CHECK(msg.valid == true);
-    CHECK(msg.mt44.service_kind == Mt44ServiceKind::LAlert);
-    CHECK(msg.mt44.camf.b3_present == true);
-    CHECK(msg.mt44.camf.b3_c7  == 3);
-    CHECK(msg.mt44.camf.b3_c8  == 7);
-    CHECK(msg.mt44.camf.b3_c9  == 31);
-    CHECK(msg.mt44.camf.b3_c10 == 0);
+    
+    const Mt44Data* mt44 = msg.getMt44();
+    REQUIRE(mt44 != nullptr);
+    CHECK(mt44->service_kind == Mt44ServiceKind::LAlert);
+    CHECK(mt44->camf.b3_present == true);
+    CHECK(mt44->camf.b3_c7  == 3);
+    CHECK(mt44->camf.b3_c8  == 7);
+    CHECK(mt44->camf.b3_c9  == 31);
+    CHECK(mt44->camf.b3_c10 == 0);
 }

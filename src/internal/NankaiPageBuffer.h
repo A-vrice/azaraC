@@ -67,10 +67,10 @@ struct NankaiPageBuffer {
     NankaiPageKey key;
     uint8_t total_pages = 0;
     uint8_t received_pages = 0;
-    uint32_t last_update_ms = 0;
+    uint64_t last_update_ms = 0;  // Changed to uint64_t for overflow-safe time handling
 
     // Variable-length storage: only received pages are stored
-    PageData pages[MAX_PAGES];  // Sparse array, valid entries: [0..received_pages-1]
+    PageData pages[MAX_PAGES] = {};  // Sparse array, valid entries: [0..received_pages-1]
 
     NankaiPageBuffer() {
         clearAll();
@@ -82,7 +82,7 @@ struct NankaiPageBuffer {
     // text_data: pointer to 18 bytes of text data
     // current_ms: current timestamp in milliseconds (for consistent time source)
     // Returns true if page was added successfully
-    bool addPage(uint8_t page_num, uint8_t total_pages, const uint8_t* text_data, uint32_t current_ms) {
+    bool addPage(uint8_t page_num, uint8_t total_pages, const uint8_t* text_data, uint64_t current_ms) {
         // Set total_pages on first call
         if (this->total_pages == 0) {
             this->total_pages = total_pages;
@@ -181,9 +181,9 @@ struct NankaiPageBuffer {
     }
 
     // Check if buffer has expired (timeout)
-    bool isExpired(uint32_t current_ms) const {
+    // Uses uint64_t for overflow-safe time handling
+    bool isExpired(uint64_t current_ms) const {
         if (total_pages == 0) return false;
-        // uint32_t overflow safe: unsigned arithmetic handles wrap-around
         return (current_ms - last_update_ms) > TIMEOUT_MS;
     }
 
@@ -246,7 +246,7 @@ public:
     // Returns pointer to completed buffer if all pages received, nullptr otherwise
     NankaiPageBuffer* addPage(const NankaiPageKey& key, uint8_t page_num,
                                uint8_t total_pages, const uint8_t* text_data,
-                               uint32_t current_ms) {
+                               uint64_t current_ms) {
         // Expire old buffers
         expireBuffers(current_ms);
 
@@ -258,7 +258,7 @@ public:
             idx = findEmptyBuffer();
             if (idx < 0) {
                 // No empty slot, use LRU eviction (oldest buffer)
-                idx = findOldestBuffer();
+                idx = findOldestBuffer(current_ms);
             }
             // Initialize new buffer
             _buffers[idx].clearAll();
@@ -327,17 +327,18 @@ private:
         return -1;
     }
 
-    // LRU eviction: find the oldest buffer (smallest last_update_ms)
-    int8_t findOldestBuffer() {
-        uint32_t oldest_ms = UINT32_MAX;
+    // LRU eviction: find the oldest buffer by age relative to current_ms
+    // Uses wrap-aware elapsed computation (unsigned subtraction) so correct
+    // across millis() rollover.
+    int8_t findOldestBuffer(uint64_t current_ms) {
+        uint64_t max_age = 0;
         int8_t oldest_idx = 0;
 
         for (uint8_t i = 0; i < MAX_BUFFERS; ++i) {
-            // Use last_update_ms as proxy for age
-            // For empty buffers, this will be 0 (will be selected first)
-            uint32_t update_ms = _buffers[i].isEmpty() ? 0 : _buffers[i].last_update_ms;
-            if (update_ms < oldest_ms) {
-                oldest_ms = update_ms;
+            // Empty buffers have age 0 and are picked only if nothing is older
+            uint64_t age = _buffers[i].isEmpty() ? 0 : (current_ms - _buffers[i].last_update_ms);
+            if (age > max_age) {
+                max_age = age;
                 oldest_idx = i;
             }
         }
@@ -345,7 +346,7 @@ private:
         return oldest_idx;
     }
 
-    void expireBuffers(uint32_t current_ms) {
+    void expireBuffers(uint64_t current_ms) {
         for (uint8_t i = 0; i < MAX_BUFFERS; ++i) {
             if (!_buffers[i].isEmpty() && _buffers[i].isExpired(current_ms)) {
                 _buffers[i].clearAll();

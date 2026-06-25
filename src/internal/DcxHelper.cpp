@@ -301,12 +301,12 @@ B4DetailedInfo decodeB4DetailedInfo(uint16_t a18, uint8_t a4_code) {
             break;
         case 74: // Rainfall: D9[131:133](3b) D13[134:137](4b)
             r.d9  = (a18 >> 12) & 0x07;  // spec[131:133] → a18[14:12]
-            r.d13 = (a18 >> 8)  & 0x0F;  // spec[134:137] → a18[10:7]  (4 bits)
+            r.d13 = (a18 >> 8)  & 0x0F;  // spec[134:137] → a18[11:8]  (4 bits)
             r.d9_present = true; r.d13_present = true;
             break;
         case 76: // Snowfall: D14[131:135](5b) D13[136:139](4b)
             r.d14 = (a18 >> 10) & 0x1F;  // spec[131:135] → a18[14:10] (5 bits)
-            r.d13 = (a18 >> 5)  & 0x0F;  // spec[136:139] → a18[8:5]
+            r.d13 = (a18 >> 6)  & 0x0F;  // spec[136:139] → a18[9:6]
             r.d14_present = true; r.d13_present = true;
             break;
         case 68: // Flood: D15[131:132](2b)
@@ -319,7 +319,7 @@ B4DetailedInfo decodeB4DetailedInfo(uint16_t a18, uint8_t a4_code) {
             break;
         case 81: // Wind chill/Frost: D8[131:134](4b) D6[135:138](4b)
             r.d8 = (a18 >> 11) & 0x0F;   // spec[131:134] → a18[14:11]
-            r.d6 = (a18 >> 6)  & 0x0F;   // spec[135:138] → a18[9:6]
+            r.d6 = (a18 >> 7)  & 0x0F;   // spec[135:138] → a18[10:7]
             r.d8_present = true; r.d6_present = true;
             break;
         case 64: // Derecho: D8[131:134](4b) D9[135:137](3b) D16[138:140](3b) D11[141:143](3b)
@@ -336,7 +336,7 @@ B4DetailedInfo decodeB4DetailedInfo(uint16_t a18, uint8_t a4_code) {
             break;
         case 75: // Snow storm/Blizzard: D13[131:134](4b) D8[135:138](4b)
             r.d13 = (a18 >> 11) & 0x0F;  // spec[131:134] → a18[14:11]
-            r.d8  = (a18 >> 6)  & 0x0F;  // spec[135:138] → a18[9:6]
+            r.d8  = (a18 >> 7)  & 0x0F;  // spec[135:138] → a18[10:7]
             r.d13_present = true; r.d8_present = true;
             break;
         case 65: // Drought: D18[131:132](2b)
@@ -382,7 +382,7 @@ B4DetailedInfo decodeB4DetailedInfo(uint16_t a18, uint8_t a4_code) {
         case 53: // Risk of infection: D26[131:135](5b) D35[136:141](6b)
         case 51: // Pandemic
             r.d26 = (a18 >> 10) & 0x1F;  // spec[131:135] → a18[14:10] (5 bits)
-            r.d35 = (a18 >> 3)  & 0x3F;  // spec[136:141] → a18[8:3]
+            r.d35 = (a18 >> 4)  & 0x3F;  // spec[136:141] → a18[9:4]
             r.d26_present = true; r.d35_present = true;
             break;
         case 19: // Noise pollution: D27[131:134](4b)

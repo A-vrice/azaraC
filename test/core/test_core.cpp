@@ -62,10 +62,14 @@ TEST_CASE("MT=44 field extraction on synthetic frame") {
     REQUIRE(ok);
     CHECK(msg.msg_type == 44);
     CHECK(msg.payload_type == MsgPayloadType::Mt44);
-    CHECK(msg.mt44.service_kind == Mt44ServiceKind::JAlert);
-    CHECK(msg.mt44.camf.a1 == 1);
-    CHECK(msg.mt44.camf.a2 == 111);
-    CHECK(msg.mt44.camf.a3 == 2);
+    
+    // Use safe accessor for Mt44Data
+    const Mt44Data* mt44 = msg.getMt44();
+    REQUIRE(mt44 != nullptr);
+    CHECK(mt44->service_kind == Mt44ServiceKind::JAlert);
+    CHECK(mt44->camf.a1 == 1);
+    CHECK(mt44->camf.a2 == 111);
+    CHECK(mt44->camf.a3 == 2);
 }
 
 // ── 時間変換テスト (from test_time.cpp) ────────────────────────────────────

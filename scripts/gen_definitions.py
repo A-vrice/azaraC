@@ -144,7 +144,8 @@ def emit_switch_optional(varname, entries, guard, kt):
              "    switch (id) {"]
     for k, v in sorted(entries.items()):
         if v is not None:
-            lines.append(f'        case {k}: return std::string_view{{{c_str_literal(v)}, {len(v)}}};')
+            byte_len = len(v.encode('utf-8'))
+            lines.append(f'        case {k}: return std::string_view{{{c_str_literal(v)}, {byte_len}}};')
         else:
             lines.append(f'        case {k}: return std::nullopt;')
     lines += ['        default: return std::nullopt;', "    }", "}"]
@@ -171,7 +172,7 @@ def emit_array_optional(varname, entries, guard, kt):
     base, top = keys[0], keys[-1]
     table = [entries.get(i) for i in range(base, top + 1)]
     rows = ",\n    ".join(
-        f'std::string_view{{{c_str_literal(v)}, {len(v)}}}' if v is not None else "std::nullopt" for v in table)
+        f'std::string_view{{{c_str_literal(v)}, {len(v.encode("utf-8"))}}}' if v is not None else "std::nullopt" for v in table)
     return "\n".join([
         f"inline constexpr std::optional<std::string_view> {guard}_TABLE[] = {{",
         f"    {rows}", "};",
@@ -206,7 +207,7 @@ def emit_bsearch_optional(varname, entries, guard, kt):
     keys = sorted(entries.keys())
     n = len(keys)
     idx_type = "uint8_t" if n <= 255 else ("uint16_t" if n <= 65535 else "uint32_t")
-    rows = "\n".join(f'    {{{k}u, std::string_view{{{c_str_literal(entries[k])}, {len(entries[k])}}}}},' for k in keys)
+    rows = "\n".join(f'    {{{k}u, std::string_view{{{c_str_literal(entries[k])}, {len(entries[k].encode("utf-8"))}}}}},' for k in keys)
     return "\n".join([
         f"struct {guard}_Entry {{ {kt} id; std::optional<std::string_view> label; }};",
         f"inline constexpr {guard}_Entry {guard}_TABLE[] = {{",

@@ -27,13 +27,17 @@ endif
 TEST_SRCS = \
 	test_main.cpp \
 	core/test_core.cpp \
-	decoder/test_qzqsm.cpp \
-	decoder/test_dcx.cpp \
+	core/test_boundary_values.cpp \
+	core/test_message_struct.cpp \
 	framer/test_framer.cpp \
 	framer/test_ublox_azarashi.cpp \
 	json/test_json.cpp \
+	json/test_json_dcx_b1b4.cpp \
 	integration/test_parser.cpp \
+	integration/test_parser_integration.cpp \
 	integration/test_nankai.cpp \
+	integration/test_nankai_e2e.cpp \
+	integration/test_error_handling.cpp \
 	integration/test_azarashi.cpp \
 	integration/test_azarashi_dcr.cpp \
 	integration/test_azarashi_dcx.cpp

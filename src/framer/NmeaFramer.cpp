@@ -90,11 +90,11 @@ bool NmeaFramer::parse(Frame& out) {
     uint8_t byte_idx = 0;
 
     // Count hex characters — QZSS L1S is 250 bits = 63 hex chars (31 bytes + 1 nibble).
-    // Per IS-QZSS-DCX-003, exactly 63 hex chars are expected.
+    // Some receivers output 64 hex chars (32 bytes), so accept both 63 and 64.
     char* start_p = p;
     while ((*p >= '0' && *p <= '9') || (*p >= 'A' && *p <= 'F') || (*p >= 'a' && *p <= 'f')) p++;
     size_t hex_len = p - start_p;
-    if (hex_len != 63) return false;
+    if (hex_len != 63 && hex_len != 64) return false;
 
     p = start_p;
     // Decode full byte pairs
@@ -113,8 +113,19 @@ bool NmeaFramer::parse(Frame& out) {
         out.bits[byte_idx++] = hi << 4;
     }
     if (byte_idx < 31) return false;  // Need at least 31 bytes for 250 bits
+    
+    // For 64 hex chars (32 bytes), mask the last nibble (padding) to get 250 bits
+    if (hex_len == 64) {
+        out.bits[31] &= 0xF0;
+    }
 
-    out.svid   = svid;
+    // QZQSM NMEA SVID is L1S PRN - 128 (e.g. 56 -> 184)
+    if (svid >= 55 && svid <= 63) {
+        out.svid = svid + 128;
+    } else {
+        out.svid = svid;
+    }
+    
     out.source = FrameSource::NMEA;
     return true;
 }

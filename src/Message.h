@@ -1,8 +1,14 @@
 #pragma once
 // azaraC - src/Message.h
 // Bit offsets derived from azarashi (IS-QZSS-DCR-016 / IS-QZSS-DCX-003)
+//
+// Safe tagged union using explicit memory management (placement new).
+// No std::variant dependency for Arduino compatibility.
 
 #include <cstdint>
+#include <cstring>
+#include <new>
+#include <utility>
 
 namespace azaraC {
 
@@ -71,329 +77,287 @@ struct Mt44CamfRaw {
     uint16_t a18;   // 15
 
     // B1 (A17=00) - Improved Resolution of Main Ellipse (EWSS CAMF v1.1 §3.7.1)
-    // A18 (15bit) = C1(3bit) + C2(3bit) + C3(3bit) + C4(3bit) + Reserved(3bit)
-    bool     b1_present;    // true if A17 == 0 and any C1-C4 is non-zero
-    uint8_t  b1_c1;         // 3 bits [0:2]   - latitude refinement (0-7)
-    uint8_t  b1_c2;         // 3 bits [3:5]   - longitude refinement (0-7)
-    uint8_t  b1_c3;         // 3 bits [6:8]   - semi-major axis interpolation factor (0-7)
-    uint8_t  b1_c4;         // 3 bits [9:11]  - semi-minor axis interpolation factor (0-7)
+    bool     b1_present;
+    uint8_t  b1_c1;
+    uint8_t  b1_c2;
+    uint8_t  b1_c3;
+    uint8_t  b1_c4;
 
     // B2 (A17=01) - Position of the Centre of the Hazard (EWSS CAMF v1.1 §3.7.2)
-    // A18 (15bit) = C5(7bit) + C6(7bit) + Reserved(1bit)
-    bool     b2_present;    // true if A17 == 1 and main ellipse is valid
-    uint8_t  b2_c5;         // 7 bits [0:6]   - delta latitude from ellipse center (-10..+10 deg)
-    uint8_t  b2_c6;         // 7 bits [7:13]  - delta longitude from ellipse center (-10..+10 deg)
+    bool     b2_present;
+    uint8_t  b2_c5;
+    uint8_t  b2_c6;
 
     // B3 (A17=10) - Secondary Ellipse Definition (EWSS CAMF v1.1 §3.7.3)
-    // A18 (15bit) = C7(2bit) + C8(3bit) + C9(5bit) + C10(5bit)
-    bool     b3_present;           // true if A17 == 2
-    uint8_t  b3_c7;                // 2 bits [0:1]   - shift factor (0-3)
-    uint8_t  b3_c8;                // 3 bits [2:4]   - homothetic factor index
-    uint8_t  b3_c9;                // 5 bits [5:9]   - bearing angle index
-    uint8_t  b3_c10;               // 5 bits [10:14] - guidance library code
-    double   b3_shift_km;          // decoded shift distance in km
-    double   b3_homothetic_factor; // decoded homothetic factor (0.25-2.0)
-    double   b3_bearing_deg;       // decoded bearing angle in degrees
+    bool     b3_present;
+    uint8_t  b3_c7;
+    uint8_t  b3_c8;
+    uint8_t  b3_c9;
+    uint8_t  b3_c10;
+    double   b3_shift_km;
+    double   b3_homothetic_factor;
+    double   b3_bearing_deg;
 
     // B4 (A17=11) - Quantitative and Detailed Information (EWSS CAMF v1.1 §3.7.4)
-    // A18 (15bit) = D-series fields depending on A4 hazard category and type
-    bool     b4_present;    // true if A17 == 3
-    // Presence flags for each D-field (true when field is present for the hazard type)
-    bool     b4_d1_present;     // D1: Magnitude on Richter scale
-    bool     b4_d2_present;     // D2: Seismic coefficient
-    bool     b4_d3_present;     // D3: Azimuth from ellipse center to epicenter
-    bool     b4_d4_present;     // D4: Vector length between ellipse center and epicenter
-    bool     b4_d5_present;     // D5: Wave height
-    bool     b4_d6_present;     // D6: Temperature range
-    bool     b4_d7_present;     // D7: Hurricane category
-    bool     b4_d8_present;     // D8: Wind speed
-    bool     b4_d9_present;     // D9: Rainfall amounts
-    bool     b4_d10_present;    // D10: Damage category
-    bool     b4_d11_present;    // D11: Tornado probability
-    bool     b4_d12_present;    // D12: Hail scale
-    bool     b4_d13_present;    // D13: Visibility
-    bool     b4_d14_present;    // D14: Snow depth
-    bool     b4_d15_present;    // D15: Flood severity
-    bool     b4_d16_present;    // D16: Lightning intensity
-    bool     b4_d17_present;    // D17: Fog level
-    bool     b4_d18_present;    // D18: Drought level
-    bool     b4_d19_present;    // D19: Avalanche warning level
-    bool     b4_d20_present;    // D20: Ash fall amount and impact
-    bool     b4_d21_present;    // D21: Geomagnetic scale
-    bool     b4_d22_present;    // D22: Terrorism threat level
-    bool     b4_d23_present;    // D23: Fire risk level
-    bool     b4_d24_present;    // D24: Water quality
-    bool     b4_d25_present;    // D25: UV index
-    bool     b4_d26_present;    // D26: Number of cases per 100000 inhabitants
-    bool     b4_d27_present;    // D27: Noise range
-    bool     b4_d28_present;    // D28: Air quality index
-    bool     b4_d29_present;    // D29: Outage estimated duration
-    bool     b4_d30_present;    // D30: Nuclear event scale
-    bool     b4_d31_present;    // D31: Chemical hazard type
-    bool     b4_d32_present;    // D32: Biohazard level
-    bool     b4_d33_present;    // D33: Biohazard type
-    bool     b4_d34_present;    // D34: Explosive hazard type
-    bool     b4_d35_present;    // D35: Infection type
-    bool     b4_d36_present;    // D36: Typhoon category
-    // D-field values (valid when corresponding _present flag is true)
-    uint8_t  b4_d1;         // 4 bits - D1: Magnitude on Richter scale
-    uint8_t  b4_d2;         // 3 bits - D2: Seismic coefficient
-    uint8_t  b4_d3;         // 4 bits - D3: Azimuth from ellipse center to epicenter
-    uint8_t  b4_d4;         // 4 bits - D4: Vector length between ellipse center and epicenter
-    uint8_t  b4_d5;         // 3 bits - D5: Wave height
-    uint8_t  b4_d6;         // 4 bits - D6: Temperature range
-    uint8_t  b4_d7;         // 3 bits - D7: Hurricane category
-    uint8_t  b4_d8;         // 4 bits - D8: Wind speed
-    uint8_t  b4_d9;         // 3 bits - D9: Rainfall amounts
-    uint8_t  b4_d10;        // 3 bits - D10: Damage category
-    uint8_t  b4_d11;        // 3 bits - D11: Tornado probability
-    uint8_t  b4_d12;        // 4 bits - D12: Hail scale
-    uint8_t  b4_d13;        // 4 bits - D13: Visibility
-    uint8_t  b4_d14;        // 5 bits - D14: Snow depth
-    uint8_t  b4_d15;        // 2 bits - D15: Flood severity
-    uint8_t  b4_d16;        // 3 bits - D16: Lightning intensity
-    uint8_t  b4_d17;        // 3 bits - D17: Fog level
-    uint8_t  b4_d18;        // 2 bits - D18: Drought level
-    uint8_t  b4_d19;        // 3 bits - D19: Avalanche warning level
-    uint8_t  b4_d20;        // 3 bits - D20: Ash fall amount and impact
-    uint8_t  b4_d21;        // 3 bits - D21: Geomagnetic scale
-    uint8_t  b4_d22;        // 3 bits - D22: Terrorism threat level
-    uint8_t  b4_d23;        // 3 bits - D23: Fire risk level
-    uint8_t  b4_d24;        // 3 bits - D24: Water quality
-    uint8_t  b4_d25;        // 4 bits - D25: UV index
-    uint8_t  b4_d26;        // 5 bits - D26: Number of cases per 100000 inhabitants
-    uint8_t  b4_d27;        // 4 bits - D27: Noise range
-    uint8_t  b4_d28;        // 3 bits - D28: Air quality index
-    uint8_t  b4_d29;        // 5 bits - D29: Outage estimated duration
-    uint8_t  b4_d30;        // 4 bits - D30: Nuclear event scale
-    uint8_t  b4_d31;        // 4 bits - D31: Chemical hazard type
-    uint8_t  b4_d32;        // 2 bits - D32: Biohazard level
-    uint8_t  b4_d33;        // 2 bits - D33: Biohazard type
-    uint8_t  b4_d34;        // 2 bits - D34: Explosive hazard type
-    uint8_t  b4_d35;        // 6 bits - D35: Infection type
-    uint8_t  b4_d36;        // 3 bits - D36: Typhoon category
+    bool     b4_present;
+    bool     b4_d1_present;
+    bool     b4_d2_present;
+    bool     b4_d3_present;
+    bool     b4_d4_present;
+    bool     b4_d5_present;
+    bool     b4_d6_present;
+    bool     b4_d7_present;
+    bool     b4_d8_present;
+    bool     b4_d9_present;
+    bool     b4_d10_present;
+    bool     b4_d11_present;
+    bool     b4_d12_present;
+    bool     b4_d13_present;
+    bool     b4_d14_present;
+    bool     b4_d15_present;
+    bool     b4_d16_present;
+    bool     b4_d17_present;
+    bool     b4_d18_present;
+    bool     b4_d19_present;
+    bool     b4_d20_present;
+    bool     b4_d21_present;
+    bool     b4_d22_present;
+    bool     b4_d23_present;
+    bool     b4_d24_present;
+    bool     b4_d25_present;
+    bool     b4_d26_present;
+    bool     b4_d27_present;
+    bool     b4_d28_present;
+    bool     b4_d29_present;
+    bool     b4_d30_present;
+    bool     b4_d31_present;
+    bool     b4_d32_present;
+    bool     b4_d33_present;
+    bool     b4_d34_present;
+    bool     b4_d35_present;
+    bool     b4_d36_present;
+    uint8_t  b4_d1;
+    uint8_t  b4_d2;
+    uint8_t  b4_d3;
+    uint8_t  b4_d4;
+    uint8_t  b4_d5;
+    uint8_t  b4_d6;
+    uint8_t  b4_d7;
+    uint8_t  b4_d8;
+    uint8_t  b4_d9;
+    uint8_t  b4_d10;
+    uint8_t  b4_d11;
+    uint8_t  b4_d12;
+    uint8_t  b4_d13;
+    uint8_t  b4_d14;
+    uint8_t  b4_d15;
+    uint8_t  b4_d16;
+    uint8_t  b4_d17;
+    uint8_t  b4_d18;
+    uint8_t  b4_d19;
+    uint8_t  b4_d20;
+    uint8_t  b4_d21;
+    uint8_t  b4_d22;
+    uint8_t  b4_d23;
+    uint8_t  b4_d24;
+    uint8_t  b4_d25;
+    uint8_t  b4_d26;
+    uint8_t  b4_d27;
+    uint8_t  b4_d28;
+    uint8_t  b4_d29;
+    uint8_t  b4_d30;
+    uint8_t  b4_d31;
+    uint8_t  b4_d32;
+    uint8_t  b4_d33;
+    uint8_t  b4_d34;
+    uint8_t  b4_d35;
+    uint8_t  b4_d36;
 };
 
 struct Mt44ExLAlertOrLocal {
-    uint16_t ex1;   // 16
-    uint8_t  ex2;   // 1
-    uint32_t ex3;   // 17 unsigned (IS-QZSS-DCX-003 §4.2.4.1.3)
-    uint32_t ex4;   // 17 unsigned (IS-QZSS-DCX-003 §4.2.4.1.4)
-    uint8_t  ex5;   // 5
-    uint8_t  ex6;   // 5
-    uint8_t  ex7;   // 7
-    uint8_t  vn;    // 6
+    uint16_t ex1;
+    uint8_t  ex2;
+    uint32_t ex3;
+    uint32_t ex4;
+    uint8_t  ex5;
+    uint8_t  ex6;
+    uint8_t  ex7;
+    uint8_t  vn;
 };
 
 struct Mt44ExJAlert {
-    uint8_t  ex8;   // 1
-    uint64_t ex9;   // 64
-    uint8_t  ex10;  // 3 reserved
-    uint8_t  vn;    // 6
+    uint8_t  ex8;
+    uint64_t ex9;
+    uint8_t  ex10;
+    uint8_t  vn;
 };
 
 struct Mt44ExOutside {
-    uint8_t ex11_raw[9]; // 68bit raw
-    uint8_t vn;          // 6
+    uint8_t ex11_raw[9];
+    uint8_t vn;
 };
 
 // ---- MT=44 Decoded structures (IS-QZSS-DCX-003) --------------------------
 
-// Decoded ellipse with WGS84 coordinates
 struct DecodedEllipse {
-    double lat_deg;         // WGS84 latitude in degrees
-    double lon_deg;         // WGS84 longitude in degrees
-    double semi_major_km;   // Semi-major axis in km
-    double semi_minor_km;   // Semi-minor axis in km
-    double azimuth_deg;     // Azimuth angle in degrees (-90..90)
-
-    // B1 refinement values (EWSS CAMF v1.1 §3.7.1)
-    // Valid when Mt44CamfRaw::b1_present is true
-    double b1_lat_offset_deg;    // C1 × 180/(8×65535) - latitude refinement offset
-    double b1_lon_offset_deg;    // C2 × 360/(8×131071) - longitude refinement offset
-    double b1_major_factor;      // C3 / 8.0 - semi-major interpolation factor (0..0.875)
-    double b1_minor_factor;      // C4 / 8.0 - semi-minor interpolation factor (0..0.875)
+    double lat_deg;
+    double lon_deg;
+    double semi_major_km;
+    double semi_minor_km;
+    double azimuth_deg;
+    double b1_lat_offset_deg;
+    double b1_lon_offset_deg;
+    double b1_major_factor;
+    double b1_minor_factor;
 };
 
-// Decoded additional area (for local government messages)
 struct DecodedAdditionalArea {
-    bool present;                           // true if EX2-EX7 are not all zero
-    bool head_to_area;                      // false=leave, true=head (EX2)
-    DecodedEllipse ellipse;                 // Additional ellipse (EX3-EX7)
+    bool present;
+    bool head_to_area;
+    DecodedEllipse ellipse;
 };
 
-// Alert identity key for Update/All Clear matching (IS-QZSS-DCX-003 §4.2.3.1)
-// L-Alert / Local Government: A2 + A3 + A4 + EX1
-// J-Alert: A2 + A3 + A4
 struct Mt44AlertIdentity {
-    uint16_t a2;    // Country/Region Name (9 bits)
-    uint8_t  a3;    // Provider Identifier (5 bits)
-    uint8_t  a4;    // Hazard Category and Type (7 bits)
-    uint16_t ex1;   // Target Area Code (16 bits) - only for L-Alert/Local
+    uint16_t a2;
+    uint8_t  a3;
+    uint8_t  a4;
+    uint16_t ex1;
 
     bool operator==(const Mt44AlertIdentity& o) const {
         return a2 == o.a2 && a3 == o.a3 && a4 == o.a4 && ex1 == o.ex1;
     }
 };
 
-// Fully decoded MT44 message
 struct Mt44Decoded {
     Mt44ServiceKind service_kind;
     bool is_null_message;
-
-    // Main ellipse (A12-A16) - decoded to WGS84
-    // present if A12..A16 are not all zero
     bool main_ellipse_present;
     DecodedEllipse main_ellipse;
-
-    // Target area code (EX1) - for L-Alert/Local Government
-    // present if A12..A16 are all zero and EX1 is not zero
     bool target_area_code_present;
     uint16_t target_area_code;
-
-    // J-Alert target area (EX8/EX9)
-    bool jalert_prefecture_mode;  // true if EX8=0 (prefecture), false if EX8=1 (city)
-    // Prefecture bit positions (1-47) - valid if jalert_prefecture_mode is true
+    bool jalert_prefecture_mode;
     uint8_t prefecture_positions[47];
     uint8_t prefecture_count;
-    // City/town/village codes - valid if jalert_prefecture_mode is false
     uint16_t city_codes[4];
     uint8_t city_code_count;
-
-    // Additional area (local government only)
     DecodedAdditionalArea additional_area;
-
-    // Alert identity key
     Mt44AlertIdentity alert_identity;
 };
 
-// ---- MT=43 JMA disaster_category mapping (IS-QZSS-DCR-016 Table 5.1.2-1)
-//  0=undefined  1=EEW  2=Hypocenter  3=Seismic intensity  4=Nankai trough
-//  5=Tsunami  6=NW Pacific Tsunami  8=Volcano  9=Ash fall
-//  10=Weather  11=Flood  12=Typhoon  14=Marine
+// ---- MT=43 JMA disaster_category mapping (IS-QZSS-DCR-016 Table 5.1.2-1) -
 
 // ---- repeating record structs (up to 8 each) ---------------------------
 
 struct TsunamiEntry {
-    uint16_t   arrival_time_raw; // nextday(1)+hour(5)+minute(6)=12bit packed; 0=unspecified
-    TimeFields arrival_time;     // resolved
-    uint8_t    height_code;      // qzss_dcr_jma_tsunami_height
-    uint16_t   region_code;      // qzss_dcr_jma_tsunami_forecast_region
+    uint16_t   arrival_time_raw;
+    TimeFields arrival_time;
+    uint8_t    height_code;
+    uint16_t   region_code;
 };
 
 struct SeismicEntry {
-    uint8_t intensity_code; // qzss_dcr_jma_seismic_intensity
+    uint8_t intensity_code;
     uint8_t prefecture_code;
 };
 
-struct VolcanoLocalGov {
-    uint32_t lg_code; // qzss_dcr_jma_local_government (23 bits)
-};
-
 struct WeatherEntry {
-    uint8_t  sub_category;  // qzss_dcr_jma_weather_related_disaster_sub_category
-    uint32_t region_code;   // qzss_dcr_jma_weather_forecast_region (19 bits)
+    uint8_t  sub_category;
+    uint32_t region_code;
 };
 
 struct FloodEntry {
-    uint8_t  warning_level; // qzss_dcr_jma_flood_warning_level
-    uint64_t region_code;   // qzss_dcr_jma_flood_forecast_region (40 bits)
+    uint8_t  warning_level;
+    uint64_t region_code;
 };
 
 struct MarineEntry {
-    uint8_t  warning_code;  // qzss_dcr_jma_marine_warning_code
-    uint16_t region_code;   // qzss_dcr_jma_marine_forecast_region
+    uint8_t  warning_code;
+    uint16_t region_code;
 };
 
 struct NwPacTsunamiEntry {
-    uint16_t   arrival_time_raw; // nextday(1)+hour(5)+minute(6)=12bit packed; 0=unspecified
-    TimeFields arrival_time;     // resolved
-    uint16_t   height_code;    // qzss_dcr_jma_northwest_pacific_tsunami_height_en (9 bits)
-    uint8_t    region_code;    // qzss_dcr_jma_coastal_region_en (7 bits)
+    uint16_t   arrival_time_raw;
+    TimeFields arrival_time;
+    uint16_t   height_code;
+    uint8_t    region_code;
 };
 
 // ---- MT=43 Data (QZQSM / DC Report) ------------------------------------
 
-// ---- disaster_category specific structs ----------------------------------
-
 struct EewData {
-    uint8_t  long_period_lower;  // [47..49]  3 bits
-    uint8_t  long_period_upper;  // [50..52]  3 bits
-    uint16_t notification[3];    // [53..79]  3×9 bits (notification codes, 0=end)
+    uint8_t  long_period_lower;
+    uint8_t  long_period_upper;
+    uint16_t notification[3];
     uint8_t  notification_count;
-    TimeFields quake_time;       // [80..95]
-    uint16_t depth;              // [96..104]  9 bits (×10 km; 800=深い, 900=不明)
-    uint8_t  magnitude;          // [105..111] 7 bits (×0.1; 100=8.0以上)
-    uint16_t epicenter;          // [112..121] 10 bits
-    uint8_t  intensity_lower;    // [122..125] 4 bits
-    uint8_t  intensity_upper;    // [126..129] 4 bits
-    uint8_t  regions[80];        // [130..209] 80 bits (1 bit per region)
+    TimeFields quake_time;
+    uint16_t depth;
+    uint8_t  magnitude;
+    uint16_t epicenter;
+    uint8_t  intensity_lower;
+    uint8_t  intensity_upper;
+    uint8_t  regions[80];
     uint8_t  region_count;
 };
 
 struct HypocenterData {
     uint16_t   notification[3];
     uint8_t    notification_count;
-    TimeFields quake_time;       // [80..95]
-    uint16_t   depth;            // [96..104] 9 bits
-    uint8_t    magnitude;        // [105..111] 7 bits
-    uint16_t   epicenter;        // [112..121] 10 bits
-    LatLon     coords;           // [122..]
+    TimeFields quake_time;
+    uint16_t   depth;
+    uint8_t    magnitude;
+    uint16_t   epicenter;
+    LatLon     coords;
 };
 
 struct SeismicData {
-    TimeFields   quake_time;     // [53..68]
+    TimeFields   quake_time;
     SeismicEntry entries[16];
     uint8_t      count;
 };
 
 struct NankaiData {
-    uint8_t info_code;           // [53..56] 4 bits
-    uint8_t text[18];            // [57..200] 18 bytes (single page)
-    uint8_t page;                // [201..206] 6 bits
-    uint8_t total_page;          // [207..212] 6 bits
-
-    // Aggregated text from all pages (for multi-page messages)
-    // Maximum possible size: 63 pages * 18 bytes = 1134 bytes (+1 for NUL terminator)
-    // This is populated when all pages are received
-    char aggregated_text[1135];   // Combined UTF-8 text from all pages (+NUL)
-    uint16_t aggregated_len;     // Length of aggregated text
-    bool is_aggregated;          // True if this is a complete aggregated message
+    uint8_t info_code;
+    uint8_t text[18];
+    uint8_t page;
+    uint8_t total_page;
+    char aggregated_text[1135];
+    uint16_t aggregated_len;
+    bool is_aggregated;
 };
 
 struct TsunamiData {
-    uint8_t      warning_code;   // [80..83]  4 bits
+    uint8_t      warning_code;
     TsunamiEntry entries[5];
     uint8_t      count;
 };
 
 struct NwPacTsunamiData {
-    uint8_t            potential; // [53..55]  3 bits
+    uint8_t            potential;
     NwPacTsunamiEntry entries[5];
     uint8_t            count;
 };
 
 struct VolcanoData {
-    uint8_t    ambiguity;        // [50..52]  3 bits
-    TimeFields activity_time;    // [53..68]
-    uint8_t    warning_code;     // [69..75]  7 bits
-    uint16_t   volcano_name;     // [76..87] 12 bits
-    uint32_t   local_govs[5];    // [88..] up to 5×23 bits
+    uint8_t    ambiguity;
+    TimeFields activity_time;
+    uint8_t    warning_code;
+    uint16_t   volcano_name;
+    uint32_t   local_govs[5];
     uint8_t    lg_count;
 };
 
 struct AshFallData {
-    TimeFields activity_time;    // [53..68]
-    uint8_t    warning_type;     // [69..70]  2 bits (1=速報 2=詳細)
-    uint16_t   volcano_name;     // [71..82] 12 bits
-    uint8_t    entries_time[4];  // [83..] ×4: arrival_hour(3)
-    uint8_t    entries_code[4];  // warning_code(3)
-    uint32_t   entries_lg[4];    // local_government(23)
+    TimeFields activity_time;
+    uint8_t    warning_type;
+    uint16_t   volcano_name;
+    uint8_t    entries_time[4];
+    uint8_t    entries_code[4];
+    uint32_t   entries_lg[4];
     uint8_t    count;
 };
 
 struct WeatherData {
-    uint8_t      warning_state;  // [53..55]  3 bits
+    uint8_t      warning_state;
     WeatherEntry entries[6];
     uint8_t      count;
 };
@@ -404,16 +368,16 @@ struct FloodData {
 };
 
 struct TyphoonData {
-    TimeFields reference_time;   // [53..68]  day(5)+hour(5)+min(6)
-    uint8_t    ref_type;         // [69..71]  3 bits (1:Analysis 2:Estimate 3:Forecast)
-    uint8_t    elapsed;          // [80..86]  7 bits (hours)
-    uint8_t    number;           // [87..93]  7 bits
-    uint8_t    scale;            // [94..97]  4 bits
-    uint8_t    intensity;        // [98..101] 4 bits
-    LatLon     coords;           // [102..142] 41 bits
-    uint16_t   pressure;         // [143..153] 11 bits (hPa)
-    uint8_t    max_wind;         // [154..160] 7 bits (m/s)
-    uint8_t    max_gust;         // [161..167] 7 bits (m/s)
+    TimeFields reference_time;
+    uint8_t    ref_type;
+    uint8_t    elapsed;
+    uint8_t    number;
+    uint8_t    scale;
+    uint8_t    intensity;
+    LatLon     coords;
+    uint16_t   pressure;
+    uint8_t    max_wind;
+    uint8_t    max_gust;
 };
 
 struct MarineData {
@@ -421,46 +385,217 @@ struct MarineData {
     uint8_t     count;
 };
 
-struct Mt43Data {
-    // ---- MT=43 outer frame (IS-QZSS-DCR-016 §5.1) -----------------------
-    uint8_t  report_classification;  // bits [14..16]  3 bits
-    uint8_t  disaster_category;      // bits [17..20]  4 bits
-    uint8_t  information_type;       // bits [41..42]  2 bits
-    TimeFields event_time;           // bits [25..40]: day(5)+hour(5)+min(6)
+// ---- Safe tagged union for MT=43 disaster_category data -------------------
 
-    // ---- disaster_category specific data (tagged union) ------------------
-    // Access the member matching disaster_category
-    union {
-        EewData          eew;        // disaster_category == 1
-        HypocenterData   hypo;       // disaster_category == 2
-        SeismicData      seis;       // disaster_category == 3
-        NankaiData       nankai;     // disaster_category == 4
-        TsunamiData      tsunami;    // disaster_category == 5
-        NwPacTsunamiData nw_pac;     // disaster_category == 6
-        VolcanoData      vol;        // disaster_category == 8
-        AshFallData      ash;        // disaster_category == 9
-        WeatherData      wx;         // disaster_category == 10
-        FloodData        flood;      // disaster_category == 11
-        TyphoonData      typh;       // disaster_category == 12
-        MarineData       marine;     // disaster_category == 14
+struct Mt43Data {
+    uint8_t  report_classification;
+    uint8_t  disaster_category;
+    uint8_t  information_type;
+    TimeFields event_time;
+
+    enum class ActiveType : uint8_t {
+        None, Eew, Hypocenter, Seismic, Nankai, Tsunami, NwPacTsunami,
+        Volcano, AshFall, Weather, Flood, Typhoon, Marine
     };
+
+    ActiveType active_type = ActiveType::None;
+
+    // Storage for the active union member (aligned to 8 bytes)
+    // NankaiData is the largest due to aggregated_text buffer (1135 bytes)
+    alignas(8) unsigned char storage_[sizeof(NankaiData)];
+
+    Mt43Data()
+        : report_classification(0)
+        , disaster_category(0)
+        , information_type(0)
+        , event_time{}
+        , active_type(ActiveType::None)
+    {
+        memset(storage_, 0, sizeof(storage_));
+    }
+
+    Mt43Data(const Mt43Data& other)
+        : report_classification(other.report_classification)
+        , disaster_category(other.disaster_category)
+        , information_type(other.information_type)
+        , event_time(other.event_time)
+        , active_type(other.active_type)
+    {
+        copyFrom(other);
+    }
+
+    Mt43Data& operator=(const Mt43Data& other) {
+        if (this != &other) {
+            destroyActive();
+            report_classification = other.report_classification;
+            disaster_category = other.disaster_category;
+            information_type = other.information_type;
+            event_time = other.event_time;
+            active_type = other.active_type;
+            copyFrom(other);
+        }
+        return *this;
+    }
+
+    Mt43Data(Mt43Data&& other) noexcept
+        : report_classification(other.report_classification)
+        , disaster_category(other.disaster_category)
+        , information_type(other.information_type)
+        , event_time(other.event_time)
+        , active_type(other.active_type)
+    {
+        moveFrom(other);
+    }
+
+    Mt43Data& operator=(Mt43Data&& other) noexcept {
+        if (this != &other) {
+            destroyActive();
+            report_classification = other.report_classification;
+            disaster_category = other.disaster_category;
+            information_type = other.information_type;
+            event_time = other.event_time;
+            active_type = other.active_type;
+            moveFrom(other);
+        }
+        return *this;
+    }
+
+    ~Mt43Data() {
+        destroyActive();
+    }
+
+    template<typename T>
+    void initAs() {
+        destroyActive();
+        new (storage_) T();
+        active_type = typeFor<T>();
+    }
+
+    template<typename T>
+    T* get() {
+        return (active_type == typeFor<T>()) ? reinterpret_cast<T*>(storage_) : nullptr;
+    }
+
+    template<typename T>
+    const T* get() const {
+        return (active_type == typeFor<T>()) ? reinterpret_cast<const T*>(storage_) : nullptr;
+    }
+
+    EewData* getEew() { return get<EewData>(); }
+    HypocenterData* getHypocenter() { return get<HypocenterData>(); }
+    SeismicData* getSeismic() { return get<SeismicData>(); }
+    NankaiData* getNankai() { return get<NankaiData>(); }
+    TsunamiData* getTsunami() { return get<TsunamiData>(); }
+    NwPacTsunamiData* getNwPac() { return get<NwPacTsunamiData>(); }
+    VolcanoData* getVolcano() { return get<VolcanoData>(); }
+    AshFallData* getAshFall() { return get<AshFallData>(); }
+    WeatherData* getWeather() { return get<WeatherData>(); }
+    FloodData* getFlood() { return get<FloodData>(); }
+    TyphoonData* getTyphoon() { return get<TyphoonData>(); }
+    MarineData* getMarine() { return get<MarineData>(); }
+
+    const EewData* getEew() const { return get<EewData>(); }
+    const HypocenterData* getHypocenter() const { return get<HypocenterData>(); }
+    const SeismicData* getSeismic() const { return get<SeismicData>(); }
+    const NankaiData* getNankai() const { return get<NankaiData>(); }
+    const TsunamiData* getTsunami() const { return get<TsunamiData>(); }
+    const NwPacTsunamiData* getNwPac() const { return get<NwPacTsunamiData>(); }
+    const VolcanoData* getVolcano() const { return get<VolcanoData>(); }
+    const AshFallData* getAshFall() const { return get<AshFallData>(); }
+    const WeatherData* getWeather() const { return get<WeatherData>(); }
+    const FloodData* getFlood() const { return get<FloodData>(); }
+    const TyphoonData* getTyphoon() const { return get<TyphoonData>(); }
+    const MarineData* getMarine() const { return get<MarineData>(); }
+
+private:
+    template<typename T> static ActiveType typeFor();
+
+    void destroyActive() {
+        if (active_type == ActiveType::None) return;
+        switch (active_type) {
+            case ActiveType::Eew:            getEew()->~EewData(); break;
+            case ActiveType::Hypocenter:     getHypocenter()->~HypocenterData(); break;
+            case ActiveType::Seismic:        getSeismic()->~SeismicData(); break;
+            case ActiveType::Nankai:         getNankai()->~NankaiData(); break;
+            case ActiveType::Tsunami:        getTsunami()->~TsunamiData(); break;
+            case ActiveType::NwPacTsunami:    getNwPac()->~NwPacTsunamiData(); break;
+            case ActiveType::Volcano:        getVolcano()->~VolcanoData(); break;
+            case ActiveType::AshFall:        getAshFall()->~AshFallData(); break;
+            case ActiveType::Weather:        getWeather()->~WeatherData(); break;
+            case ActiveType::Flood:          getFlood()->~FloodData(); break;
+            case ActiveType::Typhoon:        getTyphoon()->~TyphoonData(); break;
+            case ActiveType::Marine:         getMarine()->~MarineData(); break;
+            case ActiveType::None: break;
+        }
+        active_type = ActiveType::None;
+    }
+
+    void copyFrom(const Mt43Data& other) {
+        if (other.active_type == ActiveType::None) return;
+        switch (other.active_type) {
+            case ActiveType::Eew:            new (storage_) EewData(*other.getEew()); break;
+            case ActiveType::Hypocenter:     new (storage_) HypocenterData(*other.getHypocenter()); break;
+            case ActiveType::Seismic:        new (storage_) SeismicData(*other.getSeismic()); break;
+            case ActiveType::Nankai:         new (storage_) NankaiData(*other.getNankai()); break;
+            case ActiveType::Tsunami:        new (storage_) TsunamiData(*other.getTsunami()); break;
+            case ActiveType::NwPacTsunami:    new (storage_) NwPacTsunamiData(*other.getNwPac()); break;
+            case ActiveType::Volcano:        new (storage_) VolcanoData(*other.getVolcano()); break;
+            case ActiveType::AshFall:        new (storage_) AshFallData(*other.getAshFall()); break;
+            case ActiveType::Weather:        new (storage_) WeatherData(*other.getWeather()); break;
+            case ActiveType::Flood:          new (storage_) FloodData(*other.getFlood()); break;
+            case ActiveType::Typhoon:        new (storage_) TyphoonData(*other.getTyphoon()); break;
+            case ActiveType::Marine:         new (storage_) MarineData(*other.getMarine()); break;
+            case ActiveType::None: break;
+        }
+    }
+
+    void moveFrom(Mt43Data& other) {
+        if (other.active_type == ActiveType::None) return;
+        switch (other.active_type) {
+            case ActiveType::Eew:            new (storage_) EewData(std::move(*other.getEew())); break;
+            case ActiveType::Hypocenter:     new (storage_) HypocenterData(std::move(*other.getHypocenter())); break;
+            case ActiveType::Seismic:        new (storage_) SeismicData(std::move(*other.getSeismic())); break;
+            case ActiveType::Nankai:         new (storage_) NankaiData(std::move(*other.getNankai())); break;
+            case ActiveType::Tsunami:        new (storage_) TsunamiData(std::move(*other.getTsunami())); break;
+            case ActiveType::NwPacTsunami:    new (storage_) NwPacTsunamiData(std::move(*other.getNwPac())); break;
+            case ActiveType::Volcano:        new (storage_) VolcanoData(std::move(*other.getVolcano())); break;
+            case ActiveType::AshFall:        new (storage_) AshFallData(std::move(*other.getAshFall())); break;
+            case ActiveType::Weather:        new (storage_) WeatherData(std::move(*other.getWeather())); break;
+            case ActiveType::Flood:          new (storage_) FloodData(std::move(*other.getFlood())); break;
+            case ActiveType::Typhoon:        new (storage_) TyphoonData(std::move(*other.getTyphoon())); break;
+            case ActiveType::Marine:         new (storage_) MarineData(std::move(*other.getMarine())); break;
+            case ActiveType::None: break;
+        }
+        other.active_type = ActiveType::None;
+    }
 };
+
+// Type mapping specializations
+template<> inline Mt43Data::ActiveType Mt43Data::typeFor<EewData>() { return ActiveType::Eew; }
+template<> inline Mt43Data::ActiveType Mt43Data::typeFor<HypocenterData>() { return ActiveType::Hypocenter; }
+template<> inline Mt43Data::ActiveType Mt43Data::typeFor<SeismicData>() { return ActiveType::Seismic; }
+template<> inline Mt43Data::ActiveType Mt43Data::typeFor<NankaiData>() { return ActiveType::Nankai; }
+template<> inline Mt43Data::ActiveType Mt43Data::typeFor<TsunamiData>() { return ActiveType::Tsunami; }
+template<> inline Mt43Data::ActiveType Mt43Data::typeFor<NwPacTsunamiData>() { return ActiveType::NwPacTsunami; }
+template<> inline Mt43Data::ActiveType Mt43Data::typeFor<VolcanoData>() { return ActiveType::Volcano; }
+template<> inline Mt43Data::ActiveType Mt43Data::typeFor<AshFallData>() { return ActiveType::AshFall; }
+template<> inline Mt43Data::ActiveType Mt43Data::typeFor<WeatherData>() { return ActiveType::Weather; }
+template<> inline Mt43Data::ActiveType Mt43Data::typeFor<FloodData>() { return ActiveType::Flood; }
+template<> inline Mt43Data::ActiveType Mt43Data::typeFor<TyphoonData>() { return ActiveType::Typhoon; }
+template<> inline Mt43Data::ActiveType Mt43Data::typeFor<MarineData>() { return ActiveType::Marine; }
 
 // ---- MT=44 Data (DCX / CAMF) -------------------------------------------
 
 struct Mt44Data {
     Mt44ServiceKind service_kind;
     bool            is_null_message;
-
     Mt44Sd          sd;
     Mt44CamfRaw     camf;
     TimeFields      onset_time;
-
     ExtendedKind        ex_kind;
     Mt44ExLAlertOrLocal ex_lalert_local;
     Mt44ExJAlert        ex_jalert;
     Mt44ExOutside       ex_outside;
-
     Mt44Decoded      mt44_decoded;
 };
 
@@ -472,47 +607,135 @@ enum class MsgPayloadType : uint8_t {
     Mt44
 };
 
-// ---- main message struct (Tagged Union) --------------------------------
+// ---- main message struct (Safe tagged union) ---------------------------
 
 struct Message {
-    // ---- common --------------------------------------------------------
     uint8_t  svid = 0;
-    uint8_t  msg_type = 0;    // 43=QZQSM/MT43  44=DCX/MT44
+    uint8_t  msg_type = 0;
     uint32_t crc24 = 0;
     bool     valid = false;
-
-    // ---- payload (tagged union) ---------------------------------------
-    // IMPORTANT: Always set payload_type before accessing union members
     MsgPayloadType payload_type = MsgPayloadType::Empty;
-    union {
-        Mt43Data mt43;
-        Mt44Data mt44;
-    };
 
-    // ---- default constructor ------------------------------------------
-    // Initializes payload_type to Empty and constructs a safe active union member
+    // Storage for the active payload (aligned to 8 bytes)
+    // Mt43Data (1176 bytes) is larger than Mt44Data (464 bytes) due to NankaiData's aggregated_text buffer
+    alignas(8) unsigned char payload_storage_[sizeof(Mt43Data)];
+
     Message() : payload_type(MsgPayloadType::Empty) {
-        // Union is left uninitialized (POD types). Access only after setting payload_type.
+        memset(payload_storage_, 0, sizeof(payload_storage_));
     }
 
-    // ---- safe accessors -----------------------------------------------
-    // Returns pointer to mt43 if payload_type == Mt43, nullptr otherwise
+    Message(const Message& other)
+        : svid(other.svid)
+        , msg_type(other.msg_type)
+        , crc24(other.crc24)
+        , valid(other.valid)
+        , payload_type(other.payload_type)
+    {
+        copyPayloadFrom(other);
+    }
+
+    Message& operator=(const Message& other) {
+        if (this != &other) {
+            destroyPayload();
+            svid = other.svid;
+            msg_type = other.msg_type;
+            crc24 = other.crc24;
+            valid = other.valid;
+            payload_type = other.payload_type;
+            copyPayloadFrom(other);
+        }
+        return *this;
+    }
+
+    Message(Message&& other) noexcept
+        : svid(other.svid)
+        , msg_type(other.msg_type)
+        , crc24(other.crc24)
+        , valid(other.valid)
+        , payload_type(other.payload_type)
+    {
+        movePayloadFrom(other);
+    }
+
+    Message& operator=(Message&& other) noexcept {
+        if (this != &other) {
+            destroyPayload();
+            svid = other.svid;
+            msg_type = other.msg_type;
+            crc24 = other.crc24;
+            valid = other.valid;
+            payload_type = other.payload_type;
+            movePayloadFrom(other);
+        }
+        return *this;
+    }
+
+    ~Message() {
+        destroyPayload();
+    }
+
+    template<typename T>
+    void initPayload() {
+        destroyPayload();
+        new (payload_storage_) T();
+        payload_type = typeForPayload<T>();
+    }
+
     Mt43Data* getMt43() {
-        return (payload_type == MsgPayloadType::Mt43) ? &mt43 : nullptr;
+        return (payload_type == MsgPayloadType::Mt43)
+            ? reinterpret_cast<Mt43Data*>(payload_storage_) : nullptr;
     }
 
-    // Returns pointer to mt44 if payload_type == Mt44, nullptr otherwise
     Mt44Data* getMt44() {
-        return (payload_type == MsgPayloadType::Mt44) ? &mt44 : nullptr;
+        return (payload_type == MsgPayloadType::Mt44)
+            ? reinterpret_cast<Mt44Data*>(payload_storage_) : nullptr;
     }
 
-    // Const overloads
     const Mt43Data* getMt43() const {
-        return (payload_type == MsgPayloadType::Mt43) ? &mt43 : nullptr;
+        return (payload_type == MsgPayloadType::Mt43)
+            ? reinterpret_cast<const Mt43Data*>(payload_storage_) : nullptr;
     }
 
     const Mt44Data* getMt44() const {
-        return (payload_type == MsgPayloadType::Mt44) ? &mt44 : nullptr;
+        return (payload_type == MsgPayloadType::Mt44)
+            ? reinterpret_cast<const Mt44Data*>(payload_storage_) : nullptr;
+    }
+
+private:
+    template<typename T> static MsgPayloadType typeForPayload();
+
+    void destroyPayload() {
+        if (payload_type == MsgPayloadType::Empty) return;
+        switch (payload_type) {
+            case MsgPayloadType::Mt43: getMt43()->~Mt43Data(); break;
+            case MsgPayloadType::Mt44: getMt44()->~Mt44Data(); break;
+            case MsgPayloadType::Empty: break;
+        }
+        payload_type = MsgPayloadType::Empty;
+    }
+
+    void copyPayloadFrom(const Message& other) {
+        if (other.payload_type == MsgPayloadType::Empty) return;
+        switch (other.payload_type) {
+            case MsgPayloadType::Mt43: new (payload_storage_) Mt43Data(*other.getMt43()); break;
+            case MsgPayloadType::Mt44: new (payload_storage_) Mt44Data(*other.getMt44()); break;
+            case MsgPayloadType::Empty: break;
+        }
+    }
+
+    void movePayloadFrom(Message& other) {
+        if (other.payload_type == MsgPayloadType::Empty) return;
+        switch (other.payload_type) {
+            case MsgPayloadType::Mt43: new (payload_storage_) Mt43Data(std::move(*other.getMt43())); break;
+            case MsgPayloadType::Mt44: new (payload_storage_) Mt44Data(std::move(*other.getMt44())); break;
+            case MsgPayloadType::Empty: break;
+        }
+        other.payload_type = MsgPayloadType::Empty;
     }
 };
+
+// Type mapping specializations for Message payload
+template<> inline MsgPayloadType Message::typeForPayload<Mt43Data>() { return MsgPayloadType::Mt43; }
+template<> inline MsgPayloadType Message::typeForPayload<Mt44Data>() { return MsgPayloadType::Mt44; }
+
 } // namespace azaraC
