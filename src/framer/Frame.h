@@ -1,5 +1,5 @@
 #pragma once
-// azaraC - src/internal/Frame.h
+// azaraC - src/framer/Frame.h
 
 #include <cstdint>
 

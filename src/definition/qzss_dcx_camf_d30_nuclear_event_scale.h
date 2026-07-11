@@ -1,5 +1,5 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.16.1 with CI-CD
+// AUTO-GENERATED from azarashi 0.16.4 with CI-CD
 // Source module : qzss_dcx_camf_b4_lower_level_fields_tables
 // Variable      : qzss_dcx_camf_d30_nuclear_event_scale
 // Entries       : 9
@@ -11,7 +11,7 @@
 #include <cstdint>
 #include <optional>
 #include <string_view>
-#include "../azaraC.h"
+#include "../azaraC_config.h"
 
 namespace azaraC {
 namespace def {

@@ -241,10 +241,10 @@ DCX/CAMFメッセージのデータ構造。
 
 | 値 | 名称 | 説明 |
 |---|------|------|
-| `NullMessage` | Null Message | A1=0 |
-| `LAlert` | L-Alert | A2=111, A3=1-4 |
-| `JAlert` | J-Alert | A2=111, A3=0 |
-| `LocalGovernment` | 地方自治体 | A2=111, A3=5-31 |
+| `NullMessage` | Null Message | A1=0, A2=111, A3=0, かつ全CAMFフィールド(A4–A18)および拡張フィールドがゼロ |
+| `LAlert` | L-Alert | A2=111, A3=1 |
+| `JAlert` | J-Alert | A2=111, A3=0,2,3 |
+| `LocalGovernment` | 地方自治体 | A2=111, A3=4-31 |
 | `OutsideJapan` | 国外 | A2≠111 |
 | `Unknown` | 不明 | 上記以外 |
 
@@ -271,14 +271,28 @@ DCX/CAMFメッセージのデータ構造。
 | `a17` | `uint8_t` | 2 | 拡張フィールド種別 |
 | `a18` | `uint16_t` | 15 | 拡張データ |
 
-#### A17 拡張フィールド (EWSS CAMF v1.1)
+#### A17 拡張フィールド (EWSS CAMF v1.2)
 
 | A17値 | 名称 | 説明 |
 |-------|------|------|
 | 00 | B1 | Improved Resolution of Main Ellipse |
 | 01 | B2 | Hazard Center Position |
 | 10 | B3 | Secondary Ellipse Definition |
-| 11 | B4 | Quantitative and Detailed Information |
+| 11 | B4 | Quantitative and Detailed Information (D1-D36) |
+
+**B4 (A17=11)** D-seriesフィールドは配列 `b4_d_present[36]` / `b4_d_values[36]` でアクセスします（0-indexed: [0]=D1, [1]=D2, ...[35]=D36）。
+
+```cpp
+// B4 D-field へのアクセス例
+if (mt44->camf.b4_present) {
+    for (uint8_t i = 0; i < 36; ++i) {
+        if (mt44->camf.b4_d_present[i]) {
+            uint8_t value = mt44->camf.b4_d_values[i];
+            // D(i+1) = value
+        }
+    }
+}
+```
 
 #### デコード済み楕円 (`DecodedEllipse`)
 
@@ -290,11 +304,11 @@ struct DecodedEllipse {
     double semi_minor_km;   // 短半径 (km)
     double azimuth_deg;     // 方位角 (度)
     
-    // B1 リファインメント値
-    double b1_lat_offset_deg;    // 緯度補正オフセット
-    double b1_lon_offset_deg;    // 経度補正オフセット
-    double b1_major_factor;      // 長半径補間係数
-    double b1_minor_factor;      // 短半径補間係数
+    // B1 リファインメント値 (EWSS CAMF v1.1 §3.7.1.3/4)
+    double b1_lat_offset_deg;         // 緯度補正オフセット (度)
+    double b1_lon_offset_deg;         // 経度補正オフセット (度)
+    double b1_refined_semi_major_km;  // 精密化後の長半径 (km)
+    double b1_refined_semi_minor_km;  // 精密化後の短半径 (km)
 };
 ```
 
@@ -369,21 +383,41 @@ if (client.connect(server, port)) {
 
 ## コンパイル時設定
 
-ライブラリのインクルード前に定義できるマクロです。
+`#include <azaraC.h>` の前に `#define` で上書きできます。
+設定マクロは [`azaraC_config.h`](src/azaraC_config.h) に一元管理されています。
+
+### 汎用設定
 
 | マクロ | デフォルト | 説明 |
 |-------|-----------|------|
 | `AZARAC_DEDUP_SLOTS` | 8 | 重複除去リングバッファのスロット数 |
+
+### 言語選択
+
+| マクロ | デフォルト | 説明 |
+|-------|-----------|------|
 | `AZARAC_LANG_JA` | 1 | 日本語ラベルを有効化 |
 | `AZARAC_LANG_EN` | 0 | 英語ラベルを有効化 |
 
-```cpp
-// カスタム設定例
-#define AZARAC_DEDUP_SLOTS 32
-#define AZARAC_LANG_JA 1
-#define AZARAC_LANG_EN 1
-#include <azaraC.h>
-```
+### 災害カテゴリ選択
+
+不要なカテゴリの定義テーブルをコンパイル時に除外しFlash使用量を削減できます。
+
+| マクロ | デフォルト | 説明 |
+|-------|-----------|------|
+| `AZARAC_ENABLE_EEW` | 1 | 緊急地震速報 (カテゴリ1) |
+| `AZARAC_ENABLE_HYPOCENTER` | 1 | 震源情報 (カテゴリ2) |
+| `AZARAC_ENABLE_SEISMIC` | 1 | 震度情報 (カテゴリ3) |
+| `AZARAC_ENABLE_NANKAI` | 1 | 南海トラフ地震 (カテゴリ4) |
+| `AZARAC_ENABLE_TSUNAMI` | 1 | 津波警報 (カテゴリ5) |
+| `AZARAC_ENABLE_NW_PAC_TSUNAMI` | 1 | 北太平洋津波 (カテゴリ6) |
+| `AZARAC_ENABLE_VOLCANO` | 1 | 火山情報 (カテゴリ8) |
+| `AZARAC_ENABLE_ASH_FALL` | 1 | 降灰情報 (カテゴリ9) |
+| `AZARAC_ENABLE_WEATHER` | 1 | 気象警報 (カテゴリ10) |
+| `AZARAC_ENABLE_FLOOD` | 1 | 洪水警報 (カテゴリ11) |
+| `AZARAC_ENABLE_TYPHOON` | 1 | 台風情報 (カテゴリ12) |
+| `AZARAC_ENABLE_MARINE` | 1 | 海上警報 (カテゴリ14) |
+| `AZARAC_ENABLE_DCX_CAMF` | 1 | DCX/CAMF全般 (MT=44) |
 
 ---
 

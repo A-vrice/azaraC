@@ -1,5 +1,5 @@
-// test/integration/test_nankai.cpp — 南海トラフ複数ページテスト
-// Nankai Trough multi-page aggregation の統合テスト
+// test/integration/test_nankai.cpp — 南海トラフ単体テスト
+// E2E テストは test_nankai_e2e.cpp に分離済み
 
 #include <string>
 #include <chrono>
@@ -316,53 +316,3 @@ TEST_CASE("UTF-8 text handling") {
     }
 }
 
-TEST_CASE("Parser Nankai duplicate suppression in AUTO mode") {
-    azaraC::Parser parser;
-    azaraC::Message msg;
-    
-    // Construct a 1-page Nankai Trough message manually
-    uint8_t bits[32] = {};
-    setBits(bits, 0, 8, 0x53);       // Preamble
-    setBits(bits, 8, 6, 43);         // msg_type
-    setBits(bits, 14, 3, 1);         // report_classification
-    setBits(bits, 17, 4, 4);         // disaster_category = 4 (Nankai Trough)
-    setBits(bits, 25, 16, 0);        // event_time
-    setBits(bits, 41, 2, 0);         // information_type
-    setBits(bits, 53, 4, 1);         // info_code
-    // Text: 18 bytes (all zeros is fine)
-    setBits(bits, 201, 6, 1);        // page = 1
-    setBits(bits, 207, 6, 1);        // total_page = 1
-    setBits(bits, 214, 6, 1);        // version = 1
-    
-    uint32_t crc = crc24qRef(bits, 226);
-    setBits(bits, 226, 24, crc);
-    
-    std::string nmea = makeNmeaQzqsm(58, bits);
-    
-    bool output1 = false;
-    for (size_t i = 0; i < nmea.length(); i++) {
-        if (parser.feed(nmea[i], msg, 0)) {
-            output1 = true;
-            break;
-        }
-    }
-    
-    CHECK(output1 == true);
-    CHECK(msg.valid == true);
-    CHECK(msg.payload_type == azaraC::MsgPayloadType::Mt43);
-    
-    const Mt43Data* mt43 = msg.getMt43();
-    REQUIRE(mt43 != nullptr);
-    CHECK(mt43->disaster_category == 4);
-    
-    // Feed the exact same message again, it should be suppressed
-    bool output2 = false;
-    for (size_t i = 0; i < nmea.length(); i++) {
-        if (parser.feed(nmea[i], msg, 0)) {
-            output2 = true;
-            break;
-        }
-    }
-    
-    CHECK(output2 == false); // Should be suppressed!
-}

@@ -45,15 +45,24 @@ struct NankaiPageKey {
 // ---------------------------------------------------------------------------
 // Specification: Pn/Pm range is 1-63 (6 bits)
 // ---------------------------------------------------------------------------
-// Memory optimization: Only stores actually received pages, not full 63-page
-// array. This reduces memory usage by ~80% for typical 1-5 page messages.
+// Memory optimization: AZARAC_NANKAI_MAX_PAGES controls the maximum number of
+// pages that can be buffered per event. Default: 12 (covers >99% of messages).
+// Original max: 63.  Reducing saves ~19 bytes per unused slot.
+// Set AZARAC_NANKAI_MAX_PAGES 63 before including azaraC.h for full spec coverage.
 // ---------------------------------------------------------------------------
+#ifndef AZARAC_NANKAI_MAX_PAGES
+#define AZARAC_NANKAI_MAX_PAGES 12
+#endif
+
 struct NankaiPageBuffer {
-    static constexpr uint8_t MAX_PAGES = 63;
+    static constexpr uint8_t MAX_PAGES = AZARAC_NANKAI_MAX_PAGES;
+    static constexpr uint8_t SPEC_MAX_PAGES = 63;  // Official maximum (6 bits)
+    static_assert(MAX_PAGES > 0 && MAX_PAGES <= SPEC_MAX_PAGES,
+                  "AZARAC_NANKAI_MAX_PAGES must be in range 1-63");
     static constexpr uint8_t TEXT_PER_PAGE = 18;
     static constexpr uint32_t TIMEOUT_MS = 60000;  // 60 seconds timeout
 
-    // Page data structure - only allocated for received pages
+    // Page data structure
     struct PageData {
         uint8_t page_num;       // 1-based page number
         uint8_t text[TEXT_PER_PAGE];  // 18 bytes of text data
@@ -67,10 +76,11 @@ struct NankaiPageBuffer {
     NankaiPageKey key;
     uint8_t total_pages = 0;
     uint8_t received_pages = 0;
-    uint64_t last_update_ms = 0;  // Changed to uint64_t for overflow-safe time handling
+    uint64_t last_update_ms = 0;
 
-    // Variable-length storage: only received pages are stored
-    PageData pages[MAX_PAGES] = {};  // Sparse array, valid entries: [0..received_pages-1]
+    // Sparse array: only first [received_pages] entries are valid.
+    // Size is limited by AZARAC_NANKAI_MAX_PAGES (default 12, max 63).
+    PageData pages[MAX_PAGES] = {};
 
     NankaiPageBuffer() {
         clearAll();
@@ -83,6 +93,11 @@ struct NankaiPageBuffer {
     // current_ms: current timestamp in milliseconds (for consistent time source)
     // Returns true if page was added successfully
     bool addPage(uint8_t page_num, uint8_t total_pages, const uint8_t* text_data, uint64_t current_ms) {
+        // total_pages must not exceed buffer capacity (check before mutating state)
+        if (total_pages > MAX_PAGES) {
+            return false;
+        }
+
         // Set total_pages on first call
         if (this->total_pages == 0) {
             this->total_pages = total_pages;
@@ -93,8 +108,8 @@ struct NankaiPageBuffer {
             return false;
         }
 
-        // Page number range check (1-63)
-        if (page_num == 0 || page_num > total_pages) {
+        // Page number range check (1-63 per spec)
+        if (page_num == 0 || page_num > SPEC_MAX_PAGES || page_num > total_pages) {
             return false;
         }
 
@@ -144,27 +159,8 @@ struct NankaiPageBuffer {
         return received_pages >= total_pages;
     }
 
-    // Get combined text as string
-    // Stops at first 0x00 byte in each page (null terminator)
-    // Pages are output in order (sorted by page_num)
-    void getText(char* out, uint16_t max_len) const {
-        if (!out || max_len == 0) return;
-
-        uint16_t pos = 0;
-
-        for (uint8_t i = 0; i < received_pages && pos < max_len - 1; ++i) {
-            for (uint8_t j = 0; j < TEXT_PER_PAGE && pos < max_len - 1; ++j) {
-                if (pages[i].text[j] == 0) {
-                    break;  // Null terminator - stop this page
-                }
-                out[pos++] = static_cast<char>(pages[i].text[j]);
-            }
-        }
-
-        out[pos] = '\0';  // Null terminate
-    }
-
     // Get text length (excluding null terminator)
+    // Stops at first 0x00 byte in each page (UTF-8 text contains no NUL bytes)
     uint16_t getTextLength() const {
         uint16_t len = 0;
 
@@ -178,6 +174,32 @@ struct NankaiPageBuffer {
         }
 
         return len;
+    }
+
+    // Get combined text as string
+    // Stops at first 0x00 byte in each page (null terminator)
+    // Pages are output in order (sorted by page_num)
+    void getText(char* out, uint16_t max_len) const {
+        if (!out || max_len == 0) return;
+
+        uint16_t len = getTextLength();
+        uint16_t copy_len = (len < max_len - 1) ? len : (max_len - 1);
+
+        uint16_t pos = 0;
+        for (uint8_t i = 0; i < received_pages && pos < copy_len; ++i) {
+            uint8_t page_len = 0;
+            // Compute valid byte count for this page (up to NUL or TEXT_PER_PAGE)
+            while (page_len < TEXT_PER_PAGE && pages[i].text[page_len] != 0) {
+                ++page_len;
+            }
+            uint8_t to_copy = (page_len < (copy_len - pos)) ? page_len : (copy_len - pos);
+            if (to_copy > 0) {
+                memcpy(out + pos, pages[i].text, to_copy);
+                pos += to_copy;
+            }
+        }
+
+        out[pos] = '\0';  // Null terminate
     }
 
     // Check if buffer has expired (timeout)

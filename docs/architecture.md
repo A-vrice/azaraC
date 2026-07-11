@@ -4,6 +4,39 @@
 
 AzaraCは準天頂衛星システム（QZSS）のL1S信号から災危通報メッセージをデコードするArduinoライブラリです。本ドキュメントでは、ライブラリの内部アーキテクチャと設計思想について解説します。
 
+## ファイル構成
+
+```
+src/
+├── azaraC.h              # メインヘッダ（azaraC_config.h → Message.h → Parser.h）
+├── azaraC_config.h       # コンパイル時設定マクロ（軽量、定義ファイルからも参照）
+├── Message.h             # Message / Mt43Data / Mt44Data 構造体
+├── Mt43Data.h            # MT=43 タグ付き共用体（災害カテゴリ別データ）
+├── Mt44Data.h            # MT=44 生データ構造体（配列化されたB4 D1-D36）
+├── Parser.h / Parser.cpp # メインパーサー（postDecode() で重複除去を一元化）
+├── decoder/
+│   ├── Decoder.cpp       # 共通デコード処理（CRC, ビット抽出, 時間解決）
+│   ├── DecoderDcx.cpp    # MT=44 DCX/CAMF デコード
+│   └── DecoderQzqsm.cpp  # MT=43 QZQSM デコード
+├── framer/
+│   ├── UbxFramer.cpp     # UBX-RXM-SFRBX フレーマー
+│   └── NmeaFramer.cpp    # NMEA $QZQSM フレーマー
+├── json/
+│   ├── JsonWriter.cpp    # プリミティブJSONライター
+│   ├── JsonSerializer.cpp      # 直列化エントリポイント
+│   ├── JsonSerializerDcx.cpp   # MT=44 JSON生成
+│   └── JsonSerializerQzqsm.cpp # MT=43 JSON生成
+├── internal/
+│   ├── DcxHelper.h/cpp   # DCX デコード補助関数
+│   ├── Dedup.h/cpp       # 重複除去リングバッファ
+│   ├── NankaiPageBuffer.h # 南海トラフページ集約
+│   ├── JsonSerializer.h  # 直列化インターフェース
+│   └── ... (その他内部ヘッダ)
+└── definition/
+    ├── _index.h           # 全103定義テーブルを集約
+    └── qzss_*.h           # 自動生成の定義ルックアップ関数
+```
+
 ## システム構成図
 
 ```
@@ -83,12 +116,27 @@ AzaraCは準天頂衛星システム（QZSS）のL1S信号から災危通報メ�
 
 ### 1. Parser (パーサー)
 
-[`Parser`](include/Parser.h)はライブラリのメインエントリーポイントです。以下の責務を持ちます:
+[`Parser`](src/Parser.h)はライブラリのメインエントリーポイントです。以下の責務を持ちます:
 
 - **フレーマー自動判別**: 入力バイトストリームからUBX/NMEAを自動判別
 - **メッセージデコード**: フレームの復号とCRC検証
-- **重複除去**: 同一メッセージのフィルタリング
-- **南海トラフページ集約**: 複数ページに跨るメッセージの統合
+- **重複除去 + 南海トラフページ集約**: 統合された `postDecode()` メソッドが、Nankai集約・重複チェック・メッセージ出力のパイプラインを一元管理
+
+#### 内部フロー
+
+```
+feed(byte)
+  │
+  ├─ Framerでフレーム化
+  │
+  ├─ Decoder.decode() → Message
+  │
+  └─ postDecode(decoded, out)
+        │
+        ├─ Nankai集約処理（MT=43 カテゴリ4のみ）
+        ├─ DedupFilter で重複チェック
+        └─ out = decoded（または集約結果）
+```
 
 ```cpp
 // 基本的な使用例

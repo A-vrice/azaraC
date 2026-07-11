@@ -2,8 +2,8 @@
 // Top-level JSON serializer entry point
 
 #include "azaraC.h"
-#include "internal/JsonSerializer.h"
-#include "internal/JsonWriter.h"
+#include "JsonSerializer.h"
+#include "JsonWriter.h"
 #include "definition/_index.h"
 #include <optional>
 #include <string_view>

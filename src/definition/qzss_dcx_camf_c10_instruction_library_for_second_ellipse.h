@@ -1,7 +1,7 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.16.1 with CI-CD
-// Source module : qzss_dcx_camf_c10_guidance_library_for_second_ellipse
-// Variable      : qzss_dcx_camf_c10_guidance_library_for_second_ellipse
+// AUTO-GENERATED from azarashi 0.16.4 with CI-CD
+// Source module : qzss_dcx_camf_c10_instruction_library_for_second_ellipse
+// Variable      : qzss_dcx_camf_c10_instruction_library_for_second_ellipse
 // Entries       : 19
 // Strategy      : binary_search
 
@@ -11,15 +11,15 @@
 #include <cstdint>
 #include <optional>
 #include <string_view>
-#include "../azaraC.h"
+#include "../azaraC_config.h"
 
 namespace azaraC {
 namespace def {
 
 #if (AZARAC_ENABLE_DCX_CAMF)
 
-struct QZSS_DCX_CAMF_C10_GUIDANCE_LIBRARY_FOR_SECOND_ELLIPSE_Entry { uint8_t id; std::optional<std::string_view> label; };
-inline constexpr QZSS_DCX_CAMF_C10_GUIDANCE_LIBRARY_FOR_SECOND_ELLIPSE_Entry QZSS_DCX_CAMF_C10_GUIDANCE_LIBRARY_FOR_SECOND_ELLIPSE_TABLE[] = {
+struct QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_Entry { uint8_t id; std::optional<std::string_view> label; };
+inline constexpr QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_Entry QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_TABLE[] = {
     {0u, std::string_view{"", 0}},
     {1u, std::string_view{"Prepare for evacuation. Take only the essentials with you, especially ID cards, passport, credit cards and cash. Evacuate only after the instruction of the emergency authorities.", 178}},
     {2u, std::string_view{"Prepare emergency food and relief material: Check and restock your equipment and supplies of water, food, medicine, cash and batteries.", 135}},
@@ -39,12 +39,12 @@ inline constexpr QZSS_DCX_CAMF_C10_GUIDANCE_LIBRARY_FOR_SECOND_ELLIPSE_Entry QZS
     {16u, std::string_view{"Only make phone calls in serious emergencies to avoid overloading the mobile network.", 85}},
     {30u, std::string_view{"This is only a test. You do not have to take any action or to adopt any particular sheltering behaviour.", 104}},
     {31u, std::string_view{"Conditions have improved and are no longer expected to meet alert criteria.", 75}},};
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_c10_guidance_library_for_second_ellipse_lookup(uint8_t id) noexcept {
+[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_c10_instruction_library_for_second_ellipse_lookup(uint8_t id) noexcept {
     uint8_t lo = 0, hi = 19;
     while (lo < hi) {
         uint8_t mid = static_cast<uint8_t>(lo + (hi - lo) / 2);
-        if (QZSS_DCX_CAMF_C10_GUIDANCE_LIBRARY_FOR_SECOND_ELLIPSE_TABLE[mid].id == id) return QZSS_DCX_CAMF_C10_GUIDANCE_LIBRARY_FOR_SECOND_ELLIPSE_TABLE[mid].label;
-        if (QZSS_DCX_CAMF_C10_GUIDANCE_LIBRARY_FOR_SECOND_ELLIPSE_TABLE[mid].id < id) lo = mid + 1;
+        if (QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_TABLE[mid].id == id) return QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_TABLE[mid].label;
+        if (QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_TABLE[mid].id < id) lo = mid + 1;
         else hi = mid;
     }
     return std::nullopt;
@@ -52,7 +52,7 @@ inline constexpr QZSS_DCX_CAMF_C10_GUIDANCE_LIBRARY_FOR_SECOND_ELLIPSE_Entry QZS
 
 #else
 
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_c10_guidance_library_for_second_ellipse_lookup(uint8_t id) noexcept {
+[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_c10_instruction_library_for_second_ellipse_lookup(uint8_t id) noexcept {
     (void)id;
     return std::nullopt;
 }

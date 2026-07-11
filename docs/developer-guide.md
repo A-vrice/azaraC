@@ -34,20 +34,23 @@ azaraC/
 ├── .github/workflows/        # CI/CD設定
 ├── docs/                     # ドキュメント
 ├── examples/                 # サンプルスケッチ
-├── include/                  # 公開ヘッダ
+├── src/                      # ソースコード
 │   ├── azaraC.h              # メインヘッダ
+│   ├── azaraC_config.h       # 軽量設定マクロヘッダ（定義ファイルからも参照）
 │   ├── Message.h             # メッセージ構造体
-│   ├── Parser.h              # パーサー
-│   ├── definition/           # 定義テーブル
-│   └── internal/             # 内部ヘッダ
-├── src/                      # 実装ファイル
-│   └── Parser.cpp
+│   ├── Mt43Data.h            # MT=43 タグ付き共用体
+│   ├── Mt44Data.h            # MT=44 データ構造体（B4配列含む）
+│   ├── Parser.h / Parser.cpp # パーサー（postDecode で重複除去を一元化）
+│   ├── decoder/              # デコーダ実装
+│   ├── framer/               # フレーマー実装
+│   ├── json/                 # JSONシリアライズ実装
+│   ├── internal/             # 内部ヘッダ・実装
+│   └── definition/           # 自動生成定義テーブル（103ファイル）
 ├── scripts/                  # 定義ファイル生成スクリプト
 │   └── gen_definitions.py
 ├── test/                     # テスト
 │   ├── Makefile
 │   ├── core/                 # コア機能テスト
-│   ├── decoder/              # デコーダテスト
 │   ├── framer/               # フレーマーテスト
 │   ├── json/                 # JSONシリアライズテスト
 │   ├── integration/          # 統合テスト

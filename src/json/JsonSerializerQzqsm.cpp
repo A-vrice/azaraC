@@ -2,7 +2,7 @@
 // MT=43 QZQSM JSON serializer
 
 #include "azaraC.h"
-#include "internal/JsonWriter.h"
+#include "JsonWriter.h"
 #include "definition/_index.h"
 #include <optional>
 #include <string_view>
@@ -248,6 +248,8 @@ void serializeAshFall(const Message& m, Print& out) {
     
     writeDHM(out, "activity_time", ash->activity_time);
     wf_u(out, "warning_type", ash->warning_type);
+    wf_s(out, "warning_type_label",
+        qzss_dcr_jma_ash_fall_warning_code_lookup(ash->warning_type));
     wf_u(out, "volcano_name", ash->volcano_name);
     wf_s(out, "volcano_name_label",
         qzss_dcr_jma_volcano_name_lookup(ash->volcano_name));

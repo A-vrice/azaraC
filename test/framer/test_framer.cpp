@@ -10,69 +10,88 @@ using namespace azaraC;
 
 // ── UBX Tests ──────────────────────────────────────────────────────────────
 
-TEST_CASE("UBX Framer Basic") {
-    // svId=2 (u-blox) -> PRN184 (QZS-2 L1S)
-    uint8_t bits[32] = {0x53, 0xAB};
-    auto pkt = makeUbxSfrbx(2, bits);
+TEST_CASE("UBX Framer: basic decode with multiple svIds") {
+    // svId -> PRN mapping: 2->184, 3->185, 7->189
+    struct SvidCase { uint8_t svid; uint8_t expected_prn; uint8_t bits0; };
+    SvidCase cases[] = {
+        {2, 184, 0x53},  // svId=2 -> PRN184 (QZS-2 L1S)
+        {3, 185, 0x9A},  // svId=3 -> PRN185 (QZS-4 L1S)
+        {7, 189, 0x53},  // svId=7 -> PRN189 (QZS-3 L1S)
+    };
+    for (auto& tc : cases) {
+        uint8_t bits[32] = {tc.bits0, 0xAB};
+        auto pkt = makeUbxSfrbx(tc.svid, bits);
 
-    UbxFramer framer;
-    Frame out;
-    bool found = false;
-    for (auto b : pkt) {
-        if (framer.feed(b, out)) { found = true; break; }
+        UbxFramer framer;
+        Frame out;
+        bool found = false;
+        for (auto b : pkt) {
+            if (framer.feed(b, out)) { found = true; break; }
+        }
+
+        INFO("svId=", (int)tc.svid);
+        REQUIRE(found);
+        CHECK(out.svid == tc.expected_prn);
+        CHECK(out.bits[0] == tc.bits0);
     }
-
-    REQUIRE(found);
-    CHECK(out.svid == 184);  // svId=2 -> PRN184
-    CHECK(out.bits[0] == 0x53);
 }
 
-TEST_CASE("UBX Checksum Error") {
-    uint8_t bits[32] = {0};
-    auto pkt = makeUbxSfrbx(2, bits);
-    pkt[10] ^= 0xFF; // Corrupt header/payload
+TEST_CASE("UBX Checksum Error: corrupted payload and checksum") {
+    // Method 1: Corrupt a header/payload byte
+    {
+        uint8_t bits[32] = {0};
+        auto pkt = makeUbxSfrbx(2, bits);
+        pkt[10] ^= 0xFF;
 
-    UbxFramer framer;
-    Frame out;
-    bool found = false;
-    for (auto b : pkt) {
-        if (framer.feed(b, out)) found = true;
+        UbxFramer framer;
+        Frame out;
+        bool found = false;
+        for (auto b : pkt) {
+            if (framer.feed(b, out)) found = true;
+        }
+        CHECK_FALSE(found);
     }
-    CHECK_FALSE(found);
+    // Method 2: Corrupt the last checksum byte
+    {
+        uint8_t bits[32] = {0x53, 0xAB};
+        auto pkt = makeUbxSfrbx(2, bits);
+        pkt[pkt.size() - 1] ^= 0xFF;
+
+        UbxFramer framer;
+        Frame out;
+        bool found = false;
+        for (auto b : pkt) {
+            if (framer.feed(b, out)) found = true;
+        }
+        CHECK_FALSE(found);
+    }
 }
 
-TEST_CASE("UBX Garbage Recovery") {
-    // svId=3 (u-blox) -> PRN185 (QZS-4 L1S)
-    uint8_t bits[32] = {0x9A};
-    auto pkt = makeUbxSfrbx(3, bits);
+TEST_CASE("UBX Garbage Recovery: multiple svIds after garbage") {
+    struct SvidCase { uint8_t svid; uint8_t expected_prn; };
+    SvidCase cases[] = {
+        {2, 184},  // svId=2 -> PRN184
+        {3, 185},  // svId=3 -> PRN185
+        {4, 186},  // svId=4 -> PRN186
+    };
+    for (auto& tc : cases) {
+        uint8_t bits[32] = {0x9A};
+        auto pkt = makeUbxSfrbx(tc.svid, bits);
 
-    UbxFramer framer;
-    Frame out;
-    // Feed garbage
-    for (int i = 0; i < 100; ++i) framer.feed(0xAA, out);
+        UbxFramer framer;
+        Frame out;
+        // Feed garbage
+        for (int i = 0; i < 100; ++i) framer.feed(0xAA, out);
 
-    // Feed valid
-    bool found = false;
-    for (auto b : pkt) {
-        if (framer.feed(b, out)) { found = true; break; }
+        // Feed valid
+        bool found = false;
+        for (auto b : pkt) {
+            if (framer.feed(b, out)) { found = true; break; }
+        }
+        INFO("svId=", (int)tc.svid);
+        REQUIRE(found);
+        CHECK(out.svid == tc.expected_prn);
     }
-    REQUIRE(found);
-    CHECK(out.svid == 185);  // svId=3 -> PRN185
-}
-
-TEST_CASE("UBX: SFRBX basic decode") {
-    uint8_t nav_bits[32] = {0x53, 0xAB};
-    auto pkt = makeUbxSfrbx(2, nav_bits);
-
-    UbxFramer framer;
-    Frame ubx_frame;
-    bool found = false;
-    for (auto b : pkt) {
-        if (framer.feed(b, ubx_frame)) { found = true; break; }
-    }
-    REQUIRE(found);
-    CHECK(ubx_frame.svid == 184);
-    CHECK(ubx_frame.bits[0] == 0x53);
 }
 
 TEST_CASE("UBX: SFRBX round-trip with NMEA") {
@@ -106,36 +125,6 @@ TEST_CASE("UBX: SFRBX with different svid") {
     }
     REQUIRE(found);
     CHECK(ubx_frame.svid == 186);  // svId=4 -> PRN186
-}
-
-TEST_CASE("UBX: Checksum error rejection") {
-    uint8_t nav_bits[32] = {0x53, 0xAB};
-    auto pkt = makeUbxSfrbx(2, nav_bits);
-
-    // Corrupt the checksum
-    pkt[pkt.size() - 1] ^= 0xFF;
-
-    UbxFramer framer;
-    Frame ubx_frame;
-    bool found = false;
-    for (auto b : pkt) {
-        if (framer.feed(b, ubx_frame)) { found = true; break; }
-    }
-    CHECK_FALSE(found);
-}
-
-TEST_CASE("UBX: Garbage recovery") {
-    uint8_t nav_bits[32] = {0x9A};
-    auto pkt = makeUbxSfrbx(3, nav_bits);
-
-    UbxFramer framer;
-    Frame ubx_frame;
-    bool found = false;
-    for (auto b : pkt) {
-        if (framer.feed(b, ubx_frame)) { found = true; break; }
-    }
-    REQUIRE(found);
-    CHECK(ubx_frame.svid == 185);
 }
 
 // ── NMEA Tests ──────────────────────────────────────────────────────────────
@@ -238,4 +227,106 @@ TEST_CASE("NMEA: 65文字の拒否") {
     Frame out{};
     auto nmea = makeNmeaQzqsmHex(65);
     CHECK_FALSE(feedNmeaRaw(nmea.c_str(), out));
+}
+
+// ── UBX SFRBX 境界値テスト ────────────────────────────────────────────────────
+
+TEST_CASE("UBX: SFRBX length must be 40") {
+    // Build a packet with length=8 (header only, no words) so checksum is
+    // consistent but parse() rejects it because _len < 8 + numWords*4.
+    // This ensures the frame fails specifically due to length mismatch,
+    // not a checksum error.
+    std::vector<uint8_t> pkt;
+    pkt.push_back(0xB5); pkt.push_back(0x62); // SYNC
+    pkt.push_back(0x02); pkt.push_back(0x13); // CLASS/ID (RXM-SFRBX)
+    pkt.push_back(0x08); pkt.push_back(0x00); // length = 8 (should be 40)
+    // SFRBX header: gnssId=5(QZSS), svId=2, sigId=0, freqId=0, numWords=8, chn=0, ver=1, reserved=0
+    pkt.push_back(5); pkt.push_back(2); pkt.push_back(0); pkt.push_back(0);
+    pkt.push_back(8); pkt.push_back(0); pkt.push_back(1); pkt.push_back(0);
+    // UBX checksum over bytes [2..end)
+    uint8_t cka = 0, ckb = 0;
+    for (size_t i = 2; i < pkt.size(); ++i) { cka += pkt[i]; ckb += cka; }
+    pkt.push_back(cka);
+    pkt.push_back(ckb);
+
+    UbxFramer framer;
+    Frame out;
+    bool found = false;
+    for (auto b : pkt) {
+        if (framer.feed(b, out)) { found = true; break; }
+    }
+    CHECK_FALSE(found);
+}
+
+TEST_CASE("UBX: Two consecutive frames decoded") {
+    uint8_t bits1[32] = {0x53};
+    uint8_t bits2[32] = {0x9A};
+    auto pkt1 = makeUbxSfrbx(2, bits1);
+    auto pkt2 = makeUbxSfrbx(3, bits2);
+
+    std::vector<uint8_t> combined;
+    combined.insert(combined.end(), pkt1.begin(), pkt1.end());
+    combined.insert(combined.end(), pkt2.begin(), pkt2.end());
+
+    UbxFramer framer;
+    Frame out;
+    int found_count = 0;
+    for (auto b : combined) {
+        if (framer.feed(b, out)) found_count++;
+    }
+    CHECK(found_count == 2);
+}
+
+// ── NMEA 部分フレーム復帰テスト ────────────────────────────────────────────────
+
+TEST_CASE("NMEA: Partial frame then valid frame recovery") {
+    NmeaFramer framer;
+    Frame out;
+    // Feed a partial frame (truncated)
+    std::string partial = "$QZQSM,55,9AAF";
+    for (char c : partial) framer.feed((uint8_t)c, out);
+
+    // Now feed a valid frame
+    uint8_t bits[32] = {0x53, 0xAD};
+    auto validPkt = makeNmeaQzqsm(55, bits);
+    bool found = false;
+    for (char c : validPkt) {
+        if (framer.feed((uint8_t)c, out)) { found = true; break; }
+    }
+    REQUIRE(found);
+    CHECK(out.svid == 183);  // NMEA 55 + 128 = PRN183
+}
+
+// ── NMEA チェックサム境界値テスト ──────────────────────────────────────────────
+
+TEST_CASE("NMEA: Checksum *00 rejected (unless coincidentally correct)") {
+    uint8_t bits[32] = {};
+    auto pkt = makeNmeaQzqsm(56, bits);
+    // Overwrite checksum with *00
+    pkt[pkt.size() - 4] = '0';
+    pkt[pkt.size() - 3] = '0';
+
+    NmeaFramer framer;
+    Frame out;
+    bool found = false;
+    for (char c : pkt) {
+        if (framer.feed((uint8_t)c, out)) { found = true; break; }
+    }
+    CHECK_FALSE(found);
+}
+
+TEST_CASE("NMEA: Checksum *FF rejected (unless coincidentally correct)") {
+    uint8_t bits[32] = {};
+    auto pkt = makeNmeaQzqsm(56, bits);
+    // Overwrite checksum with *FF
+    pkt[pkt.size() - 4] = 'F';
+    pkt[pkt.size() - 3] = 'F';
+
+    NmeaFramer framer;
+    Frame out;
+    bool found = false;
+    for (char c : pkt) {
+        if (framer.feed((uint8_t)c, out)) { found = true; break; }
+    }
+    CHECK_FALSE(found);
 }

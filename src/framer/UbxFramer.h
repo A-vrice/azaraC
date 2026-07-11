@@ -1,5 +1,5 @@
 #pragma once
-// azaraC - src/internal/UbxFramer.h
+// azaraC - src/framer/UbxFramer.h
 // Parses UBX-RXM-SFRBX (class=0x02, id=0x13) from u-blox receivers.
 // Only accepts QZSS L1S subframes (gnssId=5, sigId=0).
 
@@ -25,7 +25,7 @@ private:
     uint16_t _len  = 0;
     uint16_t _pos  = 0;
     uint8_t  _ck_a = 0, _ck_b = 0;
-    uint8_t  _buf[64] = {};   // max SFRBX payload = 8+4*10 = 48 bytes
+    uint8_t  _buf[64] = {};   // SFRBX max payload = 8(header) + 4*10(words) = 48 bytes; 64 for safety margin
 
     bool parse(Frame& out);
 };

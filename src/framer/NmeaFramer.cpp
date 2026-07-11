@@ -1,6 +1,6 @@
 // azaraC - src/internal/NmeaFramer.cpp
 
-#include "internal/NmeaFramer.h"
+#include "NmeaFramer.h"
 #include <cstring>
 
 namespace azaraC {

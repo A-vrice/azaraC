@@ -67,55 +67,18 @@ TEST_CASE("UBX: SFRBX sv56 pattern1 - Marine (round-trip with NMEA)") {
     CHECK(mt43->disaster_category == 14); // Marine
 }
 
-TEST_CASE("UBX: svid=2 -> PRN184") {
-    // azarashi ublox_sv56_p2: Hypocenter, Priority
-    // svId=2 (azarashi PRN56, 現在の実装ではPRN184)
-    // 注: このテストはUBXフレーマーが正しくsvidを変換することを検証する
-    uint8_t nav_bits[32] = {0};  // ダミーデータ（svid変換のみテスト）
-
-    UbxFramer framer;
-    Frame frame;
-    bool found = feedUbxPacket(framer, frame, 2, nav_bits);
-    REQUIRE(found);
-    CHECK(frame.svid == 184);  // svId=2 -> PRN184
-    CHECK(frame.source == FrameSource::UBX);
-}
-
-TEST_CASE("UBX: svid=3 -> PRN185") {
-    // azarashi ublox_sv57: Typhoon, Regular
-    // svId=3 (azarashi PRN57, 現在の実装ではPRN185)
-    uint8_t nav_bits[32] = {0};  // ダミーデータ（svid変換のみテスト）
-
-    UbxFramer framer;
-    Frame frame;
-    bool found = feedUbxPacket(framer, frame, 3, nav_bits);
-    REQUIRE(found);
-    CHECK(frame.svid == 185);  // svId=3 -> PRN185
-    CHECK(frame.source == FrameSource::UBX);
-}
-
-TEST_CASE("UBX: svid=4 -> PRN186") {
-    // azarashi ublox_sv61: Typhoon, Regular (same content, different svid)
-    // svId=4 (azarashi PRN61, 現在の実装ではPRN186)
-    uint8_t nav_bits[32] = {0};  // ダミーデータ（svid変換のみテスト）
-
-    UbxFramer framer;
-    Frame frame;
-    bool found = feedUbxPacket(framer, frame, 4, nav_bits);
-    REQUIRE(found);
-    CHECK(frame.svid == 186);  // svId=4 -> PRN186
-    CHECK(frame.source == FrameSource::UBX);
-}
-
-TEST_CASE("UBX: svid=1 -> PRN183") {
-    // azarashi ublox_sv55: Typhoon, Regular (svid:1 -> PRN183)
-    // svId=1 (PRN183, ublox_qzss_svid_prn_map でマッピング)
-    uint8_t nav_bits[32] = {0};  // ダミーデータ（svid変換のみテスト）
-
-    UbxFramer framer;
-    Frame frame;
-    bool found = feedUbxPacket(framer, frame, 1, nav_bits);
-    REQUIRE(found);
-    CHECK(frame.svid == 183);  // svId=1 -> PRN183 (ublox_qzss_svid_prn_map)
-    CHECK(frame.source == FrameSource::UBX);
+TEST_CASE("UBX: svid to PRN mapping") {
+    // azarashi ublox_sv55-61: svid -> PRN mapping verification
+    // UBXフレーマーが正しくsvidをPRNに変換することを検証
+    struct SvidCase { uint8_t svid; uint8_t expected_prn; };
+    SvidCase cases[] = {{1, 183}, {2, 184}, {3, 185}, {4, 186}};
+    for (auto& tc : cases) {
+        uint8_t nav_bits[32] = {};  // ダミーデータ（svid変換のみテスト）
+        UbxFramer framer;
+        Frame frame;
+        bool found = feedUbxPacket(framer, frame, tc.svid, nav_bits);
+        REQUIRE(found);
+        CHECK(frame.svid == tc.expected_prn);
+        CHECK(frame.source == FrameSource::UBX);
+    }
 }

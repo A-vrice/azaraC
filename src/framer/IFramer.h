@@ -1,6 +1,7 @@
 #pragma once
-// azaraC - src/internal/IFramer.h
+// azaraC - src/framer/IFramer.h
 
+#include <cstdint>
 #include "Frame.h"
 
 namespace azaraC {

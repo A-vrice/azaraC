@@ -41,7 +41,7 @@ jobs:
 
       - name: Generate definition headers
         if: steps.ver.outputs.changed == 'true'
-        run: python scripts/gen_definitions.py --out-dir include/definition
+        run: python scripts/gen/gen_definitions.py --out-dir include/definition
 
       - name: Install Arduino CLI
         if: steps.ver.outputs.changed == 'true'

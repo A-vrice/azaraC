@@ -65,8 +65,8 @@ uint8_t decodeCityCodeList(uint64_t ex9, uint16_t* out_codes);
 struct B1Refinement {
     uint8_t c1; // 3 bits - latitude refinement (0-7)
     uint8_t c2; // 3 bits - longitude refinement (0-7)
-    uint8_t c3; // 3 bits - semi-major axis interpolation factor (0-7)
-    uint8_t c4; // 3 bits - semi-minor axis interpolation factor (0-7)
+    uint8_t c3; // 3 bits - semi-major axis refinement (0-7) → EWSS CAMF v1.1 §3.7.1.3
+    uint8_t c4; // 3 bits - semi-minor axis refinement (0-7) → EWSS CAMF v1.1 §3.7.1.4
 };
 
 B1Refinement decodeB1Refinement(uint16_t a18);
@@ -79,9 +79,11 @@ double b1RefinedLatitudeOffset(uint8_t c1);
 // delta = C2 × 360 / (8 × 131071)
 double b1RefinedLongitudeOffset(uint8_t c2);
 
-// Calculate interpolation factor for C3/C4
-// factor = code / 8.0 → 0, 0.125, 0.250, ..., 0.875
-double b1InterpolationFactor(uint8_t code);
+// Calculate refined radius (km) for C3/C4
+// refined_length = base_radius_km - delta_km * (code / 8.0)
+// where delta_km = decodeRadiusCode(original_radius_code) - decodeRadiusCode(original_radius_code - 1)
+// original_radius_code: the unrefined 5-bit radius code (A14 for semi-major, A15 for semi-minor)
+double b1RefinedRadiusKm(uint8_t code, double base_radius_km, uint8_t original_radius_code);
 
 // ---------------------------------------------------------------------------
 // B2 (A17=01) - Position of the Centre of the Hazard (EWSS CAMF v1.1 §3.7.2)
@@ -121,80 +123,10 @@ B3SecondaryEllipse decodeB3SecondaryEllipse(uint8_t c7, uint8_t c8, uint8_t c9, 
 struct B4DetailedInfo {
     bool     present;
     uint8_t  a4_code;           // Hazard category/type (raw)
-    // Presence flags for each D-field (true when field is valid for the hazard type)
-    bool     d1_present;   // D1: Magnitude on Richter scale
-    bool     d2_present;   // D2: Seismic coefficient
-    bool     d3_present;   // D3: Azimuth from ellipse center to epicenter
-    bool     d4_present;   // D4: Vector length between ellipse center and epicenter
-    bool     d5_present;   // D5: Wave height
-    bool     d6_present;   // D6: Temperature range
-    bool     d7_present;   // D7: Hurricane category
-    bool     d8_present;   // D8: Wind speed
-    bool     d9_present;   // D9: Rainfall amounts
-    bool     d10_present;  // D10: Damage category
-    bool     d11_present;  // D11: Tornado probability
-    bool     d12_present;  // D12: Hail scale
-    bool     d13_present;  // D13: Visibility
-    bool     d14_present;  // D14: Snow depth
-    bool     d15_present;  // D15: Flood severity
-    bool     d16_present;  // D16: Lightning intensity
-    bool     d17_present;  // D17: Fog level
-    bool     d18_present;  // D18: Drought level
-    bool     d19_present;  // D19: Avalanche warning level
-    bool     d20_present;  // D20: Ash fall amount and impact
-    bool     d21_present;  // D21: Geomagnetic scale
-    bool     d22_present;  // D22: Terrorism threat level
-    bool     d23_present;  // D23: Fire risk level
-    bool     d24_present;  // D24: Water quality
-    bool     d25_present;  // D25: UV index
-    bool     d26_present;  // D26: Number of cases per 100000 inhabitants
-    bool     d27_present;  // D27: Noise range
-    bool     d28_present;  // D28: Air quality index
-    bool     d29_present;  // D29: Outage estimated duration
-    bool     d30_present;  // D30: Nuclear event scale
-    bool     d31_present;  // D31: Chemical hazard type
-    bool     d32_present;  // D32: Biohazard level
-    bool     d33_present;  // D33: Biohazard type
-    bool     d34_present;  // D34: Explosive hazard type
-    bool     d35_present;  // D35: Infection type
-    bool     d36_present;  // D36: Typhoon category
-    // Raw D-series values (valid when corresponding _present flag is true)
-    uint8_t  d1;   // 4 bits - Magnitude on Richter scale
-    uint8_t  d2;   // 3 bits - Seismic coefficient
-    uint8_t  d3;   // 4 bits - Azimuth from ellipse center to epicenter
-    uint8_t  d4;   // 4 bits - Vector length between ellipse center and epicenter
-    uint8_t  d5;   // 3 bits - Wave height
-    uint8_t  d6;   // 4 bits - Temperature range
-    uint8_t  d7;   // 3 bits - Hurricane category
-    uint8_t  d8;   // 4 bits - Wind speed
-    uint8_t  d9;   // 3 bits - Rainfall amounts
-    uint8_t  d10;  // 3 bits - Damage category
-    uint8_t  d11;  // 3 bits - Tornado probability
-    uint8_t  d12;  // 4 bits - Hail scale
-    uint8_t  d13;  // 4 bits - Visibility
-    uint8_t  d14;  // 5 bits - Snow depth
-    uint8_t  d15;  // 2 bits - Flood severity
-    uint8_t  d16;  // 3 bits - Lightning intensity
-    uint8_t  d17;  // 3 bits - Fog level
-    uint8_t  d18;  // 2 bits - Drought level
-    uint8_t  d19;  // 3 bits - Avalanche warning level
-    uint8_t  d20;  // 3 bits - Ash fall amount and impact
-    uint8_t  d21;  // 3 bits - Geomagnetic scale
-    uint8_t  d22;  // 3 bits - Terrorism threat level
-    uint8_t  d23;  // 3 bits - Fire risk level
-    uint8_t  d24;  // 3 bits - Water quality
-    uint8_t  d25;  // 4 bits - UV index
-    uint8_t  d26;  // 5 bits - Number of cases per 100000 inhabitants
-    uint8_t  d27;  // 4 bits - Noise range
-    uint8_t  d28;  // 3 bits - Air quality index
-    uint8_t  d29;  // 5 bits - Outage estimated duration
-    uint8_t  d30;  // 4 bits - Nuclear event scale
-    uint8_t  d31;  // 4 bits - Chemical hazard type
-    uint8_t  d32;  // 2 bits - Biohazard level
-    uint8_t  d33;  // 2 bits - Biohazard type
-    uint8_t  d34;  // 2 bits - Explosive hazard type
-    uint8_t  d35;  // 6 bits - Infection type
-    uint8_t  d36;  // 3 bits - Typhoon category
+    static constexpr uint8_t D_COUNT = 36;
+    // Presence flags and values for D1..D36 (0-indexed arrays)
+    bool     d_present[D_COUNT];
+    uint8_t  d_values[D_COUNT];
 };
 
 B4DetailedInfo decodeB4DetailedInfo(uint16_t a18, uint8_t a4_code);

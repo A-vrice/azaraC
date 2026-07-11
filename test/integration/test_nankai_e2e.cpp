@@ -266,3 +266,420 @@ TEST_CASE("Nankai E2E: Page tracking with single page") {
     CHECK(nankai->total_page == 1);
     CHECK(nankai->info_code == 5);
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Nankai 27ページ完全集約 E2E テスト (integration_e2e.md #1)
+// nankai_vectors.json の実データテキストを使用
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Helper: build a Nankai page message with specific page number and text
+static void buildNankaiPage(uint8_t page_num, uint8_t total_pages, uint8_t info_code,
+                            const uint8_t* text, uint8_t text_len, uint8_t* bits) {
+    memset(bits, 0, 32);
+    setBits(bits, 0, 8, 0x53);       // Preamble
+    setBits(bits, 8, 6, 43);         // msg_type
+    setBits(bits, 14, 3, 1);         // report_classification = 1 (訓練)
+    setBits(bits, 17, 4, 4);         // disaster_category = 4 (Nankai)
+    setBits(bits, 25, 16, 0);        // event_time (dummy)
+    setBits(bits, 41, 2, 0);         // information_type
+    setBits(bits, 53, 4, info_code);  // info_code
+    // Text: 18 bytes at bits 57..200
+    for (uint8_t i = 0; i < text_len && i < 18; ++i) {
+        setBits(bits, 57 + i * 8, 8, text[i]);
+    }
+    setBits(bits, 201, 6, page_num);       // page
+    setBits(bits, 207, 6, total_pages);    // total_page
+    setBits(bits, 214, 6, 1);              // version = 1
+    uint32_t crc = crc24qRef(bits, 226);
+    setBits(bits, 226, 24, crc);
+}
+
+// Fixed 18-byte page payloads verified against azarashi (nankai_vectors.json).
+// Pages 1, 8-26: exact match with azarashi text_information output.
+// Pages 2-7 and 27: synthetic filler (no real data available in nankai_vectors.json).
+// Using byte arrays instead of UTF-8 strings to avoid strlen() on multibyte text
+// and to store the exact 18-byte protocol payload directly.
+static const uint8_t nankai_page_data[27][18] = {
+    { 0xE5,0x8D,0x97,0xE6,0xB5,0xB7,0xE3,0x83,0x88,0xE3,0x83,0xA9,0xE3,0x83,0x95,0xE6,0xB2,0xBF },  // page 1 (azarashi)
+    { 0xE3,0x81,0x8A,0xE3,0x81,0x86,0xE3,0x81,0x8B,0xE3,0x82,0x93,0xE3,0x82,0x80,0xE3,0x82,0x8A },  // page 2 (synthetic)
+    { 0xE3,0x81,0x8A,0xE3,0x81,0x86,0xE3,0x81,0x8B,0xE3,0x82,0x93,0xE3,0x82,0x80,0xE3,0x82,0x8A },  // page 3 (synthetic)
+    { 0xE3,0x81,0x8A,0xE3,0x81,0x86,0xE3,0x81,0x8B,0xE3,0x82,0x93,0xE3,0x82,0x80,0xE3,0x82,0x8A },  // page 4 (synthetic)
+    { 0xE3,0x81,0x8A,0xE3,0x81,0x86,0xE3,0x81,0x8B,0xE3,0x82,0x93,0xE3,0x82,0x80,0xE3,0x82,0x8A },  // page 5 (synthetic)
+    { 0xE3,0x81,0x8A,0xE3,0x81,0x86,0xE3,0x81,0x8B,0xE3,0x82,0x93,0xE3,0x82,0x80,0xE3,0x82,0x8A },  // page 6 (synthetic)
+    { 0xE3,0x81,0x8A,0xE3,0x81,0x86,0xE3,0x81,0x8B,0xE3,0x82,0x93,0xE3,0x82,0x80,0xE3,0x82,0x8A },  // page 7 (synthetic)
+    { 0xE3,0x82,0x8C,0xE3,0x81,0xBE,0xE3,0x81,0x99,0xE3,0x80,0x82,0xE3,0x81,0x93,0xE3,0x81,0xAE },  // page 8 (azarashi)
+    { 0xE9,0x80,0x9A,0xE5,0xB8,0xB8,0xE3,0x81,0xA8,0xE3,0x81,0xAF,0xE7,0x95,0xB0,0xE3,0x81,0xAA },  // page 9 (azarashi)
+    { 0xE3,0x82,0x8B,0xE3,0x82,0x86,0xE3,0x81,0xA3,0xE3,0x81,0x8F,0xE3,0x82,0x8A,0xE3,0x81,0x99 },  // page 10 (azarashi)
+    { 0xE3,0x81,0xB9,0xE3,0x82,0x8A,0xE3,0x81,0xAE,0xE7,0x99,0xBA,0xE7,0x94,0x9F,0xE3,0x81,0xAB },  // page 11 (azarashi)
+    { 0xE3,0x82,0x88,0xE3,0x82,0x8A,0xE3,0x80,0x81,0xE5,0x8D,0x97,0xE6,0xB5,0xB7,0xE3,0x83,0x88 },  // page 12 (azarashi)
+    { 0xE3,0x83,0xA9,0xE3,0x83,0x95,0xE5,0x9C,0xB0,0xE9,0x9C,0x87,0xE3,0x81,0xAE,0xE6,0x83,0xB3 },  // page 13 (azarashi)
+    { 0xE5,0xAE,0x9A,0xE9,0x9C,0x87,0xE6,0xBA,0x90,0xE5,0x9F,0x9F,0xE3,0x81,0xA7,0xE3,0x81,0xAF },  // page 14 (azarashi)
+    { 0xE3,0x80,0x81,0xE5,0xA4,0xA7,0xE8,0xA6,0x8F,0xE6,0xA8,0xA1,0xE5,0x9C,0xB0,0xE9,0x9C,0x87 },  // page 15 (azarashi)
+    { 0xE3,0x81,0xAE,0xE7,0x99,0xBA,0xE7,0x94,0x9F,0xE5,0x8F,0xAF,0xE8,0x83,0xBD,0xE6,0x80,0xA7 },  // page 16 (azarashi)
+    { 0xE3,0x81,0x8C,0xE5,0xB9,0xB3,0xE5,0xB8,0xB8,0xE6,0x99,0x82,0xE3,0x81,0xAB,0xE6,0xAF,0x94 },  // page 17 (azarashi)
+    { 0xE3,0x81,0xB9,0xE3,0x81,0xA6,0xE7,0x9B,0xB8,0xE5,0xAF,0xBE,0xE7,0x9A,0x84,0xE3,0x81,0xAB },  // page 18 (azarashi)
+    { 0xE9,0xAB,0x98,0xE3,0x81,0xBE,0xE3,0x81,0xA3,0xE3,0x81,0xA6,0xE3,0x81,0x84,0xE3,0x82,0x8B },  // page 19 (azarashi)
+    { 0xE3,0x81,0xA8,0xE8,0x80,0x83,0xE3,0x81,0x88,0xE3,0x82,0x89,0xE3,0x82,0x8C,0xE3,0x81,0xBE },  // page 20 (azarashi)
+    { 0xE3,0x81,0x99,0xE3,0x80,0x82,0xE4,0xBB,0x8A,0xE5,0xBE,0x8C,0xE3,0x81,0xAE,0xE6,0x94,0xBF },  // page 21 (azarashi)
+    { 0xE5,0xBA,0x9C,0xE3,0x82,0x84,0xE8,0x87,0xAA,0xE6,0xB2,0xBB,0xE4,0xBD,0x93,0xE3,0x81,0xAA },  // page 22 (azarashi)
+    { 0xE3,0x81,0xA9,0xE3,0x81,0x8B,0xE3,0x82,0x89,0xE3,0x81,0xAE,0xE5,0x91,0xBC,0xE3,0x81,0xB3 },  // page 23 (azarashi)
+    { 0xE3,0x81,0x8B,0xE3,0x81,0x91,0xE7,0xAD,0x89,0xE3,0x81,0xAB,0xE5,0xBF,0x9C,0xE3,0x81,0x98 },  // page 24 (azarashi)
+    { 0xE3,0x81,0x9F,0xE9,0x98,0xB2,0xE7,0x81,0xBD,0xE5,0xAF,0xBE,0xE5,0xBF,0x9C,0xE3,0x82,0x92 },  // page 25 (azarashi)
+    { 0xE3,0x81,0xA8,0xE3,0x81,0xA3,0xE3,0x81,0xA6,0xE3,0x81,0x8F,0xE3,0x81,0xA0,0xE3,0x81,0x95 },  // page 26 (azarashi)
+    { 0xE5,0x8D,0x97,0xE6,0xB5,0xB7,0xE3,0x83,0x88,0xE3,0x83,0xA9,0xE3,0x83,0x95,0xE5,0x9C,0xB0 },  // page 27 (synthetic)
+};
+
+TEST_CASE("Nankai E2E: 27-page full aggregation with real text data") {
+    // Uses shared nankai_page_data[] defined above (18-byte fixed payloads)
+
+    azaraC::Parser parser;
+    azaraC::Message msg;
+    uint8_t bits[32];
+
+    // Build expected aggregated body: concatenation of all 27 pages (18 bytes each).
+    // No page contains a 0x00 byte (all UTF-8 Japanese), so the full 486 bytes
+    // should appear in aggregated_text without null-termination truncation.
+    static constexpr uint16_t EXPECTED_AGG_LEN = 27 * NankaiPageBuffer::TEXT_PER_PAGE;
+    uint8_t expected_body[EXPECTED_AGG_LEN];
+    for (uint8_t p = 0; p < 27; ++p) {
+        memcpy(expected_body + p * NankaiPageBuffer::TEXT_PER_PAGE,
+               nankai_page_data[p], NankaiPageBuffer::TEXT_PER_PAGE);
+    }
+
+    // Feed all 27 pages in order
+    // Pages 1..26 won't produce output (aggregation in progress),
+    // only page 27 completes the aggregation and produces output.
+    for (uint8_t page = 1; page <= 27; ++page) {
+        buildNankaiPage(page, 27, 5,
+                        nankai_page_data[page - 1], NankaiPageBuffer::TEXT_PER_PAGE, bits);
+        std::string nmea = makeNmeaQzqsm(58, bits);
+
+        bool output = false;
+        for (size_t i = 0; i < nmea.length(); i++) {
+            if (parser.feed(nmea[i], msg, 0)) {
+                output = true;
+                break;
+            }
+        }
+        INFO("page=", page);
+        if (page < 27) {
+            // Intermediate pages: no output yet (aggregation in progress)
+            CHECK_FALSE(output);
+        } else {
+            // Final page: aggregation complete, output produced
+            CHECK(output);
+            CHECK(msg.valid);
+            CHECK(msg.payload_type == azaraC::MsgPayloadType::Mt43);
+
+            const azaraC::Mt43Data* mt43 = msg.getMt43();
+            REQUIRE(mt43 != nullptr);
+            CHECK(mt43->disaster_category == 4);
+
+            const azaraC::NankaiData* nankai = mt43->getNankai();
+            REQUIRE(nankai != nullptr);
+            CHECK(nankai->is_aggregated == true);
+            CHECK(nankai->aggregated_len == EXPECTED_AGG_LEN);
+            // Full exact match of the aggregated body
+            CHECK(memcmp(nankai->aggregated_text, expected_body, EXPECTED_AGG_LEN) == 0);
+        }
+    }
+
+    // After all 27 pages, the last message should be aggregated
+    const azaraC::Mt43Data* mt43 = msg.getMt43();
+    REQUIRE(mt43 != nullptr);
+    const azaraC::NankaiData* nankai = mt43->getNankai();
+    REQUIRE(nankai != nullptr);
+    CHECK(nankai->is_aggregated == true);
+    CHECK(nankai->aggregated_len == EXPECTED_AGG_LEN);
+
+    // Full exact match of the aggregated body — catches reordering, truncation,
+    // or partial overwrites that flag/length-only checks would miss.
+    CHECK(memcmp(nankai->aggregated_text, expected_body, EXPECTED_AGG_LEN) == 0);
+
+    // Stable portion checks: prefix (page 1) and suffix (page 27)
+    CHECK(memcmp(nankai->aggregated_text,
+                 nankai_page_data[0], NankaiPageBuffer::TEXT_PER_PAGE) == 0);
+    CHECK(memcmp(nankai->aggregated_text + EXPECTED_AGG_LEN - NankaiPageBuffer::TEXT_PER_PAGE,
+                 nankai_page_data[26], NankaiPageBuffer::TEXT_PER_PAGE) == 0);
+
+    // Verify JSON output contains text_utf8
+    StringPrint sp;
+    internal::JsonSerializer::serialize(msg, sp);
+    const auto& s = sp.str();
+    CHECK(s.find("\"text_utf8\":") != std::string::npos);
+    CHECK(s.find("\"text_hex\"") == std::string::npos);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Nankai NUL バイト打ち切り リグレッションテスト
+// ページ内に 0x00 が埋め込まれた場合、NUL 以降のデータが aggregated_text に
+// 含まれず aggregated_len が短縮されることを検証する。
+// ═══════════════════════════════════════════════════════════════════════════════
+
+TEST_CASE("Nankai E2E: NUL byte mid-page stops aggregation at null") {
+    // 3 ページ構成。page 2 の 9 バイト目に 0x00 を埋め込む。
+    // NankaiPageBuffer::getTextLength/getText の stop-at-NUL を直接検証する。
+    constexpr uint8_t TOTAL = 3;
+
+    // Page 1: 18 × 'A' (0x41)
+    static const uint8_t p1[NankaiPageBuffer::TEXT_PER_PAGE] = {
+        'A','A','A','A','A','A','A','A','A',
+        'A','A','A','A','A','A','A','A','A'
+    };
+    // Page 2: 'A'×9, NUL, 'B'×8 (NUL 以降の 8 バイトは集約対象外)
+    static const uint8_t p2[NankaiPageBuffer::TEXT_PER_PAGE] = {
+        'A','A','A','A','A','A','A','A','A',
+        0x00,'B','B','B','B','B','B','B','B'
+    };
+    // Page 3: 18 × 'C' (0x43)
+    static const uint8_t p3[NankaiPageBuffer::TEXT_PER_PAGE] = {
+        'C','C','C','C','C','C','C','C','C',
+        'C','C','C','C','C','C','C','C','C'
+    };
+
+    const uint8_t* page_texts[TOTAL] = { p1, p2, p3 };
+
+    // 期待値: 18 (page1) + 9 (page2, NUL で打ち切り) + 18 (page3) = 45
+    static constexpr uint16_t EXPECTED_LEN = 18 + 9 + 18; // 45
+    char expected_body[EXPECTED_LEN];
+    memcpy(expected_body +  0, p1, 18);
+    memcpy(expected_body + 18, p2,  9);  // NUL 直前までの 9 バイトだけ
+    memcpy(expected_body + 27, p3, 18);
+
+    azaraC::Parser parser;
+    azaraC::Message msg;
+    uint8_t bits[32];
+
+    for (uint8_t page = 1; page <= TOTAL; ++page) {
+        buildNankaiPage(page, TOTAL, 5,
+                        page_texts[page - 1], NankaiPageBuffer::TEXT_PER_PAGE, bits);
+        std::string nmea = makeNmeaQzqsm(58, bits);
+
+        bool output = false;
+        for (size_t i = 0; i < nmea.length(); i++) {
+            if (parser.feed(nmea[i], msg, 0)) {
+                output = true;
+                break;
+            }
+        }
+        INFO("page=", page);
+        if (page < TOTAL) {
+            CHECK_FALSE(output);
+        } else {
+            // 最終ページで集約完了 → 出力あり
+            CHECK(output);
+            CHECK(msg.valid);
+            CHECK(msg.payload_type == azaraC::MsgPayloadType::Mt43);
+
+            const azaraC::Mt43Data* mt43 = msg.getMt43();
+            REQUIRE(mt43 != nullptr);
+            CHECK(mt43->disaster_category == 4);
+
+            const azaraC::NankaiData* nankai = mt43->getNankai();
+            REQUIRE(nankai != nullptr);
+            CHECK(nankai->is_aggregated == true);
+
+            // aggregated_len が NUL 打ち切りを反映していること
+            CHECK(nankai->aggregated_len == EXPECTED_LEN);
+
+            // aggregated_text に NUL 以降のデータが含まれないこと
+            CHECK(memcmp(nankai->aggregated_text, expected_body, EXPECTED_LEN) == 0);
+
+            // スライス検証: page 2 の NUL 以降の 'B' が含まれないこと
+            CHECK(memcmp(nankai->aggregated_text + 18, p2, 9) == 0);          // page2 先頭 9 バイト
+            CHECK(nankai->aggregated_text[27] == 'C');                        // page3 が正位置に来ている
+            CHECK(memcmp(nankai->aggregated_text + 27, p3, 18) == 0);         // page3 全 18 バイト
+        }
+    }
+
+    // 集約完了後の最終確認
+    const azaraC::Mt43Data* mt43 = msg.getMt43();
+    REQUIRE(mt43 != nullptr);
+    const azaraC::NankaiData* nankai = mt43->getNankai();
+    REQUIRE(nankai != nullptr);
+    CHECK(nankai->is_aggregated == true);
+    CHECK(nankai->aggregated_len == EXPECTED_LEN);
+    CHECK(memcmp(nankai->aggregated_text, expected_body, EXPECTED_LEN) == 0);
+
+    // JSON 出力に text_hex ではなく text_utf8 が使われること
+    StringPrint sp;
+    internal::JsonSerializer::serialize(msg, sp);
+    const auto& s = sp.str();
+    CHECK(s.find("\"text_utf8\":") != std::string::npos);
+    CHECK(s.find("\"text_hex\"") == std::string::npos);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Nankai ページ欠損 e2e テスト (integration_e2e.md #3)
+// 27ページ中 page 14 をスキップ → 集約未完了 → 欠損ページ投入で集約完了
+// ═══════════════════════════════════════════════════════════════════════════════
+
+TEST_CASE("Nankai E2E: Page missing prevents aggregation") {
+    // Uses shared nankai_page_data[] defined above (18-byte fixed payloads)
+
+    azaraC::Parser parser;
+    azaraC::Message msg;
+    uint8_t bits[32];
+    constexpr uint8_t SKIP_PAGE = 14;
+
+    // Phase 1: Feed all pages EXCEPT the skipped one
+    for (uint8_t page = 1; page <= 27; ++page) {
+        if (page == SKIP_PAGE) continue;
+
+        buildNankaiPage(page, 27, 5,
+                        nankai_page_data[page - 1], NankaiPageBuffer::TEXT_PER_PAGE, bits);
+        std::string nmea = makeNmeaQzqsm(58, bits);
+
+        bool output = false;
+        for (size_t i = 0; i < nmea.length(); i++) {
+            if (parser.feed(nmea[i], msg, 0)) {
+                output = true;
+                break;
+            }
+        }
+        // Intermediate pages should not produce output
+        CHECK_FALSE(output);
+    }
+
+    // Phase 2: After 26 pages (page 14 missing), aggregation should NOT be complete
+    // Re-feed the last page (27) to get a callback and check state
+    {
+        buildNankaiPage(27, 27, 5,
+                        nankai_page_data[26], NankaiPageBuffer::TEXT_PER_PAGE, bits);
+        std::string nmea = makeNmeaQzqsm(58, bits);
+
+        bool output = false;
+        for (size_t i = 0; i < nmea.length(); i++) {
+            if (parser.feed(nmea[i], msg, 0)) {
+                output = true;
+                break;
+            }
+        }
+        // Should NOT output because page 14 is missing
+        CHECK_FALSE(output);
+    }
+
+    // Phase 3: Feed the missing page 14 — aggregation should now complete
+    {
+        buildNankaiPage(SKIP_PAGE, 27, 5,
+                        nankai_page_data[SKIP_PAGE - 1], NankaiPageBuffer::TEXT_PER_PAGE, bits);
+        std::string nmea = makeNmeaQzqsm(58, bits);
+
+        bool output = false;
+        for (size_t i = 0; i < nmea.length(); i++) {
+            if (parser.feed(nmea[i], msg, 0)) {
+                output = true;
+                break;
+            }
+        }
+        // NOW aggregation should complete
+        CHECK(output);
+        CHECK(msg.valid);
+        CHECK(msg.payload_type == azaraC::MsgPayloadType::Mt43);
+
+        const azaraC::Mt43Data* mt43 = msg.getMt43();
+        REQUIRE(mt43 != nullptr);
+        CHECK(mt43->disaster_category == 4);
+
+        const azaraC::NankaiData* nankai = mt43->getNankai();
+        REQUIRE(nankai != nullptr);
+        CHECK(nankai->is_aggregated == true);
+        CHECK(nankai->aggregated_len > 0);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Nankai 63ページ最大集約 E2E テスト
+// total_page は6ビットフィールド（最大値63）。63ページ×18バイト=1134バイトは
+// aggregated_text[1135] の上限（1134バイト+ヌル終端）にちょうど収まる。
+// ページ1-27はazarashi検証済みデータ、ページ28-63は合成データを使用。
+// ═══════════════════════════════════════════════════════════════════════════════
+
+TEST_CASE("Nankai E2E: 63-page maximum aggregation (protocol limit)") {
+    constexpr uint8_t TOTAL = 63;  // 6-bit max
+    static_assert(TOTAL * NankaiPageBuffer::TEXT_PER_PAGE <= 1134, "exceeds aggregated_text buffer");
+
+    azaraC::Parser parser;
+    azaraC::Message msg;
+    uint8_t bits[32];
+
+    // Build expected aggregated body: 63 pages × 18 bytes = 1134 bytes
+    static constexpr uint16_t EXPECTED_AGG_LEN_63 = TOTAL * NankaiPageBuffer::TEXT_PER_PAGE;
+    uint8_t expected_body_63[EXPECTED_AGG_LEN_63];
+
+    // Pages 1-27: use verified nankai_page_data
+    // Pages 28-63: use synthetic filler (same as pages 2-7)
+    static const uint8_t filler[NankaiPageBuffer::TEXT_PER_PAGE] = {
+        0xE3,0x81,0x8A,0xE3,0x81,0x86,0xE3,0x81,0x8B,
+        0xE3,0x82,0x93,0xE3,0x82,0x80,0xE3,0x82,0x8A
+    };
+
+    for (uint8_t p = 0; p < TOTAL; ++p) {
+        if (p < 27) {
+            memcpy(expected_body_63 + p * NankaiPageBuffer::TEXT_PER_PAGE,
+                   nankai_page_data[p], NankaiPageBuffer::TEXT_PER_PAGE);
+        } else {
+            memcpy(expected_body_63 + p * NankaiPageBuffer::TEXT_PER_PAGE,
+                   filler, NankaiPageBuffer::TEXT_PER_PAGE);
+        }
+    }
+
+    // Feed all 63 pages in order
+    for (uint8_t page = 1; page <= TOTAL; ++page) {
+        const uint8_t* text_src = (page <= 27)
+            ? nankai_page_data[page - 1]
+            : filler;
+        buildNankaiPage(page, TOTAL, 5,
+                        text_src, NankaiPageBuffer::TEXT_PER_PAGE, bits);
+        std::string nmea = makeNmeaQzqsm(58, bits);
+
+        bool output = false;
+        for (size_t i = 0; i < nmea.length(); i++) {
+            if (parser.feed(nmea[i], msg, 0)) {
+                output = true;
+                break;
+            }
+        }
+        INFO("page=", page);
+        if (page < TOTAL) {
+            CHECK_FALSE(output);
+        } else {
+            CHECK(output);
+            CHECK(msg.valid);
+            CHECK(msg.payload_type == azaraC::MsgPayloadType::Mt43);
+
+            const azaraC::Mt43Data* mt43 = msg.getMt43();
+            REQUIRE(mt43 != nullptr);
+            CHECK(mt43->disaster_category == 4);
+
+            const azaraC::NankaiData* nankai = mt43->getNankai();
+            REQUIRE(nankai != nullptr);
+            CHECK(nankai->is_aggregated == true);
+            CHECK(nankai->aggregated_len == EXPECTED_AGG_LEN_63);
+            // Full exact match
+            CHECK(memcmp(nankai->aggregated_text, expected_body_63, EXPECTED_AGG_LEN_63) == 0);
+        }
+    }
+
+    // Final verification on the completed aggregation
+    const azaraC::Mt43Data* mt43 = msg.getMt43();
+    REQUIRE(mt43 != nullptr);
+    const azaraC::NankaiData* nankai = mt43->getNankai();
+    REQUIRE(nankai != nullptr);
+    CHECK(nankai->is_aggregated == true);
+    CHECK(nankai->aggregated_len == EXPECTED_AGG_LEN_63);
+    CHECK(memcmp(nankai->aggregated_text, expected_body_63, EXPECTED_AGG_LEN_63) == 0);
+
+    // Stable portion checks: prefix (page 1) and suffix (page 63 = filler)
+    CHECK(memcmp(nankai->aggregated_text,
+                 nankai_page_data[0], NankaiPageBuffer::TEXT_PER_PAGE) == 0);
+    CHECK(memcmp(nankai->aggregated_text + EXPECTED_AGG_LEN_63 - NankaiPageBuffer::TEXT_PER_PAGE,
+                 filler, NankaiPageBuffer::TEXT_PER_PAGE) == 0);
+
+    // Verify JSON output contains text_utf8
+    StringPrint sp;
+    internal::JsonSerializer::serialize(msg, sp);
+    const auto& s = sp.str();
+    CHECK(s.find("\"text_utf8\":") != std::string::npos);
+    CHECK(s.find("\"text_hex\"") == std::string::npos);
+}

@@ -12,6 +12,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: clean test files
         run: make -C test clean
@@ -40,6 +42,8 @@ jobs:
     needs: host-test
     steps:
       - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: Run Arduino Lint
         uses: arduino/arduino-lint-action@v2
@@ -84,6 +88,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: Install Arduino CLI
         uses: arduino/setup-arduino-cli@v2
@@ -155,6 +161,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: Install Arduino CLI
         uses: arduino/setup-arduino-cli@v2
@@ -203,6 +211,111 @@ jobs:
             arduino-cli compile --clean --fqbn "${{ matrix.fqbn }}" "$sketch" --build-property "compiler.cpp.extra_flags=$CPP_EXTRA_FLAGS"
           done
 
+  # ── 静的解析 ──────────────────────────────────────────────────────────────
+  static-analysis:
+    name: Static analysis (cppcheck)
+    runs-on: ubuntu-latest
+    needs: host-test
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Install cppcheck
+        run: sudo apt-get update && sudo apt-get install -y cppcheck
+
+      - name: Static code analysis (XML output)
+        run: make -C test check-xml
+
+      - name: Strict compilation check
+        run: make -C test check-strict-compile
+
+      - name: Generate cppcheck summary
+        if: always()
+        run: python scripts/analysis/cppcheck_summary.py --input-xml test/cppcheck_report.xml >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload cppcheck report artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cppcheck-report
+          path: test/cppcheck_report.xml
+
+  # ── カバレッジ測定 ────────────────────────────────────────────────────────
+  coverage:
+    name: Coverage (gcovr)
+    runs-on: ubuntu-latest
+    needs: host-test
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Install gcovr
+        run: sudo apt-get update && sudo apt-get install -y gcovr
+
+      - name: Build & run with coverage
+        run: make -C test coverage
+
+      - name: Generate gcovr JSON report
+        run: |
+          cd test && gcovr . --filter='../src/' --exclude='.*test_.*\.cpp' \
+            --json-pretty -o coverage_report.json
+
+      - name: Generate coverage step summary
+        run: python scripts/analysis/gcovr_summary.py --input test/coverage_report.json >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload coverage report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: test/coverage_report.json
+
+  # ── メモリプロファイリング ────────────────────────────────────────────────
+  memprof:
+    name: Memory profiling (Valgrind)
+    runs-on: ubuntu-latest
+    needs: host-test
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Install valgrind
+        run: sudo apt-get update && sudo apt-get install -y valgrind
+
+      - name: Memory profiling (Heap usage verification)
+        run: |
+          set -o pipefail
+          make -C test memprof 2>&1 | tee test/memprof_output.txt
+      - name: Generate memprof step summary
+        if: always()
+        run: |
+          echo "### 💾 Memory Profile (Valgrind Massif)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          head -20 test/memprof_output.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload memprof report artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: memprof-report
+          path: test/memprof_output.txt
+
   # ── 結果集約 ──────────────────────────────────────────────────────────────
   summary:
     name: CI Summary
@@ -213,15 +326,107 @@ jobs:
       - arduino-lint
       - arduino-compile-required
       - arduino-compile-extended
+      - static-analysis
+      - coverage
+      - memprof
     if: always()
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
-      - name: Check extended compile results
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Download cppcheck report
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: cppcheck-report
+          path: artifacts/cppcheck
+
+      - name: Download coverage report
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-report
+          path: artifacts/coverage
+
+      - name: Download memprof report
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: memprof-report
+          path: artifacts/memprof
+
+      - name: Generate comment body
         run: |
-          echo "## CI Results" >> $GITHUB_STEP_SUMMARY
-          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
-          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| host-test | ${{ needs.host-test.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| fuzz-test | ${{ needs.fuzz-test.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| arduino-lint | ${{ needs.arduino-lint.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| arduino-compile-required | ${{ needs.arduino-compile-required.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| arduino-compile-extended | ${{ needs.arduino-compile-extended.result }} |" >> $GITHUB_STEP_SUMMARY
+          cat  << 'EOF' > comment.md
+          ## CI Results
+
+          | Job | Status |
+          |-----|--------|
+          EOF
+          echo "| host-test | ${{ needs.host-test.result }} |" >> comment.md
+          echo "| fuzz-test | ${{ needs.fuzz-test.result }} |" >> comment.md
+          echo "| arduino-lint | ${{ needs.arduino-lint.result }} |" >> comment.md
+          echo "| arduino-compile-required | ${{ needs.arduino-compile-required.result }} |" >> comment.md
+          echo "| arduino-compile-extended | ${{ needs.arduino-compile-extended.result }} |" >> comment.md
+          echo "| static-analysis | ${{ needs.static-analysis.result }} |" >> comment.md
+          echo "| coverage | ${{ needs.coverage.result }} |" >> comment.md
+          echo "| memprof | ${{ needs.memprof.result }} |" >> comment.md
+          echo "" >> comment.md
+          echo "---" >> comment.md
+          echo "" >> comment.md
+
+          # Gcovr coverage summary
+          if [ -f artifacts/coverage/coverage_report.json ]; then
+            python scripts/analysis/gcovr_summary.py --input artifacts/coverage/coverage_report.json >> comment.md
+          else
+            echo "### 📊 Coverage Report" >> comment.md
+            echo "" >> comment.md
+            echo "⚠️ Coverage report not available (coverage job was skipped or failed)." >> comment.md
+            echo "" >> comment.md
+          fi
+
+          echo "" >> comment.md
+          echo "---" >> comment.md
+          echo "" >> comment.md
+
+          # Cppcheck summary
+          if [ -f artifacts/cppcheck/cppcheck_report.xml ]; then
+            python scripts/analysis/cppcheck_summary.py --input-xml artifacts/cppcheck/cppcheck_report.xml >> comment.md
+          else
+            echo "### 🔍 Cppcheck Static Analysis Results" >> comment.md
+            echo "" >> comment.md
+            echo "⚠️ Cppcheck report not available (static-analysis job was skipped or failed)." >> comment.md
+            echo "" >> comment.md
+          fi
+
+          echo "" >> comment.md
+          echo "---" >> comment.md
+          echo "" >> comment.md
+
+          # Memory profile summary
+          if [ -f artifacts/memprof/memprof_output.txt ]; then
+            echo "### 💾 Memory Profile (Valgrind Massif)" >> comment.md
+            echo "" >> comment.md
+            echo '```' >> comment.md
+            head -25 artifacts/memprof/memprof_output.txt >> comment.md
+            echo '```' >> comment.md
+            echo "" >> comment.md
+          else
+            echo "### 💾 Memory Profile (Valgrind Massif)" >> comment.md
+            echo "" >> comment.md
+            echo "⚠️ Memory profile not available (memprof job was skipped or failed or is on Windows)." >> comment.md
+            echo "" >> comment.md
+          fi
+
+      - name: Write to GITHUB_STEP_SUMMARY
+        run: cat comment.md >> $GITHUB_STEP_SUMMARY
+
+      - name: Post PR comment
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh pr comment ${{ github.event.number }} --edit-last --create-if-none --body-file comment.md

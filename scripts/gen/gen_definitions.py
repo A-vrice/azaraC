@@ -55,15 +55,15 @@ GUARD_MAP = {
     "qzss_dcx_camf_a5_severity": "AZARAC_ENABLE_DCX_CAMF",
     "qzss_dcx_camf_a6_hazard_onset_week": "AZARAC_ENABLE_DCX_CAMF",
     "qzss_dcx_camf_a8_hazard_duration": "AZARAC_ENABLE_DCX_CAMF",
-    "qzss_dcx_camf_a9_selection_of_library": "AZARAC_ENABLE_DCX_CAMF",
+    "qzss_dcx_camf_a9_type_of_library": "AZARAC_ENABLE_DCX_CAMF",
     "qzss_dcx_camf_a10_library_version": "AZARAC_ENABLE_DCX_CAMF",
     "qzss_dcx_camf_a11_international_library": "AZARAC_ENABLE_DCX_CAMF",
     "qzss_dcx_camf_a11_international_library_code": "AZARAC_ENABLE_DCX_CAMF",
     "qzss_dcx_camf_a11_japanese_library_en": "AZARAC_ENABLE_DCX_CAMF",
     "qzss_dcx_camf_a11_japanese_library_ja": "AZARAC_ENABLE_DCX_CAMF",
-    "qzss_dcx_camf_a17_main_subject_for_specific_settings": "AZARAC_ENABLE_DCX_CAMF",
-    "qzss_dcx_camf_c10_guidance_library_for_second_ellipse": "AZARAC_ENABLE_DCX_CAMF",
-    "qzss_dcx_camf_c10_guidance_library_for_second_ellipse_code": "AZARAC_ENABLE_DCX_CAMF",
+    "qzss_dcx_camf_a17_type_of_specific_settings": "AZARAC_ENABLE_DCX_CAMF",
+    "qzss_dcx_camf_c10_instruction_library_for_second_ellipse": "AZARAC_ENABLE_DCX_CAMF",
+    "qzss_dcx_camf_c10_instruction_library_for_second_ellipse_code": "AZARAC_ENABLE_DCX_CAMF",
     "qzss_dcx_camf_d1_magnitude_on_richter_scale": "AZARAC_ENABLE_DCX_CAMF",
     "qzss_dcx_camf_d2_seismic_coefficient": "AZARAC_ENABLE_DCX_CAMF",
     "qzss_dcx_camf_d3_azimuth_from_centre_of_main_ellipse_to_epicentre": "AZARAC_ENABLE_DCX_CAMF",
@@ -105,6 +105,18 @@ GUARD_MAP = {
     "qzss_dcx_ex1_target_area_code_en": "AZARAC_ENABLE_DCX_CAMF",
     "qzss_dcx_ex1_target_area_code_ja": "AZARAC_ENABLE_DCX_CAMF",
     "qzss_dcr_preamble": "AZARAC_ENABLE_QZSS_DCR_PREAMBLE",
+}
+
+# Modules to skip during generation (handled manually or not needed)
+SKIP_MODULES = {
+    "ublox_qzss_svid_prn_map",
+    "qzss_dcx_camf_a3_provider_identifier_australia",
+    "qzss_dcx_camf_a3_provider_identifier_fiji",
+    "qzss_dcx_camf_a3_provider_identifier_japan",
+    "qzss_dcx_camf_a3_provider_identifier_map",
+    "qzss_dcx_camf_a3_provider_identifier_thailand",
+    "qzss_dcx_camf_ex9_target_area_code_en",
+    "qzss_dcx_camf_ex9_target_area_code_ja",
 }
 
 BASE_MOD = "azarashi.qzss_dcr_lib.definition"
@@ -226,8 +238,8 @@ def emit_bsearch_optional(varname, entries, guard, kt):
 def build_header(modname, varname, entries, ver, all_varnames, obj=None):
     keys = [k for k in entries.keys() if isinstance(k, int)]
     if not keys: return None
-    # Filter entries to only include string values for lookup
-    int_entries = {k: entries[k] for k in keys if isinstance(entries[k], str)}
+    # Filter entries to include string, int, and float values for lookup
+    int_entries = {k: str(entries[k]) for k in keys if isinstance(entries[k], (str, int, float))}
     if not int_entries: return None
     guard = varname.upper()
     kt    = key_type(keys)
@@ -314,6 +326,9 @@ def run(out_dir):
                 all_varnames.add(attr)
 
     for _, modname, _ in pkgutil.iter_modules([base_path]):
+        if modname in SKIP_MODULES:
+            print(f"[SKIP] {modname} (in skip list)", file=sys.stderr)
+            continue
         try:
             mod = importlib.import_module(f"{BASE_MOD}.{modname}")
         except Exception as e:
@@ -323,6 +338,9 @@ def run(out_dir):
             if attr.startswith("_"): continue
             obj = getattr(mod, attr)
             if not isinstance(obj, dict): continue
+            if attr in SKIP_MODULES:
+                print(f"[SKIP] {modname}.{attr} (in skip list)", file=sys.stderr)
+                continue
             hdr = build_header(modname, attr, obj, ver, all_varnames, obj)
             if hdr is None: continue
             with open(os.path.join(out_dir, f"{attr}.h"), "w", encoding="utf-8") as f:

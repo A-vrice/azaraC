@@ -1,17 +1,16 @@
 // azaraC - src/internal/DecoderDcx.cpp
-// MT=44 DCX / CAMF decoder (IS-QZSS-DCX-003)
+// MT=44 DCX / CAMF decoder (IS-QZSS-DCX-004)
 
-#include "internal/Decoder.h"
+#include "Decoder.h"
 #include "internal/DcxHelper.h"
 
 namespace azaraC {
 namespace internal {
 
 // ---------------------------------------------------------------------------
-// MT=44 DCX / CAMF  (IS-QZSS-DCX-003)
+// MT=44 DCX / CAMF  (IS-QZSS-DCX-004)
 // ---------------------------------------------------------------------------
 bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix) {
-    // Initialize Mt44Data payload using placement new
     out.initPayload<Mt44Data>();
     Mt44Data* d = out.getMt44();
     if (!d) return false;
@@ -20,11 +19,9 @@ bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix)
     d->is_null_message = false;
     d->ex_kind = ExtendedKind::None;
 
-    // SD (Satellite Designation)
     d->sd.sdmt = getBits(bits, 14, 1);
     d->sd.sdm  = getBits(bits, 15, 9);
 
-    // CAMF (A1 - A18)
     d->camf.a1  = getBits(bits, 24, 2);
     d->camf.a2  = getBits(bits, 26, 9);
     d->camf.a3  = getBits(bits, 35, 5);
@@ -45,19 +42,16 @@ bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix)
     d->camf.a17 = getBits(bits, 129, 2);
     d->camf.a18 = getBits(bits, 131, 15);
 
-    // Initialize B1 fields
     d->camf.b1_present = false;
     d->camf.b1_c1 = 0;
     d->camf.b1_c2 = 0;
     d->camf.b1_c3 = 0;
     d->camf.b1_c4 = 0;
 
-    // Initialize B2 fields
     d->camf.b2_present = false;
     d->camf.b2_c5 = 0;
     d->camf.b2_c6 = 0;
 
-    // Initialize B3 fields
     d->camf.b3_present = false;
     d->camf.b3_c7 = 0;
     d->camf.b3_c8 = 0;
@@ -66,29 +60,11 @@ bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix)
     d->camf.b3_shift_km = 0.0;
     d->camf.b3_homothetic_factor = 0.0;
     d->camf.b3_bearing_deg = 0.0;
+// B4 fields initialized via memset for compactness (arrays)
+d->camf.b4_present = false;
+memset(d->camf.b4_d_present, 0, sizeof(d->camf.b4_d_present));
+memset(d->camf.b4_d_values, 0, sizeof(d->camf.b4_d_values));
 
-    // Initialize B4 fields
-    d->camf.b4_present = false;
-    // Initialize presence flags to false
-    d->camf.b4_d1_present = false;  d->camf.b4_d2_present = false;  d->camf.b4_d3_present = false;  d->camf.b4_d4_present = false;
-    d->camf.b4_d5_present = false;  d->camf.b4_d6_present = false;  d->camf.b4_d7_present = false;  d->camf.b4_d8_present = false;
-    d->camf.b4_d9_present = false;  d->camf.b4_d10_present = false; d->camf.b4_d11_present = false; d->camf.b4_d12_present = false;
-    d->camf.b4_d13_present = false; d->camf.b4_d14_present = false; d->camf.b4_d15_present = false; d->camf.b4_d16_present = false;
-    d->camf.b4_d17_present = false; d->camf.b4_d18_present = false; d->camf.b4_d19_present = false; d->camf.b4_d20_present = false;
-    d->camf.b4_d21_present = false; d->camf.b4_d22_present = false; d->camf.b4_d23_present = false; d->camf.b4_d24_present = false;
-    d->camf.b4_d25_present = false; d->camf.b4_d26_present = false; d->camf.b4_d27_present = false; d->camf.b4_d28_present = false;
-    d->camf.b4_d29_present = false; d->camf.b4_d30_present = false; d->camf.b4_d31_present = false; d->camf.b4_d32_present = false;
-    d->camf.b4_d33_present = false; d->camf.b4_d34_present = false; d->camf.b4_d35_present = false; d->camf.b4_d36_present = false;
-    // Initialize D-field values to 0
-    d->camf.b4_d1 = 0;  d->camf.b4_d2 = 0;  d->camf.b4_d3 = 0;  d->camf.b4_d4 = 0;
-    d->camf.b4_d5 = 0;  d->camf.b4_d6 = 0;  d->camf.b4_d7 = 0;  d->camf.b4_d8 = 0;
-    d->camf.b4_d9 = 0;  d->camf.b4_d10 = 0; d->camf.b4_d11 = 0; d->camf.b4_d12 = 0;
-    d->camf.b4_d13 = 0; d->camf.b4_d14 = 0; d->camf.b4_d15 = 0; d->camf.b4_d16 = 0;
-    d->camf.b4_d17 = 0; d->camf.b4_d18 = 0; d->camf.b4_d19 = 0; d->camf.b4_d20 = 0;
-    d->camf.b4_d21 = 0; d->camf.b4_d22 = 0; d->camf.b4_d23 = 0; d->camf.b4_d24 = 0;
-    d->camf.b4_d25 = 0; d->camf.b4_d26 = 0; d->camf.b4_d27 = 0; d->camf.b4_d28 = 0;
-    d->camf.b4_d29 = 0; d->camf.b4_d30 = 0; d->camf.b4_d31 = 0; d->camf.b4_d32 = 0;
-    d->camf.b4_d33 = 0; d->camf.b4_d34 = 0; d->camf.b4_d35 = 0; d->camf.b4_d36 = 0;
 
     // Null Message Check (IS-QZSS-DCX-003 §4.3)
     // All fields except PAB, MT, SD, Reserved, CRC must be 0
@@ -141,24 +117,26 @@ bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix)
         d->service_kind = Mt44ServiceKind::OutsideJapan;
         d->ex_kind = ExtendedKind::OutsideJapan;
     } else {
-        if (d->camf.a3 == 1) {
-            d->service_kind = Mt44ServiceKind::LAlert;
-            d->ex_kind = ExtendedKind::LAlertOrLocal;
-        } else if (d->camf.a3 == 2 || d->camf.a3 == 3) {
+        if (d->camf.a3 == 0 || d->camf.a3 == 2 || d->camf.a3 == 3) {
+            // A3=0: J-Alert (Fire and Disaster Management Agency) - IS-QZSS-DCX-003 §4.2.1.2
+            // A3=2: J-Alert (Cabinet Office)
+            // A3=3: J-Alert (Fire and Disaster Management Agency)
             d->service_kind = Mt44ServiceKind::JAlert;
             d->ex_kind = ExtendedKind::JAlert;
-        } else if (d->camf.a3 == 4) {
+        } else if (d->camf.a3 == 1) {
+            d->service_kind = Mt44ServiceKind::LAlert;
+            d->ex_kind = ExtendedKind::LAlertOrLocal;
+        } else if (d->camf.a3 >= 4 && d->camf.a3 <= 31) {
+            // A3=4: Local Government (IS-QZSS-DCX-003 §4.2.1.2)
+            // A3=5-31: Local Government codes reserved for future use (IS-QZSS-DCX-003 §4.2.1.2)
             d->service_kind = Mt44ServiceKind::LocalGovernment;
             d->ex_kind = ExtendedKind::LAlertOrLocal;
         } else {
-            // Discard message (Keep SD)
-            // The SD field needs to be processed even if the message is discarded (IS-QZSS-DCX-003 §5.7)
             d->service_kind = Mt44ServiceKind::Unknown;
             d->ex_kind = ExtendedKind::None;
         }
     }
 
-    // Parse Extended Message
     if (d->ex_kind == ExtendedKind::LAlertOrLocal) {
         d->ex_lalert_local.ex1 = getBits(bits, 146, 16);
         d->ex_lalert_local.ex2 = getBits(bits, 162, 1);
@@ -226,17 +204,23 @@ bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix)
             d->camf.b1_c3 = b1.c3;
             d->camf.b1_c4 = b1.c4;
 
-            // Store refinement values in decoded ellipse
+            // Store refinement values in decoded ellipse (EWSS CAMF v1.1 §3.7.1.3/4)
             dec.main_ellipse.b1_lat_offset_deg = b1RefinedLatitudeOffset(b1.c1);
             dec.main_ellipse.b1_lon_offset_deg = b1RefinedLongitudeOffset(b1.c2);
-            dec.main_ellipse.b1_major_factor = b1InterpolationFactor(b1.c3);
-            dec.main_ellipse.b1_minor_factor = b1InterpolationFactor(b1.c4);
+            // B1 refinement: C3 → semi-major (uses A14), C4 → semi-minor (uses A15)
+            dec.main_ellipse.b1_refined_semi_major_km = b1RefinedRadiusKm(
+                b1.c3, dec.main_ellipse.semi_major_km, d->camf.a14);
+            dec.main_ellipse.b1_refined_semi_minor_km = b1RefinedRadiusKm(
+                b1.c4, dec.main_ellipse.semi_minor_km, d->camf.a15);
         }
         // B2 (A17=01) - Position of the Centre of the Hazard (EWSS CAMF v1.1 §3.7.2)
         // A18 = C5[0:6](7bit) + C6[7:13](7bit) + Reserved[14](1bit)
+        // C5: spec bits 131-138 → a18[14:8]  → shift=8, mask=0x7F
+        // C6: spec bits 139-145 → a18[7:1]   → shift=1, mask=0x7F
+        // Reserved: a18[0]
         else if (d->camf.a17 == 1) {
-            uint8_t c5 = (d->camf.a18 >> 0) & 0x7F;  // spec bits[0:6]
-            uint8_t c6 = (d->camf.a18 >> 7) & 0x7F;  // spec bits[7:13]
+            uint8_t c5 = (d->camf.a18 >> 8) & 0x7F;  // spec bits[131:138] → a18[14:8]
+            uint8_t c6 = (d->camf.a18 >> 1) & 0x7F;  // spec bits[139:145] → a18[7:1]
             B2HazardCenter b2 = decodeB2HazardCenter(c5, c6);
             d->camf.b2_present = true;
             d->camf.b2_c5 = c5;
@@ -246,11 +230,15 @@ bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix)
         }
         // B3 (A17=10) - Secondary Ellipse Definition (EWSS CAMF v1.1 §3.7.3)
         // A18 = C7[0:1](2bit) + C8[2:4](3bit) + C9[5:9](5bit) + C10[10:14](5bit)
+        // C7: spec bits 131-132 → a18[14:13] → shift=13, mask=0x03
+        // C8: spec bits 133-135 → a18[12:10] → shift=10, mask=0x07
+        // C9: spec bits 136-140 → a18[9:5]   → shift=5,  mask=0x1F
+        // C10: spec bits 141-145 → a18[4:0]  → shift=0,  mask=0x1F
         else if (d->camf.a17 == 2) {
-            uint8_t c7  = (d->camf.a18 >> 0)  & 0x03;  // spec bits[0:1]
-            uint8_t c8  = (d->camf.a18 >> 2)  & 0x07;  // spec bits[2:4]
-            uint8_t c9  = (d->camf.a18 >> 5)  & 0x1F;  // spec bits[5:9]
-            uint8_t c10 = (d->camf.a18 >> 10) & 0x1F;  // spec bits[10:14]
+            uint8_t c7  = (d->camf.a18 >> 13) & 0x03;  // spec bits[131:132] → a18[14:13]
+            uint8_t c8  = (d->camf.a18 >> 10) & 0x07;  // spec bits[133:135] → a18[12:10]
+            uint8_t c9  = (d->camf.a18 >> 5)  & 0x1F;  // spec bits[136:140] → a18[9:5]
+            uint8_t c10 = (d->camf.a18 >> 0)  & 0x1F;  // spec bits[141:145] → a18[4:0]
             B3SecondaryEllipse b3 = decodeB3SecondaryEllipse(c7, c8, c9, c10, dec.main_ellipse.semi_major_km);
             d->camf.b3_present = true;
             d->camf.b3_c7 = c7;
@@ -262,49 +250,15 @@ bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix)
             d->camf.b3_homothetic_factor = b3.homothetic_factor;
             d->camf.b3_bearing_deg = b3.bearing_deg;
         }
-        // B4 (A17=11) - Quantitative and Detailed Information (EWSS CAMF v1.1 §3.7.4)
-        else if (d->camf.a17 == 3) {
-            B4DetailedInfo b4 = decodeB4DetailedInfo(d->camf.a18, d->camf.a4);
-            d->camf.b4_present = true;
-            // Copy presence flags
-            d->camf.b4_d1_present = b4.d1_present;   d->camf.b4_d2_present = b4.d2_present;
-            d->camf.b4_d3_present = b4.d3_present;   d->camf.b4_d4_present = b4.d4_present;
-            d->camf.b4_d5_present = b4.d5_present;   d->camf.b4_d6_present = b4.d6_present;
-            d->camf.b4_d7_present = b4.d7_present;   d->camf.b4_d8_present = b4.d8_present;
-            d->camf.b4_d9_present = b4.d9_present;   d->camf.b4_d10_present = b4.d10_present;
-            d->camf.b4_d11_present = b4.d11_present; d->camf.b4_d12_present = b4.d12_present;
-            d->camf.b4_d13_present = b4.d13_present; d->camf.b4_d14_present = b4.d14_present;
-            d->camf.b4_d15_present = b4.d15_present; d->camf.b4_d16_present = b4.d16_present;
-            d->camf.b4_d17_present = b4.d17_present; d->camf.b4_d18_present = b4.d18_present;
-            d->camf.b4_d19_present = b4.d19_present; d->camf.b4_d20_present = b4.d20_present;
-            d->camf.b4_d21_present = b4.d21_present; d->camf.b4_d22_present = b4.d22_present;
-            d->camf.b4_d23_present = b4.d23_present; d->camf.b4_d24_present = b4.d24_present;
-            d->camf.b4_d25_present = b4.d25_present; d->camf.b4_d26_present = b4.d26_present;
-            d->camf.b4_d27_present = b4.d27_present; d->camf.b4_d28_present = b4.d28_present;
-            d->camf.b4_d29_present = b4.d29_present; d->camf.b4_d30_present = b4.d30_present;
-            d->camf.b4_d31_present = b4.d31_present; d->camf.b4_d32_present = b4.d32_present;
-            d->camf.b4_d33_present = b4.d33_present; d->camf.b4_d34_present = b4.d34_present;
-            d->camf.b4_d35_present = b4.d35_present; d->camf.b4_d36_present = b4.d36_present;
-            // Copy D-field values
-            d->camf.b4_d1 = b4.d1;   d->camf.b4_d2 = b4.d2;
-            d->camf.b4_d3 = b4.d3;   d->camf.b4_d4 = b4.d4;
-            d->camf.b4_d5 = b4.d5;   d->camf.b4_d6 = b4.d6;
-            d->camf.b4_d7 = b4.d7;   d->camf.b4_d8 = b4.d8;
-            d->camf.b4_d9 = b4.d9;   d->camf.b4_d10 = b4.d10;
-            d->camf.b4_d11 = b4.d11; d->camf.b4_d12 = b4.d12;
-            d->camf.b4_d13 = b4.d13; d->camf.b4_d14 = b4.d14;
-            d->camf.b4_d15 = b4.d15; d->camf.b4_d16 = b4.d16;
-            d->camf.b4_d17 = b4.d17; d->camf.b4_d18 = b4.d18;
-            d->camf.b4_d19 = b4.d19; d->camf.b4_d20 = b4.d20;
-            d->camf.b4_d21 = b4.d21; d->camf.b4_d22 = b4.d22;
-            d->camf.b4_d23 = b4.d23; d->camf.b4_d24 = b4.d24;
-            d->camf.b4_d25 = b4.d25; d->camf.b4_d26 = b4.d26;
-            d->camf.b4_d27 = b4.d27; d->camf.b4_d28 = b4.d28;
-            d->camf.b4_d29 = b4.d29; d->camf.b4_d30 = b4.d30;
-            d->camf.b4_d31 = b4.d31; d->camf.b4_d32 = b4.d32;
-            d->camf.b4_d33 = b4.d33; d->camf.b4_d34 = b4.d34;
-            d->camf.b4_d35 = b4.d35; d->camf.b4_d36 = b4.d36;
-        }
+    }
+    // B4 (A17=11) - Quantitative and Detailed Information (EWSS CAMF v1.1 §3.7.4)
+    // B4 is decoded independently of main ellipse presence (A12-A16);
+    // it provides hazard-specific quantitative data based on A4 category.
+    if (d->camf.a17 == 3) {
+        B4DetailedInfo b4 = decodeB4DetailedInfo(d->camf.a18, d->camf.a4);
+        d->camf.b4_present = true;
+        memcpy(d->camf.b4_d_present, b4.d_present, sizeof(b4.d_present));
+        memcpy(d->camf.b4_d_values, b4.d_values, sizeof(b4.d_values));
     }
 
     if (d->ex_kind == ExtendedKind::LAlertOrLocal) {
@@ -335,7 +289,6 @@ bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix)
             }
         }
     } else if (d->ex_kind == ExtendedKind::JAlert) {
-        // J-Alert target area (EX8/EX9)
         dec.jalert_prefecture_mode = (d->ex_jalert.ex8 == 0);
         if (dec.jalert_prefecture_mode) {
             // Prefecture bitmask mode

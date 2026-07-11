@@ -233,13 +233,13 @@ TEST_CASE("DCR: Tsunami arrival time boundary - arrived (hour=31, min=63)") {
     // Warning Code = 3 (津波警報)
     setBits(bits, 80, 4, 3);
 
-    // Tsunami entry: Region=1, Height=2
-    setBits(bits, 84, 10, 1);
-    setBits(bits, 94, 4, 2);
-
-    // Arrival: NextDay=0, Hour=31, Min=63 (既に到達)
-    // 12ビットまとめて設定: (NextDay << 11) | (Hour << 6) | Min
-    setBits(bits, 98, 12, (0u << 11) | (31u << 6) | 63u);
+    // Tsunami entry (IS-QZSS-DCR-016: Ta(12) + Th(4) + Pl(10))
+    // Ta: NextDay=0, Hour=31, Min=63 (到達済み/不明)
+    setBits(bits, 84, 12, (0u << 11) | (31u << 6) | 63u);
+    // Th: Height=2
+    setBits(bits, 96, 4, 2);
+    // Pl: Region=1
+    setBits(bits, 100, 10, 1);
 
     uint32_t crc = crc24qRef(bits, 226);
     setBits(bits, 226, 24, crc);
@@ -280,6 +280,10 @@ TEST_CASE("DCR: NW Pacific Tsunami - Tsunamigenic Potential patterns") {
         const Mt43Data* mt43 = msg.getMt43();
         REQUIRE(mt43 != nullptr);
         CHECK(mt43->disaster_category == 6);
+        
+        const NwPacTsunamiData* nw_pac = mt43->getNwPac();
+        REQUIRE(nw_pac != nullptr);
+        CHECK(nw_pac->potential <= 4);  // 0-4 (4=maximum)
     }
     // Pattern 2: potential=2 (広域津波の可能性あり)
     {
@@ -292,5 +296,9 @@ TEST_CASE("DCR: NW Pacific Tsunami - Tsunamigenic Potential patterns") {
         const Mt43Data* mt43 = msg.getMt43();
         REQUIRE(mt43 != nullptr);
         CHECK(mt43->disaster_category == 6);
+        
+        const NwPacTsunamiData* nw_pac = mt43->getNwPac();
+        REQUIRE(nw_pac != nullptr);
+        CHECK(nw_pac->potential == 2);  // 広域津波の可能性あり
     }
 }

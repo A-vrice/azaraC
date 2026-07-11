@@ -2,8 +2,9 @@
 // azaraC - src/internal/TimeFields.h
 // Platform-independent time utility
 //
-// Overflow-safe implementation:
-// - Arduino: Uses millis() with uint64_t to handle ~49.7-day overflow
+// Overflow-safe implementation without external library dependencies:
+// - Arduino: Uses millis() with volatile uint64_t to handle ~49.7-day overflow.
+//            No <atomic> dependency — avoids libatomic link issues on 32-bit MCUs.
 // - Host: Uses std::chrono::steady_clock with uint64_t
 
 #include <cstdint>
@@ -18,19 +19,30 @@ namespace azaraC {
 namespace internal {
 
 // Get current time in milliseconds (overflow-safe, returns uint64_t)
-// On Arduino: millis() overflows after ~49.7 days, but we use uint64_t
-//            to allow safe arithmetic even after overflow
-// On Host:    Uses std::chrono::steady_clock with full 64-bit range
+// On Arduino: 32-bit millis() is extended to 64-bit with wrap detection.
+//            volatile prevents compiler reordering and is available on all
+//            platforms without requiring the <atomic> or libatomic libraries.
+// On Host:    Uses std::chrono::steady_clock with full 64-bit range.
 static inline uint64_t getMillis() {
 #if defined(ARDUINO) && ARDUINO >= 1
-    static uint32_t last_raw = 0;
-    static uint64_t high = 0;
-    uint32_t raw = static_cast<uint32_t>(millis());
-    if (raw < last_raw) {
+    // 32-bit millis() extended to 64-bit: upper 32 bits track overflow count,
+    // lower 32 bits = last raw millis() value.
+    // volatile ensures each call reads/writes actual memory (no register caching).
+    // On single-core platforms this is naturally race-free.
+    // On multi-core / FreeRTOS platforms tiny windows between read and write
+    // are acceptable for time-keeping; worst-case is a duplicate timestamp.
+    static volatile uint64_t s_last = 0;
+
+    uint32_t raw = millis();
+    uint64_t prev = s_last;  // volatile read
+    uint32_t prev_low = static_cast<uint32_t>(prev);
+    uint64_t high = prev & 0xFFFFFFFF00000000ULL;
+    if (raw < prev_low) {
         high += (1ULL << 32);
     }
-    last_raw = raw;
-    return high | raw;
+    uint64_t current = high | raw;
+    s_last = current;  // volatile store
+    return current;
 #else
     auto now = std::chrono::steady_clock::now();
     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(

@@ -1,15 +1,29 @@
 {
   "configurations": [
     {
-      "name": "windows-msvc-x64",
+      "name": "windows-gcc-x64 (MinGW-w64)",
       "includePath": [
-        "${workspaceFolder}/**"
+        "${workspaceFolder}/src/**",
+        "${workspaceFolder}/test/**",
+        "${workspaceFolder}/src",
+        "${workspaceFolder}/test",
+        "D:/apps/mingw64/include/**",
+        "D:/apps/mingw64/x86_64-w64-mingw32/include/**"
       ],
-      "compilerPath": "cl.exe",
-      "cStandard": "c11",
-      "cppStandard": "${default}",
-      "intelliSenseMode": "windows-msvc-x64",
-      "compilerArgs": []
+      "compilerPath": "D:/apps/mingw64/bin/g++.exe",
+      "cStandard": "c17",
+      "cppStandard": "c++17",
+      "intelliSenseMode": "windows-gcc-x64",
+      "defines": [
+        "ARDUINO=0",
+        "AZARAC_LANG_JA=1",
+        "AZARAC_LANG_EN=1"
+      ],
+      "compilerArgs": [
+        "-std=c++17",
+        "-Wall",
+        "-Wextra"
+      ]
     }
   ],
   "version": 4

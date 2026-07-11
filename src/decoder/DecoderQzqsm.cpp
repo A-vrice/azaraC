@@ -1,7 +1,7 @@
 // azaraC - src/internal/DecoderQzqsm.cpp
 // MT=43 QZQSM / DC Report decoder (IS-QZSS-DCR-016)
 
-#include "internal/Decoder.h"
+#include "Decoder.h"
 
 namespace azaraC {
 namespace internal {
@@ -195,14 +195,17 @@ void Decoder::decodeTsunami(const uint8_t* b, Message& out, uint32_t report_unix
     tsunami->count = 0;
     for (uint8_t i = 0; i < 5; ++i) {
         uint16_t off = 84 + i * 26;
-        // Terminal decision by region_code only (IS-QZSS-DCR-016: region_code=0 means end)
-        uint16_t region = getBits(b, off, 10);
+        // IS-QZSS-DCR-016 Figure 4.1.2-5, Table 4.1.2-21:
+        //   Ta(12): Expected Tsunami Arrival Time
+        //   Th(4):  Tsunami Height
+        //   Pl(10): Tsunami Forecast Region (100–1000)
+        // Terminal decision by Pl only (Pl=0 means end)
+        uint16_t region = getBits(b, off + 16, 10);
         if (region == 0) break;
         TsunamiEntry& e = tsunami->entries[tsunami->count++];
-        // region(10) + height(4) + arrival(12)
+        e.arrival_time_raw = getBits(b, off,      12);
+        e.height_code      = getBits(b, off + 12,  4);
         e.region_code      = region;
-        e.height_code      = getBits(b, off + 10,  4);
-        e.arrival_time_raw = getBits(b, off + 14, 12);
         e.arrival_time     = resolveArrivalTime(e.arrival_time_raw, d->event_time.unix_time);
     }
 }
@@ -226,14 +229,17 @@ void Decoder::decodeNwPacTsu(const uint8_t* b, Message& out, uint32_t report_uni
     nw_pac->count = 0;
     for (uint8_t i = 0; i < 5; ++i) {
         uint16_t off = 56 + i * 28;
-        // Terminal decision by region_code only (IS-QZSS-DCR-016: region_code=0 means end)
-        uint16_t region = getBits(b, off, 7);
+        // IS-QZSS-DCR-016 Figure 4.1.2-6, Table 4.1.2-26:
+        //   Ta(12): Expected Tsunami Arrival Time
+        //   Th(9):  Tsunami Height (Table 4.1.2-27a)
+        //   Pl(7):  Coastal Region (Table 4.1.2-28, 1–100)
+        // Terminal decision by Pl only (Pl=0 means end)
+        uint16_t region = getBits(b, off + 21, 7);
         if (region == 0) break;
         NwPacTsunamiEntry& e = nw_pac->entries[nw_pac->count++];
-        // region(7) + arrival(12) + height(9)
+        e.arrival_time_raw = getBits(b, off,      12);
+        e.height_code      = getBits(b, off + 12,  9);
         e.region_code      = region;
-        e.arrival_time_raw = getBits(b, off +  7, 12);
-        e.height_code      = getBits(b, off + 19,  9);
         e.arrival_time     = resolveArrivalTime(e.arrival_time_raw, d->event_time.unix_time);
     }
 }

@@ -1,7 +1,8 @@
 // azaraC - src/internal/Decoder.cpp
 // Common decoder utilities (CRC, bit extraction, time resolution)
 
-#include "internal/Decoder.h"
+#include "Decoder.h"
+#include <cassert>
 
 namespace azaraC {
 namespace internal {
@@ -34,6 +35,8 @@ uint32_t Decoder::crc24q(const uint8_t* data, uint16_t bit_len) {
 // Bit extraction (MSB-first, 0-indexed)
 // ---------------------------------------------------------------------------
 uint32_t Decoder::getBits(const uint8_t* buf, uint16_t start, uint8_t len) {
+    // Boundary check: ensure we don't read beyond the 256-bit (32-byte) frame buffer
+    assert(start + len <= 256);
     uint32_t val = 0;
     for (uint8_t i = 0; i < len; ++i) {
         uint16_t pos = start + i;
@@ -46,6 +49,7 @@ uint32_t Decoder::getBits(const uint8_t* buf, uint16_t start, uint8_t len) {
 // 64-bit bit extraction (MSB-first, 0-indexed) — for fields > 32 bits
 // ---------------------------------------------------------------------------
 uint64_t Decoder::getBits64(const uint8_t* buf, uint16_t start, uint8_t len) {
+    assert(start + len <= 256);
     uint64_t val = 0;
     for (uint8_t i = 0; i < len; ++i) {
         uint16_t pos = start + i;
@@ -59,8 +63,11 @@ uint64_t Decoder::getBits64(const uint8_t* buf, uint16_t start, uint8_t len) {
 // ---------------------------------------------------------------------------
 int32_t Decoder::getSignedBits(const uint8_t* buf, uint16_t start, uint8_t len) {
     uint32_t val = getBits(buf, start, len);
-    if (val & (1u << (len - 1))) {
-        val |= 0xFFFFFFFFu << len;  // 符号拡張
+    assert(len <= 32);
+    if (len == 0) return 0;
+    // Sign extension: only if len < 32 to avoid undefined behavior (shift by 32)
+    if (len < 32 && (val & (1u << (len - 1)))) {
+        val |= 0xFFFFFFFFu << len;
     }
     return (int32_t)val;
 }

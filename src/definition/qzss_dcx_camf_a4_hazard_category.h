@@ -1,5 +1,5 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.16.1 with CI-CD
+// AUTO-GENERATED from azarashi 0.16.4 with CI-CD
 // Source module : qzss_dcx_camf_a4_hazard_category_and_type
 // Variable      : qzss_dcx_camf_a4_hazard_category
 // Entries       : 113
@@ -11,7 +11,7 @@
 #include <cstdint>
 #include <optional>
 #include <string_view>
-#include "../azaraC.h"
+#include "../azaraC_config.h"
 
 namespace azaraC {
 namespace def {

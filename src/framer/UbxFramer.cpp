@@ -1,6 +1,6 @@
 // azaraC - src/internal/UbxFramer.cpp
 
-#include "internal/UbxFramer.h"
+#include "UbxFramer.h"
 #include "definition/_index.h"
 #include <cstring>
 

@@ -2,20 +2,18 @@
 
 # AzaraC
 
-A QZSS DCR DCX Decoder for Arduino.
+## このライブラリについて
 
-## これは何？
+AzaraCは準天頂衛星みちびきが送信する災害通報メッセージのデコーダーである[azarashi](https://github.com/nbtk/azarashi)をArduino向けに移植したものです。QZSS L1S信号を用いた災害通報の**DC Report/QZQSM**(MT=43)および**DCX/CAMF**(MT=44)に対応しており、ESP32シリーズなどのArduino互換ボード向けに設計されています。外部ライブラリには依存していません。
 
-AzaraCは準天頂衛星みちびきが送信する災害通報メッセージのデコーダーである[azarashi](https://github.com/nbtk/azarashi)をArduino向けに移植したものです。QZSS L1S信号を用いた災害通報の**DCX/CAMF**(MT=44)および**DC Report/QZQSM**(MT=43)に対応しており、ESP32シリーズなどのArduino互換ボード向けに設計されています。外部ライブラリには依存していません。
-
-変換に使用する定義テーブル(`definition/*.h`)はazarashiの`definition/*.py`からGitHub Actionsで自動生成を行っています。azarashiのバージョンが更新されるとPRが自動作成されるため、常にazarashiと同じ出力が期待できます。
+変換に使用する定義テーブル(`definition/*.h`)はazarashiの`definition/*.py`からGitHub Actionsで自動生成を行います。azarashiのバージョンが更新されると付随してPRが作成されるため、azarashiと同様の出力が期待できます。
 
 ## 対応メッセージ
 
 | msg_type | 規格            | 名称            |
 | -------- | --------------- | --------------- |
 | 43       | IS-QZSS-DCR-016 | DCR 12種類      |
-| 44       | IS-QZSS-DCX-003 | DCX / CAMF など |
+| 44       | IS-QZSS-DCX-004 | DCX / CAMF など |
 
 ### MT=43 防災カテゴリ一覧
 
@@ -36,14 +34,14 @@ AzaraCは準天頂衛星みちびきが送信する災害通報メッセージ�
 
 ### MT=44 サービス種別
 
-| 種別            | 名称                             |
-| --------------- | -------------------------------- |
-| LAlert          | L-Alert (地方自治体向け緊急速報) |
-| JAlert          | J-Alert (全国瞬時警報システム)   |
-| LocalGovernment | 地方自治体送信情報               |
-| OutsideJapan    | 国外向け情報                     |
-| NullMessage     | Null Message                     |
-| Unknown         | 不明                             |
+| 種別            | 名称                             | 判定条件                                                        |
+| --------------- | -------------------------------- | --------------------------------------------------------------- |
+| NullMessage     | Null Message                     | A1=0, A2=111 (Japan), A3=0, かつ全CAMF/Extendedフィールドがゼロ |
+| LAlert          | L-Alert (地方自治体向け緊急速報) | A2=111 (Japan) & A3=1                                           |
+| JAlert          | J-Alert (全国瞬時警報システム)   | A2=111 (Japan) & A3=0,2,3                                       |
+| LocalGovernment | 地方自治体送信情報               | A2=111 (Japan) & A3=4-31                                        |
+| OutsideJapan    | 国外向け情報                     | A2≠111                                                          |
+| Unknown         | 不明                             | 上記以外                                                        |
 
 ## 推奨環境など
 
@@ -55,7 +53,7 @@ AzaraCは準天頂衛星みちびきが送信する災害通報メッセージ�
 | ホストテスト    | g++ -std=c++17 (Linux / macOS / WSL / Windows)                                                             |
 | GNSS モジュール | u-blox (UBX-RXM-SFRBX) / NMEA $QZQSM 出力機                                                                |
 
-[注意] AzaraCはC++17で記述されています。利用の際は、お使いのIDEのC++コンパイラ設定を17以上にしてください。多くのボードメーカでは標準設定がC++11となっており、AzaraCライブラリのコンパイル時にエラーが発生する可能性があります。
+[注意] AzaraCはC++17で記述されています。利用の際は、お使いのIDEのC++コンパイラ設定を17以上にしてください。多くのボードメーカでは標準設定がC++11となっており、本ライブラリのコンパイル時にエラーが発生する可能性があります。
 
 ## インストール
 
@@ -109,7 +107,7 @@ CFG-MSGOUT-UBX_RXM_SFRBX_UART1 = 1
 CFG-SIGNAL-QZSS_L1S_ENA        = 1
 ```
 
-コードはNMEAと同じものが使えます。`Parser`が自動判別します。
+コードは`Parser`が自動判別するためNMEAと同じものが利用できます。
 
 ### UNIX時刻付き（メッセージから年月を含めた日時情報を取得したい場合）
 
@@ -119,7 +117,7 @@ uint32_t now = (uint32_t)time(nullptr);
 if (parser.feed(byte, msg, now)) { ... }
 ```
 
-詳細は[`examples/with_sntp/`](examples/with_sntp/)を参照。
+詳細は[`examples/with_sntp/`](examples/with_sntp/)を参照してください。
 
 ---
 
@@ -141,12 +139,16 @@ void reset();  // フレーマ・重複フィルタをリセット
 #include <azaraC.h>
 ```
 
-### 言語テーブルの選択的コンパイル
+### コンパイル時設定マクロ
+
+設定は [`azaraC_config.h`](src/azaraC_config.h) に一元管理されており、[`azaraC.h`](src/azaraC.h) をインクルードする前に `#define` で上書きできます。
+
+#### 言語選択
 
 定義テーブルの言語を選択してFlash使用量を削減できます。デフォルトは日本語のみ有効です。
 
 ```cpp
-// 日本語のみ（デフォルト）: 英語テーブルを除外して約5KB削減
+// 日本語のみ（デフォルト）: 英語テーブルを除外
 #include <azaraC.h>
 
 // 英語のみ
@@ -160,9 +162,48 @@ void reset();  // フレーマ・重複フィルタをリセット
 #include <azaraC.h>
 ```
 
+#### 災害カテゴリ選択
+
+不要な災害カテゴリの定義テーブルをコンパイル時に除外し、Flash使用量を削減できます。
+
+| マクロ                         | デフォルト | 除外対象                 |
+| ------------------------------ | ---------- | ------------------------ |
+| `AZARAC_ENABLE_EEW`            | 1          | 緊急地震速報関連テーブル |
+| `AZARAC_ENABLE_HYPOCENTER`     | 1          | 震源情報関連テーブル     |
+| `AZARAC_ENABLE_SEISMIC`        | 1          | 震度情報関連テーブル     |
+| `AZARAC_ENABLE_NANKAI`         | 1          | 南海トラフ関連テーブル   |
+| `AZARAC_ENABLE_TSUNAMI`        | 1          | 津波情報関連テーブル     |
+| `AZARAC_ENABLE_VOLCANO`        | 1          | 火山情報関連テーブル     |
+| `AZARAC_ENABLE_WEATHER`        | 1          | 気象情報関連テーブル     |
+| `AZARAC_ENABLE_FLOOD`          | 1          | 洪水警報関連テーブル     |
+| `AZARAC_ENABLE_TYPHOON`        | 1          | 台風情報関連テーブル     |
+| `AZARAC_ENABLE_MARINE`         | 1          | 海上警報関連テーブル     |
+| `AZARAC_ENABLE_NW_PAC_TSUNAMI` | 1          | 北太平洋津波関連テーブル |
+| `AZARAC_ENABLE_ASH_FALL`       | 1          | 降灰情報関連テーブル     |
+| `AZARAC_ENABLE_DCX_CAMF`       | 1          | DCX/CAMF全テーブル       |
+
+```cpp
+// 緊急地震速報のみ読み込み
+#define AZARAC_ENABLE_EEW 1
+#define AZARAC_ENABLE_HYPOCENTER 0
+#define AZARAC_ENABLE_SEISMIC 0
+#define AZARAC_ENABLE_NANKAI 0
+#define AZARAC_ENABLE_TSUNAMI 0
+#define AZARAC_ENABLE_VOLCANO 0
+#define AZARAC_ENABLE_WEATHER 0
+#define AZARAC_ENABLE_FLOOD 0
+#define AZARAC_ENABLE_TYPHOON 0
+#define AZARAC_ENABLE_MARINE 0
+#define AZARAC_ENABLE_NW_PAC_TSUNAMI 0
+#define AZARAC_ENABLE_ASH_FALL 0
+#define AZARAC_ENABLE_DCX_CAMF 0
+
+#include <azaraC.h>
+```
+
 ### `azaraC::toJson(msg, out)`
 
-`Message`をJSON形式で`Print`系に渡せます。`Serial`, `WiFiClient`などに渡せます。
+`Message`をJSON形式で`Serial`, `WiFiClient`などの`Print`系クラスに渡せます。
 
 ### `azaraC::Message`
 
@@ -198,6 +239,21 @@ if (msg.msg_type == 43) {
     if (mt44) {
         // MT=44 フィールドにアクセス
         auto kind = mt44->service_kind;
+    }
+}
+```
+
+### Nankai Trough ページ集約
+
+MT=43 カテゴリ4（南海トラフ地震）メッセージは、複数ページにまたがって送信される場合があります。AzaraCは受信したページを自動的に集約し、`NankaiData::aggregated_text` に全文を格納します。
+
+```cpp
+const azaraC::Mt43Data* mt43 = msg.getMt43();
+if (mt43 && mt43->disaster_category == 4) {
+    const azaraC::NankaiData* nankai = mt43->getNankai();
+    if (nankai && nankai->is_aggregated) {
+        // nankai->aggregated_text に全文が格納されている
+        // nankai->aggregated_len に文字数
     }
 }
 ```
@@ -278,16 +334,17 @@ if (msg.msg_type == 43) {
   "a3_provider": 1,
   "a4_hazard": 10,
   "a4_hazard_category": "Geological",
+  "a4_hazard_definition": "Geological Earthquake",
   "a4_hazard_type": "Earthquake",
   "a5_severity": 3,
   "a5_severity_label": "Extreme",
   "onset_time": { "day": 19, "hour": 14, "min": 30, "unix": 1745123400 },
   "main_ellipse": {
-    "lat_deg": 35.6,
-    "lon_deg": 139.6,
+    "lat_deg": 35.688258,
+    "lon_deg": 139.690855,
     "semi_major_km": 10.933,
     "semi_minor_km": 8.085,
-    "azimuth_deg": 30.0
+    "azimuth_deg": 45.0
   },
   "ex1_target_area": 1100,
   "ex1_target_area_label": "Sapporo-shi",
@@ -295,7 +352,7 @@ if (msg.msg_type == 43) {
 }
 ```
 
-### MT=44 DCX (J-Alert)
+### MT=44 DCX (J-Alert) — 都道府県モード
 
 ```json
 {
@@ -307,11 +364,28 @@ if (msg.msg_type == 43) {
   "a4_hazard_type": "Earthquake",
   "jalert_prefecture_mode": true,
   "prefecture_positions": [1, 12, 13, 14],
-  "prefecture_count": 4
+  "prefecture_count": 4,
+  "prefecture_labels": ["北海道", "東京都", "神奈川県", "埼玉県"]
 }
 ```
 
-### MT=44 DCX A17 拡張フィールド (EWSS CAMF v1.1)
+### MT=44 DCX (J-Alert) — 市区町村モード
+
+```json
+{
+  "svid": 184,
+  "msg_type": 44,
+  "service_kind": 2,
+  "service_kind_label": "J_ALERT",
+  "a4_hazard": 10,
+  "a4_hazard_type": "Earthquake",
+  "jalert_prefecture_mode": false,
+  "city_codes": [1100, 1201],
+  "city_labels": ["Sapporo-shi", "Chiyoda-ku"]
+}
+```
+
+### MT=44 DCX A17 拡張フィールド (EWSS CAMF v1.2)
 
 A17フィールドにより、メイン楕円の精度向上や追加情報が提供されます。
 
@@ -322,17 +396,22 @@ A17フィールドにより、メイン楕円の精度向上や追加情報が�
 | 10  | B3: Secondary Ellipse Definition          | §3.7.3         |
 | 11  | B4: Quantitative and Detailed Information | §3.7.4         |
 
-**B1 リファインメント** - メイン楕円の緯度・経度・軸長を補間係数で精密化
+**B1 リファインメント** - メイン楕円の緯度・経度・軸長を精密化（EWSS CAMF v1.1 §3.7.1.3/4）
 
 ```json
 {
   "main_ellipse": {
-    "lat_deg": 35.6,
-    "lon_deg": 139.6,
-    "b1_lat_offset_deg": 0.001,
-    "b1_lon_offset_deg": 0.002,
-    "b1_major_factor": 0.5,
-    "b1_minor_factor": 0.375
+    "lat_deg": 35.688258,
+    "lon_deg": 139.690855,
+    "semi_major_km": 10.933,
+    "semi_minor_km": 8.085,
+    "azimuth_deg": 45.0,
+    "b1_refinement": {
+      "c1_lat_offset_deg": 0.000343,
+      "c2_lon_offset_deg": 0.000343,
+      "c3_refined_semi_major_km": 135.125,
+      "c4_refined_semi_minor_km": 108.1
+    }
   }
 }
 ```
@@ -356,7 +435,8 @@ A17フィールドにより、メイン楕円の精度向上や追加情報が�
     "shift_km": 5.0,
     "homothetic_factor": 0.5,
     "bearing_deg": 45.0,
-    "guidance_code": 3
+    "c10_guidance_label": "Evacuate",
+    "c10_guidance_code": "EVACUATE"
   }
 }
 ```
@@ -387,6 +467,11 @@ A17フィールドにより、メイン楕円の精度向上や追加情報が�
 | [filter_by_category](examples/filter_by_category/) | 災害カテゴリ別フィルタリング   |
 | [error_handling](examples/error_handling/)         | エラーハンドリングと統計       |
 | [wifi_client](examples/wifi_client/)               | Wi-Fiクライアント出力          |
+| [rtos_freertos](examples/rtos_freertos/)           | FreeRTOS タスクベース処理      |
+
+### RTOS (FreeRTOS) 対応
+
+`examples/rtos_freertos/` では、FreeRTOS タスクベースの NMEA/UBX 同時処理サンプルを示しています。`loop()` を使わず、UART RX タスクと出力タスクでメッセージを処理し、キューで受け渡します。
 
 ### エラーハンドリングの詳細
 
@@ -439,10 +524,12 @@ python scripts/gen_definitions.py
 
 ## ホストテスト
 
-ESP32 不要でビルド・実行できます。
+ESP32 不要でビルド・実行できます。テストには MinGW-w64（Windows）または g++（Linux/macOS/WSL）が必要です。
 
 ```bash
-make -C test run
+make -C test run        # 全テスト実行
+make -C test fuzz       # ファズテストビルド
+make -C test decode     # decode_to_json CLIツールビルド
 ```
 
 ### Windows でのビルド
@@ -458,18 +545,12 @@ make -C test run MINGW64_BIN=
 ```
 
 ```
-=== azaraC unit tests ===
-  PASS  crc_known_zeros
-  PASS  crc_known_a5
-  ...
-  PASS  mt44_synthetic
-=== all passed ===
-=== azaraC JSON tests ===
-  PASS  json_dcx_keys
-  PASS  json_eew_keys
-  ...
-  PASS  json_balanced_mt44
-=== all passed ===
+[doctest] doctest version is "2.5.0"
+[doctest] run with "--help" for options
+===============================================================================
+[doctest] test cases:  219 |  219 passed | 0 failed | 0 skipped
+[doctest] assertions: 1827 | 1827 passed | 0 failed |
+[doctest] Status: SUCCESS!
 ```
 
 ---
@@ -499,17 +580,17 @@ make -C test run MINGW64_BIN=
 
 ## 仕様書リファレンス
 
-| 規格            | 名称                        | バージョン     |
+| 規格            | 名称                        | バージョン等   |
 | --------------- | --------------------------- | -------------- |
 | IS-QZSS-DCR-016 | DC Report Service (MT=43)   | April 03, 2026 |
-| IS-QZSS-DCX-003 | DCX Service (MT=44)         | March 28, 2025 |
-| EWSS CAMF v1.1  | Common Alert Message Format | Version 1.1    |
+| IS-QZSS-DCX-004 | DCX Service (MT=44)         | May, 2026      |
+| EWSS CAMF v1.2  | Common Alert Message Format | Version 1.2    |
 
 ---
 
 ## 謝辞
 
-メッセージ定義は [azarashi](https://github.com/nbtk/azarashi)(MIT)の`definition/*.py` を元とさせていただきました。また、ビット構造の解析・実装の参考としてazarashiのデコーダを参照させていただきました。
+本ライブラリのメッセージ定義は [azarashi](https://github.com/nbtk/azarashi)(MIT)の`definition/*.py` を元とさせていただきました。また、ビット構造の解析・実装の参考としても同ライブラリのデコーダを参考にさせていただきました。
 
 ## Acknowledgements
 
@@ -520,3 +601,7 @@ AzaraC is maintained independently by [A-vrice](https://github.com/A-vrice).
 ## 不具合など
 
 何か不具合、疑問点があれば[Issue](https://github.com/A-vrice/azaraC/issues)，作者メールアドレス[AzaraC@vrice.f5.si]，およびTwitter(現X)のDMまでお願いします。
+
+## Disclaimer Policy
+
+本ライブラリは非公式なものであり，準天頂衛星システムサービス株式会社，JAXA，その他公共機関など，「みちびき」に関連する組織，NBTK氏の提供するazarashiとは一切関係ありません。また，あるふぁ米およびそのコントリビューターは，受信したメッセージや本ライブラリの出力内容の正確性，完全性，その他のいかなるものについても保証しません。本ライブラリを使用したことによるいかなる損害についても責任は負いかねます。本ライブラリは現状有姿で提供されます。

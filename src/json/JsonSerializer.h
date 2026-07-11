@@ -1,12 +1,12 @@
 #pragma once
-// azaraC - src/internal/JsonSerializer.h
+// azaraC - src/json/JsonSerializer.h
 
 #include "../Message.h"
 
 #if defined(ARDUINO) && ARDUINO >= 1
 #  include <Print.h>
 #else
-#  include "PrintShim.h"
+#  include "../internal/PrintShim.h"
 #endif
 
 namespace azaraC {

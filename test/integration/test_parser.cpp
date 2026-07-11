@@ -404,11 +404,29 @@ TEST_CASE("b1RefinedLongitudeOffset: 計算値検証") {
     CHECK(azaraC::internal::b1RefinedLongitudeOffset(7) == doctest::Approx(expected_7));
 }
 
-TEST_CASE("b1InterpolationFactor: 計算値検証") {
-    CHECK(azaraC::internal::b1InterpolationFactor(0) == 0.0);
-    CHECK(azaraC::internal::b1InterpolationFactor(1) == 0.125);
-    CHECK(azaraC::internal::b1InterpolationFactor(4) == 0.5);
-    CHECK(azaraC::internal::b1InterpolationFactor(7) == 0.875);
+TEST_CASE("b1RefinedRadiusKm: 計算値検証 (EWSS CAMF v1.1 §3.7.1.3/4)") {
+    // ===== a14_code=0 branch (delta = decodeRadiusCode(0) = 0.216) =====
+    // refined = base - delta * (code/8)
+    // code=0: 0.216 - 0.216*0 = 0.216
+    // code=4: 0.216 - 0.216*0.5 = 0.108
+    // code=7: 0.216 - 0.216*0.875 = 0.027
+    CHECK(azaraC::internal::b1RefinedRadiusKm(0, 0.216, 0) == doctest::Approx(0.216));
+    CHECK(azaraC::internal::b1RefinedRadiusKm(4, 0.216, 0) == doctest::Approx(0.108));
+    CHECK(azaraC::internal::b1RefinedRadiusKm(7, 0.216, 0) == doctest::Approx(0.027));
+
+    // ===== a14_code≠0 branch (delta = decodeRadiusCode(a14) - decodeRadiusCode(a14-1)) =====
+    // a14_code=1: delta = decodeRadiusCode(1) - decodeRadiusCode(0) = 0.292 - 0.216 = 0.076
+    // base=decodeRadiusCode(1)=0.292, code=0: 0.292 - 0.076*0 = 0.292
+    // base=decodeRadiusCode(1)=0.292, code=4: 0.292 - 0.076*0.5 = 0.254
+    // base=decodeRadiusCode(1)=0.292, code=7: 0.292 - 0.076*0.875 = 0.2255
+    CHECK(azaraC::internal::b1RefinedRadiusKm(0, 0.292, 1) == doctest::Approx(0.292));
+    CHECK(azaraC::internal::b1RefinedRadiusKm(4, 0.292, 1) == doctest::Approx(0.254));
+    CHECK(azaraC::internal::b1RefinedRadiusKm(7, 0.292, 1) == doctest::Approx(0.2255));
+
+    // ===== a14_code≠0 branch with larger a14_code (a14_code=3) =====
+    // delta = decodeRadiusCode(3) - decodeRadiusCode(2) = 0.535 - 0.395 = 0.140
+    // base=decodeRadiusCode(3)=0.535, code=4: 0.535 - 0.140*0.5 = 0.465
+    CHECK(azaraC::internal::b1RefinedRadiusKm(4, 0.535, 3) == doctest::Approx(0.465));
 }
 
 TEST_CASE("DCX B1: L-AlertメッセージでのB1解析") {
@@ -498,7 +516,9 @@ TEST_CASE("DCX B2: ハザード中心オフセットが主楕円座標に反映�
     setBits(bits, 123, 6, 32);
 
     setBits(bits, 129, 2, 1);
-    uint16_t a18_b2 = (63u & 0x7Fu) | ((63u & 0x7Fu) << 7);
+    // MSB-first: C5=a18[14:8], C6=a18[7:1] → c5=63(0b0111111), c6=63(0b0111111)
+    // a18 = 0b0_0111111_0111111_0 = (63 << 8) | (63 << 1)
+    uint16_t a18_b2 = ((63u & 0x7Fu) << 8) | ((63u & 0x7Fu) << 1);
     setBits(bits, 131, 15, a18_b2);
 
     setBits(bits, 146, 16, 1100);
@@ -555,7 +575,10 @@ TEST_CASE("DCX B3: 副楕円パラメータが camf に反映される") {
     setBits(bits, 118, 5, 8);
     setBits(bits, 123, 6, 32);
 
-    uint16_t a18_b3 = (3u & 0x03u) | ((7u & 0x07u) << 2) | ((31u & 0x1Fu) << 5) | (0u << 10);
+    // MSB-first: C7=a18[14:13], C8=a18[12:10], C9=a18[9:5], C10=a18[4:0]
+    // c7=3(0b11), c8=7(0b111), c9=31(0b11111), c10=0(0b00000)
+    // a18 = 0b11_111_11111_00000 = (3 << 13) | (7 << 10) | (31 << 5) | (0 << 0)
+    uint16_t a18_b3 = ((3u & 0x03u) << 13) | ((7u & 0x07u) << 10) | ((31u & 0x1Fu) << 5) | (0u & 0x1Fu);
     setBits(bits, 129, 2, 2);
     setBits(bits, 131, 15, a18_b3);
 

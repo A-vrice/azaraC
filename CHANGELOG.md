@@ -7,33 +7,122 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Planned
+### Added
 
-- MT=43 全カテゴリのJSON出力例のドキュメント追加
-- パフォーマンス最適化ガイドの追加
+- **軽量設定ヘッダ `azaraC_config.h`**:
+  - コンパイル時マクロを分離し、定義ファイル（103ファイル）からの依存を `azaraC.h` 全体から `azaraC_config.h` のみに削減
+  - 定義ファイルが `Message.h` → `Mt43Data.h` → `NankaiPageBuffer.h` などのライブラリ本体をプルしなくなる
+  - ユーザー向けAPIは `#include <azaraC.h>` のまま変更なし
+
+- **災害カテゴリ別コンパイル除外マクロ**（全13種）:
+  - `AZARAC_ENABLE_EEW`, `AZARAC_ENABLE_HYPOCENTER`, `AZARAC_ENABLE_SEISMIC`, `AZARAC_ENABLE_NANKAI`, `AZARAC_ENABLE_TSUNAMI`, `AZARAC_ENABLE_NW_PAC_TSUNAMI`, `AZARAC_ENABLE_VOLCANO`, `AZARAC_ENABLE_ASH_FALL`, `AZARAC_ENABLE_WEATHER`, `AZARAC_ENABLE_FLOOD`, `AZARAC_ENABLE_TYPHOON`, `AZARAC_ENABLE_MARINE`, `AZARAC_ENABLE_DCX_CAMF`
+  - 各 `#define` を 0 に設定すると対応する定義テーブルがコンパイル時に完全除外される
+
+- **実データテスト基盤**:
+  - `test/tools/decode_to_json.cpp`: NMEA文をJSONに変換するCLIツール（azarashi比較用）
+  - `test/scripts/compare_with_azarashi.py`: azarashi参照実装とAzaraCのデコード結果を比較するスクリプト
+  - `test/scripts/gen_realdata_vectors.py`: realdata/ からC++テストベクタを自動生成するスクリプト
+  - `test/integration/test_realdata.cpp`: 実データを用いた統合テスト（自動生成）
+- **南海トラフE2Eテスト**:
+  - `test/integration/test_nankai_e2e.cpp`: 複数ページ集約のエンドツーエンドテスト
+  - `test/scripts/compare_nankai_aggregation.py`: azarashiとの集約結果比較スクリプト
+- **ファズテスト**: `test/fuzz/fuzz_decoder.cpp` を追加（デコーダの堅牢性検証）
+- **テストケース拡充**:
+  - フレーマーテスト: 複数svId, チェックサムエラー2方式, ガベージリカバリ複数svId
+  - JSONテスト: A9/A10/A11境界値, Nankai集約後 text_utf8 出力, unix_time=0 出力
+  - azarashi比較テスト: `test_ublox_azarashi.cpp`, `test_azarashi.cpp`, `test_azarashi_dcr.cpp`, `test_azarashi_dcx.cpp`
+- **Makefile**: `decode` ターゲット（`decode_to_json` ビルド）, `compare-realdata` ターゲット（azarashi比較実行）
+
+### Changed
+
+- **IS-QZSS-DCX-004 / EWSS CAMF v1.2 対応**:
+  - コメント・ドキュメントの参照仕様を IS-QZSS-DCX-003 → IS-QZSS-DCX-004 に更新
+  - EWSS CAMF v1.1 → v1.2 に更新
+- **Azarashi v0.16.4 対応**:
+  - 各種リファクタ変数の修正など。
+- **B1 リファインメント修正 (EWSS CAMF v1.2 §3.7.1.3/4 準拠)**:
+  - `Message.h`: `DecodedEllipse` の `b1_major_factor`/`b1_minor_factor` を `b1_refined_semi_major_km`/`b1_refined_semi_minor_km` に変更
+  - `DcxHelper`: `b1InterpolationFactor()` を廃止し、`b1RefinedRadiusKm()` を新設（正しい半径計算式: `base_radius_km - delta_km * (code / 8.0)`）
+  - 旧実装は補間係数（0.0–0.875）を出力していたが、正しくは refinement後の半径（km）を出力すべき
+- **B2/B3 ビット抽出修正**:
+  - `DecoderDcx.cpp`: B2 C5/C6 のビットシフト位置を修正（`>>0`→`>>8`, `>>7`→`>>1`）
+  - B3 C7/C8/C9/C10 のビットシフト位置を修正（`>>0`→`>>13`, `>>2`→`>>10`, `>>5`→`>>5`, `>>10`→`>>0`）
+- **B4 独立デコード**:
+  - `DecoderDcx.cpp`: B4 をメイン楕円（A12-A16）の有無に関わらず独立してデコードするよう修正
+- **JSON シリアライゼーション改善**:
+  - `JsonSerializerDcx.cpp`:
+    - `a4_hazard_definition` フィールドを追加
+    - `a9_selection_of_library` → `a9_type_of_library` に名称変更
+    - `a11_guidance_label`: A9（ライブラリ種別）に応じて国際/日本語ライブラリを切り替え
+    - `a17_specific_subject` → `a17_type_of_specific_settings` に名称変更
+    - `c10_guidance_label` を `c10_guidance_label` + `c10_guidance_code` に分割
+    - J-Alert の `city_labels` 出力を追加
+    - B1 refinement JSON キー変更（`c3_major_factor` → `c3_refined_semi_major_km`, `c4_minor_factor` → `c4_refined_semi_minor_km`）
+  - `JsonSerializerQzqsm.cpp`: 降灰情報に `warning_type_label` を追加
+- **定義ファイルの更新**:
+  - `azarashi` 0.16.4 に対応
+  - ファイル名を仕様書の正式名称に合わせてリネーム:
+    - `a9_selection_of_library` → `a9_type_of_library`
+    - `a17_main_subject_for_specific_settings` → `a17_type_of_specific_settings`
+    - `c10_guidance_library_for_second_ellipse` → `c10_instruction_library_for_second_ellipse`
+    - `c10_guidance_library_for_second_ellipse_code` → `c10_instruction_library_for_second_ellipse_code`
+  - 未使用の A3 プロバイダ別ファイル・EX9 ファイルを `_index.h` から削除（92定義に整理）
+- **`Parser::feed()` リファクタリング**:
+  - `feed()` 内部のカスタムフレーマー経路とAUTOモード経路で重複していたデコード後処理を `postDecode()` メソッドに抽出
+  - Nankai集約→Dedupチェック→コピーのパイプラインが1箇所に統一
+- **`B4DetailedInfo` / `Mt44CamfRaw` B4フィールド配列化**:
+  - D1〜D36の72個の個別フィールドを `b4_d_present[36]` + `b4_d_values[36]` に統合
+  - `DecoderDcx.cpp`: 72行の手動初期化/コピーを `memset`/`memcpy` に置換（〜140行削減）
+  - `DcxHelper.cpp`: `decodeB4DetailedInfo` の全ケースを配列インデックスアクセスに変更
+  - `JsonSerializerDcx.cpp`: D3/D4（const char\*）以外を配列インデックスに統一
+- **`azaraC.h`**: 未使用の `AZARAC_ENABLE_QZSS_DCR_PREAMBLE` マクロを削除
+
+### Fixed
+
+- **ビルドシステム**:
+  - `test/Makefile`: Windowsでのメモリ割り当てを増強（スタック 64MB→256MB, ヒープ 256MB→512MB）
+- **CI/CD**:
+  - `.github/workflows/ci.yml`: 全 `actions/checkout` ステップに `persist-credentials: false` を追加（セキュリティ強化）
+
+### Removed
+
+- `.plans/` ディレクトリ（計画ドキュメント）を削除
+- `data/` ディレクトリの実データCSV/MDファイルを削除（realdata/ に移行）
+
+---
+
+## [0.10.0] - 2026-06-27
+
+### Changed
+
+- **DCX-004 小数点以下の保証に準拠**:
+  - `JsonWriter::wf_d` に `precision` パラメータを追加（デフォルト=3、後方互換性維持）
+  - 緯度・経度フィールド（`lat_deg`, `lon_deg`, `delta_lat_deg`, `delta_lon_deg`, `b1_lat_offset_deg`, `b1_lon_offset_deg`）を 1e-6度（小数点以下6桁）に変更
+  - 角度フィールド（`azimuth_deg`, `bearing_deg`）を 1e-5度（小数点以下5桁）に変更
+  - 距離フィールド（`semi_major_km`, `semi_minor_km`, `shift_km`, `b1_refined_semi_major_km`, `b1_refined_semi_minor_km`）は 1m = 0.001km（小数点以下3桁）のまま維持
+- `library.properties`: `version=0.10.0` に更新
+- `README.md`: 仕様書リファレンスを IS-QZSS-DCX-004 / EWSS CAMF v1.2 に更新
+- `README.md`: JSON出力例をDCX-004準拠の精度に更新
+
+### 仕様準拠
+
+- IS-QZSS-DCX-004 に準拠（May, 2026）
+- General Assumptions §2.5 の丸めルールを適用:
+  - 緯度・経度: 10⁻⁶度
+  - 角度: 10⁻⁵度
+  - 距離: 1m（0.001km）
 
 ---
 
 ## [0.9.0] - 2026-06-25
 
-### Added
-
-- **MT=43 情報優先度（DP）のパースとJSON出力**:
-  - `Message.h`: `Mt43Data` に `dp` (Disaster Priority) フィールドを追加
-  - `DecoderQzqsm.cpp`: `decodeMt43` で DP をパースし、重複除去バッファの優先順位判定に使用
-  - `JsonSerializerQzqsm.cpp`: `writeMt43` で `dp` をJSONに出力（1-99, 0=未定義）
-  - `test/integration/test_decoder_qzqsm.cpp`: DP 関連テストの追加
-
 ### Changed
 
 - **冗長なファイル削除**:
   - testの一部を整理・統合
+  - 一部をタグ付き共用体に。
 - **`.gitignore`の更新**:
   - `.plans/` と `data/` を追加。
-
-### Documentation
-
-- `DecoderQzqsm.cpp`: MT=43 DP フィールドのパースロジックに関するコメントを追加
 
 ### Fixed
 
@@ -49,9 +138,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `NankaiPageBuffer` / `NankaiPageBufferManager`: スパースページ対応のメモリ効率の良い集約バッファを実装。
   - `Parser`: 複数ページにまたがる南海トラフ地震メッセージの集約ロジックを追加。
   - `test/integration/test_nankai.cpp`: ページ集約の統合テストを追加。
-- **UDP ネットワーク送受信モジュール**:
-  - `UdpReceiver` / `UdpTransmitter`: QZSS DCR データの中継・送信をモジュールを追加。
-  - Wi-Fi クライアントサンプル (`examples/wifi_client/`) に UDP リレーサンプルを追加。
 - **RTOS (FreeRTOS) 対応**:
   - `examples/rtos_freertos/`: FreeRTOS 環境での NMEA/UBX 同時処理サンプルを追加。
 - **JsonWriter ユーティリティ**:
@@ -388,22 +474,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Decoder**: MT=43 (QZQSM) / MT=44 (DCX) デコード
 - **DedupFilter**: {svid, msg_type, crc24} によるリングバッファ重複排除
 - **JsonSerializer**: ヒープアロケーションなしの Print& 出力
-
----
-
-## 仕様書リファレンス
-
-| 規格            | 内容                        | バージョン     |
-| --------------- | --------------------------- | -------------- |
-| IS-QZSS-DCR-016 | DC Report Service (MT=43)   | April 03, 2026 |
-| IS-QZSS-DCX-003 | DCX Service (MT=44)         | March 28, 2025 |
-| EWSS CAMF v1.1  | Common Alert Message Format | Version 1.1    |
-
----
-
-## 関連ドキュメント
-
-- [README.md](README.md) - クイックスタートとAPIドキュメント
-- [examples/](examples/) - 使用例集
-- [test/](test/) - テストスイート
-- [scripts/](scripts/) - 定義ファイル自動生成スクリプト

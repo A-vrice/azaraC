@@ -1,7 +1,7 @@
 // azaraC - src/internal/JsonWriter.cpp
 // Common JSON writer helpers for serializers
 
-#include "internal/JsonWriter.h"
+#include "JsonWriter.h"
 #include <cstdio>
 #include <cmath>
 
@@ -29,13 +29,9 @@ void writeUint64(Print& out, uint64_t v) {
 
 // Write double with fixed precision (for coordinates, distances)
 void writeDouble(Print& out, double v, int precision) {
-    // Handle NaN and Infinity - undefined behavior when casting to integer
-    if (std::isnan(v)) {
-        out.print("\"NaN\"");
-        return;
-    }
-    if (std::isinf(v)) {
-        out.print(v > 0 ? "\"Infinity\"" : "\"-Infinity\"");
+    // Handle NaN and Infinity - output JSON null (spec-compliant)
+    if (std::isnan(v) || std::isinf(v)) {
+        out.print("null");
         return;
     }
 
@@ -131,8 +127,8 @@ void wf_x(Print& out, std::string_view k, uint32_t v, bool last) {
     if (!last) writeChar(out, ',');
 }
 
-void wf_d(Print& out, std::string_view k, double v, bool last) {
-    wk(out, k); writeDouble(out, v); if (!last) writeChar(out, ',');
+void wf_d(Print& out, std::string_view k, double v, bool last, int precision) {
+    wk(out, k); writeDouble(out, v, precision); if (!last) writeChar(out, ',');
 }
 
 void wf_s(Print& out, std::string_view k, std::optional<std::string_view> v, bool last) {

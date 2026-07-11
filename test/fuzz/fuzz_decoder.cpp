@@ -22,9 +22,9 @@
 
 #define ARDUINO 0
 #include "azaraC.h"
-#include "internal/Decoder.h"
-#include "internal/NmeaFramer.h"
-#include "internal/UbxFramer.h"
+#include "decoder/Decoder.h"
+#include "framer/NmeaFramer.h"
+#include "framer/UbxFramer.h"
 #include "test_helpers.h"
 
 using namespace azaraC;
@@ -816,6 +816,175 @@ static void test_decode_failure_state(FuzzStats& stats, std::mt19937& rng, int i
     printf("  Completed.\n");
 }
 
+// テスト13: NMEA $ 文字消去テスト (fuzz_and_perf.md #2)
+static void test_corrupted_nmea_dollar(FuzzStats& stats, std::mt19937& rng, int iterations) {
+    printf("Test 13: NMEA $ removal test (%d iterations)...\n", iterations);
+
+    for (int i = 0; i < iterations; i++) {
+        try {
+            uint8_t bits[32];
+            generate_random_nav_bits(bits, sizeof(bits), rng);
+            set_valid_preamble(bits, rng);
+            set_valid_msg_type(bits, rng);
+            set_valid_crc(bits);
+
+            std::string nmea = makeNmeaQzqsm(193, bits);
+
+            // Remove the leading '$'
+            if (nmea.size() > 0 && nmea[0] == '$') {
+                nmea = nmea.substr(1);
+            }
+
+            NmeaFramer framer;
+            Frame frame;
+            bool found = false;
+
+            for (char c : nmea) {
+                if (framer.feed((uint8_t)c, frame)) {
+                    found = true;
+                    break;
+                }
+            }
+
+            // Should NOT be detected without '$'
+            if (found) {
+                // Malformed frame was still detected — record as failure and abort
+                printf("  FAIL: NMEA frame detected without '$' at iteration %d\n", i);
+                stats.log_exception("test_corrupted_nmea_dollar_unexpected_found", i);
+                stats.total_iterations++;
+                continue;
+            }
+
+            stats.total_iterations++;
+        } catch (...) {
+            stats.log_exception("test_corrupted_nmea_dollar", i);
+        }
+    }
+    printf("  Completed.\n");
+}
+
+// テスト14: UBX SYNC 文字破損テスト (fuzz_and_perf.md #3)
+static void test_corrupted_ubx_sync(FuzzStats& stats, std::mt19937& rng, int iterations) {
+    printf("Test 14: UBX SYNC corruption test (%d iterations)...\n", iterations);
+
+    for (int i = 0; i < iterations; i++) {
+        try {
+            uint8_t bits[32];
+            generate_random_nav_bits(bits, sizeof(bits), rng);
+            set_valid_preamble(bits, rng);
+            set_valid_msg_type(bits, rng);
+            set_valid_crc(bits);
+
+            auto ubx = makeUbxSfrbx(193, bits);
+
+            // Corrupt SYNC character
+            if (ubx.size() > 0) {
+                ubx[0] = 0x00;  // Should be 0xB5
+            }
+
+            UbxFramer framer;
+            Frame frame;
+            bool found = false;
+
+            for (auto b : ubx) {
+                if (framer.feed(b, frame)) {
+                    found = true;
+                    break;
+                }
+            }
+
+            if (found) {
+                // Malformed frame was still detected — record as failure and abort
+                printf("  FAIL: UBX frame detected with corrupted SYNC at iteration %d\n", i);
+                stats.log_exception("test_corrupted_ubx_sync_unexpected_found", i);
+                stats.total_iterations++;
+                continue;
+            }
+
+            stats.total_iterations++;
+        } catch (...) {
+            stats.log_exception("test_corrupted_ubx_sync", i);
+        }
+    }
+    printf("  Completed.\n");
+}
+
+// テスト15: report_unix=0 + SVID 境界値テスト (fuzz_and_perf.md #4)
+static void test_boundary_report_unix_svid(FuzzStats& stats, std::mt19937& rng) {
+    printf("Test 15: report_unix=0 + SVID boundary values...\n");
+
+    uint8_t boundary_svids[] = {0, 1, 182, 183, 192, 193, 202, 203, 254, 255};
+
+    for (uint8_t svid : boundary_svids) {
+        try {
+            uint8_t bits[32] = {0};
+            bits[0] = 0x53;
+            set_valid_msg_type(bits, rng);
+            set_valid_crc(bits);
+
+            Frame frame;
+            frame.svid = svid;
+            memcpy(frame.bits, bits, 32);
+
+            Decoder decoder;
+            Message msg;
+            // report_unix=0
+            decoder.decode(frame, msg, 0);
+            stats.total_iterations++;
+        } catch (...) {
+            stats.log_exception("test_boundary_report_unix_svid", svid);
+        }
+    }
+    printf("  Completed.\n");
+}
+
+// テスト16: 長時間実行メモリ安定性テスト (fuzz_and_perf.md #1)
+static void test_memory_stability(FuzzStats& stats, std::mt19937& rng, int iterations) {
+    printf("Test 16: Memory stability test (%d iterations)...\n", iterations);
+
+    auto start = std::chrono::steady_clock::now();
+
+    for (int i = 0; i < iterations; i++) {
+        try {
+            uint8_t bits[32];
+            generate_random_nav_bits(bits, sizeof(bits), rng);
+            set_valid_preamble(bits, rng);
+            set_valid_msg_type(bits, rng);
+            set_valid_crc(bits);
+
+            // NMEA経由でテスト
+            std::string nmea = makeNmeaQzqsm(193, bits);
+
+            NmeaFramer framer;
+            Frame frame;
+
+            for (char c : nmea) {
+                if (framer.feed((uint8_t)c, frame)) {
+                    Decoder decoder;
+                    Message msg;
+                    decoder.decode(frame, msg, 1704067200u);
+                    break;
+                }
+            }
+
+            stats.total_iterations++;
+
+            // 進捗表示
+            if (i % 10000 == 0 && i > 0) {
+                auto now = std::chrono::steady_clock::now();
+                auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - start).count();
+                printf("  Progress: %d/%d (%llds elapsed)\n", i, iterations, (long long)elapsed);
+            }
+        } catch (...) {
+            stats.log_exception("test_memory_stability", i);
+        }
+    }
+
+    auto end = std::chrono::steady_clock::now();
+    auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(end - start).count();
+    printf("  Completed in %llds.\n", (long long)elapsed);
+}
+
 int main(int argc, char* argv[]) {
     printf("=== AzaraC Fuzz Testing ===\n");
     printf("Starting fuzz tests...\n\n");
@@ -866,6 +1035,14 @@ int main(int argc, char* argv[]) {
     test_decode_failure_state(stats, rng, iterations / 2);
     mem_tracker.checkpoint();
     test_long_running(stats, rng, iterations * 5);
+    mem_tracker.checkpoint();
+    test_corrupted_nmea_dollar(stats, rng, iterations / 2);
+    mem_tracker.checkpoint();
+    test_corrupted_ubx_sync(stats, rng, iterations / 2);
+    mem_tracker.checkpoint();
+    test_boundary_report_unix_svid(stats, rng);
+    mem_tracker.checkpoint();
+    test_memory_stability(stats, rng, iterations * 5);
     mem_tracker.checkpoint();
 
     // 結果表示（メモリレポートはmem_trackerのデストラクタで自動出力）

@@ -38,11 +38,11 @@ AzaraCは準天頂衛星みちびきが送信する災危通報メッセージ�
 
 | service_kind    | 内容                             | 判定条件                 |
 | --------------- | -------------------------------- | ------------------------ |
-| LAlert          | L-Alert (地方自治体向け緊急速報) | A2=111 (Japan) & A3=1-4  |
-| JAlert          | J-Alert (全国瞬時警報システム)   | A2=111 (Japan) & A3=0    |
-| LocalGovernment | 地方自治体送信情報               | A2=111 (Japan) & A3=5-31 |
+| NullMessage     | Null Message                     | A1=0, A2=111 (Japan), A3=0, かつ全CAMF/Extendedフィールドがゼロ |
+| LAlert          | L-Alert (地方自治体向け緊急速報) | A2=111 (Japan) & A3=1    |
+| JAlert          | J-Alert (全国瞬時警報システム)   | A2=111 (Japan) & A3=0,2,3 |
+| LocalGovernment | 地方自治体送信情報               | A2=111 (Japan) & A3=4-31 |
 | OutsideJapan    | 国外向け情報                     | A2≠111                   |
-| NullMessage     | Null Message                     | A1=0                     |
 | Unknown         | 不明                             | 上記以外                 |
 
 ## 動作環境

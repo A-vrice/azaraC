@@ -6,8 +6,8 @@
 
 #define ARDUINO 0
 #include "../src/azaraC.h"
-#include "../src/internal/Decoder.h"
-#include "../src/internal/NmeaFramer.h"
+#include "../src/decoder/Decoder.h"
+#include "../src/framer/NmeaFramer.h"
 #include <cstdint>
 #include <cstring>
 #include <cstdio>

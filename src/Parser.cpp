@@ -11,29 +11,9 @@ bool Parser::feed(uint8_t byte, Message& out, uint32_t report_unix) {
     // --- カスタムフレーマ（排他モード）---
     if (_custom) {
         if (!_custom->feed(byte, frame)) return false;
-        // AUTO モードと同様に decoded を中間変数として使い、out への書き込みは最後に行う
         Message decoded;
         if (!_decoder.decode(frame, decoded, report_unix)) return false;
-
-        // Nankai Trough page aggregation
-        if (decoded.payload_type == MsgPayloadType::Mt43) {
-            const Mt43Data* mt43 = decoded.getMt43();
-            if (mt43 && mt43->disaster_category == 4) {
-                // decoded と out を別オブジェクトにすることでエイリアシング UB を回避
-                if (!processNankaiAggregation(decoded, out, internal::getMillis())) {
-                    return false;
-                }
-                // Aggregation complete - check dedup before outputting
-                internal::DedupKey key{ out.svid, out.msg_type, out.crc24 };
-                if (_dedup.isDuplicate(key)) return false;
-                return true;
-            }
-        }
-
-        internal::DedupKey key{ decoded.svid, decoded.msg_type, decoded.crc24 };
-        if (_dedup.isDuplicate(key)) return false;
-        out = decoded;
-        return true;
+        return postDecode(decoded, out);
     }
 
     // --- AUTO モード: UBX / NMEA を並行試行 ---
@@ -56,14 +36,17 @@ bool Parser::feed(uint8_t byte, Message& out, uint32_t report_unix) {
 
     if (!ubx_ok && !nmea_ok) return false;
 
-    // フレームが取れたらデコード
     Message decoded;
     if (!_decoder.decode(frame, decoded, report_unix)) return false;
+    return postDecode(decoded, out);
+}
 
+bool Parser::postDecode(const Message& decoded, Message& out) {
     // Nankai Trough page aggregation
     if (decoded.payload_type == MsgPayloadType::Mt43) {
         const Mt43Data* mt43 = decoded.getMt43();
         if (mt43 && mt43->disaster_category == 4) {
+            // decoded と out を別オブジェクトにすることでエイリアシング UB を回避
             if (!processNankaiAggregation(decoded, out, internal::getMillis())) {
                 return false;
             }
@@ -93,6 +76,23 @@ bool Parser::processNankaiAggregation(const Message& decoded, Message& out, uint
     internal::NankaiPageKey key;
     key.info_code = nankai->info_code;
     key.event_time_unix = d->event_time.unix_time;
+// Guard: prevent aggregation when event_time fields are provided but unresolved.
+// If event_time.unix_time == 0 while month/day/hour/minute are set, the time
+// could not be resolved (e.g. missing report_unix baseline), and different
+// events may collide on the same key {info_code, 0}. NankaiPageKey::isValid()
+// checks event_time_unix != 0.
+// However, if ALL raw time fields are zero, no time data was encoded at all,
+// so aggregation is permitted (key collision risk is acceptable since events
+// are indistinguishable without time data).
+if (!key.isValid()) {
+    bool time_provided = (d->event_time.month != 0 || d->event_time.day != 0 ||
+                          d->event_time.hour != 0 || d->event_time.minute != 0);
+    if (time_provided) {
+        return false;  // Time fields provided but unresolved → reject
+    }
+    // else: no time data → allow aggregation
+}
+
 
     // Add page to buffer
     internal::NankaiPageBuffer* completed = _nankaiBuffers.addPage(

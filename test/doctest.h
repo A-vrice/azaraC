@@ -7440,7 +7440,7 @@ void JUnitReporter::test_run_end(const TestRunStats &p) {
         .writeAttribute("name", binary_name)
         .writeAttribute("errors", testCaseData.totalErrors)
         .writeAttribute("failures", testCaseData.totalFailures)
-        .writeAttribute("tests", p.numAsserts);
+        .writeAttribute("tests", testCaseData.testcases.size());
     if (opt.no_time_in_output == false) {
         xml.writeAttribute("time", testCaseData.totalSeconds);
         xml.writeAttribute("timestamp", JUnitTestCaseData::getCurrentTimestamp());

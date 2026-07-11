@@ -1,7 +1,7 @@
 #pragma once
-// azaraC - src/internal/Decoder.h
+// azaraC - src/decoder/Decoder.h
 
-#include "Frame.h"
+#include "../framer/Frame.h"
 #include "../Message.h"
 
 namespace azaraC {

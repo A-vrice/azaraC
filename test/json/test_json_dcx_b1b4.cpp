@@ -41,8 +41,8 @@ TEST_CASE("JSON DCX B1: refinement fields") {
     mt44->mt44_decoded.main_ellipse.lon_deg = 139.6;
     mt44->mt44_decoded.main_ellipse.b1_lat_offset_deg = 0.0024;
     mt44->mt44_decoded.main_ellipse.b1_lon_offset_deg = 0.0024;
-    mt44->mt44_decoded.main_ellipse.b1_major_factor = 0.875;
-    mt44->mt44_decoded.main_ellipse.b1_minor_factor = 0.875;
+    mt44->mt44_decoded.main_ellipse.b1_refined_semi_major_km = 215.125;
+    mt44->mt44_decoded.main_ellipse.b1_refined_semi_minor_km = 215.125;
 
     StringPrint sp;
     internal::JsonSerializer::serialize(m, sp);
@@ -51,8 +51,8 @@ TEST_CASE("JSON DCX B1: refinement fields") {
     CHECK(has(s, "\"b1_refinement\":{"));
     CHECK(has(s, "\"c1_lat_offset_deg\":"));
     CHECK(has(s, "\"c2_lon_offset_deg\":"));
-    CHECK(has(s, "\"c3_major_factor\":"));
-    CHECK(has(s, "\"c4_minor_factor\":"));
+    CHECK(has(s, "\"c3_refined_semi_major_km\":"));
+    CHECK(has(s, "\"c4_refined_semi_minor_km\":"));
 }
 
 TEST_CASE("JSON DCX B2: hazard center fields") {
@@ -133,10 +133,10 @@ TEST_CASE("JSON DCX B4: detailed info fields") {
     mt44->camf.a3 = 1;
     mt44->camf.a4 = 36;  // Earthquake
     mt44->camf.b4_present = true;
-    mt44->camf.b4_d1_present = true;
-    mt44->camf.b4_d1 = 15;
-    mt44->camf.b4_d2_present = true;
-    mt44->camf.b4_d2 = 7;
+    mt44->camf.b4_d_present[0] = true;
+    mt44->camf.b4_d_values[0] = 15;
+    mt44->camf.b4_d_present[1] = true;
+    mt44->camf.b4_d_values[1] = 7;
     mt44->mt44_decoded.main_ellipse_present = true;
 
     StringPrint sp;

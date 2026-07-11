@@ -1,5 +1,5 @@
 #pragma once
-// azaraC - src/internal/JsonWriter.h
+// azaraC - src/json/JsonWriter.h
 // Common JSON writer helpers for serializers
 
 #include "../Message.h"
@@ -9,11 +9,11 @@
 #if defined(ARDUINO) && ARDUINO >= 1
 #  include <Print.h>
 #else
-#  include "PrintShim.h"
+#  include "../internal/PrintShim.h"
 #endif
 
 // Ensure language macros are defined before use
-#include "../azaraC.h"
+#include "../azaraC_config.h"
 
 // ---------------------------------------------------------------------------
 // Language resolution macro
@@ -52,7 +52,7 @@ void wk(Print& out, std::string_view k);
 // "key":value,
 void wf_u(Print& out, std::string_view k, uint32_t v, bool last = false);
 void wf_x(Print& out, std::string_view k, uint32_t v, bool last = false);
-void wf_d(Print& out, std::string_view k, double v, bool last = false);
+void wf_d(Print& out, std::string_view k, double v, bool last = false, int precision = 3);
 void wf_s(Print& out, std::string_view k, std::optional<std::string_view> v, bool last = false);
 void wf_s(Print& out, std::string_view k, const char* v, bool last = false);
 
