@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <cstring>
 #include <cstdio>
+#include <random>
 #include <string>
 #include <vector>
 
@@ -82,18 +83,18 @@ inline std::vector<uint8_t> makeUbxSfrbx(uint8_t svId, const uint8_t* nav_bits) 
 
 inline std::string makeNmeaQzqsm(uint8_t svid, const uint8_t* nav_bits) {
     char buf[256];
-    sprintf(buf, "QZQSM,%d,", svid);
+    snprintf(buf, sizeof(buf), "QZQSM,%d,", svid);
     std::string s = "$";
     s += buf;
     // Output 31 full bytes (62 hex chars)
     for (int i = 0; i < 31; ++i) {
         char hex[3];
-        sprintf(hex, "%02X", nav_bits[i]);
+        snprintf(hex, sizeof(hex), "%02X", nav_bits[i]);
         s += hex;
     }
     // Output 1 nibble (1 hex char) for the remaining 2 bits
     char hex[2];
-    sprintf(hex, "%01X", (nav_bits[31] >> 4) & 0xF);
+    snprintf(hex, sizeof(hex), "%01X", (nav_bits[31] >> 4) & 0xF);
     s += hex;
 
     uint8_t xsum = 0;
@@ -130,7 +131,7 @@ inline uint32_t crc24qRef(const uint8_t* d, int total_bits) {
 
 // ── NMEAデコードヘルパー ─────────────────────────────────────────────────────
 
-inline bool decodeNmea(const char* nmea, Message& msg) {
+inline bool decodeNmea(const char* nmea, Message& msg, uint32_t report_unix = 0) {
     NmeaFramer framer;
     Frame frame;
     bool found = false;
@@ -142,7 +143,7 @@ inline bool decodeNmea(const char* nmea, Message& msg) {
     }
     if (!found) return false;
     Decoder dec;
-    return dec.decode(frame, msg, 0);
+    return dec.decode(frame, msg, report_unix);
 }
 
 // ── NMEAフレーマー専用ヘルパー（Decoder を経由しない）─────────────────────────
@@ -179,85 +180,160 @@ inline std::string makeNmeaQzqsmHex(int num_hex_chars) {
 // ── テスト用デコーダー（protected関数を公開） ─────────────────────────────────
 
 struct TestDecoder : Decoder {
+    // Shared instance — ensures OOB flag, getBits, getBits64 share one Decoder
+    static TestDecoder& inst() {
+        static TestDecoder t;
+        return t;
+    }
+
     // CRC計算
     static uint32_t calcCRC(const uint8_t* data, uint16_t bit_len) {
         return crc24q(data, bit_len);
     }
 
-    // ビット抽出
+    // ビット抽出 (non-static になった getBits をインスタンス経由で呼ぶ)
     static uint32_t extractBits(const uint8_t* b, uint16_t s, uint8_t l) {
-        return getBits(b, s, l);
+        return inst().getBits(b, s, l);
+    }
+
+    // OOB (out-of-bounds) flag control for getBits/getBits64 tests
+    static void clearOob() {
+        inst().oob_ = false;
+    }
+    static bool checkOob() {
+        return inst().oob_;
+    }
+
+    // 64-bit bit extraction (non-static getBits64 wrapper)
+    static uint64_t extractBits64(const uint8_t* b, uint16_t s, uint8_t l) {
+        return inst().getBits64(b, s, l);
+    }
+
+    // Signed bit extraction (non-static getSignedBits wrapper)
+    static int32_t extractSignedBits(const uint8_t* b, uint16_t s, uint8_t l) {
+        return inst().getSignedBits(b, s, l);
+    }
+
+    // Signed lat/lon extraction (non-static extractSignedLatLon wrapper)
+    static void testExtractSignedLatLon(const uint8_t* b, uint16_t start, int16_t& lat, int16_t& lon,
+                                         uint8_t lat_bits = 8, uint8_t lon_bits = 9) {
+        TestDecoder t;
+        t.extractSignedLatLon(b, start, lat, lon, lat_bits, lon_bits);
+    }
+
+    // DHM extraction (non-static extractDHM wrapper)
+    static TimeFields testExtractDHM(const uint8_t* b, uint16_t start, uint32_t report_unix = 0) {
+        static TestDecoder t;
+        t.oob_ = false;
+        return t.extractDHM(b, start, report_unix);
+    }
+
+    // Read notifications (non-static readNotifications wrapper)
+    static uint8_t testReadNotifications(const uint8_t* b, uint16_t start, uint16_t* out) {
+        static TestDecoder t;
+        return t.readNotifications(b, start, out);
     }
 
     // 各サブデコーダーのテスト用ラッパー
+    // 各メソッドは基底クラス Decoder の条件コンパイルに合わせて #if ガードする
+#if (AZARAC_ENABLE_EEW)
     static void testDecodeEEW(const uint8_t* bits, Message& out, uint32_t now_unix) {
         TestDecoder t;
         t.decodeEEW(bits, out, now_unix);
     }
+#endif
 
+#if (AZARAC_ENABLE_HYPOCENTER)
     static void testDecodeHypocenter(const uint8_t* bits, Message& out, uint32_t now_unix) {
         TestDecoder t;
         t.decodeHypocenter(bits, out, now_unix);
     }
+#endif
 
+#if (AZARAC_ENABLE_TSUNAMI)
     static void testDecodeTsunami(const uint8_t* bits, Message& out, uint32_t now_unix) {
         TestDecoder t;
         t.decodeTsunami(bits, out, now_unix);
     }
+#endif
 
+#if (AZARAC_ENABLE_NANKAI)
     static void testDecodeNankai(const uint8_t* bits, Message& out) {
         TestDecoder t;
         t.decodeNankai(bits, out);
     }
+#endif
 
+#if (AZARAC_ENABLE_ASH_FALL)
     static void testDecodeAshFall(const uint8_t* bits, Message& out, uint32_t now) {
         TestDecoder t;
         t.decodeAshFall(bits, out, now);
     }
+#endif
 
+#if (AZARAC_ENABLE_FLOOD)
     static void testDecodeFlood(const uint8_t* bits, Message& out) {
         TestDecoder t;
         t.decodeFlood(bits, out);
     }
+#endif
 
+#if (AZARAC_ENABLE_WEATHER)
     static void testDecodeWeather(const uint8_t* bits, Message& out) {
         TestDecoder t;
         t.decodeWeather(bits, out);
     }
+#endif
 
+#if (AZARAC_ENABLE_SEISMIC)
     static void testDecodeSeismic(const uint8_t* bits, Message& out, uint32_t now) {
         TestDecoder t;
         t.decodeSeismic(bits, out, now);
     }
+#endif
 
+
+    // Arrival time resolution (static method, but declared protected in base)
+    static TimeFields testResolveArrivalTime(uint16_t raw, uint32_t base_unix) {
+        return resolveArrivalTime(raw, base_unix);
+    }
+
+#if (AZARAC_ENABLE_VOLCANO)
     static void testDecodeVolcano(const uint8_t* bits, Message& out, uint32_t now) {
         TestDecoder t;
         t.decodeVolcano(bits, out, now);
     }
+#endif
 
+#if (AZARAC_ENABLE_NW_PAC_TSUNAMI)
     static void testDecodeNwPacTsu(const uint8_t* bits, Message& out, uint32_t now) {
         TestDecoder t;
         t.decodeNwPacTsu(bits, out, now);
     }
+#endif
 
+#if (AZARAC_ENABLE_TYPHOON)
     static void testDecodeTyphoon(const uint8_t* bits, Message& out, uint32_t now_unix) {
         TestDecoder t;
         t.decodeTyphoon(bits, out, now_unix);
     }
+#endif
 
+#if (AZARAC_ENABLE_MARINE)
     static void testDecodeMarine(const uint8_t* bits, Message& out) {
         TestDecoder t;
         t.decodeMarine(bits, out);
     }
+#endif
 
     // 時間解決
     static TimeFields testResolveTime(uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint32_t now_unix) {
         return resolveTime(month, day, hour, minute, now_unix);
     }
 
-    // 緯度経度抽出
+    // 緯度経度抽出 (non-static になった extractLatLon をインスタンス経由で呼ぶ)
     static LatLon testExtractLatLon(const uint8_t* buf, uint16_t start) {
-        return extractLatLon(buf, start);
+        return TestDecoder().extractLatLon(buf, start);
     }
 
     // 日付変換
@@ -269,6 +345,16 @@ struct TestDecoder : Decoder {
         return days_from_civil(y, m, d);
     }
 };
+
+
+// ── ファジーテストヘルパー ──────────────────────────────────────────────────
+
+inline void generate_random_nav_bits(uint8_t* bits, size_t size, std::mt19937& rng) {
+    std::uniform_int_distribution<int> dist(0, 255);
+    for (size_t i = 0; i < size; ++i) {
+        bits[i] = static_cast<uint8_t>(dist(rng));
+    }
+}
 
 // ── 日付計算ヘルパー ─────────────────────────────────────────────────────────
 

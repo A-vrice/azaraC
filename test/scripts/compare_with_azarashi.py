@@ -22,6 +22,7 @@ import re
 import subprocess
 import sys
 import argparse
+import urllib.request
 
 try:
     import azarashi
@@ -100,6 +101,43 @@ def parse_data_txt(filepath: str) -> list[dict]:
     return results
 
 
+def parse_l1s_archive(filepath: str) -> list[dict]:
+    """QZSSのL1SアーカイブバイナリファイルをパースしてNMEAセンテンスを抽出"""
+    if not os.path.exists(filepath):
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)
+        file_id = os.path.basename(filepath)
+        url = f"https://sys.qzss.go.jp/dod/api/get/l1s?id={file_id}"
+        print(f"Downloading L1S archive {file_id} from QZSS API...")
+        try:
+            urllib.request.urlretrieve(url, filepath)
+            print(f"Saved to {filepath}")
+        except Exception as e:
+            print(f"ERROR: Failed to download L1S archive: {e}", file=sys.stderr)
+            sys.exit(1)
+
+    results = []
+    with open(filepath, "rb") as f:
+        while True:
+            record = f.read(38)
+            if len(record) < 38:
+                break
+
+            prn = record[0]
+            l1s_msg = record[5:37]  # 32 bytes (256 bits)
+            mt = l1s_msg[1] >> 2    # Message Type (6 bits)
+
+            # デコード対象は DCR (MT43) および DCX (MT44) のみ
+            if mt not in (43, 44):
+                continue
+
+            svid = prn - 128 if prn >= 128 else prn
+            # 63文字の16進数（252ビット）のペイロードを作成
+            hex_payload = l1s_msg.hex()[:-1].upper()
+            nmea = make_qzqsm(svid, hex_payload)
+            results.append({'nmea': nmea, 'source': 'l1s'})
+    return results
+
+
 # ── azarashi でデコード ───────────────────────────────────────────────────
 
 def json_serial(obj):
@@ -123,7 +161,7 @@ def decode_with_azarashi(nmea: str) -> dict:
 
 # ── AzaraC でデコード ─────────────────────────────────────────────────────
 
-def decode_with_azarac(nmeas: list[str]) -> list[dict]:
+def decode_with_azarac(nmeas: list[str], raw: bool = False) -> list[dict]:
     """AzaraC CLI ツールを呼び出してデコード"""
     if not os.path.exists(AZARAC_BIN):
         print(f"ERROR: AzaraC binary not found: {AZARAC_BIN}", file=sys.stderr)
@@ -131,9 +169,12 @@ def decode_with_azarac(nmeas: list[str]) -> list[dict]:
         sys.exit(1)
 
     input_text = "\n".join(nmeas) + "\n"
+    cmd = [AZARAC_BIN]
+    if raw:
+        cmd.append("--raw")
     try:
         result = subprocess.run(
-            [AZARAC_BIN],
+            cmd,
             input=input_text,
             capture_output=True,
             text=True,
@@ -307,13 +348,13 @@ def values_equal(az_val, ac_val, ac_flat: dict, ac_key: str) -> bool:
 
 def main():
     parser = argparse.ArgumentParser(description="Compare azarashi vs AzaraC output")
-    parser.add_argument("--source", choices=["history", "noto", "data_txt", "all"],
+    parser.add_argument("--source", choices=["history", "noto", "data_txt", "l1s", "all"],
                         default="all", help="Which realdata source to test")
     parser.add_argument("--verbose", "-v", action="store_true", help="Show all differences")
     parser.add_argument("--max-diff", type=int, default=10, help="Max differences to show per case")
     args = parser.parse_args()
 
-    # データ読み込み
+    # 数据読み込み
     cases = []
     if args.source in ("history", "all"):
         cases.extend(parse_history(os.path.join(REALDATA, 'qzqsm_history.md')))
@@ -321,12 +362,15 @@ def main():
         cases.extend(parse_noto_csv(os.path.join(REALDATA, 'qzqsm_20240101-0107_noto.csv')))
     if args.source in ("data_txt", "all"):
         cases.extend(parse_data_txt(os.path.join(REALDATA, 'data.txt')))
+    if args.source in ("l1s", "all"):
+        cases.extend(parse_l1s_archive(os.path.join(REALDATA, 'Q002_20240101.l1s')))
 
     print(f"Testing {len(cases)} messages from realdata/ ...")
 
     # AzaraC で一括デコード
     nmeas = [c['nmea'] for c in cases]
-    azarac_results = decode_with_azarac(nmeas)
+    # この比較は入力ごとに1件の出力を必要とするためParser処理を迂回する
+    azarac_results = decode_with_azarac(nmeas, raw=True)
     if len(azarac_results) != len(cases):
         print(
             f"ERROR: AzaraC returned {len(azarac_results)} results for {len(cases)} inputs",

@@ -14,6 +14,7 @@ using namespace azaraC;
 // azarashi でデコードした結果: page_number と total_page を検証
 // ═══════════════════════════════════════════════════════════════════════════════
 
+#if (AZARAC_ENABLE_NANKAI)
 TEST_CASE("DCR: Nankai Trough 20 messages - page tracking") {
     struct NankaiCase {
         const char* nmea;
@@ -82,12 +83,14 @@ TEST_CASE("DCR: Nankai Trough 20 messages - page tracking") {
         CHECK(nankai->total_page == cases[i].expected_total);
     }
 }
+#endif // AZARAC_ENABLE_NANKAI
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Ash Fall 5メッセージ — test_scenario5
 // azarashi でデコードした結果: volcano_name, warning_codes, local_governments を検証
 // ═══════════════════════════════════════════════════════════════════════════════
 
+#if (AZARAC_ENABLE_ASH_FALL)
 TEST_CASE("DCR: Ash Fall Detailed 5 messages - field verification") {
     struct AshCase {
         const char* nmea;
@@ -139,12 +142,14 @@ TEST_CASE("DCR: Ash Fall Detailed 5 messages - field verification") {
         CHECK(ash->entries_lg[0] == cases[i].expected_lg_0);
     }
 }
+#endif // AZARAC_ENABLE_ASH_FALL
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Weather 3メッセージ — test_scenario6
 // azarashi でデコードした結果: sub_categories, region_codes を検証
 // ═══════════════════════════════════════════════════════════════════════════════
 
+#if (AZARAC_ENABLE_WEATHER)
 TEST_CASE("DCR: Weather 3 messages - field verification") {
     struct WxCase {
         const char* nmea;
@@ -186,11 +191,13 @@ TEST_CASE("DCR: Weather 3 messages - field verification") {
         CHECK(wx->entries[0].region_code == cases[i].expected_region_0);
     }
 }
+#endif // AZARAC_ENABLE_WEATHER
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // EEW 長周期地震動階級 — 仕様書ベースの網羅テスト
 // ═══════════════════════════════════════════════════════════════════════════════
 
+#if (AZARAC_ENABLE_EEW)
 TEST_CASE("DCR: EEW Long Period Ground Motion - exhaustive") {
     // LgL1=3, LgU3=3 のテスト (既存のLong Period Ground Motionテストの検証強化)
     Message msg{};
@@ -208,11 +215,13 @@ TEST_CASE("DCR: EEW Long Period Ground Motion - exhaustive") {
     CHECK(eew->long_period_lower == 3);
     CHECK(eew->long_period_upper == 3);
 }
+#endif // AZARAC_ENABLE_EEW
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Tsunami 到達時刻境界値テスト
 // ═══════════════════════════════════════════════════════════════════════════════
 
+#if (AZARAC_ENABLE_TSUNAMI)
 TEST_CASE("DCR: Tsunami arrival time boundary - arrived (hour=31, min=63)") {
     // 津波が既に到達した場合: AzaraCではhour/minuteを0にクリアし、unix_timeも0にする
     // これは仕様書の「到達済み」フラグを正しく処理している
@@ -263,11 +272,13 @@ TEST_CASE("DCR: Tsunami arrival time boundary - arrived (hour=31, min=63)") {
     CHECK(tsunami->entries[0].arrival_time.minute == 0);
     CHECK(tsunami->entries[0].arrival_time.unix_time == 0);
 }
+#endif // AZARAC_ENABLE_TSUNAMI
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // NW Pacific Tsunami Tsunamigenic Potential 網羅テスト
 // ═══════════════════════════════════════════════════════════════════════════════
 
+#if (AZARAC_ENABLE_NW_PAC_TSUNAMI)
 TEST_CASE("DCR: NW Pacific Tsunami - Tsunamigenic Potential patterns") {
     // Pattern 1: potential=0 (津波発生の可能性なし)
     {
@@ -302,3 +313,4 @@ TEST_CASE("DCR: NW Pacific Tsunami - Tsunamigenic Potential patterns") {
         CHECK(nw_pac->potential == 2);  // 広域津波の可能性あり
     }
 }
+#endif // AZARAC_ENABLE_NW_PAC_TSUNAMI

@@ -280,17 +280,15 @@ DCX/CAMFメッセージのデータ構造。
 | 10 | B3 | Secondary Ellipse Definition |
 | 11 | B4 | Quantitative and Detailed Information (D1-D36) |
 
-**B4 (A17=11)** D-seriesフィールドは配列 `b4_d_present[36]` / `b4_d_values[36]` でアクセスします（0-indexed: [0]=D1, [1]=D2, ...[35]=D36）。
+**B4 (A17=11)** D-series フィールド（D1〜D36）は、デコード時に内部計算され JSON シリアライズで出力されます。
+`Mt44CamfRaw` 上には B4 の有無を示す `b4_present` (bool) のみが保持され、個別の D-field 値はシリアライズ時に `decodeB4DetailedInfo(a18, a4)` で再計算されます。
 
 ```cpp
-// B4 D-field へのアクセス例
+// B4 の有無を確認
 if (mt44->camf.b4_present) {
-    for (uint8_t i = 0; i < 36; ++i) {
-        if (mt44->camf.b4_d_present[i]) {
-            uint8_t value = mt44->camf.b4_d_values[i];
-            // D(i+1) = value
-        }
-    }
+    // D1-D36 の値は azaraC::toJson(msg, out) で自動的に出力されます
+    // 個別の値が必要な場合は、decodeB4DetailedInfo() を直接呼び出してください:
+    // B4DetailedInfo b4 = internal::decodeB4DetailedInfo(mt44->camf.a18, mt44->camf.a4);
 }
 ```
 

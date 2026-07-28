@@ -12,11 +12,16 @@ bool Parser::feed(uint8_t byte, Message& out, uint32_t report_unix) {
     if (_custom) {
         if (!_custom->feed(byte, frame)) return false;
         Message decoded;
-        if (!_decoder.decode(frame, decoded, report_unix)) return false;
+        if (!_decoder.decode(frame, decoded, report_unix)) {
+            out.unsupported_reason = decoded.unsupported_reason;
+            out.msg_type = decoded.msg_type;
+            out.svid     = decoded.svid;
+            return false;
+        }
         return postDecode(decoded, out);
     }
 
-    // --- AUTO モード: UBX / NMEA を並行試行 ---
+    // --- AUTO モード: UBX優先試行（UBXはバイナリ、NMEAはASCIIで競合しない）---
     bool ubx_ok  = false;
     bool nmea_ok = false;
 
@@ -37,12 +42,18 @@ bool Parser::feed(uint8_t byte, Message& out, uint32_t report_unix) {
     if (!ubx_ok && !nmea_ok) return false;
 
     Message decoded;
-    if (!_decoder.decode(frame, decoded, report_unix)) return false;
+    if (!_decoder.decode(frame, decoded, report_unix)) {
+        out.unsupported_reason = decoded.unsupported_reason;
+        out.msg_type = decoded.msg_type;
+        out.svid     = decoded.svid;
+        return false;
+    }
     return postDecode(decoded, out);
 }
 
 bool Parser::postDecode(const Message& decoded, Message& out) {
     // Nankai Trough page aggregation
+#if AZARAC_ENABLE_NANKAI
     if (decoded.payload_type == MsgPayloadType::Mt43) {
         const Mt43Data* mt43 = decoded.getMt43();
         if (mt43 && mt43->disaster_category == 4) {
@@ -52,10 +63,14 @@ bool Parser::postDecode(const Message& decoded, Message& out) {
             }
             // Aggregation complete - check dedup before outputting
             internal::DedupKey key{ out.svid, out.msg_type, out.crc24 };
-            if (_dedup.isDuplicate(key)) return false;
+            if (_dedup.isDuplicate(key)) {
+                out = Message{};
+                return false;
+            }
             return true;
         }
     }
+#endif
 
     // 重複チェック
     internal::DedupKey key{ decoded.svid, decoded.msg_type, decoded.crc24 };
@@ -65,6 +80,7 @@ bool Parser::postDecode(const Message& decoded, Message& out) {
     return true;
 }
 
+#if AZARAC_ENABLE_NANKAI
 bool Parser::processNankaiAggregation(const Message& decoded, Message& out, uint64_t current_ms) {
     const Mt43Data* d = decoded.getMt43();
     if (!d) return false;
@@ -76,23 +92,19 @@ bool Parser::processNankaiAggregation(const Message& decoded, Message& out, uint
     internal::NankaiPageKey key;
     key.info_code = nankai->info_code;
     key.event_time_unix = d->event_time.unix_time;
-// Guard: prevent aggregation when event_time fields are provided but unresolved.
-// If event_time.unix_time == 0 while month/day/hour/minute are set, the time
-// could not be resolved (e.g. missing report_unix baseline), and different
-// events may collide on the same key {info_code, 0}. NankaiPageKey::isValid()
-// checks event_time_unix != 0.
-// However, if ALL raw time fields are zero, no time data was encoded at all,
-// so aggregation is permitted (key collision risk is acceptable since events
-// are indistinguishable without time data).
-if (!key.isValid()) {
-    bool time_provided = (d->event_time.month != 0 || d->event_time.day != 0 ||
-                          d->event_time.hour != 0 || d->event_time.minute != 0);
-    if (time_provided) {
-        return false;  // Time fields provided but unresolved → reject
+    if (!key.isValid()) {
+        bool time_provided = (d->event_time.month != 0 || d->event_time.day != 0 ||
+                              d->event_time.hour != 0 || d->event_time.minute != 0);
+        if (time_provided) {
+            // UNIX time was not resolved but DHM fields exist → use as fallback key
+            // month is not included (month boundary crossing doesn't uniquely identify date)
+            key.fallback_day    = d->event_time.day;
+            key.fallback_hour   = d->event_time.hour;
+            key.fallback_minute = d->event_time.minute;
+            // isValid() now returns true → proceeds to normal aggregation flow
+        }
+        // time_provided == false → isValid() remains false → addPage returns nullptr → return false
     }
-    // else: no time data → allow aggregation
-}
-
 
     // Add page to buffer
     internal::NankaiPageBuffer* completed = _nankaiBuffers.addPage(
@@ -104,48 +116,46 @@ if (!key.isValid()) {
     );
 
     if (completed) {
-        // All pages received - copy decoded message and add aggregated text
         out = decoded;
-
-        // Get the Mt43Data from the copied message
         Mt43Data* outMt43 = out.getMt43();
         if (outMt43) {
             NankaiData* outNankai = outMt43->getNankai();
             if (outNankai) {
-                // Explicitly initialize to deterministic defaults (textLen == 0 path)
                 outNankai->is_aggregated = false;
                 outNankai->aggregated_len = 0;
+                outNankai->aggregated_text_ptr = nullptr;
+                outNankai->truncated = completed->truncated;
 
-                // Copy aggregated text to message
                 uint16_t textLen = completed->getTextLength();
-                if (textLen >= static_cast<uint16_t>(sizeof(outNankai->aggregated_text))) {
-                    return false;
-                }
                 if (textLen > 0) {
-                    completed->getText(outNankai->aggregated_text, sizeof(outNankai->aggregated_text));
+                    // Zero-copy: point into NankaiPageBuffer's internal storage.
+                    // VALID ONLY until next feed() or reset() — see NankaiData docs.
+                    outNankai->aggregated_text_ptr = completed->aggregated_text;
                     outNankai->aggregated_len = textLen;
                     outNankai->is_aggregated = true;
                 }
             }
         }
-
         return true;
     }
-
-    // Not complete yet - don't output
     return false;
 }
+#endif
 
+#if AZARAC_ENABLE_NANKAI
 const internal::NankaiPageBuffer* Parser::getNankaiBuffer(const internal::NankaiPageKey& key) const {
     return _nankaiBuffers.getBuffer(key);
 }
+#endif
 
 void Parser::reset() {
     _ubx.reset();
     _nmea.reset();
     if (_custom) _custom->reset();
     _dedup.reset();
+#if AZARAC_ENABLE_NANKAI
     _nankaiBuffers.clearAll();
+#endif
     _mode = Mode::AUTO;
 }
 

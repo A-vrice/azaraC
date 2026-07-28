@@ -1,4 +1,4 @@
-// azaraC - src/internal/DecoderDcx.cpp
+// azaraC - src/decoder/DecoderDcx.cpp
 // MT=44 DCX / CAMF decoder (IS-QZSS-DCX-004)
 
 #include "Decoder.h"
@@ -7,9 +7,15 @@
 namespace azaraC {
 namespace internal {
 
+#if (AZARAC_ENABLE_DCX_CAMF)
+
 // ---------------------------------------------------------------------------
 // MT=44 DCX / CAMF  (IS-QZSS-DCX-004)
 // ---------------------------------------------------------------------------
+
+// Country code for Japan in A2 field (9-bit: 001101111 = 111)
+static constexpr uint16_t DCX_COUNTRY_CODE_JAPAN = 111;
+
 bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix) {
     out.initPayload<Mt44Data>();
     Mt44Data* d = out.getMt44();
@@ -57,19 +63,15 @@ bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix)
     d->camf.b3_c8 = 0;
     d->camf.b3_c9 = 0;
     d->camf.b3_c10 = 0;
-    d->camf.b3_shift_km = 0.0;
-    d->camf.b3_homothetic_factor = 0.0;
-    d->camf.b3_bearing_deg = 0.0;
-// B4 fields initialized via memset for compactness (arrays)
-d->camf.b4_present = false;
-memset(d->camf.b4_d_present, 0, sizeof(d->camf.b4_d_present));
-memset(d->camf.b4_d_values, 0, sizeof(d->camf.b4_d_values));
+    // B4 fields are zero-initialized by initPayload<Mt44Data>() value-initialization.
+    // b4_present is explicitly set to false here for clarity (though redundant).
+    d->camf.b4_present = false;
 
 
     // Null Message Check (IS-QZSS-DCX-003 §4.3)
     // All fields except PAB, MT, SD, Reserved, CRC must be 0
     // A2 must be Japan (001101111 = 111), A3 must be 0
-    if (d->camf.a1 == 0 && d->camf.a2 == 111 && d->camf.a3 == 0 &&
+    if (d->camf.a1 == 0 && d->camf.a2 == DCX_COUNTRY_CODE_JAPAN && d->camf.a3 == 0 &&
         d->camf.a4 == 0 && d->camf.a5 == 0 && d->camf.a6 == 0 &&
         d->camf.a7 == 0 && d->camf.a8 == 0 && d->camf.a9 == 0 &&
         d->camf.a10 == 0 && d->camf.a11 == 0 &&
@@ -90,30 +92,36 @@ memset(d->camf.b4_d_values, 0, sizeof(d->camf.b4_d_values));
         }
     }
 
-    // Resolve onset time from GPS week-mod-4 + minute-of-week
-    // Use report_unix (GPS time from receiver) for accurate onset calculation
+    // Resolve onset time from week (current/next) + time-of-week
+    // IS-QZSS-DCX-004 §4.2.3.6, Table 4.2-9: A6 = 0 (current week), 1 (next week)
+    // EWSS CAMF v1.1 §3.3: A week starts Monday 00:00 UTC, ends Sunday 23:59 UTC
+    // The hazard onset is encoded by 15 bits (1-bit A6 + 14-bit A7),
+    // with 1-minute resolution, allowing identification up to 2 weeks in advance.
     if (d->camf.a7 > 0 && d->camf.a7 <= 10080 && report_unix > 315964800u) {
-        // GPS epoch 1980-01-06 00:00:00 UTC, +18 leap seconds (post-2017)
-        uint32_t gps  = report_unix - 315964800u + 18u;
-        uint32_t week = gps / 604800u;
-        int32_t diff = (int32_t)(d->camf.a6 & 3u) - (int32_t)(week & 3u);
-        if (diff < -2) diff += 4;
-        else if (diff > 1) diff -= 4;
-        uint32_t base = week + diff;
+        // Find Monday 00:00 UTC of the week containing report_unix
+        // 1970-01-01 was Thursday: (days_since_epoch + 3) % 7 → 0=Mon, 3=Thu, 6=Sun
+        uint32_t days        = report_unix / 86400u;
+        uint32_t dow         = (days + 3u) % 7u;   // 0=Mon, …, 6=Sun
+        uint32_t monday_days = days - dow;          // Monday 00:00 UTC of the current week
 
-        uint32_t gps_onset = base * 604800u + (uint32_t)(d->camf.a7 - 1u) * 60u;
-        uint32_t unix = gps_onset + 315964800u - 18u;
-        d->onset_time.unix_time = unix;
+        if (d->camf.a6 == 1) {
+            monday_days += 7u; // next week
+        }
+
+        uint32_t monday_unix = monday_days * 86400u;
+        uint32_t onset_unix  = monday_unix + (d->camf.a7 - 1u) * 60u;
+        d->onset_time.unix_time = onset_unix;
 
         uint32_t y, m, day_val;
-        Decoder::civil_from_days(unix / 86400u, y, m, day_val);
+        Decoder::civil_from_days(onset_unix / 86400u, y, m, day_val);
+        d->onset_time.month  = m;
         d->onset_time.day    = day_val;
         d->onset_time.hour   = ((d->camf.a7 - 1u) % 1440u) / 60u;
         d->onset_time.minute = (d->camf.a7 - 1u) % 60u;
     }
 
     // Determine Service Kind based on A2 and A3
-    if (d->camf.a2 != 111) { // 111 = 001101111 = Japan
+    if (d->camf.a2 != DCX_COUNTRY_CODE_JAPAN) {
         d->service_kind = Mt44ServiceKind::OutsideJapan;
         d->ex_kind = ExtendedKind::OutsideJapan;
     } else {
@@ -195,7 +203,7 @@ memset(d->camf.b4_d_values, 0, sizeof(d->camf.b4_d_values));
         dec.main_ellipse.azimuth_deg = decodeAzimuth6(d->camf.a16);
 
         // B1 (A17=00) - Improved Resolution of Main Ellipse (EWSS CAMF v1.1 §3.7.1)
-        // A18 (15bit) = C1(3bit)[0:2] + C2(3bit)[3:5] + C3(3bit)[6:8] + C4(3bit)[9:11] + Reserved(3bit)[12:14]
+        // A18 (15bit) = C1(3bit)[12:14] + C2(3bit)[9:11] + C3(3bit)[6:8] + C4(3bit)[3:5] + Reserved(3bit)[0:2]
         if (d->camf.a17 == 0) {
             B1Refinement b1 = decodeB1Refinement(d->camf.a18);
             d->camf.b1_present = (b1.c1 != 0 || b1.c2 != 0 || b1.c3 != 0 || b1.c4 != 0);
@@ -215,18 +223,20 @@ memset(d->camf.b4_d_values, 0, sizeof(d->camf.b4_d_values));
         }
         // B2 (A17=01) - Position of the Centre of the Hazard (EWSS CAMF v1.1 §3.7.2)
         // A18 = C5[0:6](7bit) + C6[7:13](7bit) + Reserved[14](1bit)
-        // C5: spec bits 131-138 → a18[14:8]  → shift=8, mask=0x7F
-        // C6: spec bits 139-145 → a18[7:1]   → shift=1, mask=0x7F
+        // C5: spec bits 131-137 → a18[14:8]  → shift=8, mask=0x7F
+        // C6: spec bits 138-144 → a18[7:1]   → shift=1, mask=0x7F
         // Reserved: a18[0]
         else if (d->camf.a17 == 1) {
-            uint8_t c5 = (d->camf.a18 >> 8) & 0x7F;  // spec bits[131:138] → a18[14:8]
-            uint8_t c6 = (d->camf.a18 >> 1) & 0x7F;  // spec bits[139:145] → a18[7:1]
+            uint8_t c5 = (d->camf.a18 >> 8) & 0x7F;  // spec bits[131:137] → a18[14:8]
+            uint8_t c6 = (d->camf.a18 >> 1) & 0x7F;  // spec bits[138:144] → a18[7:1]
             B2HazardCenter b2 = decodeB2HazardCenter(c5, c6);
             d->camf.b2_present = true;
             d->camf.b2_c5 = c5;
             d->camf.b2_c6 = c6;
-            dec.main_ellipse.lat_deg += b2.delta_lat_deg;
-            dec.main_ellipse.lon_deg += b2.delta_lon_deg;
+            dec.b2_hazard_center_present = true;
+            dec.b2_hazard_lat_deg = dec.main_ellipse.lat_deg + b2.delta_lat_deg;
+            dec.b2_hazard_lon_deg = dec.main_ellipse.lon_deg + b2.delta_lon_deg;
+            // dec.main_ellipse is unchanged (keeps original ellipse center)
         }
         // B3 (A17=10) - Secondary Ellipse Definition (EWSS CAMF v1.1 §3.7.3)
         // A18 = C7[0:1](2bit) + C8[2:4](3bit) + C9[5:9](5bit) + C10[10:14](5bit)
@@ -239,26 +249,18 @@ memset(d->camf.b4_d_values, 0, sizeof(d->camf.b4_d_values));
             uint8_t c8  = (d->camf.a18 >> 10) & 0x07;  // spec bits[133:135] → a18[12:10]
             uint8_t c9  = (d->camf.a18 >> 5)  & 0x1F;  // spec bits[136:140] → a18[9:5]
             uint8_t c10 = (d->camf.a18 >> 0)  & 0x1F;  // spec bits[141:145] → a18[4:0]
-            B3SecondaryEllipse b3 = decodeB3SecondaryEllipse(c7, c8, c9, c10, dec.main_ellipse.semi_major_km);
             d->camf.b3_present = true;
             d->camf.b3_c7 = c7;
             d->camf.b3_c8 = c8;
             d->camf.b3_c9 = c9;
             d->camf.b3_c10 = c10;
-            // Store decoded B3 values for JSON output
-            d->camf.b3_shift_km = b3.shift_km;
-            d->camf.b3_homothetic_factor = b3.homothetic_factor;
-            d->camf.b3_bearing_deg = b3.bearing_deg;
         }
     }
     // B4 (A17=11) - Quantitative and Detailed Information (EWSS CAMF v1.1 §3.7.4)
     // B4 is decoded independently of main ellipse presence (A12-A16);
     // it provides hazard-specific quantitative data based on A4 category.
     if (d->camf.a17 == 3) {
-        B4DetailedInfo b4 = decodeB4DetailedInfo(d->camf.a18, d->camf.a4);
         d->camf.b4_present = true;
-        memcpy(d->camf.b4_d_present, b4.d_present, sizeof(b4.d_present));
-        memcpy(d->camf.b4_d_values, b4.d_values, sizeof(b4.d_values));
     }
 
     if (d->ex_kind == ExtendedKind::LAlertOrLocal) {
@@ -302,6 +304,8 @@ memset(d->camf.b4_d_values, 0, sizeof(d->camf.b4_d_values));
     out.valid = true;
     return true;
 }
+
+#endif // AZARAC_ENABLE_DCX_CAMF
 
 } // namespace internal
 } // namespace azaraC

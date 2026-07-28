@@ -121,9 +121,10 @@ TEST_CASE("Boundary: Minute=60 (invalid)") {
 }
 
 // =============================================================================
-// 深度・大きさ境界値テスト
+// 深度・大きさ境界値テスト (Hypocenter: dc=2)
 // =============================================================================
 
+#if (AZARAC_ENABLE_HYPOCENTER)
 TEST_CASE("Boundary: Depth 501+ (special value)") {
     uint8_t bits[32] = {};
     setBits(bits, 0, 8, 0x53);
@@ -223,11 +224,13 @@ TEST_CASE("Boundary: Magnitude 127 (unknown)") {
     REQUIRE(hypo != nullptr);
     CHECK(hypo->magnitude == 127);
 }
+#endif // AZARAC_ENABLE_HYPOCENTER
 
 // =============================================================================
 // EEW 長周期地震動階級境界値テスト
 // =============================================================================
 
+#if (AZARAC_ENABLE_EEW)
 TEST_CASE("Boundary: Long period ground motion lower=3, upper=3") {
     uint8_t bits[32] = {};
     setBits(bits, 0, 8, 0x53);
@@ -347,3 +350,4 @@ TEST_CASE("Boundary: Year end Dec 31") {
     REQUIRE(mt43 != nullptr);
     CHECK(mt43->event_time.day == 31);
 }
+#endif // AZARAC_ENABLE_EEW

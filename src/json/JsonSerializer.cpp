@@ -12,19 +12,45 @@ namespace azaraC {
 namespace internal {
 
 // Forward declarations (defined in separate files)
+#if (AZARAC_ENABLE_DCX_CAMF)
 void serializeDcx(const Message& m, Print& out);
+#endif
+#if (AZARAC_ENABLE_EEW)
 void serializeEEW(const Message& m, Print& out);
+#endif
+#if (AZARAC_ENABLE_HYPOCENTER)
 void serializeHypocenter(const Message& m, Print& out);
+#endif
+#if (AZARAC_ENABLE_SEISMIC)
 void serializeSeismic(const Message& m, Print& out);
+#endif
+#if (AZARAC_ENABLE_NANKAI)
 void serializeNankai(const Message& m, Print& out);
+#endif
+#if (AZARAC_ENABLE_TSUNAMI)
 void serializeTsunami(const Message& m, Print& out);
+#endif
+#if (AZARAC_ENABLE_NW_PAC_TSUNAMI)
 void serializeNwPacTsu(const Message& m, Print& out);
+#endif
+#if (AZARAC_ENABLE_VOLCANO)
 void serializeVolcano(const Message& m, Print& out);
+#endif
+#if (AZARAC_ENABLE_ASH_FALL)
 void serializeAshFall(const Message& m, Print& out);
+#endif
+#if (AZARAC_ENABLE_WEATHER)
 void serializeWeather(const Message& m, Print& out);
+#endif
+#if (AZARAC_ENABLE_FLOOD)
 void serializeFlood(const Message& m, Print& out);
+#endif
+#if (AZARAC_ENABLE_TYPHOON)
 void serializeTyphoon(const Message& m, Print& out);
+#endif
+#if (AZARAC_ENABLE_MARINE)
 void serializeMarine(const Message& m, Print& out);
+#endif
 
 // ---------------------------------------------------------------------------
 // Top-level serialize
@@ -40,14 +66,16 @@ void JsonSerializer::serialize(const Message& msg, Print& out) {
         qzss_dcr_message_type_lookup(msg.msg_type));
     wf_x(out, "crc24",    msg.crc24);
 
+#if (AZARAC_ENABLE_DCX_CAMF)
     if (msg.msg_type == 44) {
         serializeDcx(msg, out);
-
-    } else if (msg.msg_type == 43) {
+    } else
+#endif
+    if (msg.msg_type == 43) {
         // Use safe accessor for Mt43Data
         const Mt43Data* d = msg.getMt43();
         if (!d) {
-            wf_s(out, "note", "invalid_mt43", /*last=*/true);
+            wf_s(out, keys::note, "invalid_mt43", /*last=*/true);
             out.print('}');
             return;
         }
@@ -63,25 +91,51 @@ void JsonSerializer::serialize(const Message& msg, Print& out) {
             AZARAC_LOOKUP_LANG(qzss_dcr_jma_information_type_lookup, qzss_dcr_jma_information_type_en_lookup, d->information_type));
         writeDHM(out, "report_time", d->event_time);
         wk(out, "detail"); out.print('{');
-        switch (d->disaster_category) {
-            case  1: serializeEEW       (msg, out); break;
-            case  2: serializeHypocenter(msg, out); break;
-            case  3: serializeSeismic   (msg, out); break;
-            case  4: serializeNankai    (msg, out); break;
-            case  5: serializeTsunami   (msg, out); break;
-            case  6: serializeNwPacTsu  (msg, out); break;
-            case  8: serializeVolcano   (msg, out); break;
-            case  9: serializeAshFall   (msg, out); break;
-            case 10: serializeWeather   (msg, out); break;
-            case 11: serializeFlood     (msg, out); break;
-            case 12: serializeTyphoon   (msg, out); break;
-            case 14: serializeMarine    (msg, out); break;
-            default: wf_s(out, "note", "unsupported_category", /*last=*/true); break;
-        }
+
+        // Dispatch to enabled serializers based on disaster_category
+        bool serialized = false;
+#if (AZARAC_ENABLE_EEW)
+        if (d->disaster_category == 1) { serializeEEW(msg, out); serialized = true; }
+#endif
+#if (AZARAC_ENABLE_HYPOCENTER)
+        if (d->disaster_category == 2) { serializeHypocenter(msg, out); serialized = true; }
+#endif
+#if (AZARAC_ENABLE_SEISMIC)
+        if (d->disaster_category == 3) { serializeSeismic(msg, out); serialized = true; }
+#endif
+#if (AZARAC_ENABLE_NANKAI)
+        if (d->disaster_category == 4) { serializeNankai(msg, out); serialized = true; }
+#endif
+#if (AZARAC_ENABLE_TSUNAMI)
+        if (d->disaster_category == 5) { serializeTsunami(msg, out); serialized = true; }
+#endif
+#if (AZARAC_ENABLE_NW_PAC_TSUNAMI)
+        if (d->disaster_category == 6) { serializeNwPacTsu(msg, out); serialized = true; }
+#endif
+#if (AZARAC_ENABLE_VOLCANO)
+        if (d->disaster_category == 8) { serializeVolcano(msg, out); serialized = true; }
+#endif
+#if (AZARAC_ENABLE_ASH_FALL)
+        if (d->disaster_category == 9) { serializeAshFall(msg, out); serialized = true; }
+#endif
+#if (AZARAC_ENABLE_WEATHER)
+        if (d->disaster_category == 10) { serializeWeather(msg, out); serialized = true; }
+#endif
+#if (AZARAC_ENABLE_FLOOD)
+        if (d->disaster_category == 11) { serializeFlood(msg, out); serialized = true; }
+#endif
+#if (AZARAC_ENABLE_TYPHOON)
+        if (d->disaster_category == 12) { serializeTyphoon(msg, out); serialized = true; }
+#endif
+#if (AZARAC_ENABLE_MARINE)
+        if (d->disaster_category == 14) { serializeMarine(msg, out); serialized = true; }
+#endif
+        if (!serialized) wf_s(out, keys::note, "unsupported_category", /*last=*/true);
+
         out.print('}');  // detail
 
     } else {
-        wf_s(out, "note", "unsupported_msg_type", /*last=*/true);
+        wf_s(out, keys::note, "unsupported_msg_type", /*last=*/true);
     }
 
     out.print('}');

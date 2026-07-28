@@ -59,13 +59,72 @@
 #define AZARAC_ENABLE_DCX_CAMF 1
 #endif
 
+// ---- platform presets (AVR / resource-constrained targets) --------------------
+// These reduce default buffer sizes when compiling for AVR.
+// They come BEFORE the normal defaults so #ifndef in both sections works:
+// user -D override → AVR section skips → normal section skips → AVR value used.
+// user -D override → AVR section skips → normal section skips → user value used.
+// no override → AVR section sets reduced value → normal section skips → AVR value used.
+// no AVR → AVR section skipped → normal section uses normal default.
+#if defined(__AVR__)
+#ifndef AZARAC_NANKAI_MAX_PAGES
+#define AZARAC_NANKAI_MAX_PAGES 4
+#endif
+#ifndef AZARAC_NANKAI_BUFFERS
+#define AZARAC_NANKAI_BUFFERS 1
+#endif
+#ifndef AZARAC_DEDUP_SLOTS
+#define AZARAC_DEDUP_SLOTS 4
+#endif
+#ifndef AZARAC_DCX_USE_FLOAT
+#define AZARAC_DCX_USE_FLOAT
+#endif
+#endif // __AVR__
+
+// ---- duplicate suppression ----------------------------------------------------
+#ifndef AZARAC_DEDUP_SLOTS
+#define AZARAC_DEDUP_SLOTS 8
+#endif
+
+// ---- DCX coordinate precision -------------------------------------------------
+// Use float (32-bit) instead of double (64-bit) for DCX coordinate storage.
+// #define AZARAC_DCX_USE_FLOAT
+
 // ---- Nankai Trough page buffer config ----------------------------------------
 #ifndef AZARAC_NANKAI_MAX_PAGES
 #define AZARAC_NANKAI_MAX_PAGES 12
 #endif
+// aggregated_text のサイズは MAX_PAGES から自動計算（1ページ 18 バイト + ヌル終端）
+// ユーザが明示的に定義した場合はそれが優先される（#ifndef ガード）
 #ifndef AZARAC_NANKAI_AGGREGATED_TEXT_SIZE
-#define AZARAC_NANKAI_AGGREGATED_TEXT_SIZE 217
+#define AZARAC_NANKAI_AGGREGATED_TEXT_SIZE (AZARAC_NANKAI_MAX_PAGES * 18 + 1)
 #endif
 #ifndef AZARAC_NANKAI_BUFFERS
 #define AZARAC_NANKAI_BUFFERS 4
+#endif
+
+#if AZARAC_NANKAI_BUFFERS > 2 && defined(ARDUINO_AVR_UNO)
+#warning "Nankai buffers may exhaust SRAM on Arduino Uno. Consider AZARAC_NANKAI_BUFFERS=1"
+#endif
+
+// ---- PROGMEM abstraction (AVR / embedded) ------------------------------------
+// On AVR, const data is placed in RAM unless marked with PROGMEM.
+// On desktop, PROGMEM is a no-op.
+// These macros provide a portable way to store data in Flash on AVR.
+// Usage: const char myString[] AZARAC_PROGMEM = "hello";
+#ifdef __AVR__
+#include <avr/pgmspace.h>
+#define AZARAC_PROGMEM PROGMEM
+#define AZARAC_PGM_READ_BYTE(addr)    pgm_read_byte(addr)
+#define AZARAC_PGM_READ_WORD(addr)    pgm_read_word(addr)
+#define AZARAC_PGM_READ_DWORD(addr)   pgm_read_dword(addr)
+#define AZARAC_PGM_READ_PTR(addr)     pgm_read_ptr(addr)
+#define AZARAC_STRCPY_P(dst, src)     strcpy_P(dst, src)
+#else
+#define AZARAC_PROGMEM
+#define AZARAC_PGM_READ_BYTE(addr)    (*(addr))
+#define AZARAC_PGM_READ_WORD(addr)    (*(addr))
+#define AZARAC_PGM_READ_DWORD(addr)   (*(addr))
+#define AZARAC_PGM_READ_PTR(addr)     (*(addr))
+#define AZARAC_STRCPY_P(dst, src)     strcpy(dst, src)
 #endif

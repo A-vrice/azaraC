@@ -38,10 +38,11 @@ bool NmeaFramer::feed(uint8_t b, Frame& out) {
         } else {
             if (_pos < sizeof(_buf) - 1) {
                 _xsum ^= b;
-                _buf[_pos++] = c;
-            } else {
-                reset();
+                _buf[_pos++] = static_cast<char>(c);
             }
+            // else: silently drop the byte. If the sentence is garbage, the checksum
+            // will reject it later. Truncating is safer than resetting mid-sentence
+            // which could drop the sentence boundary.
         }
         break;
     case St::CSUM1: {

@@ -32,6 +32,7 @@ static bool feedUbxPacket(UbxFramer& framer, Frame& frame, uint8_t svId, const u
     return TestDecoder::extractBits(bits, 8, 6);
 }
 
+#if (AZARAC_ENABLE_MARINE)
 TEST_CASE("UBX: SFRBX sv56 pattern1 - Marine (round-trip with NMEA)") {
     // azarashi ublox_sv56_p1: svid=2, Marine, Regular, 8 regions
     // UBXヘッダー: gnssId=5(QZSS), svId=2, sigId=0, freqId=0, numWords=8, chn=0, version=1
@@ -66,6 +67,7 @@ TEST_CASE("UBX: SFRBX sv56 pattern1 - Marine (round-trip with NMEA)") {
     REQUIRE(mt43 != nullptr);
     CHECK(mt43->disaster_category == 14); // Marine
 }
+#endif // AZARAC_ENABLE_MARINE
 
 TEST_CASE("UBX: svid to PRN mapping") {
     // azarashi ublox_sv55-61: svid -> PRN mapping verification

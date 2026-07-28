@@ -3,7 +3,6 @@
 
 #include "JsonWriter.h"
 #include <cstdio>
-#include <cmath>
 
 namespace azaraC {
 namespace internal {
@@ -29,21 +28,29 @@ void writeUint64(Print& out, uint64_t v) {
 
 // Write double with fixed precision (for coordinates, distances)
 void writeDouble(Print& out, double v, int precision) {
-    // Handle NaN and Infinity - output JSON null (spec-compliant)
-    if (std::isnan(v) || std::isinf(v)) {
+    if (v != v || v > 1e308 || v < -1e308) {
         out.print("null");
         return;
     }
+
+    // Compute rounding offset (0.5 * 10^{-precision})
+    double round_off = 0.5;
+    for (int i = 0; i < precision; ++i) round_off /= 10.0;
+
+    // Suppress sign for values that round to zero at this precision.
+    // Must be done BEFORE sign output to prevent "-0.000000" when a
+    // tiny negative number (e.g. -0.0000001) rounds to zero.
+    if (v > -round_off && v < round_off) {
+        v = 0.0;
+    }
+
+    // Round away from zero, then output sign
+    v += (v < 0) ? -round_off : round_off;
 
     if (v < 0) {
         out.print('-');
         v = -v;
     }
-
-    // Add rounding offset based on precision
-    double round_off = 0.5;
-    for (int i = 0; i < precision; ++i) round_off /= 10.0;
-    v += round_off;
 
     // Integer part - use uint64_t to avoid truncation for large values
     uint64_t int_part = (uint64_t)v;
@@ -54,6 +61,10 @@ void writeDouble(Print& out, double v, int precision) {
     for (int i = 0; i < precision; ++i) {
         frac *= 10.0;
         int digit = (int)frac;
+        // Guard against floating-point rounding where frac*10 yields exactly 10.0.
+        // Clamping to 0-9 prevents ':' (ASCII 58) from being emitted as a digit.
+        if (digit > 9) { digit = 9; frac = 0.0; }
+        else if (digit < 0) { digit = 0; frac = 0.0; }
         out.print(static_cast<char>('0' + digit));
         frac -= digit;
     }
@@ -110,6 +121,10 @@ void wk(Print& out, std::string_view k) {
 // "key":value,
 void wf_u(Print& out, std::string_view k, uint32_t v, bool last) {
     wk(out, k); writeUint32(out, v); if (!last) writeChar(out, ',');
+}
+
+void wf_u64(Print& out, std::string_view k, uint64_t v, bool last) {
+    wk(out, k); writeUint64(out, v); if (!last) writeChar(out, ',');
 }
 
 void wf_x(Print& out, std::string_view k, uint32_t v, bool last) {

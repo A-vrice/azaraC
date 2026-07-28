@@ -32,7 +32,8 @@ coverage.xml
 .roo/
 .agents/
 plans/
-.plans/
+.plans
+.omp/
 realdata/
 qzss-specs/
 azarashi*
@@ -41,3 +42,4 @@ qzssmsg.txt
 # OS files
 Thumbs.db
 .DS_Store
+test/NUL

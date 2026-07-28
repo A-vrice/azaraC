@@ -11,6 +11,7 @@ using namespace azaraC;
 // EEW デコードテスト
 // ═══════════════════════════════════════════════════════════════════════════════
 
+#if (AZARAC_ENABLE_EEW)
 TEST_CASE("decodeEEW: 基本的なEEWメッセージのデコード") {
     uint8_t bits[32] = {};
     Message msg{};
@@ -75,7 +76,9 @@ TEST_CASE("decodeEEW: 基本的なEEWメッセージのデコード") {
     CHECK(eew->regions[1] == 5);
     CHECK(eew->regions[2] == 10);
 }
+#endif // AZARAC_ENABLE_EEW
 
+#if (AZARAC_ENABLE_DCX_CAMF)
 // ═══════════════════════════════════════════════════════════════════════════════
 // DCX (MT=44) デコードテスト
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -308,6 +311,7 @@ TEST_CASE("decodeDcx: NULL Message のデコード") {
     CHECK(mt44->service_kind == Mt44ServiceKind::NullMessage);
     CHECK(mt44->is_null_message == true);
 }
+#endif
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // decodePrefectureBitmask 単体テスト
@@ -429,6 +433,7 @@ TEST_CASE("b1RefinedRadiusKm: 計算値検証 (EWSS CAMF v1.1 §3.7.1.3/4)") {
     CHECK(azaraC::internal::b1RefinedRadiusKm(4, 0.535, 3) == doctest::Approx(0.465));
 }
 
+#if (AZARAC_ENABLE_DCX_CAMF)
 TEST_CASE("DCX B1: L-AlertメッセージでのB1解析") {
     uint8_t bits[32] = {};
     Message msg{};
@@ -607,3 +612,4 @@ TEST_CASE("DCX B3: 副楕円パラメータが camf に反映される") {
     CHECK(mt44->camf.b3_c9  == 31);
     CHECK(mt44->camf.b3_c10 == 0);
 }
+#endif

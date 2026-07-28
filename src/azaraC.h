@@ -1,5 +1,8 @@
 #pragma once
 // azaraC — QZSS L1S DCX/CAMF + QZQSM decoder for Arduino
+#if __cplusplus < 201703L
+#error "This tool requires C++17 or later"
+#endif
 
 // Workaround for arduino:mbed_nano (and other mbed-based cores):
 // pinDefinitions.h defines `abs` as a macro, which breaks std::chrono
@@ -20,10 +23,6 @@
 
 #if defined(ARDUINO) && ARDUINO >= 1
 #  include <Print.h>
-#endif
-
-#if __cplusplus < 201703L
-#error "This tool requires C++17 or later"
 #endif
 
 namespace azaraC {

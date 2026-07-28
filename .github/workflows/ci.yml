@@ -113,6 +113,11 @@ jobs:
           for sketch in examples/*/; do
             echo "--- $sketch ---"
             sketch_name=$(basename "$sketch")
+            # Skip WiFi examples on boards without WiFi (requires WiFi.h)
+            if [[ ("${{ matrix.name }}" == "RP2040 Pico" || "${{ matrix.name }}" == "RP2350 Pico 2") && ("$sketch_name" == "wifi_client" || "$sketch_name" == "with_sntp") ]]; then
+              echo "skip $sketch_name on ${{ matrix.name }} because WiFi.h is unavailable"
+              continue
+            fi
             # Skip RTOS example on non-ESP32 boards (requires FreeRTOS)
             if [[ "$sketch_name" == "rtos_freertos" && "${{ matrix.name }}" != "ESP32-C3" && "${{ matrix.name }}" != "ESP32-S3" ]]; then
               echo "skip $sketch_name on ${{ matrix.name }} (requires ESP32 FreeRTOS)"
@@ -159,6 +164,19 @@ jobs:
             additional_urls: https://www.pjrc.com/teensy/package_teensy_index.json
             build_flags: ""
 
+          - name: RP2040 Pico W
+            core: rp2040:rp2040
+            fqbn: rp2040:rp2040:rpipicow
+            additional_urls: https://github.com/earlephilhower/arduino-pico/releases/download/global/package_rp2040_index.json
+            build_flags: ""
+
+          - name: Arduino Zero
+            core: arduino:samd
+            fqbn: arduino:samd:arduino_zero_native
+            additional_urls: https://downloads.arduino.cc/packages/package_index.json
+            build_flags: "-DAZARAC_ENABLE_NANKAI=0 -DAZARAC_ENABLE_DCX_CAMF=0 -DAZARAC_ENABLE_VOLCANO=0 -DAZARAC_ENABLE_ASH_FALL=0 -DAZARAC_ENABLE_WEATHER=0 -DAZARAC_ENABLE_FLOOD=0 -DAZARAC_ENABLE_TYPHOON=0 -DAZARAC_ENABLE_MARINE=0 -DAZARAC_ENABLE_NW_PAC_TSUNAMI=0"
+
+
     steps:
       - uses: actions/checkout@v6
         with:
@@ -197,9 +215,16 @@ jobs:
           for sketch in examples/*/; do
             echo "--- $sketch ---"
             sketch_name=$(basename "$sketch")
-            if [[ ("${{ matrix.name }}" == "Teensy 4.0" || "${{ matrix.name }}" == "STM32 Nucleo H563ZI" || "${{ matrix.name }}" == "Arduino GIGA R1 WiFi" || "${{ matrix.name }}" == "nRF52840 Nano 33 BLE") && ("$sketch_name" == "wifi_client" || "$sketch_name" == "with_sntp") ]]; then
-              echo "skip $sketch_name on ${{ matrix.name }} because WiFi.h is unavailable"
-              continue
+            if [[ ("${{ matrix.name }}" == "Arduino GIGA R1 WiFi") || ("${{ matrix.name }}" == "Teensy 4.0" || "${{ matrix.name }}" == "STM32 Nucleo H563ZI" || "${{ matrix.name }}" == "nRF52840 Nano 33 BLE" || "${{ matrix.name }}" == "Arduino Zero") && ("$sketch_name" == "wifi_client" || "$sketch_name" == "with_sntp") ]]; then
+              if [[ "${{ matrix.name }}" == "Arduino GIGA R1 WiFi" ]]; then
+                if [[ "$sketch_name" == "with_sntp" ]]; then
+                  echo "skip $sketch_name on ${{ matrix.name }} because configTime is unavailable"
+                  continue
+                fi
+              else
+                echo "skip $sketch_name on ${{ matrix.name }} because WiFi.h is unavailable"
+                continue
+              fi
             fi
             # Skip RTOS example on non-ESP32 boards (requires FreeRTOS)
             if [[ "$sketch_name" == "rtos_freertos" ]]; then
@@ -207,9 +232,53 @@ jobs:
               continue
             fi
             CPP_EXTRA_FLAGS="-std=gnu++17 ${{ matrix.build_flags }}"
-            # IMPORTANT: Added --clean flag to invalidate build cache and ensure patched files are recompiled
-            arduino-cli compile --clean --fqbn "${{ matrix.fqbn }}" "$sketch" --build-property "compiler.cpp.extra_flags=$CPP_EXTRA_FLAGS"
+            if [[ "${{ matrix.fqbn }}" == *"rpipicow"* ]]; then
+              arduino-cli compile --clean --fqbn "${{ matrix.fqbn }}" "$sketch" \
+                --build-property "compiler.cpp.extra_flags=$CPP_EXTRA_FLAGS" \
+                --build-property "build.filesystem_size=1.0"
+            else
+              arduino-cli compile --clean --fqbn "${{ matrix.fqbn }}" "$sketch" \
+                --build-property "compiler.cpp.extra_flags=$CPP_EXTRA_FLAGS"
+            fi
           done
+
+  # ── マクロサイズ計測 ─────────────────────────────────────────────────────
+  macro-size-check:
+    name: Macro size check
+    runs-on: ubuntu-latest
+    needs: host-test
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Compile with all macros disabled
+        run: make -C test test-macro-compile
+
+      - name: Measure macro size impact
+        run: |
+          make -C test test-macro-sizes 2>&1 | tee test/macro_sizes.txt
+          echo "### 📐 AZARAC_ENABLE_* Macro Size Impact" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat test/macro_sizes.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+  # ── マクロ無効化ランタイムテスト ─────────────────────────────────────────────
+  macro-runtime-test:
+    name: Macro disable runtime tests
+    runs-on: ubuntu-latest
+    needs: host-test
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y g++ make
+
+      - name: Run all 13 individual macro-disabled runtime tests
+        run: make -C test macro
 
   # ── 静的解析 ──────────────────────────────────────────────────────────────
   static-analysis:
@@ -326,6 +395,8 @@ jobs:
       - arduino-lint
       - arduino-compile-required
       - arduino-compile-extended
+      - macro-size-check
+      - macro-runtime-test
       - static-analysis
       - coverage
       - memprof
@@ -372,6 +443,8 @@ jobs:
           echo "| arduino-lint | ${{ needs.arduino-lint.result }} |" >> comment.md
           echo "| arduino-compile-required | ${{ needs.arduino-compile-required.result }} |" >> comment.md
           echo "| arduino-compile-extended | ${{ needs.arduino-compile-extended.result }} |" >> comment.md
+          echo "| macro-size-check | ${{ needs.macro-size-check.result }} |" >> comment.md
+          echo "| macro-runtime-test | ${{ needs.macro-runtime-test.result }} |" >> comment.md
           echo "| static-analysis | ${{ needs.static-analysis.result }} |" >> comment.md
           echo "| coverage | ${{ needs.coverage.result }} |" >> comment.md
           echo "| memprof | ${{ needs.memprof.result }} |" >> comment.md
@@ -429,4 +502,4 @@ jobs:
         if: github.event_name == 'pull_request'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh pr comment ${{ github.event.number }} --edit-last --create-if-none --body-file comment.md
+        run: gh pr comment ${{ github.event.number }} --edit-last --create-if-none --body-file comment.md || true

@@ -173,13 +173,6 @@ struct FuzzStats {
     }
 };
 
-// ランダムなNAVビットを生成
-static void generate_random_nav_bits(uint8_t* bits, size_t size, std::mt19937& rng) {
-    std::uniform_int_distribution<int> dist(0, 255);
-    for (size_t i = 0; i < size; i++) {
-        bits[i] = static_cast<uint8_t>(dist(rng));
-    }
-}
 
 // 有効なプリアンブルを設定
 static void set_valid_preamble(uint8_t* bits, std::mt19937& rng) {

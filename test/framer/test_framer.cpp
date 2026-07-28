@@ -330,3 +330,59 @@ TEST_CASE("NMEA: Checksum *FF rejected (unless coincidentally correct)") {
     }
     CHECK_FALSE(found);
 }
+
+// ── NMEA マルチセンテンス混在テスト ──────────────────────────────────────────
+
+TEST_CASE("NMEA: QZQSM between garbage lines") {
+    // ゴミデータ → QZQSM → ゴミデータ の混在ストリームでも QZQSM が正常にデコードされる
+    uint8_t bits[32] = {0x53};
+    std::string valid = makeNmeaQzqsm(56, bits);
+    std::string stream = "garbage_line_1\r\ngarbage_line_2\r\n" + valid + "\r\ngarbage_line_3\r\n";
+
+    NmeaFramer framer;
+    Frame out;
+    bool found = false;
+    for (char c : stream) {
+        if (framer.feed((uint8_t)c, out)) { found = true; break; }
+    }
+    CHECK(found);
+    CHECK(out.svid == 184);  // NMEA 56 + 128 = PRN184
+}
+
+TEST_CASE("NMEA: QZQSM survives repeated garbage bursts") {
+    // 10 回のゴミデータバースト後に QZQSM が正しくデコードされる
+    std::string stream;
+    for (int i = 0; i < 10; ++i) {
+        stream += "N$GPGARBAGE,123,456,789*00\r\n$XXFOO,bar,baz\r\n";
+    }
+    uint8_t bits[32] = {0x53};
+    stream += makeNmeaQzqsm(55, bits);
+
+    NmeaFramer framer;
+    Frame out;
+    bool found = false;
+    for (char c : stream) {
+        if (framer.feed((uint8_t)c, out)) { found = true; break; }
+    }
+    REQUIRE(found);
+    CHECK(out.svid == 183);  // NMEA 55 + 128 = PRN183
+}
+
+TEST_CASE("NMEA: Invalid NMEA-like lines don't break subsequent QZQSM") {
+    // 不正な NMEA ライクな行（チェックサム一致しない）の後でも QZQSM がデコードできる
+    uint8_t bits[32] = {0x53};
+    std::string qzqsm = makeNmeaQzqsm(56, bits);
+    std::string stream =
+        "$XXXXX,123*00\r\n"   // チェックサム不一致（ゴミ）
+        "$YYYYY,456*FF\r\n"   // チェックサム不一致（ゴミ）
+        + qzqsm;
+
+    NmeaFramer framer;
+    Frame out;
+    bool found = false;
+    for (char c : stream) {
+        if (framer.feed((uint8_t)c, out)) { found = true; break; }
+    }
+    REQUIRE(found);
+    CHECK(out.svid == 184);  // NMEA 56 + 128 = PRN184
+}

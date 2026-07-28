@@ -11,6 +11,8 @@
 namespace azaraC {
 namespace internal {
 
+#if (AZARAC_ENABLE_DCX_CAMF)
+
 // ---------------------------------------------------------------------------
 // MT=44 DCX
 // ---------------------------------------------------------------------------
@@ -20,7 +22,7 @@ void serializeDcx(const Message& m, Print& out) {
     // Use safe accessor for Mt44Data
     const Mt44Data* d = m.getMt44();
     if (!d) {
-        wf_s(out, "note", "invalid_mt44", /*last=*/true);
+        wf_s(out, keys::note, "invalid_mt44", /*last=*/true);
         return;
     }
 
@@ -125,8 +127,8 @@ void serializeDcx(const Message& m, Print& out) {
         wf_u(out, "c6_raw", d->camf.b2_c6);
         double base_lat = decodeLatitude16(d->camf.a12);
         double base_lon = decodeLongitude17(d->camf.a13);
-        wf_d(out, "delta_lat_deg", dec.main_ellipse.lat_deg - base_lat, false, 6);
-        wf_d(out, "delta_lon_deg", dec.main_ellipse.lon_deg - base_lon, /*last=*/true, 6);
+        wf_d(out, "delta_lat_deg", dec.b2_hazard_lat_deg - base_lat, false, 6);
+        wf_d(out, "delta_lon_deg", dec.b2_hazard_lon_deg - base_lon, /*last=*/true, 6);
         out.print('}');
         writeChar(out, ',');
     }
@@ -149,6 +151,8 @@ void serializeDcx(const Message& m, Print& out) {
 
     // B4 (A17=11) - Detailed hazard information (EWSS CAMF v1.1 §3.7.4)
     if (d->camf.b4_present) {
+        B4DetailedInfo b4;
+        decodeB4DetailedInfo(d->camf.a18, d->camf.a4, b4);
         wk(out, "detailed_info");
         out.print('{');
         bool first_detail_field = true;
@@ -180,26 +184,26 @@ void serializeDcx(const Message& m, Print& out) {
         };
 // D3 and D4 use const char* lookup (distinct from others)
 // Handle them individually for type safety
-if (d->camf.b4_d_present[2]) {
+if (b4.d_present[2]) {
     beginDetailField();
     wk(out, "d3_azimuth");
     out.print("{\"raw\":");
-    writeUint32(out, d->camf.b4_d_values[2]);
+    writeUint32(out, b4.d_values[2]);
     out.print(",\"label\":");
-    if (const char* lbl = qzss_dcx_camf_d3_azimuth_from_centre_of_main_ellipse_to_epicentre_lookup(d->camf.b4_d_values[2])) {
+    if (const char* lbl = qzss_dcx_camf_d3_azimuth_from_centre_of_main_ellipse_to_epicentre_lookup(b4.d_values[2])) {
         writeStr(out, std::string_view{lbl});
     } else {
         out.print("\"\"");
     }
     out.print('}');
 }
-if (d->camf.b4_d_present[3]) {
+if (b4.d_present[3]) {
     beginDetailField();
     wk(out, "d4_vector_length");
     out.print("{\"raw\":");
-    writeUint32(out, d->camf.b4_d_values[3]);
+    writeUint32(out, b4.d_values[3]);
     out.print(",\"label\":");
-    if (const char* lbl = qzss_dcx_camf_d4_vector_length_between_centre_of_main_ellipse_and_epicentre_lookup(d->camf.b4_d_values[3])) {
+    if (const char* lbl = qzss_dcx_camf_d4_vector_length_between_centre_of_main_ellipse_and_epicentre_lookup(b4.d_values[3])) {
         writeStr(out, std::string_view{lbl});
     } else {
         out.print("\"\"");
@@ -209,40 +213,40 @@ if (d->camf.b4_d_present[3]) {
 
 // Remaining 34 D-fields use std::optional<std::string_view> lookup
 // [0]=D1, [1]=D2, [4..35]=D5..D36
-writeDField("d1_magnitude",         d->camf.b4_d_values[0],  d->camf.b4_d_present[0],  qzss_dcx_camf_d1_magnitude_on_richter_scale_lookup);
-writeDField("d2_seismic_coeff",     d->camf.b4_d_values[1],  d->camf.b4_d_present[1],  qzss_dcx_camf_d2_seismic_coefficient_lookup);
-writeDField("d5_wave_height",       d->camf.b4_d_values[4],  d->camf.b4_d_present[4],  qzss_dcx_camf_d5_wave_height_lookup);
-writeDField("d6_temp_range",        d->camf.b4_d_values[5],  d->camf.b4_d_present[5],  qzss_dcx_camf_d6_temperature_range_lookup);
-writeDField("d7_hurricane_cat",     d->camf.b4_d_values[6],  d->camf.b4_d_present[6],  qzss_dcx_camf_d7_hurricane_category_lookup);
-writeDField("d8_wind_speed",        d->camf.b4_d_values[7],  d->camf.b4_d_present[7],  qzss_dcx_camf_d8_wind_speed_lookup);
-writeDField("d9_rainfall",          d->camf.b4_d_values[8],  d->camf.b4_d_present[8],  qzss_dcx_camf_d9_rainfall_amounts_lookup);
-writeDField("d10_damage",           d->camf.b4_d_values[9],  d->camf.b4_d_present[9],  qzss_dcx_camf_d10_damage_category_lookup);
-writeDField("d11_tornado_prob",     d->camf.b4_d_values[10], d->camf.b4_d_present[10], qzss_dcx_camf_d11_tornado_probability_lookup);
-writeDField("d12_hail_scale",       d->camf.b4_d_values[11], d->camf.b4_d_present[11], qzss_dcx_camf_d12_hail_scale_lookup);
-writeDField("d13_visibility",       d->camf.b4_d_values[12], d->camf.b4_d_present[12], qzss_dcx_camf_d13_visibility_lookup);
-writeDField("d14_snow_depth",       d->camf.b4_d_values[13], d->camf.b4_d_present[13], qzss_dcx_camf_d14_snow_depth_lookup);
-writeDField("d15_flood_severity",   d->camf.b4_d_values[14], d->camf.b4_d_present[14], qzss_dcx_camf_d15_flood_severity_lookup);
-writeDField("d16_lightning",        d->camf.b4_d_values[15], d->camf.b4_d_present[15], qzss_dcx_camf_d16_lightning_intensity_lookup);
-writeDField("d17_fog_level",        d->camf.b4_d_values[16], d->camf.b4_d_present[16], qzss_dcx_camf_d17_fog_level_lookup);
-writeDField("d18_drought",          d->camf.b4_d_values[17], d->camf.b4_d_present[17], qzss_dcx_camf_d18_drought_level_lookup);
-writeDField("d19_avalanche",        d->camf.b4_d_values[18], d->camf.b4_d_present[18], qzss_dcx_camf_d19_avalanche_warning_level_lookup);
-writeDField("d20_ash_fall",         d->camf.b4_d_values[19], d->camf.b4_d_present[19], qzss_dcx_camf_d20_ash_fall_amount_and_impact_lookup);
-writeDField("d21_geomagnetic",      d->camf.b4_d_values[20], d->camf.b4_d_present[20], qzss_dcx_camf_d21_geomagnetic_scale_lookup);
-writeDField("d22_terrorism",        d->camf.b4_d_values[21], d->camf.b4_d_present[21], qzss_dcx_camf_d22_terrorism_threat_level_lookup);
-writeDField("d23_fire_risk",        d->camf.b4_d_values[22], d->camf.b4_d_present[22], qzss_dcx_camf_d23_fire_risk_level_lookup);
-writeDField("d24_water_quality",    d->camf.b4_d_values[23], d->camf.b4_d_present[23], qzss_dcx_camf_d24_water_quality_lookup);
-writeDField("d25_uv_index",         d->camf.b4_d_values[24], d->camf.b4_d_present[24], qzss_dcx_camf_d25_uv_index_lookup);
-writeDField("d26_cases_per_100k",   d->camf.b4_d_values[25], d->camf.b4_d_present[25], qzss_dcx_camf_d26_number_of_cases_per_100000_inhabitants_lookup);
-writeDField("d27_noise",            d->camf.b4_d_values[26], d->camf.b4_d_present[26], qzss_dcx_camf_d27_noise_range_lookup);
-writeDField("d28_air_quality",      d->camf.b4_d_values[27], d->camf.b4_d_present[27], qzss_dcx_camf_d28_air_quality_index_lookup);
-writeDField("d29_outage_duration",  d->camf.b4_d_values[28], d->camf.b4_d_present[28], qzss_dcx_camf_d29_outage_estimated_duration_lookup);
-writeDField("d30_nuclear_scale",    d->camf.b4_d_values[29], d->camf.b4_d_present[29], qzss_dcx_camf_d30_nuclear_event_scale_lookup);
-writeDField("d31_chemical_type",    d->camf.b4_d_values[30], d->camf.b4_d_present[30], qzss_dcx_camf_d31_chemical_hazard_type_lookup);
-writeDField("d32_biohazard_level",  d->camf.b4_d_values[31], d->camf.b4_d_present[31], qzss_dcx_camf_d32_biohazard_level_lookup);
-writeDField("d33_biohazard_type",   d->camf.b4_d_values[32], d->camf.b4_d_present[32], qzss_dcx_camf_d33_biohazard_type_lookup);
-writeDField("d34_explosive_type",   d->camf.b4_d_values[33], d->camf.b4_d_present[33], qzss_dcx_camf_d34_explosive_hazard_type_lookup);
-writeDField("d35_infection_type",   d->camf.b4_d_values[34], d->camf.b4_d_present[34], qzss_dcx_camf_d35_infection_type_lookup);
-writeDField("d36_typhoon_cat",      d->camf.b4_d_values[35], d->camf.b4_d_present[35], qzss_dcx_camf_d36_typhoon_category_lookup);
+writeDField("d1_magnitude",         b4.d_values[0],  b4.d_present[0],  qzss_dcx_camf_d1_magnitude_on_richter_scale_lookup);
+writeDField("d2_seismic_coeff",     b4.d_values[1],  b4.d_present[1],  qzss_dcx_camf_d2_seismic_coefficient_lookup);
+writeDField("d5_wave_height",       b4.d_values[4],  b4.d_present[4],  qzss_dcx_camf_d5_wave_height_lookup);
+writeDField("d6_temp_range",        b4.d_values[5],  b4.d_present[5],  qzss_dcx_camf_d6_temperature_range_lookup);
+writeDField("d7_hurricane_cat",     b4.d_values[6],  b4.d_present[6],  qzss_dcx_camf_d7_hurricane_category_lookup);
+writeDField("d8_wind_speed",        b4.d_values[7],  b4.d_present[7],  qzss_dcx_camf_d8_wind_speed_lookup);
+writeDField("d9_rainfall",          b4.d_values[8],  b4.d_present[8],  qzss_dcx_camf_d9_rainfall_amounts_lookup);
+writeDField("d10_damage",           b4.d_values[9],  b4.d_present[9],  qzss_dcx_camf_d10_damage_category_lookup);
+writeDField("d11_tornado_prob",     b4.d_values[10], b4.d_present[10], qzss_dcx_camf_d11_tornado_probability_lookup);
+writeDField("d12_hail_scale",       b4.d_values[11], b4.d_present[11], qzss_dcx_camf_d12_hail_scale_lookup);
+writeDField("d13_visibility",       b4.d_values[12], b4.d_present[12], qzss_dcx_camf_d13_visibility_lookup);
+writeDField("d14_snow_depth",       b4.d_values[13], b4.d_present[13], qzss_dcx_camf_d14_snow_depth_lookup);
+writeDField("d15_flood_severity",   b4.d_values[14], b4.d_present[14], qzss_dcx_camf_d15_flood_severity_lookup);
+writeDField("d16_lightning",        b4.d_values[15], b4.d_present[15], qzss_dcx_camf_d16_lightning_intensity_lookup);
+writeDField("d17_fog_level",        b4.d_values[16], b4.d_present[16], qzss_dcx_camf_d17_fog_level_lookup);
+writeDField("d18_drought",          b4.d_values[17], b4.d_present[17], qzss_dcx_camf_d18_drought_level_lookup);
+writeDField("d19_avalanche",        b4.d_values[18], b4.d_present[18], qzss_dcx_camf_d19_avalanche_warning_level_lookup);
+writeDField("d20_ash_fall",         b4.d_values[19], b4.d_present[19], qzss_dcx_camf_d20_ash_fall_amount_and_impact_lookup);
+writeDField("d21_geomagnetic",      b4.d_values[20], b4.d_present[20], qzss_dcx_camf_d21_geomagnetic_scale_lookup);
+writeDField("d22_terrorism",        b4.d_values[21], b4.d_present[21], qzss_dcx_camf_d22_terrorism_threat_level_lookup);
+writeDField("d23_fire_risk",        b4.d_values[22], b4.d_present[22], qzss_dcx_camf_d23_fire_risk_level_lookup);
+writeDField("d24_water_quality",    b4.d_values[23], b4.d_present[23], qzss_dcx_camf_d24_water_quality_lookup);
+writeDField("d25_uv_index",         b4.d_values[24], b4.d_present[24], qzss_dcx_camf_d25_uv_index_lookup);
+writeDField("d26_cases_per_100k",   b4.d_values[25], b4.d_present[25], qzss_dcx_camf_d26_number_of_cases_per_100000_inhabitants_lookup);
+writeDField("d27_noise",            b4.d_values[26], b4.d_present[26], qzss_dcx_camf_d27_noise_range_lookup);
+writeDField("d28_air_quality",      b4.d_values[27], b4.d_present[27], qzss_dcx_camf_d28_air_quality_index_lookup);
+writeDField("d29_outage_duration",  b4.d_values[28], b4.d_present[28], qzss_dcx_camf_d29_outage_estimated_duration_lookup);
+writeDField("d30_nuclear_scale",    b4.d_values[29], b4.d_present[29], qzss_dcx_camf_d30_nuclear_event_scale_lookup);
+writeDField("d31_chemical_type",    b4.d_values[30], b4.d_present[30], qzss_dcx_camf_d31_chemical_hazard_type_lookup);
+writeDField("d32_biohazard_level",  b4.d_values[31], b4.d_present[31], qzss_dcx_camf_d32_biohazard_level_lookup);
+writeDField("d33_biohazard_type",   b4.d_values[32], b4.d_present[32], qzss_dcx_camf_d33_biohazard_type_lookup);
+writeDField("d34_explosive_type",   b4.d_values[33], b4.d_present[33], qzss_dcx_camf_d34_explosive_hazard_type_lookup);
+writeDField("d35_infection_type",   b4.d_values[34], b4.d_present[34], qzss_dcx_camf_d35_infection_type_lookup);
+writeDField("d36_typhoon_cat",      b4.d_values[35], b4.d_present[35], qzss_dcx_camf_d36_typhoon_category_lookup);
 
 
         out.print('}');
@@ -355,6 +359,8 @@ writeDField("d36_typhoon_cat",      d->camf.b4_d_values[35], d->camf.b4_d_presen
     wf_u(out, "sd_sdmt", d->sd.sdmt);
     wf_u(out, "sd_sdm", d->sd.sdm, /*last=*/true);
 }
+
+#endif // AZARAC_ENABLE_DCX_CAMF
 
 } // namespace internal
 } // namespace azaraC

@@ -10,24 +10,24 @@ namespace internal {
 // Latitude/Longitude decoding
 // ---------------------------------------------------------------------------
 
-double decodeLatitude16(uint16_t code) {
-    // Latitude = -90 + (180 / (2^16 - 1)) * code
-    return -90.0 + (180.0 / 65535.0) * static_cast<double>(code);
+dcx_real_t decodeLatitude16(uint16_t code) {
+    static constexpr dcx_real_t SCALE = 180.0 / 65535.0;
+    return static_cast<dcx_real_t>(-90.0) + SCALE * static_cast<dcx_real_t>(code);
 }
 
-double decodeLongitude17(uint32_t code) {
-    // Longitude = -180 + (360 / (2^17 - 1)) * code
-    return -180.0 + (360.0 / 131071.0) * static_cast<double>(code);
+dcx_real_t decodeLongitude17(uint32_t code) {
+    static constexpr dcx_real_t SCALE = 360.0 / 131071.0;
+    return static_cast<dcx_real_t>(-180.0) + SCALE * static_cast<dcx_real_t>(code);
 }
 
-double decodeLatitude17(uint32_t code) {
-    // Latitude = -90 + (180 / (2^17 - 1)) * code
-    return -90.0 + (180.0 / 131071.0) * static_cast<double>(code);
+dcx_real_t decodeLatitude17(uint32_t code) {
+    static constexpr dcx_real_t SCALE = 180.0 / 131071.0;
+    return static_cast<dcx_real_t>(-90.0) + SCALE * static_cast<dcx_real_t>(code);
 }
 
-double decodeLongitude17_45_225(uint32_t code) {
-    // Longitude = 45 + (180 / (2^17 - 1)) * code
-    return 45.0 + (180.0 / 131071.0) * static_cast<double>(code);
+dcx_real_t decodeLongitude17_45_225(uint32_t code) {
+    static constexpr dcx_real_t SCALE = 180.0 / 131071.0;
+    return static_cast<dcx_real_t>(45.0) + SCALE * static_cast<dcx_real_t>(code);
 }
 
 // ---------------------------------------------------------------------------
@@ -37,10 +37,8 @@ double decodeLongitude17_45_225(uint32_t code) {
 // MinRadius = 216.20, MaxRadius = 2500000, Max_a = 31
 // ---------------------------------------------------------------------------
 
-double decodeRadiusCode(uint8_t code) {
-    // Pre-computed table from IS-QZSS-DCX-003 Table 4.2-17
-    // Index 0..31, values in km
-    static const double radius_table[32] = {
+dcx_real_t decodeRadiusCode(uint8_t code) {
+    static constexpr double radius_table[32] = {
         0.216,   // 0
         0.292,   // 1
         0.395,   // 2
@@ -78,21 +76,21 @@ double decodeRadiusCode(uint8_t code) {
     if (code < 32) {
         return radius_table[code];
     }
-    return 0.0;
+    return static_cast<dcx_real_t>(0.0);
 }
 
 // ---------------------------------------------------------------------------
 // Azimuth decoding
 // ---------------------------------------------------------------------------
 
-double decodeAzimuth6(uint8_t code) {
-    // Azimuth = -90 + (180 / 2^6) * code
-    return -90.0 + (180.0 / 64.0) * static_cast<double>(code);
+dcx_real_t decodeAzimuth6(uint8_t code) {
+    static constexpr dcx_real_t SCALE = 180.0 / 64.0;
+    return static_cast<dcx_real_t>(-90.0) + SCALE * static_cast<dcx_real_t>(code);
 }
 
-double decodeAzimuth7(uint8_t code) {
-    // Azimuth = -90 + (180 / 2^7) * code
-    return -90.0 + (180.0 / 128.0) * static_cast<double>(code);
+dcx_real_t decodeAzimuth7(uint8_t code) {
+    static constexpr dcx_real_t SCALE = 180.0 / 128.0;
+    return static_cast<dcx_real_t>(-90.0) + SCALE * static_cast<dcx_real_t>(code);
 }
 
 // ---------------------------------------------------------------------------
@@ -169,14 +167,16 @@ double b1RefinedLatitudeOffset(uint8_t c1) {
     // C1: 緯度補正 = C1 × 180 / (8 × 65535)
     // Grid interval = 180 / 65535 ≈ 0.002747°
     // Step = interval / 8 ≈ 0.000343°
-    return static_cast<double>(c1) * (180.0 / (8.0 * 65535.0));
+    static constexpr dcx_real_t SCALE = 180.0 / (8.0 * 65535.0);
+    return static_cast<double>(c1) * SCALE;
 }
 
 double b1RefinedLongitudeOffset(uint8_t c2) {
     // C2: 経度補正 = C2 × 360 / (8 × 131071)
     // Grid interval = 360 / 131071 ≈ 0.002747°
     // Step = interval / 8 ≈ 0.000343°
-    return static_cast<double>(c2) * (360.0 / (8.0 * 131071.0));
+    static constexpr dcx_real_t SCALE = 360.0 / (8.0 * 131071.0);
+    return static_cast<double>(c2) * SCALE;
 }
 
 double b1RefinedRadiusKm(uint8_t code, double base_radius_km, uint8_t original_radius_code) {
@@ -212,217 +212,93 @@ B2HazardCenter decodeB2HazardCenter(uint8_t c5, uint8_t c6) {
     return r;
 }
 
-// ---------------------------------------------------------------------------
-// B3 (A17=10) - Secondary Ellipse Definition (EWSS CAMF v1.1 §3.7.3)
-// ---------------------------------------------------------------------------
-
-B3SecondaryEllipse decodeB3SecondaryEllipse(uint8_t c7, uint8_t c8, uint8_t c9, uint8_t c10, double semi_major_km) {
-    B3SecondaryEllipse r{};
-    r.present = true;
-    r.c7 = c7;
-    r.c8 = c8;
-    r.c9 = c9;
-    r.c10 = c10;
-    // Shift: C7 * semi-major axis length
-    r.shift_km = static_cast<double>(c7) * semi_major_km;
-    // Homothetic factor: 0.25 * (C8 + 1) → 0.25, 0.50, 0.75, 1.00, 1.25, 1.50, 1.75, 2.00
-    r.homothetic_factor = 0.25 * static_cast<double>(c8 + 1);
-    // Bearing angle: C9 * 11.25 degrees (0-348.75, step 11.25)
-    r.bearing_deg = static_cast<double>(c9) * 11.25;
-    return r;
-}
 
 // ---------------------------------------------------------------------------
-// B4 (A17=11) - Quantitative and Detailed Information (EWSS CAMF v1.1 §3.7.4)
+// B4 field layout table
+// Each A4 hazard code maps to up to 4 D-field specs (d_idx=0xFF terminates).
+// Fields are ordered MSB→LSB within A18[15:0] per EWSS CAMF v1.2 §3.7.4.
 // ---------------------------------------------------------------------------
-// A18 bit layout: bit[14]=MSB (first bit of field = spec bit 131), bit[0]=LSB (last bit = spec bit 145)
-// getBits() reads MSB-first, so a18 bit 14 = spec bit 131
-// To extract spec bits[N:M]: shift = 14 - M, mask = (1 << (M-N+1)) - 1
-// D1[131:134]: shift=14-134=11, mask=0x0F
-// D2[135:137]: shift=14-137=8,  mask=0x07
-// D3[138:141]: shift=14-141=4,  mask=0x0F
-// D4[142:145]: shift=14-145=0,  mask=0x0F
 
-B4DetailedInfo decodeB4DetailedInfo(uint16_t a18, uint8_t a4_code) {
-    B4DetailedInfo r{};
-    r.present = true;
-    r.a4_code = a4_code;
-    // Zero-initialize all presence flags and values via aggregate init (r{}) above.
-    // d_present[0]=D1, d_values[0]=D1, ..., d_present[35]=D36, d_values[35]=D36
+namespace {
 
-    switch (a4_code) {
-        case 36: // Earthquake: D1[131:134](4b) D2[135:137](3b) D3[138:141](4b) D4[142:145](4b)
-            r.d_values[0] = static_cast<uint8_t>((a18 >> 11) & 0x0F);  // D1
-            r.d_values[1] = static_cast<uint8_t>((a18 >> 8)  & 0x07);  // D2
-            r.d_values[2] = static_cast<uint8_t>((a18 >> 4)  & 0x0F);  // D3
-            r.d_values[3] = static_cast<uint8_t>((a18 >> 0)  & 0x0F);  // D4
-            r.d_present[0] = true; r.d_present[1] = true; r.d_present[2] = true; r.d_present[3] = true;
-            break;
-        case 43: // Tsunami: D5[131:133](3b)
-        case 44: // Tidal wave
-            r.d_values[4] = static_cast<uint8_t>((a18 >> 12) & 0x07);  // D5
-            r.d_present[4] = true;
-            break;
-        case 63: // Cold wave: D6[131:134](4b)
-        case 71: // Heat wave
-            r.d_values[5] = static_cast<uint8_t>((a18 >> 11) & 0x0F);  // D6
-            r.d_present[5] = true;
-            break;
-        case 80: // Hurricane: D7[131:133](3b) D8[134:137](4b) D9[138:140](3b)
-            r.d_values[6] = static_cast<uint8_t>((a18 >> 12) & 0x07);  // D7
-            r.d_values[7] = static_cast<uint8_t>((a18 >> 8)  & 0x0F);  // D8
-            r.d_values[8] = static_cast<uint8_t>((a18 >> 5)  & 0x07);  // D9
-            r.d_present[6] = true; r.d_present[7] = true; r.d_present[8] = true;
-            break;
-        case 82: // Typhoon: D36[131:133](3b) D8[134:137](4b) D9[138:140](3b)
-            r.d_values[35] = static_cast<uint8_t>((a18 >> 12) & 0x07); // D36
-            r.d_values[7]  = static_cast<uint8_t>((a18 >> 8)  & 0x0F); // D8
-            r.d_values[8]  = static_cast<uint8_t>((a18 >> 5)  & 0x07); // D9
-            r.d_present[35] = true; r.d_present[7] = true; r.d_present[8] = true;
-            break;
-        case 79: // Tornado: D8[131:134](4b) D9[135:137](3b) D11[138:140](3b)
-            r.d_values[7]  = static_cast<uint8_t>((a18 >> 11) & 0x0F); // D8
-            r.d_values[8]  = static_cast<uint8_t>((a18 >> 8)  & 0x07); // D9
-            r.d_values[10] = static_cast<uint8_t>((a18 >> 5)  & 0x07); // D11
-            r.d_present[7] = true; r.d_present[8] = true; r.d_present[10] = true;
-            break;
-        case 77: // Storm/Thunderstorm: D8[131:134](4b) D9[135:137](3b) D10[138:140](3b) D16[141:143](3b)
-            r.d_values[7]  = static_cast<uint8_t>((a18 >> 11) & 0x0F); // D8
-            r.d_values[8]  = static_cast<uint8_t>((a18 >> 8)  & 0x07); // D9
-            r.d_values[9]  = static_cast<uint8_t>((a18 >> 5)  & 0x07); // D10
-            r.d_values[15] = static_cast<uint8_t>((a18 >> 2)  & 0x07); // D16
-            r.d_present[7] = true; r.d_present[8] = true; r.d_present[9] = true; r.d_present[15] = true;
-            break;
-        case 70: // Hail: D12[131:134](4b)
-            r.d_values[11] = static_cast<uint8_t>((a18 >> 11) & 0x0F); // D12
-            r.d_present[11] = true;
-            break;
-        case 74: // Rainfall: D9[131:133](3b) D13[134:137](4b)
-            r.d_values[8]  = static_cast<uint8_t>((a18 >> 12) & 0x07); // D9
-            r.d_values[12] = static_cast<uint8_t>((a18 >> 8)  & 0x0F); // D13
-            r.d_present[8] = true; r.d_present[12] = true;
-            break;
-        case 76: // Snowfall: D14[131:135](5b) D13[136:139](4b)
-            r.d_values[13] = static_cast<uint8_t>((a18 >> 10) & 0x1F); // D14
-            r.d_values[12] = static_cast<uint8_t>((a18 >> 6)  & 0x0F); // D13
-            r.d_present[13] = true; r.d_present[12] = true;
-            break;
-        case 68: // Flood: D15[131:132](2b)
-            r.d_values[14] = static_cast<uint8_t>((a18 >> 13) & 0x03); // D15
-            r.d_present[14] = true;
-            break;
-        case 72: // Lightning: D16[131:133](3b)
-            r.d_values[15] = static_cast<uint8_t>((a18 >> 12) & 0x07); // D16
-            r.d_present[15] = true;
-            break;
-        case 81: // Wind chill/Frost: D8[131:134](4b) D6[135:138](4b)
-            r.d_values[7] = static_cast<uint8_t>((a18 >> 11) & 0x0F); // D8
-            r.d_values[5] = static_cast<uint8_t>((a18 >> 7)  & 0x0F); // D6
-            r.d_present[7] = true; r.d_present[5] = true;
-            break;
-        case 64: // Derecho: D8[131:134](4b) D9[135:137](3b) D16[138:140](3b) D11[141:143](3b)
-            r.d_values[7]  = static_cast<uint8_t>((a18 >> 11) & 0x0F); // D8
-            r.d_values[8]  = static_cast<uint8_t>((a18 >> 8)  & 0x07); // D9
-            r.d_values[15] = static_cast<uint8_t>((a18 >> 5)  & 0x07); // D16
-            r.d_values[10] = static_cast<uint8_t>((a18 >> 2)  & 0x07); // D11
-            r.d_present[7] = true; r.d_present[8] = true; r.d_present[15] = true; r.d_present[10] = true;
-            break;
-        case 69: // Fog: D17[131:133](3b) D13[134:137](4b)
-            r.d_values[16] = static_cast<uint8_t>((a18 >> 12) & 0x07); // D17
-            r.d_values[12] = static_cast<uint8_t>((a18 >> 8)  & 0x0F); // D13
-            r.d_present[16] = true; r.d_present[12] = true;
-            break;
-        case 75: // Snow storm/Blizzard: D13[131:134](4b) D8[135:138](4b)
-            r.d_values[12] = static_cast<uint8_t>((a18 >> 11) & 0x0F); // D13
-            r.d_values[7]  = static_cast<uint8_t>((a18 >> 7)  & 0x0F); // D8
-            r.d_present[12] = true; r.d_present[7] = true;
-            break;
-        case 65: // Drought: D18[131:132](2b)
-            r.d_values[17] = static_cast<uint8_t>((a18 >> 13) & 0x03); // D18
-            r.d_present[17] = true;
-            break;
-        case 33: // Avalanche: D19[131:133](3b)
-            r.d_values[18] = static_cast<uint8_t>((a18 >> 12) & 0x07); // D19
-            r.d_present[18] = true;
-            break;
-        case 32: // Ash fall: D20[131:133](3b)
-            r.d_values[19] = static_cast<uint8_t>((a18 >> 12) & 0x07); // D20
-            r.d_present[19] = true;
-            break;
-        case 47: // Wind/wave/storm surge: D8[131:134](4b) D5[135:137](3b)
-            r.d_values[7] = static_cast<uint8_t>((a18 >> 11) & 0x0F); // D8
-            r.d_values[4] = static_cast<uint8_t>((a18 >> 8)  & 0x07); // D5
-            r.d_present[7] = true; r.d_present[4] = true;
-            break;
-        case 37: // Geomagnetic: D21[131:133](3b)
-            r.d_values[20] = static_cast<uint8_t>((a18 >> 12) & 0x07); // D21
-            r.d_present[20] = true;
-            break;
-        case 103: // Terrorism: D22[131:133](3b)
-            r.d_values[21] = static_cast<uint8_t>((a18 >> 12) & 0x07); // D22
-            r.d_present[21] = true;
-            break;
-        case 27: // Forest fire: D23[131:133](3b)
-        case 30: // Risk of fire
-            r.d_values[22] = static_cast<uint8_t>((a18 >> 12) & 0x07); // D23
-            r.d_present[22] = true;
-            break;
-        case 16: // Contaminated drinking water: D24[131:133](3b)
-        case 18: // Marine pollution
-        case 21: // River pollution
-            r.d_values[23] = static_cast<uint8_t>((a18 >> 12) & 0x07); // D24
-            r.d_present[23] = true;
-            break;
-        case 23: // UV radiation: D25[131:134](4b)
-            r.d_values[24] = static_cast<uint8_t>((a18 >> 11) & 0x0F); // D25
-            r.d_present[24] = true;
-            break;
-        case 53: // Risk of infection: D26[131:135](5b) D35[136:141](6b)
-        case 51: // Pandemic
-            r.d_values[25] = static_cast<uint8_t>((a18 >> 10) & 0x1F); // D26
-            r.d_values[34] = static_cast<uint8_t>((a18 >> 4)  & 0x3F); // D35
-            r.d_present[25] = true; r.d_present[34] = true;
-            break;
-        case 19: // Noise pollution: D27[131:134](4b)
-            r.d_values[26] = static_cast<uint8_t>((a18 >> 11) & 0x0F); // D27
-            r.d_present[26] = true;
-            break;
-        case 15: // Air pollution: D28[131:133](3b)
-            r.d_values[27] = static_cast<uint8_t>((a18 >> 12) & 0x07); // D28
-            r.d_present[27] = true;
-            break;
-        case 56: // Gas supply outage: D29[131:135](5b)
-        case 57: // Outage of IT system
-        case 58: // Power outage
-        case 55: // Emergency number outage
-        case 60: // Telephone line outage
-            r.d_values[28] = static_cast<uint8_t>((a18 >> 10) & 0x1F); // D29
-            r.d_present[28] = true;
-            break;
-        case 9: // Radiological hazard: D30[131:134](4b)
-        case 10: // Nuclear hazard
-        case 11: // Nuclear power station accident
-            r.d_values[29] = static_cast<uint8_t>((a18 >> 11) & 0x0F); // D30
-            r.d_present[29] = true;
-            break;
-        case 5: // Chemical hazard: D31[131:134](4b)
-            r.d_values[30] = static_cast<uint8_t>((a18 >> 11) & 0x0F); // D31
-            r.d_present[30] = true;
-            break;
-        case 4: // Biological hazard: D32[131:132](2b) D33[133:134](2b)
-            r.d_values[31] = static_cast<uint8_t>((a18 >> 13) & 0x03); // D32
-            r.d_values[32] = static_cast<uint8_t>((a18 >> 11) & 0x03); // D33
-            r.d_present[31] = true; r.d_present[32] = true;
-            break;
-        case 6: // Explosive hazard: D34[131:132](2b)
-            r.d_values[33] = static_cast<uint8_t>((a18 >> 13) & 0x03); // D34
-            r.d_present[33] = true;
-            break;
-        default:
-            break;
+struct DFieldSpec {
+    uint8_t d_idx;   // 0..35 = D1..D36; 0xFF = terminator
+    uint8_t shift;   // bit shift within A18[15:0]
+    uint8_t bits;    // bit width (1..8)
+};
+
+struct HazardB4Layout {
+    uint8_t a4_code;
+    DFieldSpec fields[4];  // d_idx=0xFF terminates
+};
+
+// Sorted by a4_code; linear scan is fast enough for ~45 entries.
+static const HazardB4Layout B4_LAYOUTS[] = {
+    {4  , {{31,13,2}, {32,11,2}, {255,0,0}, {255,0,0}}},
+    {5  , {{30,11,4}, {255,0,0}, {255,0,0}, {255,0,0}}},
+    {6  , {{33,13,2}, {255,0,0}, {255,0,0}, {255,0,0}}},
+    {9  , {{29,11,4}, {255,0,0}, {255,0,0}, {255,0,0}}},
+    {10 , {{29,11,4}, {255,0,0}, {255,0,0}, {255,0,0}}},
+    {11 , {{29,11,4}, {255,0,0}, {255,0,0}, {255,0,0}}},
+    {15 , {{27,12,3}, {255,0,0}, {255,0,0}, {255,0,0}}},
+    {16 , {{23,12,3}, {255,0,0}, {255,0,0}, {255,0,0}}},
+    {18 , {{23,12,3}, {255,0,0}, {255,0,0}, {255,0,0}}},
+    {19 , {{26,11,4}, {255,0,0}, {255,0,0}, {255,0,0}}},
+    {21 , {{23,12,3}, {255,0,0}, {255,0,0}, {255,0,0}}},
+    {23 , {{24,11,4}, {255,0,0}, {255,0,0}, {255,0,0}}},
+    {27 , {{22,12,3}, {255,0,0}, {255,0,0}, {255,0,0}}},
+    {30 , {{22,12,3}, {255,0,0}, {255,0,0}, {255,0,0}}},
+    {32 , {{19,12,3}, {255,0,0}, {255,0,0}, {255,0,0}}},
+    {33 , {{18,12,3}, {255,0,0}, {255,0,0}, {255,0,0}}},
+    {36 , {{0,11,4}, {1,8,3}, {2,4,4}, {3,0,4}}},
+    {37 , {{20,12,3}, {255,0,0}, {255,0,0}, {255,0,0}}},
+    {43 , {{4,12,3}, {255,0,0}, {255,0,0}, {255,0,0}}},
+    {44 , {{4,12,3}, {255,0,0}, {255,0,0}, {255,0,0}}},
+    {47 , {{7,11,4}, {4,8,3}, {255,0,0}, {255,0,0}}},
+    {51 , {{25,10,5}, {34,4,6}, {255,0,0}, {255,0,0}}},
+    {53 , {{25,10,5}, {34,4,6}, {255,0,0}, {255,0,0}}},
+    {55 , {{28,10,5}, {255,0,0}, {255,0,0}, {255,0,0}}},
+    {56 , {{28,10,5}, {255,0,0}, {255,0,0}, {255,0,0}}},
+    {57 , {{28,10,5}, {255,0,0}, {255,0,0}, {255,0,0}}},
+    {58 , {{28,10,5}, {255,0,0}, {255,0,0}, {255,0,0}}},
+    {60 , {{28,10,5}, {255,0,0}, {255,0,0}, {255,0,0}}},
+    {63 , {{5,11,4}, {255,0,0}, {255,0,0}, {255,0,0}}},
+    {64 , {{7,11,4}, {8,8,3}, {15,5,3}, {10,2,3}}},
+    {65 , {{17,13,2}, {255,0,0}, {255,0,0}, {255,0,0}}},
+    {68 , {{14,13,2}, {255,0,0}, {255,0,0}, {255,0,0}}},
+    {69 , {{16,12,3}, {12,8,4}, {255,0,0}, {255,0,0}}},
+    {70 , {{11,11,4}, {255,0,0}, {255,0,0}, {255,0,0}}},
+    {71 , {{5,11,4}, {255,0,0}, {255,0,0}, {255,0,0}}},
+    {72 , {{15,12,3}, {255,0,0}, {255,0,0}, {255,0,0}}},
+    {74 , {{8,12,3}, {12,8,4}, {255,0,0}, {255,0,0}}},
+    {75 , {{12,11,4}, {7,7,4}, {255,0,0}, {255,0,0}}},
+    {76 , {{13,10,5}, {12,6,4}, {255,0,0}, {255,0,0}}},
+    {77 , {{7,11,4}, {8,8,3}, {9,5,3}, {15,2,3}}},
+    {79 , {{7,11,4}, {8,8,3}, {10,5,3}, {255,0,0}}},
+    {80 , {{6,12,3}, {7,8,4}, {8,5,3}, {255,0,0}}},
+    {81 , {{7,11,4}, {5,7,4}, {255,0,0}, {255,0,0}}},
+    {82 , {{35,12,3}, {7,8,4}, {8,5,3}, {255,0,0}}},
+    {103, {{21,12,3}, {255,0,0}, {255,0,0}, {255,0,0}}},
+};
+
+} // anonymous namespace
+
+void decodeB4DetailedInfo(uint16_t a18, uint8_t a4_code, B4DetailedInfo& out) {
+    out = B4DetailedInfo{};
+    out.present = true;
+    out.a4_code = a4_code;
+
+    for (uint8_t i = 0; i < sizeof(B4_LAYOUTS) / sizeof(B4_LAYOUTS[0]); ++i) {
+        if (B4_LAYOUTS[i].a4_code == a4_code) {
+            for (uint8_t j = 0; j < 4; ++j) {
+                const DFieldSpec& f = B4_LAYOUTS[i].fields[j];
+                if (f.d_idx == 0xFF) break;
+                out.d_values[f.d_idx] = static_cast<uint8_t>((a18 >> f.shift) & ((1u << f.bits) - 1));
+                out.d_present[f.d_idx] = true;
+            }
+            return;
+        }
     }
-
-    return r;
 }
 
 } // namespace internal

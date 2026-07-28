@@ -150,6 +150,45 @@ TEST_CASE("Realdata: History - decode and disaster_category") {
         CAPTURE(i);
         CAPTURE(history_cases[i].label);
         CAPTURE(history_cases[i].nmea);
+        // Skip disabled-category cases (preprocessor-guarded, eliminated at compile time when enabled)
+        { uint8_t _dc = history_cases[i].expected_dc;
+#if !AZARAC_ENABLE_EEW
+          if (_dc == 1) continue;
+#endif
+#if !AZARAC_ENABLE_HYPOCENTER
+          if (_dc == 2) continue;
+#endif
+#if !AZARAC_ENABLE_SEISMIC
+          if (_dc == 3) continue;
+#endif
+#if !AZARAC_ENABLE_NANKAI
+          if (_dc == 4) continue;
+#endif
+#if !AZARAC_ENABLE_TSUNAMI
+          if (_dc == 5) continue;
+#endif
+#if !AZARAC_ENABLE_NW_PAC_TSUNAMI
+          if (_dc == 6) continue;
+#endif
+#if !AZARAC_ENABLE_VOLCANO
+          if (_dc == 8) continue;
+#endif
+#if !AZARAC_ENABLE_ASH_FALL
+          if (_dc == 9) continue;
+#endif
+#if !AZARAC_ENABLE_WEATHER
+          if (_dc == 10) continue;
+#endif
+#if !AZARAC_ENABLE_FLOOD
+          if (_dc == 11) continue;
+#endif
+#if !AZARAC_ENABLE_TYPHOON
+          if (_dc == 12) continue;
+#endif
+#if !AZARAC_ENABLE_MARINE
+          if (_dc == 14) continue;
+#endif
+        }
         REQUIRE(decodeNmea(history_cases[i].nmea, msg));
         CHECK(msg.msg_type == 43);
         CHECK(msg.payload_type == MsgPayloadType::Mt43);
@@ -526,6 +565,45 @@ TEST_CASE("Realdata: Noto 2024 - decode and metadata") {
         CAPTURE(i);
         CAPTURE(noto_cases[i].label);
         CAPTURE(noto_cases[i].nmea);
+        // Skip disabled-category cases (preprocessor-guarded, eliminated at compile time when enabled)
+        { uint8_t _dc = noto_cases[i].expected_dc;
+#if !AZARAC_ENABLE_EEW
+          if (_dc == 1) continue;
+#endif
+#if !AZARAC_ENABLE_HYPOCENTER
+          if (_dc == 2) continue;
+#endif
+#if !AZARAC_ENABLE_SEISMIC
+          if (_dc == 3) continue;
+#endif
+#if !AZARAC_ENABLE_NANKAI
+          if (_dc == 4) continue;
+#endif
+#if !AZARAC_ENABLE_TSUNAMI
+          if (_dc == 5) continue;
+#endif
+#if !AZARAC_ENABLE_NW_PAC_TSUNAMI
+          if (_dc == 6) continue;
+#endif
+#if !AZARAC_ENABLE_VOLCANO
+          if (_dc == 8) continue;
+#endif
+#if !AZARAC_ENABLE_ASH_FALL
+          if (_dc == 9) continue;
+#endif
+#if !AZARAC_ENABLE_WEATHER
+          if (_dc == 10) continue;
+#endif
+#if !AZARAC_ENABLE_FLOOD
+          if (_dc == 11) continue;
+#endif
+#if !AZARAC_ENABLE_TYPHOON
+          if (_dc == 12) continue;
+#endif
+#if !AZARAC_ENABLE_MARINE
+          if (_dc == 14) continue;
+#endif
+        }
         REQUIRE(decodeNmea(noto_cases[i].nmea, msg));
         CHECK(msg.msg_type == 43);
         CHECK(msg.payload_type == MsgPayloadType::Mt43);
@@ -625,7 +703,11 @@ TEST_CASE("Realdata: data.txt - decode success and valid msg_type") {
         CAPTURE(i);
         CAPTURE(data_txt_cases[i].line);
         CAPTURE(data_txt_cases[i].nmea);
-        REQUIRE(decodeNmea(data_txt_cases[i].nmea, msg));
+        if (!decodeNmea(data_txt_cases[i].nmea, msg)) {
+            // Skip cases where the category is disabled at compile time
+            if (msg.unsupported_reason == UnsupportedReason::DisabledAtCompileTime) continue;
+            REQUIRE(false);
+        }
         CHECK(msg.valid);
         CHECK(msg.msg_type == data_txt_cases[i].expected_msg_type);
         CHECK((msg.payload_type == MsgPayloadType::Mt43 || msg.payload_type == MsgPayloadType::Mt44));

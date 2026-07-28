@@ -16,6 +16,15 @@
 
 namespace azaraC {
 
+// ---- Unsupported reason enum -------------------------------------------
+
+enum class UnsupportedReason : uint8_t {
+    None = 0,
+    DisabledAtCompileTime = 1,
+    UnknownCategory = 2,
+    UnsupportedVersion = 3,
+};
+
 // ---- Message payload type tag ------------------------------------------
 
 enum class MsgPayloadType : uint8_t {
@@ -31,6 +40,7 @@ struct Message {
     uint8_t  msg_type = 0;
     uint32_t crc24 = 0;
     bool     valid = false;
+    UnsupportedReason unsupported_reason = UnsupportedReason::None;
     MsgPayloadType payload_type = MsgPayloadType::Empty;
 
     // Storage for the active payload (aligned to 8 bytes)
@@ -48,7 +58,9 @@ struct Message {
         , msg_type(other.msg_type)
         , crc24(other.crc24)
         , valid(other.valid)
+        , unsupported_reason(other.unsupported_reason)
         , payload_type(other.payload_type)
+        , payload_storage_{}
     {
         copyPayloadFrom(other);
     }
@@ -60,6 +72,7 @@ struct Message {
             msg_type = other.msg_type;
             crc24 = other.crc24;
             valid = other.valid;
+            unsupported_reason = other.unsupported_reason;
             payload_type = other.payload_type;
             copyPayloadFrom(other);
         }
@@ -71,6 +84,7 @@ struct Message {
         , msg_type(other.msg_type)
         , crc24(other.crc24)
         , valid(other.valid)
+        , unsupported_reason(other.unsupported_reason)
         , payload_type(other.payload_type)
     {
         movePayloadFrom(other);
@@ -83,6 +97,7 @@ struct Message {
             msg_type = other.msg_type;
             crc24 = other.crc24;
             valid = other.valid;
+            unsupported_reason = other.unsupported_reason;
             payload_type = other.payload_type;
             movePayloadFrom(other);
         }

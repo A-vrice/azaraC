@@ -9,6 +9,8 @@
 
 using namespace azaraC;
 
+#if (AZARAC_ENABLE_DCX_CAMF)
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // DCX NULL Message — test_dcx
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -205,3 +207,4 @@ TEST_CASE("DCX: J-Alert a3={0,2,3} (FDMA/Cabinet Office) - Non-null message") {
         CHECK(mt44->mt44_decoded.jalert_prefecture_mode == true);
     }
 }
+#endif

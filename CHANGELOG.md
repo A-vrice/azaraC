@@ -5,7 +5,84 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.0] - 2026-07-23
+
+### Added
+
+- **`AZARAC_DCX_USE_FLOAT` マクロ**: DCX 座標を `double` から `float` に切り替える設定を追加。
+  `DecodedEllipse` のサイズが 72B → 36B に削減（`Mt44Decoded` で 72B 節約）。
+- **メモリ使用量表**: `README.md` に RAM 要件の表を追記。
+- **RAM 要件ドキュメント**: `Parser.h` に最小 RAM 要件コメントを追加。
+- **`#warning`**: Arduino Uno で Nankai バッファ数が多すぎる場合にコンパイル時警告を出力。
+
+### Changed
+
+- **`NankaiData::aggregated_text[]` → ポインタ化** (最重要):
+  - 固定配列 `aggregated_text[217]` を `const char* aggregated_text_ptr` + `uint16_t aggregated_len` に置き換え。
+  - `NankaiData` のサイズを約 250B → 33B に削減。`Message` 全体が ~408B → ~190B に（約 53% 減）。
+  - 実テキストは `NankaiPageBuffer::aggregated_text[]` に保持し、完了時にポインタを設定。
+  - 次の `Parser::feed()` 呼び出し前に `Message` を消費する必要がある（既存契約と整合）。
+  - **注意**: `aggregated_text_ptr` は NankaiPageBuffer の raw per-page buffer を指す。
+    NUL バイトを含むページがある場合、ポインタ経由のデータはページ区切りを保持する。
+    実データ（UTF-8 Japanese, NUL 不含）では問題にならない。
+- **`B4DetailedInfo` 戻り値 → 出力パラメータ**:
+  - `decodeB4DetailedInfo()` が 108B の構造体を値返ししていたのを、参照パラメータに変更。
+  - スタックコピーを回避し、RAM フットプリントを削減。
+- **`NankaiPageKey` フィールド順序最適化**:
+  - `uint32_t event_time_unix` を先頭に移動し、パディングを削除。サイズ: 12B → 8B。
+- **`NankaiPageBuffer` フィールド順序最適化**:
+  - `uint64_t` メンバを先頭に集め、`uint8_t`/`bool` メンバを後ろに配置。
+  - パディング削減により ~256B → ~249B（バッファあたり ~7B × 4 = 28B 削減）。
+- **不要な標準ライブラリ依存を除去**:
+  - `JsonWriter.cpp`: `<cmath>` を削除し、`std::isnan`/`std::isinf` を `v != v || v > 1e308 || v < -1e308` に置換。
+  - `Mt43Data.h`: `<algorithm>` を削除し、`std::max({...})` を constexpr lambda に置換。
+  - `DcxHelper.cpp`: 全 `static const double` を `static constexpr double` に変更（Flash 配置保証）。
+- **`DcxHelper.cpp` decode 関数**: `double` → `dcx_real_t`（`AZARAC_DCX_USE_FLOAT` 有効時に `float` を使用）。
+
+### Fixed
+
+- **Nankai E2E テスト**: NUL バイト打ち切りテストをポインタ化後の raw buffer 動作に合わせて修正。
+- **DCX JSON テスト**: float モード時の精度差に対応（`#ifdef AZARAC_DCX_USE_FLOAT` で期待値を切替）。
+
 ## [Unreleased]
+
+### Fixed
+
+- **OOB (Out-of-Bounds) 検出テストの偽陰性**: `TestDecoder` の各 static ラッパーが別々の `Decoder` インスタンスを作成していたため、`clearOob()` → `extractBits()` → `checkOob()` 間で OOB フラグが共有されず、OOB 検出テストが常に失敗していた。共有 `inst()` アクセサに統一。
+- **DCX メイン楕円 JSON テストの精度不一致**: `writeDouble` が `precision=6` で `35.600000` を出力するのに対し、テストが `35.600`（3桁）を期待していた。`hasField` の値境界チェックが不一致を検出。期待値を `35.600000` に修正。
+## [0.12.0] - 2026-07-16
+
+### Added
+
+- **`truncated` フラグ**: `NankaiData` に `bool truncated` を追加。`total_pages` が `AZARAC_NANKAI_MAX_PAGES` を超えた場合にセットされる。
+- **`isContiguous()` メソッド**: `NankaiPageBuffer` にビットマップ連続性チェックを追加。受信済みページが番号順に欠落なく連続しているかを O(1) で判定可能。
+
+### Changed
+
+- **`NankaiPageBuffer` リファクタリング（単一バッファ + ビットマップ方式）**:
+  - 2重バッファ構造（`PageData[]` + `aggregated_text[]`）を廃止し、`aggregated_text[]` に直接ページを書き込む方式に変更。
+  - 受信済みページの追跡を 64-bit ビットマップで行い、重複チェックを O(n) 線形探索 → O(1) ビットテストに高速化。
+  - ページソートが不要に（オフセット書き込みのため）。
+  - コード行数約140行→約100行に削減。
+
+- **`AZARAC_NANKAI_AGGREGATED_TEXT_SIZE` 自動導出**:
+  - デフォルト値を `AZARAC_NANKAI_MAX_PAGES * 18 + 1` から自動計算するよう変更。
+  - ユーザは `AZARAC_NANKAI_MAX_PAGES` のみ設定すればよく、2つのマクロを手動同期する必要がなくなった。
+  - 明示的な上書きも `#ifndef` ガードにより引き続き可能。
+  - `Mt43Data.h` の冗長なデフォルト定義（`217`）を削除。
+
+### Fixed
+
+- **`total_pages > AZARAC_NANKAI_MAX_PAGES` で全ページが破棄されるバグを修正**:
+  - 旧実装では `total_pages` が設定値を超えると即座に `false` を返し、全ページが失われていた。
+  - 新実装では `total_pages` を `MAX_PAGES` にキャップし、収まる分だけ受け入れる（トランケーション）。
+  - トランケーション発生時は `truncated` フラグでユーザに通知。
+
+- **`getTextLength()` / `getText()` の防御的修正**:
+  - 完了バッファ以外で呼ばれた場合に未受信ページのゴミデータを読む可能性を排除。
+  - ビットマップをチェックし、受信済みページのみを処理するよう修正。
+
+## [0.11.0] - 2026-07-14
 
 ### Added
 

@@ -10,6 +10,8 @@
 
 using namespace azaraC;
 
+#if (AZARAC_ENABLE_DCX_CAMF)
+
 static bool has(const std::string& s, const char* sub) {
     return s.find(sub) != std::string::npos;
 }
@@ -75,6 +77,9 @@ TEST_CASE("JSON DCX B2: hazard center fields") {
     mt44->mt44_decoded.main_ellipse_present = true;
     mt44->mt44_decoded.main_ellipse.lat_deg = 35.6;
     mt44->mt44_decoded.main_ellipse.lon_deg = 139.6;
+    mt44->mt44_decoded.b2_hazard_center_present = true;
+    mt44->mt44_decoded.b2_hazard_lat_deg = 35.6;
+    mt44->mt44_decoded.b2_hazard_lon_deg = 139.6;
 
     StringPrint sp;
     internal::JsonSerializer::serialize(m, sp);
@@ -132,11 +137,9 @@ TEST_CASE("JSON DCX B4: detailed info fields") {
     mt44->camf.a2 = 111;
     mt44->camf.a3 = 1;
     mt44->camf.a4 = 36;  // Earthquake
+    mt44->camf.a17 = 3;  // B4
+    mt44->camf.a18 = 32512;  // D1=15 (bits 14:11), D2=7 (bits 10:8)
     mt44->camf.b4_present = true;
-    mt44->camf.b4_d_present[0] = true;
-    mt44->camf.b4_d_values[0] = 15;
-    mt44->camf.b4_d_present[1] = true;
-    mt44->camf.b4_d_values[1] = 7;
     mt44->mt44_decoded.main_ellipse_present = true;
 
     StringPrint sp;
@@ -173,10 +176,21 @@ TEST_CASE("JSON DCX main ellipse fields") {
     StringPrint sp;
     internal::JsonSerializer::serialize(m, sp);
     const auto& s = sp.str();
-
     CHECK(has(s, "\"main_ellipse\":{"));
+#ifdef AZARAC_DCX_USE_FLOAT
+    {
+        // float 精度では 35.6 → 35.599998, 139.6 → 139.600006 程度になる
+        bool lat_ok = has(s, "\"lat_deg\":35.59") || has(s, "\"lat_deg\":35.60");
+        CHECK(lat_ok);
+    }
+    {
+        bool lon_ok = has(s, "\"lon_deg\":139.59") || has(s, "\"lon_deg\":139.60");
+        CHECK(lon_ok);
+    }
+#else
     CHECK(has(s, "\"lat_deg\":35.600"));
     CHECK(has(s, "\"lon_deg\":139.600"));
+#endif
     CHECK(has(s, "\"semi_major_km\":100.000"));
     CHECK(has(s, "\"semi_minor_km\":50.000"));
     CHECK(has(s, "\"azimuth_deg\":45.000"));
@@ -208,3 +222,90 @@ TEST_CASE("JSON DCX additional area fields") {
     CHECK(has(s, "\"additional_area\":{"));
     CHECK(has(s, "\"head_to_area\":1"));
 }
+
+TEST_CASE("JSON DCX EX1 city codes with labels") {
+    Message m{};
+    m.svid = 193;
+    m.crc24 = 0xABCDEF;
+    initMt44(m);
+    Mt44Data* mt44 = m.getMt44();
+    REQUIRE(mt44 != nullptr);
+    
+    mt44->service_kind = Mt44ServiceKind::JAlert;
+    mt44->is_null_message = false;
+    mt44->ex_kind = ExtendedKind::JAlert;
+    mt44->camf.a1 = 1;
+    mt44->camf.a2 = 111;
+    mt44->camf.a3 = 1;
+    mt44->camf.a4 = 10;
+    mt44->camf.a5 = 3;
+    mt44->camf.a8 = 4;
+    mt44->camf.a11 = 1;
+    // City codes mode (EX8=1)
+    mt44->ex_jalert.ex8 = 1;
+    mt44->ex_jalert.vn = 1;
+    // Set a valid known city code (1101 = "Chuo-ku, Sapporo-shi")
+    mt44->mt44_decoded.jalert_prefecture_mode = false;
+    mt44->mt44_decoded.city_code_count = 1;
+    mt44->mt44_decoded.city_codes[0] = 1101;
+    mt44->sd.sdmt = 0;
+    mt44->sd.sdm = 0x1FF;
+
+    StringPrint sp;
+    internal::JsonSerializer::serialize(m, sp);
+    const auto& s = sp.str();
+
+    // Check city codes output
+    CHECK(has(s, "\"city_codes\":[1101]"));
+    // Check that city label is resolved (JA/EN depending on build)
+    CHECK(has(s, "\"city_labels\":[\""));
+    // The label should contain "Sapporo" (EN) or "札幌" (JA)
+    // At minimum we should NOT see null labels for known codes
+    CHECK(s.find("\"city_labels\":[null]") == std::string::npos);
+}
+
+TEST_CASE("JSON DCX EX1 city codes multiple entries") {
+    Message m{};
+    m.svid = 193;
+    m.crc24 = 0xABCDEF;
+    initMt44(m);
+    Mt44Data* mt44 = m.getMt44();
+    REQUIRE(mt44 != nullptr);
+    
+    mt44->service_kind = Mt44ServiceKind::JAlert;
+    mt44->is_null_message = false;
+    mt44->ex_kind = ExtendedKind::JAlert;
+    mt44->camf.a1 = 1;
+    mt44->camf.a2 = 111;
+    mt44->camf.a3 = 1;
+    mt44->camf.a4 = 10;
+    mt44->camf.a5 = 3;
+    mt44->camf.a8 = 4;
+    mt44->camf.a11 = 1;
+    mt44->ex_jalert.ex8 = 1;
+    mt44->ex_jalert.vn = 1;
+    mt44->mt44_decoded.jalert_prefecture_mode = false;
+    mt44->mt44_decoded.city_code_count = 3;
+    mt44->mt44_decoded.city_codes[0] = 1101;  // Chuo-ku, Sapporo
+    mt44->mt44_decoded.city_codes[1] = 1102;  // Kita-ku, Sapporo
+    mt44->mt44_decoded.city_codes[2] = 47101; // Naha-shi, Okinawa
+    mt44->sd.sdmt = 0;
+    mt44->sd.sdm = 0x1FF;
+
+    StringPrint sp;
+    internal::JsonSerializer::serialize(m, sp);
+    const auto& s = sp.str();
+
+    // All three codes appear in city_codes array
+    CHECK(has(s, "\"city_codes\":[1101,1102,47101]"));
+    // city_labels has three entries, all non-null
+    CHECK(has(s, "\"city_labels\":[\""));
+    // Check no null values at any position within the array
+    {
+        const auto p = s.find("\"city_labels\":[");
+        const auto q = s.find(']', p + 14);
+        const auto arr = s.substr(p, q - p + 1);
+        CHECK(arr.find("null") == std::string::npos);
+    }
+}
+#endif

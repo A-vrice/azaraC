@@ -6,7 +6,7 @@
 
 AzaraCは準天頂衛星みちびきが送信する災害通報メッセージのデコーダーである[azarashi](https://github.com/nbtk/azarashi)をArduino向けに移植したものです。QZSS L1S信号を用いた災害通報の**DC Report/QZQSM**(MT=43)および**DCX/CAMF**(MT=44)に対応しており、ESP32シリーズなどのArduino互換ボード向けに設計されています。外部ライブラリには依存していません。
 
-変換に使用する定義テーブル(`definition/*.h`)はazarashiの`definition/*.py`からGitHub Actionsで自動生成を行います。azarashiのバージョンが更新されると付随してPRが作成されるため、azarashiと同様の出力が期待できます。
+変換に使用する定義テーブル(`definition/*.h`)は、[`.github/workflows/update-definitions.yml`](.github/workflows/update-definitions.yml) により毎日午前6時(UTC)に自動生成されます（`workflow_dispatch` による手動実行も可能）。azarashiのバージョンが更新されると付随してPRが作成されるため、azarashiと同様の出力が期待できます。
 
 ## 対応メッセージ
 
@@ -48,12 +48,12 @@ AzaraCは準天頂衛星みちびきが送信する災害通報メッセージ�
 | 項目            | 値                                                                                                         |
 | --------------- | ---------------------------------------------------------------------------------------------------------- |
 | 主要ターゲット  | ESP32-C3 (FreeRTOS / Arduino framework)                                                                    |
-| ビルド確認済み  | ESP32-S3/C3, Teensy4.0, Nano 33 BLE, Giga R1 Wi-Fi, STM32 Nucleo H563ZI                                    |
-| 推奨環境        | Arduino系ボード(C++17の標準APIがある程度利用できる/RAMが256kb程度ある), L1S信号が受信できるGPSモジュール。 |
+| ビルド確認済み  | ESP32-S3/C3, Teensy4.0, Nano 33 BLE, Giga R1 Wi-Fi, STM32 Nucleo H563ZI, Arduino Zero (SAMD21)                |
+| 推奨環境        | 推奨: 256 KB+ RAM（全機能・全カテゴリ有効）/ 動作可能: 32 KB+ RAM（SAMD21 等、デフォルト設定で動作）/ 最小: ~2 KB RAM（AVR、Nankai/DCX 無効化必須） |
 | ホストテスト    | g++ -std=c++17 (Linux / macOS / WSL / Windows)                                                             |
 | GNSS モジュール | u-blox (UBX-RXM-SFRBX) / NMEA $QZQSM 出力機                                                                |
 
-[注意] AzaraCはC++17で記述されています。利用の際は、お使いのIDEのC++コンパイラ設定を17以上にしてください。多くのボードメーカでは標準設定がC++11となっており、本ライブラリのコンパイル時にエラーが発生する可能性があります。
+[注意] AzaraCはC++17で記述されています。利用の際は、お使いのIDEのC++コンパイラ設定を17以上にしてください。多くのボードメーカでは標準設定がC++11となっており、本ライブラリのコンパイル時にエラーが発生する可能性があります。SAMD21 等の ARM GCC 7 ツールチェーンでも `-std=gnu++17` でコンパイル可能です。
 
 ## インストール
 
@@ -245,20 +245,32 @@ if (msg.msg_type == 43) {
 
 ### Nankai Trough ページ集約
 
-MT=43 カテゴリ4（南海トラフ地震）メッセージは、複数ページにまたがって送信される場合があります。AzaraCは受信したページを自動的に集約し、`NankaiData::aggregated_text` に全文を格納します。
+MT=43 カテゴリ4（南海トラフ地震）メッセージは、複数ページにまたがって送信される場合があります。AzaraCは受信したページを自動的に集約し、`NankaiData::aggregated_text_ptr` に集約テキストを指すポインタを設定します。
 
 ```cpp
 const azaraC::Mt43Data* mt43 = msg.getMt43();
 if (mt43 && mt43->disaster_category == 4) {
     const azaraC::NankaiData* nankai = mt43->getNankai();
     if (nankai && nankai->is_aggregated) {
-        // nankai->aggregated_text に全文が格納されている
+        // nankai->aggregated_text_ptr に集約テキストへのポインタが格納されている
         // nankai->aggregated_len に文字数
     }
-}
 ```
 
 ---
+### メモリ使用量（RAM要件）
+
+| 構成 | Parser + Message | スタック (feed 1回あたり) | 備考 |
+| ---- | ---------------- | ------------------------ | ---- |
+| デフォルト (Nankai 4 buffers) | ~700 B | ~200 B | 標準構成 |
+| フル構成 (Nankai 63 buffers) | ~2.5 KB | ~200 B | 全ページ集約対応、ホストテスト構成 |
+| 最小構成 (Nankai 1 buffer) | ~400 B | ~200 B | RAM 2 KB 級ターゲット（Arduino Uno等、Nankai/DCX 無効化が必要） |
+| DCX float モード追加 | さらに 72 B 削減 | — | `AZARAC_DCX_USE_FLOAT` 有効時 |
+
+注意: Parser は static 配置推奨（スタック配置は ~1 KB の消費）。`feed()` は Message をスタックに構築するため、ループ内での冗長な Message コピーを避けること。
+
+---
+
 
 ## JSON 出力例
 

@@ -1,7 +1,10 @@
 // test/integration/test_azarashi.cpp
 // DCX (MT=44) の azarashi 比較テストは test_azarashi_dcx.cpp に統合済み
 // DCR (MT=43) の azarashi 比較テストは test_azarashi_dcr.cpp に統合済み
-// このファイルは将来の追加テスト用に維持（現在は空）
+// このファイルは無効化済み（#if 0）。重複テストのため。
+// Makefile の TEST_SRCS からも削除済み。
+
+#if 0
 
 #include "../test_helpers.h"
 #include "doctest.h"
@@ -113,3 +116,5 @@ TEST_CASE("DCX: MT=44 L-Alert basic decode matches azarashi semantics") {
     CHECK(mt44->camf.a3 == 1);
     CHECK(mt44->ex_lalert_local.ex1 == 1101);
 }
+
+#endif // #if 0 — テストは test_azarashi_dcr.cpp / test_azarashi_dcx.cpp に移行済み

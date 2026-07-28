@@ -15,6 +15,7 @@ namespace internal {
 // Each returns after writing its last field with last=true
 // ---------------------------------------------------------------------------
 
+#if (AZARAC_ENABLE_EEW)
 void serializeEEW(const Message& m, Print& out) {
     using namespace azaraC::def;
     const Mt43Data* d = m.getMt43();
@@ -34,8 +35,8 @@ void serializeEEW(const Message& m, Print& out) {
         if (i) writeChar(out, ',');
         uint16_t code = eew->notification[i];
         out.print('{');
-        wf_u(out, "code", code);
-        wf_s(out, "label", qzss_dcr_jma_notification_on_disaster_prevention_lookup(code), /*last=*/true);
+        wf_u(out, keys::code, code);
+        wf_s(out, keys::label, qzss_dcr_jma_notification_on_disaster_prevention_lookup(code), /*last=*/true);
         out.print('}');
     }
     out.print("],");
@@ -57,14 +58,16 @@ void serializeEEW(const Message& m, Print& out) {
         if (i) writeChar(out, ',');
         uint16_t code = eew->regions[i];
         out.print('{');
-        wf_u(out, "code", code);
-        wf_s(out, "label",
+        wf_u(out, keys::code, code);
+        wf_s(out, keys::label,
             qzss_dcr_jma_eew_forecast_region_lookup(code), /*last=*/true);
         out.print('}');
     }
     out.print(']');
 }
+#endif // AZARAC_ENABLE_EEW
 
+#if (AZARAC_ENABLE_HYPOCENTER)
 void serializeHypocenter(const Message& m, Print& out) {
     using namespace azaraC::def;
     const Mt43Data* d = m.getMt43();
@@ -84,14 +87,16 @@ void serializeHypocenter(const Message& m, Print& out) {
         if (i) writeChar(out, ',');
         uint16_t code = hypo->notification[i];
         out.print('{');
-        wf_u(out, "code", code);
-        wf_s(out, "label", qzss_dcr_jma_notification_on_disaster_prevention_lookup(code), /*last=*/true);
+        wf_u(out, keys::code, code);
+        wf_s(out, keys::label, qzss_dcr_jma_notification_on_disaster_prevention_lookup(code), /*last=*/true);
         out.print('}');
     }
     out.print("],");
     writeLatLon(out, "coords", hypo->coords, /*last=*/true);
 }
+#endif // AZARAC_ENABLE_HYPOCENTER
 
+#if (AZARAC_ENABLE_SEISMIC)
 void serializeSeismic(const Message& m, Print& out) {
     using namespace azaraC::def;
     const Mt43Data* d = m.getMt43();
@@ -115,7 +120,9 @@ void serializeSeismic(const Message& m, Print& out) {
     }
     out.print(']');
 }
+#endif // AZARAC_ENABLE_SEISMIC
 
+#if (AZARAC_ENABLE_NANKAI)
 void serializeNankai(const Message& m, Print& out) {
     using namespace azaraC::def;
     const Mt43Data* d = m.getMt43();
@@ -130,10 +137,11 @@ void serializeNankai(const Message& m, Print& out) {
     
     // Output aggregated text if available (multi-page complete)
     if (nankai->is_aggregated && nankai->aggregated_len > 0) {
+        wf_u(out, "truncated", nankai->truncated ? 1u : 0u);
         wf_u(out, "page", 1);
         wf_u(out, "total_page", 1);
         wk(out, "text_utf8");
-        writeStr(out, std::string_view(nankai->aggregated_text, nankai->aggregated_len));
+        writeStr(out, std::string_view(nankai->aggregated_text_ptr, nankai->aggregated_len));
     } else {
         // Single page or incomplete - output page info and hex
         wf_u(out, "page", nankai->page);
@@ -147,7 +155,9 @@ void serializeNankai(const Message& m, Print& out) {
         out.print(']');
     }
 }
+#endif // AZARAC_ENABLE_NANKAI
 
+#if (AZARAC_ENABLE_TSUNAMI)
 void serializeTsunami(const Message& m, Print& out) {
     using namespace azaraC::def;
     const Mt43Data* d = m.getMt43();
@@ -171,14 +181,16 @@ void serializeTsunami(const Message& m, Print& out) {
         wf_u(out, "height",           e.height_code);
         wf_s(out, "height_label",
             qzss_dcr_jma_tsunami_height_lookup(e.height_code));
-        wf_u(out, "region",           e.region_code);
-        wf_s(out, "region_label",
+        wf_u(out, keys::region,           e.region_code);
+        wf_s(out, keys::region_label,
             qzss_dcr_jma_tsunami_forecast_region_lookup(e.region_code), /*last=*/true);
         out.print('}');
     }
     out.print(']');
 }
+#endif // AZARAC_ENABLE_TSUNAMI
 
+#if (AZARAC_ENABLE_NW_PAC_TSUNAMI)
 void serializeNwPacTsu(const Message& m, Print& out) {
     using namespace azaraC::def;
     const Mt43Data* d = m.getMt43();
@@ -202,14 +214,16 @@ void serializeNwPacTsu(const Message& m, Print& out) {
         wf_u(out, "height",           e.height_code);
         wf_s(out, "height_label",
             qzss_dcr_jma_northwest_pacific_tsunami_height_en_lookup(e.height_code));
-        wf_u(out, "region",           e.region_code);
-        wf_s(out, "region_label",
+        wf_u(out, keys::region,           e.region_code);
+        wf_s(out, keys::region_label,
             qzss_dcr_jma_coastal_region_en_lookup(e.region_code), /*last=*/true);
         out.print('}');
     }
     out.print(']');
 }
+#endif // AZARAC_ENABLE_NW_PAC_TSUNAMI
 
+#if (AZARAC_ENABLE_VOLCANO)
 void serializeVolcano(const Message& m, Print& out) {
     using namespace azaraC::def;
     const Mt43Data* d = m.getMt43();
@@ -230,14 +244,16 @@ void serializeVolcano(const Message& m, Print& out) {
     for (uint8_t i = 0; i < vol->lg_count; ++i) {
         if (i) writeChar(out, ',');
         out.print('{');
-        wf_u(out, "code", vol->local_govs[i]);
-        wf_s(out, "label",
+        wf_u(out, keys::code, vol->local_govs[i]);
+        wf_s(out, keys::label,
             qzss_dcr_jma_local_government_lookup(vol->local_govs[i]), /*last=*/true);
         out.print('}');
     }
     out.print(']');
 }
+#endif // AZARAC_ENABLE_VOLCANO
 
+#if (AZARAC_ENABLE_ASH_FALL)
 void serializeAshFall(const Message& m, Print& out) {
     using namespace azaraC::def;
     const Mt43Data* d = m.getMt43();
@@ -268,7 +284,9 @@ void serializeAshFall(const Message& m, Print& out) {
     }
     out.print(']');
 }
+#endif // AZARAC_ENABLE_ASH_FALL
 
+#if (AZARAC_ENABLE_WEATHER)
 void serializeWeather(const Message& m, Print& out) {
     using namespace azaraC::def;
     const Mt43Data* d = m.getMt43();
@@ -288,14 +306,16 @@ void serializeWeather(const Message& m, Print& out) {
         wf_u(out, "sub_category", e.sub_category);
         wf_s(out, "sub_category_label",
             qzss_dcr_jma_weather_related_disaster_sub_category_lookup(e.sub_category));
-        wf_u(out, "region", e.region_code);
-        wf_s(out, "region_label",
+        wf_u(out, keys::region, e.region_code);
+        wf_s(out, keys::region_label,
             qzss_dcr_jma_weather_forecast_region_lookup(e.region_code), /*last=*/true);
         out.print('}');
     }
     out.print(']');
 }
+#endif // AZARAC_ENABLE_WEATHER
 
+#if (AZARAC_ENABLE_FLOOD)
 void serializeFlood(const Message& m, Print& out) {
     using namespace azaraC::def;
     const Mt43Data* d = m.getMt43();
@@ -312,14 +332,16 @@ void serializeFlood(const Message& m, Print& out) {
         wf_u(out, "warning_level", e.warning_level);
         wf_s(out, "warning_level_label",
             qzss_dcr_jma_flood_warning_level_lookup(e.warning_level));
-        wf_u(out, "region", e.region_code);
-        wf_s(out, "region_label",
+        wf_u(out, keys::region, e.region_code);
+        wf_s(out, keys::region_label,
             qzss_dcr_jma_flood_forecast_region_lookup(e.region_code), /*last=*/true);
         out.print('}');
     }
     out.print(']');
 }
+#endif // AZARAC_ENABLE_FLOOD
 
+#if (AZARAC_ENABLE_MARINE)
 void serializeMarine(const Message& m, Print& out) {
     using namespace azaraC::def;
     const Mt43Data* d = m.getMt43();
@@ -336,14 +358,16 @@ void serializeMarine(const Message& m, Print& out) {
         wf_u(out, "warning_code", e.warning_code);
         wf_s(out, "warning_code_label",
             qzss_dcr_jma_marine_warning_code_lookup(e.warning_code));
-        wf_u(out, "region", e.region_code);
-        wf_s(out, "region_label",
+        wf_u(out, keys::region, e.region_code);
+        wf_s(out, keys::region_label,
             qzss_dcr_jma_marine_forecast_region_lookup(e.region_code), /*last=*/true);
         out.print('}');
     }
     out.print(']');
 }
+#endif // AZARAC_ENABLE_MARINE
 
+#if (AZARAC_ENABLE_TYPHOON)
 void serializeTyphoon(const Message& m, Print& out) {
     using namespace azaraC::def;
     const Mt43Data* d = m.getMt43();
@@ -373,6 +397,7 @@ void serializeTyphoon(const Message& m, Print& out) {
     // Maximum wind gust speed (7 bits, m/s)
     wf_u(out, "max_gust", typh->max_gust, /*last=*/true);
 }
+#endif // AZARAC_ENABLE_TYPHOON
 
 } // namespace internal
 } // namespace azaraC

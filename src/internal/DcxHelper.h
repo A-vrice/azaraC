@@ -1,9 +1,16 @@
 #pragma once
 // azaraC - src/internal/DcxHelper.h
 // DCX MT44 decode helpers
-// Based on IS-QZSS-DCX-003
+// Based on IS-QZSS-DCX-004 / EWSS CAMF v1.2
 
 #include <cstdint>
+
+
+#ifdef AZARAC_DCX_USE_FLOAT
+using dcx_real_t = float;
+#else
+using dcx_real_t = double;
+#endif
 
 namespace azaraC {
 namespace internal {
@@ -14,31 +21,31 @@ namespace internal {
 
 // Decode latitude from 16-bit code (A12)
 // Latitude = -90 + (180 / (2^16 - 1)) * code
-double decodeLatitude16(uint16_t code);
+dcx_real_t decodeLatitude16(uint16_t code);
 
 // Decode longitude from 17-bit code (A13)
 // Longitude = -180 + (360 / (2^17 - 1)) * code
-double decodeLongitude17(uint32_t code);
+dcx_real_t decodeLongitude17(uint32_t code);
 
 // Decode additional ellipse latitude from 17-bit code (EX3)
 // Same formula as A12 but with 17 bits
-double decodeLatitude17(uint32_t code);
+dcx_real_t decodeLatitude17(uint32_t code);
 
 // Decode additional ellipse longitude from 17-bit code (EX4)
 // Longitude = 45 + (180 / (2^17 - 1)) * code
-double decodeLongitude17_45_225(uint32_t code);
+dcx_real_t decodeLongitude17_45_225(uint32_t code);
 
 // Decode radius from 5-bit code (A14/A15/EX5/EX6)
 // Uses logarithmic table from IS-QZSS-DCX-003 Table 4.2-17
-double decodeRadiusCode(uint8_t code);
+dcx_real_t decodeRadiusCode(uint8_t code);
 
 // Decode azimuth from 6-bit code (A16)
 // Azimuth = -90 + (180 / 2^6) * code
-double decodeAzimuth6(uint8_t code);
+dcx_real_t decodeAzimuth6(uint8_t code);
 
 // Decode azimuth from 7-bit code (EX7)
 // Azimuth = -90 + (180 / 2^7) * code
-double decodeAzimuth7(uint8_t code);
+dcx_real_t decodeAzimuth7(uint8_t code);
 
 // ---------------------------------------------------------------------------
 // J-Alert EX9 decoding
@@ -99,37 +106,21 @@ struct B2HazardCenter {
 
 B2HazardCenter decodeB2HazardCenter(uint8_t c5, uint8_t c6);
 
-// ---------------------------------------------------------------------------
-// B3 (A17=10) - Secondary Ellipse Definition (EWSS CAMF v1.1 §3.7.3)
-// ---------------------------------------------------------------------------
-
-struct B3SecondaryEllipse {
-    bool     present;
-    uint8_t  c7;                // 2 bits - shift factor (0-3)
-    uint8_t  c8;                // 3 bits - homothetic factor index
-    uint8_t  c9;                // 5 bits - bearing angle index
-    uint8_t  c10;               // 5 bits - guidance library code
-    double   shift_km;          // Shift distance in km
-    double   homothetic_factor; // Homothetic factor (0.25-2.0)
-    double   bearing_deg;       // Bearing angle in degrees
-};
-
-B3SecondaryEllipse decodeB3SecondaryEllipse(uint8_t c7, uint8_t c8, uint8_t c9, uint8_t c10, double semi_major_km);
 
 // ---------------------------------------------------------------------------
 // B4 (A17=11) - Quantitative and Detailed Information (EWSS CAMF v1.1 §3.7.4)
 // ---------------------------------------------------------------------------
 
 struct B4DetailedInfo {
-    bool     present;
-    uint8_t  a4_code;           // Hazard category/type (raw)
+    bool     present = false;
+    uint8_t  a4_code = 0;           // Hazard category/type (raw)
     static constexpr uint8_t D_COUNT = 36;
     // Presence flags and values for D1..D36 (0-indexed arrays)
-    bool     d_present[D_COUNT];
-    uint8_t  d_values[D_COUNT];
+    bool     d_present[D_COUNT] = {};
+    uint8_t  d_values[D_COUNT] = {};
 };
 
-B4DetailedInfo decodeB4DetailedInfo(uint16_t a18, uint8_t a4_code);
+void decodeB4DetailedInfo(uint16_t a18, uint8_t a4_code, B4DetailedInfo& out);
 
 } // namespace internal
 } // namespace azaraC

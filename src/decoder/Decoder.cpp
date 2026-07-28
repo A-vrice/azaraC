@@ -1,8 +1,7 @@
-// azaraC - src/internal/Decoder.cpp
+// azaraC - src/decoder/Decoder.cpp
 // Common decoder utilities (CRC, bit extraction, time resolution)
 
 #include "Decoder.h"
-#include <cassert>
 
 namespace azaraC {
 namespace internal {
@@ -35,8 +34,13 @@ uint32_t Decoder::crc24q(const uint8_t* data, uint16_t bit_len) {
 // Bit extraction (MSB-first, 0-indexed)
 // ---------------------------------------------------------------------------
 uint32_t Decoder::getBits(const uint8_t* buf, uint16_t start, uint8_t len) {
-    // Boundary check: ensure we don't read beyond the 256-bit (32-byte) frame buffer
-    assert(start + len <= 256);
+    // Boundary check: silently return 0 for out-of-range reads,
+    // but raise OOB flag so decode() can reject the result.
+    // This is intentional for embedded safety — avoids crashes on corrupt frames
+    // rather than asserting or throwing.
+    // The limit is 256 (not 250) because Frame::bits is a 32-byte (256-bit) array;
+    // bits 250-255 are padding, guaranteed zero by all framers.
+    if (start + len > 256) { oob_ = true; return 0; }
     uint32_t val = 0;
     for (uint8_t i = 0; i < len; ++i) {
         uint16_t pos = start + i;
@@ -49,7 +53,8 @@ uint32_t Decoder::getBits(const uint8_t* buf, uint16_t start, uint8_t len) {
 // 64-bit bit extraction (MSB-first, 0-indexed) — for fields > 32 bits
 // ---------------------------------------------------------------------------
 uint64_t Decoder::getBits64(const uint8_t* buf, uint16_t start, uint8_t len) {
-    assert(start + len <= 256);
+    // Same silent-zero-with-oob-flag policy as getBits()
+    if (start + len > 256) { oob_ = true; return 0; }
     uint64_t val = 0;
     for (uint8_t i = 0; i < len; ++i) {
         uint16_t pos = start + i;
@@ -62,9 +67,8 @@ uint64_t Decoder::getBits64(const uint8_t* buf, uint16_t start, uint8_t len) {
 // Signed bit extraction (two's complement, MSB-first)
 // ---------------------------------------------------------------------------
 int32_t Decoder::getSignedBits(const uint8_t* buf, uint16_t start, uint8_t len) {
+    if (len == 0 || len > 32) return 0;
     uint32_t val = getBits(buf, start, len);
-    assert(len <= 32);
-    if (len == 0) return 0;
     // Sign extension: only if len < 32 to avoid undefined behavior (shift by 32)
     if (len < 32 && (val & (1u << (len - 1)))) {
         val |= 0xFFFFFFFFu << len;
@@ -162,6 +166,12 @@ TimeFields Decoder::resolveTime(uint8_t month, uint8_t day, uint8_t hour, uint8_
 
     if (month == 0) {
         // Month not provided (DHM only): resolve month/year from base with day-wrap correction
+        // ±15 day heuristic: assumes message arrival delay ≤ 15 days relative to report_unix.
+        // This is safe for near-real-time QZSS signals (typical delay < 1 day).
+        // Edge case: report close to month boundary with message from far past/future
+        // (e.g., report Jan 1, message day 16 from prior Dec) may resolve incorrectly
+        // if the day difference exceeds 15. On embedded targets without persistent RTC
+        // this is an acceptable trade-off.
         int32_t diff = (int32_t)day - (int32_t)d;
         if (diff > 15) {
             if (m == 1) { m = 12; y--; } else { m--; }
@@ -237,6 +247,9 @@ uint8_t Decoder::readNotifications(const uint8_t* b, uint16_t start, uint16_t* n
 // Main decode entry
 // ---------------------------------------------------------------------------
 bool Decoder::decode(const Frame& frame, Message& out, uint32_t report_unix) {
+    oob_ = false;
+    out         = {};
+    out.svid    = frame.svid;
     const uint8_t* bits = frame.bits;
 
     // L1S subframe: CRC-24Q covers bits [0..225], CRC stored at [226..249]
@@ -244,8 +257,6 @@ bool Decoder::decode(const Frame& frame, Message& out, uint32_t report_unix) {
     uint32_t recv = getBits(bits, 226, 24);
     if (calc != recv) return false;
 
-    out         = {};
-    out.svid    = frame.svid;
     out.crc24   = recv;
     out.valid   = false;
     out.payload_type = MsgPayloadType::Empty;
@@ -256,8 +267,17 @@ bool Decoder::decode(const Frame& frame, Message& out, uint32_t report_unix) {
     uint8_t mt = getBits(bits, 8, 6);
     out.msg_type = mt;
 
-    if      (mt == 44) return decodeDcx(bits, out, report_unix);
-    else if (mt == 43) return decodeQzqsm(bits, out, report_unix);
+    if (mt == 44) {
+#if (AZARAC_ENABLE_DCX_CAMF)
+        bool ok = decodeDcx(bits, out, report_unix);
+        return ok && !oob_;
+#else
+        out.unsupported_reason = UnsupportedReason::DisabledAtCompileTime;
+        return false;
+#endif
+    }
+    if (mt == 43) { bool ok = decodeQzqsm(bits, out, report_unix); return ok && !oob_; }
+    out.unsupported_reason = UnsupportedReason::UnknownCategory;
     return false;
 }
 

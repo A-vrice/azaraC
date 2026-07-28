@@ -21,7 +21,68 @@ namespace internal {
 // ---------------------------------------------------------------------------
 bool Decoder::decodeQzqsm(const uint8_t* bits, Message& out, uint32_t report_unix) {
     uint8_t ver = getBits(bits, 214, 6);
-    if (ver != 1) return false;  // unsupported version
+    if (ver != 1) {
+        out.unsupported_reason = UnsupportedReason::UnsupportedVersion;
+        return false;
+    }
+
+    // Pre-check: is this disaster_category supported (enabled at compile time)?
+    // We must check BEFORE initPayload() to ensure no metadata is returned
+    // for disabled categories (design: unsupported_reason + msg_type only).
+    uint8_t dc_probe = getBits(bits, 17, 4);
+    bool category_supported = false;
+#if (AZARAC_ENABLE_EEW)
+    if (dc_probe == 1) category_supported = true;
+#endif
+#if (AZARAC_ENABLE_HYPOCENTER)
+    if (dc_probe == 2) category_supported = true;
+#endif
+#if (AZARAC_ENABLE_SEISMIC)
+    if (dc_probe == 3) category_supported = true;
+#endif
+#if (AZARAC_ENABLE_NANKAI)
+    if (dc_probe == 4) category_supported = true;
+#endif
+#if (AZARAC_ENABLE_TSUNAMI)
+    if (dc_probe == 5) category_supported = true;
+#endif
+#if (AZARAC_ENABLE_NW_PAC_TSUNAMI)
+    if (dc_probe == 6) category_supported = true;
+#endif
+#if (AZARAC_ENABLE_VOLCANO)
+    if (dc_probe == 8) category_supported = true;
+#endif
+#if (AZARAC_ENABLE_ASH_FALL)
+    if (dc_probe == 9) category_supported = true;
+#endif
+#if (AZARAC_ENABLE_WEATHER)
+    if (dc_probe == 10) category_supported = true;
+#endif
+#if (AZARAC_ENABLE_FLOOD)
+    if (dc_probe == 11) category_supported = true;
+#endif
+#if (AZARAC_ENABLE_TYPHOON)
+    if (dc_probe == 12) category_supported = true;
+#endif
+#if (AZARAC_ENABLE_MARINE)
+    if (dc_probe == 14) category_supported = true;
+#endif
+    // Determine if dc_probe is a recognized disaster category (regardless of compile config)
+    bool category_known = false;
+    switch (dc_probe) {
+        case 1: case 2: case 3: case 4: case 5: case 6:
+        case 8: case 9: case 10: case 11: case 12: case 14:
+            category_known = true;
+            break;
+        default:
+            break;
+    }
+    if (!category_supported) {
+        out.unsupported_reason = category_known
+            ? UnsupportedReason::DisabledAtCompileTime
+            : UnsupportedReason::UnknownCategory;
+        return false;
+    }
 
     // Initialize Mt43Data payload using placement new
     out.initPayload<Mt43Data>();
@@ -29,7 +90,7 @@ bool Decoder::decodeQzqsm(const uint8_t* bits, Message& out, uint32_t report_uni
     if (!d) return false;
 
     d->report_classification = getBits(bits, 14,  3);
-    d->disaster_category     = getBits(bits, 17,  4);
+    d->disaster_category     = dc_probe;
     d->information_type      = getBits(bits, 41,  2);
 
     // report_time: month(4b)+day(5b)+hour(5b)+min(6b) at bit 21
@@ -45,27 +106,58 @@ bool Decoder::decodeQzqsm(const uint8_t* bits, Message& out, uint32_t report_uni
 
     // Use event_unix for sub-decoder DHM resolution (report_time baseline)
     uint32_t sub_base = (event_unix > 0) ? event_unix : report_unix;
+    (void)sub_base; // may be unused when all AZARAC_ENABLE_* macros are disabled
 
-    switch (d->disaster_category) {
-        case  1: decodeEEW       (bits, out, sub_base); break;
-        case  2: decodeHypocenter(bits, out, sub_base); break;
-        case  3: decodeSeismic   (bits, out, sub_base); break;
-        case  4: decodeNankai    (bits, out);            break;
-        case  5: decodeTsunami   (bits, out, sub_base); break;
-        case  6: decodeNwPacTsu  (bits, out, sub_base); break;
-        case  8: decodeVolcano   (bits, out, sub_base); break;
-        case  9: decodeAshFall   (bits, out, sub_base); break;
-        case 10: decodeWeather   (bits, out);            break;
-        case 11: decodeFlood     (bits, out);            break;
-        case 12: decodeTyphoon   (bits, out, sub_base); break;
-        case 14: decodeMarine    (bits, out);            break;
-        default: return false; // Unknown category, cannot decode full message
+    // Dispatch to enabled sub-decoders based on disaster_category
+    bool decoded = false;
+#if (AZARAC_ENABLE_EEW)
+    if (d->disaster_category == 1) { decodeEEW(bits, out, sub_base); decoded = true; }
+#endif
+#if (AZARAC_ENABLE_HYPOCENTER)
+    if (d->disaster_category == 2) { decodeHypocenter(bits, out, sub_base); decoded = true; }
+#endif
+#if (AZARAC_ENABLE_SEISMIC)
+    if (d->disaster_category == 3) { decodeSeismic(bits, out, sub_base); decoded = true; }
+#endif
+#if (AZARAC_ENABLE_NANKAI)
+    if (d->disaster_category == 4) { decodeNankai(bits, out); decoded = true; }
+#endif
+#if (AZARAC_ENABLE_TSUNAMI)
+    if (d->disaster_category == 5) { decodeTsunami(bits, out, sub_base); decoded = true; }
+#endif
+#if (AZARAC_ENABLE_NW_PAC_TSUNAMI)
+    if (d->disaster_category == 6) { decodeNwPacTsu(bits, out, sub_base); decoded = true; }
+#endif
+#if (AZARAC_ENABLE_VOLCANO)
+    if (d->disaster_category == 8) { decodeVolcano(bits, out, sub_base); decoded = true; }
+#endif
+#if (AZARAC_ENABLE_ASH_FALL)
+    if (d->disaster_category == 9) { decodeAshFall(bits, out, sub_base); decoded = true; }
+#endif
+#if (AZARAC_ENABLE_WEATHER)
+    if (d->disaster_category == 10) { decodeWeather(bits, out); decoded = true; }
+#endif
+#if (AZARAC_ENABLE_FLOOD)
+    if (d->disaster_category == 11) { decodeFlood(bits, out); decoded = true; }
+#endif
+#if (AZARAC_ENABLE_TYPHOON)
+    if (d->disaster_category == 12) { decodeTyphoon(bits, out, sub_base); decoded = true; }
+#endif
+#if (AZARAC_ENABLE_MARINE)
+    if (d->disaster_category == 14) { decodeMarine(bits, out); decoded = true; }
+#endif
+    if (!decoded) {
+        out.unsupported_reason = category_known
+            ? UnsupportedReason::DisabledAtCompileTime
+            : UnsupportedReason::UnknownCategory;
+        return false;
     }
 
     out.valid = true;
     return true;
 }
 
+#if (AZARAC_ENABLE_EEW)
 // ---------------------------------------------------------------------------
 // EEW  (disaster_category == 1)
 // ---------------------------------------------------------------------------
@@ -101,7 +193,9 @@ void Decoder::decodeEEW(const uint8_t* b, Message& out, uint32_t report_unix) {
         }
     }
 }
+#endif // AZARAC_ENABLE_EEW
 
+#if (AZARAC_ENABLE_HYPOCENTER)
 // ---------------------------------------------------------------------------
 // Hypocenter  (disaster_category == 2)
 // ---------------------------------------------------------------------------
@@ -123,7 +217,9 @@ void Decoder::decodeHypocenter(const uint8_t* b, Message& out, uint32_t report_u
     hypo->epicenter  = getBits(b, 112, 10);
     hypo->coords     = extractLatLon(b, 122);  // 41 bits
 }
+#endif // AZARAC_ENABLE_HYPOCENTER
 
+#if (AZARAC_ENABLE_SEISMIC)
 // ---------------------------------------------------------------------------
 // Seismic Intensity  (disaster_category == 3)
 // ---------------------------------------------------------------------------
@@ -152,7 +248,9 @@ void Decoder::decodeSeismic(const uint8_t* b, Message& out, uint32_t report_unix
         }
     }
 }
+#endif // AZARAC_ENABLE_SEISMIC
 
+#if (AZARAC_ENABLE_NANKAI)
 // ---------------------------------------------------------------------------
 // Nankai Trough  (disaster_category == 4)
 // ---------------------------------------------------------------------------
@@ -174,7 +272,9 @@ void Decoder::decodeNankai(const uint8_t* b, Message& out) {
     for (uint8_t i = 0; i < 18; ++i)
         nankai->text[i] = getBits(b, 57 + i * 8, 8);
 }
+#endif // AZARAC_ENABLE_NANKAI
 
+#if (AZARAC_ENABLE_TSUNAMI)
 // ---------------------------------------------------------------------------
 // Tsunami  (disaster_category == 5)
 // arrival time sub-field: nextday(1)+hour(5)+minute(6) = 12 bits
@@ -209,7 +309,9 @@ void Decoder::decodeTsunami(const uint8_t* b, Message& out, uint32_t report_unix
         e.arrival_time     = resolveArrivalTime(e.arrival_time_raw, d->event_time.unix_time);
     }
 }
+#endif // AZARAC_ENABLE_TSUNAMI
 
+#if (AZARAC_ENABLE_NW_PAC_TSUNAMI)
 // ---------------------------------------------------------------------------
 // NW Pacific Tsunami  (disaster_category == 6)
 // ---------------------------------------------------------------------------
@@ -243,7 +345,9 @@ void Decoder::decodeNwPacTsu(const uint8_t* b, Message& out, uint32_t report_uni
         e.arrival_time     = resolveArrivalTime(e.arrival_time_raw, d->event_time.unix_time);
     }
 }
+#endif // AZARAC_ENABLE_NW_PAC_TSUNAMI
 
+#if (AZARAC_ENABLE_VOLCANO)
 // ---------------------------------------------------------------------------
 // Volcano  (disaster_category == 8)
 // ---------------------------------------------------------------------------
@@ -269,7 +373,9 @@ void Decoder::decodeVolcano(const uint8_t* b, Message& out, uint32_t report_unix
         vol->local_govs[vol->lg_count++] = lg;
     }
 }
+#endif // AZARAC_ENABLE_VOLCANO
 
+#if (AZARAC_ENABLE_ASH_FALL)
 // ---------------------------------------------------------------------------
 // Ash Fall  (disaster_category == 9)
 // ---------------------------------------------------------------------------
@@ -297,7 +403,9 @@ void Decoder::decodeAshFall(const uint8_t* b, Message& out, uint32_t report_unix
         ++ash->count;
     }
 }
+#endif // AZARAC_ENABLE_ASH_FALL
 
+#if (AZARAC_ENABLE_WEATHER)
 // ---------------------------------------------------------------------------
 // Weather  (disaster_category == 10)
 // ---------------------------------------------------------------------------
@@ -322,7 +430,9 @@ void Decoder::decodeWeather(const uint8_t* b, Message& out) {
         ++wx->count;
     }
 }
+#endif // AZARAC_ENABLE_WEATHER
 
+#if (AZARAC_ENABLE_FLOOD)
 // ---------------------------------------------------------------------------
 // Flood  (disaster_category == 11)
 // ---------------------------------------------------------------------------
@@ -352,7 +462,9 @@ void Decoder::decodeFlood(const uint8_t* b, Message& out) {
         ++flood->count;
     }
 }
+#endif // AZARAC_ENABLE_FLOOD
 
+#if (AZARAC_ENABLE_MARINE)
 // ---------------------------------------------------------------------------
 // Marine  (disaster_category == 14)
 // ---------------------------------------------------------------------------
@@ -378,7 +490,9 @@ void Decoder::decodeMarine(const uint8_t* b, Message& out) {
         ++marine->count;
     }
 }
+#endif // AZARAC_ENABLE_MARINE
 
+#if (AZARAC_ENABLE_TYPHOON)
 // ---------------------------------------------------------------------------
 // Typhoon  (disaster_category == 12)
 // IS-QZSS-DCR-016 Table 4.1.2-47
@@ -428,6 +542,7 @@ void Decoder::decodeTyphoon(const uint8_t* b, Message& out, uint32_t report_unix
     // Maximum wind gust speed: 7 bits at [161..167]
     typh->max_gust = getBits(b, 161, 7);
 }
+#endif // AZARAC_ENABLE_TYPHOON
 
 } // namespace internal
 } // namespace azaraC

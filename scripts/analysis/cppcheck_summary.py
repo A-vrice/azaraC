@@ -42,10 +42,13 @@ CPPCHECK_BASE_ARGS = [
     "--enable=warning,performance,portability",
     "--inline-suppr",
     "--suppress=missingIncludeSystem",
+    "--suppress=*:test/doctest.h",
     "--std=c++17",
     "--xml",
     "-Isrc",
     "-Itest",
+    "-DAZARAC_NANKAI_MAX_PAGES=63",
+    "-DAZARAC_NANKAI_AGGREGATED_TEXT_SIZE=1135",
     "src",
     "test",
 ]
@@ -107,6 +110,10 @@ def parse_cppcheck_xml(xml_str: str) -> dict:
         else:
             file_path = "(unknown)"
             line = "0"
+
+        # Skip issues from third-party test framework (doctest.h)
+        if "doctest.h" in file_path:
+            continue
 
         issue = {
             "file": file_path,

@@ -15,7 +15,7 @@ public:
 private:
     enum class St : uint8_t { WAIT, COLLECT, CSUM1, CSUM2 };
     St      _st    = St::WAIT;
-    char    _buf[128] = {};
+    char    _buf[82] = {};
     uint8_t _pos   = 0;
     uint8_t _xsum  = 0;  // running XOR
     uint8_t _csumH = 0;

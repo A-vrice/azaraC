@@ -6,12 +6,23 @@
 #include "../test_helpers.h"
 #include "doctest.h"
 #include <cstring>
+#include <limits>
 #include <string>
 
 using namespace azaraC;
 
 static bool has(const std::string& s, const char* sub) {
     return s.find(sub) != std::string::npos;
+}
+
+// JSON文字列中で "key":value が正しい境界で存在することを検証
+// value の直後が , } または文字列終端であることを確認
+static bool hasField(const std::string& s, const std::string& key_val) {
+    auto pos = s.find(key_val);
+    if (pos == std::string::npos) return false;
+    size_t end = pos + key_val.size();
+    // value の直後が JSON の区切り文字または文字列終端
+    return end >= s.size() || s[end] == ',' || s[end] == '}' || s[end] == '\n' || s[end] == ' ';
 }
 
 // Helper to create Mt43Data with safe initialization
@@ -41,7 +52,9 @@ static void initMt43As(Message& m, uint8_t dc) {
         case 1: mt43->initAs<EewData>(); break;
         case 2: mt43->initAs<HypocenterData>(); break;
         case 3: mt43->initAs<SeismicData>(); break;
+#if (AZARAC_ENABLE_NANKAI)
         case 4: mt43->initAs<NankaiData>(); break;
+#endif
         case 5: mt43->initAs<TsunamiData>(); break;
         case 6: mt43->initAs<NwPacTsunamiData>(); break;
         case 8: mt43->initAs<VolcanoData>(); break;
@@ -58,6 +71,7 @@ static void initMt43As(Message& m, uint8_t dc) {
 // MT=44 DCX JSON 出力テスト
 // ═══════════════════════════════════════════════════════════════════════════════
 
+#if (AZARAC_ENABLE_DCX_CAMF)
 TEST_CASE("JSON Serialization: MT=44 DCX L-Alert") {
     Message m{};
     m.svid = 193; m.crc24 = 0xABCDEF;
@@ -79,14 +93,14 @@ TEST_CASE("JSON Serialization: MT=44 DCX L-Alert") {
     internal::JsonSerializer::serialize(m, sp);
     const auto& s = sp.str();
 
-    CHECK(has(s, "\"msg_type\":44"));
-    CHECK(has(s, "\"dcx_type\":1"));
-    CHECK(has(s, "\"dcx_type_label\":\"L_ALERT\""));
-    CHECK(has(s, "\"a2_country\":111"));
-    CHECK(has(s, "\"a3_provider\":1"));
-    CHECK(has(s, "\"ex1_target_area\":1100"));
-    CHECK(has(s, "\"sd_sdmt\":0"));
-    CHECK(has(s, "\"sd_sdm\":511"));
+    CHECK(hasField(s, "\"msg_type\":44"));
+    CHECK(hasField(s, "\"dcx_type\":1"));
+    CHECK(hasField(s, "\"dcx_type_label\":\"L_ALERT\""));
+    CHECK(hasField(s, "\"a2_country\":111"));
+    CHECK(hasField(s, "\"a3_provider\":1"));
+    CHECK(hasField(s, "\"ex1_target_area\":1100"));
+    CHECK(hasField(s, "\"sd_sdmt\":0"));
+    CHECK(hasField(s, "\"sd_sdm\":511"));
 }
 
 TEST_CASE("JSON Serialization: MT=44 DCX J-Alert") {
@@ -114,15 +128,15 @@ TEST_CASE("JSON Serialization: MT=44 DCX J-Alert") {
     internal::JsonSerializer::serialize(m, sp);
     const auto& s = sp.str();
 
-    CHECK(has(s, "\"msg_type\":44"));
-    CHECK(has(s, "\"dcx_type\":2"));
-    CHECK(has(s, "\"dcx_type_label\":\"J_ALERT\""));
-    CHECK(has(s, "\"a2_country\":111"));
-    CHECK(has(s, "\"a3_provider\":2"));
-    CHECK(has(s, "\"ex8_area_type\":0"));
+    CHECK(hasField(s, "\"msg_type\":44"));
+    CHECK(hasField(s, "\"dcx_type\":2"));
+    CHECK(hasField(s, "\"dcx_type_label\":\"J_ALERT\""));
+    CHECK(hasField(s, "\"a2_country\":111"));
+    CHECK(hasField(s, "\"a3_provider\":2"));
+    CHECK(hasField(s, "\"ex8_area_type\":0"));
     CHECK(has(s, "\"jalert_target\":{"));
-    CHECK(has(s, "\"prefecture_mode\":1"));
-    CHECK(has(s, "\"prefecture_positions\":[47,46,45]"));
+    CHECK(hasField(s, "\"prefecture_mode\":1"));
+    CHECK(hasField(s, "\"prefecture_positions\":[47,46,45]"));
 }
 
 TEST_CASE("JSON Serialization: MT=44 DCX Local Government") {
@@ -152,13 +166,13 @@ TEST_CASE("JSON Serialization: MT=44 DCX Local Government") {
     internal::JsonSerializer::serialize(m, sp);
     const auto& s = sp.str();
 
-    CHECK(has(s, "\"msg_type\":44"));
-    CHECK(has(s, "\"dcx_type\":3"));
-    CHECK(has(s, "\"dcx_type_label\":\"LOCAL_GOV\""));
-    CHECK(has(s, "\"a3_provider\":4"));
-    CHECK(has(s, "\"ex1_target_area\":1100"));
+    CHECK(hasField(s, "\"msg_type\":44"));
+    CHECK(hasField(s, "\"dcx_type\":3"));
+    CHECK(hasField(s, "\"dcx_type_label\":\"LOCAL_GOV\""));
+    CHECK(hasField(s, "\"a3_provider\":4"));
+    CHECK(hasField(s, "\"ex1_target_area\":1100"));
     CHECK(has(s, "\"additional_area\":{"));
-    CHECK(has(s, "\"head_to_area\":1"));
+    CHECK(hasField(s, "\"head_to_area\":1"));
 }
 
 TEST_CASE("JSON Serialization: MT=44 DCX Outside Japan") {
@@ -178,10 +192,10 @@ TEST_CASE("JSON Serialization: MT=44 DCX Outside Japan") {
     internal::JsonSerializer::serialize(m, sp);
     const auto& s = sp.str();
 
-    CHECK(has(s, "\"msg_type\":44"));
-    CHECK(has(s, "\"dcx_type\":4"));
-    CHECK(has(s, "\"dcx_type_label\":\"OUTSIDE_JAPAN\""));
-    CHECK(has(s, "\"a2_country\":32"));
+    CHECK(hasField(s, "\"msg_type\":44"));
+    CHECK(hasField(s, "\"dcx_type\":4"));
+    CHECK(hasField(s, "\"dcx_type_label\":\"OUTSIDE_JAPAN\""));
+    CHECK(hasField(s, "\"a2_country\":32"));
 }
 
 TEST_CASE("JSON Serialization: MT=44 DCX Null Message") {
@@ -200,9 +214,9 @@ TEST_CASE("JSON Serialization: MT=44 DCX Null Message") {
     internal::JsonSerializer::serialize(m, sp);
     const auto& s = sp.str();
 
-    CHECK(has(s, "\"msg_type\":44"));
-    CHECK(has(s, "\"dcx_type\":0"));
-    CHECK(has(s, "\"dcx_type_label\":\"NULL\""));
+    CHECK(hasField(s, "\"msg_type\":44"));
+    CHECK(hasField(s, "\"dcx_type\":0"));
+    CHECK(hasField(s, "\"dcx_type_label\":\"NULL\""));
 }
 
 TEST_CASE("JSON Serialization: MT=44 DCX Unknown") {
@@ -221,9 +235,9 @@ TEST_CASE("JSON Serialization: MT=44 DCX Unknown") {
     internal::JsonSerializer::serialize(m, sp);
     const auto& s = sp.str();
 
-    CHECK(has(s, "\"msg_type\":44"));
-    CHECK(has(s, "\"dcx_type\":5"));
-    CHECK(has(s, "\"dcx_type_label\":\"UNKNOWN\""));
+    CHECK(hasField(s, "\"msg_type\":44"));
+    CHECK(hasField(s, "\"dcx_type\":5"));
+    CHECK(hasField(s, "\"dcx_type_label\":\"UNKNOWN\""));
 }
 
 TEST_CASE("JSON Serialization: MT=44 DCX main ellipse") {
@@ -245,18 +259,31 @@ TEST_CASE("JSON Serialization: MT=44 DCX main ellipse") {
     internal::JsonSerializer::serialize(m, sp);
     const auto& s = sp.str();
 
-    CHECK(has(s,"\"svid\":193"));
-    CHECK(has(s,"\"msg_type\":44"));
-    CHECK(has(s,"\"a2_country\":111"));
+    CHECK(hasField(s,"\"svid\":193"));
+    CHECK(hasField(s,"\"msg_type\":44"));
+    CHECK(hasField(s,"\"a2_country\":111"));
     CHECK(has(s,"\"main_ellipse\":{"));
-    CHECK(has(s,"\"lat_deg\":35.600"));
-    CHECK(has(s,"\"lon_deg\":139.600"));
+#ifdef AZARAC_DCX_USE_FLOAT
+    {
+        bool lat_ok = hasField(s,"\"lat_deg\":35.59") || hasField(s,"\"lat_deg\":35.60");
+        CHECK(lat_ok);
+    }
+    {
+        bool lon_ok = hasField(s,"\"lon_deg\":139.59") || hasField(s,"\"lon_deg\":139.60");
+        CHECK(lon_ok);
+    }
+#else
+    CHECK(hasField(s,"\"lat_deg\":35.600000"));
+    CHECK(hasField(s,"\"lon_deg\":139.600000"));
+#endif
 }
+#endif // AZARAC_ENABLE_DCX_CAMF
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MT=43 DCR JSON 出力テスト
 // ═══════════════════════════════════════════════════════════════════════════════
 
+#if (AZARAC_ENABLE_EEW)
 TEST_CASE("JSON Serialization: MT=43 EEW") {
     Message m{};
     initMt43As(m, 1);
@@ -275,13 +302,15 @@ TEST_CASE("JSON Serialization: MT=43 EEW") {
     internal::JsonSerializer::serialize(m, sp);
     const auto& s = sp.str();
 
-    CHECK(has(s,"\"disaster_category\":1"));
+    CHECK(hasField(s,"\"disaster_category\":1"));
     CHECK(has(s,"\"detail\":{"));
-    CHECK(has(s,"\"depth\":60"));
-    CHECK(has(s,"\"magnitude\":65"));
+    CHECK(hasField(s,"\"depth\":60"));
+    CHECK(hasField(s,"\"magnitude\":65"));
     CHECK(has(s,"\"regions\":["));
 }
+#endif // AZARAC_ENABLE_EEW
 
+#if (AZARAC_ENABLE_SEISMIC)
 TEST_CASE("JSON Serialization: MT=43 Seismic Intensity") {
     Message m{};
     initMt43As(m, 3);
@@ -299,12 +328,14 @@ TEST_CASE("JSON Serialization: MT=43 Seismic Intensity") {
     internal::JsonSerializer::serialize(m, sp);
     const auto& s = sp.str();
 
-    CHECK(has(s,"\"disaster_category\":3"));
+    CHECK(hasField(s,"\"disaster_category\":3"));
     CHECK(has(s,"\"entries\":["));
-    CHECK(has(s,"\"intensity\":4"));
-    CHECK(has(s,"\"prefecture\":13"));
+    CHECK(hasField(s,"\"intensity\":4"));
+    CHECK(hasField(s,"\"prefecture\":13"));
 }
+#endif // AZARAC_ENABLE_SEISMIC
 
+#if (AZARAC_ENABLE_HYPOCENTER)
 TEST_CASE("JSON Serialization: MT=43 Hypocenter") {
     Message m{};
     initMt43As(m, 2);
@@ -324,14 +355,16 @@ TEST_CASE("JSON Serialization: MT=43 Hypocenter") {
     internal::JsonSerializer::serialize(m, sp);
     const auto& s = sp.str();
 
-    CHECK(has(s, "\"disaster_category\":2"));
+    CHECK(hasField(s, "\"disaster_category\":2"));
     CHECK(has(s, "\"detail\":{"));
-    CHECK(has(s, "\"depth\":40"));
-    CHECK(has(s, "\"magnitude\":64"));
-    CHECK(has(s, "\"epicenter\":791"));
+    CHECK(hasField(s, "\"depth\":40"));
+    CHECK(hasField(s, "\"magnitude\":64"));
+    CHECK(hasField(s, "\"epicenter\":791"));
     CHECK(has(s, "\"notifications\":["));
 }
+#endif // AZARAC_ENABLE_HYPOCENTER
 
+#if (AZARAC_ENABLE_TSUNAMI)
 TEST_CASE("JSON Serialization: MT=43 Tsunami") {
     Message m{};
     initMt43As(m, 5);
@@ -352,14 +385,16 @@ TEST_CASE("JSON Serialization: MT=43 Tsunami") {
     internal::JsonSerializer::serialize(m, sp);
     const auto& s = sp.str();
 
-    CHECK(has(s, "\"disaster_category\":5"));
+    CHECK(hasField(s, "\"disaster_category\":5"));
     CHECK(has(s, "\"detail\":{"));
-    CHECK(has(s, "\"warning_code\":3"));
+    CHECK(hasField(s, "\"warning_code\":3"));
     CHECK(has(s, "\"entries\":["));
-    CHECK(has(s, "\"region\":65"));
-    CHECK(has(s, "\"height\":4"));
+    CHECK(hasField(s, "\"region\":65"));
+    CHECK(hasField(s, "\"height\":4"));
 }
+#endif // AZARAC_ENABLE_TSUNAMI
 
+#if (AZARAC_ENABLE_NANKAI)
 TEST_CASE("JSON Serialization: MT=43 Nankai Trough") {
     Message m{};
     initMt43As(m, 4);
@@ -381,13 +416,15 @@ TEST_CASE("JSON Serialization: MT=43 Nankai Trough") {
     internal::JsonSerializer::serialize(m, sp);
     const auto& s = sp.str();
 
-    CHECK(has(s, "\"disaster_category\":4"));
+    CHECK(hasField(s, "\"disaster_category\":4"));
     CHECK(has(s, "\"detail\":{"));
-    CHECK(has(s, "\"info_code\":1"));
-    CHECK(has(s, "\"page\":2"));
-    CHECK(has(s, "\"total_page\":3"));
+    CHECK(hasField(s, "\"info_code\":1"));
+    CHECK(hasField(s, "\"page\":2"));
+    CHECK(hasField(s, "\"total_page\":3"));
 }
+#endif // AZARAC_ENABLE_NANKAI
 
+#if (AZARAC_ENABLE_NW_PAC_TSUNAMI)
 TEST_CASE("JSON Serialization: MT=43 NW Pacific Tsunami") {
     Message m{};
     initMt43As(m, 6);
@@ -406,12 +443,14 @@ TEST_CASE("JSON Serialization: MT=43 NW Pacific Tsunami") {
     internal::JsonSerializer::serialize(m, sp);
     const auto& s = sp.str();
 
-    CHECK(has(s, "\"disaster_category\":6"));
+    CHECK(hasField(s, "\"disaster_category\":6"));
     CHECK(has(s, "\"detail\":{"));
-    CHECK(has(s, "\"potential\":2"));
+    CHECK(hasField(s, "\"potential\":2"));
     CHECK(has(s, "\"entries\":["));
 }
+#endif // AZARAC_ENABLE_NW_PAC_TSUNAMI
 
+#if (AZARAC_ENABLE_VOLCANO)
 TEST_CASE("JSON Serialization: MT=43 Volcano") {
     Message m{};
     initMt43As(m, 8);
@@ -431,13 +470,15 @@ TEST_CASE("JSON Serialization: MT=43 Volcano") {
     internal::JsonSerializer::serialize(m, sp);
     const auto& s = sp.str();
 
-    CHECK(has(s, "\"disaster_category\":8"));
+    CHECK(hasField(s, "\"disaster_category\":8"));
     CHECK(has(s, "\"detail\":{"));
-    CHECK(has(s, "\"warning_code\":52"));
-    CHECK(has(s, "\"volcano_name\":503"));
+    CHECK(hasField(s, "\"warning_code\":52"));
+    CHECK(hasField(s, "\"volcano_name\":503"));
     CHECK(has(s, "\"local_govs\":["));
 }
+#endif // AZARAC_ENABLE_VOLCANO
 
+#if (AZARAC_ENABLE_ASH_FALL)
 TEST_CASE("JSON Serialization: MT=43 Ash Fall") {
     Message m{};
     initMt43As(m, 9);
@@ -461,13 +502,15 @@ TEST_CASE("JSON Serialization: MT=43 Ash Fall") {
     internal::JsonSerializer::serialize(m, sp);
     const auto& s = sp.str();
 
-    CHECK(has(s, "\"disaster_category\":9"));
+    CHECK(hasField(s, "\"disaster_category\":9"));
     CHECK(has(s, "\"detail\":{"));
-    CHECK(has(s, "\"warning_type\":1"));
-    CHECK(has(s, "\"volcano_name\":503"));
+    CHECK(hasField(s, "\"warning_type\":1"));
+    CHECK(hasField(s, "\"volcano_name\":503"));
     CHECK(has(s, "\"entries\":["));
 }
+#endif // AZARAC_ENABLE_ASH_FALL
 
+#if (AZARAC_ENABLE_WEATHER)
 TEST_CASE("JSON Serialization: MT=43 Weather") {
     Message m{};
     initMt43As(m, 10);
@@ -490,14 +533,16 @@ TEST_CASE("JSON Serialization: MT=43 Weather") {
     internal::JsonSerializer::serialize(m, sp);
     const auto& s = sp.str();
 
-    CHECK(has(s, "\"disaster_category\":10"));
+    CHECK(hasField(s, "\"disaster_category\":10"));
     CHECK(has(s, "\"detail\":{"));
-    CHECK(has(s, "\"warning_state\":1"));
+    CHECK(hasField(s, "\"warning_state\":1"));
     CHECK(has(s, "\"entries\":["));
-    CHECK(has(s, "\"sub_category\":2"));
-    CHECK(has(s, "\"region\":11000"));
+    CHECK(hasField(s, "\"sub_category\":2"));
+    CHECK(hasField(s, "\"region\":11000"));
 }
+#endif // AZARAC_ENABLE_WEATHER
 
+#if (AZARAC_ENABLE_FLOOD)
 TEST_CASE("JSON Serialization: MT=43 Flood") {
     Message m{};
     initMt43As(m, 11);
@@ -517,12 +562,14 @@ TEST_CASE("JSON Serialization: MT=43 Flood") {
     internal::JsonSerializer::serialize(m, sp);
     const auto& s = sp.str();
 
-    CHECK(has(s, "\"disaster_category\":11"));
+    CHECK(hasField(s, "\"disaster_category\":11"));
     CHECK(has(s, "\"detail\":{"));
     CHECK(has(s, "\"entries\":["));
-    CHECK(has(s, "\"warning_level\":3"));
+    CHECK(hasField(s, "\"warning_level\":3"));
 }
+#endif // AZARAC_ENABLE_FLOOD
 
+#if (AZARAC_ENABLE_TYPHOON)
 TEST_CASE("JSON Serialization: MT=43 Typhoon") {
     Message m{};
     initMt43As(m, 12);
@@ -547,16 +594,18 @@ TEST_CASE("JSON Serialization: MT=43 Typhoon") {
     internal::JsonSerializer::serialize(m, sp);
     const auto& s = sp.str();
 
-    CHECK(has(s, "\"disaster_category\":12"));
+    CHECK(hasField(s, "\"disaster_category\":12"));
     CHECK(has(s, "\"detail\":{"));
-    CHECK(has(s, "\"number\":21"));
-    CHECK(has(s, "\"scale\":3"));
-    CHECK(has(s, "\"intensity\":2"));
-    CHECK(has(s, "\"pressure\":980"));
-    CHECK(has(s, "\"max_wind\":35"));
-    CHECK(has(s, "\"max_gust\":50"));
+    CHECK(hasField(s, "\"number\":21"));
+    CHECK(hasField(s, "\"scale\":3"));
+    CHECK(hasField(s, "\"intensity\":2"));
+    CHECK(hasField(s, "\"pressure\":980"));
+    CHECK(hasField(s, "\"max_wind\":35"));
+    CHECK(hasField(s, "\"max_gust\":50"));
 }
+#endif // AZARAC_ENABLE_TYPHOON
 
+#if (AZARAC_ENABLE_MARINE)
 TEST_CASE("JSON Serialization: MT=43 Marine") {
     Message m{};
     initMt43As(m, 14);
@@ -576,12 +625,13 @@ TEST_CASE("JSON Serialization: MT=43 Marine") {
     internal::JsonSerializer::serialize(m, sp);
     const auto& s = sp.str();
 
-    CHECK(has(s, "\"disaster_category\":14"));
+    CHECK(hasField(s, "\"disaster_category\":14"));
     CHECK(has(s, "\"detail\":{"));
     CHECK(has(s, "\"entries\":["));
-    CHECK(has(s, "\"warning_code\":19"));
-    CHECK(has(s, "\"region\":100"));
+    CHECK(hasField(s, "\"warning_code\":19"));
+    CHECK(hasField(s, "\"region\":100"));
 }
+#endif // AZARAC_ENABLE_MARINE
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // JSON 構造検証
@@ -686,6 +736,7 @@ TEST_CASE("JSON Serialization: Escape characters in writeStr") {
 // MT=43 report_time JSON 出力テスト (json_serialization.md #2)
 // ═══════════════════════════════════════════════════════════════════════════════
 
+#if (AZARAC_ENABLE_EEW)
 TEST_CASE("JSON Serialization: MT=43 report_time output") {
     Message m{};
     m.msg_type = 43;
@@ -707,17 +758,19 @@ TEST_CASE("JSON Serialization: MT=43 report_time output") {
     const auto& s = sp.str();
 
     CHECK(has(s, "\"report_time\":"));
-    CHECK(has(s, "\"month\":1"));
-    CHECK(has(s, "\"day\":1"));
-    CHECK(has(s, "\"hour\":0"));
-    CHECK(has(s, "\"min\":0"));
-    CHECK(has(s, "\"unix\":1704067200"));
+    CHECK(hasField(s, "\"month\":1"));
+    CHECK(hasField(s, "\"day\":1"));
+    CHECK(hasField(s, "\"hour\":0"));
+    CHECK(hasField(s, "\"min\":0"));
+    CHECK(hasField(s, "\"unix\":1704067200"));
 }
+#endif // AZARAC_ENABLE_EEW
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MT=44 onset_time JSON 出力テスト (json_serialization.md #3)
 // ═══════════════════════════════════════════════════════════════════════════════
 
+#if (AZARAC_ENABLE_DCX_CAMF)
 TEST_CASE("JSON Serialization: MT=44 onset_time output") {
     Message m{};
     m.svid = 193; m.crc24 = 0xABCDEF;
@@ -747,17 +800,19 @@ TEST_CASE("JSON Serialization: MT=44 onset_time output") {
     const auto& s = sp.str();
 
     CHECK(has(s, "\"onset_time\":"));
-    CHECK(has(s, "\"month\":3"));
-    CHECK(has(s, "\"day\":15"));
-    CHECK(has(s, "\"hour\":14"));
-    CHECK(has(s, "\"min\":30"));
-    CHECK(has(s, "\"unix\":1710508200"));
+    CHECK(hasField(s, "\"month\":3"));
+    CHECK(hasField(s, "\"day\":15"));
+    CHECK(hasField(s, "\"hour\":14"));
+    CHECK(hasField(s, "\"min\":30"));
+    CHECK(hasField(s, "\"unix\":1710508200"));
 }
+#endif // AZARAC_ENABLE_DCX_CAMF
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MT=44 sd_sdmt=1 テスト (json_serialization.md #4)
 // ═══════════════════════════════════════════════════════════════════════════════
 
+#if (AZARAC_ENABLE_DCX_CAMF)
 TEST_CASE("JSON Serialization: MT=44 sd_sdmt=1 output") {
     Message m{};
     m.svid = 193; m.crc24 = 0xABCDEF;
@@ -779,13 +834,15 @@ TEST_CASE("JSON Serialization: MT=44 sd_sdmt=1 output") {
     internal::JsonSerializer::serialize(m, sp);
     const auto& s = sp.str();
 
-    CHECK(has(s, "\"sd_sdmt\":1"));
+    CHECK(hasField(s, "\"sd_sdmt\":1"));
 }
+#endif // AZARAC_ENABLE_DCX_CAMF
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MT=44 a6=0 / a8=0 / a9=0 / a10=0 / a11=0 テスト (json_serialization.md #5)
 // ═══════════════════════════════════════════════════════════════════════════════
 
+#if (AZARAC_ENABLE_DCX_CAMF)
 TEST_CASE("JSON Serialization: MT=44 zero-value fields output") {
     Message m{};
     m.svid = 193; m.crc24 = 0xABCDEF;
@@ -812,17 +869,19 @@ TEST_CASE("JSON Serialization: MT=44 zero-value fields output") {
     internal::JsonSerializer::serialize(m, sp);
     const auto& s = sp.str();
 
-    CHECK(has(s, "\"a6_onset_week\":0"));
-    CHECK(has(s, "\"a8_duration\":0"));
-    CHECK(has(s, "\"a9_type_of_library\":0"));
-    CHECK(has(s, "\"a10_library_version\":0"));
-    CHECK(has(s, "\"a11_guidance\":0"));
+    CHECK(hasField(s, "\"a6_onset_week\":0"));
+    CHECK(hasField(s, "\"a8_duration\":0"));
+    CHECK(hasField(s, "\"a9_type_of_library\":0"));
+    CHECK(hasField(s, "\"a10_library_version\":0"));
+    CHECK(hasField(s, "\"a11_guidance\":0"));
 }
+#endif // AZARAC_ENABLE_DCX_CAMF
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MT=43 event_time 未解決 (report_unix=0) テスト (json_serialization.md #6)
 // ═══════════════════════════════════════════════════════════════════════════════
 
+#if (AZARAC_ENABLE_EEW)
 TEST_CASE("JSON Serialization: MT=43 unix_time=0 output") {
     Message m{};
     m.msg_type = 43;
@@ -843,13 +902,15 @@ TEST_CASE("JSON Serialization: MT=43 unix_time=0 output") {
     internal::JsonSerializer::serialize(m, sp);
     const auto& s = sp.str();
 
-    CHECK(has(s, "\"unix\":0"));
+    CHECK(hasField(s, "\"unix\":0"));
 }
+#endif // AZARAC_ENABLE_EEW
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Nankai 集約後 text_utf8 出力テスト (integration_e2e.md #2)
 // ═══════════════════════════════════════════════════════════════════════════════
 
+#if (AZARAC_ENABLE_NANKAI)
 TEST_CASE("JSON Serialization: Nankai aggregated text_utf8 output") {
     Message m{};
     initMt43As(m, 4);  // Nankai
@@ -863,7 +924,7 @@ TEST_CASE("JSON Serialization: Nankai aggregated text_utf8 output") {
     nankai->is_aggregated = true;
     const char* aggregated = "南海トラフ地震に関する情報";
     nankai->aggregated_len = strlen(aggregated);
-    memcpy(nankai->aggregated_text, aggregated, nankai->aggregated_len);
+    nankai->aggregated_text_ptr = aggregated;
 
     StringPrint sp;
     internal::JsonSerializer::serialize(m, sp);
@@ -874,7 +935,9 @@ TEST_CASE("JSON Serialization: Nankai aggregated text_utf8 output") {
     CHECK(s.find("\"text_hex\"") == std::string::npos);
     CHECK(has(s, aggregated));
 }
+#endif // AZARAC_ENABLE_NANKAI
 
+#if (AZARAC_ENABLE_NANKAI)
 TEST_CASE("JSON Serialization: Nankai incomplete text_hex output") {
     Message m{};
     initMt43As(m, 4);  // Nankai
@@ -896,6 +959,94 @@ TEST_CASE("JSON Serialization: Nankai incomplete text_hex output") {
     // Should output text_hex, not text_utf8
     CHECK(s.find("\"text_hex\":") != std::string::npos);
     CHECK(s.find("\"text_utf8\"") == std::string::npos);
-    CHECK(has(s, "\"page\":3"));
-    CHECK(has(s, "\"total_page\":27"));
+    CHECK(hasField(s, "\"page\":3"));
+    CHECK(hasField(s, "\"total_page\":27"));
+}
+#endif // AZARAC_ENABLE_NANKAI
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// JsonWriter 個別関数テスト
+// ═══════════════════════════════════════════════════════════════════════════════
+
+TEST_CASE("wf_u64 出力") {
+    StringPrint sp;
+
+    // 最小値: 0
+    internal::wf_u64(sp, "zero", 0ULL, true);
+    CHECK(sp.str() == "\"zero\":0");
+
+    // 最大値
+    sp = StringPrint{};
+    internal::wf_u64(sp, "max", 18446744073709551615ULL, false);
+    CHECK(sp.str() == "\"max\":18446744073709551615,");
+
+    // 中間値: last=true でカンマなし
+    sp = StringPrint{};
+    internal::wf_u64(sp, "val", 12345678901234ULL, true);
+    CHECK(sp.str() == "\"val\":12345678901234");
+
+    // last=false でカンマあり
+    sp = StringPrint{};
+    internal::wf_u64(sp, "a", 1ULL, false);
+    CHECK(sp.str() == "\"a\":1,");
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// writeDouble エッジケーステスト
+// ═══════════════════════════════════════════════════════════════════════════════
+TEST_CASE("writeDouble: 通常の正の値") {
+    StringPrint sp;
+    internal::writeDouble(sp, 3.14159, 2);
+    CHECK(sp.str() == "3.14");
+}
+
+TEST_CASE("writeDouble: 通常の負の値") {
+    StringPrint sp;
+    internal::writeDouble(sp, -3.14159, 2);
+    CHECK(sp.str() == "-3.14");
+}
+
+TEST_CASE("writeDouble: ゼロ") {
+    StringPrint sp;
+    internal::writeDouble(sp, 0.0, 3);
+    CHECK(sp.str() == "0.000");
+}
+
+TEST_CASE("writeDouble: 負の微小値がゼロに丸められる (符号抑制)") {
+    StringPrint sp;
+    internal::writeDouble(sp, -0.0000001, 6);
+    CHECK(sp.str() == "0.000000");
+}
+
+TEST_CASE("writeDouble: 負の微小値がゼロに丸められる (precision=3)") {
+    StringPrint sp;
+    internal::writeDouble(sp, -0.0004, 3);
+    CHECK(sp.str() == "0.000");
+}
+
+TEST_CASE("writeDouble: 符号抑制のしきい値超えで符号あり") {
+    StringPrint sp;
+    internal::writeDouble(sp, -0.000001, 6);
+    CHECK(sp.str() == "-0.000001");
+}
+
+TEST_CASE("writeDouble: NaNはnull") {
+    StringPrint sp;
+    double nan = std::numeric_limits<double>::quiet_NaN();
+    internal::writeDouble(sp, nan, 3);
+    CHECK(sp.str() == "null");
+}
+
+TEST_CASE("writeDouble: 無限大はnull") {
+    StringPrint sp;
+    double inf = std::numeric_limits<double>::infinity();
+    internal::writeDouble(sp, inf, 3);
+    CHECK(sp.str() == "null");
+}
+
+TEST_CASE("writeDouble: 負の無限大はnull") {
+    StringPrint sp;
+    double ninf = -std::numeric_limits<double>::infinity();
+    internal::writeDouble(sp, ninf, 3);
+    CHECK(sp.str() == "null");
 }

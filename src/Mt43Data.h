@@ -3,28 +3,21 @@
 // MT=43 (QZQSM/DCR) data structures and tagged union
 // Bit offsets derived from azarashi (IS-QZSS-DCR-016)
 
-#include <algorithm>
 #include <cstdint>
 #include <cstring>
 #include <new>
 #include <utility>
 
+#include "azaraC_config.h"
 #include "internal/MtCommonTypes.h"
 
-// Nankai Trough aggregated text buffer size (default: 217 bytes)
-// Maximum possible: 63 pages × 18 bytes = 1134 bytes + null terminator
-// Default is sized for AZARAC_NANKAI_MAX_PAGES (default 12): 12 × 18 + 1 = 217
-// Increase for full spec coverage: #define AZARAC_NANKAI_AGGREGATED_TEXT_SIZE 1135
+#if AZARAC_ENABLE_NANKAI
+// Nankai Trough aggregated text buffer size
+// Auto-derived from AZARAC_NANKAI_MAX_PAGES in azaraC_config.h:
+//   AZARAC_NANKAI_AGGREGATED_TEXT_SIZE = AZARAC_NANKAI_MAX_PAGES * 18 + 1
+// Explicit override: #define AZARAC_NANKAI_AGGREGATED_TEXT_SIZE 1135
 #include "internal/NankaiPageBuffer.h"
-
-#ifndef AZARAC_NANKAI_AGGREGATED_TEXT_SIZE
-#define AZARAC_NANKAI_AGGREGATED_TEXT_SIZE 217
 #endif
-
-static_assert(AZARAC_NANKAI_AGGREGATED_TEXT_SIZE >=
-              azaraC::internal::NankaiPageBuffer::MAX_PAGES *
-              azaraC::internal::NankaiPageBuffer::TEXT_PER_PAGE + 1,
-              "AZARAC_NANKAI_AGGREGATED_TEXT_SIZE too small for AZARAC_NANKAI_MAX_PAGES");
 
 namespace azaraC {
 
@@ -97,17 +90,33 @@ struct SeismicData {
     uint8_t      count;
 };
 
+#if AZARAC_ENABLE_NANKAI
+// Nankai Trough page aggregation data.
+//
+// IMPORTANT LIFETIME: When is_aggregated == true, aggregated_text_ptr is a
+// borrowed pointer into the Parser's internal, statically-held
+// NankaiPageBuffer::aggregated_text[] storage. This pointer is valid ONLY
+// until the next Parser::feed() call, Parser::reset(), or a subsequent
+// Nankai aggregation that reuses the same buffer slot. At that point the
+// buffer may be overwritten and its contents replaced with data from a
+// different event. The caller MUST immediately copy or serialize the
+// aggregated text — do not retain the pointer across feed() boundaries.
+//
+// Design rationale: This is a zero-copy embedded optimisation. Copying the
+// full aggregated text (up to AZARAC_NANKAI_MAX_PAGES * 18 bytes) into the
+// Message would increase RAM usage significantly. The trade-off is an
+// explicit lifetime contract the caller must honour.
 struct NankaiData {
     uint8_t info_code;
     uint8_t text[18];
     uint8_t page;
     uint8_t total_page;
-    // Configurable aggregated text buffer size (default: 1135 bytes)
-    // Set AZARAC_NANKAI_AGGREGATED_TEXT_SIZE before including azaraC.h to reduce memory usage
-    char aggregated_text[AZARAC_NANKAI_AGGREGATED_TEXT_SIZE];
-    uint16_t aggregated_len;
-    bool is_aggregated;
+    const char* aggregated_text_ptr = nullptr;  // lifetime: until next feed() or reset()
+    uint16_t aggregated_len = 0;
+    bool is_aggregated = false;
+    bool truncated = false;
 };
+#endif
 
 struct TsunamiData {
     uint8_t      warning_code;
@@ -178,28 +187,37 @@ struct Mt43Data {
     TimeFields event_time;
 
     enum class ActiveType : uint8_t {
-        None, Eew, Hypocenter, Seismic, Nankai, Tsunami, NwPacTsunami,
+        None, Eew, Hypocenter, Seismic,
+#if AZARAC_ENABLE_NANKAI
+        Nankai,
+#endif
+        Tsunami, NwPacTsunami,
         Volcano, AshFall, Weather, Flood, Typhoon, Marine
     };
 
     ActiveType active_type = ActiveType::None;
 
-    // Storage for the active union member (aligned to 8 bytes)
-    // Size is based on the maximum of all supported variant types to ensure
-    // safe placement-new for any type, even when AZARAC_NANKAI_AGGREGATED_TEXT_SIZE
-    // is configured to a small value.
-    static constexpr size_t storage_size_ = std::max(sizeof(EewData),
-        std::max(sizeof(HypocenterData),
-        std::max(sizeof(SeismicData),
-        std::max(sizeof(NankaiData),
-        std::max(sizeof(TsunamiData),
-        std::max(sizeof(NwPacTsunamiData),
-        std::max(sizeof(VolcanoData),
-        std::max(sizeof(AshFallData),
-        std::max(sizeof(WeatherData),
-        std::max(sizeof(FloodData),
-        std::max(sizeof(TyphoonData),
-        sizeof(MarineData))))))))))));
+    static constexpr size_t storage_size_ = []() -> size_t {
+        constexpr size_t sizes[] = {
+            sizeof(EewData),
+            sizeof(HypocenterData),
+            sizeof(SeismicData),
+#if AZARAC_ENABLE_NANKAI
+            sizeof(NankaiData),
+#endif
+            sizeof(TsunamiData),
+            sizeof(NwPacTsunamiData),
+            sizeof(VolcanoData),
+            sizeof(AshFallData),
+            sizeof(WeatherData),
+            sizeof(FloodData),
+            sizeof(TyphoonData),
+            sizeof(MarineData)
+        };
+        size_t m = 0;
+        for (auto x : sizes) if (x > m) m = x;
+        return m;
+    }();
     alignas(8) unsigned char storage_[storage_size_];
 
     Mt43Data()
@@ -282,7 +300,9 @@ struct Mt43Data {
     EewData* getEew() { return get<EewData>(); }
     HypocenterData* getHypocenter() { return get<HypocenterData>(); }
     SeismicData* getSeismic() { return get<SeismicData>(); }
+#if AZARAC_ENABLE_NANKAI
     NankaiData* getNankai() { return get<NankaiData>(); }
+#endif
     TsunamiData* getTsunami() { return get<TsunamiData>(); }
     NwPacTsunamiData* getNwPac() { return get<NwPacTsunamiData>(); }
     VolcanoData* getVolcano() { return get<VolcanoData>(); }
@@ -295,7 +315,9 @@ struct Mt43Data {
     const EewData* getEew() const { return get<EewData>(); }
     const HypocenterData* getHypocenter() const { return get<HypocenterData>(); }
     const SeismicData* getSeismic() const { return get<SeismicData>(); }
+#if AZARAC_ENABLE_NANKAI
     const NankaiData* getNankai() const { return get<NankaiData>(); }
+#endif
     const TsunamiData* getTsunami() const { return get<TsunamiData>(); }
     const NwPacTsunamiData* getNwPac() const { return get<NwPacTsunamiData>(); }
     const VolcanoData* getVolcano() const { return get<VolcanoData>(); }
@@ -314,7 +336,9 @@ private:
             case ActiveType::Eew:            getEew()->~EewData(); break;
             case ActiveType::Hypocenter:     getHypocenter()->~HypocenterData(); break;
             case ActiveType::Seismic:        getSeismic()->~SeismicData(); break;
+#if AZARAC_ENABLE_NANKAI
             case ActiveType::Nankai:         getNankai()->~NankaiData(); break;
+#endif
             case ActiveType::Tsunami:        getTsunami()->~TsunamiData(); break;
             case ActiveType::NwPacTsunami:    getNwPac()->~NwPacTsunamiData(); break;
             case ActiveType::Volcano:        getVolcano()->~VolcanoData(); break;
@@ -334,7 +358,9 @@ private:
             case ActiveType::Eew:            new (storage_) EewData(*other.getEew()); break;
             case ActiveType::Hypocenter:     new (storage_) HypocenterData(*other.getHypocenter()); break;
             case ActiveType::Seismic:        new (storage_) SeismicData(*other.getSeismic()); break;
+#if AZARAC_ENABLE_NANKAI
             case ActiveType::Nankai:         new (storage_) NankaiData(*other.getNankai()); break;
+#endif
             case ActiveType::Tsunami:        new (storage_) TsunamiData(*other.getTsunami()); break;
             case ActiveType::NwPacTsunami:    new (storage_) NwPacTsunamiData(*other.getNwPac()); break;
             case ActiveType::Volcano:        new (storage_) VolcanoData(*other.getVolcano()); break;
@@ -353,7 +379,9 @@ private:
             case ActiveType::Eew:            new (storage_) EewData(std::move(*other.getEew())); break;
             case ActiveType::Hypocenter:     new (storage_) HypocenterData(std::move(*other.getHypocenter())); break;
             case ActiveType::Seismic:        new (storage_) SeismicData(std::move(*other.getSeismic())); break;
+#if AZARAC_ENABLE_NANKAI
             case ActiveType::Nankai:         new (storage_) NankaiData(std::move(*other.getNankai())); break;
+#endif
             case ActiveType::Tsunami:        new (storage_) TsunamiData(std::move(*other.getTsunami())); break;
             case ActiveType::NwPacTsunami:    new (storage_) NwPacTsunamiData(std::move(*other.getNwPac())); break;
             case ActiveType::Volcano:        new (storage_) VolcanoData(std::move(*other.getVolcano())); break;
@@ -372,7 +400,9 @@ private:
 template<> inline Mt43Data::ActiveType Mt43Data::typeFor<EewData>() { return ActiveType::Eew; }
 template<> inline Mt43Data::ActiveType Mt43Data::typeFor<HypocenterData>() { return ActiveType::Hypocenter; }
 template<> inline Mt43Data::ActiveType Mt43Data::typeFor<SeismicData>() { return ActiveType::Seismic; }
+#if AZARAC_ENABLE_NANKAI
 template<> inline Mt43Data::ActiveType Mt43Data::typeFor<NankaiData>() { return ActiveType::Nankai; }
+#endif
 template<> inline Mt43Data::ActiveType Mt43Data::typeFor<TsunamiData>() { return ActiveType::Tsunami; }
 template<> inline Mt43Data::ActiveType Mt43Data::typeFor<NwPacTsunamiData>() { return ActiveType::NwPacTsunami; }
 template<> inline Mt43Data::ActiveType Mt43Data::typeFor<VolcanoData>() { return ActiveType::Volcano; }
