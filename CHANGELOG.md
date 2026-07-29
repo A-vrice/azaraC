@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## [Unreleased]
+
+### Changed
+
+- **`Message::clear()` 追加**: デコード時の二重ゼロ初期化（`out = {}` → `initPayload` で `~350B` の冗長 `memset`）を除去。
+  `Decoder::decode` と `Parser::postDecode` で `out.clear()` を使用し、ペイロード破棄＋スカラーリセットのみを行う。
+- **冗長フィールド再設定を削除**: `Decoder::decode` 内の `out.valid = false` / `out.payload_type = Empty`（`clear()` が既に設定済み）。
+- **JSON シリアライザの冗長 `getMt43()` 除去**: 12 のサブシリアライザ関数のシグネチャを `const Message&` → `const Mt43Data*` に変更。
+  呼出元で既に検証済みのポインタを渡すことで、各関数内の冗長な `m.getMt43()` + null チェックを除去。
+- **`processNankaiAggregation` の冗長 `getMt43()` 除去**: `postDecode` が取得済みの `Mt43Data*` をパラメータとして渡すように変更。
+- **`a3_provider_identifier` ルックアップ高速化**: 34 エントリの O(n) 線形探索を O(log n) 二分探索に変更。
+
+### Fixed
+
+- **`DecoderDcx.cpp`**: `onset_time` 解決の UNIX 時刻比較定数を `315964800u` → `946684800u` (2000-01-01) に修正。
+- **`NankaiPageBuffer.h`**: `NankaiPageKey` の fallback フィールドに `= 0` デフォルト初期化子を追加（不定値防止）。
 ## [0.13.0] - 2026-07-23
 
 ### Added

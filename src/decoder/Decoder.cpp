@@ -223,6 +223,7 @@ TimeFields Decoder::resolveArrivalTime(uint16_t raw, uint32_t base_unix) {
     civil_from_days(arrival_days, y, m, d);
 
     t.day = d;
+    t.month = m;
     t.hour = hour;
     t.minute = min;
     t.unix_time = arrival_days * 86400u + (uint32_t)hour * 3600u + (uint32_t)min * 60u;
@@ -248,7 +249,7 @@ uint8_t Decoder::readNotifications(const uint8_t* b, uint16_t start, uint16_t* n
 // ---------------------------------------------------------------------------
 bool Decoder::decode(const Frame& frame, Message& out, uint32_t report_unix) {
     oob_ = false;
-    out         = {};
+    out.clear();
     out.svid    = frame.svid;
     const uint8_t* bits = frame.bits;
 
@@ -258,8 +259,6 @@ bool Decoder::decode(const Frame& frame, Message& out, uint32_t report_unix) {
     if (calc != recv) return false;
 
     out.crc24   = recv;
-    out.valid   = false;
-    out.payload_type = MsgPayloadType::Empty;
 
     uint8_t preamble = getBits(bits, 0, 8);
     if (preamble != 0x53 && preamble != 0x9A && preamble != 0xC6) return false;  // IS-QZSS-L1S §3.2.4

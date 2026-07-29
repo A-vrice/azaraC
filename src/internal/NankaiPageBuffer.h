@@ -32,9 +32,9 @@ namespace internal {
 struct NankaiPageKey {
     uint32_t event_time_unix;  // 4B — largest alignment first
     uint8_t  info_code;        // 1B
-    uint8_t  fallback_day;    // 1B
-    uint8_t  fallback_hour;   // 1B
-    uint8_t  fallback_minute; // 1B
+    uint8_t  fallback_day    = 0;  // 1B
+    uint8_t  fallback_hour   = 0;  // 1B
+    uint8_t  fallback_minute = 0;  // 1B
     // 合計 8B（パディングなし）
 
     bool operator==(const NankaiPageKey& o) const {

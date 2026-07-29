@@ -1,6 +1,7 @@
 #pragma once
 // AUTO-GENERATED from azarashi: qzss_dcx_camf_a3_provider_identifier
 #include <cstdint>
+#include <iterator>
 #include <optional>
 #include <string_view>
 #include "../azaraC_config.h"
@@ -50,8 +51,13 @@ static constexpr A3Entry QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER[] = {
 
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_a3_provider_identifier_lookup(uint16_t country, uint8_t provider) {
   uint16_t key = (uint16_t)((country << 4) | (provider & 0xF));
-  for (const auto& e : QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER) {
-    if (e.key == key) return e.label;
+  constexpr auto _count = std::size(QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER);
+  uint16_t lo = 0, hi = static_cast<uint16_t>(_count);
+  while (lo < hi) {
+    uint16_t mid = static_cast<uint16_t>(lo + (hi - lo) / 2);
+    if (QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER[mid].key == key) return QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER[mid].label;
+    if (QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER[mid].key < key) lo = mid + 1;
+    else hi = mid;
   }
   return std::nullopt;
 }

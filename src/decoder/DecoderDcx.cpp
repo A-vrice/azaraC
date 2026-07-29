@@ -63,9 +63,6 @@ bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix)
     d->camf.b3_c8 = 0;
     d->camf.b3_c9 = 0;
     d->camf.b3_c10 = 0;
-    // B4 fields are zero-initialized by initPayload<Mt44Data>() value-initialization.
-    // b4_present is explicitly set to false here for clarity (though redundant).
-    d->camf.b4_present = false;
 
 
     // Null Message Check (IS-QZSS-DCX-003 §4.3)
@@ -97,7 +94,7 @@ bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix)
     // EWSS CAMF v1.1 §3.3: A week starts Monday 00:00 UTC, ends Sunday 23:59 UTC
     // The hazard onset is encoded by 15 bits (1-bit A6 + 14-bit A7),
     // with 1-minute resolution, allowing identification up to 2 weeks in advance.
-    if (d->camf.a7 > 0 && d->camf.a7 <= 10080 && report_unix > 315964800u) {
+    if (d->camf.a7 > 0 && d->camf.a7 <= 10080 && report_unix >= 946684800u) {
         // Find Monday 00:00 UTC of the week containing report_unix
         // 1970-01-01 was Thursday: (days_since_epoch + 3) % 7 → 0=Mon, 3=Thu, 6=Sun
         uint32_t days        = report_unix / 86400u;

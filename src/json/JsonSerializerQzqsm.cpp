@@ -16,10 +16,8 @@ namespace internal {
 // ---------------------------------------------------------------------------
 
 #if (AZARAC_ENABLE_EEW)
-void serializeEEW(const Message& m, Print& out) {
+void serializeEEW(const Mt43Data* d, Print& out) {
     using namespace azaraC::def;
-    const Mt43Data* d = m.getMt43();
-    if (!d) return;
     
     const EewData* eew = d->getEew();
     if (!eew) return;
@@ -68,10 +66,8 @@ void serializeEEW(const Message& m, Print& out) {
 #endif // AZARAC_ENABLE_EEW
 
 #if (AZARAC_ENABLE_HYPOCENTER)
-void serializeHypocenter(const Message& m, Print& out) {
+void serializeHypocenter(const Mt43Data* d, Print& out) {
     using namespace azaraC::def;
-    const Mt43Data* d = m.getMt43();
-    if (!d) return;
     
     const HypocenterData* hypo = d->getHypocenter();
     if (!hypo) return;
@@ -97,10 +93,8 @@ void serializeHypocenter(const Message& m, Print& out) {
 #endif // AZARAC_ENABLE_HYPOCENTER
 
 #if (AZARAC_ENABLE_SEISMIC)
-void serializeSeismic(const Message& m, Print& out) {
+void serializeSeismic(const Mt43Data* d, Print& out) {
     using namespace azaraC::def;
-    const Mt43Data* d = m.getMt43();
-    if (!d) return;
     
     const SeismicData* seis = d->getSeismic();
     if (!seis) return;
@@ -123,10 +117,8 @@ void serializeSeismic(const Message& m, Print& out) {
 #endif // AZARAC_ENABLE_SEISMIC
 
 #if (AZARAC_ENABLE_NANKAI)
-void serializeNankai(const Message& m, Print& out) {
+void serializeNankai(const Mt43Data* d, Print& out) {
     using namespace azaraC::def;
-    const Mt43Data* d = m.getMt43();
-    if (!d) return;
     
     const NankaiData* nankai = d->getNankai();
     if (!nankai) return;
@@ -158,10 +150,8 @@ void serializeNankai(const Message& m, Print& out) {
 #endif // AZARAC_ENABLE_NANKAI
 
 #if (AZARAC_ENABLE_TSUNAMI)
-void serializeTsunami(const Message& m, Print& out) {
+void serializeTsunami(const Mt43Data* d, Print& out) {
     using namespace azaraC::def;
-    const Mt43Data* d = m.getMt43();
-    if (!d) return;
     
     const TsunamiData* tsunami = d->getTsunami();
     if (!tsunami) return;
@@ -191,10 +181,8 @@ void serializeTsunami(const Message& m, Print& out) {
 #endif // AZARAC_ENABLE_TSUNAMI
 
 #if (AZARAC_ENABLE_NW_PAC_TSUNAMI)
-void serializeNwPacTsu(const Message& m, Print& out) {
+void serializeNwPacTsu(const Mt43Data* d, Print& out) {
     using namespace azaraC::def;
-    const Mt43Data* d = m.getMt43();
-    if (!d) return;
     
     const NwPacTsunamiData* nw_pac = d->getNwPac();
     if (!nw_pac) return;
@@ -224,10 +212,8 @@ void serializeNwPacTsu(const Message& m, Print& out) {
 #endif // AZARAC_ENABLE_NW_PAC_TSUNAMI
 
 #if (AZARAC_ENABLE_VOLCANO)
-void serializeVolcano(const Message& m, Print& out) {
+void serializeVolcano(const Mt43Data* d, Print& out) {
     using namespace azaraC::def;
-    const Mt43Data* d = m.getMt43();
-    if (!d) return;
     
     const VolcanoData* vol = d->getVolcano();
     if (!vol) return;
@@ -254,10 +240,8 @@ void serializeVolcano(const Message& m, Print& out) {
 #endif // AZARAC_ENABLE_VOLCANO
 
 #if (AZARAC_ENABLE_ASH_FALL)
-void serializeAshFall(const Message& m, Print& out) {
+void serializeAshFall(const Mt43Data* d, Print& out) {
     using namespace azaraC::def;
-    const Mt43Data* d = m.getMt43();
-    if (!d) return;
     
     const AshFallData* ash = d->getAshFall();
     if (!ash) return;
@@ -287,10 +271,8 @@ void serializeAshFall(const Message& m, Print& out) {
 #endif // AZARAC_ENABLE_ASH_FALL
 
 #if (AZARAC_ENABLE_WEATHER)
-void serializeWeather(const Message& m, Print& out) {
+void serializeWeather(const Mt43Data* d, Print& out) {
     using namespace azaraC::def;
-    const Mt43Data* d = m.getMt43();
-    if (!d) return;
     
     const WeatherData* wx = d->getWeather();
     if (!wx) return;
@@ -316,10 +298,8 @@ void serializeWeather(const Message& m, Print& out) {
 #endif // AZARAC_ENABLE_WEATHER
 
 #if (AZARAC_ENABLE_FLOOD)
-void serializeFlood(const Message& m, Print& out) {
+void serializeFlood(const Mt43Data* d, Print& out) {
     using namespace azaraC::def;
-    const Mt43Data* d = m.getMt43();
-    if (!d) return;
     
     const FloodData* flood = d->getFlood();
     if (!flood) return;
@@ -332,7 +312,7 @@ void serializeFlood(const Message& m, Print& out) {
         wf_u(out, "warning_level", e.warning_level);
         wf_s(out, "warning_level_label",
             qzss_dcr_jma_flood_warning_level_lookup(e.warning_level));
-        wf_u(out, keys::region, e.region_code);
+        wf_u64(out, keys::region, e.region_code);
         wf_s(out, keys::region_label,
             qzss_dcr_jma_flood_forecast_region_lookup(e.region_code), /*last=*/true);
         out.print('}');
@@ -342,10 +322,8 @@ void serializeFlood(const Message& m, Print& out) {
 #endif // AZARAC_ENABLE_FLOOD
 
 #if (AZARAC_ENABLE_MARINE)
-void serializeMarine(const Message& m, Print& out) {
+void serializeMarine(const Mt43Data* d, Print& out) {
     using namespace azaraC::def;
-    const Mt43Data* d = m.getMt43();
-    if (!d) return;
     
     const MarineData* marine = d->getMarine();
     if (!marine) return;
@@ -368,10 +346,8 @@ void serializeMarine(const Message& m, Print& out) {
 #endif // AZARAC_ENABLE_MARINE
 
 #if (AZARAC_ENABLE_TYPHOON)
-void serializeTyphoon(const Message& m, Print& out) {
+void serializeTyphoon(const Mt43Data* d, Print& out) {
     using namespace azaraC::def;
-    const Mt43Data* d = m.getMt43();
-    if (!d) return;
     
     const TyphoonData* typh = d->getTyphoon();
     if (!typh) return;

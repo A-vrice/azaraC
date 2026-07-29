@@ -108,6 +108,19 @@ struct Message {
         destroyPayload();
     }
 
+    // Reset scalars and destroy payload WITHOUT zeroing payload_storage_.
+    // Use before initPayload() to avoid a redundant memset when storage will
+    // be immediately overwritten by placement-new.
+    void clear() {
+        destroyPayload();
+        svid = 0;
+        msg_type = 0;
+        crc24 = 0;
+        valid = false;
+        unsupported_reason = UnsupportedReason::None;
+        // payload_type is already MsgPayloadType::Empty from destroyPayload()
+    }
+
     template<typename T>
     void initPayload() {
         destroyPayload();

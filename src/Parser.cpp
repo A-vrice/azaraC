@@ -58,13 +58,13 @@ bool Parser::postDecode(const Message& decoded, Message& out) {
         const Mt43Data* mt43 = decoded.getMt43();
         if (mt43 && mt43->disaster_category == 4) {
             // decoded と out を別オブジェクトにすることでエイリアシング UB を回避
-            if (!processNankaiAggregation(decoded, out, internal::getMillis())) {
+            if (!processNankaiAggregation(decoded, out, mt43, internal::getMillis())) {
                 return false;
             }
             // Aggregation complete - check dedup before outputting
             internal::DedupKey key{ out.svid, out.msg_type, out.crc24 };
             if (_dedup.isDuplicate(key)) {
-                out = Message{};
+                out.clear();
                 return false;
             }
             return true;
@@ -81,9 +81,7 @@ bool Parser::postDecode(const Message& decoded, Message& out) {
 }
 
 #if AZARAC_ENABLE_NANKAI
-bool Parser::processNankaiAggregation(const Message& decoded, Message& out, uint64_t current_ms) {
-    const Mt43Data* d = decoded.getMt43();
-    if (!d) return false;
+bool Parser::processNankaiAggregation(const Message& decoded, Message& out, const Mt43Data* d, uint64_t current_ms) {
 
     const NankaiData* nankai = d->getNankai();
     if (!nankai) return false;

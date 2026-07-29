@@ -188,6 +188,7 @@ TEST_CASE("Realdata: History - decode and disaster_category") {
 #if !AZARAC_ENABLE_MARINE
           if (_dc == 14) continue;
 #endif
+        (void)_dc;
         }
         REQUIRE(decodeNmea(history_cases[i].nmea, msg));
         CHECK(msg.msg_type == 43);
@@ -603,6 +604,7 @@ TEST_CASE("Realdata: Noto 2024 - decode and metadata") {
 #if !AZARAC_ENABLE_MARINE
           if (_dc == 14) continue;
 #endif
+        (void)_dc;
         }
         REQUIRE(decodeNmea(noto_cases[i].nmea, msg));
         CHECK(msg.msg_type == 43);

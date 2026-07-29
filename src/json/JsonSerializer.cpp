@@ -16,40 +16,40 @@ namespace internal {
 void serializeDcx(const Message& m, Print& out);
 #endif
 #if (AZARAC_ENABLE_EEW)
-void serializeEEW(const Message& m, Print& out);
+void serializeEEW(const Mt43Data* d, Print& out);
 #endif
 #if (AZARAC_ENABLE_HYPOCENTER)
-void serializeHypocenter(const Message& m, Print& out);
+void serializeHypocenter(const Mt43Data* d, Print& out);
 #endif
 #if (AZARAC_ENABLE_SEISMIC)
-void serializeSeismic(const Message& m, Print& out);
+void serializeSeismic(const Mt43Data* d, Print& out);
 #endif
 #if (AZARAC_ENABLE_NANKAI)
-void serializeNankai(const Message& m, Print& out);
+void serializeNankai(const Mt43Data* d, Print& out);
 #endif
 #if (AZARAC_ENABLE_TSUNAMI)
-void serializeTsunami(const Message& m, Print& out);
+void serializeTsunami(const Mt43Data* d, Print& out);
 #endif
 #if (AZARAC_ENABLE_NW_PAC_TSUNAMI)
-void serializeNwPacTsu(const Message& m, Print& out);
+void serializeNwPacTsu(const Mt43Data* d, Print& out);
 #endif
 #if (AZARAC_ENABLE_VOLCANO)
-void serializeVolcano(const Message& m, Print& out);
+void serializeVolcano(const Mt43Data* d, Print& out);
 #endif
 #if (AZARAC_ENABLE_ASH_FALL)
-void serializeAshFall(const Message& m, Print& out);
+void serializeAshFall(const Mt43Data* d, Print& out);
 #endif
 #if (AZARAC_ENABLE_WEATHER)
-void serializeWeather(const Message& m, Print& out);
+void serializeWeather(const Mt43Data* d, Print& out);
 #endif
 #if (AZARAC_ENABLE_FLOOD)
-void serializeFlood(const Message& m, Print& out);
+void serializeFlood(const Mt43Data* d, Print& out);
 #endif
 #if (AZARAC_ENABLE_TYPHOON)
-void serializeTyphoon(const Message& m, Print& out);
+void serializeTyphoon(const Mt43Data* d, Print& out);
 #endif
 #if (AZARAC_ENABLE_MARINE)
-void serializeMarine(const Message& m, Print& out);
+void serializeMarine(const Mt43Data* d, Print& out);
 #endif
 
 // ---------------------------------------------------------------------------
@@ -95,40 +95,40 @@ void JsonSerializer::serialize(const Message& msg, Print& out) {
         // Dispatch to enabled serializers based on disaster_category
         bool serialized = false;
 #if (AZARAC_ENABLE_EEW)
-        if (d->disaster_category == 1) { serializeEEW(msg, out); serialized = true; }
+        if (d->disaster_category == 1) { serializeEEW(d, out); serialized = true; }
 #endif
 #if (AZARAC_ENABLE_HYPOCENTER)
-        if (d->disaster_category == 2) { serializeHypocenter(msg, out); serialized = true; }
+        if (d->disaster_category == 2) { serializeHypocenter(d, out); serialized = true; }
 #endif
 #if (AZARAC_ENABLE_SEISMIC)
-        if (d->disaster_category == 3) { serializeSeismic(msg, out); serialized = true; }
+        if (d->disaster_category == 3) { serializeSeismic(d, out); serialized = true; }
 #endif
 #if (AZARAC_ENABLE_NANKAI)
-        if (d->disaster_category == 4) { serializeNankai(msg, out); serialized = true; }
+        if (d->disaster_category == 4) { serializeNankai(d, out); serialized = true; }
 #endif
 #if (AZARAC_ENABLE_TSUNAMI)
-        if (d->disaster_category == 5) { serializeTsunami(msg, out); serialized = true; }
+        if (d->disaster_category == 5) { serializeTsunami(d, out); serialized = true; }
 #endif
 #if (AZARAC_ENABLE_NW_PAC_TSUNAMI)
-        if (d->disaster_category == 6) { serializeNwPacTsu(msg, out); serialized = true; }
+        if (d->disaster_category == 6) { serializeNwPacTsu(d, out); serialized = true; }
 #endif
 #if (AZARAC_ENABLE_VOLCANO)
-        if (d->disaster_category == 8) { serializeVolcano(msg, out); serialized = true; }
+        if (d->disaster_category == 8) { serializeVolcano(d, out); serialized = true; }
 #endif
 #if (AZARAC_ENABLE_ASH_FALL)
-        if (d->disaster_category == 9) { serializeAshFall(msg, out); serialized = true; }
+        if (d->disaster_category == 9) { serializeAshFall(d, out); serialized = true; }
 #endif
 #if (AZARAC_ENABLE_WEATHER)
-        if (d->disaster_category == 10) { serializeWeather(msg, out); serialized = true; }
+        if (d->disaster_category == 10) { serializeWeather(d, out); serialized = true; }
 #endif
 #if (AZARAC_ENABLE_FLOOD)
-        if (d->disaster_category == 11) { serializeFlood(msg, out); serialized = true; }
+        if (d->disaster_category == 11) { serializeFlood(d, out); serialized = true; }
 #endif
 #if (AZARAC_ENABLE_TYPHOON)
-        if (d->disaster_category == 12) { serializeTyphoon(msg, out); serialized = true; }
+        if (d->disaster_category == 12) { serializeTyphoon(d, out); serialized = true; }
 #endif
 #if (AZARAC_ENABLE_MARINE)
-        if (d->disaster_category == 14) { serializeMarine(msg, out); serialized = true; }
+        if (d->disaster_category == 14) { serializeMarine(d, out); serialized = true; }
 #endif
         if (!serialized) wf_s(out, keys::note, "unsupported_category", /*last=*/true);
 
