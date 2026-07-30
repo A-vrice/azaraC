@@ -16,11 +16,11 @@ namespace internal {
 // ---------------------------------------------------------------------------
 
 #if (AZARAC_ENABLE_EEW)
-void serializeEEW(const Mt43Data* d, Print& out) {
+bool serializeEEW(const Mt43Data* d, Print& out) {
     using namespace azaraC::def;
     
     const EewData* eew = d->getEew();
-    if (!eew) return;
+    if (!eew) return false;
     
     wf_u(out, "long_period_lower", eew->long_period_lower);
     wf_s(out, "long_period_lower_label",
@@ -62,15 +62,16 @@ void serializeEEW(const Mt43Data* d, Print& out) {
         out.print('}');
     }
     out.print(']');
+    return true;
 }
 #endif // AZARAC_ENABLE_EEW
 
 #if (AZARAC_ENABLE_HYPOCENTER)
-void serializeHypocenter(const Mt43Data* d, Print& out) {
+bool serializeHypocenter(const Mt43Data* d, Print& out) {
     using namespace azaraC::def;
     
     const HypocenterData* hypo = d->getHypocenter();
-    if (!hypo) return;
+    if (!hypo) return false;
     
     writeDHM(out, "quake_time", hypo->quake_time);
     wf_u(out, "depth",     hypo->depth);
@@ -89,15 +90,16 @@ void serializeHypocenter(const Mt43Data* d, Print& out) {
     }
     out.print("],");
     writeLatLon(out, "coords", hypo->coords, /*last=*/true);
+    return true;
 }
 #endif // AZARAC_ENABLE_HYPOCENTER
 
 #if (AZARAC_ENABLE_SEISMIC)
-void serializeSeismic(const Mt43Data* d, Print& out) {
+bool serializeSeismic(const Mt43Data* d, Print& out) {
     using namespace azaraC::def;
     
     const SeismicData* seis = d->getSeismic();
-    if (!seis) return;
+    if (!seis) return false;
     
     writeDHM(out, "quake_time", seis->quake_time);
     wk(out, "entries"); out.print('[');
@@ -113,15 +115,16 @@ void serializeSeismic(const Mt43Data* d, Print& out) {
         out.print('}');
     }
     out.print(']');
+    return true;
 }
 #endif // AZARAC_ENABLE_SEISMIC
 
 #if (AZARAC_ENABLE_NANKAI)
-void serializeNankai(const Mt43Data* d, Print& out) {
+bool serializeNankai(const Mt43Data* d, Print& out) {
     using namespace azaraC::def;
     
     const NankaiData* nankai = d->getNankai();
-    if (!nankai) return;
+    if (!nankai) return false;
     
     wf_u(out, "info_code", nankai->info_code);
     wf_s(out, "info_code_label",
@@ -146,15 +149,16 @@ void serializeNankai(const Mt43Data* d, Print& out) {
         }
         out.print(']');
     }
+    return true;
 }
 #endif // AZARAC_ENABLE_NANKAI
 
 #if (AZARAC_ENABLE_TSUNAMI)
-void serializeTsunami(const Mt43Data* d, Print& out) {
+bool serializeTsunami(const Mt43Data* d, Print& out) {
     using namespace azaraC::def;
     
     const TsunamiData* tsunami = d->getTsunami();
-    if (!tsunami) return;
+    if (!tsunami) return false;
     
     wf_u(out, "warning_code", tsunami->warning_code);
     wf_s(out, "warning_code_label",
@@ -177,15 +181,16 @@ void serializeTsunami(const Mt43Data* d, Print& out) {
         out.print('}');
     }
     out.print(']');
+    return true;
 }
 #endif // AZARAC_ENABLE_TSUNAMI
 
 #if (AZARAC_ENABLE_NW_PAC_TSUNAMI)
-void serializeNwPacTsu(const Mt43Data* d, Print& out) {
+bool serializeNwPacTsu(const Mt43Data* d, Print& out) {
     using namespace azaraC::def;
     
     const NwPacTsunamiData* nw_pac = d->getNwPac();
-    if (!nw_pac) return;
+    if (!nw_pac) return false;
     
     wf_u(out, "potential", nw_pac->potential);
     wf_s(out, "potential_label",
@@ -208,15 +213,16 @@ void serializeNwPacTsu(const Mt43Data* d, Print& out) {
         out.print('}');
     }
     out.print(']');
+    return true;
 }
 #endif // AZARAC_ENABLE_NW_PAC_TSUNAMI
 
 #if (AZARAC_ENABLE_VOLCANO)
-void serializeVolcano(const Mt43Data* d, Print& out) {
+bool serializeVolcano(const Mt43Data* d, Print& out) {
     using namespace azaraC::def;
     
     const VolcanoData* vol = d->getVolcano();
-    if (!vol) return;
+    if (!vol) return false;
     
     wf_u(out, "ambiguity",     vol->ambiguity);
     writeDHM(out, "activity_time", vol->activity_time);
@@ -236,15 +242,16 @@ void serializeVolcano(const Mt43Data* d, Print& out) {
         out.print('}');
     }
     out.print(']');
+    return true;
 }
 #endif // AZARAC_ENABLE_VOLCANO
 
 #if (AZARAC_ENABLE_ASH_FALL)
-void serializeAshFall(const Mt43Data* d, Print& out) {
+bool serializeAshFall(const Mt43Data* d, Print& out) {
     using namespace azaraC::def;
     
     const AshFallData* ash = d->getAshFall();
-    if (!ash) return;
+    if (!ash) return false;
     
     writeDHM(out, "activity_time", ash->activity_time);
     wf_u(out, "warning_type", ash->warning_type);
@@ -267,15 +274,16 @@ void serializeAshFall(const Mt43Data* d, Print& out) {
         out.print('}');
     }
     out.print(']');
+    return true;
 }
 #endif // AZARAC_ENABLE_ASH_FALL
 
 #if (AZARAC_ENABLE_WEATHER)
-void serializeWeather(const Mt43Data* d, Print& out) {
+bool serializeWeather(const Mt43Data* d, Print& out) {
     using namespace azaraC::def;
     
     const WeatherData* wx = d->getWeather();
-    if (!wx) return;
+    if (!wx) return false;
     
     wf_u(out, "warning_state", wx->warning_state);
     wf_s(out, "warning_state_label",
@@ -294,15 +302,16 @@ void serializeWeather(const Mt43Data* d, Print& out) {
         out.print('}');
     }
     out.print(']');
+    return true;
 }
 #endif // AZARAC_ENABLE_WEATHER
 
 #if (AZARAC_ENABLE_FLOOD)
-void serializeFlood(const Mt43Data* d, Print& out) {
+bool serializeFlood(const Mt43Data* d, Print& out) {
     using namespace azaraC::def;
     
     const FloodData* flood = d->getFlood();
-    if (!flood) return;
+    if (!flood) return false;
     
     wk(out, "entries"); out.print('[');
     for (uint8_t i = 0; i < flood->count; ++i) {
@@ -318,15 +327,16 @@ void serializeFlood(const Mt43Data* d, Print& out) {
         out.print('}');
     }
     out.print(']');
+    return true;
 }
 #endif // AZARAC_ENABLE_FLOOD
 
 #if (AZARAC_ENABLE_MARINE)
-void serializeMarine(const Mt43Data* d, Print& out) {
+bool serializeMarine(const Mt43Data* d, Print& out) {
     using namespace azaraC::def;
     
     const MarineData* marine = d->getMarine();
-    if (!marine) return;
+    if (!marine) return false;
     
     wk(out, "entries"); out.print('[');
     for (uint8_t i = 0; i < marine->count; ++i) {
@@ -342,15 +352,16 @@ void serializeMarine(const Mt43Data* d, Print& out) {
         out.print('}');
     }
     out.print(']');
+    return true;
 }
 #endif // AZARAC_ENABLE_MARINE
 
 #if (AZARAC_ENABLE_TYPHOON)
-void serializeTyphoon(const Mt43Data* d, Print& out) {
+bool serializeTyphoon(const Mt43Data* d, Print& out) {
     using namespace azaraC::def;
     
     const TyphoonData* typh = d->getTyphoon();
-    if (!typh) return;
+    if (!typh) return false;
     
     writeDHM(out, "reference_time", typh->reference_time);
     wf_u(out, "ref_type", typh->ref_type);
@@ -372,6 +383,7 @@ void serializeTyphoon(const Mt43Data* d, Print& out) {
     wf_u(out, "max_wind", typh->max_wind);
     // Maximum wind gust speed (7 bits, m/s)
     wf_u(out, "max_gust", typh->max_gust, /*last=*/true);
+    return true;
 }
 #endif // AZARAC_ENABLE_TYPHOON
 

@@ -30,8 +30,8 @@ namespace internal {
 // for the same event.
 // ---------------------------------------------------------------------------
 struct NankaiPageKey {
-    uint32_t event_time_unix;  // 4B — largest alignment first
-    uint8_t  info_code;        // 1B
+    uint32_t event_time_unix = 0;  // 4B — largest alignment first
+    uint8_t  info_code = 0;        // 1B
     uint8_t  fallback_day    = 0;  // 1B
     uint8_t  fallback_hour   = 0;  // 1B
     uint8_t  fallback_minute = 0;  // 1B

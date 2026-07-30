@@ -485,7 +485,7 @@ jobs:
             echo "### 💾 Memory Profile (Valgrind Massif)" >> comment.md
             echo "" >> comment.md
             echo '```' >> comment.md
-            head -25 artifacts/memprof/memprof_output.txt >> comment.md
+            tail -25 artifacts/memprof/memprof_output.txt >> comment.md
             echo '```' >> comment.md
             echo "" >> comment.md
           else
