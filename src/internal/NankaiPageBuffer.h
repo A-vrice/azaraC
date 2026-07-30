@@ -104,7 +104,7 @@ struct NankaiPageBuffer {
     // aggregated_text at offset 28 (no padding needed, char alignment = 1)
     char aggregated_text[MAX_PAGES * TEXT_PER_PAGE + 1];
 
-    NankaiPageBuffer() {
+    NankaiPageBuffer() : aggregated_text{} {
         clearAll();
     }
 
