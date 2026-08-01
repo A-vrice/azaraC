@@ -103,27 +103,15 @@ struct Mt44ExOutside {
 // ---- MT=44 Decoded structures (IS-QZSS-DCX-004) --------------------------
 
 struct DecodedEllipse {
-#ifdef AZARAC_DCX_USE_FLOAT
-    float lat_deg;
-    float lon_deg;
-    float semi_major_km;
-    float semi_minor_km;
-    float azimuth_deg;
-    float b1_lat_offset_deg;
-    float b1_lon_offset_deg;
-    float b1_refined_semi_major_km;
-    float b1_refined_semi_minor_km;
-#else
-    double lat_deg;
-    double lon_deg;
-    double semi_major_km;
-    double semi_minor_km;
-    double azimuth_deg;
-    double b1_lat_offset_deg;
-    double b1_lon_offset_deg;
-    double b1_refined_semi_major_km;
-    double b1_refined_semi_minor_km;
-#endif
+    int32_t lat_deg;           // microdegrees (×1,000,000)
+    int32_t lon_deg;           // microdegrees (×1,000,000)
+    int32_t semi_major_km;     // meters (×1,000 from km)
+    int32_t semi_minor_km;     // meters (×1,000 from km)
+    int32_t azimuth_deg;       // dexadegrees (×100,000)
+    int32_t b1_lat_offset_deg;   // microdegrees (×1,000,000)
+    int32_t b1_lon_offset_deg;   // microdegrees (×1,000,000)
+    int32_t b1_refined_semi_major_km;  // meters (×1,000 from km)
+    int32_t b1_refined_semi_minor_km;  // meters (×1,000 from km)
 };
 
 struct DecodedAdditionalArea {
@@ -149,8 +137,8 @@ struct Mt44Decoded {
     bool main_ellipse_present;
     DecodedEllipse main_ellipse;
     bool b2_hazard_center_present = false;
-    double b2_hazard_lat_deg = 0.0;
-    double b2_hazard_lon_deg = 0.0;
+    int32_t b2_hazard_lat_microdeg = 0;   // microdegrees (×1,000,000)
+    int32_t b2_hazard_lon_microdeg = 0;   // microdegrees (×1,000,000)
     bool target_area_code_present;
     uint16_t target_area_code;
     bool jalert_prefecture_mode;

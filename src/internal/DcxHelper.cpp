@@ -10,24 +10,30 @@ namespace internal {
 // Latitude/Longitude decoding
 // ---------------------------------------------------------------------------
 
-dcx_real_t decodeLatitude16(uint16_t code) {
-    static constexpr dcx_real_t SCALE = 180.0 / 65535.0;
-    return static_cast<dcx_real_t>(-90.0) + SCALE * static_cast<dcx_real_t>(code);
+int32_t decodeLatitude16(uint16_t code) {
+    // -90,000,000 + 180,000,000 * code / 65535, rounded
+    return static_cast<int32_t>(
+        -90000000LL + (180000000LL * code + 32767) / 65535
+    );
 }
 
-dcx_real_t decodeLongitude17(uint32_t code) {
-    static constexpr dcx_real_t SCALE = 360.0 / 131071.0;
-    return static_cast<dcx_real_t>(-180.0) + SCALE * static_cast<dcx_real_t>(code);
+int32_t decodeLongitude17(uint32_t code) {
+    // -180,000,000 + 360,000,000 * code / 131071, rounded
+    return static_cast<int32_t>(
+        -180000000LL + (360000000LL * code + 65535) / 131071
+    );
 }
 
-dcx_real_t decodeLatitude17(uint32_t code) {
-    static constexpr dcx_real_t SCALE = 180.0 / 131071.0;
-    return static_cast<dcx_real_t>(-90.0) + SCALE * static_cast<dcx_real_t>(code);
+int32_t decodeLatitude17(uint32_t code) {
+    return static_cast<int32_t>(
+        -90000000LL + (180000000LL * code + 65535) / 131071
+    );
 }
 
-dcx_real_t decodeLongitude17_45_225(uint32_t code) {
-    static constexpr dcx_real_t SCALE = 180.0 / 131071.0;
-    return static_cast<dcx_real_t>(45.0) + SCALE * static_cast<dcx_real_t>(code);
+int32_t decodeLongitude17_45_225(uint32_t code) {
+    return static_cast<int32_t>(
+        45000000LL + (180000000LL * code + 65535) / 131071
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -37,60 +43,65 @@ dcx_real_t decodeLongitude17_45_225(uint32_t code) {
 // MinRadius = 216.20, MaxRadius = 2500000, Max_a = 31
 // ---------------------------------------------------------------------------
 
-dcx_real_t decodeRadiusCode(uint8_t code) {
-    static constexpr double radius_table[32] = {
-        0.216,   // 0
-        0.292,   // 1
-        0.395,   // 2
-        0.535,   // 3
-        0.723,   // 4
-        0.978,   // 5
-        1.322,   // 6
-        1.788,   // 7
-        2.418,   // 8
-        3.269,   // 9
-        4.421,   // 10
-        5.979,   // 11
-        8.085,   // 12
-        10.933,  // 13
-        14.784,  // 14
-        19.992,  // 15
-        27.035,  // 16
-        36.559,  // 17
-        49.439,  // 18
-        66.855,  // 19
-        90.407,  // 20
-        122.255, // 21
-        165.324, // 22
-        223.564, // 23
-        302.322, // 24
-        408.824, // 25
-        552.846, // 26
-        747.603, // 27
-        1010.970,// 28
-        1367.116,// 29
-        1848.727,// 30
-        2500.000 // 31
+int32_t decodeRadiusCode(uint8_t code) {
+    // Radius[m] = table lookup, 0.001km precision (1 m)
+    static constexpr int32_t radius_table_m[32] = {
+        216,    // 0
+        292,    // 1
+        395,    // 2
+        535,    // 3
+        723,    // 4
+        978,    // 5
+        1322,   // 6
+        1788,   // 7
+        2418,   // 8
+        3269,   // 9
+        4421,   // 10
+        5979,   // 11
+        8085,   // 12
+        10933,  // 13
+        14784,  // 14
+        19992,  // 15
+        27035,  // 16
+        36559,  // 17
+        49439,  // 18
+        66855,  // 19
+        90407,  // 20
+        122255, // 21
+        165324, // 22
+        223564, // 23
+        302322, // 24
+        408824, // 25
+        552846, // 26
+        747603, // 27
+        1010970,// 28
+        1367116,// 29
+        1848727,// 30
+        2500000 // 31
     };
 
     if (code < 32) {
-        return radius_table[code];
+        return radius_table_m[code];
     }
-    return static_cast<dcx_real_t>(0.0);
+    return 0;
 }
 
 // ---------------------------------------------------------------------------
 // Azimuth decoding
 // ---------------------------------------------------------------------------
 
-dcx_real_t decodeAzimuth6(uint8_t code) {
-    static constexpr dcx_real_t SCALE = 180.0 / 64.0;
-    return static_cast<dcx_real_t>(-90.0) + SCALE * static_cast<dcx_real_t>(code);
+int32_t decodeAzimuth6(uint8_t code) {
+    // -9,000,000 + 18,000,000 * code / 64 (×100,000 scale)
+    return static_cast<int32_t>(
+        -9000000LL + (18000000LL * code + 32) / 64
+    );
 }
 
-dcx_real_t decodeAzimuth7(uint8_t code) {
-    static constexpr dcx_real_t SCALE = 180.0 / 128.0;
-    return static_cast<dcx_real_t>(-90.0) + SCALE * static_cast<dcx_real_t>(code);
+int32_t decodeAzimuth7(uint8_t code) {
+    // -9,000,000 + 18,000,000 * code / 128 (×100,000 scale)
+    return static_cast<int32_t>(
+        -9000000LL + (18000000LL * code + 64) / 128
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -163,33 +174,29 @@ B1Refinement decodeB1Refinement(uint16_t a18) {
     return b1;
 }
 
-double b1RefinedLatitudeOffset(uint8_t c1) {
-    // C1: 緯度補正 = C1 × 180 / (8 × 65535)
-    // Grid interval = 180 / 65535 ≈ 0.002747°
-    // Step = interval / 8 ≈ 0.000343°
-    static constexpr dcx_real_t SCALE = 180.0 / (8.0 * 65535.0);
-    return static_cast<double>(c1) * SCALE;
+int32_t b1RefinedLatitudeOffset(uint8_t c1) {
+    // C1 × 180,000,000 / (8 × 65535), microdegrees
+    return static_cast<int32_t>(
+        (static_cast<int64_t>(c1) * 180000000LL + 262140) / 524280
+    );
 }
 
-double b1RefinedLongitudeOffset(uint8_t c2) {
-    // C2: 経度補正 = C2 × 360 / (8 × 131071)
-    // Grid interval = 360 / 131071 ≈ 0.002747°
-    // Step = interval / 8 ≈ 0.000343°
-    static constexpr dcx_real_t SCALE = 360.0 / (8.0 * 131071.0);
-    return static_cast<double>(c2) * SCALE;
+int32_t b1RefinedLongitudeOffset(uint8_t c2) {
+    // C2 × 360,000,000 / (8 × 131071), microdegrees
+    return static_cast<int32_t>(
+        (static_cast<int64_t>(c2) * 360000000LL + 524284) / 1048568
+    );
 }
 
-double b1RefinedRadiusKm(uint8_t code, double base_radius_km, uint8_t original_radius_code) {
-    // C3/C4: EWSS CAMF v1.1 §3.7.1.3 / §3.7.1.4
-    // refined_length = base_radius - delta * (code / 8.0)
-    // where delta = decodeRadiusCode(original_radius_code) - decodeRadiusCode(original_radius_code - 1)
-    double delta_km;
+int32_t b1RefinedRadiusKm(uint8_t code, int32_t base_radius_m, uint8_t original_radius_code) {
+    // refined = base - delta * code / 8
+    int32_t delta_m;
     if (original_radius_code == 0) {
-        delta_km = decodeRadiusCode(0);
+        delta_m = decodeRadiusCode(0);
     } else {
-        delta_km = decodeRadiusCode(original_radius_code) - decodeRadiusCode(original_radius_code - 1);
+        delta_m = decodeRadiusCode(original_radius_code) - decodeRadiusCode(original_radius_code - 1);
     }
-    return base_radius_km - delta_km * (static_cast<double>(code) / 8.0);
+    return base_radius_m - (delta_m * code + 4) / 8;
 }
 
 // ---------------------------------------------------------------------------
@@ -201,14 +208,12 @@ B2HazardCenter decodeB2HazardCenter(uint8_t c5, uint8_t c6) {
     r.present = true;
     r.c5 = c5;
     r.c6 = c6;
-    // delta = -10 + (20/128) * code  (if code <= 63)
-    // delta = -10 + (20/128) * (code+1)  (if code >= 64)
-    // Step = 20/128 = 0.15625 degrees
-    double step = 20.0 / 128.0;
-    if (c5 <= 63) r.delta_lat_deg = -10.0 + step * c5;
-    else          r.delta_lat_deg = -10.0 + step * (c5 + 1);
-    if (c6 <= 63) r.delta_lon_deg = -10.0 + step * c6;
-    else          r.delta_lon_deg = -10.0 + step * (c6 + 1);
+    // delta = -10 + 20 * code / 128  → microdegrees (×1,000,000)
+    // 20000000 / 128 = 156250 (exact)
+    if (c5 <= 63) r.delta_lat_microdeg = -10000000 + 156250 * c5;
+    else          r.delta_lat_microdeg = -10000000 + 156250 * (c5 + 1);
+    if (c6 <= 63) r.delta_lon_microdeg = -10000000 + 156250 * c6;
+    else          r.delta_lon_microdeg = -10000000 + 156250 * (c6 + 1);
     return r;
 }
 

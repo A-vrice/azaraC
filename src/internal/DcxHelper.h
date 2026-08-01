@@ -3,14 +3,7 @@
 // DCX MT44 decode helpers
 // Based on IS-QZSS-DCX-004 / EWSS CAMF v1.2
 
-#include <cstdint>
-
-
-#ifdef AZARAC_DCX_USE_FLOAT
-using dcx_real_t = float;
-#else
-using dcx_real_t = double;
-#endif
+#include "MtCommonTypes.h"
 
 namespace azaraC {
 namespace internal {
@@ -21,31 +14,38 @@ namespace internal {
 
 // Decode latitude from 16-bit code (A12)
 // Latitude = -90 + (180 / (2^16 - 1)) * code
-dcx_real_t decodeLatitude16(uint16_t code);
+// Returns microdegrees (×1,000,000)
+int32_t decodeLatitude16(uint16_t code);
 
 // Decode longitude from 17-bit code (A13)
 // Longitude = -180 + (360 / (2^17 - 1)) * code
-dcx_real_t decodeLongitude17(uint32_t code);
+// Returns microdegrees (×1,000,000)
+int32_t decodeLongitude17(uint32_t code);
 
 // Decode additional ellipse latitude from 17-bit code (EX3)
 // Same formula as A12 but with 17 bits
-dcx_real_t decodeLatitude17(uint32_t code);
+// Returns microdegrees (×1,000,000)
+int32_t decodeLatitude17(uint32_t code);
 
 // Decode additional ellipse longitude from 17-bit code (EX4)
 // Longitude = 45 + (180 / (2^17 - 1)) * code
-dcx_real_t decodeLongitude17_45_225(uint32_t code);
+// Returns microdegrees (×1,000,000)
+int32_t decodeLongitude17_45_225(uint32_t code);
 
 // Decode radius from 5-bit code (A14/A15/EX5/EX6)
 // Uses logarithmic table from IS-QZSS-DCX-003 Table 4.2-17
-dcx_real_t decodeRadiusCode(uint8_t code);
+// Returns meters (×1,000 from km)
+int32_t decodeRadiusCode(uint8_t code);
 
 // Decode azimuth from 6-bit code (A16)
 // Azimuth = -90 + (180 / 2^6) * code
-dcx_real_t decodeAzimuth6(uint8_t code);
+// Returns dexadegrees (×100,000)
+int32_t decodeAzimuth6(uint8_t code);
 
 // Decode azimuth from 7-bit code (EX7)
 // Azimuth = -90 + (180 / 2^7) * code
-dcx_real_t decodeAzimuth7(uint8_t code);
+// Returns dexadegrees (×100,000)
+int32_t decodeAzimuth7(uint8_t code);
 
 // ---------------------------------------------------------------------------
 // J-Alert EX9 decoding
@@ -78,19 +78,19 @@ struct B1Refinement {
 
 B1Refinement decodeB1Refinement(uint16_t a18);
 
-// Calculate latitude refinement offset (degrees)
+// Calculate latitude refinement offset (microdegrees)
 // delta = C1 × 180 / (8 × 65535)
-double b1RefinedLatitudeOffset(uint8_t c1);
+int32_t b1RefinedLatitudeOffset(uint8_t c1);
 
-// Calculate longitude refinement offset (degrees)
+// Calculate longitude refinement offset (microdegrees)
 // delta = C2 × 360 / (8 × 131071)
-double b1RefinedLongitudeOffset(uint8_t c2);
+int32_t b1RefinedLongitudeOffset(uint8_t c2);
 
-// Calculate refined radius (km) for C3/C4
-// refined_length = base_radius_km - delta_km * (code / 8.0)
-// where delta_km = decodeRadiusCode(original_radius_code) - decodeRadiusCode(original_radius_code - 1)
+// Calculate refined radius (meters) for C3/C4
+// refined_length = base_radius_m - delta_m * code / 8
+// where delta_m = decodeRadiusCode(original_radius_code) - decodeRadiusCode(original_radius_code - 1)
 // original_radius_code: the unrefined 5-bit radius code (A14 for semi-major, A15 for semi-minor)
-double b1RefinedRadiusKm(uint8_t code, double base_radius_km, uint8_t original_radius_code);
+int32_t b1RefinedRadiusKm(uint8_t code, int32_t base_radius_m, uint8_t original_radius_code);
 
 // ---------------------------------------------------------------------------
 // B2 (A17=01) - Position of the Centre of the Hazard (EWSS CAMF v1.1 §3.7.2)
@@ -100,8 +100,8 @@ struct B2HazardCenter {
     bool    present;
     uint8_t c5;              // 7 bits - delta latitude raw
     uint8_t c6;              // 7 bits - delta longitude raw
-    double  delta_lat_deg;   // Delta latitude in degrees (-10..+10)
-    double  delta_lon_deg;   // Delta longitude in degrees (-10..+10)
+    int32_t delta_lat_microdeg;   // Delta latitude in microdegrees (×1,000,000, range -10..+10)
+    int32_t delta_lon_microdeg;   // Delta longitude in microdegrees
 };
 
 B2HazardCenter decodeB2HazardCenter(uint8_t c5, uint8_t c6);

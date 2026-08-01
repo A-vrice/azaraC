@@ -252,8 +252,8 @@ TEST_CASE("JSON Serialization: MT=44 DCX main ellipse") {
     mt44->camf.a3 = 1; mt44->camf.a4 = 1;
     mt44->camf.a5 = 3; mt44->camf.a8 = 4;
     mt44->mt44_decoded.main_ellipse_present = true;
-    mt44->mt44_decoded.main_ellipse.lat_deg = 35.6;
-    mt44->mt44_decoded.main_ellipse.lon_deg = 139.6;
+    mt44->mt44_decoded.main_ellipse.lat_deg = 35600000;  // 35.6° in microdegrees
+    mt44->mt44_decoded.main_ellipse.lon_deg = 139600000; // 139.6° in microdegrees
 
     StringPrint sp;
     internal::JsonSerializer::serialize(m, sp);
@@ -263,19 +263,8 @@ TEST_CASE("JSON Serialization: MT=44 DCX main ellipse") {
     CHECK(hasField(s,"\"msg_type\":44"));
     CHECK(hasField(s,"\"a2_country\":111"));
     CHECK(has(s,"\"main_ellipse\":{"));
-#ifdef AZARAC_DCX_USE_FLOAT
-    {
-        bool lat_ok = hasField(s,"\"lat_deg\":35.59") || hasField(s,"\"lat_deg\":35.60");
-        CHECK(lat_ok);
-    }
-    {
-        bool lon_ok = hasField(s,"\"lon_deg\":139.59") || hasField(s,"\"lon_deg\":139.60");
-        CHECK(lon_ok);
-    }
-#else
     CHECK(hasField(s,"\"lat_deg\":35.600000"));
     CHECK(hasField(s,"\"lon_deg\":139.600000"));
-#endif
 }
 #endif // AZARAC_ENABLE_DCX_CAMF
 

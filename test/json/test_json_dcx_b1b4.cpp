@@ -75,11 +75,11 @@ TEST_CASE("JSON DCX B2: hazard center fields") {
     mt44->camf.b2_c5 = 63;
     mt44->camf.b2_c6 = 63;
     mt44->mt44_decoded.main_ellipse_present = true;
-    mt44->mt44_decoded.main_ellipse.lat_deg = 35.6;
-    mt44->mt44_decoded.main_ellipse.lon_deg = 139.6;
+    mt44->mt44_decoded.main_ellipse.lat_deg = 35600000; // 35.6° in microdegrees
+    mt44->mt44_decoded.main_ellipse.lon_deg = 139600000; // 139.6° in microdegrees
     mt44->mt44_decoded.b2_hazard_center_present = true;
-    mt44->mt44_decoded.b2_hazard_lat_deg = 35.6;
-    mt44->mt44_decoded.b2_hazard_lon_deg = 139.6;
+    mt44->mt44_decoded.b2_hazard_lat_microdeg = 35600000;
+    mt44->mt44_decoded.b2_hazard_lon_microdeg = 139600000;
 
     StringPrint sp;
     internal::JsonSerializer::serialize(m, sp);
@@ -167,30 +167,18 @@ TEST_CASE("JSON DCX main ellipse fields") {
     mt44->camf.a2 = 111;
     mt44->camf.a3 = 1;
     mt44->mt44_decoded.main_ellipse_present = true;
-    mt44->mt44_decoded.main_ellipse.lat_deg = 35.6;
-    mt44->mt44_decoded.main_ellipse.lon_deg = 139.6;
-    mt44->mt44_decoded.main_ellipse.semi_major_km = 100.0;
-    mt44->mt44_decoded.main_ellipse.semi_minor_km = 50.0;
-    mt44->mt44_decoded.main_ellipse.azimuth_deg = 45.0;
+    mt44->mt44_decoded.main_ellipse.lat_deg = 35600000;   // 35.6°
+    mt44->mt44_decoded.main_ellipse.lon_deg = 139600000;  // 139.6°
+    mt44->mt44_decoded.main_ellipse.semi_major_km = 100000;  // 100 km
+    mt44->mt44_decoded.main_ellipse.semi_minor_km = 50000;   // 50 km
+    mt44->mt44_decoded.main_ellipse.azimuth_deg = 4500000;    // 45°
 
     StringPrint sp;
     internal::JsonSerializer::serialize(m, sp);
     const auto& s = sp.str();
     CHECK(has(s, "\"main_ellipse\":{"));
-#ifdef AZARAC_DCX_USE_FLOAT
-    {
-        // float 精度では 35.6 → 35.599998, 139.6 → 139.600006 程度になる
-        bool lat_ok = has(s, "\"lat_deg\":35.59") || has(s, "\"lat_deg\":35.60");
-        CHECK(lat_ok);
-    }
-    {
-        bool lon_ok = has(s, "\"lon_deg\":139.59") || has(s, "\"lon_deg\":139.60");
-        CHECK(lon_ok);
-    }
-#else
     CHECK(has(s, "\"lat_deg\":35.600"));
     CHECK(has(s, "\"lon_deg\":139.600"));
-#endif
     CHECK(has(s, "\"semi_major_km\":100.000"));
     CHECK(has(s, "\"semi_minor_km\":50.000"));
     CHECK(has(s, "\"azimuth_deg\":45.000"));

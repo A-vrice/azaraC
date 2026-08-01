@@ -26,59 +26,57 @@ bool Decoder::decodeQzqsm(const uint8_t* bits, Message& out, uint32_t report_uni
         return false;
     }
 
-    // Pre-check: is this disaster_category supported (enabled at compile time)?
-    // We must check BEFORE initPayload() to ensure no metadata is returned
-    // for disabled categories (design: unsupported_reason + msg_type only).
+    // Combined category support check + sub-decoder dispatch in one switch.
+    // The compile-time #if guards ensure disabled categories are absent;
+    // fall-through sets both category_supported and decoded in one pass.
     uint8_t dc_probe = getBits(bits, 17, 4);
     bool category_supported = false;
+    bool decoded = false;
+    switch (dc_probe) {
 #if (AZARAC_ENABLE_EEW)
-    if (dc_probe == 1) category_supported = true;
+        case 1: category_supported = true; break;
 #endif
 #if (AZARAC_ENABLE_HYPOCENTER)
-    if (dc_probe == 2) category_supported = true;
+        case 2: category_supported = true; break;
 #endif
 #if (AZARAC_ENABLE_SEISMIC)
-    if (dc_probe == 3) category_supported = true;
+        case 3: category_supported = true; break;
 #endif
 #if (AZARAC_ENABLE_NANKAI)
-    if (dc_probe == 4) category_supported = true;
+        case 4: category_supported = true; break;
 #endif
 #if (AZARAC_ENABLE_TSUNAMI)
-    if (dc_probe == 5) category_supported = true;
+        case 5: category_supported = true; break;
 #endif
 #if (AZARAC_ENABLE_NW_PAC_TSUNAMI)
-    if (dc_probe == 6) category_supported = true;
+        case 6: category_supported = true; break;
 #endif
 #if (AZARAC_ENABLE_VOLCANO)
-    if (dc_probe == 8) category_supported = true;
+        case 8: category_supported = true; break;
 #endif
 #if (AZARAC_ENABLE_ASH_FALL)
-    if (dc_probe == 9) category_supported = true;
+        case 9: category_supported = true; break;
 #endif
 #if (AZARAC_ENABLE_WEATHER)
-    if (dc_probe == 10) category_supported = true;
+        case 10: category_supported = true; break;
 #endif
 #if (AZARAC_ENABLE_FLOOD)
-    if (dc_probe == 11) category_supported = true;
+        case 11: category_supported = true; break;
 #endif
 #if (AZARAC_ENABLE_TYPHOON)
-    if (dc_probe == 12) category_supported = true;
+        case 12: category_supported = true; break;
 #endif
 #if (AZARAC_ENABLE_MARINE)
-    if (dc_probe == 14) category_supported = true;
+        case 14: category_supported = true; break;
 #endif
-    // Determine if dc_probe is a recognized disaster category (regardless of compile config)
-    bool category_known = false;
-    switch (dc_probe) {
-        case 1: case 2: case 3: case 4: case 5: case 6:
-        case 8: case 9: case 10: case 11: case 12: case 14:
-            category_known = true;
-            break;
-        default:
-            break;
+        default: break;
     }
     if (!category_supported) {
-        out.unsupported_reason = category_known
+        // Recognized but disabled, or unknown
+        bool known = (dc_probe >= 1 && dc_probe <= 6) || dc_probe == 8 ||
+                     dc_probe == 9 || dc_probe == 10 || dc_probe == 11 ||
+                     dc_probe == 12 || dc_probe == 14;
+        out.unsupported_reason = known
             ? UnsupportedReason::DisabledAtCompileTime
             : UnsupportedReason::UnknownCategory;
         return false;
@@ -99,57 +97,53 @@ bool Decoder::decodeQzqsm(const uint8_t* bits, Message& out, uint32_t report_uni
     uint8_t  rt_hour   = getBits(bits, 30, 5);
     uint8_t  rt_minute = getBits(bits, 35, 6);
 
-    // Resolve event_time using report_unix as baseline.
-    // report_unix should be UNIX time from GPS module (recommended for Arduino/ESP32).
     d->event_time = resolveTime(rt_month, rt_day, rt_hour, rt_minute, report_unix);
     uint32_t event_unix = d->event_time.unix_time;
-
-    // Use event_unix for sub-decoder DHM resolution (report_time baseline)
     uint32_t sub_base = (event_unix > 0) ? event_unix : report_unix;
-    (void)sub_base; // may be unused when all AZARAC_ENABLE_* macros are disabled
+    (void)sub_base;
 
-    // Dispatch to enabled sub-decoders based on disaster_category
-    bool decoded = false;
+    // Dispatch to sub-decoder
+    switch (dc_probe) {
 #if (AZARAC_ENABLE_EEW)
-    if (d->disaster_category == 1) { decodeEEW(bits, out, sub_base); decoded = true; }
+        case 1: decodeEEW(bits, out, sub_base); decoded = true; break;
 #endif
 #if (AZARAC_ENABLE_HYPOCENTER)
-    if (d->disaster_category == 2) { decodeHypocenter(bits, out, sub_base); decoded = true; }
+        case 2: decodeHypocenter(bits, out, sub_base); decoded = true; break;
 #endif
 #if (AZARAC_ENABLE_SEISMIC)
-    if (d->disaster_category == 3) { decodeSeismic(bits, out, sub_base); decoded = true; }
+        case 3: decodeSeismic(bits, out, sub_base); decoded = true; break;
 #endif
 #if (AZARAC_ENABLE_NANKAI)
-    if (d->disaster_category == 4) { decodeNankai(bits, out); decoded = true; }
+        case 4: decodeNankai(bits, out); decoded = true; break;
 #endif
 #if (AZARAC_ENABLE_TSUNAMI)
-    if (d->disaster_category == 5) { decodeTsunami(bits, out, sub_base); decoded = true; }
+        case 5: decodeTsunami(bits, out, sub_base); decoded = true; break;
 #endif
 #if (AZARAC_ENABLE_NW_PAC_TSUNAMI)
-    if (d->disaster_category == 6) { decodeNwPacTsu(bits, out, sub_base); decoded = true; }
+        case 6: decodeNwPacTsu(bits, out, sub_base); decoded = true; break;
 #endif
 #if (AZARAC_ENABLE_VOLCANO)
-    if (d->disaster_category == 8) { decodeVolcano(bits, out, sub_base); decoded = true; }
+        case 8: decodeVolcano(bits, out, sub_base); decoded = true; break;
 #endif
 #if (AZARAC_ENABLE_ASH_FALL)
-    if (d->disaster_category == 9) { decodeAshFall(bits, out, sub_base); decoded = true; }
+        case 9: decodeAshFall(bits, out, sub_base); decoded = true; break;
 #endif
 #if (AZARAC_ENABLE_WEATHER)
-    if (d->disaster_category == 10) { decodeWeather(bits, out); decoded = true; }
+        case 10: decodeWeather(bits, out); decoded = true; break;
 #endif
 #if (AZARAC_ENABLE_FLOOD)
-    if (d->disaster_category == 11) { decodeFlood(bits, out); decoded = true; }
+        case 11: decodeFlood(bits, out); decoded = true; break;
 #endif
 #if (AZARAC_ENABLE_TYPHOON)
-    if (d->disaster_category == 12) { decodeTyphoon(bits, out, sub_base); decoded = true; }
+        case 12: decodeTyphoon(bits, out, sub_base); decoded = true; break;
 #endif
 #if (AZARAC_ENABLE_MARINE)
-    if (d->disaster_category == 14) { decodeMarine(bits, out); decoded = true; }
+        case 14: decodeMarine(bits, out); decoded = true; break;
 #endif
+        default: break;
+    }
     if (!decoded) {
-        out.unsupported_reason = category_known
-            ? UnsupportedReason::DisabledAtCompileTime
-            : UnsupportedReason::UnknownCategory;
+        out.unsupported_reason = UnsupportedReason::DisabledAtCompileTime;
         return false;
     }
 

@@ -389,48 +389,40 @@ TEST_CASE("decodeB1Refinement: 最大値（全7）") {
 }
 
 TEST_CASE("b1RefinedLatitudeOffset: 計算値検証") {
-    CHECK(azaraC::internal::b1RefinedLatitudeOffset(0) == 0.0);
-
-    double expected_1 = 180.0 / (8.0 * 65535.0);
-    CHECK(azaraC::internal::b1RefinedLatitudeOffset(1) == doctest::Approx(expected_1));
-
-    double expected_7 = 7.0 * 180.0 / (8.0 * 65535.0);
-    CHECK(azaraC::internal::b1RefinedLatitudeOffset(7) == doctest::Approx(expected_7));
+    // Returns microdegrees (×1,000,000)
+    CHECK(azaraC::internal::b1RefinedLatitudeOffset(0) == 0);
+    CHECK(azaraC::internal::b1RefinedLatitudeOffset(1) == 343);
+    CHECK(azaraC::internal::b1RefinedLatitudeOffset(7) == 2403);
 }
 
 TEST_CASE("b1RefinedLongitudeOffset: 計算値検証") {
-    CHECK(azaraC::internal::b1RefinedLongitudeOffset(0) == 0.0);
-
-    double expected_1 = 360.0 / (8.0 * 131071.0);
-    CHECK(azaraC::internal::b1RefinedLongitudeOffset(1) == doctest::Approx(expected_1));
-
-    double expected_7 = 7.0 * 360.0 / (8.0 * 131071.0);
-    CHECK(azaraC::internal::b1RefinedLongitudeOffset(7) == doctest::Approx(expected_7));
+    // Returns microdegrees (×1,000,000)
+    CHECK(azaraC::internal::b1RefinedLongitudeOffset(0) == 0);
+    CHECK(azaraC::internal::b1RefinedLongitudeOffset(1) == 343);
+    CHECK(azaraC::internal::b1RefinedLongitudeOffset(7) == 2403);
 }
 
 TEST_CASE("b1RefinedRadiusKm: 計算値検証 (EWSS CAMF v1.1 §3.7.1.3/4)") {
-    // ===== a14_code=0 branch (delta = decodeRadiusCode(0) = 0.216) =====
-    // refined = base - delta * (code/8)
-    // code=0: 0.216 - 0.216*0 = 0.216
-    // code=4: 0.216 - 0.216*0.5 = 0.108
-    // code=7: 0.216 - 0.216*0.875 = 0.027
-    CHECK(azaraC::internal::b1RefinedRadiusKm(0, 0.216, 0) == doctest::Approx(0.216));
-    CHECK(azaraC::internal::b1RefinedRadiusKm(4, 0.216, 0) == doctest::Approx(0.108));
-    CHECK(azaraC::internal::b1RefinedRadiusKm(7, 0.216, 0) == doctest::Approx(0.027));
+    // Returns meters
+    // a14_code=0: delta = decodeRadiusCode(0) = 216
+    // base=216, code=0: 216 - 216*0/8 = 216
+    // base=216, code=4: 216 - 216*4/8 = 108
+    // base=216, code=7: 216 - 216*7/8 = 27
+    CHECK(azaraC::internal::b1RefinedRadiusKm(0, 216, 0) == 216);
+    CHECK(azaraC::internal::b1RefinedRadiusKm(4, 216, 0) == 108);
+    CHECK(azaraC::internal::b1RefinedRadiusKm(7, 216, 0) == 27);
 
-    // ===== a14_code≠0 branch (delta = decodeRadiusCode(a14) - decodeRadiusCode(a14-1)) =====
-    // a14_code=1: delta = decodeRadiusCode(1) - decodeRadiusCode(0) = 0.292 - 0.216 = 0.076
-    // base=decodeRadiusCode(1)=0.292, code=0: 0.292 - 0.076*0 = 0.292
-    // base=decodeRadiusCode(1)=0.292, code=4: 0.292 - 0.076*0.5 = 0.254
-    // base=decodeRadiusCode(1)=0.292, code=7: 0.292 - 0.076*0.875 = 0.2255
-    CHECK(azaraC::internal::b1RefinedRadiusKm(0, 0.292, 1) == doctest::Approx(0.292));
-    CHECK(azaraC::internal::b1RefinedRadiusKm(4, 0.292, 1) == doctest::Approx(0.254));
-    CHECK(azaraC::internal::b1RefinedRadiusKm(7, 0.292, 1) == doctest::Approx(0.2255));
+    // a14_code=1: delta = 292 - 216 = 76
+    // base=292, code=0: 292 - 76*0/8 = 292
+    // base=292, code=4: 292 - 76*4/8 = 292 - 38 = 254
+    // base=292, code=7: 292 - 76*7/8 = 292 - 67 = 225
+    CHECK(azaraC::internal::b1RefinedRadiusKm(0, 292, 1) == 292);
+    CHECK(azaraC::internal::b1RefinedRadiusKm(4, 292, 1) == 254);
+    CHECK(azaraC::internal::b1RefinedRadiusKm(7, 292, 1) == 225);
 
-    // ===== a14_code≠0 branch with larger a14_code (a14_code=3) =====
-    // delta = decodeRadiusCode(3) - decodeRadiusCode(2) = 0.535 - 0.395 = 0.140
-    // base=decodeRadiusCode(3)=0.535, code=4: 0.535 - 0.140*0.5 = 0.465
-    CHECK(azaraC::internal::b1RefinedRadiusKm(4, 0.535, 3) == doctest::Approx(0.465));
+    // a14_code=3: delta = 535 - 395 = 140
+    // base=535, code=4: 535 - 140*4/8 = 535 - 70 = 465
+    CHECK(azaraC::internal::b1RefinedRadiusKm(4, 535, 3) == 465);
 }
 
 #if (AZARAC_ENABLE_DCX_CAMF)

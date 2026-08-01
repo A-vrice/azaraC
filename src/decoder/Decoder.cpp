@@ -84,11 +84,14 @@ int32_t Decoder::getSignedBits(const uint8_t* buf, uint16_t start, uint8_t len) 
 void Decoder::extractSignedLatLon(const uint8_t* buf, uint16_t start, int16_t& lat_e1, int16_t& lon_e1,
                                      uint8_t lat_bits, uint8_t lon_bits) {
     uint8_t  lat_s = getBits(buf, start, 1);
-    uint16_t lat_v = getBits(buf, start + 1, lat_bits);
+    uint32_t lat_v = getBits(buf, start + 1, lat_bits);
     uint8_t  lon_s = getBits(buf, start + 1 + lat_bits, 1);
-    uint16_t lon_v = getBits(buf, start + 2 + lat_bits, lon_bits);
-    lat_e1 = (lat_s ? -(int16_t)lat_v : (int16_t)lat_v) * 10;
-    lon_e1 = (lon_s ? -(int16_t)lon_v : (int16_t)lon_v) * 10;
+    uint32_t lon_v = getBits(buf, start + 2 + lat_bits, lon_bits);
+    // Use int32_t arithmetic to avoid int16_t overflow for lat_bits > 11 or lon_bits > 11.
+    int32_t lat = (lat_s ? -static_cast<int32_t>(lat_v) : static_cast<int32_t>(lat_v)) * 10;
+    int32_t lon = (lon_s ? -static_cast<int32_t>(lon_v) : static_cast<int32_t>(lon_v)) * 10;
+    lat_e1 = static_cast<int16_t>(lat);
+    lon_e1 = static_cast<int16_t>(lon);
 }
 
 // Simple civil date to days since 1970-01-01

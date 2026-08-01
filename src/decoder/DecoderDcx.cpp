@@ -231,8 +231,8 @@ bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix)
             d->camf.b2_c5 = c5;
             d->camf.b2_c6 = c6;
             dec.b2_hazard_center_present = true;
-            dec.b2_hazard_lat_deg = dec.main_ellipse.lat_deg + b2.delta_lat_deg;
-            dec.b2_hazard_lon_deg = dec.main_ellipse.lon_deg + b2.delta_lon_deg;
+            dec.b2_hazard_lat_microdeg = dec.main_ellipse.lat_deg + b2.delta_lat_microdeg;
+            dec.b2_hazard_lon_microdeg = dec.main_ellipse.lon_deg + b2.delta_lon_microdeg;
             // dec.main_ellipse is unchanged (keeps original ellipse center)
         }
         // B3 (A17=10) - Secondary Ellipse Definition (EWSS CAMF v1.1 §3.7.3)

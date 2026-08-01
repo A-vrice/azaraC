@@ -46,7 +46,6 @@ void writeDouble(Print& out, double v, int precision) {
 
     // Round away from zero, then output sign
     v += (v < 0) ? -round_off : round_off;
-
     if (v < 0) {
         out.print('-');
         v = -v;

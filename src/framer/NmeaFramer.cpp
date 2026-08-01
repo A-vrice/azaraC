@@ -12,13 +12,6 @@ void NmeaFramer::reset() {
     _xsum = 0;
 }
 
-uint8_t NmeaFramer::hexVal(char c) {
-    if (c >= '0' && c <= '9') return c - '0';
-    if (c >= 'A' && c <= 'F') return c - 'A' + 10;
-    if (c >= 'a' && c <= 'f') return c - 'a' + 10;
-    return 0xFF;
-}
-
 bool NmeaFramer::feed(uint8_t b, Frame& out) {
     char c = static_cast<char>(b);
     if (c == '$') {
@@ -86,37 +79,35 @@ bool NmeaFramer::parse(Frame& out) {
     uint8_t svid = static_cast<uint8_t>(svid_tmp);
     ++p;  // skip comma
 
-    // hex decode into bits[]
+    // hex decode into bits[] — single pass
     memset(out.bits, 0, sizeof(out.bits));
     uint8_t byte_idx = 0;
+    uint8_t hex_count = 0;
+    uint8_t nibble = 0;
 
-    // Count hex characters — QZSS L1S is 250 bits = 63 hex chars (31 bytes + 1 nibble).
-    // Some receivers output 64 hex chars (32 bytes), so accept both 63 and 64.
-    char* start_p = p;
-    while ((*p >= '0' && *p <= '9') || (*p >= 'A' && *p <= 'F') || (*p >= 'a' && *p <= 'f')) p++;
-    size_t hex_len = p - start_p;
-    if (hex_len != 63 && hex_len != 64) return false;
-
-    p = start_p;
-    // Decode full byte pairs
-    size_t full_bytes = hex_len / 2;
-    if (full_bytes > 32) full_bytes = 32;
-    while (byte_idx < full_bytes) {
-        uint8_t hi = hexVal(*p++);
-        uint8_t lo = hexVal(*p++);
-        if (hi == 0xFF || lo == 0xFF) return false;
-        out.bits[byte_idx++] = (hi << 4) | lo;
+    while (*p && ((*p >= '0' && *p <= '9') || (*p >= 'A' && *p <= 'F') || (*p >= 'a' && *p <= 'f'))) {
+        if (byte_idx >= 32) { p++; hex_count++; continue; }  // skip past 32 bytes
+        uint8_t val = hexVal(*p++);
+        if (val == 0xFF) return false;
+        nibble = (nibble << 4) | val;
+        if (++hex_count % 2 == 0) {
+            out.bits[byte_idx++] = nibble;
+            nibble = 0;
+        }
     }
+
+    // Validate length: QZSS L1S is 250 bits = 63 hex chars (31 bytes + 1 nibble).
+    // Some receivers output 64 hex chars (32 bytes), so accept both 63 and 64.
+    if (hex_count != 63 && hex_count != 64) return false;
+
     // Handle trailing nibble (odd hex length, e.g. 63 chars)
-    if ((hex_len & 1) && byte_idx < 32) {
-        uint8_t hi = hexVal(*p++);
-        if (hi == 0xFF) return false;
-        out.bits[byte_idx++] = hi << 4;
+    if ((hex_count & 1) && byte_idx < 32) {
+        out.bits[byte_idx++] = nibble << 4;
     }
     if (byte_idx < 31) return false;  // Need at least 31 bytes for 250 bits
     
     // For 64 hex chars (32 bytes), mask the last nibble (padding) to get 250 bits
-    if (hex_len == 64) {
+    if (hex_count == 64) {
         out.bits[31] &= 0xF0;
     }
 
