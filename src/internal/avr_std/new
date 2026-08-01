@@ -11,13 +11,13 @@
 #if defined(AZARAC_AVR_STUB)
 #include <new>
 #else
-inline void* operator new(std::size_t, void* p) noexcept { return p; }
-inline void* operator new[](std::size_t, void* p) noexcept { return p; }
+inline void* operator new(size_t, void* p) noexcept { return p; }
+inline void* operator new[](size_t, void* p) noexcept { return p; }
 inline void  operator delete(void*, void*) noexcept {}
 inline void  operator delete[](void*, void*) noexcept {}
 
-void* operator new(std::size_t size);
-void* operator new[](std::size_t size);
+void* operator new(size_t size);
+void* operator new[](size_t size);
 void  operator delete(void* p) noexcept;
 void  operator delete[](void* p) noexcept;
 #endif

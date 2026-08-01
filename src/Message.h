@@ -65,8 +65,10 @@ struct Message {
 
     // Storage for the active payload (aligned to 8 bytes)
     // Size is based on the maximum of Mt43Data and Mt44Data to ensure
-    // safe placement-new for either payload type.
-    static constexpr size_t payload_size_ = std::max(sizeof(Mt43Data), sizeof(Mt44Data));
+    // safe placement-new for either payload type. (Ternary instead of
+    // std::max: Arduino's Arduino.h defines a `max` function-like macro.)
+    static constexpr size_t payload_size_ =
+        (sizeof(Mt43Data) > sizeof(Mt44Data) ? sizeof(Mt43Data) : sizeof(Mt44Data));
     alignas(8) unsigned char payload_storage_[payload_size_];
 
     Message() : payload_type(MsgPayloadType::Empty) {

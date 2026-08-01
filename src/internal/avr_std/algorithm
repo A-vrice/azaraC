@@ -6,6 +6,16 @@
 #if defined(AZARAC_AVR_STUB)
 #include <algorithm>
 #else
+// Arduino.h defines `min`/`max` as function-like macros; undefine them so
+// the std:: templates below can be declared. azaraC.h also undefines them,
+// this is a defensive fallback for direct includes.
+#if defined(min)
+#undef min
+#endif
+#if defined(max)
+#undef max
+#endif
+
 namespace std {
 
 template <typename T>
