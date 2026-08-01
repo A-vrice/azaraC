@@ -51,7 +51,10 @@ jobs:
           library-manager: submit
           compliance: strict
 
-  # ── 必須コンパイルチェック ───────────────────────────────────────────────
+  # ── 必須コンパイルチェック（リリースゲート）──────────────────────────────
+  # アーキテクチャ代表 1 台ずつが必須: ARM Cortex-M (RP2040 Pico) /
+  # Xtensa (ESP32-C3) / AVR (Arduino Uno)。失敗で CI が赤くなる。
+  # その他のプラットフォームは compile-extended（ベストエフォート）。
   arduino-compile-required:
     name: compile required (${{ matrix.name }})
     runs-on: ubuntu-latest
@@ -68,33 +71,19 @@ jobs:
             additional_urls: https://github.com/earlephilhower/arduino-pico/releases/download/global/package_rp2040_index.json
             build_flags: ""
 
-          - name: RP2350 Pico 2
-            core: rp2040:rp2040
-            fqbn: rp2040:rp2040:rpipico2
-            additional_urls: https://github.com/earlephilhower/arduino-pico/releases/download/global/package_rp2040_index.json
-            build_flags: ""
-
           - name: ESP32-C3
             core: esp32:esp32
             fqbn: esp32:esp32:esp32c3
             additional_urls: https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
             build_flags: ""
 
-          - name: ESP32-S3
-            core: esp32:esp32
-            fqbn: esp32:esp32:esp32s3
-            additional_urls: https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
-            build_flags: ""
-
-          - name: Arduino Uno (AVR)
+          - name: Arduino Uno
             core: arduino:avr
             fqbn: arduino:avr:uno
             additional_urls: ""
-            # Uno (32 KB Flash) cannot hold all definition pools (44 KB for
-            # tables alone). The basic examples (basic_ubx / basic_nmea /
-            # basic_uno) reduce the enabled categories inside the sketch
-            # (#if defined(ARDUINO_ARCH_AVR)) to TSUNAMI + SEISMIC (~4.5 KB
-            # tables) so the sketches fit.
+            # Uno (32 KB Flash / 2 KB SRAM) cannot hold all definition pools
+            # (44 KB for tables alone). The AVR preset in azaraC_config.h
+            # keeps SEISMIC/TSUNAMI only (~4.5 KB tables) so the sketches fit.
             build_flags: ""
 
     steps:
@@ -129,16 +118,16 @@ jobs:
           for sketch in examples/*/; do
             echo "--- $sketch ---"
             sketch_name=$(basename "$sketch")
-            # Arduino Uno (AVR): only the basic examples are AVR-aware
-            # (they use Serial instead of Serial1 and reduce the enabled
-            # categories inside the sketch). The other examples need Serial1
-            # or more flash/RAM than the Uno has.
-            if [[ "${{ matrix.name }}" == "Arduino Uno (AVR)" && "$sketch_name" != "basic_ubx" && "$sketch_name" != "basic_nmea" && "$sketch_name" != "basic_uno" ]]; then
+            # Arduino Uno: only the basic examples are AVR-aware (they use
+            # Serial instead of Serial1 and the AVR preset reduces the
+            # enabled categories). The other examples need Serial1 or more
+            # flash/RAM than the Uno has.
+            if [[ "${{ matrix.name }}" == "Arduino Uno" && "$sketch_name" != "basic_ubx" && "$sketch_name" != "basic_nmea" && "$sketch_name" != "basic_uno" ]]; then
               echo "skip $sketch_name on ${{ matrix.name }} (not AVR-aware)"
               continue
             fi
             # Skip WiFi examples on boards without WiFi (requires WiFi.h)
-            if [[ ("${{ matrix.name }}" == "RP2040 Pico" || "${{ matrix.name }}" == "RP2350 Pico 2") && ("$sketch_name" == "wifi_client" || "$sketch_name" == "with_sntp") ]]; then
+            if [[ "${{ matrix.name }}" == "RP2040 Pico" && ("$sketch_name" == "wifi_client" || "$sketch_name" == "with_sntp") ]]; then
               echo "skip $sketch_name on ${{ matrix.name }} because WiFi.h is unavailable"
               continue
             fi
@@ -152,7 +141,10 @@ jobs:
             arduino-cli compile --clean --fqbn "${{ matrix.fqbn }}" "$sketch" --build-property "compiler.cpp.extra_flags=$CPP_EXTRA_FLAGS"
           done
 
-  # ── 拡張コンパイルチェック ───────────────────────────────────────────────
+  # ── 拡張コンパイルチェック（ベストエフォート）────────────────────────────
+  # required 以外の追加プラットフォーム。continue-on-error なので失敗して
+  # も CI は赤くならない（警告扱い）。主要アーキテクチャの代表は
+  # compile-required（リリースゲート）で検証される。
   arduino-compile-extended:
     name: compile extended (${{ matrix.name }})
     runs-on: ubuntu-latest
@@ -164,6 +156,18 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - name: RP2350 Pico 2
+            core: rp2040:rp2040
+            fqbn: rp2040:rp2040:rpipico2
+            additional_urls: https://github.com/earlephilhower/arduino-pico/releases/download/global/package_rp2040_index.json
+            build_flags: ""
+
+          - name: ESP32-S3
+            core: esp32:esp32
+            fqbn: esp32:esp32:esp32s3
+            additional_urls: https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+            build_flags: ""
+
           - name: STM32 Nucleo H563ZI
             core: STMicroelectronics:stm32
             fqbn: STMicroelectronics:stm32:Nucleo_144:pnum=NUCLEO_H563ZI
@@ -244,7 +248,7 @@ jobs:
           for sketch in examples/*/; do
             echo "--- $sketch ---"
             sketch_name=$(basename "$sketch")
-            if [[ ("${{ matrix.name }}" == "Arduino GIGA R1 WiFi") || ("${{ matrix.name }}" == "Teensy 4.0" || "${{ matrix.name }}" == "STM32 Nucleo H563ZI" || "${{ matrix.name }}" == "nRF52840 Nano 33 BLE" || "${{ matrix.name }}" == "Arduino Zero") && ("$sketch_name" == "wifi_client" || "$sketch_name" == "with_sntp") ]]; then
+            if [[ ("${{ matrix.name }}" == "Arduino GIGA R1 WiFi") || ("${{ matrix.name }}" == "Teensy 4.0" || "${{ matrix.name }}" == "STM32 Nucleo H563ZI" || "${{ matrix.name }}" == "nRF52840 Nano 33 BLE" || "${{ matrix.name }}" == "Arduino Zero" || "${{ matrix.name }}" == "RP2350 Pico 2") && ("$sketch_name" == "wifi_client" || "$sketch_name" == "with_sntp") ]]; then
               if [[ "${{ matrix.name }}" == "Arduino GIGA R1 WiFi" ]]; then
                 if [[ "$sketch_name" == "with_sntp" ]]; then
                   echo "skip $sketch_name on ${{ matrix.name }} because configTime is unavailable"

@@ -23,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Arduino.h の `min`/`max` 関数マクロ対策: `azaraC.h` で `#undef`（既存の `abs` 対策と同様）+ `Message.h` の `std::max` を三項演算子化。
   - **AVR プリセットでカテゴリを自動絞り込み**: `azaraC_config.h` の AVR プリセットが SEISMIC/TSUNAMI のみ有効化（他 11 カテゴリは無効、`-D`/`#define` で上書き可）。例題内の `#define` はライブラリ .cpp（別 TU）に効かないため撤去し、config レベルで一括適用。
   - Uno ジョブは例題（全て `Serial1` 依存）の代わりに最小スケッチ（`#include <azaraC.h>` のみ）でライブラリ全体をコンパイル検証。
+  - **Dedup.h の `AZARAC_DEDUP_SLOTS` デフォルトを config に一本化**: Dedup.h が独自に `#define 8` を持ち、config を経由しない TU（Dedup.cpp）で AVR プリセット (4) と不一致になり LTO が "array types have different bounds" を検出していた。config include + 重複デフォルト削除で解消。
+  - **CI ボード分類をアーキテクチャ代表制に整理**: compile-required（リリースゲート）= RP2040 Pico (ARM) / ESP32-C3 (Xtensa) / Arduino Uno (AVR) の 3 台。compile-extended（ベストエフォート、continue-on-error）= 残り 8 台。Uno のボード名から `(AVR)` 表記を削除。
 
 ### Fixed
 
