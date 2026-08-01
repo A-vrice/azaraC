@@ -212,7 +212,7 @@ test-macro-sizes:
 	$(CXX) $(CXXFLAGS) -c $(JSON_SRC) -o $(MACRO_TMP)/bl_json.o
 	$(CXX) $(CXXFLAGS) -c $(JSON_DCX_SRC) -o $(MACRO_TMP)/bl_json_dcx.o
 	@echo ""
-	@echo "=== Size report (.text bytes) ==="
+	@echo "=== Size report (.text bytes; host g++ -O0, relative comparison) ==="
 	@echo "| Macro disabled | DecoderQzqsm | DecoderDcx | JsonSerQzqsm | JsonSerDcx |"
 	@echo "|---------------|-------------|------------|-------------|-----------|"
 	@BL_QZQSM=`size $(MACRO_TMP)/bl_qzqsm.o 2>/dev/null | tail -1 | awk '{print $$1}'`; \

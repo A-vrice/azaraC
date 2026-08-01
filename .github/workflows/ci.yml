@@ -91,10 +91,11 @@ jobs:
             fqbn: arduino:avr:uno
             additional_urls: ""
             # Uno (32 KB Flash) cannot hold all definition pools (44 KB for
-            # tables alone with only DCX/VOLCANO/ASH_FALL/NANKAI disabled).
-            # Keep TSUNAMI + SEISMIC: exercises switch/array/bsearch AVR
-            # lookups while staying well under the flash budget (~4.5 KB tables).
-            build_flags: "-DAZARAC_ENABLE_EEW=0 -DAZARAC_ENABLE_HYPOCENTER=0 -DAZARAC_ENABLE_SEISMIC=1 -DAZARAC_ENABLE_NANKAI=0 -DAZARAC_ENABLE_TSUNAMI=1 -DAZARAC_ENABLE_NW_PAC_TSUNAMI=0 -DAZARAC_ENABLE_VOLCANO=0 -DAZARAC_ENABLE_ASH_FALL=0 -DAZARAC_ENABLE_WEATHER=0 -DAZARAC_ENABLE_FLOOD=0 -DAZARAC_ENABLE_TYPHOON=0 -DAZARAC_ENABLE_MARINE=0 -DAZARAC_ENABLE_DCX_CAMF=0"
+            # tables alone). The basic examples (basic_ubx / basic_nmea /
+            # basic_uno) reduce the enabled categories inside the sketch
+            # (#if defined(ARDUINO_ARCH_AVR)) to TSUNAMI + SEISMIC (~4.5 KB
+            # tables) so the sketches fit.
+            build_flags: ""
 
     steps:
       - uses: actions/checkout@v6
@@ -125,22 +126,19 @@ jobs:
           LIB_DIR=$(arduino-cli config get directories.user)/libraries
           mkdir -p "$LIB_DIR"
           ln -s "$GITHUB_WORKSPACE" "$LIB_DIR/azaraC"
-          # Arduino Uno has no Serial1 (all examples use Serial1 for the GNSS
-          # module), so compile test/uno_sketch instead: it instantiates the
-          # Parser and calls feed()/toJson() so the whole library is linked
-          # (otherwise the linker dead-strips the .cpp files and the build
-          # would only prove the headers parse).
-          if [[ "${{ matrix.name }}" == "Arduino Uno (AVR)" ]]; then
-            CPP_EXTRA_FLAGS="-std=gnu++17 ${{ matrix.build_flags }}"
-            arduino-cli compile --clean --fqbn "${{ matrix.fqbn }}" test/uno_sketch \
-              --build-property "compiler.cpp.extra_flags=$CPP_EXTRA_FLAGS"
-            exit 0
-          fi
           for sketch in examples/*/; do
             echo "--- $sketch ---"
             sketch_name=$(basename "$sketch")
+            # Arduino Uno (AVR): only the basic examples are AVR-aware
+            # (they use Serial instead of Serial1 and reduce the enabled
+            # categories inside the sketch). The other examples need Serial1
+            # or more flash/RAM than the Uno has.
+            if [[ "${{ matrix.name }}" == "Arduino Uno (AVR)" && "$sketch_name" != "basic_ubx" && "$sketch_name" != "basic_nmea" && "$sketch_name" != "basic_uno" ]]; then
+              echo "skip $sketch_name on ${{ matrix.name }} (not AVR-aware)"
+              continue
+            fi
             # Skip WiFi examples on boards without WiFi (requires WiFi.h)
-            if [[ ("${{ matrix.name }}" == "RP2040 Pico" || "${{ matrix.name }}" == "RP2350 Pico 2" || "${{ matrix.name }}" == "Arduino Uno (AVR)") && ("$sketch_name" == "wifi_client" || "$sketch_name" == "with_sntp") ]]; then
+            if [[ ("${{ matrix.name }}" == "RP2040 Pico" || "${{ matrix.name }}" == "RP2350 Pico 2") && ("$sketch_name" == "wifi_client" || "$sketch_name" == "with_sntp") ]]; then
               echo "skip $sketch_name on ${{ matrix.name }} because WiFi.h is unavailable"
               continue
             fi
@@ -290,9 +288,10 @@ jobs:
         run: |
           make -C test test-macro-sizes 2>&1 | tee test/macro_sizes.txt
           echo "### 📐 AZARAC_ENABLE_* Macro Size Impact" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Host g++ (-O0) .text bytes — relative comparison only; optimized builds are much smaller." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
           cat test/macro_sizes.txt >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
 
   # ── マクロ無効化ランタイムテスト ─────────────────────────────────────────────
   macro-runtime-test:
