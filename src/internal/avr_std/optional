@@ -29,8 +29,8 @@ class optional {
 public:
     using value_type = T;
 
-    constexpr optional() noexcept : has_(false) {}
-    constexpr optional(nullopt_t) noexcept : has_(false) {}
+    constexpr optional() noexcept : has_(false), storage_{} {}
+    constexpr optional(nullopt_t) noexcept : has_(false), storage_{} {}
     optional(const T& v) { construct(v); }
     optional(T&& v) { construct(static_cast<T&&>(v)); }
 
