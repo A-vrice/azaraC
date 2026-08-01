@@ -75,10 +75,17 @@ inline constexpr std::optional<std::string_view> QZSS_DCX_CAMF_D27_NOISE_RANGE_T
 
 #else
 
+#if defined(__AVR__)
+[[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_d27_noise_range_lookup(uint8_t id) noexcept {
+    (void)id;
+    return std::nullopt;
+}
+#else
 [[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_d27_noise_range_lookup(uint8_t id) noexcept {
     (void)id;
     return std::nullopt;
 }
+#endif
 
 #endif
 

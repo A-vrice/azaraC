@@ -567,10 +567,17 @@ inline constexpr QZSS_DCX_CAMF_A2_COUNTRY_REGION_NAME_Entry QZSS_DCX_CAMF_A2_COU
 
 #else
 
+#if defined(__AVR__)
+[[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_a2_country_region_name_lookup(uint16_t id) noexcept {
+    (void)id;
+    return std::nullopt;
+}
+#else
 [[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_a2_country_region_name_lookup(uint16_t id) noexcept {
     (void)id;
     return std::nullopt;
 }
+#endif
 
 #endif
 

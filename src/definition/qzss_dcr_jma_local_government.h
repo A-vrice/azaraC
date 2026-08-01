@@ -3647,10 +3647,17 @@ inline constexpr QZSS_DCR_JMA_LOCAL_GOVERNMENT_Entry QZSS_DCR_JMA_LOCAL_GOVERNME
 
 #else
 
+#if defined(__AVR__)
+[[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_local_government_lookup(uint32_t id) noexcept {
+    (void)id;
+    return std::nullopt;
+}
+#else
 [[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_local_government_lookup(uint32_t id) noexcept {
     (void)id;
     return std::nullopt;
 }
+#endif
 
 #endif
 

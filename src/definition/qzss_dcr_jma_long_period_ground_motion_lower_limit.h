@@ -53,10 +53,17 @@ namespace def {
 
 #else
 
+#if defined(__AVR__)
+[[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_long_period_ground_motion_lower_limit_lookup(uint8_t id) noexcept {
+    (void)id;
+    return std::nullopt;
+}
+#else
 [[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_long_period_ground_motion_lower_limit_lookup(uint8_t id) noexcept {
     (void)id;
     return std::nullopt;
 }
+#endif
 
 #endif
 

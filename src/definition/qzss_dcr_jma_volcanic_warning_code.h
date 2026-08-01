@@ -93,10 +93,17 @@ inline constexpr QZSS_DCR_JMA_VOLCANIC_WARNING_CODE_Entry QZSS_DCR_JMA_VOLCANIC_
 
 #else
 
+#if defined(__AVR__)
+[[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_volcanic_warning_code_lookup(uint8_t id) noexcept {
+    (void)id;
+    return std::nullopt;
+}
+#else
 [[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_volcanic_warning_code_lookup(uint8_t id) noexcept {
     (void)id;
     return std::nullopt;
 }
+#endif
 
 #endif
 

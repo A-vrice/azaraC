@@ -93,10 +93,17 @@ inline constexpr std::optional<std::string_view> QZSS_DCX_CAMF_D26_NUMBER_OF_CAS
 
 #else
 
+#if defined(__AVR__)
+[[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_d26_number_of_cases_per_100000_inhabitants_lookup(uint8_t id) noexcept {
+    (void)id;
+    return std::nullopt;
+}
+#else
 [[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_d26_number_of_cases_per_100000_inhabitants_lookup(uint8_t id) noexcept {
     (void)id;
     return std::nullopt;
 }
+#endif
 
 #endif
 

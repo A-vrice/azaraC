@@ -499,9 +499,17 @@ def build_header(modname, varname, entries, ver, all_varnames, obj=None, use_opt
         full_guard = " && ".join(guards)
         wrapped_body = f"#if {full_guard}\n\n{body}\n\n#else\n\n"
         if use_optional:
+            # The AVR stdlib shim optional has a non-trivial destructor and is
+            # not a literal type, so the stub cannot be constexpr on AVR.
+            wrapped_body += "#if defined(__AVR__)\n"
+            wrapped_body += f"[[nodiscard]] inline std::optional<std::string_view> {varname}_lookup({kt} id) noexcept {{\n"
+            wrapped_body += "    (void)id;\n    return std::nullopt;\n}\n"
+            wrapped_body += "#else\n"
             wrapped_body += f"[[nodiscard]] inline constexpr std::optional<std::string_view> {varname}_lookup({kt} id) noexcept {{\n"
-            wrapped_body += "    (void)id;\n    return std::nullopt;\n}\n\n#endif\n"
+            wrapped_body += "    (void)id;\n    return std::nullopt;\n}\n"
+            wrapped_body += "#endif\n\n#endif\n"
         else:
+            # const char* is a literal type even on AVR.
             wrapped_body += f"[[nodiscard]] inline constexpr const char* {varname}_lookup({kt} id) noexcept {{\n"
             wrapped_body += "    (void)id;\n    return nullptr;\n}\n\n#endif\n"
     else:

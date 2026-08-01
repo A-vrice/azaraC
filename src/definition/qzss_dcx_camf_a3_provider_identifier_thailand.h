@@ -77,10 +77,17 @@ inline constexpr std::optional<std::string_view> QZSS_DCX_CAMF_A3_PROVIDER_IDENT
 
 #else
 
+#if defined(__AVR__)
+[[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_a3_provider_identifier_thailand_lookup(uint8_t id) noexcept {
+    (void)id;
+    return std::nullopt;
+}
+#else
 [[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_a3_provider_identifier_thailand_lookup(uint8_t id) noexcept {
     (void)id;
     return std::nullopt;
 }
+#endif
 
 #endif
 

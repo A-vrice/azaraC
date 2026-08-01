@@ -68,6 +68,11 @@ public:
     T& value() { return *reinterpret_cast<T*>(storage_); }
     const T& value() const { return *reinterpret_cast<const T*>(storage_); }
 
+    template <typename U>
+    T value_or(U&& default_value) const {
+        return has_ ? value() : static_cast<T>(static_cast<U&&>(default_value));
+    }
+
     T& operator*() { return value(); }
     const T& operator*() const { return value(); }
     T* operator->() { return &value(); }

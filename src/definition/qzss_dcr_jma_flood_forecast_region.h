@@ -847,10 +847,17 @@ inline constexpr QZSS_DCR_JMA_FLOOD_FORECAST_REGION_Entry QZSS_DCR_JMA_FLOOD_FOR
 
 #else
 
+#if defined(__AVR__)
+[[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_flood_forecast_region_lookup(uint64_t id) noexcept {
+    (void)id;
+    return std::nullopt;
+}
+#else
 [[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_flood_forecast_region_lookup(uint64_t id) noexcept {
     (void)id;
     return std::nullopt;
 }
+#endif
 
 #endif
 

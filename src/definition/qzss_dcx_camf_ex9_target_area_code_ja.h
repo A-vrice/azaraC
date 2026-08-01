@@ -157,10 +157,17 @@ inline constexpr QZSS_DCX_CAMF_EX9_TARGET_AREA_CODE_JA_Entry QZSS_DCX_CAMF_EX9_T
 
 #else
 
+#if defined(__AVR__)
+[[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_ex9_target_area_code_ja_lookup(uint64_t id) noexcept {
+    (void)id;
+    return std::nullopt;
+}
+#else
 [[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_ex9_target_area_code_ja_lookup(uint64_t id) noexcept {
     (void)id;
     return std::nullopt;
 }
+#endif
 
 #endif
 

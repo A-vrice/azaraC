@@ -4023,10 +4023,17 @@ inline constexpr QZSS_DCX_EX1_TARGET_AREA_CODE_EN_Entry QZSS_DCX_EX1_TARGET_AREA
 
 #else
 
+#if defined(__AVR__)
+[[nodiscard]] inline std::optional<std::string_view> qzss_dcx_ex1_target_area_code_en_lookup(uint16_t id) noexcept {
+    (void)id;
+    return std::nullopt;
+}
+#else
 [[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_ex1_target_area_code_en_lookup(uint16_t id) noexcept {
     (void)id;
     return std::nullopt;
 }
+#endif
 
 #endif
 

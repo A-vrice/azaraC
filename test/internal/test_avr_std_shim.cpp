@@ -56,6 +56,15 @@ TEST_CASE("avr_std optional basic operations") {
     // emplace
     copy.emplace(123);
     CHECK(copy.value() == 123);
+
+    // value_or
+    CHECK(copy.value_or(0) == 123);
+    std::optional<int> empty2;
+    CHECK(empty2.value_or(-1) == -1);
+    std::optional<std::string_view> svEmpty;
+    CHECK(svEmpty.value_or(std::string_view("", 0)).size() == 0);
+    std::optional<std::string_view> svVal = std::string_view("abc", 3);
+    CHECK(svVal.value_or(std::string_view("", 0)).size() == 3);
 }
 
 TEST_CASE("avr_std optional string_view integration") {
