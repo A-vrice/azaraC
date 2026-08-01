@@ -1,7 +1,7 @@
 language: "ja-JP"
 early_access: true
 reviews:
-  profile: "Assertive"
+  profile: "assertive"
   auto_title_instructions: Simple/Clear
   auto_apply_labels: true
   request_changes_workflow: false
