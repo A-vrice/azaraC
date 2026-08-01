@@ -1,12 +1,17 @@
-language: "ja"
+language: "ja-JP"
+early_access: true
 reviews:
-  profile: "chill"
+  profile: "Assertive"
+  auto_title_instructions: Simple/Clear
+  auto_apply_labels: true
   request_changes_workflow: false
   high_level_summary: true
-  poem: false
+  poem: true
+  in_progress_fortune: true
   review_status: true
   collapse_walkthrough: false
   path_filters:
+    - "!src/definition/**"
     - "!test/cppcheck_report.xml"
     - "!test/coverage_report.json"
   auto_review:
@@ -14,6 +19,7 @@ reviews:
     drafts: false
     base_branches:
       - "main"
-      - "develop"
+      - "main-pre"
 chat:
   auto_reply: true
+  art: true
