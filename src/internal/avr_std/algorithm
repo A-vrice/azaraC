@@ -1,0 +1,22 @@
+#pragma once
+// azaraC - src/internal/avr_std/algorithm
+// Minimal <algorithm> shim for the Arduino AVR toolchain (no libstdc++).
+// Provides std::min/std::max only (all azaraC uses).
+
+#if defined(AZARAC_AVR_STUB)
+#include <algorithm>
+#else
+namespace std {
+
+template <typename T>
+constexpr const T& min(const T& a, const T& b) {
+    return (b < a) ? b : a;
+}
+
+template <typename T>
+constexpr const T& max(const T& a, const T& b) {
+    return (a < b) ? b : a;
+}
+
+}  // namespace std
+#endif

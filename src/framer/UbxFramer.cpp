@@ -2,7 +2,11 @@
 
 #include "UbxFramer.h"
 #include "definition/_index.h"
+#if defined(__AVR__)
+#include "../internal/avr_std/cstring"
+#else
 #include <cstring>
+#endif
 
 namespace azaraC {
 namespace internal {

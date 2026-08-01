@@ -1,9 +1,25 @@
 #pragma once
 // AUTO-GENERATED from azarashi: qzss_dcx_camf_a3_provider_identifier
+#if defined(__AVR__)
+#include "../internal/avr_std/cstdint"
+#else
 #include <cstdint>
+#endif
+#if defined(__AVR__)
+#include "../internal/avr_std/iterator"
+#else
 #include <iterator>
+#endif
+#if defined(__AVR__)
+#include "../internal/avr_std/optional"
+#else
 #include <optional>
+#endif
+#if defined(__AVR__)
+#include "../internal/avr_std/string_view"
+#else
 #include <string_view>
+#endif
 #include "../azaraC_config.h"
 #include "../internal/FlashString.h"
 

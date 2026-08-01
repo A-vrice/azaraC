@@ -8,9 +8,21 @@
 // NOTE: This function may return nullptr for unknown IDs.
 // Callers MUST perform a null-check before using the result.
 
+#if defined(__AVR__)
+#include "../internal/avr_std/cstdint"
+#else
 #include <cstdint>
+#endif
+#if defined(__AVR__)
+#include "../internal/avr_std/optional"
+#else
 #include <optional>
+#endif
+#if defined(__AVR__)
+#include "../internal/avr_std/string_view"
+#else
 #include <string_view>
+#endif
 #include "../azaraC.h"
 #include "../internal/FlashString.h"
 

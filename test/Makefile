@@ -53,6 +53,7 @@ TEST_SRCS = \
 	framer/test_ublox_multignss.cpp \
 	internal/test_dcx_helper_b4.cpp \
 	internal/test_dcx_helper.cpp \
+	internal/test_avr_std_shim.cpp \
 	json/test_json.cpp \
 	json/test_json_dcx_b1b4.cpp \
 	integration/test_parser.cpp \
@@ -337,5 +338,5 @@ clean:
 # are neutralized.
 pgm-stub:
 	$(MAKE) clean
-	$(MAKE) CXXFLAGS="-std=c++17 -Wall -Wextra -Istub -I../src -I. -DARDUINO=0 -D__AVR__ -DAZARAC_LANG_JA=1 -DAZARAC_LANG_EN=1 -DAZARAC_NANKAI_MAX_PAGES=63 -DAZARAC_NANKAI_AGGREGATED_TEXT_SIZE=1135 -DAZARAC_NANKAI_BUFFERS=4 -DAZARAC_DEDUP_SLOTS=8 -MMD -MP -g"
+	$(MAKE) CXXFLAGS="-std=c++17 -Wall -Wextra -Istub -I../src -I. -DARDUINO=0 -D__AVR__ -DAZARAC_AVR_STUB -DAZARAC_LANG_JA=1 -DAZARAC_LANG_EN=1 -DAZARAC_NANKAI_MAX_PAGES=63 -DAZARAC_NANKAI_AGGREGATED_TEXT_SIZE=1135 -DAZARAC_NANKAI_BUFFERS=4 -DAZARAC_DEDUP_SLOTS=8 -MMD -MP -g"
 	$(RUN_PREFIX)$(TEST_BIN)

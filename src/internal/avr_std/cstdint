@@ -1,0 +1,16 @@
+#pragma once
+// azaraC - src/internal/avr_std/cstdint
+// Minimal <cstdint> shim for the Arduino AVR toolchain.
+//
+// The Arduino AVR toolchain (avr-gcc 7.3.0, arduino:avr core) ships NO C++
+// standard library (libstdc++ is absent entirely), so <cstdint> does not
+// exist. avr-libc provides <stdint.h> instead.
+//
+// AZARAC_AVR_STUB: host validation build (make pgm-stub) — use the real
+// standard library to avoid shadowing it.
+
+#if defined(AZARAC_AVR_STUB)
+#include <cstdint>
+#else
+#include <stdint.h>
+#endif

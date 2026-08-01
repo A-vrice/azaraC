@@ -10,8 +10,16 @@
 // (unused) slots, the ring is filled with a sentinel svid=0xFF before first
 // use (valid SVIDs for QZSS L1S are 184-202).
 
+#if defined(__AVR__)
+#include "avr_std/cstdint"
+#else
 #include <cstdint>
+#endif
+#if defined(__AVR__)
+#include "avr_std/cstring"
+#else
 #include <cstring>
+#endif
 
 #ifndef AZARAC_DEDUP_SLOTS
 #define AZARAC_DEDUP_SLOTS 8

@@ -5,8 +5,16 @@
 #include "JsonWriter.h"
 #include "../internal/DcxHelper.h"
 #include "definition/_index.h"
+#if defined(__AVR__)
+#include "../internal/avr_std/optional"
+#else
 #include <optional>
+#endif
+#if defined(__AVR__)
+#include "../internal/avr_std/string_view"
+#else
 #include <string_view>
+#endif
 
 namespace azaraC {
 namespace internal {

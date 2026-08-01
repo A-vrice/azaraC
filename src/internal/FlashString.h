@@ -17,8 +17,16 @@
 // (DCX, EX1) for that board. ATmega328P (Uno, 32 KB) is always safe.
 
 #include "../azaraC_config.h"
+#if defined(__AVR__)
+#include "avr_std/cstddef"
+#else
 #include <cstddef>
+#endif
+#if defined(__AVR__)
+#include "avr_std/string_view"
+#else
 #include <string_view>
+#endif
 
 #ifndef AZARAC_FLASH_BUF_SIZE
 // Largest generated label is 769 bytes (D20 ash-fall description).

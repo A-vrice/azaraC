@@ -3,10 +3,26 @@
 // MT=43 (QZQSM/DCR) data structures and tagged union
 // Bit offsets derived from azarashi (IS-QZSS-DCR-016)
 
+#if defined(__AVR__)
+#include "internal/avr_std/cstdint"
+#else
 #include <cstdint>
+#endif
+#if defined(__AVR__)
+#include "internal/avr_std/cstring"
+#else
 #include <cstring>
+#endif
+#if defined(__AVR__)
+#include "internal/avr_std/new"
+#else
 #include <new>
+#endif
+#if defined(__AVR__)
+#include "internal/avr_std/utility"
+#else
 #include <utility>
+#endif
 
 #include "azaraC_config.h"
 #include "internal/MtCommonTypes.h"

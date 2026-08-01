@@ -1,7 +1,11 @@
 // azaraC - src/internal/NmeaFramer.cpp
 
 #include "NmeaFramer.h"
+#if defined(__AVR__)
+#include "../internal/avr_std/cstring"
+#else
 #include <cstring>
+#endif
 
 namespace azaraC {
 namespace internal {

@@ -1,0 +1,23 @@
+#pragma once
+// azaraC - src/internal/avr_std/new
+// Minimal <new> shim for the Arduino AVR toolchain (no libstdc++).
+//
+// azaraC uses placement new only (safe tagged unions in Message/Mt43Data),
+// so only the placement forms are defined. Plain operator new/delete are
+// declared but never invoked by azaraC (no heap allocation).
+
+#include <stddef.h>
+
+#if defined(AZARAC_AVR_STUB)
+#include <new>
+#else
+inline void* operator new(std::size_t, void* p) noexcept { return p; }
+inline void* operator new[](std::size_t, void* p) noexcept { return p; }
+inline void  operator delete(void*, void*) noexcept {}
+inline void  operator delete[](void*, void*) noexcept {}
+
+void* operator new(std::size_t size);
+void* operator new[](std::size_t size);
+void  operator delete(void* p) noexcept;
+void  operator delete[](void* p) noexcept;
+#endif

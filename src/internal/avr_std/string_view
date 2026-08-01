@@ -1,0 +1,81 @@
+#pragma once
+// azaraC - src/internal/avr_std/string_view
+// Minimal std::string_view shim for the Arduino AVR toolchain (no libstdc++).
+//
+// Supports what azaraC uses: construction from (ptr, len) and from C strings,
+// data()/size()/empty(), element access, begin()/end(), substr(), compare(),
+// find(). No exceptions (AVR has no runtime).
+
+#include <stddef.h>
+#include <string.h>
+
+#if defined(AZARAC_AVR_STUB)
+#include <string_view>
+#else
+namespace std {
+
+class string_view {
+public:
+    using value_type = char;
+    using size_type = size_t;
+
+    static constexpr size_type npos = static_cast<size_type>(-1);
+
+    constexpr string_view() noexcept : data_(nullptr), size_(0) {}
+    constexpr string_view(const char* s, size_type n) noexcept : data_(s), size_(n) {}
+    constexpr string_view(const char* s) noexcept
+        : data_(s), size_(s != nullptr ? strlen(s) : 0) {}
+
+    constexpr const char* data() const noexcept { return data_; }
+    constexpr size_type size() const noexcept { return size_; }
+    constexpr size_type length() const noexcept { return size_; }
+    constexpr bool empty() const noexcept { return size_ == 0; }
+
+    constexpr char operator[](size_type i) const noexcept { return data_[i]; }
+    constexpr char front() const noexcept { return data_[0]; }
+    constexpr char back() const noexcept { return data_[size_ - 1]; }
+
+    constexpr const char* begin() const noexcept { return data_; }
+    constexpr const char* end() const noexcept { return data_ + size_; }
+
+    string_view substr(size_type pos = 0, size_type count = npos) const {
+        if (pos > size_) pos = size_;
+        size_type rlen = (count == npos || count > size_ - pos) ? size_ - pos : count;
+        return string_view(data_ + pos, rlen);
+    }
+
+    int compare(string_view other) const noexcept {
+        size_type n = size_ < other.size_ ? size_ : other.size_;
+        for (size_type i = 0; i < n; ++i) {
+            if (data_[i] != other.data_[i])
+                return data_[i] < other.data_[i] ? -1 : 1;
+        }
+        if (size_ == other.size_) return 0;
+        return size_ < other.size_ ? -1 : 1;
+    }
+
+    bool operator==(string_view other) const noexcept {
+        return size_ == other.size_ && compare(other) == 0;
+    }
+    bool operator!=(string_view other) const noexcept { return !(*this == other); }
+    bool operator<(string_view other) const noexcept { return compare(other) < 0; }
+    bool operator>(string_view other) const noexcept { return compare(other) > 0; }
+
+    size_type find(string_view s, size_type pos = 0) const noexcept {
+        if (s.size_ == 0) return pos <= size_ ? pos : npos;
+        if (pos + s.size_ > size_) return npos;
+        for (size_type i = pos; i + s.size_ <= size_; ++i) {
+            size_type j = 0;
+            while (j < s.size_ && data_[i + j] == s.data_[j]) ++j;
+            if (j == s.size_) return i;
+        }
+        return npos;
+    }
+
+private:
+    const char* data_;
+    size_type size_;
+};
+
+}  // namespace std
+#endif

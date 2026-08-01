@@ -5,11 +5,31 @@
 // Safe tagged union using explicit memory management (placement new).
 // No std::variant dependency for Arduino compatibility.
 
+#if defined(__AVR__)
+#include "internal/avr_std/algorithm"
+#else
 #include <algorithm>
+#endif
+#if defined(__AVR__)
+#include "internal/avr_std/cstdint"
+#else
 #include <cstdint>
+#endif
+#if defined(__AVR__)
+#include "internal/avr_std/cstring"
+#else
 #include <cstring>
+#endif
+#if defined(__AVR__)
+#include "internal/avr_std/new"
+#else
 #include <new>
+#endif
+#if defined(__AVR__)
+#include "internal/avr_std/utility"
+#else
 #include <utility>
+#endif
 
 #include "Mt43Data.h"
 #include "Mt44Data.h"

@@ -2,7 +2,11 @@
 // Common JSON writer helpers for serializers
 
 #include "JsonWriter.h"
+#if defined(__AVR__)
+#include "../internal/avr_std/cstdio"
+#else
 #include <cstdio>
+#endif
 
 namespace azaraC {
 namespace internal {

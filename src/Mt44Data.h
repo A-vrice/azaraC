@@ -3,7 +3,11 @@
 // MT=44 (DCX/CAMF) data structures
 // Bit offsets derived from azarashi (IS-QZSS-DCX-004)
 
+#if defined(__AVR__)
+#include "internal/avr_std/cstdint"
+#else
 #include <cstdint>
+#endif
 
 #include "internal/MtCommonTypes.h"
 

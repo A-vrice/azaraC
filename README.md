@@ -272,6 +272,8 @@ if (mt43 && mt43->disaster_category == 4) {
 
 定義テーブル（`src/definition/*.h`）のラベル文字列は AVR では Flash (PROGMEM) に配置される。ルックアップ時に共有 RAM バッファ（最大 `AZARAC_FLASH_BUF_SIZE`、デフォルト 800 B）へコピーして返すため、テーブルが RAM を占有しない。非 AVR では従来どおり `.rodata` の constexpr データを使用。
 
+AVR では Arduino ツールチェーンに libstdc++ が無いため、`src/internal/avr_std/` の最小 C++ 標準ライブラリシム（`optional` / `string_view` / `std::move` 等）が `#if defined(__AVR__)` で自動適用される。ライブラリ側の API は非 AVR と同一。
+
 注意: Parser は static 配置推奨（スタック配置は ~1 KB の消費）。`feed()` は Message をスタックに構築するため、ループ内での冗長な Message コピーを避けること。
 
 ---

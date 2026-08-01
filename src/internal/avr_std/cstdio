@@ -1,0 +1,10 @@
+#pragma once
+// azaraC - src/internal/avr_std/cstdio
+// Minimal <cstdio> shim for the Arduino AVR toolchain (no libstdc++).
+// avr-libc provides <stdio.h> (vsnprintf/snprintf available).
+
+#if defined(AZARAC_AVR_STUB)
+#include <cstdio>
+#else
+#include <stdio.h>
+#endif

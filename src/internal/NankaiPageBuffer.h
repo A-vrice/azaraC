@@ -14,9 +14,21 @@
 //   - total_pages > MAX_PAGES gracefully truncates (truncated flag)
 //   - AZARAC_NANKAI_AGGREGATED_TEXT_SIZE auto-derived from AZARAC_NANKAI_MAX_PAGES
 
+#if defined(__AVR__)
+#include "avr_std/cstdint"
+#else
 #include <cstdint>
+#endif
+#if defined(__AVR__)
+#include "avr_std/cstring"
+#else
 #include <cstring>
+#endif
+#if defined(__AVR__)
+#include "avr_std/climits"
+#else
 #include <climits>
+#endif
 #include "TimeFields.h"
 
 namespace azaraC {

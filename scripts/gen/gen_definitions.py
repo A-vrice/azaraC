@@ -516,9 +516,15 @@ def build_header(modname, varname, entries, ver, all_varnames, obj=None, use_opt
         f"// Strategy      : {strat}\n\n"
         f"// NOTE: This function may return nullptr for unknown IDs.\n"
         f"// Callers MUST perform a null-check before using the result.\n\n"
+        f"#if defined(__AVR__)\n"
+        f"#include \"../internal/avr_std/cstdint\"\n"
+        f"#include \"../internal/avr_std/optional\"\n"
+        f"#include \"../internal/avr_std/string_view\"\n"
+        f"#else\n"
         f"#include <cstdint>\n"
         f"#include <optional>\n"
         f"#include <string_view>\n"
+        f"#endif\n"
         f'#include "../azaraC.h"\n'
         f'#include "../internal/FlashString.h"\n\n'
         f"namespace azaraC {{\nnamespace def {{\n\n"

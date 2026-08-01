@@ -2,7 +2,11 @@
 // azaraC - src/internal/MtCommonTypes.h
 // Shared types used by both MT=43 (QZQSM/DCR) and MT=44 (DCX/CAMF)
 
+#if defined(__AVR__)
+#include "avr_std/cstdint"
+#else
 #include <cstdint>
+#endif
 
 namespace azaraC {
 

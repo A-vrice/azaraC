@@ -7,7 +7,11 @@
 //            No <atomic> dependency — avoids libatomic link issues on 32-bit MCUs.
 // - Host: Uses std::chrono::steady_clock with uint64_t
 
+#if defined(__AVR__)
+#include "avr_std/cstdint"
+#else
 #include <cstdint>
+#endif
 
 #if defined(ARDUINO) && ARDUINO >= 1
 #include <Arduino.h>
