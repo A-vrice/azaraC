@@ -126,13 +126,13 @@ jobs:
           mkdir -p "$LIB_DIR"
           ln -s "$GITHUB_WORKSPACE" "$LIB_DIR/azaraC"
           # Arduino Uno has no Serial1 (all examples use Serial1 for the GNSS
-          # module), so compile a minimal sketch that pulls in the whole
-          # library instead of the examples.
+          # module), so compile test/uno_sketch instead: it instantiates the
+          # Parser and calls feed()/toJson() so the whole library is linked
+          # (otherwise the linker dead-strips the .cpp files and the build
+          # would only prove the headers parse).
           if [[ "${{ matrix.name }}" == "Arduino Uno (AVR)" ]]; then
-            mkdir -p /tmp/uno_sketch
-            printf '#include <azaraC.h>\nvoid setup() {}\nvoid loop() {}\n' > /tmp/uno_sketch/uno_sketch.ino
             CPP_EXTRA_FLAGS="-std=gnu++17 ${{ matrix.build_flags }}"
-            arduino-cli compile --clean --fqbn "${{ matrix.fqbn }}" /tmp/uno_sketch \
+            arduino-cli compile --clean --fqbn "${{ matrix.fqbn }}" test/uno_sketch \
               --build-property "compiler.cpp.extra_flags=$CPP_EXTRA_FLAGS"
             exit 0
           fi
