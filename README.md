@@ -49,7 +49,7 @@ AzaraCは準天頂衛星みちびきが送信する災害通報メッセージ�
 | --------------- | ---------------------------------------------------------------------------------------------------------- |
 | 主要ターゲット  | ESP32-C3 (FreeRTOS / Arduino framework)                                                                    |
 | ビルド確認済み  | ESP32-S3/C3, Teensy4.0, Nano 33 BLE, Giga R1 Wi-Fi, STM32 Nucleo H563ZI, Arduino Zero (SAMD21)                |
-| 推奨環境        | 推奨: 256 KB+ RAM（全機能・全カテゴリ有効）/ 動作可能: 32 KB+ RAM（SAMD21 等、デフォルト設定で動作）/ 最小: ~2 KB RAM（AVR、定義テーブルは PROGMEM 化済み。Uno 32 KB Flash のため大規模カテゴリは無効化が必要） |
+| 推奨環境        | 推奨: 256 KB+ RAM（全機能・全カテゴリ有効）/ 動作可能: 32 KB+ RAM（SAMD21 等、デフォルト設定で動作）/ 最小: ~2 KB RAM（AVR、定義テーブルは PROGMEM 化済み。AVR プリセットが SEISMIC/TSUNAMI のみ自動有効化、`-D`/`#define` で上書き可） |
 | ホストテスト    | g++ -std=c++17 (Linux / macOS / WSL / Windows)                                                             |
 | GNSS モジュール | u-blox (UBX-RXM-SFRBX) / NMEA $QZQSM 出力機                                                                |
 

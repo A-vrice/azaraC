@@ -9,28 +9,10 @@
 //
 // Tested with: u-blox M10 / ZED-F9P (L1S enabled), Furuno GT-87
 
-// Arduino Uno (AVR) compatibility:
-//   - Uno has no Serial1 (single hardware UART = Serial on pins 0/1), so the
-//     GNSS module connects to Serial and JSON goes out the same port.
-//   - Uno's 32KB Flash cannot hold all definition tables; only the small
-//     categories (SEISMIC / TSUNAMI) are enabled. Other boards keep the
-//     defaults (all categories ON).
-#if defined(ARDUINO_ARCH_AVR)
-#  define AZARAC_ENABLE_EEW 0
-#  define AZARAC_ENABLE_HYPOCENTER 0
-#  define AZARAC_ENABLE_SEISMIC 1
-#  define AZARAC_ENABLE_NANKAI 0
-#  define AZARAC_ENABLE_TSUNAMI 1
-#  define AZARAC_ENABLE_NW_PAC_TSUNAMI 0
-#  define AZARAC_ENABLE_VOLCANO 0
-#  define AZARAC_ENABLE_ASH_FALL 0
-#  define AZARAC_ENABLE_WEATHER 0
-#  define AZARAC_ENABLE_FLOOD 0
-#  define AZARAC_ENABLE_TYPHOON 0
-#  define AZARAC_ENABLE_MARINE 0
-#  define AZARAC_ENABLE_DCX_CAMF 0
-#endif
-
+// Arduino Uno (AVR) compatibility: the Uno has no Serial1 (single hardware
+// UART = Serial on pins 0/1), so the GNSS module connects to Serial and JSON
+// goes out the same port. Category reduction for the 32KB flash is applied
+// automatically by azaraC_config.h (AVR preset keeps SEISMIC/TSUNAMI only).
 #include <azaraC.h>
 
 

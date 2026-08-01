@@ -9,24 +9,9 @@
 // decoders, JSON serializers, definition tables in PROGMEM) in the link;
 // a bare `#include <azaraC.h>` would let the linker dead-strip the .cpp
 // files and only prove the headers parse.
-
-// Arduino Uno: 32KB Flash cannot hold all definition tables; only the small
-// categories (SEISMIC / TSUNAMI) are enabled. Other boards keep the defaults.
-#if defined(ARDUINO_ARCH_AVR)
-#  define AZARAC_ENABLE_EEW 0
-#  define AZARAC_ENABLE_HYPOCENTER 0
-#  define AZARAC_ENABLE_SEISMIC 1
-#  define AZARAC_ENABLE_NANKAI 0
-#  define AZARAC_ENABLE_TSUNAMI 1
-#  define AZARAC_ENABLE_NW_PAC_TSUNAMI 0
-#  define AZARAC_ENABLE_VOLCANO 0
-#  define AZARAC_ENABLE_ASH_FALL 0
-#  define AZARAC_ENABLE_WEATHER 0
-#  define AZARAC_ENABLE_FLOOD 0
-#  define AZARAC_ENABLE_TYPHOON 0
-#  define AZARAC_ENABLE_MARINE 0
-#  define AZARAC_ENABLE_DCX_CAMF 0
-#endif
+//
+// Category reduction for the 32KB flash is applied automatically by
+// azaraC_config.h (AVR preset keeps SEISMIC/TSUNAMI only).
 
 #include <azaraC.h>
 
