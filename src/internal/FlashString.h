@@ -38,15 +38,23 @@ namespace def {
 
 #ifdef __AVR__
 #include <avr/pgmspace.h>
-inline std::string_view azarac_pgm_view(const char* src, size_t n) {
+// Single shared RAM buffer for both helpers. Two separate static buffers
+// would cost AZARAC_FLASH_BUF_SIZE bytes each — 800 B × 2 overflows the
+// Uno's 2 KB SRAM. The returned pointer/view is valid only until the next
+// definition lookup call (documented contract).
+inline char* azarac_flash_buf() {
     static char buf[AZARAC_FLASH_BUF_SIZE];
+    return buf;
+}
+inline std::string_view azarac_pgm_view(const char* src, size_t n) {
+    char* buf = azarac_flash_buf();
     if (n >= AZARAC_FLASH_BUF_SIZE) n = AZARAC_FLASH_BUF_SIZE - 1;
     memcpy_P(buf, src, n);
     buf[n] = '\0';
     return std::string_view(buf, n);
 }
 inline const char* azarac_pgm_copy(const char* src) {
-    static char buf[AZARAC_FLASH_BUF_SIZE];
+    char* buf = azarac_flash_buf();
     strncpy_P(buf, src, AZARAC_FLASH_BUF_SIZE - 1);
     buf[AZARAC_FLASH_BUF_SIZE - 1] = '\0';
     return buf;

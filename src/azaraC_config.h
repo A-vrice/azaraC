@@ -39,6 +39,12 @@
 #ifndef AZARAC_DEDUP_SLOTS
 #define AZARAC_DEDUP_SLOTS 4
 #endif
+#ifndef AZARAC_FLASH_BUF_SIZE
+// Shared definition-lookup buffer (see internal/FlashString.h). With the
+// AVR category preset (SEISMIC/TSUNAMI only) the longest label is 30 bytes;
+// 64 leaves headroom. The full-category default is 800 (D20 ash-fall).
+#define AZARAC_FLASH_BUF_SIZE 64
+#endif
 #ifndef AZARAC_DCX_USE_FLOAT
 #define AZARAC_DCX_USE_FLOAT
 #endif
