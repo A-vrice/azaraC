@@ -90,7 +90,11 @@ jobs:
             core: arduino:avr
             fqbn: arduino:avr:uno
             additional_urls: ""
-            build_flags: "-DAZARAC_ENABLE_DCX_CAMF=0 -DAZARAC_ENABLE_VOLCANO=0 -DAZARAC_ENABLE_ASH_FALL=0 -DAZARAC_ENABLE_NANKAI=0"
+            # Uno (32 KB Flash) cannot hold all definition pools (44 KB for
+            # tables alone with only DCX/VOLCANO/ASH_FALL/NANKAI disabled).
+            # Keep TSUNAMI + SEISMIC: exercises switch/array/bsearch AVR
+            # lookups while staying well under the flash budget (~4.5 KB tables).
+            build_flags: "-DAZARAC_ENABLE_EEW=0 -DAZARAC_ENABLE_HYPOCENTER=0 -DAZARAC_ENABLE_SEISMIC=1 -DAZARAC_ENABLE_NANKAI=0 -DAZARAC_ENABLE_TSUNAMI=1 -DAZARAC_ENABLE_NW_PAC_TSUNAMI=0 -DAZARAC_ENABLE_VOLCANO=0 -DAZARAC_ENABLE_ASH_FALL=0 -DAZARAC_ENABLE_WEATHER=0 -DAZARAC_ENABLE_FLOOD=0 -DAZARAC_ENABLE_TYPHOON=0 -DAZARAC_ENABLE_MARINE=0 -DAZARAC_ENABLE_DCX_CAMF=0"
 
     steps:
       - uses: actions/checkout@v6
@@ -105,7 +109,12 @@ jobs:
       - name: Configure board manager
         run: |
           arduino-cli config init
-          arduino-cli config add board_manager.additional_urls "${{ matrix.additional_urls }}"
+          # Boards with a built-in core (e.g. arduino:avr) have no additional
+          # index URL; an empty URL makes 'core update-index' fail with
+          # "Invalid index URL".
+          if [[ -n "${{ matrix.additional_urls }}" ]]; then
+            arduino-cli config add board_manager.additional_urls "${{ matrix.additional_urls }}"
+          fi
           arduino-cli core update-index
 
       - name: Install core
@@ -196,7 +205,12 @@ jobs:
       - name: Configure board manager
         run: |
           arduino-cli config init
-          arduino-cli config add board_manager.additional_urls "${{ matrix.additional_urls }}"
+          # Boards with a built-in core (e.g. arduino:avr) have no additional
+          # index URL; an empty URL makes 'core update-index' fail with
+          # "Invalid index URL".
+          if [[ -n "${{ matrix.additional_urls }}" ]]; then
+            arduino-cli config add board_manager.additional_urls "${{ matrix.additional_urls }}"
+          fi
           arduino-cli core update-index
 
       - name: Install core
