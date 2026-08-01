@@ -1,6 +1,6 @@
 #pragma once
 // AUTO-GENERATED from azarashi 0.16.4 with CI-CD
-// Source module : qzss_dcx_camf_a4_hazard_category_and_type
+// Source module : qzss_dcx_camf_a4_hazard_type
 // Variable      : qzss_dcx_camf_a4_hazard_type
 // Entries       : 113
 // Strategy      : array
@@ -11,13 +11,143 @@
 #include <cstdint>
 #include <optional>
 #include <string_view>
-#include "../azaraC_config.h"
+#include "../azaraC.h"
+#include "../internal/FlashString.h"
 
 namespace azaraC {
 namespace def {
 
 #if (AZARAC_ENABLE_DCX_CAMF)
 
+inline constexpr uint8_t QZSS_DCX_CAMF_A4_HAZARD_TYPE_BASE = 1;
+inline constexpr uint8_t QZSS_DCX_CAMF_A4_HAZARD_TYPE_SIZE = 113;
+#if defined(__AVR__)
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_A4_HAZARD_TYPE_POOL[] = "Air strike\0Attack on IT systems\0Attack with nuclear weapons\0Biological hazard\0Chemical hazard\0Explosive hazard\0Meteorite impact\0Missile attack\0Nuclear hazard\0Nuclear power station accident\0Radiological hazard\0Satellite/space re-entry debris\0Siren test\0Acid rain\0Air pollution\0Contaminated drinking water\0Gas leak\0Marine pollution\0Noise pollution\0Plague of insects\0River pollution\0Suspended dust\0UV radiation\0Conflagration\0Fire brigade deployment\0Fire gases\0Forest fire\0Fumes\0Odour nuisance\0Risk of fire\0Structure fire / Industrial fire\0Ash fall\0Avalanche risk\0Crack in the ground / sinkhole\0Debris flow\0Earthquake\0Geomagnetic or solar storm\0Glacial ice avalanche\0Landslide\0Lava flow\0Pyroclastic flow\0Snowdrifts\0Tidal wave\0Tsunami\0Volcanic mud flow\0Volcano eruption\0Wind / wave / storm surge\0Epizootic\0Food safety alert\0Health hazard\0Pandemic\0Pest infestation\0Risk of infection\0Building collapse\0Emergency number outage\0Gas supply outage\0Outage of IT systems\0Power outage\0Raw sewage\0Telephone line outage\0Black Ice\0Coastal flooding\0Cold wave\0Derecho\0Drought\0Dust storm\0Floating ice / icebergs\0Flood\0Fog\0Hail\0Heat wave\0Lightning\0Pollens\0Rainfall\0Snow storm / blizzard\0Snowfall\0Storm or thunderstorm\0Thawing\0Tornado\0Tropical cyclone (hurricane)\0Wind chill / frost\0Tropical cyclone (typhoon)\0Dam failure or bursting of a dam\0Dike failure or bursting of a dike\0Explosive ordnance disposal\0Factory accident\0Mine hazard\0Bomb / ammunition discovery\0Demonstration\0Hazardous material accident\0Life Threatening situation\0Major event\0Missing person / abduction\0Risk of explosion\0Safety warning\0Undefined flying object\0Unidentified animal\0Chemical attack\0Guerrilla attack\0Hijack\0Shooting or danger due to weapons\0Special forces attack\0Terrorism\0Aircraft crash\0Bridge collapse\0Dangerous goods accident\0Inland waterway transport accident\0Nautical disaster / Maritime / Marine Security\0Oil spill\0Road traffic incident\0Train/rail accident\0Tunnel accident\0Test alert\0";
+struct QZSS_DCX_CAMF_A4_HAZARD_TYPE_Entry { uint16_t offset; uint16_t len; };
+static const QZSS_DCX_CAMF_A4_HAZARD_TYPE_Entry QZSS_DCX_CAMF_A4_HAZARD_TYPE_TABLE[] AZARAC_PROGMEM = {
+    {0u, 10u},
+    {11u, 20u},
+    {32u, 27u},
+    {60u, 17u},
+    {78u, 15u},
+    {94u, 16u},
+    {111u, 16u},
+    {128u, 14u},
+    {143u, 14u},
+    {158u, 30u},
+    {189u, 19u},
+    {209u, 31u},
+    {241u, 10u},
+    {252u, 9u},
+    {262u, 13u},
+    {276u, 27u},
+    {304u, 8u},
+    {313u, 16u},
+    {330u, 15u},
+    {346u, 17u},
+    {364u, 15u},
+    {380u, 14u},
+    {395u, 12u},
+    {408u, 13u},
+    {422u, 23u},
+    {446u, 10u},
+    {457u, 11u},
+    {469u, 5u},
+    {475u, 14u},
+    {490u, 12u},
+    {503u, 32u},
+    {536u, 8u},
+    {545u, 14u},
+    {560u, 30u},
+    {591u, 11u},
+    {603u, 10u},
+    {614u, 26u},
+    {641u, 21u},
+    {663u, 9u},
+    {673u, 9u},
+    {683u, 16u},
+    {700u, 10u},
+    {711u, 10u},
+    {722u, 7u},
+    {730u, 17u},
+    {748u, 16u},
+    {765u, 25u},
+    {791u, 9u},
+    {801u, 17u},
+    {819u, 13u},
+    {833u, 8u},
+    {842u, 16u},
+    {859u, 17u},
+    {877u, 17u},
+    {895u, 23u},
+    {919u, 17u},
+    {937u, 20u},
+    {958u, 12u},
+    {971u, 10u},
+    {982u, 21u},
+    {1004u, 9u},
+    {1014u, 16u},
+    {1031u, 9u},
+    {1041u, 7u},
+    {1049u, 7u},
+    {1057u, 10u},
+    {1068u, 23u},
+    {1092u, 5u},
+    {1098u, 3u},
+    {1102u, 4u},
+    {1107u, 9u},
+    {1117u, 9u},
+    {1127u, 7u},
+    {1135u, 8u},
+    {1144u, 21u},
+    {1166u, 8u},
+    {1175u, 21u},
+    {1197u, 7u},
+    {1205u, 7u},
+    {1213u, 28u},
+    {1242u, 18u},
+    {1261u, 26u},
+    {1288u, 32u},
+    {1321u, 34u},
+    {1356u, 27u},
+    {1384u, 16u},
+    {1401u, 11u},
+    {1413u, 27u},
+    {1441u, 13u},
+    {1455u, 27u},
+    {1483u, 26u},
+    {1510u, 11u},
+    {1522u, 26u},
+    {1549u, 17u},
+    {1567u, 14u},
+    {1582u, 23u},
+    {1606u, 19u},
+    {1626u, 15u},
+    {1642u, 16u},
+    {1659u, 6u},
+    {1666u, 33u},
+    {1700u, 21u},
+    {1722u, 9u},
+    {1732u, 14u},
+    {1747u, 15u},
+    {1763u, 24u},
+    {1788u, 34u},
+    {1823u, 46u},
+    {1870u, 9u},
+    {1880u, 21u},
+    {1902u, 19u},
+    {1922u, 15u},
+    {1938u, 10u}
+};
+[[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_a4_hazard_type_lookup(uint8_t id) noexcept {
+    if (id < QZSS_DCX_CAMF_A4_HAZARD_TYPE_BASE || id >= QZSS_DCX_CAMF_A4_HAZARD_TYPE_BASE + QZSS_DCX_CAMF_A4_HAZARD_TYPE_SIZE) return std::nullopt;
+    const char* AZARAC_PROGMEM p = reinterpret_cast<const char*>(&QZSS_DCX_CAMF_A4_HAZARD_TYPE_TABLE[id - 1u]);
+    uint16_t off = pgm_read_word(p + offsetof(QZSS_DCX_CAMF_A4_HAZARD_TYPE_Entry, offset));
+    uint16_t n = pgm_read_word(p + offsetof(QZSS_DCX_CAMF_A4_HAZARD_TYPE_Entry, len));
+    if (n == 0) return std::nullopt;
+    return azarac_pgm_view(QZSS_DCX_CAMF_A4_HAZARD_TYPE_POOL + off, n);
+}
+#else
 inline constexpr std::optional<std::string_view> QZSS_DCX_CAMF_A4_HAZARD_TYPE_TABLE[] = {
     std::string_view{"Air strike", 10},
     std::string_view{"Attack on IT systems", 20},
@@ -133,12 +263,11 @@ inline constexpr std::optional<std::string_view> QZSS_DCX_CAMF_A4_HAZARD_TYPE_TA
     std::string_view{"Tunnel accident", 15},
     std::string_view{"Test alert", 10}
 };
-inline constexpr uint8_t QZSS_DCX_CAMF_A4_HAZARD_TYPE_BASE = 1;
-inline constexpr uint8_t QZSS_DCX_CAMF_A4_HAZARD_TYPE_SIZE = 113;
 [[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_a4_hazard_type_lookup(uint8_t id) noexcept {
     if (id < QZSS_DCX_CAMF_A4_HAZARD_TYPE_BASE || id >= QZSS_DCX_CAMF_A4_HAZARD_TYPE_BASE + QZSS_DCX_CAMF_A4_HAZARD_TYPE_SIZE) return std::nullopt;
     return QZSS_DCX_CAMF_A4_HAZARD_TYPE_TABLE[id - QZSS_DCX_CAMF_A4_HAZARD_TYPE_BASE];
 }
+#endif
 
 #else
 

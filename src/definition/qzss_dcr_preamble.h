@@ -11,13 +11,24 @@
 #include <cstdint>
 #include <optional>
 #include <string_view>
-#include "../azaraC_config.h"
+#include "../azaraC.h"
+#include "../internal/FlashString.h"
 
 namespace azaraC {
 namespace def {
 
 #if (AZARAC_ENABLE_QZSS_DCR_PREAMBLE)
 
+#if defined(__AVR__)
+[[nodiscard]] inline std::optional<std::string_view> qzss_dcr_preamble_lookup(uint8_t id) noexcept {
+    switch (id) {
+        case 83: { static const char AZARAC_PROGMEM s[] = "A"; return azarac_pgm_view(s, 1); }
+        case 154: { static const char AZARAC_PROGMEM s[] = "B"; return azarac_pgm_view(s, 1); }
+        case 198: { static const char AZARAC_PROGMEM s[] = "C"; return azarac_pgm_view(s, 1); }
+        default: return std::nullopt;
+    }
+}
+#else
 [[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_preamble_lookup(uint8_t id) noexcept {
     switch (id) {
         case 83: return std::string_view{"A", 1};
@@ -26,6 +37,7 @@ namespace def {
         default: return std::nullopt;
     }
 }
+#endif
 
 #else
 

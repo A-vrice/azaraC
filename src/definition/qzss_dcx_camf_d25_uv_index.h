@@ -1,6 +1,6 @@
 #pragma once
 // AUTO-GENERATED from azarashi 0.16.4 with CI-CD
-// Source module : qzss_dcx_camf_b4_lower_level_fields_tables
+// Source module : qzss_dcx_camf_d25_uv_index
 // Variable      : qzss_dcx_camf_d25_uv_index
 // Entries       : 10
 // Strategy      : switch
@@ -11,13 +11,31 @@
 #include <cstdint>
 #include <optional>
 #include <string_view>
-#include "../azaraC_config.h"
+#include "../azaraC.h"
+#include "../internal/FlashString.h"
 
 namespace azaraC {
 namespace def {
 
 #if (AZARAC_ENABLE_DCX_CAMF)
 
+#if defined(__AVR__)
+[[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_d25_uv_index_lookup(uint8_t id) noexcept {
+    switch (id) {
+        case 0: { static const char AZARAC_PROGMEM s[] = "Index 0 - 2 Low. No protection needed. You can safely stay outside using minimal sun protection."; return azarac_pgm_view(s, 96); }
+        case 1: { static const char AZARAC_PROGMEM s[] = "Index 3/11 Moderate. Protection needed. Seek shade during late morning through mid-afternoon. When outside, generously apply broad-spectrum SPF-15 or higher sunscreen on exposed skin, and wear protective clothing, a wide-brimmed hat, and sunglasses."; return azarac_pgm_view(s, 249); }
+        case 2: { static const char AZARAC_PROGMEM s[] = "Index 4/11 Moderate. Protection needed. Seek shade during late morning through mid-afternoon. When outside, generously apply broad-spectrum SPF-15 or higher sunscreen on exposed skin, and wear protective clothing, a wide-brimmed hat, and sunglasses."; return azarac_pgm_view(s, 249); }
+        case 3: { static const char AZARAC_PROGMEM s[] = "Index 5/11 High. Protection needed. Seek shade during late morning through mid-afternoon. When outside, generously apply broad-spectrum SPF-15 or higher sunscreen on exposed skin, and wear protective clothing, a wide-brimmed hat, and sunglasses."; return azarac_pgm_view(s, 245); }
+        case 4: { static const char AZARAC_PROGMEM s[] = "Index 6/11 High. Protection needed. Seek shade during late morning through mid-afternoon. When outside, generously apply broad-spectrum SPF-15 or higher sunscreen on exposed skin, and wear protective clothing, a wide-brimmed hat, and sunglasses."; return azarac_pgm_view(s, 245); }
+        case 5: { static const char AZARAC_PROGMEM s[] = "Index 7/11 High. Protection needed. Seek shade during late morning through mid-afternoon. When outside, generously apply broad-spectrum SPF-15 or higher sunscreen on exposed skin, and wear protective clothing, a wide-brimmed hat, and sunglasses."; return azarac_pgm_view(s, 245); }
+        case 6: { static const char AZARAC_PROGMEM s[] = "Index 8/11 Very high. Extra protection needed. Be careful outside, especially during late morning through mid-afternoon. If your shadow is shorter than you, seek shade and wear protective clothing, a wide-brimmed hat, and sunglasses, and generously apply a minimum of SPF-15, broad-spectrum sunscreen on exposed skin."; return azarac_pgm_view(s, 317); }
+        case 7: { static const char AZARAC_PROGMEM s[] = "Index 9/11 Very high. Extra protection needed. Be careful outside, especially during late morning through mid-afternoon. If your shadow is shorter than you, seek shade and wear protective clothing, a wide-brimmed hat, and sunglasses, and generously apply a minimum of SPF-15, broad-spectrum sunscreen on exposed skin."; return azarac_pgm_view(s, 317); }
+        case 8: { static const char AZARAC_PROGMEM s[] = "Index 10/11 Extreme. Extra protection needed. Be careful outside, especially during late morning through mid-afternoon. If your shadow is shorter than you, seek shade and wear protective clothing, a wide-brimmed hat, and sunglasses, and generously apply a minimum of SPF-15, broad-spectrum sunscreen on exposed skin."; return azarac_pgm_view(s, 316); }
+        case 9: { static const char AZARAC_PROGMEM s[] = "Index 11/11 Extreme. Extra protection needed. Be careful outside, especially during late morning through mid-afternoon. If your shadow is shorter than you, seek shade and wear protective clothing, a wide-brimmed hat, and sunglasses, and generously apply a minimum of SPF-15, broad-spectrum sunscreen on exposed skin."; return azarac_pgm_view(s, 316); }
+        default: return std::nullopt;
+    }
+}
+#else
 [[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_d25_uv_index_lookup(uint8_t id) noexcept {
     switch (id) {
         case 0: return std::string_view{"Index 0 - 2 Low. No protection needed. You can safely stay outside using minimal sun protection.", 96};
@@ -33,6 +51,7 @@ namespace def {
         default: return std::nullopt;
     }
 }
+#endif
 
 #else
 

@@ -11,11 +11,21 @@
 #include <cstdint>
 #include <optional>
 #include <string_view>
-#include "../azaraC_config.h"
+#include "../azaraC.h"
+#include "../internal/FlashString.h"
 
 namespace azaraC {
 namespace def {
 
+#if defined(__AVR__)
+[[nodiscard]] inline const char* qzss_dcr_message_type_lookup(uint8_t id) noexcept {
+    switch (id) {
+        case 43: { static const char AZARAC_PROGMEM s[] = "DCR"; return azarac_pgm_copy(s); }
+        case 44: { static const char AZARAC_PROGMEM s[] = "DCX"; return azarac_pgm_copy(s); }
+        default: return nullptr;
+    }
+}
+#else
 [[nodiscard]] inline constexpr const char* qzss_dcr_message_type_lookup(uint8_t id) noexcept {
     switch (id) {
         case 43: return "DCR";
@@ -23,6 +33,7 @@ namespace def {
         default: return nullptr;
     }
 }
+#endif
 
 } // namespace def
 } // namespace azaraC

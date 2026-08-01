@@ -49,7 +49,7 @@ AzaraCは準天頂衛星みちびきが送信する災害通報メッセージ�
 | --------------- | ---------------------------------------------------------------------------------------------------------- |
 | 主要ターゲット  | ESP32-C3 (FreeRTOS / Arduino framework)                                                                    |
 | ビルド確認済み  | ESP32-S3/C3, Teensy4.0, Nano 33 BLE, Giga R1 Wi-Fi, STM32 Nucleo H563ZI, Arduino Zero (SAMD21)                |
-| 推奨環境        | 推奨: 256 KB+ RAM（全機能・全カテゴリ有効）/ 動作可能: 32 KB+ RAM（SAMD21 等、デフォルト設定で動作）/ 最小: ~2 KB RAM（AVR、Nankai/DCX 無効化必須） |
+| 推奨環境        | 推奨: 256 KB+ RAM（全機能・全カテゴリ有効）/ 動作可能: 32 KB+ RAM（SAMD21 等、デフォルト設定で動作）/ 最小: ~2 KB RAM（AVR、定義テーブルは PROGMEM 化済み。Uno 32 KB Flash のため大規模カテゴリは無効化が必要） |
 | ホストテスト    | g++ -std=c++17 (Linux / macOS / WSL / Windows)                                                             |
 | GNSS モジュール | u-blox (UBX-RXM-SFRBX) / NMEA $QZQSM 出力機                                                                |
 
@@ -268,8 +268,9 @@ if (mt43 && mt43->disaster_category == 4) {
 | ---- | ---------------- | ------------------------ | ---- |
 | デフォルト (Nankai 4 buffers) | ~700 B | ~200 B | 標準構成 |
 | フル構成 (Nankai 63 buffers) | ~2.5 KB | ~200 B | 全ページ集約対応、ホストテスト構成 |
-| 最小構成 (Nankai 1 buffer) | ~400 B | ~200 B | RAM 2 KB 級ターゲット（Arduino Uno等、Nankai/DCX 無効化が必要） |
-| DCX float モード追加 | さらに 72 B 削減 | — | `AZARAC_DCX_USE_FLOAT` 有効時 |
+| 最小構成 (Nankai 1 buffer) | ~400 B | ~200 B | RAM 2 KB 級ターゲット（Arduino Uno等、大規模カテゴリ無効化が必要） |
+
+定義テーブル（`src/definition/*.h`）のラベル文字列は AVR では Flash (PROGMEM) に配置される。ルックアップ時に共有 RAM バッファ（最大 `AZARAC_FLASH_BUF_SIZE`、デフォルト 800 B）へコピーして返すため、テーブルが RAM を占有しない。非 AVR では従来どおり `.rodata` の constexpr データを使用。
 
 注意: Parser は static 配置推奨（スタック配置は ~1 KB の消費）。`feed()` は Message をスタックに構築するため、ループ内での冗長な Message コピーを避けること。
 
@@ -576,9 +577,10 @@ make -C test run MINGW64_BIN=
 ### メッセージが受信されない場合
 
 1. **配線を確認**: GNSSのTXがESP32のRXに接続されているか確認してみてください。
-2. **C++17を有効化**: Arduino IDE → ツール → C++ Standard → C++17
-3. **ボードのサポートを確認**: Arduino系のエントリー気だと動かない場合があります。
+2. **C++17を有効化**: Arduino IDE → ツール → C++ Standard → C++17 等。
+3. **ボードのサポートを確認**: Arduino系のエントリー機では動かない場合があります。
 4. **ライブラリのインストール**: azaraCがlibrariesフォルダにあるか確認してみてください。
+5. **オプションの有効化**: 一部GNSSチップではデフォルトでの受信ができません。
 
 ### コンパイルエラーが発生する場合
 

@@ -11,13 +11,42 @@
 #include <cstdint>
 #include <optional>
 #include <string_view>
-#include "../azaraC_config.h"
+#include "../azaraC.h"
+#include "../internal/FlashString.h"
 
 namespace azaraC {
 namespace def {
 
 #if (AZARAC_LANG_JA)
 
+inline constexpr uint8_t QZSS_DCR_JMA_DISASTER_CATEGORY_BASE = 1;
+inline constexpr uint8_t QZSS_DCR_JMA_DISASTER_CATEGORY_SIZE = 12;
+#if defined(__AVR__)
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_DISASTER_CATEGORY_POOL[] = "緊急地震速報\0震源\0震度\0南海トラフ地震\0津波\0北西太平洋津波\0火山\0降灰\0気象\0洪水\0台風\0海上\0";
+struct QZSS_DCR_JMA_DISASTER_CATEGORY_Entry { uint16_t offset; uint16_t len; };
+static const QZSS_DCR_JMA_DISASTER_CATEGORY_Entry QZSS_DCR_JMA_DISASTER_CATEGORY_TABLE[] AZARAC_PROGMEM = {
+    {0u, 18u},
+    {19u, 6u},
+    {26u, 6u},
+    {33u, 21u},
+    {55u, 6u},
+    {62u, 21u},
+    {84u, 6u},
+    {91u, 6u},
+    {98u, 6u},
+    {105u, 6u},
+    {112u, 6u},
+    {119u, 6u}
+};
+[[nodiscard]] inline const char* qzss_dcr_jma_disaster_category_lookup(uint8_t id) noexcept {
+    if (id < QZSS_DCR_JMA_DISASTER_CATEGORY_BASE || id >= QZSS_DCR_JMA_DISASTER_CATEGORY_BASE + QZSS_DCR_JMA_DISASTER_CATEGORY_SIZE) return nullptr;
+    const char* AZARAC_PROGMEM p = reinterpret_cast<const char*>(&QZSS_DCR_JMA_DISASTER_CATEGORY_TABLE[id - 1u]);
+    uint16_t off = pgm_read_word(p + offsetof(QZSS_DCR_JMA_DISASTER_CATEGORY_Entry, offset));
+    uint16_t n = pgm_read_word(p + offsetof(QZSS_DCR_JMA_DISASTER_CATEGORY_Entry, len));
+    if (n == 0) return nullptr;
+    return azarac_pgm_copy(QZSS_DCR_JMA_DISASTER_CATEGORY_POOL + off);
+}
+#else
 inline constexpr const char* QZSS_DCR_JMA_DISASTER_CATEGORY_TABLE[] = {
     "緊急地震速報",
     "震源",
@@ -25,21 +54,18 @@ inline constexpr const char* QZSS_DCR_JMA_DISASTER_CATEGORY_TABLE[] = {
     "南海トラフ地震",
     "津波",
     "北西太平洋津波",
-    nullptr,
     "火山",
     "降灰",
     "気象",
     "洪水",
     "台風",
-    nullptr,
     "海上"
 };
-inline constexpr uint8_t QZSS_DCR_JMA_DISASTER_CATEGORY_BASE = 1;
-inline constexpr uint8_t QZSS_DCR_JMA_DISASTER_CATEGORY_SIZE = 14;
 [[nodiscard]] inline constexpr const char* qzss_dcr_jma_disaster_category_lookup(uint8_t id) noexcept {
     if (id < QZSS_DCR_JMA_DISASTER_CATEGORY_BASE || id >= QZSS_DCR_JMA_DISASTER_CATEGORY_BASE + QZSS_DCR_JMA_DISASTER_CATEGORY_SIZE) return nullptr;
     return QZSS_DCR_JMA_DISASTER_CATEGORY_TABLE[id - QZSS_DCR_JMA_DISASTER_CATEGORY_BASE];
 }
+#endif
 
 #else
 

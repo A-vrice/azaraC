@@ -105,7 +105,7 @@ make -C test fuzz FUZZ_ITERATIONS=100000
 ```
 azarashi (PyPI) → definition/*.py
     ↓ scripts/gen_definitions.py
-include/definition/*.h
+src/definition/*.h
     ↓ GitHub Actions (毎日 06:00 UTC)
 PR自動作成 → レビュー → マージ
 ```

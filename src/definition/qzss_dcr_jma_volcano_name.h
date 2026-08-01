@@ -11,13 +11,157 @@
 #include <cstdint>
 #include <optional>
 #include <string_view>
-#include "../azaraC_config.h"
+#include "../azaraC.h"
+#include "../internal/FlashString.h"
 
 namespace azaraC {
 namespace def {
 
 #if (AZARAC_ENABLE_VOLCANO)
 
+#if defined(__AVR__)
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_VOLCANO_NAME_POOL[] = "知床硫黄山\0羅臼岳\0摩周\0アトサヌプリ\0雌阿寒岳\0丸山\0大雪山\0十勝岳\0樽前山\0恵庭岳\0倶多楽\0有珠山\0北海道駒ヶ岳\0恵山\0渡島大島\0利尻山\0羊蹄山\0ニセコ\0天頂山\0雄阿寒岳\0茂世路岳\0散布山\0指臼岳\0小田萌山\0択捉焼山\0択捉阿登佐岳\0ベルタルベ山\0爺爺岳\0羅臼山\0泊山\0ルルイ岳\0恐山\0岩木山\0八甲田山\0十和田\0秋田焼山\0八幡平\0岩手山\0秋田駒ヶ岳\0鳥海山\0栗駒山\0鳴子\0蔵王山\0吾妻山\0安達太良山\0磐梯山\0燧ヶ岳\0肘折\0沼沢\0那須岳\0日光白根山\0赤城山\0榛名山\0草津白根山\0浅間山\0新潟焼山\0妙高山\0弥陀ヶ原\0焼岳\0乗鞍岳\0御嶽山\0白山\0富士山\0箱根山\0伊豆東部火山群\0伊豆大島\0新島\0神津島\0三宅島\0八丈島\0青ヶ島\0ベヨネース列岩\0須美寿島\0伊豆鳥島\0西之島\0海徳海山\0噴火浅根\0硫黄島\0北福徳堆\0福徳岡ノ場\0高原山\0横岳\0アカンダナ山\0利島\0御蔵島\0孀婦岩\0海形海山\0南日吉海山\0日光海山\0男体山\0草津白根山(白根山(湯釜付近))\0草津白根山(本白根山)\0三瓶山\0九重山\0阿蘇山\0雲仙岳\0霧島山\0桜島\0開聞岳\0薩摩硫黄島\0口永良部島\0中之島\0諏訪之瀬島\0阿武火山群\0鶴見岳・伽藍岳\0由布岳\0福江火山群\0米丸・住吉池\0若尊\0池田・山川\0口之島\0霧島山(御鉢)\0霧島山(新燃岳)\0霧島山(えびの高原(硫黄山)周辺)\0霧島山(大幡池)\0硫黄鳥島\0西表島北北東海底火山\0全国の活火山\0その他の活火山\0新たな活火山\0その他の火山\0";
+struct QZSS_DCR_JMA_VOLCANO_NAME_Entry { uint16_t id; uint16_t offset; uint16_t len; };
+static const QZSS_DCR_JMA_VOLCANO_NAME_Entry QZSS_DCR_JMA_VOLCANO_NAME_TABLE[] AZARAC_PROGMEM = {
+    {101u, 0u, 15u},
+    {102u, 16u, 9u},
+    {103u, 26u, 6u},
+    {104u, 33u, 18u},
+    {105u, 52u, 12u},
+    {106u, 65u, 6u},
+    {107u, 72u, 9u},
+    {108u, 82u, 9u},
+    {109u, 92u, 9u},
+    {110u, 102u, 9u},
+    {111u, 112u, 9u},
+    {112u, 122u, 9u},
+    {113u, 132u, 18u},
+    {114u, 151u, 6u},
+    {115u, 158u, 12u},
+    {116u, 171u, 9u},
+    {117u, 181u, 9u},
+    {118u, 191u, 9u},
+    {119u, 201u, 9u},
+    {120u, 211u, 12u},
+    {151u, 224u, 12u},
+    {152u, 237u, 9u},
+    {153u, 247u, 9u},
+    {154u, 257u, 12u},
+    {155u, 270u, 12u},
+    {156u, 283u, 18u},
+    {157u, 302u, 18u},
+    {158u, 321u, 9u},
+    {159u, 331u, 9u},
+    {160u, 341u, 6u},
+    {161u, 348u, 12u},
+    {201u, 361u, 6u},
+    {202u, 368u, 9u},
+    {203u, 378u, 12u},
+    {204u, 391u, 9u},
+    {205u, 401u, 12u},
+    {206u, 414u, 9u},
+    {207u, 424u, 9u},
+    {208u, 434u, 15u},
+    {209u, 450u, 9u},
+    {210u, 460u, 9u},
+    {211u, 470u, 6u},
+    {212u, 477u, 9u},
+    {213u, 487u, 9u},
+    {214u, 497u, 15u},
+    {215u, 513u, 9u},
+    {216u, 523u, 9u},
+    {217u, 533u, 6u},
+    {218u, 540u, 6u},
+    {301u, 547u, 9u},
+    {302u, 557u, 15u},
+    {303u, 573u, 9u},
+    {304u, 583u, 9u},
+    {305u, 593u, 15u},
+    {306u, 609u, 9u},
+    {307u, 619u, 12u},
+    {308u, 632u, 9u},
+    {309u, 642u, 12u},
+    {310u, 655u, 6u},
+    {311u, 662u, 9u},
+    {312u, 672u, 9u},
+    {313u, 682u, 6u},
+    {314u, 689u, 9u},
+    {315u, 699u, 9u},
+    {316u, 709u, 21u},
+    {317u, 731u, 12u},
+    {318u, 744u, 6u},
+    {319u, 751u, 9u},
+    {320u, 761u, 9u},
+    {321u, 771u, 9u},
+    {322u, 781u, 9u},
+    {323u, 791u, 21u},
+    {324u, 813u, 12u},
+    {325u, 826u, 12u},
+    {326u, 839u, 9u},
+    {327u, 849u, 12u},
+    {328u, 862u, 12u},
+    {329u, 875u, 9u},
+    {330u, 885u, 12u},
+    {331u, 898u, 15u},
+    {333u, 914u, 9u},
+    {334u, 924u, 6u},
+    {335u, 931u, 18u},
+    {336u, 950u, 6u},
+    {337u, 957u, 9u},
+    {338u, 967u, 9u},
+    {339u, 977u, 12u},
+    {340u, 990u, 15u},
+    {341u, 1006u, 12u},
+    {342u, 1019u, 9u},
+    {350u, 1029u, 40u},
+    {351u, 1070u, 29u},
+    {401u, 1100u, 9u},
+    {502u, 1110u, 9u},
+    {503u, 1120u, 9u},
+    {504u, 1130u, 9u},
+    {505u, 1140u, 9u},
+    {506u, 1150u, 6u},
+    {507u, 1157u, 9u},
+    {508u, 1167u, 15u},
+    {509u, 1183u, 15u},
+    {510u, 1199u, 9u},
+    {511u, 1209u, 15u},
+    {512u, 1225u, 15u},
+    {513u, 1241u, 21u},
+    {514u, 1263u, 9u},
+    {515u, 1273u, 15u},
+    {516u, 1289u, 18u},
+    {517u, 1308u, 6u},
+    {518u, 1315u, 15u},
+    {519u, 1331u, 9u},
+    {550u, 1341u, 17u},
+    {551u, 1359u, 20u},
+    {552u, 1380u, 43u},
+    {553u, 1424u, 20u},
+    {601u, 1445u, 12u},
+    {602u, 1458u, 30u},
+    {900u, 1489u, 18u},
+    {901u, 1508u, 21u},
+    {902u, 1530u, 18u},
+    {4000u, 1549u, 18u},
+};
+[[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_volcano_name_lookup(uint16_t id) noexcept {
+    uint8_t lo = 0, hi = 121;
+    while (lo < hi) {
+        uint8_t mid = static_cast<uint8_t>(lo + (hi - lo) / 2);
+        const char* AZARAC_PROGMEM ep = reinterpret_cast<const char*>(&QZSS_DCR_JMA_VOLCANO_NAME_TABLE[mid]);
+        uint16_t eid = pgm_read_word(ep + offsetof(QZSS_DCR_JMA_VOLCANO_NAME_Entry, id));
+        if (eid == id) {
+            uint16_t off = pgm_read_word(ep + offsetof(QZSS_DCR_JMA_VOLCANO_NAME_Entry, offset));
+            uint16_t n = pgm_read_word(ep + offsetof(QZSS_DCR_JMA_VOLCANO_NAME_Entry, len));
+            if (n == 0) return std::nullopt;
+            return azarac_pgm_view(QZSS_DCR_JMA_VOLCANO_NAME_POOL + off, n);
+        }
+        if (eid < id) lo = static_cast<uint8_t>(mid + 1); else hi = mid;
+    }
+    return std::nullopt;
+}
+#else
 struct QZSS_DCR_JMA_VOLCANO_NAME_Entry { uint16_t id; std::optional<std::string_view> label; };
 inline constexpr QZSS_DCR_JMA_VOLCANO_NAME_Entry QZSS_DCR_JMA_VOLCANO_NAME_TABLE[] = {
     {101u, std::string_view{"知床硫黄山", 15}},
@@ -151,6 +295,7 @@ inline constexpr QZSS_DCR_JMA_VOLCANO_NAME_Entry QZSS_DCR_JMA_VOLCANO_NAME_TABLE
     }
     return std::nullopt;
 }
+#endif
 
 #else
 

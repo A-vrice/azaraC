@@ -89,7 +89,7 @@ OBJS = $(TEST_OBJS) $(LIB_OBJS)
 # VPATH for library sources
 VPATH = ../src:../src/decoder:../src/framer:../src/json:../src/internal
 
-.PHONY: all clean run fuzz decode compare-realdata check check-xml check-strict-compile coverage memprof
+.PHONY: all clean run fuzz decode compare-realdata check check-xml check-strict-compile coverage memprof pgm-stub
 
 all: $(TEST_BIN)
 
@@ -329,3 +329,13 @@ clean:
 	-@$(RM) fuzz/*.o fuzz/*.d fuzz/*.gcno fuzz/*.gcda
 	-@$(RM) tools/*.o tools/*.d tools/*.gcno tools/*.gcda
 	-@$(RM) scripts/*.o scripts/*.d scripts/*.gcno scripts/*.gcda
+
+# ---- PROGMEM stub (AVR branch semantics test on host) ----
+# Compiles all tests with __AVR__ defined and a stub avr/pgmspace.h so the
+# PROGMEM code paths (memcpy_P / pgm_read_dword) exercise on the host.
+# AVR presets that conflict with test assumptions (BUFFERS=1, DEDUP_SLOTS=4)
+# are neutralized.
+pgm-stub:
+	$(MAKE) clean
+	$(MAKE) CXXFLAGS="-std=c++17 -Wall -Wextra -Istub -I../src -I. -DARDUINO=0 -D__AVR__ -DAZARAC_LANG_JA=1 -DAZARAC_LANG_EN=1 -DAZARAC_NANKAI_MAX_PAGES=63 -DAZARAC_NANKAI_AGGREGATED_TEXT_SIZE=1135 -DAZARAC_NANKAI_BUFFERS=4 -DAZARAC_DEDUP_SLOTS=8 -MMD -MP -g"
+	$(RUN_PREFIX)$(TEST_BIN)

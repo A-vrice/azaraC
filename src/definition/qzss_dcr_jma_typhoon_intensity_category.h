@@ -11,13 +11,26 @@
 #include <cstdint>
 #include <optional>
 #include <string_view>
-#include "../azaraC_config.h"
+#include "../azaraC.h"
+#include "../internal/FlashString.h"
 
 namespace azaraC {
 namespace def {
 
 #if (AZARAC_ENABLE_TYPHOON)
 
+#if defined(__AVR__)
+[[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_typhoon_intensity_category_lookup(uint8_t id) noexcept {
+    switch (id) {
+        case 0: { static const char AZARAC_PROGMEM s[] = "なし"; return azarac_pgm_view(s, 6); }
+        case 1: { static const char AZARAC_PROGMEM s[] = "強い"; return azarac_pgm_view(s, 6); }
+        case 2: { static const char AZARAC_PROGMEM s[] = "非常に強い"; return azarac_pgm_view(s, 15); }
+        case 3: { static const char AZARAC_PROGMEM s[] = "猛烈な"; return azarac_pgm_view(s, 9); }
+        case 15: { static const char AZARAC_PROGMEM s[] = "その他の強さ階級分類"; return azarac_pgm_view(s, 30); }
+        default: return std::nullopt;
+    }
+}
+#else
 [[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_typhoon_intensity_category_lookup(uint8_t id) noexcept {
     switch (id) {
         case 0: return std::string_view{"なし", 6};
@@ -28,6 +41,7 @@ namespace def {
         default: return std::nullopt;
     }
 }
+#endif
 
 #else
 

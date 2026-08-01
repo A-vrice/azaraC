@@ -11,13 +11,23 @@
 #include <cstdint>
 #include <optional>
 #include <string_view>
-#include "../azaraC_config.h"
+#include "../azaraC.h"
+#include "../internal/FlashString.h"
 
 namespace azaraC {
 namespace def {
 
 #if (AZARAC_ENABLE_DCX_CAMF)
 
+#if defined(__AVR__)
+[[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_a9_type_of_library_lookup(uint8_t id) noexcept {
+    switch (id) {
+        case 0: { static const char AZARAC_PROGMEM s[] = "International library"; return azarac_pgm_view(s, 21); }
+        case 1: { static const char AZARAC_PROGMEM s[] = "Country/region library"; return azarac_pgm_view(s, 22); }
+        default: return std::nullopt;
+    }
+}
+#else
 [[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_a9_type_of_library_lookup(uint8_t id) noexcept {
     switch (id) {
         case 0: return std::string_view{"International library", 21};
@@ -25,6 +35,7 @@ namespace def {
         default: return std::nullopt;
     }
 }
+#endif
 
 #else
 

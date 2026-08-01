@@ -11,13 +11,25 @@
 #include <cstdint>
 #include <optional>
 #include <string_view>
-#include "../azaraC_config.h"
+#include "../azaraC.h"
+#include "../internal/FlashString.h"
 
 namespace azaraC {
 namespace def {
 
 #if (AZARAC_ENABLE_DCX_CAMF)
 
+#if defined(__AVR__)
+[[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_a5_severity_lookup(uint8_t id) noexcept {
+    switch (id) {
+        case 0: { static const char AZARAC_PROGMEM s[] = "Unknown"; return azarac_pgm_view(s, 7); }
+        case 1: { static const char AZARAC_PROGMEM s[] = "Moderate - Possible threat to life or property"; return azarac_pgm_view(s, 46); }
+        case 2: { static const char AZARAC_PROGMEM s[] = "Severe - Significant threat to life or property"; return azarac_pgm_view(s, 47); }
+        case 3: { static const char AZARAC_PROGMEM s[] = "Extreme - Extraordinary threat to life or property"; return azarac_pgm_view(s, 50); }
+        default: return std::nullopt;
+    }
+}
+#else
 [[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_a5_severity_lookup(uint8_t id) noexcept {
     switch (id) {
         case 0: return std::string_view{"Unknown", 7};
@@ -27,6 +39,7 @@ namespace def {
         default: return std::nullopt;
     }
 }
+#endif
 
 #else
 

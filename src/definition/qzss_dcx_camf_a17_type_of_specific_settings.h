@@ -11,13 +11,25 @@
 #include <cstdint>
 #include <optional>
 #include <string_view>
-#include "../azaraC_config.h"
+#include "../azaraC.h"
+#include "../internal/FlashString.h"
 
 namespace azaraC {
 namespace def {
 
 #if (AZARAC_ENABLE_DCX_CAMF)
 
+#if defined(__AVR__)
+[[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_a17_type_of_specific_settings_lookup(uint8_t id) noexcept {
+    switch (id) {
+        case 0: { static const char AZARAC_PROGMEM s[] = "B1 - Improved Resolution of Main Ellipse"; return azarac_pgm_view(s, 40); }
+        case 1: { static const char AZARAC_PROGMEM s[] = "B2 - Position of the Centre of the Hazard"; return azarac_pgm_view(s, 41); }
+        case 2: { static const char AZARAC_PROGMEM s[] = "B3 - Secondary Ellipse Definition"; return azarac_pgm_view(s, 33); }
+        case 3: { static const char AZARAC_PROGMEM s[] = "B4 - Quantitative and detailed information about the Hazard"; return azarac_pgm_view(s, 59); }
+        default: return std::nullopt;
+    }
+}
+#else
 [[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_a17_type_of_specific_settings_lookup(uint8_t id) noexcept {
     switch (id) {
         case 0: return std::string_view{"B1 - Improved Resolution of Main Ellipse", 40};
@@ -27,6 +39,7 @@ namespace def {
         default: return std::nullopt;
     }
 }
+#endif
 
 #else
 

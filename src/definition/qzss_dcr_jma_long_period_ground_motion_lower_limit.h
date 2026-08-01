@@ -2,7 +2,7 @@
 // AUTO-GENERATED from azarashi 0.16.4 with CI-CD
 // Source module : qzss_dcr_jma_long_period_ground_motion_lower_limit
 // Variable      : qzss_dcr_jma_long_period_ground_motion_lower_limit
-// Entries       : 7
+// Entries       : 6
 // Strategy      : switch
 
 // NOTE: This function may return nullptr for unknown IDs.
@@ -11,13 +11,27 @@
 #include <cstdint>
 #include <optional>
 #include <string_view>
-#include "../azaraC_config.h"
+#include "../azaraC.h"
+#include "../internal/FlashString.h"
 
 namespace azaraC {
 namespace def {
 
 #if (AZARAC_ENABLE_EEW)
 
+#if defined(__AVR__)
+[[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_long_period_ground_motion_lower_limit_lookup(uint8_t id) noexcept {
+    switch (id) {
+        case 1: { static const char AZARAC_PROGMEM s[] = "長周期地震動階級1未満"; return azarac_pgm_view(s, 31); }
+        case 2: { static const char AZARAC_PROGMEM s[] = "長周期地震動階級1"; return azarac_pgm_view(s, 25); }
+        case 3: { static const char AZARAC_PROGMEM s[] = "長周期地震動階級2"; return azarac_pgm_view(s, 25); }
+        case 4: { static const char AZARAC_PROGMEM s[] = "長周期地震動階級3"; return azarac_pgm_view(s, 25); }
+        case 5: { static const char AZARAC_PROGMEM s[] = "長周期地震動階級4"; return azarac_pgm_view(s, 25); }
+        case 7: { static const char AZARAC_PROGMEM s[] = "不明"; return azarac_pgm_view(s, 6); }
+        default: return std::nullopt;
+    }
+}
+#else
 [[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_long_period_ground_motion_lower_limit_lookup(uint8_t id) noexcept {
     switch (id) {
         case 1: return std::string_view{"長周期地震動階級1未満", 31};
@@ -29,6 +43,7 @@ namespace def {
         default: return std::nullopt;
     }
 }
+#endif
 
 #else
 

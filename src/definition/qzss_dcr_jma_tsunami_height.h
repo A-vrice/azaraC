@@ -11,13 +11,29 @@
 #include <cstdint>
 #include <optional>
 #include <string_view>
-#include "../azaraC_config.h"
+#include "../azaraC.h"
+#include "../internal/FlashString.h"
 
 namespace azaraC {
 namespace def {
 
 #if (AZARAC_ENABLE_TSUNAMI)
 
+#if defined(__AVR__)
+[[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_tsunami_height_lookup(uint8_t id) noexcept {
+    switch (id) {
+        case 1: { static const char AZARAC_PROGMEM s[] = "0.2m未満"; return azarac_pgm_view(s, 10); }
+        case 2: { static const char AZARAC_PROGMEM s[] = "1m"; return azarac_pgm_view(s, 2); }
+        case 3: { static const char AZARAC_PROGMEM s[] = "3m"; return azarac_pgm_view(s, 2); }
+        case 4: { static const char AZARAC_PROGMEM s[] = "5m"; return azarac_pgm_view(s, 2); }
+        case 5: { static const char AZARAC_PROGMEM s[] = "10m"; return azarac_pgm_view(s, 3); }
+        case 6: { static const char AZARAC_PROGMEM s[] = "10m超"; return azarac_pgm_view(s, 6); }
+        case 14: { static const char AZARAC_PROGMEM s[] = "不明"; return azarac_pgm_view(s, 6); }
+        case 15: { static const char AZARAC_PROGMEM s[] = "その他の津波の高さ"; return azarac_pgm_view(s, 27); }
+        default: return std::nullopt;
+    }
+}
+#else
 [[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_tsunami_height_lookup(uint8_t id) noexcept {
     switch (id) {
         case 1: return std::string_view{"0.2m未満", 10};
@@ -31,6 +47,7 @@ namespace def {
         default: return std::nullopt;
     }
 }
+#endif
 
 #else
 

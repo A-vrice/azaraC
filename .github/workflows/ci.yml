@@ -86,6 +86,12 @@ jobs:
             additional_urls: https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
             build_flags: ""
 
+          - name: Arduino Uno (AVR)
+            core: arduino:avr
+            fqbn: arduino:avr:uno
+            additional_urls: ""
+            build_flags: "-DAZARAC_ENABLE_DCX_CAMF=0 -DAZARAC_ENABLE_VOLCANO=0 -DAZARAC_ENABLE_ASH_FALL=0 -DAZARAC_ENABLE_NANKAI=0"
+
     steps:
       - uses: actions/checkout@v6
         with:
@@ -114,7 +120,7 @@ jobs:
             echo "--- $sketch ---"
             sketch_name=$(basename "$sketch")
             # Skip WiFi examples on boards without WiFi (requires WiFi.h)
-            if [[ ("${{ matrix.name }}" == "RP2040 Pico" || "${{ matrix.name }}" == "RP2350 Pico 2") && ("$sketch_name" == "wifi_client" || "$sketch_name" == "with_sntp") ]]; then
+            if [[ ("${{ matrix.name }}" == "RP2040 Pico" || "${{ matrix.name }}" == "RP2350 Pico 2" || "${{ matrix.name }}" == "Arduino Uno (AVR)") && ("$sketch_name" == "wifi_client" || "$sketch_name" == "with_sntp") ]]; then
               echo "skip $sketch_name on ${{ matrix.name }} because WiFi.h is unavailable"
               continue
             fi

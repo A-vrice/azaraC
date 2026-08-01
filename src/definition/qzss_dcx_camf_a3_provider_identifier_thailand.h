@@ -1,6 +1,6 @@
 #pragma once
 // AUTO-GENERATED from azarashi 0.16.1 with CI-CD
-// Source module : qzss_dcx_camf_a3_provider_identifier
+// Source module : qzss_dcx_camf_a3_provider_identifier_thailand
 // Variable      : qzss_dcx_camf_a3_provider_identifier_thailand
 // Entries       : 13
 // Strategy      : array
@@ -11,13 +11,43 @@
 #include <cstdint>
 #include <optional>
 #include <string_view>
-#include "../azaraC_config.h"
+#include "../azaraC.h"
+#include "../internal/FlashString.h"
 
 namespace azaraC {
 namespace def {
 
 #if (AZARAC_ENABLE_DCX_CAMF)
 
+inline constexpr uint8_t QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_THAILAND_BASE = 1;
+inline constexpr uint8_t QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_THAILAND_SIZE = 13;
+#if defined(__AVR__)
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_THAILAND_POOL[] = "Department of Disaster Prevention and Mitigation\0Thai Meteorological Department\0National Disaster Warning Center\0Department of Mineral Resources\0Navy Hydrographic Department, Royal Thai Navy\0Department of Water Resources\0Royal Irrigation Department\0Department of Pollution Control\0Geo-Informatics and Space Technology Development Agency\0Electricity Generating Authority of Thailand\0Royal Forest Department\0Department of Parks, Wildlife and Plant Conservation\0Water Crisis Prevention Center\0";
+struct QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_THAILAND_Entry { uint16_t offset; uint16_t len; };
+static const QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_THAILAND_Entry QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_THAILAND_TABLE[] AZARAC_PROGMEM = {
+    {0u, 48u},
+    {49u, 30u},
+    {80u, 32u},
+    {113u, 31u},
+    {145u, 45u},
+    {191u, 29u},
+    {221u, 27u},
+    {249u, 31u},
+    {281u, 55u},
+    {337u, 44u},
+    {382u, 23u},
+    {406u, 52u},
+    {459u, 30u}
+};
+[[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_a3_provider_identifier_thailand_lookup(uint8_t id) noexcept {
+    if (id < QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_THAILAND_BASE || id >= QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_THAILAND_BASE + QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_THAILAND_SIZE) return std::nullopt;
+    const char* AZARAC_PROGMEM p = reinterpret_cast<const char*>(&QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_THAILAND_TABLE[id - 1u]);
+    uint16_t off = pgm_read_word(p + offsetof(QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_THAILAND_Entry, offset));
+    uint16_t n = pgm_read_word(p + offsetof(QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_THAILAND_Entry, len));
+    if (n == 0) return std::nullopt;
+    return azarac_pgm_view(QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_THAILAND_POOL + off, n);
+}
+#else
 inline constexpr std::optional<std::string_view> QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_THAILAND_TABLE[] = {
     std::string_view{"Department of Disaster Prevention and Mitigation", 48},
     std::string_view{"Thai Meteorological Department", 30},
@@ -33,12 +63,11 @@ inline constexpr std::optional<std::string_view> QZSS_DCX_CAMF_A3_PROVIDER_IDENT
     std::string_view{"Department of Parks, Wildlife and Plant Conservation", 52},
     std::string_view{"Water Crisis Prevention Center", 30}
 };
-inline constexpr uint8_t QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_THAILAND_BASE = 1;
-inline constexpr uint8_t QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_THAILAND_SIZE = 13;
 [[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_a3_provider_identifier_thailand_lookup(uint8_t id) noexcept {
     if (id < QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_THAILAND_BASE || id >= QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_THAILAND_BASE + QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_THAILAND_SIZE) return std::nullopt;
     return QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_THAILAND_TABLE[id - QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_THAILAND_BASE];
 }
+#endif
 
 #else
 

@@ -1,6 +1,6 @@
 #pragma once
 // AUTO-GENERATED from azarashi 0.16.4 with CI-CD
-// Source module : qzss_dcx_camf_b4_lower_level_fields_tables
+// Source module : qzss_dcx_camf_d26_number_of_cases_per_100000_inhabitants
 // Variable      : qzss_dcx_camf_d26_number_of_cases_per_100000_inhabitants
 // Entries       : 21
 // Strategy      : array
@@ -11,13 +11,51 @@
 #include <cstdint>
 #include <optional>
 #include <string_view>
-#include "../azaraC_config.h"
+#include "../azaraC.h"
+#include "../internal/FlashString.h"
 
 namespace azaraC {
 namespace def {
 
 #if (AZARAC_ENABLE_DCX_CAMF)
 
+inline constexpr uint8_t QZSS_DCX_CAMF_D26_NUMBER_OF_CASES_PER_100000_INHABITANTS_BASE = 0;
+inline constexpr uint8_t QZSS_DCX_CAMF_D26_NUMBER_OF_CASES_PER_100000_INHABITANTS_SIZE = 21;
+#if defined(__AVR__)
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D26_NUMBER_OF_CASES_PER_100000_INHABITANTS_POOL[] = "0 - 9\010 - 20\021 - 50\051 - 70\071 - 100\0101- 125\0126 - 150\0151 - 175\0176 - 200\0201 - 250\0251 - 300\0301 - 350\0351 - 400\0401 - 450\0451 - 500\0501 - 750\0751 - 1000\0> 1000\0> 2000\0> 3000\0> 5000\0";
+struct QZSS_DCX_CAMF_D26_NUMBER_OF_CASES_PER_100000_INHABITANTS_Entry { uint16_t offset; uint16_t len; };
+static const QZSS_DCX_CAMF_D26_NUMBER_OF_CASES_PER_100000_INHABITANTS_Entry QZSS_DCX_CAMF_D26_NUMBER_OF_CASES_PER_100000_INHABITANTS_TABLE[] AZARAC_PROGMEM = {
+    {0u, 5u},
+    {6u, 7u},
+    {14u, 7u},
+    {22u, 7u},
+    {30u, 8u},
+    {39u, 8u},
+    {48u, 9u},
+    {58u, 9u},
+    {68u, 9u},
+    {78u, 9u},
+    {88u, 9u},
+    {98u, 9u},
+    {108u, 9u},
+    {118u, 9u},
+    {128u, 9u},
+    {138u, 9u},
+    {148u, 10u},
+    {159u, 6u},
+    {166u, 6u},
+    {173u, 6u},
+    {180u, 6u}
+};
+[[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_d26_number_of_cases_per_100000_inhabitants_lookup(uint8_t id) noexcept {
+    if (id < QZSS_DCX_CAMF_D26_NUMBER_OF_CASES_PER_100000_INHABITANTS_BASE || id >= QZSS_DCX_CAMF_D26_NUMBER_OF_CASES_PER_100000_INHABITANTS_BASE + QZSS_DCX_CAMF_D26_NUMBER_OF_CASES_PER_100000_INHABITANTS_SIZE) return std::nullopt;
+    const char* AZARAC_PROGMEM p = reinterpret_cast<const char*>(&QZSS_DCX_CAMF_D26_NUMBER_OF_CASES_PER_100000_INHABITANTS_TABLE[id - 0u]);
+    uint16_t off = pgm_read_word(p + offsetof(QZSS_DCX_CAMF_D26_NUMBER_OF_CASES_PER_100000_INHABITANTS_Entry, offset));
+    uint16_t n = pgm_read_word(p + offsetof(QZSS_DCX_CAMF_D26_NUMBER_OF_CASES_PER_100000_INHABITANTS_Entry, len));
+    if (n == 0) return std::nullopt;
+    return azarac_pgm_view(QZSS_DCX_CAMF_D26_NUMBER_OF_CASES_PER_100000_INHABITANTS_POOL + off, n);
+}
+#else
 inline constexpr std::optional<std::string_view> QZSS_DCX_CAMF_D26_NUMBER_OF_CASES_PER_100000_INHABITANTS_TABLE[] = {
     std::string_view{"0 - 9", 5},
     std::string_view{"10 - 20", 7},
@@ -41,12 +79,11 @@ inline constexpr std::optional<std::string_view> QZSS_DCX_CAMF_D26_NUMBER_OF_CAS
     std::string_view{"> 3000", 6},
     std::string_view{"> 5000", 6}
 };
-inline constexpr uint8_t QZSS_DCX_CAMF_D26_NUMBER_OF_CASES_PER_100000_INHABITANTS_BASE = 0;
-inline constexpr uint8_t QZSS_DCX_CAMF_D26_NUMBER_OF_CASES_PER_100000_INHABITANTS_SIZE = 21;
 [[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_d26_number_of_cases_per_100000_inhabitants_lookup(uint8_t id) noexcept {
     if (id < QZSS_DCX_CAMF_D26_NUMBER_OF_CASES_PER_100000_INHABITANTS_BASE || id >= QZSS_DCX_CAMF_D26_NUMBER_OF_CASES_PER_100000_INHABITANTS_BASE + QZSS_DCX_CAMF_D26_NUMBER_OF_CASES_PER_100000_INHABITANTS_SIZE) return std::nullopt;
     return QZSS_DCX_CAMF_D26_NUMBER_OF_CASES_PER_100000_INHABITANTS_TABLE[id - QZSS_DCX_CAMF_D26_NUMBER_OF_CASES_PER_100000_INHABITANTS_BASE];
 }
+#endif
 
 #else
 

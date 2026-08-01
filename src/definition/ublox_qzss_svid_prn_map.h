@@ -9,9 +9,25 @@
 #include <optional>
 #include <string_view>
 #include "../azaraC_config.h"
+#include "../internal/FlashString.h"
 
 namespace azaraC {
 namespace def {
+
+#if defined(__AVR__)
+
+[[nodiscard]] inline std::optional<std::string_view> ublox_qzss_svid_prn_map_lookup(uint8_t id) noexcept {
+    switch (id) {
+        case 1: { static const char AZARAC_PROGMEM s[] = "183"; return azarac_pgm_view(s, 3); }
+        case 2: { static const char AZARAC_PROGMEM s[] = "184"; return azarac_pgm_view(s, 3); }
+        case 3: { static const char AZARAC_PROGMEM s[] = "185"; return azarac_pgm_view(s, 3); }
+        case 4: { static const char AZARAC_PROGMEM s[] = "186"; return azarac_pgm_view(s, 3); }
+        case 7: { static const char AZARAC_PROGMEM s[] = "189"; return azarac_pgm_view(s, 3); }
+        default: return std::nullopt;
+    }
+}
+
+#else
 
 [[nodiscard]] inline constexpr std::optional<std::string_view> ublox_qzss_svid_prn_map_lookup(uint8_t id) {
     switch (id) {
@@ -23,6 +39,8 @@ namespace def {
         default: return std::nullopt;
     }
 }
+
+#endif
 
 } // namespace def
 } // namespace azaraC

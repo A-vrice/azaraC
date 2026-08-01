@@ -1,6 +1,6 @@
 #pragma once
 // AUTO-GENERATED from azarashi 0.16.4 with CI-CD
-// Source module : qzss_dcx_camf_b4_lower_level_fields_tables
+// Source module : qzss_dcx_camf_d2_seismic_coefficient
 // Variable      : qzss_dcx_camf_d2_seismic_coefficient
 // Entries       : 8
 // Strategy      : switch
@@ -11,13 +11,29 @@
 #include <cstdint>
 #include <optional>
 #include <string_view>
-#include "../azaraC_config.h"
+#include "../azaraC.h"
+#include "../internal/FlashString.h"
 
 namespace azaraC {
 namespace def {
 
 #if (AZARAC_ENABLE_DCX_CAMF)
 
+#if defined(__AVR__)
+[[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_d2_seismic_coefficient_lookup(uint8_t id) noexcept {
+    switch (id) {
+        case 0: { static const char AZARAC_PROGMEM s[] = "2"; return azarac_pgm_view(s, 1); }
+        case 1: { static const char AZARAC_PROGMEM s[] = "3"; return azarac_pgm_view(s, 1); }
+        case 2: { static const char AZARAC_PROGMEM s[] = "4"; return azarac_pgm_view(s, 1); }
+        case 3: { static const char AZARAC_PROGMEM s[] = "5 weak"; return azarac_pgm_view(s, 6); }
+        case 4: { static const char AZARAC_PROGMEM s[] = "5 strong"; return azarac_pgm_view(s, 8); }
+        case 5: { static const char AZARAC_PROGMEM s[] = "6 weak"; return azarac_pgm_view(s, 6); }
+        case 6: { static const char AZARAC_PROGMEM s[] = "6 strong"; return azarac_pgm_view(s, 8); }
+        case 7: { static const char AZARAC_PROGMEM s[] = "7"; return azarac_pgm_view(s, 1); }
+        default: return std::nullopt;
+    }
+}
+#else
 [[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_d2_seismic_coefficient_lookup(uint8_t id) noexcept {
     switch (id) {
         case 0: return std::string_view{"2", 1};
@@ -31,6 +47,7 @@ namespace def {
         default: return std::nullopt;
     }
 }
+#endif
 
 #else
 

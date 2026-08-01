@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # azaraC - scripts/gen_definitions.py
-# Generates include/definition/*.h from azarashi (installed in current env).
+# Generates src/definition/*.h from azarashi (installed in current env).
 #
 # Usage:
 #   pip install azarashi==<version>
-#   python scripts/gen_definitions.py [--out-dir include/definition]
+#   python scripts/gen_definitions.py [--out-dir src/definition]
 
 import argparse, importlib, os, pkgutil, sys
 sys.path.insert(0, os.path.dirname(__file__))
@@ -144,63 +144,227 @@ def c_str_literal(s):
     return f'"{escaped}"'
 
 def emit_switch(varname, entries, guard, kt):
-    lines = [f"[[nodiscard]] inline constexpr const char* {varname}_lookup({kt} id) noexcept {{",
-             "    switch (id) {"]
-    for k, v in sorted(entries.items()):
-        lines.append(f'        case {k}: return {c_str_literal(v)};')
-    lines += ['        default: return nullptr;', "    }", "}"]
-    return "\n".join(lines)
+    avr_cases = "\n".join(
+        f'        case {k}: {{ static const char AZARAC_PROGMEM s[] = {c_str_literal(v)}; return azarac_pgm_copy(s); }}'
+        for k, v in sorted(entries.items()))
+    avr_body = "\n".join([
+        f"[[nodiscard]] inline const char* {varname}_lookup({kt} id) noexcept {{",
+        "    switch (id) {",
+        avr_cases,
+        "        default: return nullptr;",
+        "    }",
+        "}",
+    ])
+    non_avr_cases = "\n".join(
+        f'        case {k}: return {c_str_literal(v)};' for k, v in sorted(entries.items()))
+    non_avr_body = "\n".join([
+        f"[[nodiscard]] inline constexpr const char* {varname}_lookup({kt} id) noexcept {{",
+        "    switch (id) {",
+        non_avr_cases,
+        "        default: return nullptr;",
+        "    }",
+        "}",
+    ])
+    return "\n".join(["#if defined(__AVR__)", avr_body, "#else", non_avr_body, "#endif"])
+
 
 def emit_switch_optional(varname, entries, guard, kt):
-    lines = [f"[[nodiscard]] inline constexpr std::optional<std::string_view> {varname}_lookup({kt} id) noexcept {{",
-             "    switch (id) {"]
+    avr_cases = []
     for k, v in sorted(entries.items()):
         if v is not None:
             byte_len = len(v.encode('utf-8'))
-            lines.append(f'        case {k}: return std::string_view{{{c_str_literal(v)}, {byte_len}}};')
+            avr_cases.append(f'        case {k}: {{ static const char AZARAC_PROGMEM s[] = {c_str_literal(v)}; return azarac_pgm_view(s, {byte_len}); }}')
         else:
-            lines.append(f'        case {k}: return std::nullopt;')
-    lines += ['        default: return std::nullopt;', "    }", "}"]
-    return "\n".join(lines)
+            avr_cases.append(f'        case {k}: return std::nullopt;')
+    avr_body = "\n".join([
+        f"[[nodiscard]] inline std::optional<std::string_view> {varname}_lookup({kt} id) noexcept {{",
+        "    switch (id) {",
+        *avr_cases,
+        "        default: return std::nullopt;",
+        "    }",
+        "}",
+    ])
+    non_avr_cases = []
+    for k, v in sorted(entries.items()):
+        if v is not None:
+            byte_len = len(v.encode('utf-8'))
+            non_avr_cases.append(f'        case {k}: return std::string_view{{{c_str_literal(v)}, {byte_len}}};')
+        else:
+            non_avr_cases.append(f'        case {k}: return std::nullopt;')
+    non_avr_body = "\n".join([
+        f"[[nodiscard]] inline constexpr std::optional<std::string_view> {varname}_lookup({kt} id) noexcept {{",
+        "    switch (id) {",
+        *non_avr_cases,
+        "        default: return std::nullopt;",
+        "    }",
+        "}",
+    ])
+    return "\n".join(["#if defined(__AVR__)", avr_body, "#else", non_avr_body, "#endif"])
+
 
 def emit_array(varname, entries, guard, kt):
     keys = sorted(entries.keys())
     base, top = keys[0], keys[-1]
     table = [entries.get(i) for i in range(base, top + 1)]
+    n = len(table)
+    # AVR: string pool + offset table
+    pool_parts = []
+    offsets = []
+    cur = 0
+    for v in table:
+        if v is not None:
+            b = v.encode('utf-8')
+            pool_parts.append(escape(v) + "\\0")
+            offsets.append((cur, len(b)))
+            cur += len(b) + 1
+        else:
+            pool_parts.append("\\0")
+            offsets.append((0, 0))
+            cur += 1
+    pool_str = "".join(pool_parts)
+    avr_body = "\n".join([
+        f'static const char AZARAC_PROGMEM {guard}_POOL[] = "{pool_str}";',
+        f"struct {guard}_Entry {{ uint16_t offset; uint16_t len; }};",
+        f"static const {guard}_Entry {guard}_TABLE[] AZARAC_PROGMEM = {{",
+        ",\n".join(f"    {{{off}u, {l}u}}" for off, l in offsets),
+        "};",
+        f"[[nodiscard]] inline const char* {varname}_lookup({kt} id) noexcept {{",
+        f"    if (id < {guard}_BASE || id >= {guard}_BASE + {guard}_SIZE) return nullptr;",
+        f"    const char* AZARAC_PROGMEM p = reinterpret_cast<const char*>(&{guard}_TABLE[id - {base}u]);",
+        f"    uint16_t off = pgm_read_word(p + offsetof({guard}_Entry, offset));",
+        f"    uint16_t n = pgm_read_word(p + offsetof({guard}_Entry, len));",
+        "    if (n == 0) return nullptr;",
+        f"    return azarac_pgm_copy({guard}_POOL + off);",
+        "}",
+    ])
+    # Non-AVR (unchanged constexpr logic)
     rows = ",\n    ".join(
         c_str_literal(v) if v is not None else "nullptr" for v in table)
-    return "\n".join([
+    non_avr_body = "\n".join([
         f"inline constexpr const char* {guard}_TABLE[] = {{",
         f"    {rows}", "};",
-        f"inline constexpr {kt} {guard}_BASE = {base};",
-        f"inline constexpr {kt} {guard}_SIZE = {top - base + 1};",
         f"[[nodiscard]] inline constexpr const char* {varname}_lookup({kt} id) noexcept {{",
         f"    if (id < {guard}_BASE || id >= {guard}_BASE + {guard}_SIZE) return nullptr;",
         f"    return {guard}_TABLE[id - {guard}_BASE];", "}",
     ])
+    return "\n".join([
+        f"inline constexpr {kt} {guard}_BASE = {base};",
+        f"inline constexpr {kt} {guard}_SIZE = {n};",
+        "#if defined(__AVR__)",
+        avr_body,
+        "#else",
+        non_avr_body,
+        "#endif",
+    ])
+
 
 def emit_array_optional(varname, entries, guard, kt):
     keys = sorted(entries.keys())
     base, top = keys[0], keys[-1]
     table = [entries.get(i) for i in range(base, top + 1)]
+    n = len(table)
+    # AVR: string pool + offset table
+    pool_parts = []
+    offsets = []
+    cur = 0
+    for v in table:
+        if v is not None:
+            b = v.encode('utf-8')
+            pool_parts.append(escape(v) + "\\0")
+            offsets.append((cur, len(b)))
+            cur += len(b) + 1
+        else:
+            pool_parts.append("\\0")
+            offsets.append((0, 0))
+            cur += 1
+    pool_str = "".join(pool_parts)
+    avr_body = "\n".join([
+        f'static const char AZARAC_PROGMEM {guard}_POOL[] = "{pool_str}";',
+        f"struct {guard}_Entry {{ uint16_t offset; uint16_t len; }};",
+        f"static const {guard}_Entry {guard}_TABLE[] AZARAC_PROGMEM = {{",
+        ",\n".join(f"    {{{off}u, {l}u}}" for off, l in offsets),
+        "};",
+        f"[[nodiscard]] inline std::optional<std::string_view> {varname}_lookup({kt} id) noexcept {{",
+        f"    if (id < {guard}_BASE || id >= {guard}_BASE + {guard}_SIZE) return std::nullopt;",
+        f"    const char* AZARAC_PROGMEM p = reinterpret_cast<const char*>(&{guard}_TABLE[id - {base}u]);",
+        f"    uint16_t off = pgm_read_word(p + offsetof({guard}_Entry, offset));",
+        f"    uint16_t n = pgm_read_word(p + offsetof({guard}_Entry, len));",
+        "    if (n == 0) return std::nullopt;",
+        f"    return azarac_pgm_view({guard}_POOL + off, n);",
+        "}",
+    ])
+    # Non-AVR (unchanged constexpr logic)
     rows = ",\n    ".join(
         f'std::string_view{{{c_str_literal(v)}, {len(v.encode("utf-8"))}}}' if v is not None else "std::nullopt" for v in table)
-    return "\n".join([
+    non_avr_body = "\n".join([
         f"inline constexpr std::optional<std::string_view> {guard}_TABLE[] = {{",
         f"    {rows}", "};",
-        f"inline constexpr {kt} {guard}_BASE = {base};",
-        f"inline constexpr {kt} {guard}_SIZE = {top - base + 1};",
         f"[[nodiscard]] inline constexpr std::optional<std::string_view> {varname}_lookup({kt} id) noexcept {{",
         f"    if (id < {guard}_BASE || id >= {guard}_BASE + {guard}_SIZE) return std::nullopt;",
         f"    return {guard}_TABLE[id - {guard}_BASE];", "}",
     ])
+    return "\n".join([
+        f"inline constexpr {kt} {guard}_BASE = {base};",
+        f"inline constexpr {kt} {guard}_SIZE = {n};",
+        "#if defined(__AVR__)",
+        avr_body,
+        "#else",
+        non_avr_body,
+        "#endif",
+    ])
+
 
 def emit_bsearch(varname, entries, guard, kt):
     keys = sorted(entries.keys())
     n = len(keys)
     idx_type = "uint8_t" if n <= 255 else ("uint16_t" if n <= 65535 else "uint32_t")
+    # AVR: string pool + id/offset/len entries + manual bsearch.
+    # The id field uses the same type as the key (kt) to avoid narrowing.
+    if kt == "uint8_t":
+        read_id = f"static_cast<{kt}>(pgm_read_byte(ep + offsetof({guard}_Entry, id)))"
+    elif kt == "uint16_t":
+        read_id = f"pgm_read_word(ep + offsetof({guard}_Entry, id))"
+    elif kt == "uint64_t":
+        read_id = f"(static_cast<uint64_t>(pgm_read_dword(ep + offsetof({guard}_Entry, id) + 4)) << 32) | pgm_read_dword(ep + offsetof({guard}_Entry, id))"
+    else:
+        read_id = f"pgm_read_dword(ep + offsetof({guard}_Entry, id))"
+    pool_parts = []
+    pool_offsets = {}
+    cur = 0
+    for k in keys:
+        v = entries[k]
+        b = v.encode('utf-8')
+        pool_parts.append(escape(v) + "\\0")
+        pool_offsets[k] = (cur, len(b))
+        cur += len(b) + 1
+    pool_str = "".join(pool_parts)
+    avr_rows = "\n".join(f'    {{{k}u, {pool_offsets[k][0]}u, {pool_offsets[k][1]}u}},' for k in keys)
+    avr_body = "\n".join([
+        f'static const char AZARAC_PROGMEM {guard}_POOL[] = "{pool_str}";',
+        f"struct {guard}_Entry {{ {kt} id; uint16_t offset; uint16_t len; }};",
+        f"static const {guard}_Entry {guard}_TABLE[] AZARAC_PROGMEM = {{",
+        avr_rows,
+        "};",
+        f"[[nodiscard]] inline const char* {varname}_lookup({kt} id) noexcept {{",
+        f"    {idx_type} lo = 0, hi = {n};",
+        "    while (lo < hi) {",
+        f"        {idx_type} mid = static_cast<{idx_type}>(lo + (hi - lo) / 2);",
+        f"        const char* AZARAC_PROGMEM ep = reinterpret_cast<const char*>(&{guard}_TABLE[mid]);",
+        f"        {kt} eid = {read_id};",
+        "        if (eid == id) {",
+        f"            uint16_t off = pgm_read_word(ep + offsetof({guard}_Entry, offset));",
+        f"            uint16_t n = pgm_read_word(ep + offsetof({guard}_Entry, len));",
+        "            if (n == 0) return nullptr;",
+        f"            return azarac_pgm_copy({guard}_POOL + off);",
+        "        }",
+        f"        if (eid < id) lo = static_cast<{idx_type}>(mid + 1); else hi = mid;",
+        "    }",
+        "    return nullptr;",
+        "}",
+    ])
+    # Non-AVR (unchanged constexpr)
     rows = "\n".join(f'    {{{k}u, {c_str_literal(entries[k])}}},' for k in keys)
-    return "\n".join([
+    non_avr_body = "\n".join([
         f"struct {guard}_Entry {{ {kt} id; const char* label; }};",
         f"inline constexpr {guard}_Entry {guard}_TABLE[] = {{",
         rows + "};",
@@ -214,13 +378,60 @@ def emit_bsearch(varname, entries, guard, kt):
         "    }",
         "    return nullptr;", "}",
     ])
+    return "\n".join(["#if defined(__AVR__)", avr_body, "#else", non_avr_body, "#endif"])
+
 
 def emit_bsearch_optional(varname, entries, guard, kt):
     keys = sorted(entries.keys())
     n = len(keys)
     idx_type = "uint8_t" if n <= 255 else ("uint16_t" if n <= 65535 else "uint32_t")
+    # AVR: string pool + id/offset/len entries + manual bsearch.
+    # The id field uses the same type as the key (kt) to avoid narrowing.
+    if kt == "uint8_t":
+        read_id = f"static_cast<{kt}>(pgm_read_byte(ep + offsetof({guard}_Entry, id)))"
+    elif kt == "uint16_t":
+        read_id = f"pgm_read_word(ep + offsetof({guard}_Entry, id))"
+    elif kt == "uint64_t":
+        read_id = f"(static_cast<uint64_t>(pgm_read_dword(ep + offsetof({guard}_Entry, id) + 4)) << 32) | pgm_read_dword(ep + offsetof({guard}_Entry, id))"
+    else:
+        read_id = f"pgm_read_dword(ep + offsetof({guard}_Entry, id))"
+    pool_parts = []
+    pool_offsets = {}
+    cur = 0
+    for k in keys:
+        v = entries[k]
+        b = v.encode('utf-8')
+        pool_parts.append(escape(v) + "\\0")
+        pool_offsets[k] = (cur, len(b))
+        cur += len(b) + 1
+    pool_str = "".join(pool_parts)
+    avr_rows = "\n".join(f'    {{{k}u, {pool_offsets[k][0]}u, {pool_offsets[k][1]}u}},' for k in keys)
+    avr_body = "\n".join([
+        f'static const char AZARAC_PROGMEM {guard}_POOL[] = "{pool_str}";',
+        f"struct {guard}_Entry {{ {kt} id; uint16_t offset; uint16_t len; }};",
+        f"static const {guard}_Entry {guard}_TABLE[] AZARAC_PROGMEM = {{",
+        avr_rows,
+        "};",
+        f"[[nodiscard]] inline std::optional<std::string_view> {varname}_lookup({kt} id) noexcept {{",
+        f"    {idx_type} lo = 0, hi = {n};",
+        "    while (lo < hi) {",
+        f"        {idx_type} mid = static_cast<{idx_type}>(lo + (hi - lo) / 2);",
+        f"        const char* AZARAC_PROGMEM ep = reinterpret_cast<const char*>(&{guard}_TABLE[mid]);",
+        f"        {kt} eid = {read_id};",
+        "        if (eid == id) {",
+        f"            uint16_t off = pgm_read_word(ep + offsetof({guard}_Entry, offset));",
+        f"            uint16_t n = pgm_read_word(ep + offsetof({guard}_Entry, len));",
+        "            if (n == 0) return std::nullopt;",
+        f"            return azarac_pgm_view({guard}_POOL + off, n);",
+        "        }",
+        f"        if (eid < id) lo = static_cast<{idx_type}>(mid + 1); else hi = mid;",
+        "    }",
+        "    return std::nullopt;",
+        "}",
+    ])
+    # Non-AVR (unchanged constexpr)
     rows = "\n".join(f'    {{{k}u, std::string_view{{{c_str_literal(entries[k])}, {len(entries[k].encode("utf-8"))}}}}},' for k in keys)
-    return "\n".join([
+    non_avr_body = "\n".join([
         f"struct {guard}_Entry {{ {kt} id; std::optional<std::string_view> label; }};",
         f"inline constexpr {guard}_Entry {guard}_TABLE[] = {{",
         rows + "};",
@@ -234,8 +445,9 @@ def emit_bsearch_optional(varname, entries, guard, kt):
         "    }",
         "    return std::nullopt;", "}",
     ])
+    return "\n".join(["#if defined(__AVR__)", avr_body, "#else", non_avr_body, "#endif"])
 
-def build_header(modname, varname, entries, ver, all_varnames, obj=None):
+def build_header(modname, varname, entries, ver, all_varnames, obj=None, use_optional_override=None):
     keys = [k for k in entries.keys() if isinstance(k, int)]
     if not keys: return None
     # Filter entries to include string, int, and float values for lookup
@@ -245,9 +457,12 @@ def build_header(modname, varname, entries, ver, all_varnames, obj=None):
     kt    = key_type(keys)
     strat = choose(keys)
     
-    # Check if this is a QzssDcrDefinition with undefined attribute
+    # Check if this is a QzssDcrDefinition with undefined attribute,
+    # or override via use_optional_override (used by header transform scripts).
     use_optional = False
-    if obj is not None and hasattr(obj, 'undefined') and obj.undefined is not None:
+    if use_optional_override is not None:
+        use_optional = use_optional_override
+    elif obj is not None and hasattr(obj, 'undefined') and obj.undefined is not None:
         use_optional = True
     
     if use_optional:
@@ -304,7 +519,8 @@ def build_header(modname, varname, entries, ver, all_varnames, obj=None):
         f"#include <cstdint>\n"
         f"#include <optional>\n"
         f"#include <string_view>\n"
-        f'#include "../azaraC.h"\n\n'
+        f'#include "../azaraC.h"\n'
+        f'#include "../internal/FlashString.h"\n\n'
         f"namespace azaraC {{\nnamespace def {{\n\n"
         f"{wrapped_body}\n"
         f"}} // namespace def\n}} // namespace azaraC\n"
@@ -375,6 +591,6 @@ def run(out_dir):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--out-dir", default="include/definition")
+    parser.add_argument("--out-dir", default="src/definition")
     args = parser.parse_args()
     run(args.out_dir)
