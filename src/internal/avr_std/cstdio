@@ -7,4 +7,9 @@
 #include <cstdio>
 #else
 #include <stdio.h>
+// avr-libc exposes snprintf in the global namespace; re-export it as
+// std::snprintf so host and AVR builds call the same qualified name.
+namespace std {
+using ::snprintf;
+}
 #endif

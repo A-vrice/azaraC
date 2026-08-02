@@ -106,20 +106,20 @@ void serializeDcx(const Message& m, Print& out) {
     if (dec.main_ellipse_present) {
         wk(out, "main_ellipse");
         out.print('{');
-        wf_d(out, "lat_deg", dec.main_ellipse.lat_deg / 1000000.0, false, 6);
-        wf_d(out, "lon_deg", dec.main_ellipse.lon_deg / 1000000.0, false, 6);
-        wf_d(out, "semi_major_km", dec.main_ellipse.semi_major_km / 1000.0);
-        wf_d(out, "semi_minor_km", dec.main_ellipse.semi_minor_km / 1000.0);
-        wf_d(out, "azimuth_deg", dec.main_ellipse.azimuth_deg / 100000.0, /*last=*/!d->camf.b1_present, 6);
+        wf_d(out, "lat_deg", dec.main_ellipse.lat_microdeg / 1000000.0, false, 6);
+        wf_d(out, "lon_deg", dec.main_ellipse.lon_microdeg / 1000000.0, false, 6);
+        wf_d(out, "semi_major_km", dec.main_ellipse.semi_major_m / 1000.0);
+        wf_d(out, "semi_minor_km", dec.main_ellipse.semi_minor_m / 1000.0);
+        wf_d(out, "azimuth_deg", dec.main_ellipse.azimuth_decideg / 100000.0, /*last=*/!d->camf.b1_present, 6);
 
         // B1 refinement (EWSS CAMF v1.1 §3.7.1)
         if (d->camf.b1_present) {
             wk(out, "b1_refinement");
             out.print('{');
-            wf_d(out, "c1_lat_offset_deg", dec.main_ellipse.b1_lat_offset_deg / 1000000.0, false, 6);
-            wf_d(out, "c2_lon_offset_deg", dec.main_ellipse.b1_lon_offset_deg / 1000000.0, false, 6);
-            wf_d(out, "c3_refined_semi_major_km", dec.main_ellipse.b1_refined_semi_major_km / 1000.0);
-            wf_d(out, "c4_refined_semi_minor_km", dec.main_ellipse.b1_refined_semi_minor_km / 1000.0, /*last=*/true);
+            wf_d(out, "c1_lat_offset_deg", dec.main_ellipse.b1_lat_offset_microdeg / 1000000.0, false, 6);
+            wf_d(out, "c2_lon_offset_deg", dec.main_ellipse.b1_lon_offset_microdeg / 1000000.0, false, 6);
+            wf_d(out, "c3_refined_semi_major_km", dec.main_ellipse.b1_refined_semi_major_m / 1000.0);
+            wf_d(out, "c4_refined_semi_minor_km", dec.main_ellipse.b1_refined_semi_minor_m / 1000.0, /*last=*/true);
             out.print('}');
         }
 
@@ -134,8 +134,8 @@ void serializeDcx(const Message& m, Print& out) {
         wf_u(out, "c5_raw", d->camf.b2_c5);
         wf_u(out, "c6_raw", d->camf.b2_c6);
         // delta = b2_hazard - main_ellipse (both in microdegrees)
-        int32_t delta_lat = dec.b2_hazard_lat_microdeg - dec.main_ellipse.lat_deg;
-        int32_t delta_lon = dec.b2_hazard_lon_microdeg - dec.main_ellipse.lon_deg;
+        int32_t delta_lat = dec.b2_hazard_lat_microdeg - dec.main_ellipse.lat_microdeg;
+        int32_t delta_lon = dec.b2_hazard_lon_microdeg - dec.main_ellipse.lon_microdeg;
         wf_d(out, "delta_lat_deg", delta_lat / 1000000.0, false, 6);
         wf_d(out, "delta_lon_deg", delta_lon / 1000000.0, /*last=*/true, 6);
         out.print('}');
@@ -264,11 +264,11 @@ writeDField("d36_typhoon_cat",      b4.d_values[35], b4.d_present[35], qzss_dcx_
             wf_u(out, "head_to_area", dec.additional_area.head_to_area);
             wk(out, "ellipse");
             out.print('{');
-            wf_d(out, "lat_deg", dec.additional_area.ellipse.lat_deg / 1000000.0, false, 6);
-            wf_d(out, "lon_deg", dec.additional_area.ellipse.lon_deg / 1000000.0, false, 6);
-            wf_d(out, "semi_major_km", dec.additional_area.ellipse.semi_major_km / 1000.0);
-            wf_d(out, "semi_minor_km", dec.additional_area.ellipse.semi_minor_km / 1000.0);
-            wf_d(out, "azimuth_deg", dec.additional_area.ellipse.azimuth_deg / 100000.0, /*last=*/true, 6);
+            wf_d(out, "lat_deg", dec.additional_area.ellipse.lat_microdeg / 1000000.0, false, 6);
+            wf_d(out, "lon_deg", dec.additional_area.ellipse.lon_microdeg / 1000000.0, false, 6);
+            wf_d(out, "semi_major_km", dec.additional_area.ellipse.semi_major_m / 1000.0);
+            wf_d(out, "semi_minor_km", dec.additional_area.ellipse.semi_minor_m / 1000.0);
+            wf_d(out, "azimuth_deg", dec.additional_area.ellipse.azimuth_decideg / 100000.0, /*last=*/true, 6);
             out.print('}');
             out.print('}');
             writeChar(out, ',');

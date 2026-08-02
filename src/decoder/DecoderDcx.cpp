@@ -193,11 +193,11 @@ bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix)
                              d->camf.a16 != 0);
     if (has_main_ellipse) {
         dec.main_ellipse_present = true;
-        dec.main_ellipse.lat_deg = decodeLatitude16(d->camf.a12);
-        dec.main_ellipse.lon_deg = decodeLongitude17(d->camf.a13);
-        dec.main_ellipse.semi_major_km = decodeRadiusCode(d->camf.a14);
-        dec.main_ellipse.semi_minor_km = decodeRadiusCode(d->camf.a15);
-        dec.main_ellipse.azimuth_deg = decodeAzimuth6(d->camf.a16);
+        dec.main_ellipse.lat_microdeg = decodeLatitude16(d->camf.a12);
+        dec.main_ellipse.lon_microdeg = decodeLongitude17(d->camf.a13);
+        dec.main_ellipse.semi_major_m = decodeRadiusCode(d->camf.a14);
+        dec.main_ellipse.semi_minor_m = decodeRadiusCode(d->camf.a15);
+        dec.main_ellipse.azimuth_decideg = decodeAzimuth6(d->camf.a16);
 
         // B1 (A17=00) - Improved Resolution of Main Ellipse (EWSS CAMF v1.1 §3.7.1)
         // A18 (15bit) = C1(3bit)[12:14] + C2(3bit)[9:11] + C3(3bit)[6:8] + C4(3bit)[3:5] + Reserved(3bit)[0:2]
@@ -210,13 +210,13 @@ bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix)
             d->camf.b1_c4 = b1.c4;
 
             // Store refinement values in decoded ellipse (EWSS CAMF v1.1 §3.7.1.3/4)
-            dec.main_ellipse.b1_lat_offset_deg = b1RefinedLatitudeOffset(b1.c1);
-            dec.main_ellipse.b1_lon_offset_deg = b1RefinedLongitudeOffset(b1.c2);
+            dec.main_ellipse.b1_lat_offset_microdeg = b1RefinedLatitudeOffset(b1.c1);
+            dec.main_ellipse.b1_lon_offset_microdeg = b1RefinedLongitudeOffset(b1.c2);
             // B1 refinement: C3 → semi-major (uses A14), C4 → semi-minor (uses A15)
-            dec.main_ellipse.b1_refined_semi_major_km = b1RefinedRadiusKm(
-                b1.c3, dec.main_ellipse.semi_major_km, d->camf.a14);
-            dec.main_ellipse.b1_refined_semi_minor_km = b1RefinedRadiusKm(
-                b1.c4, dec.main_ellipse.semi_minor_km, d->camf.a15);
+            dec.main_ellipse.b1_refined_semi_major_m = b1RefinedRadiusM(
+                b1.c3, dec.main_ellipse.semi_major_m, d->camf.a14);
+            dec.main_ellipse.b1_refined_semi_minor_m = b1RefinedRadiusM(
+                b1.c4, dec.main_ellipse.semi_minor_m, d->camf.a15);
         }
         // B2 (A17=01) - Position of the Centre of the Hazard (EWSS CAMF v1.1 §3.7.2)
         // A18 = C5[0:6](7bit) + C6[7:13](7bit) + Reserved[14](1bit)
@@ -231,8 +231,8 @@ bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix)
             d->camf.b2_c5 = c5;
             d->camf.b2_c6 = c6;
             dec.b2_hazard_center_present = true;
-            dec.b2_hazard_lat_microdeg = dec.main_ellipse.lat_deg + b2.delta_lat_microdeg;
-            dec.b2_hazard_lon_microdeg = dec.main_ellipse.lon_deg + b2.delta_lon_microdeg;
+            dec.b2_hazard_lat_microdeg = dec.main_ellipse.lat_microdeg + b2.delta_lat_microdeg;
+            dec.b2_hazard_lon_microdeg = dec.main_ellipse.lon_microdeg + b2.delta_lon_microdeg;
             // dec.main_ellipse is unchanged (keeps original ellipse center)
         }
         // B3 (A17=10) - Secondary Ellipse Definition (EWSS CAMF v1.1 §3.7.3)
@@ -280,11 +280,11 @@ bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix)
             if (has_additional) {
                 dec.additional_area.present = true;
                 dec.additional_area.head_to_area = (d->ex_lalert_local.ex2 != 0);
-                dec.additional_area.ellipse.lat_deg = decodeLatitude17(d->ex_lalert_local.ex3);
-                dec.additional_area.ellipse.lon_deg = decodeLongitude17_45_225(d->ex_lalert_local.ex4);
-                dec.additional_area.ellipse.semi_major_km = decodeRadiusCode(d->ex_lalert_local.ex5);
-                dec.additional_area.ellipse.semi_minor_km = decodeRadiusCode(d->ex_lalert_local.ex6);
-                dec.additional_area.ellipse.azimuth_deg = decodeAzimuth7(d->ex_lalert_local.ex7);
+                dec.additional_area.ellipse.lat_microdeg = decodeLatitude17(d->ex_lalert_local.ex3);
+                dec.additional_area.ellipse.lon_microdeg = decodeLongitude17_45_225(d->ex_lalert_local.ex4);
+                dec.additional_area.ellipse.semi_major_m = decodeRadiusCode(d->ex_lalert_local.ex5);
+                dec.additional_area.ellipse.semi_minor_m = decodeRadiusCode(d->ex_lalert_local.ex6);
+                dec.additional_area.ellipse.azimuth_decideg = decodeAzimuth7(d->ex_lalert_local.ex7);
             }
         }
     } else if (d->ex_kind == ExtendedKind::JAlert) {

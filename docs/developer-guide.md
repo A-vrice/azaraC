@@ -104,7 +104,7 @@ make -C test fuzz FUZZ_ITERATIONS=100000
 
 ```
 azarashi (PyPI) → definition/*.py
-    ↓ scripts/gen_definitions.py
+    ↓ scripts/gen/gen_definitions.py --out-dir src/definition
 src/definition/*.h
     ↓ GitHub Actions (毎日 06:00 UTC)
 PR自動作成 → レビュー → マージ
@@ -114,7 +114,7 @@ PR自動作成 → レビュー → マージ
 
 ```bash
 pip install --upgrade azarashi
-python scripts/gen_definitions.py
+python scripts/gen/gen_definitions.py --out-dir src/definition
 ```
 
 ## コーディング規約

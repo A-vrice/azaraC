@@ -24,7 +24,7 @@ public:
     constexpr string_view() noexcept : data_(nullptr), size_(0) {}
     constexpr string_view(const char* s, size_type n) noexcept : data_(s), size_(n) {}
     constexpr string_view(const char* s) noexcept
-        : data_(s), size_(s != nullptr ? strlen(s) : 0) {}
+        : data_(s), size_(s != nullptr ? cstrLen(s) : 0) {}
 
     constexpr const char* data() const noexcept { return data_; }
     constexpr size_type size() const noexcept { return size_; }
@@ -47,8 +47,10 @@ public:
     int compare(string_view other) const noexcept {
         size_type n = size_ < other.size_ ? size_ : other.size_;
         for (size_type i = 0; i < n; ++i) {
-            if (data_[i] != other.data_[i])
-                return data_[i] < other.data_[i] ? -1 : 1;
+            // Compare as unsigned char (char_traits<char>::compare semantics)
+            unsigned char a = static_cast<unsigned char>(data_[i]);
+            unsigned char b = static_cast<unsigned char>(other.data_[i]);
+            if (a != b) return a < b ? -1 : 1;
         }
         if (size_ == other.size_) return 0;
         return size_ < other.size_ ? -1 : 1;
@@ -63,8 +65,10 @@ public:
 
     size_type find(string_view s, size_type pos = 0) const noexcept {
         if (s.size_ == 0) return pos <= size_ ? pos : npos;
-        if (pos + s.size_ > size_) return npos;
-        for (size_type i = pos; i + s.size_ <= size_; ++i) {
+        // Subtraction-based bounds checks avoid overflow on pos + s.size_
+        if (pos > size_ || s.size_ > size_ - pos) return npos;
+        size_type limit = size_ - s.size_;
+        for (size_type i = pos; i <= limit; ++i) {
             size_type j = 0;
             while (j < s.size_ && data_[i + j] == s.data_[j]) ++j;
             if (j == s.size_) return i;
@@ -75,6 +79,14 @@ public:
 private:
     const char* data_;
     size_type size_;
+
+    // constexpr replacement for strlen (strlen is not usable in constexpr
+    // contexts). nullptr is handled by the caller before invoking this.
+    static constexpr size_type cstrLen(const char* s) noexcept {
+        size_type n = 0;
+        while (s[n] != '\0') ++n;
+        return n;
+    }
 };
 
 }  // namespace std

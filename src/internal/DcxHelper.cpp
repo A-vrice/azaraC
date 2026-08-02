@@ -188,7 +188,7 @@ int32_t b1RefinedLongitudeOffset(uint8_t c2) {
     );
 }
 
-int32_t b1RefinedRadiusKm(uint8_t code, int32_t base_radius_m, uint8_t original_radius_code) {
+int32_t b1RefinedRadiusM(uint8_t code, int32_t base_radius_m, uint8_t original_radius_code) {
     // refined = base - delta * code / 8
     int32_t delta_m;
     if (original_radius_code == 0) {

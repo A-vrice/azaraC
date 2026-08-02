@@ -90,11 +90,13 @@ bool NmeaFramer::parse(Frame& out) {
     uint8_t nibble = 0;
 
     while (*p && ((*p >= '0' && *p <= '9') || (*p >= 'A' && *p <= 'F') || (*p >= 'a' && *p <= 'f'))) {
-        if (byte_idx >= 32) { p++; hex_count++; continue; }  // skip past 32 bytes
+        if (hex_count >= 64) return false;  // reject payloads longer than 64 hex chars
         uint8_t val = hexVal(*p++);
-        if (val == 0xFF) return false;
+        if (val == 0xFF) return false;      // defensive: loop condition already filters
+        hex_count++;
+        if (byte_idx >= 32) continue;       // first 32 bytes captured; keep counting
         nibble = (nibble << 4) | val;
-        if (++hex_count % 2 == 0) {
+        if ((hex_count & 1) == 0) {
             out.bits[byte_idx++] = nibble;
             nibble = 0;
         }

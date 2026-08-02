@@ -89,7 +89,7 @@ static void writeEscaped(Print& out, std::string_view s) {
                 if (c < 0x20) {
                     // Control characters: use \u00XX
                     char buf[7];
-                    snprintf(buf, sizeof(buf), "\\u%04x", c);
+                    std::snprintf(buf, sizeof(buf), "\\u%04x", c);
                     out.print(buf);
                 } else {
                     // Printable ASCII and UTF-8 bytes pass through

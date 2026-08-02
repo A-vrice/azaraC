@@ -5,12 +5,7 @@
 // any slot in the ring.
 
 #include "../azaraC_config.h"  // single source of truth for AZARAC_DEDUP_SLOTS
-
-#if defined(__AVR__)
-#include "avr_std/cstdint"
-#else
-#include <cstdint>
-#endif
+#include "MtCommonTypes.h"      // shared integer types (cstdint AVR switch lives here)
 #if defined(__AVR__)
 #include "avr_std/cstring"
 #else

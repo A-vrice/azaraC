@@ -42,8 +42,16 @@
 #ifndef AZARAC_FLASH_BUF_SIZE
 // Shared definition-lookup buffer (see internal/FlashString.h). With the
 // AVR category preset (SEISMIC/TSUNAMI only) the longest label is 30 bytes;
-// 64 leaves headroom. The full-category default is 800 (D20 ash-fall).
+// 64 leaves headroom. Enabling DCX/CAMF adds far longer labels
+// (a4_hazard_definition: 683 B), so fall back to the full 800 B buffer.
+// The category macros below are evaluated only when already defined
+// (e.g. via -D or #define before including azaraC.h); the AVR preset
+// itself defaults DCX/CAMF to disabled, keeping 64 B for the default build.
+#if defined(AZARAC_ENABLE_DCX_CAMF) && AZARAC_ENABLE_DCX_CAMF
+#define AZARAC_FLASH_BUF_SIZE 800
+#else
 #define AZARAC_FLASH_BUF_SIZE 64
+#endif
 #endif
 #ifndef AZARAC_DCX_USE_FLOAT
 #define AZARAC_DCX_USE_FLOAT

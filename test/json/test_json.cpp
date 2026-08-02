@@ -252,8 +252,8 @@ TEST_CASE("JSON Serialization: MT=44 DCX main ellipse") {
     mt44->camf.a3 = 1; mt44->camf.a4 = 1;
     mt44->camf.a5 = 3; mt44->camf.a8 = 4;
     mt44->mt44_decoded.main_ellipse_present = true;
-    mt44->mt44_decoded.main_ellipse.lat_deg = 35600000;  // 35.6° in microdegrees
-    mt44->mt44_decoded.main_ellipse.lon_deg = 139600000; // 139.6° in microdegrees
+    mt44->mt44_decoded.main_ellipse.lat_microdeg = 35600000;  // 35.6° in microdegrees
+    mt44->mt44_decoded.main_ellipse.lon_microdeg = 139600000; // 139.6° in microdegrees
 
     StringPrint sp;
     internal::JsonSerializer::serialize(m, sp);

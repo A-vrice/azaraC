@@ -3,13 +3,7 @@
 // MT=44 (DCX/CAMF) data structures
 // Bit offsets derived from azarashi (IS-QZSS-DCX-004)
 
-#if defined(__AVR__)
-#include "internal/avr_std/cstdint"
-#else
-#include <cstdint>
-#endif
-
-#include "internal/MtCommonTypes.h"
+#include "internal/MtCommonTypes.h"  // shared integer types (cstdint AVR switch lives here)
 
 namespace azaraC {
 
@@ -107,15 +101,15 @@ struct Mt44ExOutside {
 // ---- MT=44 Decoded structures (IS-QZSS-DCX-004) --------------------------
 
 struct DecodedEllipse {
-    int32_t lat_deg;           // microdegrees (×1,000,000)
-    int32_t lon_deg;           // microdegrees (×1,000,000)
-    int32_t semi_major_km;     // meters (×1,000 from km)
-    int32_t semi_minor_km;     // meters (×1,000 from km)
-    int32_t azimuth_deg;       // dexadegrees (×100,000)
-    int32_t b1_lat_offset_deg;   // microdegrees (×1,000,000)
-    int32_t b1_lon_offset_deg;   // microdegrees (×1,000,000)
-    int32_t b1_refined_semi_major_km;  // meters (×1,000 from km)
-    int32_t b1_refined_semi_minor_km;  // meters (×1,000 from km)
+    int32_t lat_microdeg;              // microdegrees (×1,000,000)
+    int32_t lon_microdeg;              // microdegrees (×1,000,000)
+    int32_t semi_major_m;              // meters (×1,000 from km)
+    int32_t semi_minor_m;              // meters (×1,000 from km)
+    int32_t azimuth_decideg;           // dexadegrees (×100,000)
+    int32_t b1_lat_offset_microdeg;    // microdegrees (×1,000,000)
+    int32_t b1_lon_offset_microdeg;    // microdegrees (×1,000,000)
+    int32_t b1_refined_semi_major_m;   // meters (×1,000 from km)
+    int32_t b1_refined_semi_minor_m;   // meters (×1,000 from km)
 };
 
 struct DecodedAdditionalArea {

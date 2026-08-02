@@ -42,13 +42,14 @@ void setup() {
 }
 
 void loop() {
+    // AVR: GNSS は単一ハードウェア UART の Serial、それ以外は Serial1
 #if defined(ARDUINO_ARCH_AVR)
-    while (Serial.available()) {
-        uint8_t b = static_cast<uint8_t>(Serial.read());
+    Stream& gnss = Serial;
 #else
-    while (Serial1.available()) {
-        uint8_t b = static_cast<uint8_t>(Serial1.read());
+    Stream& gnss = Serial1;
 #endif
+    while (gnss.available()) {
+        uint8_t b = static_cast<uint8_t>(gnss.read());
 
         // TinyGPS++ 等で NMEA をパースして時刻が更新されたら、
         // cached_gnss_unix_time = ... と更新する想定。

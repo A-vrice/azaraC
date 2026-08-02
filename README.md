@@ -270,7 +270,9 @@ if (mt43 && mt43->disaster_category == 4) {
 | フル構成 (Nankai 63 buffers) | ~2.5 KB | ~200 B | 全ページ集約対応、ホストテスト構成 |
 | 最小構成 (Nankai 1 buffer) | ~400 B | ~200 B | RAM 2 KB 級ターゲット（Arduino Uno等、大規模カテゴリ無効化が必要） |
 
-定義テーブル（`src/definition/*.h`）のラベル文字列は AVR では Flash (PROGMEM) に配置される。ルックアップ時に共有 RAM バッファ（最大 `AZARAC_FLASH_BUF_SIZE`、デフォルト 800 B）へコピーして返すため、テーブルが RAM を占有しない。非 AVR では従来どおり `.rodata` の constexpr データを使用。
+定義テーブル（`src/definition/*.h`）のラベル文字列は AVR では Flash (PROGMEM) に配置される。ルックアップ時に共有 RAM バッファ（`AZARAC_FLASH_BUF_SIZE`）へコピーして返すため、テーブルが RAM を占有しない。非 AVR では従来どおり `.rodata` の constexpr データを使用。
+
+AVR の既定値は `src/azaraC_config.h` の AVR プリセットで決まる: 最小構成では SEISMIC/TSUNAMI のみ有効（他カテゴリは無効）で、`AZARAC_FLASH_BUF_SIZE` は 64 B（最長ラベル 30 B 基準）。DCX/CAMF を有効化した場合は最長ラベル（`a4_hazard_definition` 683 B）をカバーするため 800 B に切り替わる。非 AVR または上書き未設定時の既定値は 800 B。カテゴリとバッファサイズは `-D` または `#define`（`azaraC.h` インクルード前）で上書きできる。
 
 AVR では Arduino ツールチェーンに libstdc++ が無いため、`src/internal/avr_std/` の最小 C++ 標準ライブラリシム（`optional` / `string_view` / `std::move` 等）が `#if defined(__AVR__)` で自動適用される。ライブラリ側の API は非 AVR と同一。
 

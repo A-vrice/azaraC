@@ -90,7 +90,7 @@ int32_t b1RefinedLongitudeOffset(uint8_t c2);
 // refined_length = base_radius_m - delta_m * code / 8
 // where delta_m = decodeRadiusCode(original_radius_code) - decodeRadiusCode(original_radius_code - 1)
 // original_radius_code: the unrefined 5-bit radius code (A14 for semi-major, A15 for semi-minor)
-int32_t b1RefinedRadiusKm(uint8_t code, int32_t base_radius_m, uint8_t original_radius_code);
+int32_t b1RefinedRadiusM(uint8_t code, int32_t base_radius_m, uint8_t original_radius_code);
 
 // ---------------------------------------------------------------------------
 // B2 (A17=01) - Position of the Centre of the Hazard (EWSS CAMF v1.1 §3.7.2)

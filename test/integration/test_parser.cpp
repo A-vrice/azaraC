@@ -402,27 +402,27 @@ TEST_CASE("b1RefinedLongitudeOffset: 計算値検証") {
     CHECK(azaraC::internal::b1RefinedLongitudeOffset(7) == 2403);
 }
 
-TEST_CASE("b1RefinedRadiusKm: 計算値検証 (EWSS CAMF v1.1 §3.7.1.3/4)") {
+TEST_CASE("b1RefinedRadiusM: 計算値検証 (EWSS CAMF v1.1 §3.7.1.3/4)") {
     // Returns meters
     // a14_code=0: delta = decodeRadiusCode(0) = 216
     // base=216, code=0: 216 - 216*0/8 = 216
     // base=216, code=4: 216 - 216*4/8 = 108
     // base=216, code=7: 216 - 216*7/8 = 27
-    CHECK(azaraC::internal::b1RefinedRadiusKm(0, 216, 0) == 216);
-    CHECK(azaraC::internal::b1RefinedRadiusKm(4, 216, 0) == 108);
-    CHECK(azaraC::internal::b1RefinedRadiusKm(7, 216, 0) == 27);
+    CHECK(azaraC::internal::b1RefinedRadiusM(0, 216, 0) == 216);
+    CHECK(azaraC::internal::b1RefinedRadiusM(4, 216, 0) == 108);
+    CHECK(azaraC::internal::b1RefinedRadiusM(7, 216, 0) == 27);
 
     // a14_code=1: delta = 292 - 216 = 76
     // base=292, code=0: 292 - 76*0/8 = 292
     // base=292, code=4: 292 - 76*4/8 = 292 - 38 = 254
     // base=292, code=7: 292 - 76*7/8 = 292 - 67 = 225
-    CHECK(azaraC::internal::b1RefinedRadiusKm(0, 292, 1) == 292);
-    CHECK(azaraC::internal::b1RefinedRadiusKm(4, 292, 1) == 254);
-    CHECK(azaraC::internal::b1RefinedRadiusKm(7, 292, 1) == 225);
+    CHECK(azaraC::internal::b1RefinedRadiusM(0, 292, 1) == 292);
+    CHECK(azaraC::internal::b1RefinedRadiusM(4, 292, 1) == 254);
+    CHECK(azaraC::internal::b1RefinedRadiusM(7, 292, 1) == 225);
 
     // a14_code=3: delta = 535 - 395 = 140
     // base=535, code=4: 535 - 140*4/8 = 535 - 70 = 465
-    CHECK(azaraC::internal::b1RefinedRadiusKm(4, 535, 3) == 465);
+    CHECK(azaraC::internal::b1RefinedRadiusM(4, 535, 3) == 465);
 }
 
 #if (AZARAC_ENABLE_DCX_CAMF)

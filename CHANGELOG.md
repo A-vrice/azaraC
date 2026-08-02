@@ -24,9 +24,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **AVR 用最小 C++ 標準ライブラリシム (`src/internal/avr_std/`)**: Arduino AVR ツールチェーン（avr-gcc 7.3.0）は libstdc++ を一切同梱しないため、`src/` と生成定義ヘッダの標準 include を `#if defined(__AVR__)` でシム（`cstdint`/`cstring`/`cstdio` の C ヘッダ委譲、`new`/`utility`/`algorithm`/`iterator`、最小 `optional`/`string_view`）へ切替。API は不変。`test/internal/test_avr_std_shim.cpp` で最小実装をホスト検証。これにより Uno でコンパイル可能に（CI の Uno ジョブは TSUNAMI + SEISMIC の最小構成）。
   - Arduino.h の `min`/`max` 関数マクロ対策: `azaraC.h` で `#undef`（既存の `abs` 対策と同様）+ `Message.h` の `std::max` を三項演算子化。
   - **AVR プリセットでカテゴリを自動絞り込み**: `azaraC_config.h` の AVR プリセットが SEISMIC/TSUNAMI のみ有効化（他 11 カテゴリは無効、`-D`/`#define` で上書き可）。例題内の `#define` はライブラリ .cpp（別 TU）に効かないため撤去し、config レベルで一括適用。
-  - Uno ジョブは例題（全て `Serial1` 依存）の代わりに最小スケッチ（`#include <azaraC.h>` のみ）でライブラリ全体をコンパイル検証。
+  - Uno ジョブは AVR 対応の基本 3 例題（`basic_ubx` / `basic_nmea` / `basic_uno`）でライブラリ全体をコンパイル検証（他の例題は `Serial1` 依存または容量不足のため Uno ではスキップ）。
   - **Dedup.h の `AZARAC_DEDUP_SLOTS` デフォルトを config に一本化**: Dedup.h が独自に `#define 8` を持ち、config を経由しない TU（Dedup.cpp）で AVR プリセット (4) と不一致になり LTO が "array types have different bounds" を検出していた。config include + 重複デフォルト削除で解消。
   - **CI ボード分類をアーキテクチャ代表制に整理**: compile-required（リリースゲート）= RP2040 Pico (ARM) / ESP32-C3 (Xtensa) / Arduino Uno (AVR) の 3 台。compile-extended（ベストエフォート、continue-on-error）= 残り 8 台。Uno のボード名から `(AVR)` 表記を削除。
+- **CodeRabbit レビュー指摘対応**:
+  - `.coderabbit.yaml` の profile をスキーマ準拠の小文字 `assertive` に変更。
+  - CI にトップレベル `permissions: contents: read` を追加（PR コメント用の `summary` ジョブは既存の `pull-requests: write` を維持）。
+  - 例題 `basic_nmea` / `basic_ubx` の `loop()` をストリームエイリアス（`Stream& gnss`）で統一し、`Serial`/`Serial1` の重複 while ループを削除。
+  - `avr_std/string_view` シム: `strlen` を constexpr ヘルパー化、`compare` を unsigned char 比較（`char_traits` 準拠）、`find` の境界比較を減算ベースにしてオーバーフローを回避。
+  - `Dedup.h` / `Mt44Data.h` の `cstdint` AVR 分岐を `MtCommonTypes.h` に一本化。
+  - `writeEscaped` の `snprintf` を `std::snprintf` に統一（AVR `cstdio` シムに `std::snprintf` を追加）。
+  - AVR `pgmspace.h` スタブ: `pgm_read_word`/`pgm_read_dword` を memcpy ベース化（アライメント非依存）、`size_t`/文字列関数の名前空間を明示。
+  - `DecodedEllipse` のフィールド名を実単位にリネーム（`lat_deg`→`lat_microdeg`、`semi_major_km`→`semi_major_m`、`azimuth_deg`→`azimuth_decideg` 等）と `b1RefinedRadiusKm`→`b1RefinedRadiusM`。JSON 出力は不変。
+  - `AZARAC_FLASH_BUF_SIZE` の AVR デフォルトを条件化: DCX/CAMF 有効時は 800 B（最長ラベル 683 B をカバー）、それ以外は 64 B のまま。
+- **AVR プールの NUL エスケープ修正**: 定義テーブル生成スクリプトがプール区切り NUL を `\0` と出力し、後続が数字始まりのラベル（例: `"112.5"`）と連結されて 8 進エスケープ化（`\011` 等）されていた。`\000`（3 桁）に修正し、既存ヘッダ 44 ファイルを修復（AVR 分岐のラベル参照が壊れていた。非 AVR は影響なし）。
+- **MT=43 カテゴリ定義を X-macro で一元化**: `DecoderQzqsm` のカテゴリサポート判定・既知分類・サブデコーダディスパッチを単一の `AZARAC_DC_CATEGORIES` テーブルから生成し、`Decoder.h` のサブデコーダ宣言を無条件化。
 
 ### Fixed
 
