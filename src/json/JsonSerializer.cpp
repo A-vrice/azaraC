@@ -101,43 +101,48 @@ void JsonSerializer::serialize(const Message& msg, Print& out) {
         wk(out, "detail"); out.print('{');
 
         // Dispatch to enabled serializers based on disaster_category
+        // (switch: O(1) dispatch; categories 7/13 are undefined in the spec)
         bool serialized = false;
+        switch (d->disaster_category) {
 #if (AZARAC_ENABLE_EEW)
-        if (d->disaster_category == 1) { serialized = serializeEEW(d, out); }
+        case 1:  serialized = serializeEEW(d, out); break;
 #endif
 #if (AZARAC_ENABLE_HYPOCENTER)
-        if (d->disaster_category == 2) { serialized = serializeHypocenter(d, out); }
+        case 2:  serialized = serializeHypocenter(d, out); break;
 #endif
 #if (AZARAC_ENABLE_SEISMIC)
-        if (d->disaster_category == 3) { serialized = serializeSeismic(d, out); }
+        case 3:  serialized = serializeSeismic(d, out); break;
 #endif
 #if (AZARAC_ENABLE_NANKAI)
-        if (d->disaster_category == 4) { serialized = serializeNankai(d, out); }
+        case 4:  serialized = serializeNankai(d, out); break;
 #endif
 #if (AZARAC_ENABLE_TSUNAMI)
-        if (d->disaster_category == 5) { serialized = serializeTsunami(d, out); }
+        case 5:  serialized = serializeTsunami(d, out); break;
 #endif
 #if (AZARAC_ENABLE_NW_PAC_TSUNAMI)
-        if (d->disaster_category == 6) { serialized = serializeNwPacTsu(d, out); }
+        case 6:  serialized = serializeNwPacTsu(d, out); break;
 #endif
 #if (AZARAC_ENABLE_VOLCANO)
-        if (d->disaster_category == 8) { serialized = serializeVolcano(d, out); }
+        case 8:  serialized = serializeVolcano(d, out); break;
 #endif
 #if (AZARAC_ENABLE_ASH_FALL)
-        if (d->disaster_category == 9) { serialized = serializeAshFall(d, out); }
+        case 9:  serialized = serializeAshFall(d, out); break;
 #endif
 #if (AZARAC_ENABLE_WEATHER)
-        if (d->disaster_category == 10) { serialized = serializeWeather(d, out); }
+        case 10: serialized = serializeWeather(d, out); break;
 #endif
 #if (AZARAC_ENABLE_FLOOD)
-        if (d->disaster_category == 11) { serialized = serializeFlood(d, out); }
+        case 11: serialized = serializeFlood(d, out); break;
 #endif
 #if (AZARAC_ENABLE_TYPHOON)
-        if (d->disaster_category == 12) { serialized = serializeTyphoon(d, out); }
+        case 12: serialized = serializeTyphoon(d, out); break;
 #endif
 #if (AZARAC_ENABLE_MARINE)
-        if (d->disaster_category == 14) { serialized = serializeMarine(d, out); }
+        case 14: serialized = serializeMarine(d, out); break;
 #endif
+        default:
+            break;
+        }
         if (!serialized) wf_s(out, keys::note, "unsupported_category", /*last=*/true);
 
         out.print('}');  // detail

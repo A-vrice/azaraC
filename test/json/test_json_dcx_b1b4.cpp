@@ -138,7 +138,7 @@ TEST_CASE("JSON DCX B4: detailed info fields") {
     mt44->camf.a3 = 1;
     mt44->camf.a4 = 36;  // Earthquake
     mt44->camf.a17 = 3;  // B4
-    mt44->camf.a18 = 32512;  // D1=15 (bits 14:11), D2=7 (bits 10:8)
+    mt44->camf.a18 = 0x7F59;  // D1=15 (bits 14:11), D2=7 (bits 10:8), D3=5 (bits 7:4), D4=9 (bits 3:0)
     mt44->camf.b4_present = true;
     mt44->mt44_decoded.main_ellipse_present = true;
 
@@ -150,6 +150,8 @@ TEST_CASE("JSON DCX B4: detailed info fields") {
     CHECK(has(s, "\"a4_code\":36"));
     CHECK(has(s, "\"d1_magnitude\":{\"raw\":15"));
     CHECK(has(s, "\"d2_seismic_coeff\":{\"raw\":7"));
+    CHECK(has(s, "\"d3_azimuth\":{\"raw\":5,\"label\":\"112.5\"}"));
+    CHECK(has(s, "\"d4_vector_length\":{\"raw\":9,\"label\":\"30\"}"));
 }
 
 TEST_CASE("JSON DCX main ellipse fields") {

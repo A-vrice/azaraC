@@ -191,38 +191,22 @@ void serializeDcx(const Message& m, Print& out) {
             }
             out.print('}');
         };
-// D3 and D4 use const char* lookup (distinct from others)
-// Handle them individually for type safety
-if (b4.d_present[2]) {
-    beginDetailField();
-    wk(out, "d3_azimuth");
-    out.print("{\"raw\":");
-    writeUint32(out, b4.d_values[2]);
-    out.print(",\"label\":");
-    if (const char* lbl = qzss_dcx_camf_d3_azimuth_from_centre_of_main_ellipse_to_epicentre_lookup(b4.d_values[2])) {
-        writeStr(out, std::string_view{lbl});
-    } else {
-        out.print("\"\"");
-    }
-    out.print('}');
-}
-if (b4.d_present[3]) {
-    beginDetailField();
-    wk(out, "d4_vector_length");
-    out.print("{\"raw\":");
-    writeUint32(out, b4.d_values[3]);
-    out.print(",\"label\":");
-    if (const char* lbl = qzss_dcx_camf_d4_vector_length_between_centre_of_main_ellipse_and_epicentre_lookup(b4.d_values[3])) {
-        writeStr(out, std::string_view{lbl});
-    } else {
-        out.print("\"\"");
-    }
-    out.print('}');
-}
+        // D3/D4 lookups return const char* (array emitter); adapt them to the
+        // std::optional<std::string_view> shape writeDField expects
+        auto d3Lookup = [](uint8_t v) -> std::optional<std::string_view> {
+            const char* s = qzss_dcx_camf_d3_azimuth_from_centre_of_main_ellipse_to_epicentre_lookup(v);
+            return s ? std::optional<std::string_view>(std::string_view{s}) : std::nullopt;
+        };
+        auto d4Lookup = [](uint8_t v) -> std::optional<std::string_view> {
+            const char* s = qzss_dcx_camf_d4_vector_length_between_centre_of_main_ellipse_and_epicentre_lookup(v);
+            return s ? std::optional<std::string_view>(std::string_view{s}) : std::nullopt;
+        };
 
-// Remaining 34 D-fields use std::optional<std::string_view> lookup
-// [0]=D1, [1]=D2, [4..35]=D5..D36
-writeDField("d1_magnitude",         b4.d_values[0],  b4.d_present[0],  qzss_dcx_camf_d1_magnitude_on_richter_scale_lookup);
+        // All 36 D-fields go through writeDField
+        // [0]=D1, [1]=D2, [2]=D3, [3]=D4, [4..35]=D5..D36
+        writeDField("d3_azimuth",       b4.d_values[2], b4.d_present[2], d3Lookup);
+        writeDField("d4_vector_length", b4.d_values[3], b4.d_present[3], d4Lookup);
+        writeDField("d1_magnitude",         b4.d_values[0],  b4.d_present[0],  qzss_dcx_camf_d1_magnitude_on_richter_scale_lookup);
 writeDField("d2_seismic_coeff",     b4.d_values[1],  b4.d_present[1],  qzss_dcx_camf_d2_seismic_coefficient_lookup);
 writeDField("d5_wave_height",       b4.d_values[4],  b4.d_present[4],  qzss_dcx_camf_d5_wave_height_lookup);
 writeDField("d6_temp_range",        b4.d_values[5],  b4.d_present[5],  qzss_dcx_camf_d6_temperature_range_lookup);

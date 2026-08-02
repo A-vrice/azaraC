@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **冗長フィールド再設定を削除**: `Decoder::decode` 内の `out.valid = false` / `out.payload_type = Empty`（`clear()` が既に設定済み）。
 - **JSON シリアライザの冗長 `getMt43()` 除去**: 12 のサブシリアライザ関数のシグネチャを `const Message&` → `const Mt43Data*` に変更。
   呼出元で既に検証済みのポインタを渡すことで、各関数内の冗長な `m.getMt43()` + null チェックを除去。
+- **`disaster_category` ディスパッチを switch 化**: `JsonSerializer::serialize` の 12 連 if-else チェーンを `switch` に変更し O(1) ディスパッチ化（カテゴリ 7/13 は仕様上未定義）。各 `case` は従来通り `AZARAC_ENABLE_*` で個別にコンパイル制御。
+- **DCX B4 の D3/D4 出力を `writeDField` に統合**: `const char*` を返す D3/D4 ルックアップを `std::optional<std::string_view>` にアダプトし、他 34 フィールドと同じヘルパーで出力（手書きコード重複を削除）。出力バイト列は不変（`test_json_dcx_b1b4.cpp` で raw + label を固定し、変更前後で同一を確認）。
 - **`processNankaiAggregation` の冗長 `getMt43()` 除去**: `postDecode` が取得済みの `Mt43Data*` をパラメータとして渡すように変更。
 - **`a3_provider_identifier` ルックアップ高速化**: 34 エントリの O(n) 線形探索を O(log n) 二分探索に変更。
 - **定義テーブルの AVR (PROGMEM) 対応**: `src/definition/*.h` のラベル文字列を AVR では Flash に配置し、ルックアップ時に共有 RAM バッファ（`AZARAC_FLASH_BUF_SIZE`、デフォルト 800B）へコピーして返す方式に変更。非 AVR では従来の constexpr 実装を完全維持。`scripts/gen/gen_definitions.py` の 6 エミッタに AVR 分岐を追加し、`scripts/gen/apply_avr_headers.py` で既存ヘッダを移行。`test/stub/avr/pgmspace.h` + `make pgm-stub` で AVR 分岐の意味をホスト検証。CI の Arduino Uno (AVR) コンパイルチェックを追加。
