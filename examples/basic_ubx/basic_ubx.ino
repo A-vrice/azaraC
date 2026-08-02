@@ -28,15 +28,18 @@ azaraC::Message msg;
 uint32_t cached_gnss_unix_time = 0;
 
 void setup() {
+    // AVR: GNSS と JSON 出力が同一 Serial を共用するため 9600 (1回のみ)。
+#if defined(ARDUINO_ARCH_AVR)
+    Serial.begin(9600);
+#else
     Serial.begin(115200);
+#endif
     uint32_t start = millis();
     while (!Serial && (millis() - start < 5000)) { delay(10); } // 5秒タイムアウト
 
 #if defined(ESP32)
     Serial1.begin(9600, SERIAL_8N1, /*rx=*/20, /*tx=*/21);
-#elif defined(ARDUINO_ARCH_AVR)
-    Serial.begin(9600);
-#else
+#elif !defined(ARDUINO_ARCH_AVR)
     Serial1.begin(9600, SERIAL_8N1);
 #endif
     Serial.println(F("[azaraC] ready, waiting for UBX-RXM-SFRBX..."));
