@@ -63,42 +63,22 @@ protected:
 
     // MT=43 JMA sub-decoders
     // report_unix: UNIX time from GPS module for DHM resolution
-#if (AZARAC_ENABLE_EEW)
+    // Declarations are unconditional: the AZARAC_ENABLE_* guards on the
+    // definitions in DecoderQzqsm.cpp control code size, while decodeQzqsm()
+    // dispatches through the shared AZARAC_DC_CATEGORIES table (constant-
+    // folded guards, so disabled sub-decoders are never called).
     void decodeEEW(const uint8_t* b, Message& out, uint32_t report_unix);
-#endif
-#if (AZARAC_ENABLE_HYPOCENTER)
     void decodeHypocenter(const uint8_t* b, Message& out, uint32_t report_unix);
-#endif
-#if (AZARAC_ENABLE_SEISMIC)
     void decodeSeismic(const uint8_t* b, Message& out, uint32_t report_unix);
-#endif
-#if (AZARAC_ENABLE_NANKAI)
-    void decodeNankai(const uint8_t* b, Message& out);
-#endif
-#if (AZARAC_ENABLE_TSUNAMI)
+    void decodeNankai(const uint8_t* b, Message& out, uint32_t report_unix);
     void decodeTsunami(const uint8_t* b, Message& out, uint32_t report_unix);
-#endif
-#if (AZARAC_ENABLE_NW_PAC_TSUNAMI)
     void decodeNwPacTsu(const uint8_t* b, Message& out, uint32_t report_unix);
-#endif
-#if (AZARAC_ENABLE_VOLCANO)
     void decodeVolcano(const uint8_t* b, Message& out, uint32_t report_unix);
-#endif
-#if (AZARAC_ENABLE_ASH_FALL)
     void decodeAshFall(const uint8_t* b, Message& out, uint32_t report_unix);
-#endif
-#if (AZARAC_ENABLE_WEATHER)
-    void decodeWeather(const uint8_t* b, Message& out);
-#endif
-#if (AZARAC_ENABLE_FLOOD)
-    void decodeFlood(const uint8_t* b, Message& out);
-#endif
-#if (AZARAC_ENABLE_TYPHOON)
+    void decodeWeather(const uint8_t* b, Message& out, uint32_t report_unix);
+    void decodeFlood(const uint8_t* b, Message& out, uint32_t report_unix);
     void decodeTyphoon(const uint8_t* b, Message& out, uint32_t report_unix);
-#endif
-#if (AZARAC_ENABLE_MARINE)
-    void decodeMarine(const uint8_t* b, Message& out);
-#endif
+    void decodeMarine(const uint8_t* b, Message& out, uint32_t report_unix);
 };
 
 } // namespace internal

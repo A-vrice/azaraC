@@ -19,6 +19,26 @@ namespace internal {
 //   [43..46]  reserved / sub-type start
 //   [214..219] version (6b) — must be 1
 // ---------------------------------------------------------------------------
+// Single authoritative source for the MT=43 disaster-category mapping.
+// Each entry: X(code, enable_macro, sub_decoder). The same table drives the
+// category support check, the known-category classification, and the
+// sub-decoder dispatch in decodeQzqsm(). Adding or removing a category
+// requires changing this list only.
+// ---------------------------------------------------------------------------
+#define AZARAC_DC_CATEGORIES(X) \
+    X(1,  AZARAC_ENABLE_EEW,          decodeEEW)        \
+    X(2,  AZARAC_ENABLE_HYPOCENTER,   decodeHypocenter) \
+    X(3,  AZARAC_ENABLE_SEISMIC,      decodeSeismic)    \
+    X(4,  AZARAC_ENABLE_NANKAI,       decodeNankai)     \
+    X(5,  AZARAC_ENABLE_TSUNAMI,      decodeTsunami)    \
+    X(6,  AZARAC_ENABLE_NW_PAC_TSUNAMI, decodeNwPacTsu) \
+    X(8,  AZARAC_ENABLE_VOLCANO,      decodeVolcano)    \
+    X(9,  AZARAC_ENABLE_ASH_FALL,     decodeAshFall)    \
+    X(10, AZARAC_ENABLE_WEATHER,      decodeWeather)    \
+    X(11, AZARAC_ENABLE_FLOOD,        decodeFlood)      \
+    X(12, AZARAC_ENABLE_TYPHOON,      decodeTyphoon)    \
+    X(14, AZARAC_ENABLE_MARINE,       decodeMarine)
+// ---------------------------------------------------------------------------
 bool Decoder::decodeQzqsm(const uint8_t* bits, Message& out, uint32_t report_unix) {
     uint8_t ver = getBits(bits, 214, 6);
     if (ver != 1) {
@@ -26,56 +46,34 @@ bool Decoder::decodeQzqsm(const uint8_t* bits, Message& out, uint32_t report_uni
         return false;
     }
 
-    // Combined category support check + sub-decoder dispatch in one switch.
-    // The compile-time #if guards ensure disabled categories are absent;
-    // fall-through sets both category_supported and decoded in one pass.
+    // Category support check — generated from AZARAC_DC_CATEGORIES, the single
+    // authoritative category table. Each entry carries its own compile-time
+    // AZARAC_ENABLE_* guard; the guard is evaluated as a constant (0/1), so a
+    // disabled category yields category_supported = false exactly as if its
+    // case were absent.
     uint8_t dc_probe = getBits(bits, 17, 4);
     bool category_supported = false;
     bool decoded = false;
     switch (dc_probe) {
-#if (AZARAC_ENABLE_EEW)
-        case 1: category_supported = true; break;
-#endif
-#if (AZARAC_ENABLE_HYPOCENTER)
-        case 2: category_supported = true; break;
-#endif
-#if (AZARAC_ENABLE_SEISMIC)
-        case 3: category_supported = true; break;
-#endif
-#if (AZARAC_ENABLE_NANKAI)
-        case 4: category_supported = true; break;
-#endif
-#if (AZARAC_ENABLE_TSUNAMI)
-        case 5: category_supported = true; break;
-#endif
-#if (AZARAC_ENABLE_NW_PAC_TSUNAMI)
-        case 6: category_supported = true; break;
-#endif
-#if (AZARAC_ENABLE_VOLCANO)
-        case 8: category_supported = true; break;
-#endif
-#if (AZARAC_ENABLE_ASH_FALL)
-        case 9: category_supported = true; break;
-#endif
-#if (AZARAC_ENABLE_WEATHER)
-        case 10: category_supported = true; break;
-#endif
-#if (AZARAC_ENABLE_FLOOD)
-        case 11: category_supported = true; break;
-#endif
-#if (AZARAC_ENABLE_TYPHOON)
-        case 12: category_supported = true; break;
-#endif
-#if (AZARAC_ENABLE_MARINE)
-        case 14: category_supported = true; break;
-#endif
+#define AZARAC_DC_SUPPORT_CASE(code, enable, decoder) \
+        case code: category_supported = (enable) != 0; break;
+        AZARAC_DC_CATEGORIES(AZARAC_DC_SUPPORT_CASE)
+#undef AZARAC_DC_SUPPORT_CASE
         default: break;
     }
     if (!category_supported) {
-        // Recognized but disabled, or unknown
-        bool known = (dc_probe >= 1 && dc_probe <= 6) || dc_probe == 8 ||
-                     dc_probe == 9 || dc_probe == 10 || dc_probe == 11 ||
-                     dc_probe == 12 || dc_probe == 14;
+        // Recognized but disabled, or unknown. Known codes come from the same
+        // table (guard-independent), so the classification cannot drift from
+        // the decoder mapping.
+        bool known = false;
+        switch (dc_probe) {
+#define AZARAC_DC_KNOWN_CASE(code, enable, decoder) case code:
+            AZARAC_DC_CATEGORIES(AZARAC_DC_KNOWN_CASE)
+#undef AZARAC_DC_KNOWN_CASE
+            known = true;
+            break;
+            default: break;
+        }
         out.unsupported_reason = known
             ? UnsupportedReason::DisabledAtCompileTime
             : UnsupportedReason::UnknownCategory;
@@ -100,46 +98,20 @@ bool Decoder::decodeQzqsm(const uint8_t* bits, Message& out, uint32_t report_uni
     d->event_time = resolveTime(rt_month, rt_day, rt_hour, rt_minute, report_unix);
     uint32_t event_unix = d->event_time.unix_time;
     uint32_t sub_base = (event_unix > 0) ? event_unix : report_unix;
-    (void)sub_base;
 
-    // Dispatch to sub-decoder
+    // Dispatch to sub-decoder — same table, same guards. The guard is a
+    // constant, so disabled categories compile to dead branches that never
+    // call their (uncompiled) sub-decoder.
     switch (dc_probe) {
-#if (AZARAC_ENABLE_EEW)
-        case 1: decodeEEW(bits, out, sub_base); decoded = true; break;
-#endif
-#if (AZARAC_ENABLE_HYPOCENTER)
-        case 2: decodeHypocenter(bits, out, sub_base); decoded = true; break;
-#endif
-#if (AZARAC_ENABLE_SEISMIC)
-        case 3: decodeSeismic(bits, out, sub_base); decoded = true; break;
-#endif
-#if (AZARAC_ENABLE_NANKAI)
-        case 4: decodeNankai(bits, out); decoded = true; break;
-#endif
-#if (AZARAC_ENABLE_TSUNAMI)
-        case 5: decodeTsunami(bits, out, sub_base); decoded = true; break;
-#endif
-#if (AZARAC_ENABLE_NW_PAC_TSUNAMI)
-        case 6: decodeNwPacTsu(bits, out, sub_base); decoded = true; break;
-#endif
-#if (AZARAC_ENABLE_VOLCANO)
-        case 8: decodeVolcano(bits, out, sub_base); decoded = true; break;
-#endif
-#if (AZARAC_ENABLE_ASH_FALL)
-        case 9: decodeAshFall(bits, out, sub_base); decoded = true; break;
-#endif
-#if (AZARAC_ENABLE_WEATHER)
-        case 10: decodeWeather(bits, out); decoded = true; break;
-#endif
-#if (AZARAC_ENABLE_FLOOD)
-        case 11: decodeFlood(bits, out); decoded = true; break;
-#endif
-#if (AZARAC_ENABLE_TYPHOON)
-        case 12: decodeTyphoon(bits, out, sub_base); decoded = true; break;
-#endif
-#if (AZARAC_ENABLE_MARINE)
-        case 14: decodeMarine(bits, out); decoded = true; break;
-#endif
+#define AZARAC_DC_DISPATCH_CASE(code, enable, decoder) \
+        case code: \
+            if (enable) { \
+                decoder(bits, out, sub_base); \
+                decoded = true; \
+            } \
+            break;
+        AZARAC_DC_CATEGORIES(AZARAC_DC_DISPATCH_CASE)
+#undef AZARAC_DC_DISPATCH_CASE
         default: break;
     }
     if (!decoded) {
@@ -150,6 +122,7 @@ bool Decoder::decodeQzqsm(const uint8_t* bits, Message& out, uint32_t report_uni
     out.valid = true;
     return true;
 }
+#undef AZARAC_DC_CATEGORIES
 
 #if (AZARAC_ENABLE_EEW)
 // ---------------------------------------------------------------------------
@@ -248,7 +221,8 @@ void Decoder::decodeSeismic(const uint8_t* b, Message& out, uint32_t report_unix
 // ---------------------------------------------------------------------------
 // Nankai Trough  (disaster_category == 4)
 // ---------------------------------------------------------------------------
-void Decoder::decodeNankai(const uint8_t* b, Message& out) {
+void Decoder::decodeNankai(const uint8_t* b, Message& out, uint32_t report_unix) {
+    (void)report_unix;
     Mt43Data* d = out.getMt43();
     if (!d) return;
     
@@ -403,7 +377,8 @@ void Decoder::decodeAshFall(const uint8_t* b, Message& out, uint32_t report_unix
 // ---------------------------------------------------------------------------
 // Weather  (disaster_category == 10)
 // ---------------------------------------------------------------------------
-void Decoder::decodeWeather(const uint8_t* b, Message& out) {
+void Decoder::decodeWeather(const uint8_t* b, Message& out, uint32_t report_unix) {
+    (void)report_unix;
     Mt43Data* d = out.getMt43();
     if (!d) return;
     
@@ -430,7 +405,8 @@ void Decoder::decodeWeather(const uint8_t* b, Message& out) {
 // ---------------------------------------------------------------------------
 // Flood  (disaster_category == 11)
 // ---------------------------------------------------------------------------
-void Decoder::decodeFlood(const uint8_t* b, Message& out) {
+void Decoder::decodeFlood(const uint8_t* b, Message& out, uint32_t report_unix) {
+    (void)report_unix;
     Mt43Data* d = out.getMt43();
     if (!d) return;
     
@@ -462,7 +438,8 @@ void Decoder::decodeFlood(const uint8_t* b, Message& out) {
 // ---------------------------------------------------------------------------
 // Marine  (disaster_category == 14)
 // ---------------------------------------------------------------------------
-void Decoder::decodeMarine(const uint8_t* b, Message& out) {
+void Decoder::decodeMarine(const uint8_t* b, Message& out, uint32_t report_unix) {
+    (void)report_unix;
     Mt43Data* d = out.getMt43();
     if (!d) return;
     

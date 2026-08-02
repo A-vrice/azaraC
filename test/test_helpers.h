@@ -260,7 +260,7 @@ struct TestDecoder : Decoder {
 #if (AZARAC_ENABLE_NANKAI)
     static void testDecodeNankai(const uint8_t* bits, Message& out) {
         TestDecoder t;
-        t.decodeNankai(bits, out);
+        t.decodeNankai(bits, out, 0);
     }
 #endif
 
@@ -274,14 +274,14 @@ struct TestDecoder : Decoder {
 #if (AZARAC_ENABLE_FLOOD)
     static void testDecodeFlood(const uint8_t* bits, Message& out) {
         TestDecoder t;
-        t.decodeFlood(bits, out);
+        t.decodeFlood(bits, out, 0);
     }
 #endif
 
 #if (AZARAC_ENABLE_WEATHER)
     static void testDecodeWeather(const uint8_t* bits, Message& out) {
         TestDecoder t;
-        t.decodeWeather(bits, out);
+        t.decodeWeather(bits, out, 0);
     }
 #endif
 
@@ -322,7 +322,7 @@ struct TestDecoder : Decoder {
 #if (AZARAC_ENABLE_MARINE)
     static void testDecodeMarine(const uint8_t* bits, Message& out) {
         TestDecoder t;
-        t.decodeMarine(bits, out);
+        t.decodeMarine(bits, out, 0);
     }
 #endif
 
