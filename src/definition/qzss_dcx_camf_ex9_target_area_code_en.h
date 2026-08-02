@@ -26,7 +26,7 @@ namespace def {
 #if (AZARAC_ENABLE_DCX_CAMF) && (AZARAC_LANG_EN)
 
 #if defined(__AVR__)
-static const char AZARAC_PROGMEM QZSS_DCX_CAMF_EX9_TARGET_AREA_CODE_EN_POOL[] = "Hokkaido\0Aomori\0Iwate\0Miyagi\0Akita\0Yamagata\0Fukushima\0Ibaraki\0Tochigi\0Gunma\0Saitama\0Chiba\0Tokyo\0Kanagawa\0Niigata\0Toyama\0Ishikawa\0Fukui\0Yamanashi\0Nagano\0Gifu\0Shizuoka\0Aichi\0Mie\0Shiga\0Kyoto\0Osaka\0Hyogo\0Nara\0Wakayama\0Tottori\0Shimane\0Okayama\0Hiroshima\0Yamaguchi\0Tokushima\0Kagawa\0Ehime\0Kochi\0Fukuoka\0Saga\0Nagasaki\0Kumamoto\0Oita\0Miyazaki\0Kagoshima\0Okinawa\0";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_EX9_TARGET_AREA_CODE_EN_POOL[] = "Hokkaido\000Aomori\000Iwate\000Miyagi\000Akita\000Yamagata\000Fukushima\000Ibaraki\000Tochigi\000Gunma\000Saitama\000Chiba\000Tokyo\000Kanagawa\000Niigata\000Toyama\000Ishikawa\000Fukui\000Yamanashi\000Nagano\000Gifu\000Shizuoka\000Aichi\000Mie\000Shiga\000Kyoto\000Osaka\000Hyogo\000Nara\000Wakayama\000Tottori\000Shimane\000Okayama\000Hiroshima\000Yamaguchi\000Tokushima\000Kagawa\000Ehime\000Kochi\000Fukuoka\000Saga\000Nagasaki\000Kumamoto\000Oita\000Miyazaki\000Kagoshima\000Okinawa\000";
 struct QZSS_DCX_CAMF_EX9_TARGET_AREA_CODE_EN_Entry { uint64_t id; uint16_t offset; uint16_t len; };
 static const QZSS_DCX_CAMF_EX9_TARGET_AREA_CODE_EN_Entry QZSS_DCX_CAMF_EX9_TARGET_AREA_CODE_EN_TABLE[] AZARAC_PROGMEM = {
     {1u, 0u, 8u},

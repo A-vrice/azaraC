@@ -28,7 +28,7 @@ namespace def {
 inline constexpr uint8_t QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_THAILAND_BASE = 1;
 inline constexpr uint8_t QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_THAILAND_SIZE = 13;
 #if defined(__AVR__)
-static const char AZARAC_PROGMEM QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_THAILAND_POOL[] = "Department of Disaster Prevention and Mitigation\0Thai Meteorological Department\0National Disaster Warning Center\0Department of Mineral Resources\0Navy Hydrographic Department, Royal Thai Navy\0Department of Water Resources\0Royal Irrigation Department\0Department of Pollution Control\0Geo-Informatics and Space Technology Development Agency\0Electricity Generating Authority of Thailand\0Royal Forest Department\0Department of Parks, Wildlife and Plant Conservation\0Water Crisis Prevention Center\0";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_THAILAND_POOL[] = "Department of Disaster Prevention and Mitigation\000Thai Meteorological Department\000National Disaster Warning Center\000Department of Mineral Resources\000Navy Hydrographic Department, Royal Thai Navy\000Department of Water Resources\000Royal Irrigation Department\000Department of Pollution Control\000Geo-Informatics and Space Technology Development Agency\000Electricity Generating Authority of Thailand\000Royal Forest Department\000Department of Parks, Wildlife and Plant Conservation\000Water Crisis Prevention Center\000";
 struct QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_THAILAND_Entry { uint16_t offset; uint16_t len; };
 static const QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_THAILAND_Entry QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_THAILAND_TABLE[] AZARAC_PROGMEM = {
     {0u, 48u},

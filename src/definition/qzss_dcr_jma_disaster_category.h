@@ -28,7 +28,7 @@ namespace def {
 inline constexpr uint8_t QZSS_DCR_JMA_DISASTER_CATEGORY_BASE = 1;
 inline constexpr uint8_t QZSS_DCR_JMA_DISASTER_CATEGORY_SIZE = 12;
 #if defined(__AVR__)
-static const char AZARAC_PROGMEM QZSS_DCR_JMA_DISASTER_CATEGORY_POOL[] = "緊急地震速報\0震源\0震度\0南海トラフ地震\0津波\0北西太平洋津波\0火山\0降灰\0気象\0洪水\0台風\0海上\0";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_DISASTER_CATEGORY_POOL[] = "緊急地震速報\000震源\000震度\000南海トラフ地震\000津波\000北西太平洋津波\000火山\000降灰\000気象\000洪水\000台風\000海上\000";
 struct QZSS_DCR_JMA_DISASTER_CATEGORY_Entry { uint16_t offset; uint16_t len; };
 static const QZSS_DCR_JMA_DISASTER_CATEGORY_Entry QZSS_DCR_JMA_DISASTER_CATEGORY_TABLE[] AZARAC_PROGMEM = {
     {0u, 18u},

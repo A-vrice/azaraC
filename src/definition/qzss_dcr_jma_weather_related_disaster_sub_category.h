@@ -26,7 +26,7 @@ namespace def {
 #if (AZARAC_ENABLE_WEATHER)
 
 #if defined(__AVR__)
-static const char AZARAC_PROGMEM QZSS_DCR_JMA_WEATHER_RELATED_DISASTER_SUB_CATEGORY_POOL[] = "暴風雪特別警報\0大雨特別警報\0暴風特別警報\0大雪特別警報\0波浪特別警報\0高潮特別警報\0全ての気象特別警報\0記録的短時間大雨情報\0竜巻注意情報\0土砂災害警戒情報\0その他の警報等情報要素\0";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_WEATHER_RELATED_DISASTER_SUB_CATEGORY_POOL[] = "暴風雪特別警報\000大雨特別警報\000暴風特別警報\000大雪特別警報\000波浪特別警報\000高潮特別警報\000全ての気象特別警報\000記録的短時間大雨情報\000竜巻注意情報\000土砂災害警戒情報\000その他の警報等情報要素\000";
 struct QZSS_DCR_JMA_WEATHER_RELATED_DISASTER_SUB_CATEGORY_Entry { uint8_t id; uint16_t offset; uint16_t len; };
 static const QZSS_DCR_JMA_WEATHER_RELATED_DISASTER_SUB_CATEGORY_Entry QZSS_DCR_JMA_WEATHER_RELATED_DISASTER_SUB_CATEGORY_TABLE[] AZARAC_PROGMEM = {
     {1u, 0u, 21u},

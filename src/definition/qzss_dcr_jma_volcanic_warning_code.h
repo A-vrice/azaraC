@@ -26,7 +26,7 @@ namespace def {
 #if (AZARAC_ENABLE_VOLCANO)
 
 #if defined(__AVR__)
-static const char AZARAC_PROGMEM QZSS_DCR_JMA_VOLCANIC_WARNING_CODE_POOL[] = "レベル1(活火山であることに留意)\0レベル2(火口周辺規制)\0レベル3(入山規制)\0レベル4(高齢者等避難)\0レベル5(避難)\0活火山であることに留意\0火口周辺危険\0入山危険\0山麓厳重警戒\0居住地域厳重警戒\0活火山であることに留意(海底火山)\0周辺海域警戒\0噴火\0噴火したもよう\0その他の防災気象情報要素\0";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_VOLCANIC_WARNING_CODE_POOL[] = "レベル1(活火山であることに留意)\000レベル2(火口周辺規制)\000レベル3(入山規制)\000レベル4(高齢者等避難)\000レベル5(避難)\000活火山であることに留意\000火口周辺危険\000入山危険\000山麓厳重警戒\000居住地域厳重警戒\000活火山であることに留意(海底火山)\000周辺海域警戒\000噴火\000噴火したもよう\000その他の防災気象情報要素\000";
 struct QZSS_DCR_JMA_VOLCANIC_WARNING_CODE_Entry { uint8_t id; uint16_t offset; uint16_t len; };
 static const QZSS_DCR_JMA_VOLCANIC_WARNING_CODE_Entry QZSS_DCR_JMA_VOLCANIC_WARNING_CODE_TABLE[] AZARAC_PROGMEM = {
     {11u, 0u, 45u},

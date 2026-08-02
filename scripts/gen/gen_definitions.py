@@ -214,11 +214,11 @@ def emit_array(varname, entries, guard, kt):
     for v in table:
         if v is not None:
             b = v.encode('utf-8')
-            pool_parts.append(escape(v) + "\\0")
+            pool_parts.append(escape(v) + "\\000")
             offsets.append((cur, len(b)))
             cur += len(b) + 1
         else:
-            pool_parts.append("\\0")
+            pool_parts.append("\\000")
             offsets.append((0, 0))
             cur += 1
     pool_str = "".join(pool_parts)
@@ -270,11 +270,11 @@ def emit_array_optional(varname, entries, guard, kt):
     for v in table:
         if v is not None:
             b = v.encode('utf-8')
-            pool_parts.append(escape(v) + "\\0")
+            pool_parts.append(escape(v) + "\\000")
             offsets.append((cur, len(b)))
             cur += len(b) + 1
         else:
-            pool_parts.append("\\0")
+            pool_parts.append("\\000")
             offsets.append((0, 0))
             cur += 1
     pool_str = "".join(pool_parts)
@@ -334,7 +334,7 @@ def emit_bsearch(varname, entries, guard, kt):
     for k in keys:
         v = entries[k]
         b = v.encode('utf-8')
-        pool_parts.append(escape(v) + "\\0")
+        pool_parts.append(escape(v) + "\\000")
         pool_offsets[k] = (cur, len(b))
         cur += len(b) + 1
     pool_str = "".join(pool_parts)
@@ -401,7 +401,7 @@ def emit_bsearch_optional(varname, entries, guard, kt):
     for k in keys:
         v = entries[k]
         b = v.encode('utf-8')
-        pool_parts.append(escape(v) + "\\0")
+        pool_parts.append(escape(v) + "\\000")
         pool_offsets[k] = (cur, len(b))
         cur += len(b) + 1
     pool_str = "".join(pool_parts)

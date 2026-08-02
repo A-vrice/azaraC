@@ -28,7 +28,7 @@ namespace def {
 inline constexpr uint8_t QZSS_DCX_CAMF_D6_TEMPERATURE_RANGE_BASE = 0;
 inline constexpr uint8_t QZSS_DCX_CAMF_D6_TEMPERATURE_RANGE_SIZE = 16;
 #if defined(__AVR__)
-static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D6_TEMPERATURE_RANGE_POOL[] = "T ≤ -30°C\0-30°C < T ≤ -25°C\0-25°C < T ≤ -20°C\0-20°C < T ≤ -15°C\0-15°C < T ≤ -10°C\0-10°C < T ≤ -5°C\0-5°C < T ≤ 0°C\00°C < T ≤ 5°C\05°C < T ≤ 10°C\010°C < T ≤ 15°C\015°C < T ≤ 20°C\020°C < T ≤ 25°C\025°C < T ≤ 30°C\030°C < T ≤ 35°C\035°C < T ≤ 45°C\0T > 45°C\0";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D6_TEMPERATURE_RANGE_POOL[] = "T ≤ -30°C\000-30°C < T ≤ -25°C\000-25°C < T ≤ -20°C\000-20°C < T ≤ -15°C\000-15°C < T ≤ -10°C\000-10°C < T ≤ -5°C\000-5°C < T ≤ 0°C\0000°C < T ≤ 5°C\0005°C < T ≤ 10°C\00010°C < T ≤ 15°C\00015°C < T ≤ 20°C\00020°C < T ≤ 25°C\00025°C < T ≤ 30°C\00030°C < T ≤ 35°C\00035°C < T ≤ 45°C\000T > 45°C\000";
 struct QZSS_DCX_CAMF_D6_TEMPERATURE_RANGE_Entry { uint16_t offset; uint16_t len; };
 static const QZSS_DCX_CAMF_D6_TEMPERATURE_RANGE_Entry QZSS_DCX_CAMF_D6_TEMPERATURE_RANGE_TABLE[] AZARAC_PROGMEM = {
     {0u, 12u},

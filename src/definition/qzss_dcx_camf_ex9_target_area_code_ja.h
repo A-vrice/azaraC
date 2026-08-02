@@ -26,7 +26,7 @@ namespace def {
 #if (AZARAC_ENABLE_DCX_CAMF) && (AZARAC_LANG_JA)
 
 #if defined(__AVR__)
-static const char AZARAC_PROGMEM QZSS_DCX_CAMF_EX9_TARGET_AREA_CODE_JA_POOL[] = "北海道\0青森県\0岩手県\0宮城県\0秋田県\0山形県\0福島県\0茨城県\0栃木県\0群馬県\0埼玉県\0千葉県\0東京都\0神奈川県\0新潟県\0富山県\0石川県\0福井県\0山梨県\0長野県\0岐阜県\0静岡県\0愛知県\0三重県\0滋賀県\0京都府\0大阪府\0兵庫県\0奈良県\0和歌山県\0鳥取県\0島根県\0岡山県\0広島県\0山口県\0徳島県\0香川県\0愛媛県\0高知県\0福岡県\0佐賀県\0長崎県\0熊本県\0大分県\0宮崎県\0鹿児島県\0沖縄県\0";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_EX9_TARGET_AREA_CODE_JA_POOL[] = "北海道\000青森県\000岩手県\000宮城県\000秋田県\000山形県\000福島県\000茨城県\000栃木県\000群馬県\000埼玉県\000千葉県\000東京都\000神奈川県\000新潟県\000富山県\000石川県\000福井県\000山梨県\000長野県\000岐阜県\000静岡県\000愛知県\000三重県\000滋賀県\000京都府\000大阪府\000兵庫県\000奈良県\000和歌山県\000鳥取県\000島根県\000岡山県\000広島県\000山口県\000徳島県\000香川県\000愛媛県\000高知県\000福岡県\000佐賀県\000長崎県\000熊本県\000大分県\000宮崎県\000鹿児島県\000沖縄県\000";
 struct QZSS_DCX_CAMF_EX9_TARGET_AREA_CODE_JA_Entry { uint64_t id; uint16_t offset; uint16_t len; };
 static const QZSS_DCX_CAMF_EX9_TARGET_AREA_CODE_JA_Entry QZSS_DCX_CAMF_EX9_TARGET_AREA_CODE_JA_TABLE[] AZARAC_PROGMEM = {
     {1u, 0u, 9u},

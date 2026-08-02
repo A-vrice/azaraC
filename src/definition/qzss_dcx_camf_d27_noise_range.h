@@ -28,7 +28,7 @@ namespace def {
 inline constexpr uint8_t QZSS_DCX_CAMF_D27_NOISE_RANGE_BASE = 0;
 inline constexpr uint8_t QZSS_DCX_CAMF_D27_NOISE_RANGE_SIZE = 12;
 #if defined(__AVR__)
-static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D27_NOISE_RANGE_POOL[] = "40 < dB ≤ 45\045 < dB ≤ 50\050 < dB ≤ 60\060 < dB ≤ 70\070 < dB ≤ 80 (loud)\080 < dB ≤ 90 (very loud)\090 < dB ≤ 100 (very loud)\0100 < dB ≤ 110 (very loud)\0110 < dB ≤ 120 (extremely loud)\0120 < dB ≤ 130 (extremely loud)\0130 < dB ≤ 140 (threshold of pain)\0dB > 140 (pain)\0";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D27_NOISE_RANGE_POOL[] = "40 < dB ≤ 45\00045 < dB ≤ 50\00050 < dB ≤ 60\00060 < dB ≤ 70\00070 < dB ≤ 80 (loud)\00080 < dB ≤ 90 (very loud)\00090 < dB ≤ 100 (very loud)\000100 < dB ≤ 110 (very loud)\000110 < dB ≤ 120 (extremely loud)\000120 < dB ≤ 130 (extremely loud)\000130 < dB ≤ 140 (threshold of pain)\000dB > 140 (pain)\000";
 struct QZSS_DCX_CAMF_D27_NOISE_RANGE_Entry { uint16_t offset; uint16_t len; };
 static const QZSS_DCX_CAMF_D27_NOISE_RANGE_Entry QZSS_DCX_CAMF_D27_NOISE_RANGE_TABLE[] AZARAC_PROGMEM = {
     {0u, 14u},

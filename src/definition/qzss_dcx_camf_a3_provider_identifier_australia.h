@@ -28,7 +28,7 @@ namespace def {
 inline constexpr uint8_t QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_AUSTRALIA_BASE = 1;
 inline constexpr uint8_t QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_AUSTRALIA_SIZE = 12;
 #if defined(__AVR__)
-static const char AZARAC_PROGMEM QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_AUSTRALIA_POOL[] = "National Emergency Management Agency\0Bureau of Meteorology\0Australian Climate Service\0Geoscience Australia\0Commonwealth Scientific and Industrial Research Organisation\0Australian Bureau of Statistics\0Resilience New South Wales\0State Emergency Service New South Wales\0New South Wales Rural Fire Service\0Joint Australian Tsunami Warning Centre\0Flood Knowledge Centre\0Australian Broadcasting Corporation\0";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_AUSTRALIA_POOL[] = "National Emergency Management Agency\000Bureau of Meteorology\000Australian Climate Service\000Geoscience Australia\000Commonwealth Scientific and Industrial Research Organisation\000Australian Bureau of Statistics\000Resilience New South Wales\000State Emergency Service New South Wales\000New South Wales Rural Fire Service\000Joint Australian Tsunami Warning Centre\000Flood Knowledge Centre\000Australian Broadcasting Corporation\000";
 struct QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_AUSTRALIA_Entry { uint16_t offset; uint16_t len; };
 static const QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_AUSTRALIA_Entry QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_AUSTRALIA_TABLE[] AZARAC_PROGMEM = {
     {0u, 36u},

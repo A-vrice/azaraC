@@ -28,7 +28,7 @@ namespace def {
 inline constexpr uint8_t QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_BASE = 0;
 inline constexpr uint8_t QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_SIZE = 16;
 #if defined(__AVR__)
-static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_POOL[] = "Explosives\0Flammable gases\0Flammable aerosols and aerosols\0Oxidizing gases\0Gases under pressure\0Flammable liquids\0Flammable solids\0Self-reactive substance/mixture\0Pyrophoric liquids. Pyrophoric materials are often water-reactive as well and will ignite when they contact water or humid air.\0Pyrophoric solids. Pyrophoric materials are often water-reactive as well and will ignite when they contact water or humid air.\0Self-heating substance/mixture\0Water-reactive - emits flammable gases\0Oxidising liquids\0Oxidising solids\0Organic peroxides\0Corrosive to metals\0";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_POOL[] = "Explosives\000Flammable gases\000Flammable aerosols and aerosols\000Oxidizing gases\000Gases under pressure\000Flammable liquids\000Flammable solids\000Self-reactive substance/mixture\000Pyrophoric liquids. Pyrophoric materials are often water-reactive as well and will ignite when they contact water or humid air.\000Pyrophoric solids. Pyrophoric materials are often water-reactive as well and will ignite when they contact water or humid air.\000Self-heating substance/mixture\000Water-reactive - emits flammable gases\000Oxidising liquids\000Oxidising solids\000Organic peroxides\000Corrosive to metals\000";
 struct QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_Entry { uint16_t offset; uint16_t len; };
 static const QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_Entry QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_TABLE[] AZARAC_PROGMEM = {
     {0u, 10u},

@@ -28,7 +28,7 @@ namespace def {
 inline constexpr uint8_t QZSS_DCX_CAMF_D8_WIND_SPEED_BASE = 0;
 inline constexpr uint8_t QZSS_DCX_CAMF_D8_WIND_SPEED_SIZE = 13;
 #if defined(__AVR__)
-static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D8_WIND_SPEED_POOL[] = "Beaufort 0 - 0km/h < v < 1km/h - Calm\0Beaufort 1 - 1km/h < v < 5km/h - Light Air\0Beaufort 2 - 6km/h < v < 11km/h - Light Breeze\0Beaufort 3 - 12km/h < v < 19km/h - Gentle Breeze\0Beaufort 4 - 20km/h < v < 30km/h - Moderate Breeze\0Beaufort 5 - 31km/h < v < 39km/h - Fresh Breeze\0Beaufort 6 - 40km/h < v < 50km/h - Strong Breeze\0Beaufort 7 - 51km/h < v < 61km/h - Near Gale\0Beaufort 8 - 62km/h < v < 74km/h - Gale\0Beaufort 9 - 75km/h < v < 88km/h - Strong Gale\0Beaufort 10 - 89km/h < v < 102km/h - Storm\0Beaufort 11 - 103km/h < v < 117km/h - Violent Storm\0Beaufort 12 - v > 118km/h - Hurricane\0";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D8_WIND_SPEED_POOL[] = "Beaufort 0 - 0km/h < v < 1km/h - Calm\000Beaufort 1 - 1km/h < v < 5km/h - Light Air\000Beaufort 2 - 6km/h < v < 11km/h - Light Breeze\000Beaufort 3 - 12km/h < v < 19km/h - Gentle Breeze\000Beaufort 4 - 20km/h < v < 30km/h - Moderate Breeze\000Beaufort 5 - 31km/h < v < 39km/h - Fresh Breeze\000Beaufort 6 - 40km/h < v < 50km/h - Strong Breeze\000Beaufort 7 - 51km/h < v < 61km/h - Near Gale\000Beaufort 8 - 62km/h < v < 74km/h - Gale\000Beaufort 9 - 75km/h < v < 88km/h - Strong Gale\000Beaufort 10 - 89km/h < v < 102km/h - Storm\000Beaufort 11 - 103km/h < v < 117km/h - Violent Storm\000Beaufort 12 - v > 118km/h - Hurricane\000";
 struct QZSS_DCX_CAMF_D8_WIND_SPEED_Entry { uint16_t offset; uint16_t len; };
 static const QZSS_DCX_CAMF_D8_WIND_SPEED_Entry QZSS_DCX_CAMF_D8_WIND_SPEED_TABLE[] AZARAC_PROGMEM = {
     {0u, 37u},

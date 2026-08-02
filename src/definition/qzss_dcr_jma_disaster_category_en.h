@@ -28,7 +28,7 @@ namespace def {
 inline constexpr uint8_t QZSS_DCR_JMA_DISASTER_CATEGORY_EN_BASE = 1;
 inline constexpr uint8_t QZSS_DCR_JMA_DISASTER_CATEGORY_EN_SIZE = 12;
 #if defined(__AVR__)
-static const char AZARAC_PROGMEM QZSS_DCR_JMA_DISASTER_CATEGORY_EN_POOL[] = "Earthquake Early Warning\0Hypocenter\0Seismic Intensity\0Nankai Trough Earthquake\0Tsunami\0Northwest Pacific Tsunami\0Volcano\0Ash Fall\0Weather\0Flood\0Typhoon\0Marine\0";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_DISASTER_CATEGORY_EN_POOL[] = "Earthquake Early Warning\000Hypocenter\000Seismic Intensity\000Nankai Trough Earthquake\000Tsunami\000Northwest Pacific Tsunami\000Volcano\000Ash Fall\000Weather\000Flood\000Typhoon\000Marine\000";
 struct QZSS_DCR_JMA_DISASTER_CATEGORY_EN_Entry { uint16_t offset; uint16_t len; };
 static const QZSS_DCR_JMA_DISASTER_CATEGORY_EN_Entry QZSS_DCR_JMA_DISASTER_CATEGORY_EN_TABLE[] AZARAC_PROGMEM = {
     {0u, 24u},
