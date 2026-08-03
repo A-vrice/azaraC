@@ -50,6 +50,24 @@ CFG-UART1-BAUDRATE              = 9600
 
 ---
 
+### basic_uno - Arduino Uno (AVR) 入力
+
+Arduino Uno 用の最小例です。Uno には Serial1 が無いため、GNSS モジュールを Serial (pin 0=RX) に接続し、JSON も同一の Serial に出力します（ボーレート 9600）。
+
+**対応ハードウェア**: Arduino Uno (AVR)。`azaraC_config.h` の AVR プリセットにより SEISMIC/TSUNAMI のみ有効化され、32KB Flash に収まります。
+
+**配線 (Arduino Uno)**:
+
+| GNSS | Arduino Uno |
+|------|-------------|
+| TX | pin 0 (RX) |
+| GND | GND |
+| VCC | モジュール仕様に従う |
+
+このスケッチは CI の Uno コンパイルチェック（ライブラリ全体の強制リンク）も兼ねています。
+
+---
+
 ### with_sntp - SNTP時刻解決付き
 
 Wi-FiとSNTPを使用してUNIX時刻を取得し、DCR/DCXメッセージの年を正確に解決します。
@@ -204,6 +222,18 @@ public:
 
 ---
 
+### rtos_freertos - FreeRTOS タスクベース処理
+
+ESP32 で UART RX タスクと出力タスクを分離し、キューでメッセージを渡すサンプルです。`loop()` を使いません。
+
+```bash
+# Arduino IDE で examples/rtos_freertos/rtos_freertos.ino を開いて書き込み
+```
+
+**対応ハードウェア**: ESP32 系（FreeRTOS 必須）。
+
+---
+
 ## Example一覧
 
 | Example            | 入力          | 出力                   | 特徴               |
@@ -214,6 +244,8 @@ public:
 | filter_by_category | NMEA/UBX      | Serial JSON            | カテゴリフィルタ   |
 | error_handling     | NMEA/UBX      | Serial JSON + 統計     | エラーハンドリング |
 | wifi_client        | NMEA/UBX      | Serial + TCP           | ネットワーク出力   |
+| basic_uno          | NMEA/UBX      | Serial JSON            | AVR 最小構成 (Uno) |
+| rtos_freertos      | NMEA/UBX      | Serial JSON            | FreeRTOS タスクベース |
 
 ---
 

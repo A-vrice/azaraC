@@ -48,7 +48,7 @@ AzaraCは準天頂衛星みちびきが送信する災害通報メッセージ�
 | 項目            | 値                                                                                                         |
 | --------------- | ---------------------------------------------------------------------------------------------------------- |
 | 主要ターゲット  | ESP32-C3 (FreeRTOS / Arduino framework)                                                                    |
-| ビルド確認済み  | ESP32-S3/C3, Teensy4.0, Nano 33 BLE, Giga R1 Wi-Fi, STM32 Nucleo H563ZI, Arduino Zero (SAMD21)                |
+| ビルド確認済み  | リリースゲート: RP2040 Pico (ARM), ESP32-C3 (Xtensa), Arduino Uno (AVR)／ベストエフォート: RP2350 Pico 2, ESP32-S3, STM32 Nucleo H563ZI, GIGA R1 WiFi, Nano 33 BLE, Teensy 4.0, RP2040 Pico W, Arduino Zero (SAMD21) |
 | 推奨環境        | 推奨: 256 KB+ RAM（全機能・全カテゴリ有効）/ 動作可能: 32 KB+ RAM（SAMD21 等、デフォルト設定で動作）/ 最小: ~2 KB RAM（AVR、定義テーブルは PROGMEM 化済み。AVR プリセットが SEISMIC/TSUNAMI のみ自動有効化、`-D`/`#define` で上書き可） |
 | ホストテスト    | g++ -std=c++17 (Linux / macOS / WSL / Windows)                                                             |
 | GNSS モジュール | u-blox (UBX-RXM-SFRBX) / NMEA $QZQSM 出力機                                                                |
@@ -484,6 +484,7 @@ A17フィールドにより、メイン楕円の精度向上や追加情報が�
 | -------------------------------------------------- | ------------------------------ |
 | [basic_nmea](examples/basic_nmea/)                 | NMEA $QZQSM の基本的な使用例   |
 | [basic_ubx](examples/basic_ubx/)                   | UBX-RXM-SFRBX の基本的な使用例 |
+| [basic_uno](examples/basic_uno/)                   | Arduino Uno (AVR) 用最小例（Serial 0/1 入力、AVR プリセットで SEISMIC/TSUNAMI のみ有効） |
 | [with_sntp](examples/with_sntp/)                   | SNTP時刻解決 + EEWフィルタ     |
 | [filter_by_category](examples/filter_by_category/) | 災害カテゴリ別フィルタリング   |
 | [error_handling](examples/error_handling/)         | エラーハンドリングと統計       |
@@ -529,7 +530,7 @@ Valid ratio:       96%
 azarashi (PyPI)
   └── definition/*.py
         ↓ .github/workflows/update-definitions.yml (毎日 06:00 UTC)
-  scripts/gen_definitions.py  → src/definition/*.h
+  scripts/gen/gen_definitions.py --out-dir src/definition  → src/definition/*.h
         ↓ PR 自動作成 (peter-evans/create-pull-request)
   レビュー → マージ
 ```
@@ -538,7 +539,7 @@ azarashi (PyPI)
 
 ```bash
 pip install azarashi
-python scripts/gen_definitions.py
+python scripts/gen/gen_definitions.py --out-dir src/definition
 ```
 
 ---

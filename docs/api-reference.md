@@ -281,14 +281,16 @@ DCX/CAMFメッセージのデータ構造。
 | 11 | B4 | Quantitative and Detailed Information (D1-D36) |
 
 **B4 (A17=11)** D-series フィールド（D1〜D36）は、デコード時に内部計算され JSON シリアライズで出力されます。
-`Mt44CamfRaw` 上には B4 の有無を示す `b4_present` (bool) のみが保持され、個別の D-field 値はシリアライズ時に `decodeB4DetailedInfo(a18, a4)` で再計算されます。
+`Mt44CamfRaw` 上には B4 の有無を示す `b4_present` (bool) のみが保持され、個別の D-field 値はシリアライズ時に `decodeB4DetailedInfo(a18, a4, out)` で再計算されます。
 
 ```cpp
 // B4 の有無を確認
 if (mt44->camf.b4_present) {
     // D1-D36 の値は azaraC::toJson(msg, out) で自動的に出力されます
     // 個別の値が必要な場合は、decodeB4DetailedInfo() を直接呼び出してください:
-    // B4DetailedInfo b4 = internal::decodeB4DetailedInfo(mt44->camf.a18, mt44->camf.a4);
+    // B4DetailedInfo b4;
+    // internal::decodeB4DetailedInfo(mt44->camf.a18, mt44->camf.a4, b4);
+    // if (b4.d_present[i]) { uint8_t d = b4.d_values[i]; }
 }
 ```
 
@@ -296,17 +298,15 @@ if (mt44->camf.b4_present) {
 
 ```cpp
 struct DecodedEllipse {
-    double lat_deg;         // 緯度 (WGS84)
-    double lon_deg;         // 経度 (WGS84)
-    double semi_major_km;   // 長半径 (km)
-    double semi_minor_km;   // 短半径 (km)
-    double azimuth_deg;     // 方位角 (度)
-    
-    // B1 リファインメント値 (EWSS CAMF v1.1 §3.7.1.3/4)
-    double b1_lat_offset_deg;         // 緯度補正オフセット (度)
-    double b1_lon_offset_deg;         // 経度補正オフセット (度)
-    double b1_refined_semi_major_km;  // 精密化後の長半径 (km)
-    double b1_refined_semi_minor_km;  // 精密化後の短半径 (km)
+    int32_t lat_microdeg;              // microdegrees (×1,000,000)
+    int32_t lon_microdeg;              // microdegrees (×1,000,000)
+    int32_t semi_major_m;              // meters (×1,000 from km)
+    int32_t semi_minor_m;              // meters (×1,000 from km)
+    int32_t azimuth_decideg;           // dexadegrees (×100,000)
+    int32_t b1_lat_offset_microdeg;    // microdegrees (×1,000,000)
+    int32_t b1_lon_offset_microdeg;    // microdegrees (×1,000,000)
+    int32_t b1_refined_semi_major_m;   // meters (×1,000 from km)
+    int32_t b1_refined_semi_minor_m;   // meters (×1,000 from km)
 };
 ```
 
@@ -382,7 +382,7 @@ if (client.connect(server, port)) {
 ## コンパイル時設定
 
 `#include <azaraC.h>` の前に `#define` で上書きできます。
-設定マクロは [`azaraC_config.h`](src/azaraC_config.h) に一元管理されています。
+設定マクロは [`azaraC_config.h`](../src/azaraC_config.h) に一元管理されています。
 
 ### 汎用設定
 
@@ -416,6 +416,17 @@ if (client.connect(server, port)) {
 | `AZARAC_ENABLE_TYPHOON` | 1 | 台風情報 (カテゴリ12) |
 | `AZARAC_ENABLE_MARINE` | 1 | 海上警報 (カテゴリ14) |
 | `AZARAC_ENABLE_DCX_CAMF` | 1 | DCX/CAMF全般 (MT=44) |
+
+### リソース制約・AVR 関連
+
+| マクロ | デフォルト | 説明 |
+|-------|-----------|------|
+| `AZARAC_FLASH_BUF_SIZE` | 800（AVR プリセット: 64、DCX/CAMF 有効時 800） | PROGMEM ルックアップ用の共有 RAM バッファサイズ (バイト) |
+| `AZARAC_DCX_USE_FLOAT` | 未定義（AVR では自動定義） | 定義時に DCX 座標を `double` → `float` に切替（`DecodedEllipse` が 72B → 36B） |
+
+**AVR プリセット**: `__AVR__` では `azaraC_config.h` のプリセットがデフォルトを変更します。有効カテゴリは SEISMIC/TSUNAMI のみ（他 11 カテゴリは無効）、`AZARAC_DEDUP_SLOTS=4`、`AZARAC_NANKAI_BUFFERS=1`、`AZARAC_NANKAI_MAX_PAGES=4`。`-D` または `#define`（`azaraC.h` インクルード前）で上書き可能です。
+
+**AVR 標準ライブラリシム**: AVR ツールチェーンは libstdc++ を含まないため、`#if defined(__AVR__)` で `src/internal/avr_std/` の最小シム（`optional` / `string_view` / `std::move` 等）が自動適用されます。ライブラリの API は非 AVR と同一です。
 
 ---
 

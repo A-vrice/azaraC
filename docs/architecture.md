@@ -30,7 +30,9 @@ src/
 │   ├── DcxHelper.h/cpp   # DCX デコード補助関数
 │   ├── Dedup.h/cpp       # 重複除去リングバッファ
 │   ├── NankaiPageBuffer.h # 南海トラフページ集約
-│   ├── JsonSerializer.h  # 直列化インターフェース
+│   ├── FlashString.h     # PROGMEM ルックアップ共有 RAM バッファ
+│   ├── MtCommonTypes.h   # AVR 分岐の型定義を一本化
+│   ├── avr_std/          # AVR 用最小 C++ 標準ライブラリシム
 │   └── ... (その他内部ヘッダ)
 └── definition/
     ├── _index.h           # 全103定義テーブルを集約
@@ -74,7 +76,7 @@ src/
 │  │  │  │  ┌───────────────┐  │  │  ┌──────────────────────────┐ │ │  │  │
 │  │  │  │  │ EEW           │  │  │  │ A1-A13 CAMF フィールド   │ │ │  │  │
 │  │  │  │  │ Hypocenter    │  │  │  │ EX1-EX11 拡張フィールド  │ │ │  │  │
-│  │  │  │  │ Seismic       │  │  │  │ A17 B1-B4 拡張 (v1.1)   │ │ │  │  │
+│  │  │  │  │ Seismic       │  │  │  │ A17 B1-B4 拡張 (v1.2)   │ │ │  │  │
 │  │  │  │  │ Nankai        │  │  │  └──────────────────────────┘ │ │  │  │
 │  │  │  │  │ Tsunami       │  │  └────────────────────────────────┘ │  │  │
 │  │  │  │  │ Volcano       │  │                                      │  │  │
@@ -116,7 +118,7 @@ src/
 
 ### 1. Parser (パーサー)
 
-[`Parser`](src/Parser.h)はライブラリのメインエントリーポイントです。以下の責務を持ちます:
+[`Parser`](../src/Parser.h)はライブラリのメインエントリーポイントです。以下の責務を持ちます:
 
 - **フレーマー自動判別**: 入力バイトストリームからUBX/NMEAを自動判別
 - **メッセージデコード**: フレームの復号とCRC検証
@@ -155,12 +157,12 @@ void loop() {
 
 ### 2. Framer (フレーマー)
 
-フレーマーはシリアルバイトストリームからメッセージフレームを抽出します。[`IFramer`](include/internal/IFramer.h)インターフェースを実装します:
+フレーマーはシリアルバイトストリームからメッセージフレームを抽出します。[`IFramer`](../src/framer/IFramer.h)インターフェースを実装します:
 
 | フレーマー | プロトコル | 対応デバイス |
 |-----------|-----------|-------------|
-| [`UbxFramer`](include/internal/UbxFramer.h) | UBX-RXM-SFRBX | u-blox M10, ZED-F9P |
-| [`NmeaFramer`](include/internal/NmeaFramer.h) | NMEA $QZQSM | Furuno GT-87, 汎用GNSS |
+| [`UbxFramer`](../src/framer/UbxFramer.h) | UBX-RXM-SFRBX | u-blox M10, ZED-F9P |
+| [`NmeaFramer`](../src/framer/NmeaFramer.h) | NMEA $QZQSM | Furuno GT-87, 汎用GNSS |
 | Custom (IFramer) | 任意 | Sony, その他 |
 
 #### フレーマー自動判別アルゴリズム
@@ -174,7 +176,7 @@ void loop() {
 
 ### 3. Decoder (デコーダー)
 
-[`Decoder`](include/internal/Decoder.h)はビット列からメッセージフィールドを抽出します:
+[`Decoder`](../src/decoder/Decoder.h)はビット列からメッセージフィールドを抽出します:
 
 #### 共通処理
 - **CRC-24Q検証**: IS-QZSS-L1S §3.2.8準拠
@@ -198,6 +200,8 @@ void loop() {
 | 12: 台風情報 | `decodeTyphoon` | §5.1.2.3.11 |
 | 14: 海上警報 | `decodeMarine` | §5.1.2.3.12 |
 
+カテゴリのサポート判定・既知分類・サブデコーダディスパッチは、`DecoderQzqsm` の単一の X-macro テーブル `AZARAC_DC_CATEGORIES` から生成されます（個別の手書きディスパッチではありません）。
+
 #### MT=44 (DCX/CAMF) デコーダー
 
 MT=44は階層構造されたCAMFフォーマットを解析します:
@@ -207,14 +211,14 @@ PAB(8) | MT(8) | SD(10) | CAMF(A1-A13) | EX(EX1-EX11) | Reserved | CRC24
 ```
 
 サービス種別による分岐:
-- **L-Alert**: A2=111 (Japan) & A3=1-4
-- **J-Alert**: A2=111 (Japan) & A3=0
-- **地方自治体**: A2=111 (Japan) & A3=5-31
+- **L-Alert**: A2=111 (Japan) & A3=1
+- **J-Alert**: A2=111 (Japan) & A3=0,2,3
+- **地方自治体**: A2=111 (Japan) & A3=4-31
 - **国外**: A2≠111
 
 ### 4. DedupFilter (重複除去)
 
-[`DedupFilter`](include/internal/DedupFilter.h)はリングバッファによる重複除去を行います:
+[`DedupFilter`](../src/internal/Dedup.h)はリングバッファによる重複除去を行います:
 
 ```cpp
 // 重複判定キー
@@ -234,7 +238,7 @@ struct DedupKey {
 
 ### 5. NankaiPageBuffer (南海トラフページ集約)
 
-南海トラフ地震メッセージは最大63ページに分割されます。[`NankaiPageBuffer`](include/internal/NankaiPageBuffer.h)は複数ページを集約して完全なメッセージを再構成します:
+南海トラフ地震メッセージは最大63ページに分割されます。[`NankaiPageBuffer`](../src/internal/NankaiPageBuffer.h)は複数ページを集約して完全なメッセージを再構成します:
 
 ```
 ページ1 (18バイト本文 + ページ番号/総ページ数)
@@ -257,7 +261,7 @@ struct DedupKey {
 
 ### 6. JsonSerializer (JSONシリアライザ)
 
-[`JsonSerializer`](include/internal/JsonSerializer.h)はMessageをJSON形式にシリアライズします:
+[`JsonSerializer`](../src/json/JsonSerializer.h)はMessageをJSON形式にシリアライズします:
 
 - **ヒープアロケーションなし**: 固定バッファで処理
 - **Print& 出力**: Serial, WiFiClient, 任意のPrint派生クラスに対応
@@ -294,9 +298,11 @@ struct DedupKey {
 | コンポーネント | メモリ使用量 | 備考 |
 |---------------|-------------|------|
 | DedupFilter | `AZARAC_DEDUP_SLOTS × 6` バイト | デフォルト48バイト |
-| NankaiPageBuffer | 可変長（受信ページ数 × 20B + メタデータ） | デフォルト4バッファ、`AZARAC_NANKAI_BUFFERS`で調整可能 |
+| NankaiPageBuffer | 可変長（受信ページ数 × 20B + メタデータ） | デフォルト4バッファ、`AZARAC_NANKAI_BUFFERS`で調整可能（AVR プリセットでは1） |
 | Message | 約200バイト | 最大構造体サイズ |
-| 定義テーブル | 約15-30KB | 言語選択による |
+| 定義テーブル | 約15-30KB | 言語選択による。AVR ではラベルは Flash (PROGMEM, `AZARAC_PROGMEM`) に配置され RAM を消費しない |
+
+**AVR の定義テーブル**: AVR では定義ラベルを Flash に配置し、ルックアップ時に共有 RAM バッファ `AZARAC_FLASH_BUF_SIZE`（AVR プリセット 64B、DCX/CAMF 有効時 800B）へコピーして返します。非 AVR では従来どおり constexpr データを使用します。
 
 **NankaiPageBuffer メモリ使用例**（デフォルト4バッファ時）:
 - 全バッファ空: ~200B

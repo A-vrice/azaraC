@@ -44,6 +44,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`DecoderDcx.cpp`**: `onset_time` 解決の UNIX 時刻比較定数を `315964800u` → `946684800u` (2000-01-01) に修正。
 - **`NankaiPageBuffer.h`**: `NankaiPageKey` の fallback フィールドに `= 0` デフォルト初期化子を追加（不定値防止）。
+- **OOB (Out-of-Bounds) 検出テストの偽陰性**: `TestDecoder` の各 static ラッパーが別々の `Decoder` インスタンスを作成していたため、`clearOob()` → `extractBits()` → `checkOob()` 間で OOB フラグが共有されず、OOB 検出テストが常に失敗していた。共有 `inst()` アクセサに統一。
+- **DCX メイン楕円 JSON テストの精度不一致**: `writeDouble` が `precision=6` で `35.600000` を出力するのに対し、テストが `35.600`（3桁）を期待していた。`hasField` の値境界チェックが不一致を検出。期待値を `35.600000` に修正。
 ## [0.13.0] - 2026-07-23
 
 ### Added
@@ -83,12 +85,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Nankai E2E テスト**: NUL バイト打ち切りテストをポインタ化後の raw buffer 動作に合わせて修正。
 - **DCX JSON テスト**: float モード時の精度差に対応（`#ifdef AZARAC_DCX_USE_FLOAT` で期待値を切替）。
 
-## [Unreleased]
-
-### Fixed
-
-- **OOB (Out-of-Bounds) 検出テストの偽陰性**: `TestDecoder` の各 static ラッパーが別々の `Decoder` インスタンスを作成していたため、`clearOob()` → `extractBits()` → `checkOob()` 間で OOB フラグが共有されず、OOB 検出テストが常に失敗していた。共有 `inst()` アクセサに統一。
-- **DCX メイン楕円 JSON テストの精度不一致**: `writeDouble` が `precision=6` で `35.600000` を出力するのに対し、テストが `35.600`（3桁）を期待していた。`hasField` の値境界チェックが不一致を検出。期待値を `35.600000` に修正。
 ## [0.12.0] - 2026-07-16
 
 ### Added

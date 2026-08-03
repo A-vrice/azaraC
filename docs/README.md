@@ -50,8 +50,8 @@ AzaraCは準天頂衛星みちびきが送信する災危通報メッセージ�
 | 項目            | 値                                          |
 | --------------- | ------------------------------------------- |
 | 主要ターゲット  | ESP32-C3 (FreeRTOS / Arduino framework)     |
-| Arduino コア    | esp32 ≥ 3.x                                 |
-| ホストテスト    | g++ -std=c++17 (Linux / macOS / WSL)        |
+| Arduino コア    | esp32 ≥ 3.x / arduino:avr (Uno 等)         |
+| ホストテスト    | g++ -std=c++17 (Linux / macOS / WSL / Windows MinGW-w64) |
 | GNSS モジュール | u-blox (UBX-RXM-SFRBX) / NMEA $QZQSM 出力機 |
 
 > **注意:** AzaraCはC++17で記述されています。IDEのC++コンパイラ設定を17以上にしてください。
@@ -117,13 +117,13 @@ uint32_t now = (uint32_t)time(nullptr);
 if (parser.feed(byte, msg, now)) { ... }
 ```
 
-詳細は[`examples/with_sntp/`](examples/with_sntp/)を参照。
+詳細は[`examples/with_sntp/`](../examples/with_sntp/)を参照。
 
 ---
 
 ## API
 
-詳細なAPIリファレンスは[api-reference.md](docs/api-reference.md)を参照してください。
+詳細なAPIリファレンスは[api-reference.md](../docs/api-reference.md)を参照してください。
 
 ### コンパイル時設定
 
@@ -132,6 +132,11 @@ if (parser.feed(byte, msg, now)) { ... }
 | `AZARAC_DEDUP_SLOTS` | 8          | 重複除去リングバッファのスロット数 |
 | `AZARAC_LANG_JA`     | 1          | 日本語ラベルを有効化               |
 | `AZARAC_LANG_EN`     | 0          | 英語ラベルを有効化                 |
+| `AZARAC_ENABLE_EEW` 他 12 カテゴリ | 1 | 災害カテゴリ別の定義テーブル除外（`AZARAC_ENABLE_*`） |
+| `AZARAC_FLASH_BUF_SIZE` | 800（AVR プリセット: 64） | PROGMEM ルックアップ用共有 RAM バッファ |
+| `AZARAC_DCX_USE_FLOAT` | 未定義（AVR では自動定義） | DCX 座標を double → float に切替 |
+
+AVR では `azaraC_config.h` のプリセットにより有効カテゴリが SEISMIC/TSUNAMI のみに絞られ、`AZARAC_FLASH_BUF_SIZE` は 64 になります。詳細は [README.md](../README.md) の「コンパイル時設定マクロ」節を参照してください。
 
 ```cpp
 #define AZARAC_DEDUP_SLOTS 16
@@ -184,16 +189,18 @@ if (parser.feed(byte, msg, now)) { ... }
 
 ## Examples
 
-詳細な使用例は[`examples/`](examples/)ディレクトリを参照してください。
+詳細な使用例は[`examples/`](../examples/)ディレクトリを参照してください。
 
 | Example                                            | 説明                           |
 | -------------------------------------------------- | ------------------------------ |
-| [basic_nmea](examples/basic_nmea/)                 | NMEA $QZQSM の基本的な使用例   |
-| [basic_ubx](examples/basic_ubx/)                   | UBX-RXM-SFRBX の基本的な使用例 |
-| [with_sntp](examples/with_sntp/)                   | SNTP時刻解決 + EEWフィルタ     |
-| [filter_by_category](examples/filter_by_category/) | 災害カテゴリ別フィルタリング   |
-| [error_handling](examples/error_handling/)         | エラーハンドリングと統計       |
-| [wifi_client](examples/wifi_client/)               | Wi-Fiクライアント出力          |
+| [basic_nmea](../examples/basic_nmea/)                 | NMEA $QZQSM の基本的な使用例   |
+| [basic_ubx](../examples/basic_ubx/)                   | UBX-RXM-SFRBX の基本的な使用例 |
+| [basic_uno](../examples/basic_uno/)                   | Arduino Uno (AVR) 用最小例（Serial 0/1 入力） |
+| [with_sntp](../examples/with_sntp/)                   | SNTP時刻解決 + EEWフィルタ     |
+| [filter_by_category](../examples/filter_by_category/) | 災害カテゴリ別フィルタリング   |
+| [error_handling](../examples/error_handling/)         | エラーハンドリングと統計       |
+| [wifi_client](../examples/wifi_client/)               | Wi-Fiクライアント出力          |
+| [rtos_freertos](../examples/rtos_freertos/)           | FreeRTOS タスクベース処理      |
 
 ---
 
@@ -203,7 +210,7 @@ if (parser.feed(byte, msg, now)) { ... }
 make -C test run
 ```
 
-詳細は[developer-guide.md](docs/developer-guide.md)を参照してください。
+詳細は[developer-guide.md](../docs/developer-guide.md)を参照してください。
 
 ---
 
@@ -212,8 +219,8 @@ make -C test run
 | 規格            | 内容                        | バージョン     |
 | --------------- | --------------------------- | -------------- |
 | IS-QZSS-DCR-016 | DC Report Service (MT=43)   | April 03, 2026 |
-| IS-QZSS-DCX-003 | DCX Service (MT=44)         | March 28, 2025 |
-| EWSS CAMF v1.1  | Common Alert Message Format | Version 1.1    |
+| IS-QZSS-DCX-004 | DCX Service (MT=44)         | Rev.002 (October 3, 2025) |
+| EWSS CAMF v1.2  | Common Alert Message Format | Version 1.2    |
 
 ---
 
@@ -221,9 +228,9 @@ make -C test run
 
 | ドキュメント                              | 内容                                 |
 | ----------------------------------------- | ------------------------------------ |
-| [API リファレンス](docs/api-reference.md) | 詳細なAPI仕様                        |
-| [アーキテクチャ](docs/architecture.md)    | 内部設計とデータフロー               |
-| [開発者ガイド](docs/developer-guide.md)   | ビルド方法、テスト、コーディング規約 |
+| [API リファレンス](../docs/api-reference.md) | 詳細なAPI仕様                        |
+| [アーキテクチャ](../docs/architecture.md)    | 内部設計とデータフロー               |
+| [開発者ガイド](../docs/developer-guide.md)   | ビルド方法、テスト、コーディング規約 |
 
 ---
 
