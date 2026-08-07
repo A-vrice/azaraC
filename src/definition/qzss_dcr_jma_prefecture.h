@@ -23,7 +23,7 @@
 namespace azaraC {
 namespace def {
 
-#if (AZARAC_ENABLE_SEISMIC)
+#if (AZARAC_ENABLE_SEISMIC || AZARAC_ENABLE_DCX_CAMF)
 
 inline constexpr uint8_t QZSS_DCR_JMA_PREFECTURE_BASE = 1;
 inline constexpr uint8_t QZSS_DCR_JMA_PREFECTURE_SIZE = 47;

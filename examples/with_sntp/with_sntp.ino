@@ -101,9 +101,9 @@ void loop() {
                     }
                     if (mt44->mt44_decoded.main_ellipse_present) {
                         Serial.print(F(" | Lat: "));
-                        Serial.print(mt44->mt44_decoded.main_ellipse.lat_deg, 3);
+                        Serial.print(mt44->mt44_decoded.main_ellipse.lat_microdeg / 1000000.0, 3);
                         Serial.print(F(" Lon: "));
-                        Serial.print(mt44->mt44_decoded.main_ellipse.lon_deg, 3);
+                        Serial.print(mt44->mt44_decoded.main_ellipse.lon_microdeg / 1000000.0, 3);
                     }
                     Serial.println();
                 }

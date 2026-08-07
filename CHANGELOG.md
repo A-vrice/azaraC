@@ -54,6 +54,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **CI 再現（PR #12 の pull_request ジョブ）**: `DecodedEllipse` のフィールド名リネーム（`lat_deg`→`lat_microdeg` 等）で `examples/with_sntp/with_sntp.ino` の `lat_deg`/`lon_deg` 参照がコンパイル不能になっていたのを修正（`lat_microdeg / 1000000.0` で度単位表示を維持）。
+- **ラベルテーブルのマクロ跨ぎ依存（サイレント空ラベル）**: 定義テーブルのガードが、それを参照するシリアライザの有効化マクロをカバーしていない2箇所を修正。`qzss_dcr_jma_volcano_name` を `AZARAC_ENABLE_VOLCANO` → `(|| AZARAC_ENABLE_ASH_FALL)`、`qzss_dcr_jma_prefecture` を `AZARAC_ENABLE_SEISMIC` → `(|| AZARAC_ENABLE_DCX_CAMF)` に拡張（`gen_definitions.py` の GUARD_MAP と生成済みヘッダの両方）。これにより `VOLCANO=0`/`SEISMIC=0` のマクロ無効化ビルドでも降灰の `volcano_name_label`・DCX の `prefecture_labels` が空にならず、`make macro` の全13構成が通る。
+
 - **生成定義テーブルの疎キー array バグ（ラベルズレ）**: `scripts/gen/strategy.py` の `choose()` が fill_ratio ≥ 0.6 の疎キー辞書（キーに欠番がある辞書）を `id - BASE` で索引する array 戦略に落とし、欠番以降の全エントリのラベルがズレていた。`fill >= 0.6 && span == n`（キー連続）の場合のみ array を選ぶよう修正し、`disaster_category`（8=火山 が 降灰 に化けていた）、`eew_forecast_region`（80=その他府県予報区）、`seismic_intensity_{lower,upper}_limit`、`coastal_region_en` の 6 テーブルを `binary_search`（明示 ID 索引）に切替。定義ヘッダを azarashi 0.16.4 で再生成（Source module ラベルを最新構造に統一）。
 
 - **`DecoderDcx.cpp`**: `onset_time` 解決の UNIX 時刻比較定数を `315964800u` → `946684800u` (2000-01-01) に修正。
