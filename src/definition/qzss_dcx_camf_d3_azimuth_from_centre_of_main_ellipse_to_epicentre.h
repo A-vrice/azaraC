@@ -1,6 +1,6 @@
 #pragma once
 // AUTO-GENERATED from azarashi 0.16.4 with CI-CD
-// Source module : qzss_dcx_camf_d3_azimuth_from_centre_of_main_ellipse_to_epicentre
+// Source module : qzss_dcx_camf_b4_lower_level_fields_tables
 // Variable      : qzss_dcx_camf_d3_azimuth_from_centre_of_main_ellipse_to_epicentre
 // Entries       : 16
 // Strategy      : array

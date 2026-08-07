@@ -1,6 +1,6 @@
 #pragma once
 // AUTO-GENERATED from azarashi 0.16.4 with CI-CD
-// Source module : qzss_dcx_camf_d17_fog_level
+// Source module : qzss_dcx_camf_b4_lower_level_fields_tables
 // Variable      : qzss_dcx_camf_d17_fog_level
 // Entries       : 5
 // Strategy      : switch

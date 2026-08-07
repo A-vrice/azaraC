@@ -167,53 +167,6 @@ TEST_CASE("getBits64: OOB detected") {
     CHECK(val == 0);
 }
 
-// ── Signed bit extraction テスト ─────────────────────────────────────────
-
-TEST_CASE("getSignedBits: positive values") {
-    uint8_t buf[4] = {};
-    // 0b0110 = 6 in 4 bits (MSB=0)
-    setBits(buf, 0, 4, 0x6);
-    CHECK(TestDecoder::extractSignedBits(buf, 0, 4) == 6);
-}
-
-TEST_CASE("getSignedBits: negative 4-bit") {
-    uint8_t buf[4] = {};
-    // 0b1000 = -8 in 4 bits
-    setBits(buf, 0, 4, 0x8);
-    CHECK(TestDecoder::extractSignedBits(buf, 0, 4) == -8);
-}
-
-TEST_CASE("getSignedBits: negative 8-bit") {
-    uint8_t buf[4] = {};
-    // 0x80 = -128 in 8 bits
-    setBits(buf, 0, 8, 0x80);
-    CHECK(TestDecoder::extractSignedBits(buf, 0, 8) == -128);
-}
-
-TEST_CASE("getSignedBits: negative 9-bit") {
-    uint8_t buf[4] = {};
-    // 0x100 = -256 in 9 bits
-    setBits(buf, 0, 9, 0x100);
-    CHECK(TestDecoder::extractSignedBits(buf, 0, 9) == -256);
-}
-
-TEST_CASE("getSignedBits: negative 32-bit") {
-    uint8_t buf[8] = {};
-    // 0x80000000 = INT32_MIN in 32 bits
-    setBits(buf, 0, 32, 0x80000000);
-    CHECK(TestDecoder::extractSignedBits(buf, 0, 32) == INT32_MIN);
-}
-
-TEST_CASE("getSignedBits: len=0 returns 0") {
-    uint8_t buf[4] = {};
-    CHECK(TestDecoder::extractSignedBits(buf, 0, 0) == 0);
-}
-
-TEST_CASE("getSignedBits: len > 32 returns 0") {
-    uint8_t buf[8] = {};
-    CHECK(TestDecoder::extractSignedBits(buf, 0, 33) == 0);
-}
-
 // ── setBits セルフテスト ─────────────────────────────────────────────────
 
 TEST_CASE("setBits: roundtrip with getBits") {
@@ -690,55 +643,6 @@ TEST_CASE("extractLatLon: 境界値テスト") {
     CHECK(ll.lon_deg == 180);
     CHECK(ll.lon_min == 59);
     CHECK(ll.lon_sec == 59);
-}
-
-// ── Signed lat/lon extraction テスト ─────────────────────────────────────
-
-TEST_CASE("extractSignedLatLon: North/East (default bits)") {
-    uint8_t buf[8] = {};
-    // lat_sign=0, lat_val=35 (7bit), lon_sign=0, lon_val=139 (8bit)
-    setBits(buf, 0, 1, 0);
-    setBits(buf, 1, 7, 35);
-    setBits(buf, 8, 1, 0);
-    setBits(buf, 9, 8, 139);
-    int16_t lat = 0, lon = 0;
-    TestDecoder::testExtractSignedLatLon(buf, 0, lat, lon, 7, 8);
-    CHECK(lat == 350);
-    CHECK(lon == 1390);
-}
-
-TEST_CASE("extractSignedLatLon: South/West") {
-    uint8_t buf[8] = {};
-    // lat_sign=1, lat_val=33 (7bit), lon_sign=1, lon_val=151 (8bit)
-    setBits(buf, 0, 1, 1);
-    setBits(buf, 1, 7, 33);
-    setBits(buf, 8, 1, 1);
-    setBits(buf, 9, 8, 151);
-    int16_t lat = 0, lon = 0;
-    TestDecoder::testExtractSignedLatLon(buf, 0, lat, lon, 7, 8);
-    CHECK(lat == -330);
-    CHECK(lon == -1510);
-}
-
-TEST_CASE("extractSignedLatLon: zero values") {
-    uint8_t buf[8] = {};
-    int16_t lat = 0, lon = 0;
-    TestDecoder::testExtractSignedLatLon(buf, 0, lat, lon, 7, 8);
-    CHECK(lat == 0);
-    CHECK(lon == 0);
-}
-
-TEST_CASE("extractSignedLatLon: max values") {
-    uint8_t buf[8] = {};
-    // lat_val=127 (7bit max), lon_val=255 (8bit max), both positive
-    setBits(buf, 0, 1, 0);
-    setBits(buf, 1, 7, 127);
-    setBits(buf, 8, 1, 0);
-    setBits(buf, 9, 8, 255);
-    int16_t lat = 0, lon = 0;
-    TestDecoder::testExtractSignedLatLon(buf, 0, lat, lon, 7, 8);
-    CHECK(lat == 1270);
-    CHECK(lon == 2550);
 }
 
 // ── 重複除去テスト (from test_dedup.cpp) ───────────────────────────────────

@@ -1,6 +1,6 @@
 #pragma once
 // AUTO-GENERATED from azarashi 0.16.4 with CI-CD
-// Source module : qzss_dcr_jma_northwest_pacific_tsunami_height_en
+// Source module : qzss_dcr_jma_northwest_pacific_tsunami_height
 // Variable      : qzss_dcr_jma_northwest_pacific_tsunami_height_en
 // Entries       : 8
 // Strategy      : switch

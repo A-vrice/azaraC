@@ -422,7 +422,6 @@ if (client.connect(server, port)) {
 | マクロ | デフォルト | 説明 |
 |-------|-----------|------|
 | `AZARAC_FLASH_BUF_SIZE` | 800（AVR プリセット: 64、DCX/CAMF 有効時 800） | PROGMEM ルックアップ用の共有 RAM バッファサイズ (バイト) |
-| `AZARAC_DCX_USE_FLOAT` | 未定義（AVR では自動定義） | 定義時に DCX 座標を `double` → `float` に切替（`DecodedEllipse` が 72B → 36B） |
 
 **AVR プリセット**: `__AVR__` では `azaraC_config.h` のプリセットがデフォルトを変更します。有効カテゴリは SEISMIC/TSUNAMI のみ（他 11 カテゴリは無効）、`AZARAC_DEDUP_SLOTS=4`、`AZARAC_NANKAI_BUFFERS=1`、`AZARAC_NANKAI_MAX_PAGES=4`。`-D` または `#define`（`azaraC.h` インクルード前）で上書き可能です。
 

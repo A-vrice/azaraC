@@ -1,4 +1,4 @@
-// azaraC - src/internal/NmeaFramer.cpp
+// azaraC - src/framer/NmeaFramer.cpp
 
 #include "NmeaFramer.h"
 #if defined(__AVR__)
@@ -14,6 +14,7 @@ void NmeaFramer::reset() {
     _st  = St::WAIT;
     _pos = 0;
     _xsum = 0;
+    _csumH = 0;
 }
 
 bool NmeaFramer::feed(uint8_t b, Frame& out) {
@@ -51,7 +52,7 @@ bool NmeaFramer::feed(uint8_t b, Frame& out) {
     }
     case St::CSUM2: {
         uint8_t lo = hexVal(c);
-        if (lo == 0xFF || _csumH == 0xFF) { reset(); break; }
+        if (lo == 0xFF) { reset(); break; }
         uint8_t recv = (_csumH << 4) | lo;
         _st = St::WAIT;
         if (recv != _xsum) return false;
@@ -102,7 +103,7 @@ bool NmeaFramer::parse(Frame& out) {
         }
     }
 
-    // Validate length: QZSS L1S is 250 bits = 63 hex chars (31 bytes + 1 nibble).
+    // Validate length: QZSS L1S is 252 bits (250 data + 2-bit zero padding per spec Table 4.3.1-1) = 63 hex chars.
     // Some receivers output 64 hex chars (32 bytes), so accept both 63 and 64.
     if (hex_count != 63 && hex_count != 64) return false;
 
@@ -112,7 +113,8 @@ bool NmeaFramer::parse(Frame& out) {
     }
     if (byte_idx < 31) return false;  // Need at least 31 bytes for 250 bits
     
-    // For 64 hex chars (32 bytes), mask the last nibble (padding) to get 250 bits
+    // For 64 hex chars (32 bytes), mask the last nibble to isolate data bits
+    // lower nibble (bits 252-255) zeroed; bits 250-251 are spec-guaranteed 00
     if (hex_count == 64) {
         out.bits[31] &= 0xF0;
     }

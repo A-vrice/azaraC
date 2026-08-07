@@ -1,6 +1,6 @@
 #pragma once
 // AUTO-GENERATED from azarashi 0.16.4 with CI-CD
-// Source module : qzss_dcx_ex1_target_area_code_ja
+// Source module : qzss_dcx_camf_ex1_target_area_code
 // Variable      : qzss_dcx_ex1_target_area_code_ja
 // Entries       : 1980
 // Strategy      : binary_search

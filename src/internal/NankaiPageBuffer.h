@@ -12,7 +12,6 @@
 //   - No sorting needed (direct offset write)
 //   - O(1) duplicate detection via bitmap test
 //   - total_pages > MAX_PAGES gracefully truncates (truncated flag)
-//   - AZARAC_NANKAI_AGGREGATED_TEXT_SIZE auto-derived from AZARAC_NANKAI_MAX_PAGES
 
 #if defined(__AVR__)
 #include "avr_std/cstdint"
@@ -174,33 +173,10 @@ struct NankaiPageBuffer {
         return true;
     }
 
-    // Check if a specific page has been received
-    bool isPageReceived(uint8_t page_num) const {
-        if (page_num == 0 || page_num > SPEC_MAX_PAGES) return false;
-        return (received_bitmap & (1ULL << (page_num - 1))) != 0;
-    }
-
     // Check if all pages have been received
     bool isComplete() const {
         if (total_pages == 0) return false;
         return received_count >= total_pages;
-    }
-
-    // Check if the bitmap is contiguous (received pages form an unbroken range
-    // starting from page 1 without gaps).
-    //
-    // Examples:
-    //   Pages 1,2 received (bitmap 0b011): contiguous ✓
-    //   Pages 1,3 received (bitmap 0b101): NOT contiguous (page 2 gap)
-    //   All pages received: contiguous ✓
-    //
-    // Uses the well-known trick: if all lower N bits are set,
-    // then bitmap & (bitmap + 1) == 0.
-    bool isContiguous() const {
-        if (total_pages == 0) return false;
-        if (received_count >= total_pages) return true;   // all received → contiguous
-        if (received_bitmap == 0) return false;            // nothing received
-        return (received_bitmap & (received_bitmap + 1)) == 0;
     }
 
     // Get text length (excluding null terminator)
@@ -217,11 +193,7 @@ struct NankaiPageBuffer {
         while (bm && p < total_pages) {
             if (bm & 1) {
                 const char* page_start = aggregated_text + p * TEXT_PER_PAGE;
-                // Safe: j < TEXT_PER_PAGE bounds the loop to 18 bytes max.
-                for (uint8_t j = 0; j < TEXT_PER_PAGE; ++j) {
-                    if (page_start[j] == 0) break;
-                    len++;
-                }
+                len += pageTextLength_(page_start);
             }
             bm >>= 1;
             ++p;
@@ -244,11 +216,7 @@ struct NankaiPageBuffer {
         while (bm && p < total_pages && pos < max_len - 1) {
             if (bm & 1) {
                 const char* src = aggregated_text + p * TEXT_PER_PAGE;
-                // Safe: page_len < TEXT_PER_PAGE bounds to 18 bytes max.
-                uint8_t page_len = 0;
-                while (page_len < TEXT_PER_PAGE && src[page_len] != 0) {
-                    ++page_len;
-                }
+                uint8_t page_len = pageTextLength_(src);
                 uint8_t to_copy = (page_len < (max_len - 1 - pos))
                                   ? page_len
                                   : (max_len - 1 - pos);
@@ -270,20 +238,7 @@ struct NankaiPageBuffer {
         return (current_ms - last_update_ms) > TIMEOUT_MS;
     }
 
-    // Clear buffer for reuse
-    void clear() {
-        key.clear();
-        total_pages = 0;
-        original_total_pages = 0;
-        received_count = 0;
-        received_bitmap = 0;
-        last_update_ms = 0;
-        truncated = false;
-        // aggregated_text[] is considered invalid when total_pages == 0 &&
-        // received_bitmap == 0. No need to memset (performance).
-    }
-
-    // Clear entire buffer including key
+    // Clear buffer (same as clearAll — key, pages, bitmap all cleared)
     void clearAll() {
         key.clear();
         total_pages = 0;
@@ -307,6 +262,14 @@ struct NankaiPageBuffer {
     // Set key for this buffer
     void setKey(const NankaiPageKey& k) {
         key = k;
+    }
+
+private:
+    // Per-page effective length (bytes up to first NUL, bounded by TEXT_PER_PAGE)
+    uint8_t pageTextLength_(const char* page_start) const {
+        uint8_t n = 0;
+        while (n < TEXT_PER_PAGE && page_start[n] != 0) ++n;
+        return n;
     }
 };
 

@@ -55,6 +55,10 @@ public:
         if (!s.empty()) _buf.append(s.data(), s.size());
     }
 
+    void print(const void* s) override {
+        if (s) _buf += static_cast<const char*>(s);
+    }
+
     void print(int v) override {
         _buf += std::to_string(v);
     }

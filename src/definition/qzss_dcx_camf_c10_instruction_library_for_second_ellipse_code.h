@@ -1,6 +1,6 @@
 #pragma once
 // AUTO-GENERATED from azarashi 0.16.4 with CI-CD
-// Source module : qzss_dcx_camf_c10_instruction_library_for_second_ellipse_code
+// Source module : qzss_dcx_camf_c10_instruction_library_for_second_ellipse
 // Variable      : qzss_dcx_camf_c10_instruction_library_for_second_ellipse_code
 // Entries       : 19
 // Strategy      : binary_search

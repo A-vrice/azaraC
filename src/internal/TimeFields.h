@@ -56,11 +56,5 @@ static inline uint64_t getMillis() {
 #endif
 }
 
-// Safe millisecond difference calculation (handles overflow)
-// Returns (current - previous) correctly even if current < previous (overflow case)
-static inline uint32_t millisDiff(uint64_t current, uint64_t previous) {
-    return static_cast<uint32_t>(current - previous);
-}
-
 } // namespace internal
 } // namespace azaraC

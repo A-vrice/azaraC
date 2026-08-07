@@ -85,39 +85,11 @@ void writeArrivalTimeFields(Print& out, uint16_t raw);
 namespace keys {
 
 // Top-level message keys
-inline constexpr const char* svid       = "svid";
-inline constexpr const char* msg_type   = "msg_type";
-inline constexpr const char* crc24      = "crc24";
-inline constexpr const char* valid      = "valid";
 inline constexpr const char* note       = "note";
-
-// Common field keys
 inline constexpr const char* code       = "code";
 inline constexpr const char* label      = "label";
 inline constexpr const char* region     = "region";
 inline constexpr const char* region_label = "region_label";
-inline constexpr const char* page       = "page";
-inline constexpr const char* total_page = "total_page";
-inline constexpr const char* depth      = "depth";
-inline constexpr const char* magnitude  = "magnitude";
-inline constexpr const char* intensity  = "intensity";
-inline constexpr const char* intensity_label = "intensity_label";
-inline constexpr const char* height     = "height";
-inline constexpr const char* height_label  = "height_label";
-inline constexpr const char* epicenter  = "epicenter";
-inline constexpr const char* epicenter_label = "epicenter_label";
-inline constexpr const char* lat_deg    = "lat_deg";
-inline constexpr const char* lon_deg    = "lon_deg";
-inline constexpr const char* azimuth_deg = "azimuth_deg";
-inline constexpr const char* arrival_time_raw = "arrival_time_raw";
-inline constexpr const char* ex_vn      = "ex_vn";
-inline constexpr const char* semi_major_km  = "semi_major_km";
-inline constexpr const char* semi_minor_km  = "semi_minor_km";
-inline constexpr const char* volcano_name    = "volcano_name";
-inline constexpr const char* volcano_name_label = "volcano_name_label";
-inline constexpr const char* warning_code    = "warning_code";
-inline constexpr const char* warning_code_label = "warning_code_label";
-inline constexpr const char* a11_guidance_label = "a11_guidance_label";
 
 } // namespace keys
 } // namespace azaraC

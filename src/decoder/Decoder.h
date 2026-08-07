@@ -24,13 +24,6 @@ protected:
     uint32_t getBits(const uint8_t* buf, uint16_t start, uint8_t len);
     uint64_t getBits64(const uint8_t* buf, uint16_t start, uint8_t len);
 
-    // Signed bit extraction (two's complement, MSB-first)
-    int32_t getSignedBits(const uint8_t* buf, uint16_t start, uint8_t len);
-
-    // Extract signed lat/lon pair from bitstream (sign:1, value:lat_bits, sign:1, value:lon_bits)
-    void extractSignedLatLon(const uint8_t* buf, uint16_t start, int16_t& lat_e1, int16_t& lon_e1,
-                              uint8_t lat_bits = 8, uint8_t lon_bits = 9);
-
     // LatLon from 41-bit field (lat_ns:1, lat_d:7, lat_m:6, lat_s:6, lon_ew:1, lon_d:8, lon_m:6, lon_s:6)
     LatLon  extractLatLon(const uint8_t* buf, uint16_t start);
 

@@ -134,7 +134,6 @@ if (parser.feed(byte, msg, now)) { ... }
 | `AZARAC_LANG_EN`     | 0          | 英語ラベルを有効化                 |
 | `AZARAC_ENABLE_EEW` 他 12 カテゴリ | 1 | 災害カテゴリ別の定義テーブル除外（`AZARAC_ENABLE_*`） |
 | `AZARAC_FLASH_BUF_SIZE` | 800（AVR プリセット: 64） | PROGMEM ルックアップ用共有 RAM バッファ |
-| `AZARAC_DCX_USE_FLOAT` | 未定義（AVR では自動定義） | DCX 座標を double → float に切替 |
 
 AVR では `azaraC_config.h` のプリセットにより有効カテゴリが SEISMIC/TSUNAMI のみに絞られ、`AZARAC_FLASH_BUF_SIZE` は 64 になります。詳細は [README.md](../README.md) の「コンパイル時設定マクロ」節を参照してください。
 

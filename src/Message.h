@@ -2,8 +2,9 @@
 // azaraC - src/Message.h
 // Main message struct (Safe tagged union)
 //
-// Safe tagged union using explicit memory management (placement new).
-// No std::variant dependency for Arduino compatibility.
+// Safe tagged union: payload (Mt43Data/Mt44Data) is held in raw aligned
+// storage; payload types MUST remain trivially copyable + trivially
+// destructible, so copy/move/destroy reduce to memcpy / tag reset.
 
 #if defined(__AVR__)
 #include "internal/avr_std/algorithm"
@@ -24,11 +25,6 @@
 #include "internal/avr_std/new"
 #else
 #include <new>
-#endif
-#if defined(__AVR__)
-#include "internal/avr_std/utility"
-#else
-#include <utility>
 #endif
 
 #include "Mt43Data.h"
@@ -82,7 +78,6 @@ struct Message {
         , valid(other.valid)
         , unsupported_reason(other.unsupported_reason)
         , payload_type(other.payload_type)
-        , payload_storage_{}
     {
         copyPayloadFrom(other);
     }
@@ -174,31 +169,15 @@ private:
     template<typename T> static MsgPayloadType typeForPayload();
 
     void destroyPayload() {
-        if (payload_type == MsgPayloadType::Empty) return;
-        switch (payload_type) {
-            case MsgPayloadType::Mt43: getMt43()->~Mt43Data(); break;
-            case MsgPayloadType::Mt44: getMt44()->~Mt44Data(); break;
-            case MsgPayloadType::Empty: break;
-        }
-        payload_type = MsgPayloadType::Empty;
+        payload_type = MsgPayloadType::Empty;  // Mt43Data/Mt44Data trivially destructible → no-op
     }
 
     void copyPayloadFrom(const Message& other) {
-        if (other.payload_type == MsgPayloadType::Empty) return;
-        switch (other.payload_type) {
-            case MsgPayloadType::Mt43: new (payload_storage_) Mt43Data(*other.getMt43()); break;
-            case MsgPayloadType::Mt44: new (payload_storage_) Mt44Data(*other.getMt44()); break;
-            case MsgPayloadType::Empty: break;
-        }
+        memcpy(payload_storage_, other.payload_storage_, payload_size_);
     }
 
     void movePayloadFrom(Message& other) {
-        if (other.payload_type == MsgPayloadType::Empty) return;
-        switch (other.payload_type) {
-            case MsgPayloadType::Mt43: new (payload_storage_) Mt43Data(std::move(*other.getMt43())); break;
-            case MsgPayloadType::Mt44: new (payload_storage_) Mt44Data(std::move(*other.getMt44())); break;
-            case MsgPayloadType::Empty: break;
-        }
+        memcpy(payload_storage_, other.payload_storage_, payload_size_);
         other.payload_type = MsgPayloadType::Empty;
     }
 };

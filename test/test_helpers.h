@@ -209,18 +209,6 @@ struct TestDecoder : Decoder {
         return inst().getBits64(b, s, l);
     }
 
-    // Signed bit extraction (non-static getSignedBits wrapper)
-    static int32_t extractSignedBits(const uint8_t* b, uint16_t s, uint8_t l) {
-        return inst().getSignedBits(b, s, l);
-    }
-
-    // Signed lat/lon extraction (non-static extractSignedLatLon wrapper)
-    static void testExtractSignedLatLon(const uint8_t* b, uint16_t start, int16_t& lat, int16_t& lon,
-                                         uint8_t lat_bits = 8, uint8_t lon_bits = 9) {
-        TestDecoder t;
-        t.extractSignedLatLon(b, start, lat, lon, lat_bits, lon_bits);
-    }
-
     // DHM extraction (non-static extractDHM wrapper)
     static TimeFields testExtractDHM(const uint8_t* b, uint16_t start, uint32_t report_unix = 0) {
         static TestDecoder t;

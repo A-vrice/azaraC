@@ -1,4 +1,4 @@
-// azaraC - src/internal/JsonSerializer.cpp
+// azaraC - src/json/JsonSerializer.cpp
 // Top-level JSON serializer entry point
 
 #include "azaraC.h"

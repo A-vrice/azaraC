@@ -493,16 +493,3 @@ TEST_CASE("getMillis: uint64_tを返す") {
     CHECK(ms > 0);
 }
 
-TEST_CASE("millisDiff: 正常な差分計算") {
-    uint64_t prev = 1000;
-    uint64_t curr = 5000;
-    uint32_t diff = internal::millisDiff(curr, prev);
-    CHECK(diff == 4000);
-}
-
-TEST_CASE("millisDiff: オーバーフロー後の差分計算") {
-    uint64_t prev = 0xFFFFFFF0;
-    uint64_t curr = 0x00000010;
-    uint32_t diff = internal::millisDiff(curr, prev);
-    CHECK(diff == 32);
-}

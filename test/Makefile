@@ -1,7 +1,7 @@
 # test/Makefile — ホストビルド
 
 CXX      = g++
-CXXFLAGS = -std=c++17 -Wall -Wextra -I../src -I. -DARDUINO=0 -DAZARAC_LANG_JA=1 -DAZARAC_LANG_EN=1 -DAZARAC_NANKAI_MAX_PAGES=63 -DAZARAC_NANKAI_AGGREGATED_TEXT_SIZE=1135 -MMD -MP
+CXXFLAGS = -std=c++17 -Wall -Wextra -I../src -I. -DARDUINO=0 -DAZARAC_LANG_JA=1 -DAZARAC_LANG_EN=1 -DAZARAC_NANKAI_MAX_PAGES=63 -MMD -MP
 
 # --- Static Analysis and Coverage ---
 # 過剰に厳格な警告オプション（-Wshadow, -Wconversion, -Wsign-conversion）は、
@@ -137,14 +137,14 @@ compare-realdata: $(DECODE_BIN)
 # 静的解析 (時間をかけた厳格なチェック)
 check:
 	@echo "Running cppcheck..."
-	cppcheck --enable=warning,performance,portability --check-level=exhaustive --inline-suppr --suppress=missingIncludeSystem --suppress=*:doctest.h --error-exitcode=1 --std=c++17 -I../src -I. -DAZARAC_NANKAI_MAX_PAGES=63 -DAZARAC_NANKAI_AGGREGATED_TEXT_SIZE=1135 ../src .
+	cppcheck --enable=warning,performance,portability --check-level=exhaustive --inline-suppr --suppress=missingIncludeSystem --suppress=*:doctest.h --error-exitcode=1 --std=c++17 -I../src -I. -DAZARAC_NANKAI_MAX_PAGES=63 ../src .
 	@echo "Compiling library with strict warnings..."
 	$(CXX) $(ANALYSIS_CXXFLAGS) -c $(LIB_SRCS)
 
 # cppcheck の XML レポートをファイルに保存（サマリー生成用）
 check-xml:
 	@echo "Running cppcheck (XML output)..."
-	cppcheck --enable=warning,performance,portability --check-level=exhaustive --inline-suppr --suppress=missingIncludeSystem --suppress=*:doctest.h --xml --xml-version=2 --output-file=cppcheck_report.xml --std=c++17 -I../src -I. -DAZARAC_NANKAI_MAX_PAGES=63 -DAZARAC_NANKAI_AGGREGATED_TEXT_SIZE=1135 ../src . 2> cppcheck_stderr.log || true
+	cppcheck --enable=warning,performance,portability --check-level=exhaustive --inline-suppr --suppress=missingIncludeSystem --suppress=*:doctest.h --xml --xml-version=2 --output-file=cppcheck_report.xml --std=c++17 -I../src -I. -DAZARAC_NANKAI_MAX_PAGES=63 ../src . 2> cppcheck_stderr.log || true
 	@echo "cppcheck XML report saved to cppcheck_report.xml"
 
 # 厳格コンパイルチェックのみ（check から cppcheck を除いた部分）
@@ -338,5 +338,5 @@ clean:
 # are neutralized.
 pgm-stub:
 	$(MAKE) clean
-	$(MAKE) CXXFLAGS="-std=c++17 -Wall -Wextra -Istub -I../src -I. -DARDUINO=0 -D__AVR__ -DAZARAC_AVR_STUB -DAZARAC_LANG_JA=1 -DAZARAC_LANG_EN=1 -DAZARAC_NANKAI_MAX_PAGES=63 -DAZARAC_NANKAI_AGGREGATED_TEXT_SIZE=1135 -DAZARAC_NANKAI_BUFFERS=4 -DAZARAC_DEDUP_SLOTS=8 -DAZARAC_ENABLE_EEW=1 -DAZARAC_ENABLE_HYPOCENTER=1 -DAZARAC_ENABLE_SEISMIC=1 -DAZARAC_ENABLE_NANKAI=1 -DAZARAC_ENABLE_TSUNAMI=1 -DAZARAC_ENABLE_NW_PAC_TSUNAMI=1 -DAZARAC_ENABLE_VOLCANO=1 -DAZARAC_ENABLE_ASH_FALL=1 -DAZARAC_ENABLE_WEATHER=1 -DAZARAC_ENABLE_FLOOD=1 -DAZARAC_ENABLE_TYPHOON=1 -DAZARAC_ENABLE_MARINE=1 -DAZARAC_ENABLE_DCX_CAMF=1 -MMD -MP -g"
+	$(MAKE) CXXFLAGS="-std=c++17 -Wall -Wextra -Istub -I../src -I. -DARDUINO=0 -D__AVR__ -DAZARAC_AVR_STUB -DAZARAC_LANG_JA=1 -DAZARAC_LANG_EN=1 -DAZARAC_NANKAI_MAX_PAGES=63 -DAZARAC_NANKAI_BUFFERS=4 -DAZARAC_DEDUP_SLOTS=8 -DAZARAC_ENABLE_EEW=1 -DAZARAC_ENABLE_HYPOCENTER=1 -DAZARAC_ENABLE_SEISMIC=1 -DAZARAC_ENABLE_NANKAI=1 -DAZARAC_ENABLE_TSUNAMI=1 -DAZARAC_ENABLE_NW_PAC_TSUNAMI=1 -DAZARAC_ENABLE_VOLCANO=1 -DAZARAC_ENABLE_ASH_FALL=1 -DAZARAC_ENABLE_WEATHER=1 -DAZARAC_ENABLE_FLOOD=1 -DAZARAC_ENABLE_TYPHOON=1 -DAZARAC_ENABLE_MARINE=1 -DAZARAC_ENABLE_DCX_CAMF=1 -MMD -MP -g"
 	$(RUN_PREFIX)$(TEST_BIN)

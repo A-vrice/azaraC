@@ -1,5 +1,6 @@
 // azaraC - src/decoder/DecoderDcx.cpp
 // MT=44 DCX / CAMF decoder (IS-QZSS-DCX-004)
+// EWSS CAMF v1.1 (B1-B3), v1.2 (§3.7.4 B4)
 
 #include "Decoder.h"
 #include "internal/DcxHelper.h"
@@ -65,7 +66,7 @@ bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix)
     d->camf.b3_c10 = 0;
 
 
-    // Null Message Check (IS-QZSS-DCX-003 §4.3)
+    // Null Message Check (IS-QZSS-DCX-004 §4.3)
     // All fields except PAB, MT, SD, Reserved, CRC must be 0
     // A2 must be Japan (001101111 = 111), A3 must be 0
     if (d->camf.a1 == 0 && d->camf.a2 == DCX_COUNTRY_CODE_JAPAN && d->camf.a3 == 0 &&
@@ -254,8 +255,7 @@ bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix)
         }
     }
     // B4 (A17=11) - Quantitative and Detailed Information (EWSS CAMF v1.1 §3.7.4)
-    // B4 is decoded independently of main ellipse presence (A12-A16);
-    // it provides hazard-specific quantitative data based on A4 category.
+    // For B4, the detailed D1–D36 fields are decoded later in JsonSerializerDcx.cpp
     if (d->camf.a17 == 3) {
         d->camf.b4_present = true;
     }

@@ -1,6 +1,6 @@
 #pragma once
 // AUTO-GENERATED from azarashi 0.16.4 with CI-CD
-// Source module : qzss_dcx_camf_a11_international_library_code
+// Source module : qzss_dcx_camf_a11_international_library
 // Variable      : qzss_dcx_camf_a11_international_library_code
 // Entries       : 32
 // Strategy      : array

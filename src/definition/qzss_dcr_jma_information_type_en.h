@@ -1,6 +1,6 @@
 #pragma once
 // AUTO-GENERATED from azarashi 0.16.4 with CI-CD
-// Source module : qzss_dcr_jma_information_type_en
+// Source module : qzss_dcr_jma_information_type
 // Variable      : qzss_dcr_jma_information_type_en
 // Entries       : 3
 // Strategy      : switch

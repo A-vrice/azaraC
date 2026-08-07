@@ -1,6 +1,6 @@
 #pragma once
 // AUTO-GENERATED from azarashi 0.16.4 with CI-CD
-// Source module : qzss_dcx_camf_a11_japanese_library_ja
+// Source module : qzss_dcx_camf_a11_japanese_library
 // Variable      : qzss_dcx_camf_a11_japanese_library_ja
 // Entries       : 38
 // Strategy      : binary_search

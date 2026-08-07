@@ -53,9 +53,6 @@
 #define AZARAC_FLASH_BUF_SIZE 64
 #endif
 #endif
-#ifndef AZARAC_DCX_USE_FLOAT
-#define AZARAC_DCX_USE_FLOAT
-#endif
 // AVR (Arduino Uno etc.) has only 32KB Flash: the large definition pools
 // (EX1 ~41KB, local government ~38KB, ...) exceed even a single PROGMEM
 // array limit (32KB). Only the small categories (SEISMIC / TSUNAMI) are
@@ -148,18 +145,9 @@
 #define AZARAC_DEDUP_SLOTS 8
 #endif
 
-// ---- DCX coordinate precision -------------------------------------------------
-// Use float (32-bit) instead of double (64-bit) for DCX coordinate storage.
-// #define AZARAC_DCX_USE_FLOAT
-
 // ---- Nankai Trough page buffer config ----------------------------------------
 #ifndef AZARAC_NANKAI_MAX_PAGES
 #define AZARAC_NANKAI_MAX_PAGES 12
-#endif
-// aggregated_text のサイズは MAX_PAGES から自動計算（1ページ 18 バイト + ヌル終端）
-// ユーザが明示的に定義した場合はそれが優先される（#ifndef ガード）
-#ifndef AZARAC_NANKAI_AGGREGATED_TEXT_SIZE
-#define AZARAC_NANKAI_AGGREGATED_TEXT_SIZE (AZARAC_NANKAI_MAX_PAGES * 18 + 1)
 #endif
 #ifndef AZARAC_NANKAI_BUFFERS
 #define AZARAC_NANKAI_BUFFERS 4

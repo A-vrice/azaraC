@@ -37,7 +37,7 @@ public:
 
 #if AZARAC_ENABLE_NANKAI
     // Check if Nankai Trough page aggregation is complete for given key
-    // Returns pointer to completed buffer if complete, nullptr otherwise
+    // Returns pointer to the buffer matching the key, or nullptr if not found
     const internal::NankaiPageBuffer* getNankaiBuffer(const internal::NankaiPageKey& key) const;
 #endif
 

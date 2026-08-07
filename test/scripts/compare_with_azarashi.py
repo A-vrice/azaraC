@@ -265,17 +265,43 @@ KEY_MAPPING = {
     "_ignore": [
         "sentence", "raw", "timestamp", "message", "nmea", "message_header",
         "preamble", "version", "assumptive",
-        "report_classification", "report_classification_en",
-        "disaster_category", "disaster_category_en",
-        "information_type", "information_type_en",
-        "long_period_ground_motion_lower_limit",
-        "long_period_ground_motion_upper_limit",
+        "report_classification_en", "disaster_category_en", "information_type_en",
         "depth_of_hypocenter", "magnitude",
-        "seismic_epicenter", "seismic_intensity_lower_limit",
-        "seismic_intensity_upper_limit",
-        "notifications_on_disaster_prevention",
-        "eew_forecast_regions",
+        "dcx_message_type",  # AzaraC は service_kind 由来の dcx_type_label (NULL 等) を使用。命名規約差異のため比較しない
     ]
+}
+
+
+# ── ラベル対応表 (azarashi ラベル → AzaraC _label フィールド) ────────────────
+# azarashi のラベル文字列キーを AzaraC の対応 _label キーと比較する。
+# 各値は候補パスのリスト。候補はスカラー (str) か リスト規則 (配列パス, フィールド名)。
+# メッセージ種別により AzaraC の配置が異なるため複数候補を持つ場合がある
+# (例: local_governments は火山が detail.local_govs[]、降灰が detail.entries[].local_gov_label)。
+# いずれかの候補が存在し一致すれば OK。候補が全て不在の場合は比較をスキップする
+# (azarashi のみが持つ構造的フィールド。ラベルバグではない)。
+LABEL_MAPPING = {
+    "report_classification": ["report_classification_label"],
+    "disaster_category": ["disaster_category_label"],
+    "information_type": ["information_type_label"],
+    "seismic_intensity_lower_limit": ["detail.intensity_lower_label"],
+    "seismic_intensity_upper_limit": ["detail.intensity_upper_label"],
+    "seismic_epicenter": ["detail.epicenter_label"],
+    "long_period_ground_motion_lower_limit": ["detail.long_period_lower_label"],
+    "long_period_ground_motion_upper_limit": ["detail.long_period_upper_label"],
+    "eew_forecast_regions": [("detail.regions", "label")],
+    "notifications_on_disaster_prevention": [("detail.notifications", "label")],
+    "tsunami_heights": [("detail.entries", "height_label")],
+    "tsunami_forecast_regions": [("detail.entries", "region_label")],
+    "seismic_intensities": [("detail.entries", "intensity_label")],
+    "prefectures": [("detail.entries", "prefecture_label")],
+    "marine_warning_codes": [("detail.entries", "warning_code_label")],
+    "marine_forecast_regions": [("detail.entries", "region_label")],
+    "local_governments": [("detail.local_govs", "label"), ("detail.entries", "local_gov_label")],
+    "ash_fall_warning_codes": [("detail.entries", "warning_code_label")],
+    "tsunami_warning_code": ["detail.warning_code_label"],
+    "volcano_name": ["detail.volcano_name_label"],
+    "ash_fall_warning_type": ["detail.warning_type_label"],
+    "weather_warning_state": ["detail.warning_state_label"],
 }
 
 
@@ -308,6 +334,70 @@ def build_comparison(azarashi_flat: dict, azarac_flat: dict) -> list[dict]:
                         "azarac": azarac_val,
                     })
 
+    # ラベル文字列の比較
+    # azarashi のラベル文字列キーを AzaraC の _label フィールドと突合する。
+    for az_key, ac_rules in LABEL_MAPPING.items():
+        # スカラーは裸キー、リストは az_key[i] 形式でフラット化される
+        has_item = any(k.startswith(f"{az_key}[") for k in azarashi_flat)
+        if az_key not in azarashi_flat and not has_item:
+            continue
+        az_val = azarashi_flat.get(az_key)
+
+        if has_item:
+            # リストラベル: azarashi の az_key[i] を候補配列パスの同インデックスと比較
+            i = 0
+            while True:
+                az_item_key = f"{az_key}[{i}]"
+                if az_item_key not in azarashi_flat:
+                    break
+                az_item = azarashi_flat[az_item_key]
+                # いずれかの候補が存在して一致すれば OK
+                matched = False
+                found_any = False
+                for rule in ac_rules:
+                    if not isinstance(rule, tuple):
+                        continue
+                    ac_arr, ac_field = rule
+                    ac_item_key = f"{ac_arr}[{i}].{ac_field}"
+                    if ac_item_key in azarac_flat:
+                        found_any = True
+                        if values_equal(az_item, azarac_flat[ac_item_key], azarac_flat, ac_item_key):
+                            matched = True
+                            break
+                if found_any and not matched:
+                    # 実際の azarac 値を表示 (見つかった最初の候補)
+                    ac_display = None
+                    for rule in ac_rules:
+                        if not isinstance(rule, tuple):
+                            continue
+                        ac_arr, ac_field = rule
+                        ac_k = f"{ac_arr}[{i}].{ac_field}"
+                        if ac_k in azarac_flat:
+                            ac_display = azarac_flat[ac_k]
+                            break
+                    differences.append({
+                        "field": f"azarashi.{az_item_key} vs azarac.{ac_rules[0][0]}[{i}].{ac_rules[0][1]}",
+                        "azarashi": az_item,
+                        "azarac": ac_display,
+                    })
+                i += 1
+            continue
+
+        # スカラーラベル: azarashi = "str", AzaraC = 候補パス
+        matched = False
+        for rule in ac_rules:
+            if isinstance(rule, tuple):
+                continue
+            if rule in azarac_flat and values_equal(az_val, azarac_flat[rule], azarac_flat, rule):
+                matched = True
+                break
+        if not matched and any(isinstance(r, str) and r in azarac_flat for r in ac_rules):
+            differences.append({
+                "field": f"azarashi.{az_key} vs azarac.{ac_rules[0]}",
+                "azarashi": az_val,
+                "azarac": azarac_flat.get(ac_rules[0]),
+            })
+
     return differences
 
 
@@ -319,6 +409,9 @@ def values_equal(az_val, ac_val, ac_flat: dict, ac_key: str) -> bool:
     if az_val is None or ac_val is None:
         # azarashi の null は AzaraC の 0 と同等の場合がある
         if az_val is None and ac_val == 0:
+            return True
+        # azarashi の null は AzaraC の空文字ラベルと同等
+        if az_val is None and ac_val == "":
             return True
         return False
 

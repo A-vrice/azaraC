@@ -1,4 +1,4 @@
-// azaraC - src/internal/JsonWriter.cpp
+// azaraC - src/json/JsonWriter.cpp
 // Common JSON writer helpers for serializers
 
 #include "JsonWriter.h"
@@ -10,6 +10,8 @@
 
 namespace azaraC {
 namespace internal {
+
+static constexpr char HEX_CHARS[] = "0123456789ABCDEF";
 
 // ---------------------------------------------------------------------------
 // Primitive writers
@@ -110,9 +112,8 @@ void writeOptStr(Print& out, std::optional<std::string_view> s) {
 
 void writeHex(Print& out, uint8_t v) {
     char buf[5] = "\"00\"";
-    const char hex[] = "0123456789ABCDEF";
-    buf[1] = hex[v >> 4];
-    buf[2] = hex[v & 0x0F];
+    buf[1] = HEX_CHARS[v >> 4];
+    buf[2] = HEX_CHARS[v & 0x0F];
     out.print(buf);
 }
 
@@ -134,9 +135,8 @@ void wf_x(Print& out, std::string_view k, uint32_t v, bool last) {
     wk(out, k);
     char buf[11];
     buf[0] = '0'; buf[1] = 'x';
-    const char hex[] = "0123456789ABCDEF";
     for (int i = 0; i < 8; ++i) {
-        buf[2 + i] = hex[(v >> (28 - i * 4)) & 0xF];
+        buf[2 + i] = HEX_CHARS[(v >> (28 - i * 4)) & 0xF];
     }
     buf[10] = '\0';
     out.print('"');

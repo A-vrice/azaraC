@@ -1,7 +1,7 @@
 #pragma once
 // azaraC - src/framer/UbxFramer.h
 // Parses UBX-RXM-SFRBX (class=0x02, id=0x13) from u-blox receivers.
-// Only accepts QZSS L1S subframes (gnssId=5, sigId=0).
+// Only accepts QZSS L1S subframes (gnssId=5, sigId∈{0,1}).
 
 #include "IFramer.h"
 

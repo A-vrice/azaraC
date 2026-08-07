@@ -126,7 +126,7 @@ bool Decoder::decodeQzqsm(const uint8_t* bits, Message& out, uint32_t report_uni
 
 #if (AZARAC_ENABLE_EEW)
 // ---------------------------------------------------------------------------
-// EEW  (disaster_category == 1)
+// EEW  (disaster_category == 1)  — IS-QZSS-DCR-016 §4.1.2.3.2
 // ---------------------------------------------------------------------------
 void Decoder::decodeEEW(const uint8_t* b, Message& out, uint32_t report_unix) {
     Mt43Data* d = out.getMt43();
@@ -164,7 +164,7 @@ void Decoder::decodeEEW(const uint8_t* b, Message& out, uint32_t report_unix) {
 
 #if (AZARAC_ENABLE_HYPOCENTER)
 // ---------------------------------------------------------------------------
-// Hypocenter  (disaster_category == 2)
+// Hypocenter  (disaster_category == 2)  — IS-QZSS-DCR-016 §4.1.2.3.3
 // ---------------------------------------------------------------------------
 void Decoder::decodeHypocenter(const uint8_t* b, Message& out, uint32_t report_unix) {
     Mt43Data* d = out.getMt43();
@@ -188,7 +188,7 @@ void Decoder::decodeHypocenter(const uint8_t* b, Message& out, uint32_t report_u
 
 #if (AZARAC_ENABLE_SEISMIC)
 // ---------------------------------------------------------------------------
-// Seismic Intensity  (disaster_category == 3)
+// Seismic Intensity  (disaster_category == 3)  — IS-QZSS-DCR-016 §4.1.2.3.4
 // ---------------------------------------------------------------------------
 void Decoder::decodeSeismic(const uint8_t* b, Message& out, uint32_t report_unix) {
     Mt43Data* d = out.getMt43();
@@ -219,7 +219,7 @@ void Decoder::decodeSeismic(const uint8_t* b, Message& out, uint32_t report_unix
 
 #if (AZARAC_ENABLE_NANKAI)
 // ---------------------------------------------------------------------------
-// Nankai Trough  (disaster_category == 4)
+// Nankai Trough  (disaster_category == 4)  — IS-QZSS-DCR-016 §4.1.2.3.5
 // ---------------------------------------------------------------------------
 void Decoder::decodeNankai(const uint8_t* b, Message& out, uint32_t report_unix) {
     (void)report_unix;
@@ -244,7 +244,7 @@ void Decoder::decodeNankai(const uint8_t* b, Message& out, uint32_t report_unix)
 
 #if (AZARAC_ENABLE_TSUNAMI)
 // ---------------------------------------------------------------------------
-// Tsunami  (disaster_category == 5)
+// Tsunami  (disaster_category == 5)  — IS-QZSS-DCR-016 §4.1.2.3.6
 // arrival time sub-field: nextday(1)+hour(5)+minute(6) = 12 bits
 // ---------------------------------------------------------------------------
 void Decoder::decodeTsunami(const uint8_t* b, Message& out, uint32_t report_unix) {
@@ -281,7 +281,7 @@ void Decoder::decodeTsunami(const uint8_t* b, Message& out, uint32_t report_unix
 
 #if (AZARAC_ENABLE_NW_PAC_TSUNAMI)
 // ---------------------------------------------------------------------------
-// NW Pacific Tsunami  (disaster_category == 6)
+// NW Pacific Tsunami  (disaster_category == 6)  — IS-QZSS-DCR-016 §4.1.2.3.7
 // ---------------------------------------------------------------------------
 void Decoder::decodeNwPacTsu(const uint8_t* b, Message& out, uint32_t report_unix) {
     (void)report_unix; // Used indirectly via d->event_time.unix_time
@@ -317,7 +317,7 @@ void Decoder::decodeNwPacTsu(const uint8_t* b, Message& out, uint32_t report_uni
 
 #if (AZARAC_ENABLE_VOLCANO)
 // ---------------------------------------------------------------------------
-// Volcano  (disaster_category == 8)
+// Volcano  (disaster_category == 8)  — IS-QZSS-DCR-016 §4.1.2.3.8
 // ---------------------------------------------------------------------------
 void Decoder::decodeVolcano(const uint8_t* b, Message& out, uint32_t report_unix) {
     Mt43Data* d = out.getMt43();
@@ -345,7 +345,7 @@ void Decoder::decodeVolcano(const uint8_t* b, Message& out, uint32_t report_unix
 
 #if (AZARAC_ENABLE_ASH_FALL)
 // ---------------------------------------------------------------------------
-// Ash Fall  (disaster_category == 9)
+// Ash Fall  (disaster_category == 9)  — IS-QZSS-DCR-016 §4.1.2.3.9
 // ---------------------------------------------------------------------------
 void Decoder::decodeAshFall(const uint8_t* b, Message& out, uint32_t report_unix) {
     Mt43Data* d = out.getMt43();
@@ -375,7 +375,7 @@ void Decoder::decodeAshFall(const uint8_t* b, Message& out, uint32_t report_unix
 
 #if (AZARAC_ENABLE_WEATHER)
 // ---------------------------------------------------------------------------
-// Weather  (disaster_category == 10)
+// Weather  (disaster_category == 10)  — IS-QZSS-DCR-016 §4.1.2.3.10
 // ---------------------------------------------------------------------------
 void Decoder::decodeWeather(const uint8_t* b, Message& out, uint32_t report_unix) {
     (void)report_unix;
@@ -403,7 +403,7 @@ void Decoder::decodeWeather(const uint8_t* b, Message& out, uint32_t report_unix
 
 #if (AZARAC_ENABLE_FLOOD)
 // ---------------------------------------------------------------------------
-// Flood  (disaster_category == 11)
+// Flood  (disaster_category == 11)  — IS-QZSS-DCR-016 §4.1.2.3.11
 // ---------------------------------------------------------------------------
 void Decoder::decodeFlood(const uint8_t* b, Message& out, uint32_t report_unix) {
     (void)report_unix;
@@ -436,7 +436,7 @@ void Decoder::decodeFlood(const uint8_t* b, Message& out, uint32_t report_unix) 
 
 #if (AZARAC_ENABLE_MARINE)
 // ---------------------------------------------------------------------------
-// Marine  (disaster_category == 14)
+// Marine  (disaster_category == 14)  — IS-QZSS-DCR-016 §4.1.2.3.13
 // ---------------------------------------------------------------------------
 void Decoder::decodeMarine(const uint8_t* b, Message& out, uint32_t report_unix) {
     (void)report_unix;
@@ -465,7 +465,7 @@ void Decoder::decodeMarine(const uint8_t* b, Message& out, uint32_t report_unix)
 
 #if (AZARAC_ENABLE_TYPHOON)
 // ---------------------------------------------------------------------------
-// Typhoon  (disaster_category == 12)
+// Typhoon  (disaster_category == 12)  — IS-QZSS-DCR-016 §4.1.2.3.12
 // IS-QZSS-DCR-016 Table 4.1.2-47
 // Bit layout (from preamble):
 //   [53..68]  Bt  Reference Time (day(5)+hour(5)+min(6))

@@ -2,6 +2,12 @@
 // azaraC - src/Mt43Data.h
 // MT=43 (QZQSM/DCR) data structures and tagged union
 // Bit offsets derived from azarashi (IS-QZSS-DCR-016)
+//
+// CONTRACT: every payload type (EewData, ..., MarineData) MUST remain
+// trivially copyable and trivially destructible (scalars, fixed arrays,
+// POD structs only, no owning pointers). Copy/move/destroy accordingly
+// reduce to memcpy / tag reset. Adding a non-trivial member (e.g.
+// std::string) breaks this header.
 
 #if defined(__AVR__)
 #include "internal/avr_std/cstdint"
@@ -18,20 +24,11 @@
 #else
 #include <new>
 #endif
-#if defined(__AVR__)
-#include "internal/avr_std/utility"
-#else
-#include <utility>
-#endif
 
 #include "azaraC_config.h"
 #include "internal/MtCommonTypes.h"
 
 #if AZARAC_ENABLE_NANKAI
-// Nankai Trough aggregated text buffer size
-// Auto-derived from AZARAC_NANKAI_MAX_PAGES in azaraC_config.h:
-//   AZARAC_NANKAI_AGGREGATED_TEXT_SIZE = AZARAC_NANKAI_MAX_PAGES * 18 + 1
-// Explicit override: #define AZARAC_NANKAI_AGGREGATED_TEXT_SIZE 1135
 #include "internal/NankaiPageBuffer.h"
 #endif
 
@@ -347,67 +344,15 @@ private:
     template<typename T> static ActiveType typeFor();
 
     void destroyActive() {
-        if (active_type == ActiveType::None) return;
-        switch (active_type) {
-            case ActiveType::Eew:            getEew()->~EewData(); break;
-            case ActiveType::Hypocenter:     getHypocenter()->~HypocenterData(); break;
-            case ActiveType::Seismic:        getSeismic()->~SeismicData(); break;
-#if AZARAC_ENABLE_NANKAI
-            case ActiveType::Nankai:         getNankai()->~NankaiData(); break;
-#endif
-            case ActiveType::Tsunami:        getTsunami()->~TsunamiData(); break;
-            case ActiveType::NwPacTsunami:    getNwPac()->~NwPacTsunamiData(); break;
-            case ActiveType::Volcano:        getVolcano()->~VolcanoData(); break;
-            case ActiveType::AshFall:        getAshFall()->~AshFallData(); break;
-            case ActiveType::Weather:        getWeather()->~WeatherData(); break;
-            case ActiveType::Flood:          getFlood()->~FloodData(); break;
-            case ActiveType::Typhoon:        getTyphoon()->~TyphoonData(); break;
-            case ActiveType::Marine:         getMarine()->~MarineData(); break;
-            case ActiveType::None: break;
-        }
-        active_type = ActiveType::None;
+        active_type = ActiveType::None;  // all payload types are trivially destructible → no-op
     }
 
     void copyFrom(const Mt43Data& other) {
-        if (other.active_type == ActiveType::None) return;
-        switch (other.active_type) {
-            case ActiveType::Eew:            new (storage_) EewData(*other.getEew()); break;
-            case ActiveType::Hypocenter:     new (storage_) HypocenterData(*other.getHypocenter()); break;
-            case ActiveType::Seismic:        new (storage_) SeismicData(*other.getSeismic()); break;
-#if AZARAC_ENABLE_NANKAI
-            case ActiveType::Nankai:         new (storage_) NankaiData(*other.getNankai()); break;
-#endif
-            case ActiveType::Tsunami:        new (storage_) TsunamiData(*other.getTsunami()); break;
-            case ActiveType::NwPacTsunami:    new (storage_) NwPacTsunamiData(*other.getNwPac()); break;
-            case ActiveType::Volcano:        new (storage_) VolcanoData(*other.getVolcano()); break;
-            case ActiveType::AshFall:        new (storage_) AshFallData(*other.getAshFall()); break;
-            case ActiveType::Weather:        new (storage_) WeatherData(*other.getWeather()); break;
-            case ActiveType::Flood:          new (storage_) FloodData(*other.getFlood()); break;
-            case ActiveType::Typhoon:        new (storage_) TyphoonData(*other.getTyphoon()); break;
-            case ActiveType::Marine:         new (storage_) MarineData(*other.getMarine()); break;
-            case ActiveType::None: break;
-        }
+        memcpy(storage_, other.storage_, storage_size_);  // all payload types are trivially copyable
     }
 
     void moveFrom(Mt43Data& other) {
-        if (other.active_type == ActiveType::None) return;
-        switch (other.active_type) {
-            case ActiveType::Eew:            new (storage_) EewData(std::move(*other.getEew())); break;
-            case ActiveType::Hypocenter:     new (storage_) HypocenterData(std::move(*other.getHypocenter())); break;
-            case ActiveType::Seismic:        new (storage_) SeismicData(std::move(*other.getSeismic())); break;
-#if AZARAC_ENABLE_NANKAI
-            case ActiveType::Nankai:         new (storage_) NankaiData(std::move(*other.getNankai())); break;
-#endif
-            case ActiveType::Tsunami:        new (storage_) TsunamiData(std::move(*other.getTsunami())); break;
-            case ActiveType::NwPacTsunami:    new (storage_) NwPacTsunamiData(std::move(*other.getNwPac())); break;
-            case ActiveType::Volcano:        new (storage_) VolcanoData(std::move(*other.getVolcano())); break;
-            case ActiveType::AshFall:        new (storage_) AshFallData(std::move(*other.getAshFall())); break;
-            case ActiveType::Weather:        new (storage_) WeatherData(std::move(*other.getWeather())); break;
-            case ActiveType::Flood:          new (storage_) FloodData(std::move(*other.getFlood())); break;
-            case ActiveType::Typhoon:        new (storage_) TyphoonData(std::move(*other.getTyphoon())); break;
-            case ActiveType::Marine:         new (storage_) MarineData(std::move(*other.getMarine())); break;
-            case ActiveType::None: break;
-        }
+        memcpy(storage_, other.storage_, storage_size_);  // move == copy for trivial types
         other.active_type = ActiveType::None;
     }
 };

@@ -2,7 +2,7 @@
 // AUTO-GENERATED from azarashi 0.16.4 with CI-CD
 // Source module : qzss_dcr_jma_long_period_ground_motion_upper_limit
 // Variable      : qzss_dcr_jma_long_period_ground_motion_upper_limit
-// Entries       : 7
+// Entries       : 8
 // Strategy      : switch
 
 // NOTE: This function may return nullptr for unknown IDs.

@@ -68,7 +68,8 @@ uint8_t decodeCityCodeList(uint64_t ex9, uint16_t* out_codes);
 // ---------------------------------------------------------------------------
 
 // Decode B1 refinement from A18 (15-bit field)
-// A18 = C1(3bit)[0:2] + C2(3bit)[3:5] + C3(3bit)[6:8] + C4(3bit)[9:11] + Reserved(3bit)[12:14]
+// C1 = a18[14:12] (3b), C2 = a18[11:9] (3b), C3 = a18[8:6] (3b),
+// C4 = a18[5:3] (3b), Reserved = a18[2:0] (3b)
 struct B1Refinement {
     uint8_t c1; // 3 bits - latitude refinement (0-7)
     uint8_t c2; // 3 bits - longitude refinement (0-7)
@@ -97,7 +98,6 @@ int32_t b1RefinedRadiusM(uint8_t code, int32_t base_radius_m, uint8_t original_r
 // ---------------------------------------------------------------------------
 
 struct B2HazardCenter {
-    bool    present;
     uint8_t c5;              // 7 bits - delta latitude raw
     uint8_t c6;              // 7 bits - delta longitude raw
     int32_t delta_lat_microdeg;   // Delta latitude in microdegrees (×1,000,000, range -10..+10)

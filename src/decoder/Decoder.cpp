@@ -63,37 +63,6 @@ uint64_t Decoder::getBits64(const uint8_t* buf, uint16_t start, uint8_t len) {
     return val;
 }
 
-// ---------------------------------------------------------------------------
-// Signed bit extraction (two's complement, MSB-first)
-// ---------------------------------------------------------------------------
-int32_t Decoder::getSignedBits(const uint8_t* buf, uint16_t start, uint8_t len) {
-    if (len == 0 || len > 32) return 0;
-    uint32_t val = getBits(buf, start, len);
-    // Sign extension: only if len < 32 to avoid undefined behavior (shift by 32)
-    if (len < 32 && (val & (1u << (len - 1)))) {
-        val |= 0xFFFFFFFFu << len;
-    }
-    return (int32_t)val;
-}
-
-// ---------------------------------------------------------------------------
-// Extract signed lat/lon pair from bitstream
-// Layout: lat_sign(1) lat_value(lat_bits) lon_sign(1) lon_value(lon_bits)
-// Result is in 0.1-degree units (multiply by 10)
-// ---------------------------------------------------------------------------
-void Decoder::extractSignedLatLon(const uint8_t* buf, uint16_t start, int16_t& lat_e1, int16_t& lon_e1,
-                                     uint8_t lat_bits, uint8_t lon_bits) {
-    uint8_t  lat_s = getBits(buf, start, 1);
-    uint32_t lat_v = getBits(buf, start + 1, lat_bits);
-    uint8_t  lon_s = getBits(buf, start + 1 + lat_bits, 1);
-    uint32_t lon_v = getBits(buf, start + 2 + lat_bits, lon_bits);
-    // Use int32_t arithmetic to avoid int16_t overflow for lat_bits > 11 or lon_bits > 11.
-    int32_t lat = (lat_s ? -static_cast<int32_t>(lat_v) : static_cast<int32_t>(lat_v)) * 10;
-    int32_t lon = (lon_s ? -static_cast<int32_t>(lon_v) : static_cast<int32_t>(lon_v)) * 10;
-    lat_e1 = static_cast<int16_t>(lat);
-    lon_e1 = static_cast<int16_t>(lon);
-}
-
 // Simple civil date to days since 1970-01-01
 void Decoder::civil_from_days(uint32_t days_since_1970, uint32_t& y, uint32_t& m, uint32_t& d) {
     uint32_t z = days_since_1970 + 719468u;

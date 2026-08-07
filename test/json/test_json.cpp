@@ -292,6 +292,13 @@ TEST_CASE("JSON Serialization: MT=43 EEW") {
     const auto& s = sp.str();
 
     CHECK(hasField(s,"\"disaster_category\":1"));
+    // S1-lookup regression: disaster_category は疎キー(binary_search)テーブル
+    CHECK(hasField(s,"\"disaster_category_label\":\"緊急地震速報\""));
+    // S1-lookup regression: seismic_intensity_lower/upper_limit の疎キーテーブル
+    CHECK(hasField(s,"\"intensity_lower_label\":\"震度4\""));
+    CHECK(hasField(s,"\"intensity_upper_label\":\"震度5弱\""));
+    // S1-lookup regression: eew_forecast_region の疎キーテーブル (code 1 → 北海道道央)
+    CHECK(hasField(s,"\"code\":1,\"label\":\"北海道道央\""));
     CHECK(has(s,"\"detail\":{"));
     CHECK(hasField(s,"\"depth\":60"));
     CHECK(hasField(s,"\"magnitude\":65"));
@@ -318,9 +325,12 @@ TEST_CASE("JSON Serialization: MT=43 Seismic Intensity") {
     const auto& s = sp.str();
 
     CHECK(hasField(s,"\"disaster_category\":3"));
+    CHECK(hasField(s,"\"disaster_category_label\":\"震度\""));
     CHECK(has(s,"\"entries\":["));
     CHECK(hasField(s,"\"intensity\":4"));
+    CHECK(hasField(s,"\"intensity_label\":\"5強\""));
     CHECK(hasField(s,"\"prefecture\":13"));
+    CHECK(hasField(s,"\"prefecture_label\":\"東京都\""));
 }
 #endif // AZARAC_ENABLE_SEISMIC
 
@@ -345,11 +355,14 @@ TEST_CASE("JSON Serialization: MT=43 Hypocenter") {
     const auto& s = sp.str();
 
     CHECK(hasField(s, "\"disaster_category\":2"));
+    CHECK(hasField(s, "\"disaster_category_label\":\"震源\""));
     CHECK(has(s, "\"detail\":{"));
     CHECK(hasField(s, "\"depth\":40"));
     CHECK(hasField(s, "\"magnitude\":64"));
     CHECK(hasField(s, "\"epicenter\":791"));
+    CHECK(hasField(s, "\"epicenter_label\":\"日向灘\""));
     CHECK(has(s, "\"notifications\":["));
+    CHECK(hasField(s, "\"code\":201,\"label\":\"強い揺れに警戒してください。\""));
 }
 #endif // AZARAC_ENABLE_HYPOCENTER
 
@@ -375,11 +388,14 @@ TEST_CASE("JSON Serialization: MT=43 Tsunami") {
     const auto& s = sp.str();
 
     CHECK(hasField(s, "\"disaster_category\":5"));
+    CHECK(hasField(s, "\"disaster_category_label\":\"津波\""));
     CHECK(has(s, "\"detail\":{"));
     CHECK(hasField(s, "\"warning_code\":3"));
+    CHECK(hasField(s, "\"warning_code_label\":\"津波警報\""));
     CHECK(has(s, "\"entries\":["));
     CHECK(hasField(s, "\"region\":65"));
     CHECK(hasField(s, "\"height\":4"));
+    CHECK(hasField(s, "\"height_label\":\"5m\""));
 }
 #endif // AZARAC_ENABLE_TSUNAMI
 
@@ -406,8 +422,10 @@ TEST_CASE("JSON Serialization: MT=43 Nankai Trough") {
     const auto& s = sp.str();
 
     CHECK(hasField(s, "\"disaster_category\":4"));
+    CHECK(hasField(s, "\"disaster_category_label\":\"南海トラフ地震\""));
     CHECK(has(s, "\"detail\":{"));
     CHECK(hasField(s, "\"info_code\":1"));
+    CHECK(has(s, "\"info_code_label\":\"調査中A"));
     CHECK(hasField(s, "\"page\":2"));
     CHECK(hasField(s, "\"total_page\":3"));
 }
@@ -433,9 +451,14 @@ TEST_CASE("JSON Serialization: MT=43 NW Pacific Tsunami") {
     const auto& s = sp.str();
 
     CHECK(hasField(s, "\"disaster_category\":6"));
+    CHECK(hasField(s, "\"disaster_category_label\":\"北西太平洋津波\""));
     CHECK(has(s, "\"detail\":{"));
     CHECK(hasField(s, "\"potential\":2"));
+    CHECK(hasField(s, "\"potential_label\":\"There is a Possibility of a Destructive Regional Tsunami\""));
     CHECK(has(s, "\"entries\":["));
+    CHECK(hasField(s, "\"height_label\":\"3m~5m\""));
+    // S1-lookup regression: coastal_region_en の疎キーテーブル (code 1 → Ust-Kamchatsk)
+    CHECK(hasField(s, "\"region\":1,\"region_label\":\"Ust-Kamchatsk (East Coasts of Kamchatka Peninsula)\""));
 }
 #endif // AZARAC_ENABLE_NW_PAC_TSUNAMI
 
@@ -460,9 +483,13 @@ TEST_CASE("JSON Serialization: MT=43 Volcano") {
     const auto& s = sp.str();
 
     CHECK(hasField(s, "\"disaster_category\":8"));
+    // S1-lookup regression: dc=8 は火山（修正前は array 戦略で降灰にズレていた）
+    CHECK(hasField(s, "\"disaster_category_label\":\"火山\""));
     CHECK(has(s, "\"detail\":{"));
     CHECK(hasField(s, "\"warning_code\":52"));
+    CHECK(hasField(s, "\"warning_code_label\":\"噴火\""));
     CHECK(hasField(s, "\"volcano_name\":503"));
+    CHECK(hasField(s, "\"volcano_name_label\":\"阿蘇山\""));
     CHECK(has(s, "\"local_govs\":["));
 }
 #endif // AZARAC_ENABLE_VOLCANO
@@ -492,10 +519,14 @@ TEST_CASE("JSON Serialization: MT=43 Ash Fall") {
     const auto& s = sp.str();
 
     CHECK(hasField(s, "\"disaster_category\":9"));
+    CHECK(hasField(s, "\"disaster_category_label\":\"降灰\""));
     CHECK(has(s, "\"detail\":{"));
     CHECK(hasField(s, "\"warning_type\":1"));
+    CHECK(hasField(s, "\"warning_type_label\":\"速報\""));
     CHECK(hasField(s, "\"volcano_name\":503"));
+    CHECK(hasField(s, "\"volcano_name_label\":\"阿蘇山\""));
     CHECK(has(s, "\"entries\":["));
+    CHECK(hasField(s, "\"warning_code\":2,\"warning_code_label\":\"やや多量の降灰\""));
 }
 #endif // AZARAC_ENABLE_ASH_FALL
 
@@ -523,11 +554,15 @@ TEST_CASE("JSON Serialization: MT=43 Weather") {
     const auto& s = sp.str();
 
     CHECK(hasField(s, "\"disaster_category\":10"));
+    CHECK(hasField(s, "\"disaster_category_label\":\"気象\""));
     CHECK(has(s, "\"detail\":{"));
     CHECK(hasField(s, "\"warning_state\":1"));
+    CHECK(hasField(s, "\"warning_state_label\":\"発表\""));
     CHECK(has(s, "\"entries\":["));
     CHECK(hasField(s, "\"sub_category\":2"));
+    CHECK(hasField(s, "\"sub_category_label\":\"大雨特別警報\""));
     CHECK(hasField(s, "\"region\":11000"));
+    CHECK(hasField(s, "\"region_label\":\"宗谷地方\""));
 }
 #endif // AZARAC_ENABLE_WEATHER
 
@@ -552,9 +587,11 @@ TEST_CASE("JSON Serialization: MT=43 Flood") {
     const auto& s = sp.str();
 
     CHECK(hasField(s, "\"disaster_category\":11"));
+    CHECK(hasField(s, "\"disaster_category_label\":\"洪水\""));
     CHECK(has(s, "\"detail\":{"));
     CHECK(has(s, "\"entries\":["));
     CHECK(hasField(s, "\"warning_level\":3"));
+    CHECK(hasField(s, "\"warning_level_label\":\"氾濫危険情報\""));
 }
 #endif // AZARAC_ENABLE_FLOOD
 
@@ -584,10 +621,12 @@ TEST_CASE("JSON Serialization: MT=43 Typhoon") {
     const auto& s = sp.str();
 
     CHECK(hasField(s, "\"disaster_category\":12"));
+    CHECK(hasField(s, "\"disaster_category_label\":\"台風\""));
     CHECK(has(s, "\"detail\":{"));
     CHECK(hasField(s, "\"number\":21"));
     CHECK(hasField(s, "\"scale\":3"));
     CHECK(hasField(s, "\"intensity\":2"));
+    CHECK(hasField(s, "\"intensity_label\":\"非常に強い\""));
     CHECK(hasField(s, "\"pressure\":980"));
     CHECK(hasField(s, "\"max_wind\":35"));
     CHECK(hasField(s, "\"max_gust\":50"));
@@ -615,10 +654,14 @@ TEST_CASE("JSON Serialization: MT=43 Marine") {
     const auto& s = sp.str();
 
     CHECK(hasField(s, "\"disaster_category\":14"));
+    // S1-lookup regression: dc=14 は海上（修正前は array 戦略で out-of-bounds→空）
+    CHECK(hasField(s, "\"disaster_category_label\":\"海上\""));
     CHECK(has(s, "\"detail\":{"));
     CHECK(has(s, "\"entries\":["));
     CHECK(hasField(s, "\"warning_code\":19"));
     CHECK(hasField(s, "\"region\":100"));
+    // 疎キー negative: marine warning code 19 は未定義→空、20 → 海上風警報
+    CHECK(hasField(s, "\"warning_code\":20,\"warning_code_label\":\"海上風警報\""));
 }
 #endif // AZARAC_ENABLE_MARINE
 

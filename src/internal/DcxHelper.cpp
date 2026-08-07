@@ -205,11 +205,10 @@ int32_t b1RefinedRadiusM(uint8_t code, int32_t base_radius_m, uint8_t original_r
 
 B2HazardCenter decodeB2HazardCenter(uint8_t c5, uint8_t c6) {
     B2HazardCenter r{};
-    r.present = true;
     r.c5 = c5;
     r.c6 = c6;
-    // delta = -10 + 20 * code / 128  → microdegrees (×1,000,000)
-    // 20000000 / 128 = 156250 (exact)
+    // delta = -10 + 20 * code / 128 → microdegrees; code 64..127 rounds up (+1)
+    // gives exact +10,000,000 at code=127
     if (c5 <= 63) r.delta_lat_microdeg = -10000000 + 156250 * c5;
     else          r.delta_lat_microdeg = -10000000 + 156250 * (c5 + 1);
     if (c6 <= 63) r.delta_lon_microdeg = -10000000 + 156250 * c6;

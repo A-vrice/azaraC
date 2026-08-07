@@ -1,4 +1,4 @@
-// azaraC - src/internal/JsonSerializerDcx.cpp
+// azaraC - src/json/JsonSerializerDcx.cpp
 // MT=44 DCX JSON serializer
 
 #include "azaraC.h"

@@ -1,4 +1,4 @@
-// azaraC - src/internal/JsonSerializerQzqsm.cpp
+// azaraC - src/json/JsonSerializerQzqsm.cpp
 // MT=43 QZQSM JSON serializer
 
 #include "azaraC.h"
@@ -255,6 +255,30 @@ bool serializeVolcano(const Mt43Data* d, Print& out) {
 #endif // AZARAC_ENABLE_VOLCANO
 
 #if (AZARAC_ENABLE_ASH_FALL)
+// Dw1 Warning Type label (IS-QZSS-DCR-016 Table 4.1.2-35):
+//   1 = Ash Fall Forecast (Preliminary) = 速報
+//   2 = Ash Fall Forecast (Detailed)   = 詳細
+// azarashi 0.16.4 は辞書テーブルを持たずデコーダでハードコードしているため、
+// 定義ヘッダには存在しない。仕様準拠のラベルをここで提供する。
+static std::optional<std::string_view> ashFallWarningTypeLabel(uint8_t code) {
+#if AZARAC_LANG_JA
+    switch (code) {
+        case 1: return std::string_view{"速報", 6};
+        case 2: return std::string_view{"詳細", 6};
+        default: return std::nullopt;
+    }
+#elif AZARAC_LANG_EN
+    switch (code) {
+        case 1: return std::string_view{"Preliminary", 11};
+        case 2: return std::string_view{"Detailed", 8};
+        default: return std::nullopt;
+    }
+#else
+    (void)code;
+    return std::nullopt;
+#endif
+}
+
 bool serializeAshFall(const Mt43Data* d, Print& out) {
     using namespace azaraC::def;
     
@@ -263,8 +287,7 @@ bool serializeAshFall(const Mt43Data* d, Print& out) {
     
     writeDHM(out, "activity_time", ash->activity_time);
     wf_u(out, "warning_type", ash->warning_type);
-    wf_s(out, "warning_type_label",
-        qzss_dcr_jma_ash_fall_warning_code_lookup(ash->warning_type));
+    wf_s(out, "warning_type_label", ashFallWarningTypeLabel(ash->warning_type));
     wf_u(out, "volcano_name", ash->volcano_name);
     wf_s(out, "volcano_name_label",
         qzss_dcr_jma_volcano_name_lookup(ash->volcano_name));

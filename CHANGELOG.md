@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **タグ付き共用体のコピー/ムーブ/破棄を memcpy 化**: `Mt43Data.h` / `Message.h` の手動タグ付きユニオンは、全ペイロード型（`EewData`〜`MarineData`、`Mt43Data`/`Mt44Data`）が trivially copyable + trivially destructible なため、placement-new + 12 分岐 switch の手書き `destroyActive`/`copyFrom`/`moveFrom`（および `destroyPayload`/`copyPayloadFrom`/`movePayloadFrom`）を、それぞれ `memcpy`（コピー/ムーブ）とタグリセット（破棄）の 1〜2 行に簡略化。ムーブは trivial 型ではコピーと同値（送り元タグのみリセット）。`#include <utility>` を削除（`std::move` 使用箇所が消滅）。構造体レイアウト・外的 API は不変（sizeof ガード・既存テスト全 368 件 + pgm-stub AVR パスで確認）。ヘッダコメントに「全ペイロード型は trivially copyable + trivially destructible を維持必須」の契約を明記。
+- **`NankaiPageBuffer` の getTextLength/getText 共通化**: 1 ページあたり有効長（NUL まで）を返す private ヘルパー `pageTextLength_()` を抽出し、同一のビットマップ走査 + ページ NUL 読み取りループの二重実装を解消（約 8 行削減）。
 - **`Message::clear()` 追加**: デコード時の二重ゼロ初期化（`out = {}` → `initPayload` で `~350B` の冗長 `memset`）を除去。
   `Decoder::decode` と `Parser::postDecode` で `out.clear()` を使用し、ペイロード破棄＋スカラーリセットのみを行う。
 - **冗長フィールド再設定を削除**: `Decoder::decode` 内の `out.valid = false` / `out.payload_type = Empty`（`clear()` が既に設定済み）。
@@ -39,8 +41,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `AZARAC_FLASH_BUF_SIZE` の AVR デフォルトを条件化: DCX/CAMF 有効時は 800 B（最長ラベル 683 B をカバー）、それ以外は 64 B のまま。
 - **AVR プールの NUL エスケープ修正**: 定義テーブル生成スクリプトがプール区切り NUL を `\0` と出力し、後続が数字始まりのラベル（例: `"112.5"`）と連結されて 8 進エスケープ化（`\011` 等）されていた。`\000`（3 桁）に修正し、既存ヘッダ 44 ファイルを修復（AVR 分岐のラベル参照が壊れていた。非 AVR は影響なし）。
 - **MT=43 カテゴリ定義を X-macro で一元化**: `DecoderQzqsm` のカテゴリサポート判定・既知分類・サブデコーダディスパッチを単一の `AZARAC_DC_CATEGORIES` テーブルから生成し、`Decoder.h` のサブデコーダ宣言を無条件化。
+- **コメントと実装の乖離修正 (S2)**: 実装と逆だった `DcxHelper.h` の B1 ビットレイアウトコメント（`a18[14:12]` 始まりの MSB 順に修正）、`DcxHelper.cpp` の B2 delta 式（code 64..127 の切り上げを明記）、`UbxFramer.h/cpp` の sigId（`∈{0,1}`）と 8 ワード目末尾 6 ビット（parity → padding）、`NmeaFramer.cpp` の 252 bit（250 data + 2 bit ゼロ詰め）記載、`Parser.h` の `getNankaiBuffer` 戻り値説明、`NankaiPageBuffer.h` の `clear()` 説明、`DecoderDcx.cpp` の spec 版数（DCX-003 → DCX-004、EWSS CAMF v1.1/v1.2 注記）を修正。
+- **死マクロ削除**: 実コードで未使用だった `AZARAC_DCX_USE_FLOAT`（`DecodedEllipse` は元々 int32_t 固定で double/float 切替なし）と `AZARAC_NANKAI_AGGREGATED_TEXT_SIZE`（実サイズは `MAX_PAGES * TEXT_PER_PAGE + 1` で直接計算）を `azaraC_config.h` 等から削除し、関連コメントと `test/Makefile` の `-D` フラグを除去。
+- **`PrintShim.h`**: ホストテスト用 `StringPrint` に `print(const void*)` の override を追加（未オーバーライドだと基底の `fputs` で stdout に漏れていた）。
+- **降灰 `warning_type_label` の誤ラベルを修正**: `warning_type`（IS-QZSS-DCR-016 Table 4.1.2-35 の `Dw1`、1=速報/Preliminary, 2=詳細/Detailed）に降灰コードテーブル（Table 4.1.2-36: 1=少量の降灰, 2=やや多量の降灰）を誤使用していた。Warning Type 用ラベル関数 `ashFallWarningTypeLabel()` を追加し、正しい「速報/詳細」（EN: Preliminary/Detailed）を出力するよう修正（azarashi 0.16.4 と同じ挙動）。
+
+### Added
+
+- **ラベル文字列出力のテスト追加**: `test/json/test_json.cpp` の全 QZQSM カテゴリ（EEW/Hypocenter/Seismic/Nankai/Tsunami/NWPac/Volcano/AshFall/Weather/Flood/Typhoon/Marine）に `_label` フィールドのアサーションを追加（+36 件）。S1 の疎キー array バグ（ラベルズレ）を将来検出可能にする。降灰の `warning_type_label` は修正後の「速報」を検証。
+- **azarashi ラベル突合の復活**: `test/scripts/compare_with_azarashi.py` に `LABEL_MAPPING` を追加し、`_ignore` でスキップしていた約 20 種のラベル文字列（`disaster_category`、`report_classification`、`information_type`、`seismic_intensity_*`、`eew_forecast_regions`、`tsunami_*`、`marine_*`、`local_governments` 等）を azarashi と直接比較。realdata 全 974 メッセージで 0 差分を確認。ラベルはメッセージ種別により AzaraC 側の配置が異なるため複数候補パス（例: 降灰の `local_governments` → `entries[].local_gov_label`、火山 → `local_govs[].label`）に対応。リストラベルは `flatten_dict` が `key[0]` 形式に展開するため、当初の実装は裸キーの存在チェックで全リストラベルをスキップしていた。存在チェックを「裸キー OR `key[i]` 形式」に修正し、リストラベルも実際に比較されるようにした。
+- **`DecoderQzqsm.cpp` に仕様節番号を追記**: 12 のサブデコーダのブロックコメントに IS-QZSS-DCR-016 の節番号（§4.1.2.3.2〜§4.1.2.3.13）を追加。
 
 ### Fixed
+
+- **生成定義テーブルの疎キー array バグ（ラベルズレ）**: `scripts/gen/strategy.py` の `choose()` が fill_ratio ≥ 0.6 の疎キー辞書（キーに欠番がある辞書）を `id - BASE` で索引する array 戦略に落とし、欠番以降の全エントリのラベルがズレていた。`fill >= 0.6 && span == n`（キー連続）の場合のみ array を選ぶよう修正し、`disaster_category`（8=火山 が 降灰 に化けていた）、`eew_forecast_region`（80=その他府県予報区）、`seismic_intensity_{lower,upper}_limit`、`coastal_region_en` の 6 テーブルを `binary_search`（明示 ID 索引）に切替。定義ヘッダを azarashi 0.16.4 で再生成（Source module ラベルを最新構造に統一）。
 
 - **`DecoderDcx.cpp`**: `onset_time` 解決の UNIX 時刻比較定数を `315964800u` → `946684800u` (2000-01-01) に修正。
 - **`NankaiPageBuffer.h`**: `NankaiPageKey` の fallback フィールドに `= 0` デフォルト初期化子を追加（不定値防止）。

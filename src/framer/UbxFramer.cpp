@@ -1,4 +1,4 @@
-// azaraC - src/internal/UbxFramer.cpp
+// azaraC - src/framer/UbxFramer.cpp
 
 #include "UbxFramer.h"
 #include "definition/_index.h"
@@ -71,7 +71,7 @@ bool UbxFramer::parse(Frame& out) {
     uint8_t sigId    = _buf[2];
     uint8_t numWords = _buf[4];
 
-    // QZSS gnssId=5, L1S sigId=0
+    // QZSS gnssId=5, L1S sigId=0 or 1
     if (gnssId != 5)  return false;
     if (sigId != 0 && sigId != 1) return false;
     if (numWords < 8) return false;  // L1S subframe = 8 words × 32 bits = 256 bits (250 data bits)
@@ -79,7 +79,7 @@ bool UbxFramer::parse(Frame& out) {
 
     // Pack 250 nav bits MSB-first into out.bits[32].
     // For QZSS L1S, u-blox RXM-SFRBX provides 8 words of 32 bits (256 bits total).
-    // The first 250 bits are data, and the last 6 bits of the 8th word are parity.
+    // The first 250 bits are data, and the last 6 bits of the 8th word are padding (zero-filled).
     memset(out.bits, 0, sizeof(out.bits));
     uint16_t bit_pos = 0;
     for (uint8_t w = 0; w < numWords && bit_pos < 250; ++w) {
