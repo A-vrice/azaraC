@@ -137,18 +137,39 @@ TimeFields Decoder::resolveTime(uint8_t month, uint8_t day, uint8_t hour, uint8_
     civil_from_days(base_days, y, m, d);
 
     if (month == 0) {
-        // Month not provided (DHM only): resolve month/year from base with day-wrap correction
-        // ±15 day heuristic: assumes message arrival delay ≤ 15 days relative to report_unix.
-        // This is safe for near-real-time QZSS signals (typical delay < 1 day).
-        // Edge case: report close to month boundary with message from far past/future
-        // (e.g., report Jan 1, message day 16 from prior Dec) may resolve incorrectly
-        // if the day difference exceeds 15. On embedded targets without persistent RTC
-        // this is an acceptable trade-off.
-        int32_t diff = (int32_t)day - (int32_t)d;
-        if (diff > 15) {
-            if (m == 1) { m = 12; y--; } else { m--; }
-        } else if (diff < -15) {
-            if (m == 12) { m = 1; y++; } else { m++; }
+        // Month not provided (DHM only): resolve month/year from base.
+        // extractDHM serves event times (quake_time, activity_time, reference_time)
+        // broadcast near-real-time, so the true timestamp is the occurrence of
+        // (day,hour,minute) closest to report_unix. A small margin (a few days,
+        // covering clock drift and day/month boundary crossings) keeps the
+        // closest match when the event is near the report — e.g. report 01/31
+        // 23:00 + event 02/01 02:00 correctly resolves to February. Farther than
+        // the margin the message is stale and the event cannot be in the future,
+        // so fall back to the most recent PAST occurrence.
+        static constexpr uint32_t MARGIN_SEC = 3u * 86400u; // a few days
+        uint32_t best_y = y, best_m = m;
+        uint32_t best_diff = 0xFFFFFFFFu;
+        for (int8_t dm = -1; dm <= 1; ++dm) {
+            int32_t cm = (int32_t)m + dm;
+            uint32_t cy = y, cand_m;
+            if      (cm <= 0) { cand_m = 12; cy = y - 1; }
+            else if (cm >= 13) { cand_m = 1;  cy = y + 1; }
+            else              { cand_m = (uint32_t)cm; }
+            uint32_t ts = days_from_civil(cy, cand_m, day) * 86400u
+                        + (uint32_t)hour * 3600u + (uint32_t)minute * 60u;
+            uint32_t diff = ts > base_unix ? ts - base_unix : base_unix - ts;
+            if (diff < best_diff) { best_diff = diff; best_y = cy; best_m = cand_m; }
+        }
+        if (best_diff <= MARGIN_SEC) {
+            y = best_y;
+            m = best_m;
+        } else {
+            // Stale: most recent occurrence on/before report_unix (never future).
+            uint32_t cur_ts = days_from_civil(y, m, day) * 86400u
+                            + (uint32_t)hour * 3600u + (uint32_t)minute * 60u;
+            if (cur_ts > base_unix) {
+                if (m == 1) { m = 12; y--; } else { m--; }
+            }
         }
     } else {
         // Month provided (MDHM): resolve year from base with month-wrap correction

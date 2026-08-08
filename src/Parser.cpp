@@ -21,24 +21,9 @@ bool Parser::feed(uint8_t byte, Message& out, uint32_t report_unix) {
         return postDecode(decoded, out);
     }
 
-    // --- AUTO モード: UBX優先試行（UBXはバイナリ、NMEAはASCIIで競合しない）---
-    bool ubx_ok  = false;
-    bool nmea_ok = false;
-
-    switch (_mode) {
-    case Mode::UBX:
-        ubx_ok = _ubx.feed(byte, frame);
-        break;
-    case Mode::NMEA:
-        nmea_ok = _nmea.feed(byte, frame);
-        break;
-    case Mode::AUTO:
-    default:
-        ubx_ok  = _ubx.feed(byte, frame);
-        if (!ubx_ok) nmea_ok = _nmea.feed(byte, frame);
-        break;
-    }
-
+    // --- AUTO 常時: UBX優先試行（UBXはバイナリ、NMEAはASCIIで競合しない）---
+    bool ubx_ok = _ubx.feed(byte, frame);
+    bool nmea_ok = ubx_ok ? false : _nmea.feed(byte, frame);
     if (!ubx_ok && !nmea_ok) return false;
 
     Message decoded;
@@ -154,7 +139,6 @@ void Parser::reset() {
 #if AZARAC_ENABLE_NANKAI
     _nankaiBuffers.clearAll();
 #endif
-    _mode = Mode::AUTO;
 }
 
 } // namespace azaraC

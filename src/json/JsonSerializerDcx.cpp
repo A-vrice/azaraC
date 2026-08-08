@@ -299,7 +299,7 @@ writeDField("d36_typhoon_cat",      b4.d_values[35], b4.d_present[35], qzss_dcx_
                 std::optional<std::string_view> label = qzss_dcr_jma_prefecture_lookup(pos);
                 writeOptStr(out, label);
             }
-            out.print(']');
+            out.print("],");
         } else {
             // City/town/village codes
             wk(out, "city_codes");
@@ -320,9 +320,11 @@ writeDField("d36_typhoon_cat",      b4.d_values[35], b4.d_present[35], qzss_dcx_
                                        qzss_dcx_ex1_target_area_code_en_lookup, code);
                 writeOptStr(out, label);
             }
-            out.print(']');
+            out.print("],");
         }
-        wf_u(out, "ex_vn", d->ex_jalert.vn);
+        wf_u(out, "ex_vn", d->ex_jalert.vn, /*last=*/true);
+        out.print('}');
+        writeChar(out, ',');
     } else if (d->ex_kind == ExtendedKind::OutsideJapan) {
         // EX11 raw data (68 bits) - output as hex string
         wk(out, "ex11_raw");

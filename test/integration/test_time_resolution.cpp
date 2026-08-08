@@ -33,6 +33,53 @@ TEST_CASE("Time: resolveTime with year boundary crossing") {
     CHECK(t.unix_time == daysFromCivil(2023, 12, 15) * 86400u);
 }
 
+TEST_CASE("Time: resolveTime DHM month-end event (base Jan 31, day 15)") {
+    // extractDHM は過去のイベント時刻専用。base = 2024-01-31。
+    // day=15 の最寄りは Feb 15（15日後）だが、マージン(3日)を超えるため stale →
+    // 過去の直近発生 Jan 15 にフォールバック。旧 ±15 は Feb 15 と誤判定していた。
+    uint32_t now = daysFromCivil(2024, 1, 31) * 86400u;
+    TimeFields t = TestDecoder::testResolveTime(0, 15, 0, 0, now);
+    CHECK(t.month == 1);
+    CHECK(t.day == 15);
+    CHECK(t.unix_time == daysFromCivil(2024, 1, 15) * 86400u);
+}
+
+TEST_CASE("Time: resolveTime DHM same-day event (base Jan 31, day 31)") {
+    uint32_t now = daysFromCivil(2024, 1, 31) * 86400u;
+    TimeFields t = TestDecoder::testResolveTime(0, 31, 0, 0, now);
+    CHECK(t.month == 1);
+    CHECK(t.day == 31);
+    CHECK(t.unix_time == daysFromCivil(2024, 1, 31) * 86400u);
+}
+
+TEST_CASE("Time: resolveTime DHM future-in-month steps back (base Mar 1, day 15)") {
+    // base = 2024-03-01。day=15 の最寄りは Mar 15（14日後）だがマージン(3日)を超える →
+    // stale → 過去の直近 February 15 にフォールバック。
+    uint32_t now = daysFromCivil(2024, 3, 1) * 86400u;
+    TimeFields t = TestDecoder::testResolveTime(0, 15, 0, 0, now);
+    CHECK(t.month == 2);
+    CHECK(t.day == 15);
+    CHECK(t.unix_time == daysFromCivil(2024, 2, 15) * 86400u);
+}
+
+TEST_CASE("Time: resolveTime DHM mid-month (base Mar 15, day 15)") {
+    uint32_t now = daysFromCivil(2024, 3, 15) * 86400u;
+    TimeFields t = TestDecoder::testResolveTime(0, 15, 0, 0, now);
+    CHECK(t.month == 3);
+    CHECK(t.day == 15);
+    CHECK(t.unix_time == daysFromCivil(2024, 3, 15) * 86400u);
+}
+
+TEST_CASE("Time: resolveTime DHM day/month boundary (report 1/31 23:00, day 1 02:00)") {
+    // イベントが翌月1日02:00、報告が1/31 23:00（3時間後）。closest は Feb 1 02:00
+    // （3時間差）でマージン内 → 正しく February に解決。pure past-bias は Jan 1 と誤る。
+    uint32_t now = daysFromCivil(2024, 1, 31) * 86400u + 23 * 3600u;
+    TimeFields t = TestDecoder::testResolveTime(0, 1, 2, 0, now);
+    CHECK(t.month == 2);
+    CHECK(t.day == 1);
+    CHECK(t.unix_time == daysFromCivil(2024, 2, 1) * 86400u + 2 * 3600u);
+}
+
 TEST_CASE("Time: resolveTime with month wrap-around (MDHM)") {
     // report_unix = 2024-05-15 00:00:00 UTC (5月)
     uint32_t now = daysFromCivil(2024, 5, 15) * 86400u;

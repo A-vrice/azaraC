@@ -366,6 +366,8 @@ TEST_CASE("resolveTime: 日付のラップアラウンド（月末→月初）")
 
 TEST_CASE("resolveTime: 日付のラップアラウンド（月初→月末）") {
     uint32_t now = daysFromCivil(2024, 1, 31) * 86400u;
+    // day=1 は base から1日後（Feb 1）が最も近い（closest-within-margin）→ Feb。
+    // 旧 ±15・ハイブリッドとも一致。
     TimeFields t = TestDecoder::testResolveTime(0, 1, 0, 0, now);
     uint32_t expected = daysFromCivil(2024, 2, 1) * 86400u;
     CHECK(t.unix_time == expected);

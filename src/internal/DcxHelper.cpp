@@ -207,6 +207,13 @@ B2HazardCenter decodeB2HazardCenter(uint8_t c5, uint8_t c6) {
     B2HazardCenter r{};
     r.c5 = c5;
     r.c6 = c6;
+    // NOTE: This is an approximation. The EWSS-CAMF v1.1 §3.7.2 C5/C6 table skips
+    // 0.0° (no code maps to it) and uses non-linear spacing around zero.
+    // Current heuristics: linear for c<=63, +1 offset for c>=64, giving exact
+    // -10°/+10° at endpoints 0/127. Mid-range values near the zero-crossing
+    // (codes ~62-65) differ up to ~0.3° from the spec table. For hazard-center
+    // positioning this is acceptable. Full table match (128 × 4 bytes × 2) is
+    // possible but costs ~1KB PROGMEM; defer until azarashi reference confirms spec intent.
     // delta = -10 + 20 * code / 128 → microdegrees; code 64..127 rounds up (+1)
     // gives exact +10,000,000 at code=127
     if (c5 <= 63) r.delta_lat_microdeg = -10000000 + 156250 * c5;

@@ -5,11 +5,8 @@
 #else
 #include <cstdint>
 #endif
-#if defined(__AVR__)
-#include "../internal/avr_std/iterator"
-#else
-#include <iterator>
-#endif
+// TODO(azarashi): stop emitting avr_std/iterator include — AVR branch uses a fixed
+// binary-search bound (hi = 34) and never calls std::size. See ponytail-review.
 #if defined(__AVR__)
 #include "../internal/avr_std/optional"
 #else

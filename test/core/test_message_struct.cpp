@@ -87,41 +87,6 @@ TEST_CASE("Message: コピー代入演算子") {
     CHECK(msg2.getMt44() != nullptr);
 }
 
-TEST_CASE("Message: ムーブコンストラクタ") {
-    Message msg1;
-    msg1.svid = 186;
-    msg1.msg_type = 43;
-    msg1.crc24 = 0xABCDEF;
-    msg1.valid = true;
-    msg1.initPayload<Mt43Data>();
-
-    Message msg2(std::move(msg1));
-    CHECK(msg2.svid == 186);
-    CHECK(msg2.msg_type == 43);
-    CHECK(msg2.crc24 == 0xABCDEF);
-    CHECK(msg2.valid == true);
-    CHECK(msg2.payload_type == MsgPayloadType::Mt43);
-    CHECK(msg2.getMt43() != nullptr);
-}
-
-TEST_CASE("Message: ムーブ代入演算子") {
-    Message msg1;
-    msg1.svid = 187;
-    msg1.msg_type = 44;
-    msg1.crc24 = 0xFEDCBA;
-    msg1.valid = true;
-    msg1.initPayload<Mt44Data>();
-
-    Message msg2;
-    msg2 = std::move(msg1);
-    CHECK(msg2.svid == 187);
-    CHECK(msg2.msg_type == 44);
-    CHECK(msg2.crc24 == 0xFEDCBA);
-    CHECK(msg2.valid == true);
-    CHECK(msg2.payload_type == MsgPayloadType::Mt44);
-    CHECK(msg2.getMt44() != nullptr);
-}
-
 // ── Mt43Dataの安全なタグ付き共用体のテスト ──────────────────────────────────
 
 TEST_CASE("Mt43Data: デフォルトコンストラクタ") {

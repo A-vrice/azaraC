@@ -252,6 +252,9 @@ TEST_CASE("JSON DCX EX1 city codes with labels") {
     // The label should contain "Sapporo" (EN) or "札幌" (JA)
     // At minimum we should NOT see null labels for known codes
     CHECK(s.find("\"city_labels\":[null]") == std::string::npos);
+    // Regression: ex_vn must be preceded by a comma (was "]\"ex_vn\"" — invalid JSON)
+    CHECK(s.find("],\"ex_vn\"") != std::string::npos);
+    CHECK(s.find("]\"ex_vn\"") == std::string::npos);
 }
 
 TEST_CASE("JSON DCX EX1 city codes multiple entries") {

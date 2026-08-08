@@ -51,8 +51,6 @@ private:
 #endif
     internal::IFramer*               _custom = nullptr;
 
-    enum class Mode : uint8_t { AUTO, UBX, NMEA, CUSTOM };
-    Mode _mode = Mode::AUTO;
     // Common post-decode handler: Nankai aggregation → dedup → copy to out.
     // Extracted to eliminate duplication between custom framer and AUTO mode paths.
     // Returns true if message should be output (valid, non-duplicate, aggregation handled).

@@ -137,6 +137,10 @@ TEST_CASE("JSON Serialization: MT=44 DCX J-Alert") {
     CHECK(has(s, "\"jalert_target\":{"));
     CHECK(hasField(s, "\"prefecture_mode\":1"));
     CHECK(hasField(s, "\"prefecture_positions\":[47,46,45]"));
+    // Regression: ex_vn must be preceded by a comma after the labels array close
+    // (was "]\"ex_vn\"" — invalid JSON). See bugfix: JAlert JSON missing comma.
+    CHECK(s.find("],\"ex_vn\"") != std::string::npos);
+    CHECK(s.find("]\"ex_vn\"") == std::string::npos);
 }
 
 TEST_CASE("JSON Serialization: MT=44 DCX Local Government") {
@@ -685,6 +689,36 @@ TEST_CASE("JSON Serialization: Balanced braces/brackets") {
             prev = c;
         }
         CHECK_MESSAGE((brace == 0 && bracket == 0), "json=", s.c_str());
+        // Missing-comma guard: a closing bracket/brace must not be immediately
+        // followed by a key's opening quote (would be "]\"key\"" / "}\"key\"").
+        // Regression for the JAlert prefecture_labels/city_labels comma bug.
+        for (size_t i = 1; i < s.size(); ++i) {
+            if ((s[i-1] == ']' || s[i-1] == '}') && s[i] == '"') {
+                const std::string msg = "missing comma after closing bracket at idx "
+                                        + std::to_string(i) + " json=" + s;
+                FAIL(msg.c_str());
+            }
+        }
+        // Double-comma guard: a field separator must not be doubled (",,").
+        // Catches a field emitted with a trailing comma before a closing brace
+        // that is itself followed by another comma.
+        for (size_t i = 1; i < s.size(); ++i) {
+            if (s[i-1] == ',' && s[i] == ',') {
+                const std::string msg = "double comma at idx "
+                                        + std::to_string(i) + " json=" + s;
+                FAIL(msg.c_str());
+            }
+        }
+        // Trailing-comma guard: a comma must not precede a closing brace/bracket
+        // (",}" / ",]"). JSON forbids trailing commas in objects/arrays. Catches
+        // a field emitted with last=false immediately before its closing brace.
+        for (size_t i = 1; i < s.size(); ++i) {
+            if (s[i-1] == ',' && (s[i] == '}' || s[i] == ']')) {
+                const std::string msg = "trailing comma before closing at idx "
+                                        + std::to_string(i) + " json=" + s;
+                FAIL(msg.c_str());
+            }
+        }
     };
 
     SUBCASE("Disaster Categories 1-14") {
@@ -697,6 +731,56 @@ TEST_CASE("JSON Serialization: Balanced braces/brackets") {
     SUBCASE("MT=44") {
         Message m{}; initMt44(m);
         test_balanced(m);
+    }
+    SUBCASE("MT=44 JAlert prefecture mode") {
+        Message m{}; initMt44(m);
+        Mt44Data* mt44 = m.getMt44();
+        mt44->service_kind = Mt44ServiceKind::JAlert;
+        mt44->is_null_message = false;
+        mt44->ex_kind = ExtendedKind::JAlert;
+        mt44->camf.a1 = 1; mt44->camf.a2 = 111; mt44->camf.a3 = 2;
+        mt44->camf.a4 = 5; mt44->camf.a5 = 3;
+        mt44->ex_jalert.ex8 = 0;
+        mt44->ex_jalert.ex9 = 7;
+        mt44->ex_jalert.vn = 1;
+        mt44->mt44_decoded.jalert_prefecture_mode = true;
+        mt44->mt44_decoded.prefecture_count = 3;
+        mt44->mt44_decoded.prefecture_positions[0] = 47;
+        mt44->mt44_decoded.prefecture_positions[1] = 46;
+        mt44->mt44_decoded.prefecture_positions[2] = 45;
+        test_balanced(m);
+    }
+    SUBCASE("MT=44 JAlert city mode") {
+        Message m{}; initMt44(m);
+        Mt44Data* mt44 = m.getMt44();
+        mt44->service_kind = Mt44ServiceKind::JAlert;
+        mt44->is_null_message = false;
+        mt44->ex_kind = ExtendedKind::JAlert;
+        mt44->camf.a1 = 1; mt44->camf.a2 = 111; mt44->camf.a3 = 1;
+        mt44->camf.a4 = 10; mt44->camf.a5 = 3;
+        mt44->ex_jalert.ex8 = 1;
+        mt44->ex_jalert.ex9 = 7;
+        mt44->ex_jalert.vn = 1;
+        mt44->mt44_decoded.jalert_prefecture_mode = false;
+        mt44->mt44_decoded.city_code_count = 3;
+        mt44->mt44_decoded.city_codes[0] = 1101;
+        mt44->mt44_decoded.city_codes[1] = 1102;
+        mt44->mt44_decoded.city_codes[2] = 47101;
+        test_balanced(m);
+    }
+    SUBCASE("MT=44 JAlert real vector (47 prefectures)") {
+        // 実データ: J-Alert Missile Attack, 全47都道府県 (test_azarashi_dcx.cpp と同一ベクタ)
+        Message msg{};
+        REQUIRE(decodeNmea(
+            "$QZQSM,55,53B0840DE31188FC208600000000000000001FFFFFFFFFFFC00000120738628*00",
+            msg));
+        CHECK(msg.msg_type == 44);
+        CHECK(msg.payload_type == MsgPayloadType::Mt44);
+        const Mt44Data* mt44 = msg.getMt44();
+        REQUIRE(mt44 != nullptr);
+        CHECK(mt44->service_kind == Mt44ServiceKind::JAlert);
+        // 実データ経路でシリアライザが有効JSONを出すこと（カンマ/ブラケット整合）
+        test_balanced(msg);
     }
 }
 

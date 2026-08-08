@@ -96,31 +96,6 @@ struct Message {
         return *this;
     }
 
-    Message(Message&& other) noexcept
-        : svid(other.svid)
-        , msg_type(other.msg_type)
-        , crc24(other.crc24)
-        , valid(other.valid)
-        , unsupported_reason(other.unsupported_reason)
-        , payload_type(other.payload_type)
-    {
-        movePayloadFrom(other);
-    }
-
-    Message& operator=(Message&& other) noexcept {
-        if (this != &other) {
-            destroyPayload();
-            svid = other.svid;
-            msg_type = other.msg_type;
-            crc24 = other.crc24;
-            valid = other.valid;
-            unsupported_reason = other.unsupported_reason;
-            payload_type = other.payload_type;
-            movePayloadFrom(other);
-        }
-        return *this;
-    }
-
     ~Message() {
         destroyPayload();
     }
@@ -174,11 +149,6 @@ private:
 
     void copyPayloadFrom(const Message& other) {
         memcpy(payload_storage_, other.payload_storage_, payload_size_);
-    }
-
-    void movePayloadFrom(Message& other) {
-        memcpy(payload_storage_, other.payload_storage_, payload_size_);
-        other.payload_type = MsgPayloadType::Empty;
     }
 };
 
