@@ -39,12 +39,12 @@ TEST_CASE("JSON DCX B1: refinement fields") {
     mt44->camf.a3 = 1;
     mt44->camf.b1_present = true;
     mt44->mt44_decoded.main_ellipse_present = true;
-    mt44->mt44_decoded.main_ellipse.lat_microdeg = 35.6;
-    mt44->mt44_decoded.main_ellipse.lon_microdeg = 139.6;
-    mt44->mt44_decoded.main_ellipse.b1_lat_offset_microdeg = 0.0024;
-    mt44->mt44_decoded.main_ellipse.b1_lon_offset_microdeg = 0.0024;
-    mt44->mt44_decoded.main_ellipse.b1_refined_semi_major_m = 215.125;
-    mt44->mt44_decoded.main_ellipse.b1_refined_semi_minor_m = 215.125;
+    mt44->mt44_decoded.main_ellipse.lat_microdeg = 35600000;      // 35.6° in microdegrees
+    mt44->mt44_decoded.main_ellipse.lon_microdeg = 139600000;     // 139.6° in microdegrees
+    mt44->mt44_decoded.main_ellipse.b1_lat_offset_microdeg = 2400; // 0.0024° in microdegrees
+    mt44->mt44_decoded.main_ellipse.b1_lon_offset_microdeg = 2400; // 0.0024° in microdegrees
+    mt44->mt44_decoded.main_ellipse.b1_refined_semi_major_m = 215125;  // 215.125 km in meters
+    mt44->mt44_decoded.main_ellipse.b1_refined_semi_minor_m = 215125;  // 215.125 km in meters
 
     StringPrint sp;
     internal::JsonSerializer::serialize(m, sp);
@@ -202,8 +202,8 @@ TEST_CASE("JSON DCX additional area fields") {
     mt44->camf.a3 = 4;
     mt44->mt44_decoded.additional_area.present = true;
     mt44->mt44_decoded.additional_area.head_to_area = true;
-    mt44->mt44_decoded.additional_area.ellipse.lat_microdeg = 35.0;
-    mt44->mt44_decoded.additional_area.ellipse.lon_microdeg = 140.0;
+    mt44->mt44_decoded.additional_area.ellipse.lat_microdeg = 35000000;  // 35.0° in microdegrees
+    mt44->mt44_decoded.additional_area.ellipse.lon_microdeg = 140000000; // 140.0° in microdegrees
 
     StringPrint sp;
     internal::JsonSerializer::serialize(m, sp);

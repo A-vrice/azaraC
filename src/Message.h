@@ -3,8 +3,10 @@
 // Main message struct (Safe tagged union)
 //
 // Safe tagged union: payload (Mt43Data/Mt44Data) is held in raw aligned
-// storage; payload types MUST remain trivially copyable + trivially
-// destructible, so copy/move/destroy reduce to memcpy / tag reset.
+// storage. Copy/destroy use placement-new + explicit destructor so the
+// active payload's own copy/move/destructor semantics are honored. The
+// payload-internal sub-objects (e.g. Mt43Data's dispatch storage) must
+// remain trivially copyable, as Mt43Data's copyFrom relies on memcpy.
 
 #if defined(__AVR__)
 #include "internal/avr_std/algorithm"
@@ -144,11 +146,28 @@ private:
     template<typename T> static MsgPayloadType typeForPayload();
 
     void destroyPayload() {
-        payload_type = MsgPayloadType::Empty;  // Mt43Data/Mt44Data trivially destructible → no-op
+        switch (payload_type) {
+            case MsgPayloadType::Mt43:
+                getMt43()->~Mt43Data();
+                break;
+            case MsgPayloadType::Mt44:
+                getMt44()->~Mt44Data();
+                break;
+            default: break;
+        }
+        payload_type = MsgPayloadType::Empty;
     }
 
     void copyPayloadFrom(const Message& other) {
-        memcpy(payload_storage_, other.payload_storage_, payload_size_);
+        switch (other.payload_type) {
+            case MsgPayloadType::Mt43:
+                new (payload_storage_) Mt43Data(*other.getMt43());
+                break;
+            case MsgPayloadType::Mt44:
+                new (payload_storage_) Mt44Data(*other.getMt44());
+                break;
+            default: break;
+        }
     }
 };
 

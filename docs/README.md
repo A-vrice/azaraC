@@ -103,7 +103,7 @@ void loop() {
 
 u-blox の設定:
 
-```
+```ini
 CFG-MSGOUT-UBX_RXM_SFRBX_UART1 = 1
 CFG-SIGNAL-QZSS_L1S_ENA        = 1
 ```
@@ -133,9 +133,9 @@ if (parser.feed(byte, msg, now)) { ... }
 | `AZARAC_LANG_JA`     | 1          | 日本語ラベルを有効化               |
 | `AZARAC_LANG_EN`     | 0          | 英語ラベルを有効化                 |
 | `AZARAC_ENABLE_EEW` 他 12 カテゴリ | 1 | 災害カテゴリ別の定義テーブル除外（`AZARAC_ENABLE_*`） |
-| `AZARAC_FLASH_BUF_SIZE` | 800（AVR プリセット: 64） | PROGMEM ルックアップ用共有 RAM バッファ |
+| `AZARAC_FLASH_BUF_SIZE` | 800（AVR プリセット: 64、DCX/CAMF 有効時 800） | PROGMEM ルックアップ用共有 RAM バッファ |
 
-AVR では `azaraC_config.h` のプリセットにより有効カテゴリが SEISMIC/TSUNAMI のみに絞られ、`AZARAC_FLASH_BUF_SIZE` は 64 になります。詳細は [README.md](../README.md) の「コンパイル時設定マクロ」節を参照してください。
+AVR では `azaraC_config.h` のプリセットにより有効カテゴリが SEISMIC/TSUNAMI のみに絞られ、`AZARAC_FLASH_BUF_SIZE` は 64 になります（DCX/CAMF を有効化した場合は最長ラベル 683 B をカバーするため 800 B に切り替わります）。詳細は [README.md](../README.md) の「コンパイル時設定マクロ」節を参照してください。
 
 ```cpp
 #define AZARAC_DEDUP_SLOTS 16

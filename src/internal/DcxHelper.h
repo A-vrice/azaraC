@@ -88,7 +88,7 @@ int32_t b1RefinedLatitudeOffset(uint8_t c1);
 int32_t b1RefinedLongitudeOffset(uint8_t c2);
 
 // Calculate refined radius (meters) for C3/C4
-// refined_length = base_radius_m - delta_m * code / 8
+// refined_length = base_radius_m - (delta_m * code + 4) / 8  （四捨五入）
 // where delta_m = decodeRadiusCode(original_radius_code) - decodeRadiusCode(original_radius_code - 1)
 // original_radius_code: the unrefined 5-bit radius code (A14 for semi-major, A15 for semi-minor)
 int32_t b1RefinedRadiusM(uint8_t code, int32_t base_radius_m, uint8_t original_radius_code);

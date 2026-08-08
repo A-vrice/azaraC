@@ -116,7 +116,7 @@ make -C test fuzz FUZZ_ITERATIONS=100000
 
 ### 生成の仕組み
 
-```
+```text
 azarashi (PyPI) → definition/*.py
     ↓ scripts/gen/gen_definitions.py --out-dir src/definition
 src/definition/*.h

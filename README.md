@@ -102,14 +102,10 @@ void loop() {
 
 #### u-blox(u-center2など)の設定
 
-```
+```ini
 CFG-MSGOUT-UBX_RXM_SFRBX_UART1 = 1
 CFG-SIGNAL-QZSS_L1S_ENA        = 1
 ```
-
-#### バイナリ送信で設定
-
-
 
 コードは`Parser`が自動判別するためNMEAと同じものが利用できます。
 

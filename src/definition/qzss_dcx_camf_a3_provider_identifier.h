@@ -5,8 +5,8 @@
 #else
 #include <cstdint>
 #endif
-// TODO(azarashi): stop emitting avr_std/iterator include — AVR branch uses a fixed
-// binary-search bound (hi = 34) and never calls std::size. See ponytail-review.
+// TODO(azarashi): stop emitting avr_std/iterator include — AVR branch derives the
+// bsearch bound via sizeof and never calls std::size. See ponytail-review.
 #if defined(__AVR__)
 #include "../internal/avr_std/optional"
 #else
@@ -78,7 +78,9 @@ static const QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_Entry
 [[nodiscard]] inline std::optional<std::string_view>
 qzss_dcx_camf_a3_provider_identifier_lookup(uint16_t country, uint8_t provider) {
   uint16_t key = static_cast<uint16_t>((country << 4) | (provider & 0xF));
-  uint8_t lo = 0, hi = 34;
+  uint8_t lo = 0,
+          hi = static_cast<uint8_t>(sizeof(QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_TABLE) /
+                                    sizeof(QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_TABLE[0]));
   while (lo < hi) {
     uint8_t mid = static_cast<uint8_t>(lo + (hi - lo) / 2);
     const char* AZARAC_PROGMEM ep =

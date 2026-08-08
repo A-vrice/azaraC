@@ -429,7 +429,7 @@ TEST_CASE("JSON Serialization: MT=43 Nankai Trough") {
     CHECK(hasField(s, "\"disaster_category_label\":\"南海トラフ地震\""));
     CHECK(has(s, "\"detail\":{"));
     CHECK(hasField(s, "\"info_code\":1"));
-    CHECK(has(s, "\"info_code_label\":\"調査中A"));
+    CHECK(hasField(s, "\"info_code_label\":\"調査中A（監視領域内でマグニチュード6.8以上の地震が発生したことにより、臨時に「南海トラフ沿いの地震に関する評価検討会」を開催）\""));
     CHECK(hasField(s, "\"page\":2"));
     CHECK(hasField(s, "\"total_page\":3"));
 }
@@ -664,7 +664,8 @@ TEST_CASE("JSON Serialization: MT=43 Marine") {
     CHECK(has(s, "\"entries\":["));
     CHECK(hasField(s, "\"warning_code\":19"));
     CHECK(hasField(s, "\"region\":100"));
-    // 疎キー negative: marine warning code 19 は未定義→空、20 → 海上風警報
+    // 疎キー negative: marine warning code 19 は未定義→空(""), 20 → 海上風警報
+    CHECK(hasField(s, "\"warning_code\":19,\"warning_code_label\":\"\""));
     CHECK(hasField(s, "\"warning_code\":20,\"warning_code_label\":\"海上風警報\""));
 }
 #endif // AZARAC_ENABLE_MARINE
