@@ -47,8 +47,16 @@
 // The category macros below are evaluated only when already defined
 // (e.g. via -D or #define before including azaraC.h); the AVR preset
 // itself defaults DCX/CAMF to disabled, keeping 64 B for the default build.
+// Categories are ordered by longest label so multi-category builds stay safe.
+// If a new category's generated label exceeds 64 B, add it to this cascade.
 #if defined(AZARAC_ENABLE_DCX_CAMF) && AZARAC_ENABLE_DCX_CAMF
 #define AZARAC_FLASH_BUF_SIZE 800
+#elif defined(AZARAC_ENABLE_NANKAI) && AZARAC_ENABLE_NANKAI
+// NANKAI info-code longest label is 509 B ("調査中B"); 540 leaves headroom.
+#define AZARAC_FLASH_BUF_SIZE 540
+#elif defined(AZARAC_ENABLE_NW_PAC_TSUNAMI) && AZARAC_ENABLE_NW_PAC_TSUNAMI
+// NW-PAC longest label is 72 B (English tsunamigenic potential); 80 leaves headroom.
+#define AZARAC_FLASH_BUF_SIZE 80
 #else
 #define AZARAC_FLASH_BUF_SIZE 64
 #endif
