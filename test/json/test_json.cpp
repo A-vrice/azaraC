@@ -768,8 +768,11 @@ TEST_CASE("JSON Serialization: Balanced braces/brackets") {
         mt44->mt44_decoded.city_codes[2] = 47101;
         test_balanced(m);
     }
+#if (AZARAC_ENABLE_DCX_CAMF)
     SUBCASE("MT=44 JAlert real vector (47 prefectures)") {
         // 実データ: J-Alert Missile Attack, 全47都道府県 (test_azarashi_dcx.cpp と同一ベクタ)
+        // decodeNmea は DCX デコードを呼ぶため AZARAC_ENABLE_DCX_CAMF 依存。
+        // ガードしないと macro-off (DCX_CAMF=0) で decodeNmea が false になり CI が落ちる。
         Message msg{};
         REQUIRE(decodeNmea(
             "$QZQSM,55,53B0840DE31188FC208600000000000000001FFFFFFFFFFFC00000120738628*00",
@@ -782,6 +785,7 @@ TEST_CASE("JSON Serialization: Balanced braces/brackets") {
         // 実データ経路でシリアライザが有効JSONを出すこと（カンマ/ブラケット整合）
         test_balanced(msg);
     }
+#endif // AZARAC_ENABLE_DCX_CAMF
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
