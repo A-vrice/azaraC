@@ -116,7 +116,7 @@ TEST_CASE("avr_std string_view operations") {
     CHECK(s.find(std::string_view("zz", 2)) == std::string_view::npos);
 }
 
-// ---- placement new via avr_std/new ----
+// placement new via avr_std/new
 struct ShimPlacementTest {
     int v;
     explicit ShimPlacementTest(int x) : v(x) {}

@@ -33,9 +33,7 @@ using namespace azaraC::internal;
 // テスト名を記録するための最大例外数
 #define MAX_EXCEPTION_LOG 100
 
-// ---------------------------------------------------------------------------
 // MemoryTracker: RAIIパターンによるメモリ使用量自動計測
-// ---------------------------------------------------------------------------
 #if defined(__linux__)
 #include <fstream>
 #include <sstream>

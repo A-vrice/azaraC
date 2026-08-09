@@ -36,7 +36,7 @@
 #include <queue.h>
 #endif
 
-// ---- 設定 ---------------------------------------------------------------
+// 設定
 
 // キューサイズ (保持できるメッセージ数)
 static constexpr size_t kQueueSize = 16;
@@ -57,7 +57,7 @@ static constexpr UBaseType_t kOutputTaskPriority = 1;
 #define TX_PIN 21
 #define SERIAL_GNSS Serial1
 
-// ---- グローバル変数 ------------------------------------------------------
+// グローバル変数
 
 // メッセージキュー (azaraC::Message をやり取り)
 static QueueHandle_t g_messageQueue = nullptr;
@@ -78,13 +78,13 @@ static struct Stats {
     Stats() : Messages(0), queueFullErrors(0) {}
 } g_stats;
 
-// ---- 関数プロトタイプ ----------------------------------------------------
+// 関数プロトタイプ
 
 static void uartRxTask(void* pvParameters);
 static void outputTask(void* pvParameters);
 static void processByte(uint8_t b, azaraC::Parser& parser);
 
-// ---- バイト処理 ----------------------------------------------------
+// バイト処理
 
 static void processByte(uint8_t b, azaraC::Parser& parser) {
     azaraC::Message msg;
@@ -98,7 +98,7 @@ static void processByte(uint8_t b, azaraC::Parser& parser) {
     }
 }
 
-// ---- UART RX タスク -----------------------------------------------------
+// UART RX タスク
 
 static void uartRxTask(void* pvParameters) {
     (void)pvParameters;
@@ -124,7 +124,7 @@ static void uartRxTask(void* pvParameters) {
     }
 }
 
-// ---- 出力タスク ---------------------------------------------------------
+// 出力タスク
 
 static void outputTask(void* pvParameters) {
     (void)pvParameters;
@@ -155,7 +155,7 @@ static void outputTask(void* pvParameters) {
     }
 }
 
-// ---- setup() ------------------------------------------------------------
+// setup()
 
 void setup() {
     // USB Serial 初期化
@@ -232,7 +232,7 @@ void setup() {
     vTaskSuspend(nullptr);
 }
 
-// ---- loop() -------------------------------------------------------------
+// loop()
 // RTOS タスクで全ての処理を行うため、loop() は使用しません。
 // vTaskSuspend(nullptr) で setup タスクが停止されるため、
 // この関数は実際には呼ばれません。
