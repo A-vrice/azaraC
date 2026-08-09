@@ -1,4 +1,3 @@
-// azaraC - src/decoder/DecoderDcx.cpp
 // MT=44 DCX / CAMF decoder (IS-QZSS-DCX-004)
 // EWSS CAMF v1.1 (B1-B3), v1.2 (§3.7.4 B4)
 
@@ -10,9 +9,7 @@ namespace internal {
 
 #if (AZARAC_ENABLE_DCX_CAMF)
 
-// ---------------------------------------------------------------------------
 // MT=44 DCX / CAMF  (IS-QZSS-DCX-004)
-// ---------------------------------------------------------------------------
 
 // Country code for Japan in A2 field (9-bit: 001101111 = 111)
 static constexpr uint16_t DCX_COUNTRY_CODE_JAPAN = 111;
@@ -168,9 +165,7 @@ bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix)
         d->ex_outside.vn = getBits(bits, 214, 6);
     }
 
-    // ---------------------------------------------------------------------------
     // Populate decoded structures (IS-QZSS-DCX-003 §15.2)
-    // ---------------------------------------------------------------------------
 
     Mt44Decoded& dec = d->mt44_decoded;
     dec.service_kind = d->service_kind;

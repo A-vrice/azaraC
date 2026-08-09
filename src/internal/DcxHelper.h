@@ -1,5 +1,4 @@
 #pragma once
-// azaraC - src/internal/DcxHelper.h
 // DCX MT44 decode helpers
 // Based on IS-QZSS-DCX-004 / EWSS CAMF v1.2
 
@@ -8,9 +7,7 @@
 namespace azaraC {
 namespace internal {
 
-// ---------------------------------------------------------------------------
 // Decode helpers
-// ---------------------------------------------------------------------------
 
 // Decode latitude from 16-bit code (A12)
 // Latitude = -90 + (180 / (2^16 - 1)) * code
@@ -47,9 +44,7 @@ int32_t decodeAzimuth6(uint8_t code);
 // Returns dexadegrees (×100,000)
 int32_t decodeAzimuth7(uint8_t code);
 
-// ---------------------------------------------------------------------------
 // J-Alert EX9 decoding
-// ---------------------------------------------------------------------------
 
 // Decode EX9 as prefecture bitmask (EX8=0)
 // EX9 64-bit field: [47-bit prefecture][17-bit reserved]
@@ -63,9 +58,7 @@ uint8_t decodePrefectureBitmask(uint64_t ex9, uint8_t* out_positions);
 // Fills out_codes array (must be at least 4 elements) and returns the number of written codes.
 uint8_t decodeCityCodeList(uint64_t ex9, uint16_t* out_codes);
 
-// ---------------------------------------------------------------------------
 // B1 (A17=00) - Improved Resolution of Main Ellipse (EWSS CAMF v1.1 §3.7.1)
-// ---------------------------------------------------------------------------
 
 // Decode B1 refinement from A18 (15-bit field)
 // C1 = a18[14:12] (3b), C2 = a18[11:9] (3b), C3 = a18[8:6] (3b),
@@ -93,9 +86,7 @@ int32_t b1RefinedLongitudeOffset(uint8_t c2);
 // original_radius_code: the unrefined 5-bit radius code (A14 for semi-major, A15 for semi-minor)
 int32_t b1RefinedRadiusM(uint8_t code, int32_t base_radius_m, uint8_t original_radius_code);
 
-// ---------------------------------------------------------------------------
 // B2 (A17=01) - Position of the Centre of the Hazard (EWSS CAMF v1.1 §3.7.2)
-// ---------------------------------------------------------------------------
 
 struct B2HazardCenter {
     uint8_t c5;              // 7 bits - delta latitude raw
@@ -107,9 +98,7 @@ struct B2HazardCenter {
 B2HazardCenter decodeB2HazardCenter(uint8_t c5, uint8_t c6);
 
 
-// ---------------------------------------------------------------------------
 // B4 (A17=11) - Quantitative and Detailed Information (EWSS CAMF v1.1 §3.7.4)
-// ---------------------------------------------------------------------------
 
 struct B4DetailedInfo {
     bool     present = false;

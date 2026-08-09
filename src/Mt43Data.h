@@ -1,5 +1,4 @@
 #pragma once
-// azaraC - src/Mt43Data.h
 // MT=43 (QZQSM/DCR) data structures and tagged union
 // Bit offsets derived from azarashi (IS-QZSS-DCR-016)
 //
@@ -34,7 +33,7 @@
 
 namespace azaraC {
 
-// ---- repeating record structs (up to 8 each) ---------------------------
+// repeating record structs (up to 8 each)
 
 struct TsunamiEntry {
     uint16_t   arrival_time_raw;
@@ -70,7 +69,7 @@ struct NwPacTsunamiEntry {
     uint8_t    region_code;
 };
 
-// ---- MT=43 Data (QZQSM / DC Report) ------------------------------------
+// MT=43 Data (QZQSM / DC Report)
 
 struct EewData {
     uint8_t  long_period_lower;
@@ -191,7 +190,7 @@ struct MarineData {
     uint8_t     count;
 };
 
-// ---- Safe tagged union for MT=43 disaster_category data -------------------
+// Safe tagged union for MT=43 disaster_category data
 
 struct Mt43Data {
     uint8_t  report_classification;

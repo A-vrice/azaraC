@@ -1,4 +1,3 @@
-// azaraC - src/internal/DecoderQzqsm.cpp
 // MT=43 QZQSM / DC Report decoder (IS-QZSS-DCR-016)
 
 #include "Decoder.h"
@@ -6,7 +5,6 @@
 namespace azaraC {
 namespace internal {
 
-// ---------------------------------------------------------------------------
 // MT=43 QZQSM / DC Report  (IS-QZSS-DCR-016)
 // Outer frame layout (all offsets 0-indexed from preamble):
 //   [14..16]  report_classification (3b)
@@ -18,13 +16,12 @@ namespace internal {
 //   [41..42]  information_type      (2b)
 //   [43..46]  reserved / sub-type start
 //   [214..219] version (6b) — must be 1
-// ---------------------------------------------------------------------------
+// Sub-type field layouts (EEW, Hypocenter, ... ) per IS-QZSS-DCR-016 §4.1.2.3.
 // Single authoritative source for the MT=43 disaster-category mapping.
 // Each entry: X(code, enable_macro, sub_decoder). The same table drives the
 // category support check, the known-category classification, and the
 // sub-decoder dispatch in decodeQzqsm(). Adding or removing a category
 // requires changing this list only.
-// ---------------------------------------------------------------------------
 #define AZARAC_DC_CATEGORIES(X) \
     X(1,  AZARAC_ENABLE_EEW,          decodeEEW)        \
     X(2,  AZARAC_ENABLE_HYPOCENTER,   decodeHypocenter) \
@@ -38,7 +35,6 @@ namespace internal {
     X(11, AZARAC_ENABLE_FLOOD,        decodeFlood)      \
     X(12, AZARAC_ENABLE_TYPHOON,      decodeTyphoon)    \
     X(14, AZARAC_ENABLE_MARINE,       decodeMarine)
-// ---------------------------------------------------------------------------
 bool Decoder::decodeQzqsm(const uint8_t* bits, Message& out, uint32_t report_unix) {
     uint8_t ver = getBits(bits, 214, 6);
     if (ver != 1) {
@@ -125,9 +121,7 @@ bool Decoder::decodeQzqsm(const uint8_t* bits, Message& out, uint32_t report_uni
 #undef AZARAC_DC_CATEGORIES
 
 #if (AZARAC_ENABLE_EEW)
-// ---------------------------------------------------------------------------
-// EEW  (disaster_category == 1)  — IS-QZSS-DCR-016 §4.1.2.3.2
-// ---------------------------------------------------------------------------
+// EEW  (disaster_category == 1)
 void Decoder::decodeEEW(const uint8_t* b, Message& out, uint32_t report_unix) {
     Mt43Data* d = out.getMt43();
     if (!d) return;
@@ -163,9 +157,7 @@ void Decoder::decodeEEW(const uint8_t* b, Message& out, uint32_t report_unix) {
 #endif // AZARAC_ENABLE_EEW
 
 #if (AZARAC_ENABLE_HYPOCENTER)
-// ---------------------------------------------------------------------------
-// Hypocenter  (disaster_category == 2)  — IS-QZSS-DCR-016 §4.1.2.3.3
-// ---------------------------------------------------------------------------
+// Hypocenter  (disaster_category == 2)
 void Decoder::decodeHypocenter(const uint8_t* b, Message& out, uint32_t report_unix) {
     Mt43Data* d = out.getMt43();
     if (!d) return;
@@ -187,9 +179,7 @@ void Decoder::decodeHypocenter(const uint8_t* b, Message& out, uint32_t report_u
 #endif // AZARAC_ENABLE_HYPOCENTER
 
 #if (AZARAC_ENABLE_SEISMIC)
-// ---------------------------------------------------------------------------
-// Seismic Intensity  (disaster_category == 3)  — IS-QZSS-DCR-016 §4.1.2.3.4
-// ---------------------------------------------------------------------------
+// Seismic Intensity  (disaster_category == 3)
 void Decoder::decodeSeismic(const uint8_t* b, Message& out, uint32_t report_unix) {
     Mt43Data* d = out.getMt43();
     if (!d) return;
@@ -218,9 +208,7 @@ void Decoder::decodeSeismic(const uint8_t* b, Message& out, uint32_t report_unix
 #endif // AZARAC_ENABLE_SEISMIC
 
 #if (AZARAC_ENABLE_NANKAI)
-// ---------------------------------------------------------------------------
-// Nankai Trough  (disaster_category == 4)  — IS-QZSS-DCR-016 §4.1.2.3.5
-// ---------------------------------------------------------------------------
+// Nankai Trough  (disaster_category == 4)
 void Decoder::decodeNankai(const uint8_t* b, Message& out, uint32_t report_unix) {
     (void)report_unix;
     Mt43Data* d = out.getMt43();
@@ -243,10 +231,8 @@ void Decoder::decodeNankai(const uint8_t* b, Message& out, uint32_t report_unix)
 #endif // AZARAC_ENABLE_NANKAI
 
 #if (AZARAC_ENABLE_TSUNAMI)
-// ---------------------------------------------------------------------------
-// Tsunami  (disaster_category == 5)  — IS-QZSS-DCR-016 §4.1.2.3.6
+// Tsunami  (disaster_category == 5)
 // arrival time sub-field: nextday(1)+hour(5)+minute(6) = 12 bits
-// ---------------------------------------------------------------------------
 void Decoder::decodeTsunami(const uint8_t* b, Message& out, uint32_t report_unix) {
     (void)report_unix; // Used indirectly via d->event_time.unix_time
     Mt43Data* d = out.getMt43();
@@ -280,9 +266,7 @@ void Decoder::decodeTsunami(const uint8_t* b, Message& out, uint32_t report_unix
 #endif // AZARAC_ENABLE_TSUNAMI
 
 #if (AZARAC_ENABLE_NW_PAC_TSUNAMI)
-// ---------------------------------------------------------------------------
-// NW Pacific Tsunami  (disaster_category == 6)  — IS-QZSS-DCR-016 §4.1.2.3.7
-// ---------------------------------------------------------------------------
+// NW Pacific Tsunami  (disaster_category == 6)
 void Decoder::decodeNwPacTsu(const uint8_t* b, Message& out, uint32_t report_unix) {
     (void)report_unix; // Used indirectly via d->event_time.unix_time
     Mt43Data* d = out.getMt43();
@@ -316,9 +300,7 @@ void Decoder::decodeNwPacTsu(const uint8_t* b, Message& out, uint32_t report_uni
 #endif // AZARAC_ENABLE_NW_PAC_TSUNAMI
 
 #if (AZARAC_ENABLE_VOLCANO)
-// ---------------------------------------------------------------------------
-// Volcano  (disaster_category == 8)  — IS-QZSS-DCR-016 §4.1.2.3.8
-// ---------------------------------------------------------------------------
+// Volcano  (disaster_category == 8)
 void Decoder::decodeVolcano(const uint8_t* b, Message& out, uint32_t report_unix) {
     Mt43Data* d = out.getMt43();
     if (!d) return;
@@ -344,9 +326,7 @@ void Decoder::decodeVolcano(const uint8_t* b, Message& out, uint32_t report_unix
 #endif // AZARAC_ENABLE_VOLCANO
 
 #if (AZARAC_ENABLE_ASH_FALL)
-// ---------------------------------------------------------------------------
-// Ash Fall  (disaster_category == 9)  — IS-QZSS-DCR-016 §4.1.2.3.9
-// ---------------------------------------------------------------------------
+// Ash Fall  (disaster_category == 9)
 void Decoder::decodeAshFall(const uint8_t* b, Message& out, uint32_t report_unix) {
     Mt43Data* d = out.getMt43();
     if (!d) return;
@@ -374,9 +354,7 @@ void Decoder::decodeAshFall(const uint8_t* b, Message& out, uint32_t report_unix
 #endif // AZARAC_ENABLE_ASH_FALL
 
 #if (AZARAC_ENABLE_WEATHER)
-// ---------------------------------------------------------------------------
-// Weather  (disaster_category == 10)  — IS-QZSS-DCR-016 §4.1.2.3.10
-// ---------------------------------------------------------------------------
+// Weather  (disaster_category == 10)
 void Decoder::decodeWeather(const uint8_t* b, Message& out, uint32_t report_unix) {
     (void)report_unix;
     Mt43Data* d = out.getMt43();
@@ -402,9 +380,7 @@ void Decoder::decodeWeather(const uint8_t* b, Message& out, uint32_t report_unix
 #endif // AZARAC_ENABLE_WEATHER
 
 #if (AZARAC_ENABLE_FLOOD)
-// ---------------------------------------------------------------------------
-// Flood  (disaster_category == 11)  — IS-QZSS-DCR-016 §4.1.2.3.11
-// ---------------------------------------------------------------------------
+// Flood  (disaster_category == 11)
 void Decoder::decodeFlood(const uint8_t* b, Message& out, uint32_t report_unix) {
     (void)report_unix;
     Mt43Data* d = out.getMt43();
@@ -435,9 +411,7 @@ void Decoder::decodeFlood(const uint8_t* b, Message& out, uint32_t report_unix) 
 #endif // AZARAC_ENABLE_FLOOD
 
 #if (AZARAC_ENABLE_MARINE)
-// ---------------------------------------------------------------------------
-// Marine  (disaster_category == 14)  — IS-QZSS-DCR-016 §4.1.2.3.13
-// ---------------------------------------------------------------------------
+// Marine  (disaster_category == 14)
 void Decoder::decodeMarine(const uint8_t* b, Message& out, uint32_t report_unix) {
     (void)report_unix;
     Mt43Data* d = out.getMt43();
@@ -464,8 +438,7 @@ void Decoder::decodeMarine(const uint8_t* b, Message& out, uint32_t report_unix)
 #endif // AZARAC_ENABLE_MARINE
 
 #if (AZARAC_ENABLE_TYPHOON)
-// ---------------------------------------------------------------------------
-// Typhoon  (disaster_category == 12)  — IS-QZSS-DCR-016 §4.1.2.3.12
+// Typhoon  (disaster_category == 12)
 // IS-QZSS-DCR-016 Table 4.1.2-47
 // Bit layout (from preamble):
 //   [53..68]  Bt  Reference Time (day(5)+hour(5)+min(6))
@@ -481,7 +454,6 @@ void Decoder::decodeMarine(const uint8_t* b, Message& out, uint32_t report_unix)
 //   [161..167] W2  Maximum wind gust speed (7 bits, m/s)
 //   [168..213] Spare3 (46 bits)
 //   [214..219] Vn  Version Number (6 bits)
-// ---------------------------------------------------------------------------
 void Decoder::decodeTyphoon(const uint8_t* b, Message& out, uint32_t report_unix) {
     Mt43Data* d = out.getMt43();
     if (!d) return;

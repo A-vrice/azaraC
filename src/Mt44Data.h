@@ -1,5 +1,4 @@
 #pragma once
-// azaraC - src/Mt44Data.h
 // MT=44 (DCX/CAMF) data structures
 // Bit offsets derived from azarashi (IS-QZSS-DCX-004)
 
@@ -7,7 +6,7 @@
 
 namespace azaraC {
 
-// ---- MT=44 DCX type ----------------------------------------------------
+// MT=44 DCX type
 
 enum class Mt44ServiceKind : uint8_t {
     NullMessage,
@@ -98,7 +97,7 @@ struct Mt44ExOutside {
     uint8_t vn;
 };
 
-// ---- MT=44 Decoded structures (IS-QZSS-DCX-004) --------------------------
+// MT=44 Decoded structures (IS-QZSS-DCX-004)
 
 struct DecodedEllipse {
     int32_t lat_microdeg;              // microdegrees (×1,000,000)
@@ -148,7 +147,7 @@ struct Mt44Decoded {
     Mt44AlertIdentity alert_identity;
 };
 
-// ---- MT=44 Data (DCX / CAMF) -------------------------------------------
+// MT=44 Data (DCX / CAMF)
 
 struct Mt44Data {
     Mt44ServiceKind service_kind = {};

@@ -1,4 +1,3 @@
-// azaraC - src/json/JsonSerializerQzqsm.cpp
 // MT=43 QZQSM JSON serializer
 
 #include "azaraC.h"
@@ -18,10 +17,8 @@
 namespace azaraC {
 namespace internal {
 
-// ---------------------------------------------------------------------------
 // MT=43 sub-type serializers
 // Each returns after writing its last field with last=true
-// ---------------------------------------------------------------------------
 
 #if (AZARAC_ENABLE_EEW)
 bool serializeEEW(const Mt43Data* d, Print& out) {

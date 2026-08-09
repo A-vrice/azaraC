@@ -1,5 +1,3 @@
-// azaraC - src/Parser.cpp
-
 #include "Parser.h"
 #include "internal/TimeFields.h"
 
@@ -8,7 +6,7 @@ namespace azaraC {
 bool Parser::feed(uint8_t byte, Message& out, uint32_t report_unix) {
     internal::Frame frame;
 
-    // --- カスタムフレーマ（排他モード）---
+    // カスタムフレーマ（排他モード）
     if (_custom) {
         if (!_custom->feed(byte, frame)) return false;
         Message decoded;
@@ -21,7 +19,7 @@ bool Parser::feed(uint8_t byte, Message& out, uint32_t report_unix) {
         return postDecode(decoded, out);
     }
 
-    // --- AUTO 常時: UBX優先試行（UBXはバイナリ、NMEAはASCIIで競合しない）---
+    // AUTO 常時: UBX優先試行（UBXはバイナリ、NMEAはASCIIで競合しない）
     bool ubx_ok = _ubx.feed(byte, frame);
     bool nmea_ok = ubx_ok ? false : _nmea.feed(byte, frame);
     if (!ubx_ok && !nmea_ok) return false;

@@ -1,5 +1,4 @@
 #pragma once
-// azaraC - src/internal/PrintShim.h
 // Minimal Arduino Print shim for host-side unit tests.
 
 #if !defined(ARDUINO) || ARDUINO < 1

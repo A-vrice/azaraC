@@ -1,4 +1,3 @@
-// azaraC - src/decoder/Decoder.cpp
 // Common decoder utilities (CRC, bit extraction, time resolution)
 
 #include "Decoder.h"
@@ -6,9 +5,7 @@
 namespace azaraC {
 namespace internal {
 
-// ---------------------------------------------------------------------------
 // CRC-24Q  (generator 0x1864CFB, GPS/QZSS standard)
-// ---------------------------------------------------------------------------
 static constexpr uint32_t CRC24Q_POLY = 0x1864CFBu;
 
 uint32_t Decoder::crc24q(const uint8_t* data, uint16_t bit_len) {
@@ -30,9 +27,7 @@ uint32_t Decoder::crc24q(const uint8_t* data, uint16_t bit_len) {
     return crc & 0xFFFFFFu;
 }
 
-// ---------------------------------------------------------------------------
 // Bit extraction (MSB-first, 0-indexed)
-// ---------------------------------------------------------------------------
 uint32_t Decoder::getBits(const uint8_t* buf, uint16_t start, uint8_t len) {
     // Boundary check: silently return 0 for out-of-range reads,
     // but raise OOB flag so decode() can reject the result.
@@ -49,9 +44,7 @@ uint32_t Decoder::getBits(const uint8_t* buf, uint16_t start, uint8_t len) {
     return val;
 }
 
-// ---------------------------------------------------------------------------
 // 64-bit bit extraction (MSB-first, 0-indexed) — for fields > 32 bits
-// ---------------------------------------------------------------------------
 uint64_t Decoder::getBits64(const uint8_t* buf, uint16_t start, uint8_t len) {
     // Same silent-zero-with-oob-flag policy as getBits()
     if (start + len > 256) { oob_ = true; return 0; }
@@ -86,9 +79,7 @@ uint32_t Decoder::days_from_civil(uint32_t y, uint32_t m, uint32_t d) {
     return era * 146097 + doe - 719468;
 }
 
-// ---------------------------------------------------------------------------
 // LatLon — 41 bits: lat_ns(1) lat_d(7) lat_m(6) lat_s(6) lon_ew(1) lon_d(8) lon_m(6) lon_s(6)
-// ---------------------------------------------------------------------------
 LatLon Decoder::extractLatLon(const uint8_t* buf, uint16_t start) {
     LatLon ll{};
     ll.lat_ns  = getBits(buf, start,      1);
@@ -102,9 +93,7 @@ LatLon Decoder::extractLatLon(const uint8_t* buf, uint16_t start) {
     return ll;
 }
 
-// ---------------------------------------------------------------------------
 // day(5)+hour(5)+min(6) = 16 bits -> TimeFields
-// ---------------------------------------------------------------------------
 TimeFields Decoder::extractDHM(const uint8_t* buf, uint16_t start, uint32_t report_unix) {
     uint8_t d = getBits(buf, start,      5);
     uint8_t h = getBits(buf, start +  5, 5);
@@ -190,9 +179,7 @@ TimeFields Decoder::resolveTime(uint8_t month, uint8_t day, uint8_t hour, uint8_
     return t;
 }
 
-// ---------------------------------------------------------------------------
 // Arrival time: 12-bit field (day_offset:1, hour:5, min:6) -> TimeFields
-// ---------------------------------------------------------------------------
 TimeFields Decoder::resolveArrivalTime(uint16_t raw, uint32_t base_unix) {
     TimeFields t{};
     if (raw == 0) return t;
@@ -223,10 +210,8 @@ TimeFields Decoder::resolveArrivalTime(uint16_t raw, uint32_t base_unix) {
     return t;
 }
 
-// ---------------------------------------------------------------------------
 // Read up to 3 notification codes (9 bits each) starting at bit offset
 // Returns count of valid codes read
-// ---------------------------------------------------------------------------
 uint8_t Decoder::readNotifications(const uint8_t* b, uint16_t start, uint16_t* notification) {
     uint8_t count = 0;
     for (uint8_t i = 0; i < 3; ++i) {
@@ -237,9 +222,7 @@ uint8_t Decoder::readNotifications(const uint8_t* b, uint16_t start, uint16_t* n
     return count;
 }
 
-// ---------------------------------------------------------------------------
 // Main decode entry
-// ---------------------------------------------------------------------------
 bool Decoder::decode(const Frame& frame, Message& out, uint32_t report_unix) {
     oob_ = false;
     out.clear();

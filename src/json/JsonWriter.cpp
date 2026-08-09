@@ -1,4 +1,3 @@
-// azaraC - src/json/JsonWriter.cpp
 // Common JSON writer helpers for serializers
 
 #include "JsonWriter.h"
@@ -13,9 +12,7 @@ namespace internal {
 
 static constexpr char HEX_CHARS[] = "0123456789ABCDEF";
 
-// ---------------------------------------------------------------------------
 // Primitive writers
-// ---------------------------------------------------------------------------
 void writeChar(Print& out, char c) { out.print(c); }
 
 void writeUint32(Print& out, uint32_t v) {
@@ -163,9 +160,7 @@ void wf_s(Print& out, std::string_view k, const char* v, bool last) {
     if (!last) writeChar(out, ',');
 }
 
-// ---------------------------------------------------------------------------
 // Helpers for repeated structures
-// ---------------------------------------------------------------------------
 
 // Write a DHM TimeFields object as nested JSON
 void writeDHM(Print& out, std::string_view key, const TimeFields& t, bool last) {

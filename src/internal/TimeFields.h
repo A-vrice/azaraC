@@ -1,5 +1,4 @@
 #pragma once
-// azaraC - src/internal/TimeFields.h
 // Platform-independent time utility
 //
 // Overflow-safe implementation without external library dependencies:

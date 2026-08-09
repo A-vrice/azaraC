@@ -1,5 +1,4 @@
 #pragma once
-// azaraC - src/decoder/Decoder.h
 
 #include "../azaraC_config.h"
 #include "../framer/Frame.h"

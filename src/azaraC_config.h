@@ -1,5 +1,4 @@
 #pragma once
-// azaraC - src/azaraC_config.h
 // Compile-time configuration macros.
 // Separated from azaraC.h so that definition files can include only the
 // configuration macros without pulling in the entire library.
@@ -9,7 +8,7 @@
 //   #define AZARAC_LANG_JA 0        // Enable Japanese labels (default: 1)
 //   #define AZARAC_LANG_EN 1        // Enable English labels (default: 0)
 
-// ---- language selection macros -----------------------------------------------
+// language selection macros
 #ifndef AZARAC_LANG_JA
 #define AZARAC_LANG_JA 1
 #endif
@@ -18,11 +17,11 @@
 #define AZARAC_LANG_EN 0
 #endif
 
-// ---- disaster category control macros ----------------------------------------
+// disaster category control macros
 // (AVR defaults are applied in the platform preset below, BEFORE these
 // normal defaults, so #ifndef in both sections works.)
 
-// ---- platform presets (AVR / resource-constrained targets) --------------------
+// platform presets (AVR / resource-constrained targets)
 // These reduce default buffer sizes and definition categories when compiling
 // for AVR.
 // They come BEFORE the normal defaults so #ifndef in both sections works:
@@ -107,7 +106,7 @@
 #endif
 #endif // __AVR__
 
-// ---- normal defaults (non-AVR or overridden values) ---------------------------
+// normal defaults (non-AVR or overridden values)
 #ifndef AZARAC_ENABLE_EEW
 #define AZARAC_ENABLE_EEW 1
 #endif
@@ -148,12 +147,12 @@
 #define AZARAC_ENABLE_DCX_CAMF 1
 #endif
 
-// ---- duplicate suppression ----------------------------------------------------
+// duplicate suppression
 #ifndef AZARAC_DEDUP_SLOTS
 #define AZARAC_DEDUP_SLOTS 8
 #endif
 
-// ---- Nankai Trough page buffer config ----------------------------------------
+// Nankai Trough page buffer config
 #ifndef AZARAC_NANKAI_MAX_PAGES
 #define AZARAC_NANKAI_MAX_PAGES 12
 #endif
@@ -165,7 +164,7 @@
 #warning "Nankai buffers may exhaust SRAM on Arduino Uno. Consider AZARAC_NANKAI_BUFFERS=1"
 #endif
 
-// ---- PROGMEM abstraction (AVR / embedded) ------------------------------------
+// PROGMEM abstraction (AVR / embedded)
 // On AVR, const data is placed in RAM unless marked with PROGMEM.
 // On desktop, PROGMEM is a no-op.
 // These macros provide a portable way to store data in Flash on AVR.

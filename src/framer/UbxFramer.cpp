@@ -1,5 +1,3 @@
-// azaraC - src/framer/UbxFramer.cpp
-
 #include "UbxFramer.h"
 #include "definition/_index.h"
 #if defined(__AVR__)

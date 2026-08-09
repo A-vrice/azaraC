@@ -1,5 +1,4 @@
 #pragma once
-// azaraC - src/json/JsonWriter.h
 // Common JSON writer helpers for serializers
 
 #include "../Message.h"
@@ -23,9 +22,7 @@
 // Ensure language macros are defined before use
 #include "../azaraC_config.h"
 
-// ---------------------------------------------------------------------------
 // Language resolution macro
-// ---------------------------------------------------------------------------
 #if AZARAC_LANG_JA && AZARAC_LANG_EN
 #define AZARAC_LOOKUP_LANG(func_ja, func_en, id) \
     ([&]() { \
@@ -43,9 +40,7 @@
 namespace azaraC {
 namespace internal {
 
-// ---------------------------------------------------------------------------
 // Primitive writers
-// ---------------------------------------------------------------------------
 void writeChar(Print& out, char c);
 void writeUint32(Print& out, uint32_t v);
 void writeUint64(Print& out, uint64_t v);
@@ -65,9 +60,7 @@ void wf_d(Print& out, std::string_view k, double v, bool last = false, int preci
 void wf_s(Print& out, std::string_view k, std::optional<std::string_view> v, bool last = false);
 void wf_s(Print& out, std::string_view k, const char* v, bool last = false);
 
-// ---------------------------------------------------------------------------
 // Helpers for repeated structures
-// ---------------------------------------------------------------------------
 
 // Write a DHM TimeFields object as nested JSON
 void writeDHM(Print& out, std::string_view key, const TimeFields& t, bool last = false);
@@ -79,9 +72,7 @@ void writeArrivalTimeFields(Print& out, uint16_t raw);
 
 } // namespace internal
 
-// ---------------------------------------------------------------------------
 // Shared key string constants (deduplicate across serializers)
-// ---------------------------------------------------------------------------
 namespace keys {
 
 // Top-level message keys

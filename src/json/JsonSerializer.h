@@ -1,5 +1,4 @@
 #pragma once
-// azaraC - src/json/JsonSerializer.h
 
 #include "../Message.h"
 

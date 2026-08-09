@@ -1,5 +1,4 @@
 #pragma once
-// azaraC - src/internal/FlashString.h
 // Definition-table string access with AVR PROGMEM support.
 //
 // On AVR (Harvard architecture), generated definition tables place label

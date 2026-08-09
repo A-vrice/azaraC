@@ -1,4 +1,3 @@
-// azaraC - src/json/JsonSerializerDcx.cpp
 // MT=44 DCX JSON serializer
 
 #include "azaraC.h"
@@ -21,9 +20,7 @@ namespace internal {
 
 #if (AZARAC_ENABLE_DCX_CAMF)
 
-// ---------------------------------------------------------------------------
 // MT=44 DCX
-// ---------------------------------------------------------------------------
 void serializeDcx(const Message& m, Print& out) {
     using namespace azaraC::def;
 

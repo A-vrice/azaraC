@@ -1,5 +1,4 @@
 #pragma once
-// azaraC - src/framer/Frame.h
 
 #if defined(__AVR__)
 #include "../internal/avr_std/cstdint"

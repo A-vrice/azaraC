@@ -1,5 +1,3 @@
-// azaraC - src/internal/Dedup.cpp
-
 #include "Dedup.h"
 
 namespace azaraC {

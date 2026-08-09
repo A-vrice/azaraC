@@ -1,5 +1,4 @@
 #pragma once
-// azaraC - src/framer/NmeaFramer.h
 // Parses $QZQSM sentences from any NMEA-outputting receiver.
 
 #include "IFramer.h"

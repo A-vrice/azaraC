@@ -1,4 +1,3 @@
-// azaraC - src/internal/DcxHelper.cpp
 // DCX MT44 decode helpers
 // Based on IS-QZSS-DCX-004 / EWSS CAMF v1.2
 #include "DcxHelper.h"
@@ -6,9 +5,7 @@
 namespace azaraC {
 namespace internal {
 
-// ---------------------------------------------------------------------------
 // Latitude/Longitude decoding
-// ---------------------------------------------------------------------------
 
 int32_t decodeLatitude16(uint16_t code) {
     // -90,000,000 + 180,000,000 * code / 65535, rounded
@@ -36,12 +33,10 @@ int32_t decodeLongitude17_45_225(uint32_t code) {
     );
 }
 
-// ---------------------------------------------------------------------------
 // Radius decoding (5-bit code)
 // IS-QZSS-DCX-003 Table 4.2-17 / 4.2-18
 // Radius[m] = 10^(log10(MinRadius) + a * (log10(MaxRadius) - log10(MinRadius)) / Max_a)
 // MinRadius = 216.20, MaxRadius = 2500000, Max_a = 31
-// ---------------------------------------------------------------------------
 
 int32_t decodeRadiusCode(uint8_t code) {
     // Radius[m] = table lookup, 0.001km precision (1 m)
@@ -86,9 +81,7 @@ int32_t decodeRadiusCode(uint8_t code) {
     return 0;
 }
 
-// ---------------------------------------------------------------------------
 // Azimuth decoding
-// ---------------------------------------------------------------------------
 
 int32_t decodeAzimuth6(uint8_t code) {
     // -9,000,000 + 18,000,000 * code / 64 (×100,000 scale)
@@ -104,9 +97,7 @@ int32_t decodeAzimuth7(uint8_t code) {
     );
 }
 
-// ---------------------------------------------------------------------------
 // J-Alert EX9 decoding
-// ---------------------------------------------------------------------------
 
 uint8_t decodePrefectureBitmask(uint64_t ex9, uint8_t* out_positions) {
     uint8_t count = 0;
@@ -153,9 +144,7 @@ uint8_t decodeCityCodeList(uint64_t ex9, uint16_t* out_codes) {
     return count;
 }
 
-// ---------------------------------------------------------------------------
 // B1 (A17=00) - Improved Resolution of Main Ellipse (EWSS CAMF v1.1 §3.7.1)
-// ---------------------------------------------------------------------------
 // A18 bit layout: bit[14]=MSB (first bit of field = spec bit 131), bit[0]=LSB (last bit = spec bit 145)
 // getBits() reads MSB-first, so a18 bit 14 = spec bit 131
 // C1: spec bits 131-133 → a18[14:12] → shift=12, mask=0x07
@@ -199,9 +188,7 @@ int32_t b1RefinedRadiusM(uint8_t code, int32_t base_radius_m, uint8_t original_r
     return base_radius_m - (delta_m * code + 4) / 8;
 }
 
-// ---------------------------------------------------------------------------
 // B2 (A17=01) - Position of the Centre of the Hazard (EWSS CAMF v1.1 §3.7.2)
-// ---------------------------------------------------------------------------
 
 B2HazardCenter decodeB2HazardCenter(uint8_t c5, uint8_t c6) {
     B2HazardCenter r{};
@@ -224,11 +211,9 @@ B2HazardCenter decodeB2HazardCenter(uint8_t c5, uint8_t c6) {
 }
 
 
-// ---------------------------------------------------------------------------
 // B4 field layout table
 // Each A4 hazard code maps to up to 4 D-field specs (d_idx=0xFF terminates).
 // Fields are ordered MSB→LSB within A18[15:0] per EWSS CAMF v1.2 §3.7.4.
-// ---------------------------------------------------------------------------
 
 namespace {
 

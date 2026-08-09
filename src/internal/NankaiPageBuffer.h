@@ -1,5 +1,4 @@
 #pragma once
-// azaraC - src/internal/NankaiPageBuffer.h
 // Nankai Trough Earthquake multi-page aggregation buffer
 //
 // Design: Instead of storing pages in a separate PageData[] array and then
@@ -33,13 +32,10 @@
 namespace azaraC {
 namespace internal {
 
-// ---------------------------------------------------------------------------
 // NankaiPageKey - Event identifier for page aggregation
-// ---------------------------------------------------------------------------
 // Note: svid is NOT included in the key because QZSS multiple satellites
 // may relay the same message. Using svid would cause duplicate buffers
 // for the same event.
-// ---------------------------------------------------------------------------
 struct NankaiPageKey {
     uint32_t event_time_unix = 0;  // 4B — largest alignment first
     uint8_t  info_code = 0;        // 1B
@@ -76,9 +72,7 @@ struct NankaiPageKey {
     }
 };
 
-// ---------------------------------------------------------------------------
 // NankaiPageBuffer - Page aggregation buffer for single event
-// ---------------------------------------------------------------------------
 // Specification: Pn/Pm range is 1-63 (6 bits)
 //
 // Memory: Uses a single aggregated_text[] buffer with bitmap tracking instead
@@ -90,7 +84,6 @@ struct NankaiPageKey {
 // The remaining pages (MAX_PAGES+1..total_pages) are silently dropped.
 //
 // Configurable via AZARAC_NANKAI_MAX_PAGES (default 12, max 63).
-// ---------------------------------------------------------------------------
 #ifndef AZARAC_NANKAI_MAX_PAGES
 #define AZARAC_NANKAI_MAX_PAGES 12
 #endif
@@ -273,14 +266,11 @@ private:
     }
 };
 
-// ---------------------------------------------------------------------------
 // NankaiPageBufferManager - Manages multiple page buffers
-// ---------------------------------------------------------------------------
 // Memory-efficient design:
 // - Single buffer with bitmap tracking (no separate PageData array)
 // - LRU eviction when all buffers are full
 // - Configurable buffer count via AZARAC_NANKAI_BUFFERS
-// ---------------------------------------------------------------------------
 
 // Default buffer count if not user-defined
 #ifndef AZARAC_NANKAI_BUFFERS

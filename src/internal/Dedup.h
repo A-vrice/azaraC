@@ -1,5 +1,4 @@
 #pragma once
-// azaraC - src/internal/Dedup.h
 // Ring-buffer duplicate suppression.
 // A message is considered duplicate when {svid, msg_type, crc24} matches
 // any slot in the ring.

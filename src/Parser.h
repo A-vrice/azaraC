@@ -1,5 +1,4 @@
 #pragma once
-// azaraC - src/Parser.h
 
 #include "Message.h"
 #include "framer/IFramer.h"

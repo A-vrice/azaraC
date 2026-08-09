@@ -1,5 +1,4 @@
 #pragma once
-// azaraC - src/internal/MtCommonTypes.h
 // Shared types used by both MT=43 (QZQSM/DCR) and MT=44 (DCX/CAMF)
 
 #if defined(__AVR__)
@@ -10,7 +9,7 @@
 
 namespace azaraC {
 
-// ---- shared sub-structs ------------------------------------------------
+// shared sub-structs
 
 struct TimeFields {
     uint8_t  month;   // 1-12 (0 = unresolved)

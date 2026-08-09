@@ -1,5 +1,3 @@
-// azaraC - src/framer/NmeaFramer.cpp
-
 #include "NmeaFramer.h"
 #if defined(__AVR__)
 #include "../internal/avr_std/cstring"

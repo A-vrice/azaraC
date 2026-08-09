@@ -1,5 +1,4 @@
 #pragma once
-// azaraC - src/Message.h
 // Main message struct (Safe tagged union)
 //
 // Safe tagged union: payload (Mt43Data/Mt44Data) is held in raw aligned
@@ -34,7 +33,7 @@
 
 namespace azaraC {
 
-// ---- Unsupported reason enum -------------------------------------------
+// Unsupported reason enum
 
 enum class UnsupportedReason : uint8_t {
     None = 0,
@@ -43,7 +42,7 @@ enum class UnsupportedReason : uint8_t {
     UnsupportedVersion = 3,
 };
 
-// ---- Message payload type tag ------------------------------------------
+// Message payload type tag
 
 enum class MsgPayloadType : uint8_t {
     Empty,
@@ -51,7 +50,7 @@ enum class MsgPayloadType : uint8_t {
     Mt44
 };
 
-// ---- main message struct (Safe tagged union) ---------------------------
+// main message struct (Safe tagged union)
 
 struct Message {
     uint8_t  svid = 0;

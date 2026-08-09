@@ -1,4 +1,3 @@
-// azaraC - src/json/JsonSerializer.cpp
 // Top-level JSON serializer entry point
 
 #include "azaraC.h"
@@ -60,9 +59,7 @@ bool serializeTyphoon(const Mt43Data* d, Print& out);
 bool serializeMarine(const Mt43Data* d, Print& out);
 #endif
 
-// ---------------------------------------------------------------------------
 // Top-level serialize
-// ---------------------------------------------------------------------------
 void JsonSerializer::serialize(const Message& msg, Print& out) {
     using namespace azaraC::def;
     out.print('{');
