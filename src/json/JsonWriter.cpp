@@ -29,7 +29,6 @@ void writeUint64(Print& out, uint64_t v) {
     out.print(buf + i);
 }
 
-// Write double with fixed precision (for coordinates, distances)
 void writeDouble(Print& out, double v, int precision) {
     if (v != v || v > 1e308 || v < -1e308) {
         out.print("null");
@@ -58,7 +57,6 @@ void writeDouble(Print& out, double v, int precision) {
     uint64_t int_part = (uint64_t)v;
     writeUint64(out, int_part);
     out.print('.');
-    // Fractional part
     double frac = v - (double)int_part;
     for (int i = 0; i < precision; ++i) {
         frac *= 10.0;
@@ -114,12 +112,10 @@ void writeHex(Print& out, uint8_t v) {
     out.print(buf);
 }
 
-// key: "foo":
 void wk(Print& out, std::string_view k) {
     out.print('"'); writeEscaped(out, k); out.print("\":");
 }
 
-// "key":value,
 void wf_u(Print& out, std::string_view k, uint32_t v, bool last) {
     wk(out, k); writeUint32(out, v); if (!last) writeChar(out, ',');
 }
@@ -162,7 +158,6 @@ void wf_s(Print& out, std::string_view k, const char* v, bool last) {
 
 // Helpers for repeated structures
 
-// Write a DHM TimeFields object as nested JSON
 void writeDHM(Print& out, std::string_view key, const TimeFields& t, bool last) {
     wk(out, key);
     out.print('{');

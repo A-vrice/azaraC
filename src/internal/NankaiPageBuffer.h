@@ -166,7 +166,6 @@ struct NankaiPageBuffer {
         return true;
     }
 
-    // Check if all pages have been received
     bool isComplete() const {
         if (total_pages == 0) return false;
         return received_count >= total_pages;
@@ -225,13 +224,11 @@ struct NankaiPageBuffer {
         out[pos] = '\0';  // Null terminate
     }
 
-    // Check if buffer has expired (timeout)
     bool isExpired(uint64_t current_ms) const {
         if (total_pages == 0) return false;
         return (current_ms - last_update_ms) > TIMEOUT_MS;
     }
 
-    // Clear buffer (same as clearAll — key, pages, bitmap all cleared)
     void clearAll() {
         key.clear();
         total_pages = 0;
@@ -242,17 +239,14 @@ struct NankaiPageBuffer {
         truncated = false;
     }
 
-    // Check if buffer is empty (no pages received)
     bool isEmpty() const {
         return total_pages == 0;
     }
 
-    // Check if buffer matches given key
     bool matchesKey(const NankaiPageKey& k) const {
         return key == k;
     }
 
-    // Set key for this buffer
     void setKey(const NankaiPageKey& k) {
         key = k;
     }
@@ -295,7 +289,6 @@ public:
         // Expire old buffers
         expireBuffers(current_ms);
 
-        // Find existing buffer for this key
         int8_t idx = findBuffer(key);
 
         if (idx < 0) {
@@ -312,7 +305,6 @@ public:
 
         // Add page to buffer
         if (_buffers[idx].addPage(page_num, total_pages, text_data, current_ms)) {
-            // Check if complete
             if (_buffers[idx].isComplete()) {
                 return &_buffers[idx];
             }
@@ -321,13 +313,11 @@ public:
         return nullptr;
     }
 
-    // Get buffer for given key
     NankaiPageBuffer* getBuffer(const NankaiPageKey& key) {
         int8_t idx = findBuffer(key);
         return (idx >= 0) ? &_buffers[idx] : nullptr;
     }
 
-    // Get buffer for given key (const version)
     const NankaiPageBuffer* getBuffer(const NankaiPageKey& key) const {
         int8_t idx = findBuffer(key);
         return (idx >= 0) ? &_buffers[idx] : nullptr;
@@ -340,7 +330,6 @@ public:
         }
     }
 
-    // Get count of active (non-empty) buffers
     uint8_t getActiveCount() const {
         uint8_t count = 0;
         for (uint8_t i = 0; i < MAX_BUFFERS; ++i) {

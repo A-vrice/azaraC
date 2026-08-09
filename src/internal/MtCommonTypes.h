@@ -9,8 +9,6 @@
 
 namespace azaraC {
 
-// shared sub-structs
-
 struct TimeFields {
     uint8_t  month;   // 1-12 (0 = unresolved)
     uint8_t  day;     // 1-31 (0 = unresolved)

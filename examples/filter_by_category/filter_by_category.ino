@@ -28,7 +28,6 @@
 azaraC::Parser  parser;
 azaraC::Message msg;
 
-// GNSSから取得した最新のUNIX時刻をキャッシュする変数
 // (UBX-NAV-PVT 等から別途パースして更新する想定)
 static uint32_t cached_gnss_unix_time = 0;
 

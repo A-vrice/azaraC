@@ -179,7 +179,6 @@ static void set_valid_preamble(uint8_t* bits, std::mt19937& rng) {
     bits[0] = preambles[dist(rng)];
 }
 
-// 有効なMSG_TYPEを設定
 static void set_valid_msg_type(uint8_t* bits, std::mt19937& rng) {
     std::uniform_int_distribution<int> dist(0, 1);
     uint8_t types[] = {43, 44};

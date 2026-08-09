@@ -16,7 +16,6 @@ static bool has(const std::string& s, const char* sub) {
     return s.find(sub) != std::string::npos;
 }
 
-// Helper to create Mt44Data with safe initialization
 static void initMt44(Message& m) {
     m.msg_type = 44;
     m.payload_type = MsgPayloadType::Mt44;

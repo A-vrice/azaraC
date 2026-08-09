@@ -42,7 +42,6 @@ uint32_t lastTcpAttempt = 0;
 const uint32_t RECONNECT_INTERVAL = 5000;
 bool serverConnected = false;  // 接続状態フラグ
 
-// GNSSから取得した最新のUNIX時刻をキャッシュする変数
 static uint32_t cached_gnss_unix_time = 0;
 
 // Wi-Fi接続

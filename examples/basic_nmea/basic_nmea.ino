@@ -19,7 +19,6 @@
 azaraC::Parser  parser;
 azaraC::Message msg;
 
-// GNSSから取得した最新のUNIX時刻をキャッシュする変数
 // (TinyGPS++ などを併用して $GPRMC や $GPZDA から取得・更新する想定)
 uint32_t cached_gnss_unix_time = 0;
 

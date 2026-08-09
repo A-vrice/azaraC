@@ -267,8 +267,7 @@ TEST_CASE("Mt43Data: コピーコンストラクタ - 全12型") {
             default: break;
         }
 
-        // 異なる型へのアクセスがnullptrであること（型安全性の確認）
-        // Eew 以外の型では getEew() が nullptr を返すべき、など
+        // 異なる型へのアクセスは nullptr（型安全性の確認）
         if (t.type != Mt43Data::ActiveType::Eew)          CHECK(copied.get<EewData>()          == nullptr);
         if (t.type != Mt43Data::ActiveType::Hypocenter)   CHECK(copied.get<HypocenterData>()   == nullptr);
         if (t.type != Mt43Data::ActiveType::Seismic)      CHECK(copied.get<SeismicData>()      == nullptr);
@@ -315,13 +314,11 @@ TEST_CASE("Mt43Data: コピー代入演算子 - 代入先の元データが破�
     Mt43Data typhoon;
     typhoon.initAs<TyphoonData>();
 
-    // Eew → Typhoon に代入。元の Eew が破棄される
     eew = typhoon;
     CHECK(eew.active_type == Mt43Data::ActiveType::Typhoon);
     CHECK(eew.getTyphoon() != nullptr);
     CHECK(eew.getEew() == nullptr);  // 型が変わったので nullptr
 
-    // 自己代入
     eew = eew;
     CHECK(eew.active_type == Mt43Data::ActiveType::Typhoon);
     CHECK(eew.getTyphoon() != nullptr);
@@ -411,7 +408,6 @@ TEST_CASE("Mt43Data: ムーブ代入演算子") {
     Mt43Data typhoon;
     typhoon.initAs<TyphoonData>();
 
-    // Eew → Typhoon にムーブ代入
     eew = std::move(typhoon);
     CHECK(eew.active_type == Mt43Data::ActiveType::Typhoon);
     CHECK(eew.getTyphoon() != nullptr);

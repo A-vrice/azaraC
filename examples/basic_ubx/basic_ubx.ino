@@ -24,7 +24,6 @@
 azaraC::Parser  parser;
 azaraC::Message msg;
 
-// UBX-NAV-PVT メッセージ等から取得した最新のUNIX時刻をキャッシュする変数
 uint32_t cached_gnss_unix_time = 0;
 
 void setup() {
@@ -55,8 +54,6 @@ void loop() {
     while (gnss.available()) {
         uint8_t b = static_cast<uint8_t>(gnss.read());
 
-        // UBX-NAV-PVT 等を別途パースして時刻が更新されたら、
-        // cached_gnss_unix_time = ... と更新する想定。
 
         // 第3引数 now_unix に最新の時刻を渡すことで、DCR/DCX電文の「年」を正確に算出できます。
         // 未同期時 (now_unix = 0) の場合、年は解決されませんが、

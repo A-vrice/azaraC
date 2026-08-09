@@ -25,7 +25,6 @@ static bool hasField(const std::string& s, const std::string& key_val) {
     return end >= s.size() || s[end] == ',' || s[end] == '}' || s[end] == '\n' || s[end] == ' ';
 }
 
-// Helper to create Mt43Data with safe initialization
 static void initMt43(Message& m, uint8_t disaster_category) {
     m.msg_type = 43;
     m.payload_type = MsgPayloadType::Mt43;
@@ -36,7 +35,6 @@ static void initMt43(Message& m, uint8_t disaster_category) {
     }
 }
 
-// Helper to create Mt44Data with safe initialization
 static void initMt44(Message& m) {
     m.msg_type = 44;
     m.payload_type = MsgPayloadType::Mt44;

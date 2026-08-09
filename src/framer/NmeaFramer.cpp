@@ -64,7 +64,6 @@ bool NmeaFramer::parse(Frame& out) {
     // Expected: QZQSM,<svid>,<hex-data>
     if (strncmp(_buf, "QZQSM,", 6) != 0) return false;
 
-    // parse svid
     char* p = _buf + 6;
     uint16_t svid_tmp = 0;
     bool has_digit = false;
@@ -74,13 +73,13 @@ bool NmeaFramer::parse(Frame& out) {
             has_digit = true;
             if (svid_tmp > 255) return false;
         } else {
-            return false; // Reject non-digit characters
+            return false;
         }
         p++;
     }
     if (!has_digit || *p != ',') return false;
     uint8_t svid = static_cast<uint8_t>(svid_tmp);
-    ++p;  // skip comma
+    ++p;
 
     // hex decode into bits[] — single pass
     memset(out.bits, 0, sizeof(out.bits));

@@ -23,7 +23,6 @@ static constexpr uint8_t  MSG_TYPE_MT44  = 44;
 static constexpr uint32_t HEARTBEAT_MS   = 5000;
 static constexpr uint32_t STATS_INTERVAL = 10;  // メッセージ数
 
-// GNSSから取得した最新のUNIX時刻をキャッシュする変数
 //
 // この変数は parser.feed() の第3引数として渡され、DCR/DCX電文の「年」を正確に
 // 算出するために使用されます。値が0の場合、年は解決されませんが月・日・時・分は
@@ -219,8 +218,6 @@ void loop() {
     while (Serial1.available()) {
         uint8_t b = static_cast<uint8_t>(Serial1.read());
 
-        // バイト受信のデバッグ出力（必要時はコメント解除）
-        // Serial.printf("%02X ", b);
 
         // 第3引数にUNIX時刻を渡すことで、DCR/DCX電文の「年」を正確に算出できます
         if (parser.feed(b, msg, cached_gnss_unix_time)) {

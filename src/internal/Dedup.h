@@ -28,8 +28,6 @@ public:
         memset(_ring, 0xFF, sizeof(_ring));
     }
 
-    // Returns true if key is a duplicate (already seen).
-    // If not duplicate, stores key and returns false.
     bool isDuplicate(const DedupKey& key);
     void reset();
 
