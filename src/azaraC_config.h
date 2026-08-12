@@ -1,12 +1,6 @@
 #pragma once
-// Compile-time configuration macros.
-// Separated from azaraC.h so that definition files can include only the
-// configuration macros without pulling in the entire library.
-//
-// Optional compile-time overrides (define BEFORE including this header):
-//   #define AZARAC_DEDUP_SLOTS 16   // default: 8
-//   #define AZARAC_LANG_JA 0        // Enable Japanese labels (default: 1)
-//   #define AZARAC_LANG_EN 1        // Enable English labels (default: 0)
+// Compile-time configuration macros. Separated from azaraC.h so definition
+// files can include only these macros.
 
 // language selection macros
 #ifndef AZARAC_LANG_JA
@@ -18,16 +12,12 @@
 #endif
 
 // disaster category control macros
-// (AVR defaults are applied in the platform preset below, BEFORE these
-// normal defaults, so #ifndef in both sections works.)
+// (AVR preset below applies defaults before these, so #ifndef works in both.)
 
-// platform presets (AVR / resource-constrained targets)
-// These reduce default buffer sizes and definition categories when compiling
-// for AVR.
-// They come BEFORE the normal defaults so #ifndef in both sections works:
-// user -D override → AVR section skips → normal section skips → user value used.
-// no override → AVR section sets reduced value → normal section skips → AVR value used.
-// no AVR → AVR section skipped → normal section uses normal default.
+// AVR/resource-constrained presets: reduced buffer sizes and categories.
+// Placed before the normal defaults so #ifndef in both sections works:
+// a user -D override wins (both sections skip); AVR sets reduced values;
+// non-AVR falls through to the normal defaults.
 #if defined(__AVR__)
 #ifndef AZARAC_NANKAI_MAX_PAGES
 #define AZARAC_NANKAI_MAX_PAGES 4
@@ -39,15 +29,10 @@
 #define AZARAC_DEDUP_SLOTS 4
 #endif
 #ifndef AZARAC_FLASH_BUF_SIZE
-// Shared definition-lookup buffer (see internal/FlashString.h). With the
-// AVR category preset (SEISMIC/TSUNAMI only) the longest label is 30 bytes;
-// 64 leaves headroom. Enabling DCX/CAMF adds far longer labels
-// (a4_hazard_definition: 683 B), so fall back to the full 800 B buffer.
-// The category macros below are evaluated only when already defined
-// (e.g. via -D or #define before including azaraC.h); the AVR preset
-// itself defaults DCX/CAMF to disabled, keeping 64 B for the default build.
-// Categories are ordered by longest label so multi-category builds stay safe.
-// If a new category's generated label exceeds 64 B, add it to this cascade.
+// Shared definition-lookup buffer (see internal/FlashString.h).
+// AVR default (SEISMIC/TSUNAMI) longest label 30 B → 64 leaves headroom;
+// DCX/CAMF adds far longer labels (a4_hazard_definition: 683 B) → 800 B.
+// Categories are ordered by longest label; add longer ones to this cascade.
 #if defined(AZARAC_ENABLE_DCX_CAMF) && AZARAC_ENABLE_DCX_CAMF
 #define AZARAC_FLASH_BUF_SIZE 800
 #elif defined(AZARAC_ENABLE_NANKAI) && AZARAC_ENABLE_NANKAI
@@ -60,11 +45,9 @@
 #define AZARAC_FLASH_BUF_SIZE 64
 #endif
 #endif
-// AVR (Arduino Uno etc.) has only 32KB Flash: the large definition pools
-// (EX1 ~41KB, local government ~38KB, ...) exceed even a single PROGMEM
-// array limit (32KB). Only the small categories (SEISMIC / TSUNAMI) are
-// enabled by default. Override with -D or #define before including azaraC.h
-// if you need other categories (requires more flash than the Uno provides).
+// AVR has only 32KB Flash: large definitions (EX1 ~41KB, local gov ~38KB)
+// exceed a single PROGMEM array limit, so only SEISMIC/TSUNAMI are enabled.
+// Override before including if you need others (requires more flash).
 #ifndef AZARAC_ENABLE_EEW
 #define AZARAC_ENABLE_EEW 0
 #endif
@@ -164,11 +147,8 @@
 #warning "Nankai buffers may exhaust SRAM on Arduino Uno. Consider AZARAC_NANKAI_BUFFERS=1"
 #endif
 
-// PROGMEM abstraction (AVR / embedded)
-// On AVR, const data is placed in RAM unless marked with PROGMEM.
-// On desktop, PROGMEM is a no-op.
-// These macros provide a portable way to store data in Flash on AVR.
-// Usage: const char myString[] AZARAC_PROGMEM = "hello";
+// PROGMEM abstraction: stores const data in Flash on AVR (no-op on desktop).
+// Usage: const char s[] AZARAC_PROGMEM = "...";
 #ifdef __AVR__
 #include <avr/pgmspace.h>
 #define AZARAC_PROGMEM PROGMEM

@@ -24,7 +24,6 @@ namespace internal {
 void serializeDcx(const Message& m, Print& out) {
     using namespace azaraC::def;
 
-    // Use safe accessor for Mt44Data
     const Mt44Data* d = m.getMt44();
     if (!d) {
         wf_s(out, keys::note, "invalid_mt44", /*last=*/true);
@@ -188,8 +187,7 @@ void serializeDcx(const Message& m, Print& out) {
             }
             out.print('}');
         };
-        // D3/D4 lookups return const char* (array emitter); adapt them to the
-        // std::optional<std::string_view> shape writeDField expects
+        // D3/D4 return const char* (array emitter); adapt to writeDField's optional shape
         auto d3Lookup = [](uint8_t v) -> std::optional<std::string_view> {
             const char* s = qzss_dcx_camf_d3_azimuth_from_centre_of_main_ellipse_to_epicentre_lookup(v);
             return s ? std::optional<std::string_view>(std::string_view{s}) : std::nullopt;
@@ -279,7 +277,6 @@ writeDField("d36_typhoon_cat",      b4.d_values[35], b4.d_present[35], qzss_dcx_
         out.print('{');
         wf_u(out, "prefecture_mode", dec.jalert_prefecture_mode);
         if (dec.jalert_prefecture_mode) {
-            // Prefecture positions
             wk(out, "prefecture_positions");
             out.print('[');
             for (uint8_t i = 0; i < dec.prefecture_count; ++i) {
@@ -287,7 +284,6 @@ writeDField("d36_typhoon_cat",      b4.d_values[35], b4.d_present[35], qzss_dcx_
                 writeUint32(out, dec.prefecture_positions[i]);
             }
             out.print("],");
-            // Prefecture labels
             wk(out, "prefecture_labels");
             out.print('[');
             for (uint8_t i = 0; i < dec.prefecture_count; ++i) {
@@ -298,7 +294,6 @@ writeDField("d36_typhoon_cat",      b4.d_values[35], b4.d_present[35], qzss_dcx_
             }
             out.print("],");
         } else {
-            // City/town/village codes
             wk(out, "city_codes");
             out.print('[');
             for (uint8_t i = 0; i < dec.city_code_count; ++i) {
@@ -306,7 +301,6 @@ writeDField("d36_typhoon_cat",      b4.d_values[35], b4.d_present[35], qzss_dcx_
                 writeUint32(out, dec.city_codes[i]);
             }
             out.print("],");
-            // City labels
             wk(out, "city_labels");
             out.print('[');
             for (uint8_t i = 0; i < dec.city_code_count; ++i) {

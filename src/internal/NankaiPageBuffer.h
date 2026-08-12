@@ -1,16 +1,9 @@
 #pragma once
 // Nankai Trough Earthquake multi-page aggregation buffer
 //
-// Design: Instead of storing pages in a separate PageData[] array and then
-// copying to aggregated_text[] on completion, pages are written DIRECTLY to
-// aggregated_text[] at offset (page_num-1) * TEXT_PER_PAGE.
-// A 64-bit bitmap tracks which pages have been received.
-//
-// Benefits:
-//   - No separate PageData buffer (saves ~1KB at MAX_PAGES=63)
-//   - No sorting needed (direct offset write)
-//   - O(1) duplicate detection via bitmap test
-//   - total_pages > MAX_PAGES gracefully truncates (truncated flag)
+// Pages are written DIRECTLY into aggregated_text[] at offset (page_num-1)*TEXT_PER_PAGE;
+// a 64-bit bitmap tracks received pages. No separate PageData array (saves ~1KB at
+// MAX_PAGES=63), no sorting, O(1) duplicate detection. total_pages > MAX_PAGES truncates.
 
 #if defined(__AVR__)
 #include "avr_std/cstdint"
@@ -32,10 +25,8 @@
 namespace azaraC {
 namespace internal {
 
-// NankaiPageKey - Event identifier for page aggregation
-// Note: svid is NOT included in the key because QZSS multiple satellites
-// may relay the same message. Using svid would cause duplicate buffers
-// for the same event.
+// Event key. svid deliberately excluded: multiple QZSS satellites relay the same
+// message, so including svid would create duplicate buffers for one event.
 struct NankaiPageKey {
     uint32_t event_time_unix = 0;  // 4B — largest alignment first
     uint8_t  info_code = 0;        // 1B
@@ -72,18 +63,11 @@ struct NankaiPageKey {
     }
 };
 
-// NankaiPageBuffer - Page aggregation buffer for single event
-// Specification: Pn/Pm range is 1-63 (6 bits)
-//
-// Memory: Uses a single aggregated_text[] buffer with bitmap tracking instead
-// of a separate PageData[] array. Pages are written directly at offset
-// (page_num-1)*TEXT_PER_PAGE when they arrive.
-//
-// Truncation: When total_pages > MAX_PAGES, the buffer accepts the first
-// MAX_PAGES pages (pages 1..MAX_PAGES) and sets the truncated flag.
-// The remaining pages (MAX_PAGES+1..total_pages) are silently dropped.
-//
-// Configurable via AZARAC_NANKAI_MAX_PAGES (default 12, max 63).
+// Page aggregation buffer for a single event. Pages written directly at
+// (page_num-1)*TEXT_PER_PAGE; bitmap tracks received pages.
+// Truncation: if total_pages > MAX_PAGES, keep pages 1..MAX_PAGES and set
+// truncated; the rest are silently dropped.
+// Config AZARAC_NANKAI_MAX_PAGES (default 12, max 63, Pn/Pm range 1-63 = 6 bits).
 #ifndef AZARAC_NANKAI_MAX_PAGES
 #define AZARAC_NANKAI_MAX_PAGES 12
 #endif
@@ -112,12 +96,8 @@ struct NankaiPageBuffer {
         clearAll();
     }
 
-    // Add a page to buffer
-    // page_num: 1-based page number
-    // total_pages: total number of pages (from Pm field)
-    // text_data: pointer to 18 bytes of text data
-    // current_ms: current timestamp in milliseconds (for consistent time source)
-    // Returns true if page was added successfully
+    // Add a page (page_num 1-based, total_pages from Pm, text_data 18 bytes).
+    // Returns true if added.
     bool addPage(uint8_t page_num, uint8_t total_pages, const uint8_t* text_data, uint64_t current_ms) {
         // Page number range check (1-63 per spec)
         if (page_num == 0 || page_num > SPEC_MAX_PAGES) {
@@ -171,11 +151,8 @@ struct NankaiPageBuffer {
         return received_count >= total_pages;
     }
 
-    // Get text length (excluding null terminator)
-    // Stops at first 0x00 byte in each page (UTF-8 text contains no NUL bytes)
-    // NOTE: Designed to be called on completed buffers.
-    //       Only reads pages marked as received in the bitmap,
-    //       so accidental calls on incomplete buffers are safe.
+    // Text length excluding null terminator; stops at first 0x00 per page (UTF-8 has no NUL).
+    // Safe on incomplete buffers: only reads received pages.
     uint16_t getTextLength() const {
         uint16_t len = 0;
 
@@ -194,10 +171,8 @@ struct NankaiPageBuffer {
         return len;
     }
 
-    // Get combined text as string
-    // Stops at first 0x00 byte in each page (null terminator)
-    // Pages are output in order (by page_num, guaranteed by offset-based storage)
-    // NOTE: Only reads pages marked as received in the bitmap.
+    // Combined text in page order (offset-based storage guarantees order),
+    // stopping at first 0x00 per page. Only reads received pages.
     void getText(char* out, uint16_t max_len) const {
         if (!out || max_len == 0) return;
 
@@ -260,11 +235,8 @@ private:
     }
 };
 
-// NankaiPageBufferManager - Manages multiple page buffers
-// Memory-efficient design:
-// - Single buffer with bitmap tracking (no separate PageData array)
-// - LRU eviction when all buffers are full
-// - Configurable buffer count via AZARAC_NANKAI_BUFFERS
+// Manages multiple page buffers with bitmap tracking + LRU eviction;
+// buffer count = AZARAC_NANKAI_BUFFERS.
 
 // Default buffer count if not user-defined
 #ifndef AZARAC_NANKAI_BUFFERS
@@ -281,8 +253,7 @@ public:
         }
     }
 
-    // Add a page to appropriate buffer
-    // Returns pointer to completed buffer if all pages received, nullptr otherwise
+    // Add a page; returns completed-buffer pointer if all pages received, else nullptr
     NankaiPageBuffer* addPage(const NankaiPageKey& key, uint8_t page_num,
                                uint8_t total_pages, const uint8_t* text_data,
                                uint64_t current_ms) {
@@ -361,9 +332,7 @@ private:
         return -1;
     }
 
-    // LRU eviction: find the oldest buffer by age relative to current_ms
-    // Uses wrap-aware elapsed computation (unsigned subtraction) so correct
-    // across millis() rollover.
+    // LRU eviction: oldest buffer by age (wrap-aware via unsigned subtraction)
     int8_t findOldestBuffer(uint64_t current_ms) {
         uint64_t max_age = 0;
         int8_t oldest_idx = 0;

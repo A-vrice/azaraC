@@ -29,12 +29,8 @@ uint32_t Decoder::crc24q(const uint8_t* data, uint16_t bit_len) {
 
 // Bit extraction (MSB-first, 0-indexed)
 uint32_t Decoder::getBits(const uint8_t* buf, uint16_t start, uint8_t len) {
-    // Boundary check: silently return 0 for out-of-range reads,
-    // but raise OOB flag so decode() can reject the result.
-    // This is intentional for embedded safety — avoids crashes on corrupt frames
-    // rather than asserting or throwing.
-    // The limit is 256 (not 250) because Frame::bits is a 32-byte (256-bit) array;
-    // bits 250-255 are padding, guaranteed zero by all framers.
+    // OOB: return 0 + set oob_ so decode() rejects (embedded safety, no assert).
+    // Limit 256 (not 250): Frame::bits is a 256-bit array; bits 250-255 are padding.
     if (start + len > 256) { oob_ = true; return 0; }
     uint32_t val = 0;
     for (uint8_t i = 0; i < len; ++i) {
@@ -101,11 +97,9 @@ TimeFields Decoder::extractDHM(const uint8_t* buf, uint16_t start, uint32_t repo
     return resolveTime(0, d, h, m, report_unix);
 }
 
-// Resolve time using report_time as baseline.
-// report_unix: UNIX time from GPS module (recommended) or SNTP
-//   - If >= 2000-01-01 (946684800): use as baseline for year/month resolution
-//   - If < 2000-01-01: return with unix_time = 0 (unresolved)
-// GPS time is preferred for Arduino/ESP32 targets where internal RTC is unreliable.
+// Resolve time using report_unix as baseline.
+// report_unix: UNIX time from GPS module (recommended) or SNTP.
+//   < 2000-01-01 (946684800): return unix_time = 0 (unresolved).
 TimeFields Decoder::resolveTime(uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint32_t report_unix) {
     TimeFields t{month, day, hour, minute, 0};
     // Basic sanity
@@ -114,7 +108,7 @@ TimeFields Decoder::resolveTime(uint8_t month, uint8_t day, uint8_t hour, uint8_
         return t;
     }
 
-    // Skip year resolution if baseline is invalid or uninitialized (e.g. before 2000-01-01)
+    // Skip year resolution if baseline invalid/uninitialized (< 2000-01-01)
     if (report_unix < 946684800u) {
         return t; // unix_time remains 0
     }
@@ -126,15 +120,10 @@ TimeFields Decoder::resolveTime(uint8_t month, uint8_t day, uint8_t hour, uint8_
     civil_from_days(base_days, y, m, d);
 
     if (month == 0) {
-        // Month not provided (DHM only): resolve month/year from base.
-        // extractDHM serves event times (quake_time, activity_time, reference_time)
-        // broadcast near-real-time, so the true timestamp is the occurrence of
-        // (day,hour,minute) closest to report_unix. A small margin (a few days,
-        // covering clock drift and day/month boundary crossings) keeps the
-        // closest match when the event is near the report — e.g. report 01/31
-        // 23:00 + event 02/01 02:00 correctly resolves to February. Farther than
-        // the margin the message is stale and the event cannot be in the future,
-        // so fall back to the most recent PAST occurrence.
+        // Month not provided (DHM only): pick the (day,hour,minute) occurrence
+        // closest to report_unix within a few days' margin (covers clock drift /
+        // day-month boundary, e.g. 01/31 23:00 report + 02/01 02:00 event → Feb).
+        // Beyond the margin the message is stale → fall back to most recent PAST occurrence.
         static constexpr uint32_t MARGIN_SEC = 3u * 86400u; // a few days
         uint32_t best_y = y, best_m = m;
         uint32_t best_diff = 0xFFFFFFFFu;
@@ -190,7 +179,7 @@ TimeFields Decoder::resolveArrivalTime(uint16_t raw, uint32_t base_unix) {
 
     if (hour > 23 || min > 59) return t;
 
-    // Skip year/month resolution if base_unix is invalid (e.g. before 2000-01-01)
+    // Skip year/month resolution if base_unix invalid (< 2000-01-01)
     if (base_unix < 946684800u) {
         t.hour = hour;
         t.minute = min;

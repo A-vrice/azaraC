@@ -84,7 +84,9 @@ bool Parser::processNankaiAggregation(const Message& decoded, Message& out, cons
             key.fallback_minute = d->event_time.minute;
             // isValid() now returns true → proceeds to normal aggregation flow
         }
-        // time_provided == false → isValid() remains false → addPage returns nullptr → return false
+        // time_provided == false → key stays invalid (fallback fields unset).
+        // addPage does NOT check key.isValid(); it still keys on info_code and
+        // aggregates pages, so aggregation proceeds with the unresolved key.
     }
 
     // Add page to buffer

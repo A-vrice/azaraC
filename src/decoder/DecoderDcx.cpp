@@ -9,8 +9,6 @@ namespace internal {
 
 #if (AZARAC_ENABLE_DCX_CAMF)
 
-// MT=44 DCX / CAMF  (IS-QZSS-DCX-004)
-
 // Country code for Japan in A2 field (9-bit: 001101111 = 111)
 static constexpr uint16_t DCX_COUNTRY_CODE_JAPAN = 111;
 
@@ -215,10 +213,7 @@ bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix)
                 b1.c4, dec.main_ellipse.semi_minor_m, d->camf.a15);
         }
         // B2 (A17=01) - Position of the Centre of the Hazard (EWSS CAMF v1.1 §3.7.2)
-        // A18 = C5[0:6](7bit) + C6[7:13](7bit) + Reserved[14](1bit)
-        // C5: spec bits 131-137 → a18[14:8]  → shift=8, mask=0x7F
-        // C6: spec bits 138-144 → a18[7:1]   → shift=1, mask=0x7F
-        // Reserved: a18[0]
+        // C5: spec bits 131-137; C6: spec bits 138-144; Reserved: a18[0]
         else if (d->camf.a17 == 1) {
             uint8_t c5 = (d->camf.a18 >> 8) & 0x7F;  // spec bits[131:137] → a18[14:8]
             uint8_t c6 = (d->camf.a18 >> 1) & 0x7F;  // spec bits[138:144] → a18[7:1]
@@ -232,11 +227,7 @@ bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix)
             // dec.main_ellipse is unchanged (keeps original ellipse center)
         }
         // B3 (A17=10) - Secondary Ellipse Definition (EWSS CAMF v1.1 §3.7.3)
-        // A18 = C7[0:1](2bit) + C8[2:4](3bit) + C9[5:9](5bit) + C10[10:14](5bit)
-        // C7: spec bits 131-132 → a18[14:13] → shift=13, mask=0x03
-        // C8: spec bits 133-135 → a18[12:10] → shift=10, mask=0x07
-        // C9: spec bits 136-140 → a18[9:5]   → shift=5,  mask=0x1F
-        // C10: spec bits 141-145 → a18[4:0]  → shift=0,  mask=0x1F
+        // C7: spec bits 131-132; C8: 133-135; C9: 136-140; C10: 141-145
         else if (d->camf.a17 == 2) {
             uint8_t c7  = (d->camf.a18 >> 13) & 0x03;  // spec bits[131:132] → a18[14:13]
             uint8_t c8  = (d->camf.a18 >> 10) & 0x07;  // spec bits[133:135] → a18[12:10]

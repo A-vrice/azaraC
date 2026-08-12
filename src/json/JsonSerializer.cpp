@@ -59,7 +59,7 @@ bool serializeTyphoon(const Mt43Data* d, Print& out);
 bool serializeMarine(const Mt43Data* d, Print& out);
 #endif
 
-// Top-level serialize
+// Top-level serialize entry: dispatch by msg_type
 void JsonSerializer::serialize(const Message& msg, Print& out) {
     using namespace azaraC::def;
     out.print('{');
@@ -77,7 +77,6 @@ void JsonSerializer::serialize(const Message& msg, Print& out) {
     } else
 #endif
     if (msg.msg_type == 43) {
-        // Use safe accessor for Mt43Data
         const Mt43Data* d = msg.getMt43();
         if (!d) {
             wf_s(out, keys::note, "invalid_mt43", /*last=*/true);
@@ -97,8 +96,7 @@ void JsonSerializer::serialize(const Message& msg, Print& out) {
         writeDHM(out, "report_time", d->event_time);
         wk(out, "detail"); out.print('{');
 
-        // Dispatch to enabled serializers based on disaster_category
-        // (switch: O(1) dispatch; categories 7/13 are undefined in the spec)
+        // Dispatch by disaster_category (categories 7/13 undefined in spec)
         bool serialized = false;
         switch (d->disaster_category) {
 #if (AZARAC_ENABLE_EEW)
@@ -142,7 +140,7 @@ void JsonSerializer::serialize(const Message& msg, Print& out) {
         }
         if (!serialized) wf_s(out, keys::note, "unsupported_category", /*last=*/true);
 
-        out.print('}');  // detail
+        out.print('}');
 
     } else {
         wf_s(out, keys::note, "unsupported_msg_type", /*last=*/true);

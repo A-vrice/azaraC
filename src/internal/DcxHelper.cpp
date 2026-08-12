@@ -102,21 +102,15 @@ int32_t decodeAzimuth7(uint8_t code) {
 uint8_t decodePrefectureBitmask(uint64_t ex9, uint8_t* out_positions) {
     uint8_t count = 0;
 
-    // EX9 bit layout for prefecture (EX8=0):
-    // EX9 64-bit field: [47-bit prefecture][17-bit reserved]
-    // Stream bit 147 → ex9 bit 63 (MSB of 47-bit field)
-    // Stream bit 193 → ex9 bit 17 (LSB of 47-bit field)
-    // Stream bits 194..210 → ex9 bits 16..0 (reserved)
-    //
-    // 47-bit prefecture integer: bit 0 (LSB) = Hokkaido (JIS 1), bit 46 (MSB) = Okinawa (JIS 47)
-    // In EX9, this maps to ex9[63:17], so we shift right by 17 to align.
+    // EX8=0: EX9 = [47-bit prefecture][17-bit reserved]; prefecture = ex9[63:17]
+    // (stream bits 147..193); reserved = ex9[16:0] (bits 194..210).
+    // Bit 0 (LSB) = Hokkaido (JIS 1), bit 46 (MSB) = Okinawa (JIS 47).
 
     uint64_t pref = ex9 >> 17;  // Extract 47-bit prefecture field
 
     for (uint8_t i = 0; i < 47; ++i) {
         if (pref & (1ULL << i)) {
-            // i=0 (LSB) = Hokkaido = JIS code 1
-            // i=46 (MSB) = Okinawa = JIS code 47
+            // i+1 = JIS code (1=Hokkaido … 47=Okinawa)
             out_positions[count++] = i + 1;
         }
     }
@@ -127,12 +121,7 @@ uint8_t decodePrefectureBitmask(uint64_t ex9, uint8_t* out_positions) {
 uint8_t decodeCityCodeList(uint64_t ex9, uint16_t* out_codes) {
     uint8_t count = 0;
 
-    // EX9 bit layout for cities/towns/villages (EX8=1):
-    // Four 16-bit city/town/village codes
-    // Code 1: bits [0..15]
-    // Code 2: bits [16..31]
-    // Code 3: bits [32..47]
-    // Code 4: bits [48..63]
+    // EX8=1: four 16-bit codes at bits {0..15, 16..31, 32..47, 48..63}
 
     for (uint8_t i = 0; i < 4; ++i) {
         uint16_t code = static_cast<uint16_t>((ex9 >> (i * 16)) & 0xFFFF);
@@ -145,13 +134,9 @@ uint8_t decodeCityCodeList(uint64_t ex9, uint16_t* out_codes) {
 }
 
 // B1 (A17=00) - Improved Resolution of Main Ellipse (EWSS CAMF v1.1 §3.7.1)
-// A18 bit layout: bit[14]=MSB (first bit of field = spec bit 131), bit[0]=LSB (last bit = spec bit 145)
-// getBits() reads MSB-first, so a18 bit 14 = spec bit 131
-// C1: spec bits 131-133 → a18[14:12] → shift=12, mask=0x07
-// C2: spec bits 134-136 → a18[11:9]  → shift=9,  mask=0x07
-// C3: spec bits 137-139 → a18[8:6]   → shift=6,  mask=0x07
-// C4: spec bits 140-142 → a18[5:3]   → shift=3,  mask=0x07
-// Reserved: spec bits 143-145 → a18[2:0]
+// A18 bit[14]=MSB (spec bit 131), bit[0]=LSB (spec bit 145); getBits() reads MSB-first.
+// C1: spec 131-133 → a18[14:12]; C2: spec 134-136 → a18[11:9]; C3: spec 137-139 → a18[8:6]
+// C4: spec 140-142 → a18[5:3]; Reserved: spec 143-145 → a18[2:0]
 
 B1Refinement decodeB1Refinement(uint16_t a18) {
     B1Refinement b1;
@@ -194,15 +179,10 @@ B2HazardCenter decodeB2HazardCenter(uint8_t c5, uint8_t c6) {
     B2HazardCenter r{};
     r.c5 = c5;
     r.c6 = c6;
-    // NOTE: This is an approximation. The EWSS-CAMF v1.1 §3.7.2 C5/C6 table skips
-    // 0.0° (no code maps to it) and uses non-linear spacing around zero.
-    // Current heuristics: linear for c<=63, +1 offset for c>=64, giving exact
-    // -10°/+10° at endpoints 0/127. Mid-range values near the zero-crossing
-    // (codes ~62-65) differ up to ~0.3° from the spec table. For hazard-center
-    // positioning this is acceptable. Full table match (128 × 4 bytes × 2) is
-    // possible but costs ~1KB PROGMEM; defer until azarashi reference confirms spec intent.
     // delta = -10 + 20 * code / 128 → microdegrees; code 64..127 rounds up (+1)
     // gives exact +10,000,000 at code=127
+    // Matches EWSS-CAMF v1.1 §3.7.2 C5/C6 table exactly for all visible entries
+    // (e.g. code 0 → -10°, 43 → -3.28125°, 86 → +3.59375°, 107 → +6.875°, 127 → +10°).
     if (c5 <= 63) r.delta_lat_microdeg = -10000000 + 156250 * c5;
     else          r.delta_lat_microdeg = -10000000 + 156250 * (c5 + 1);
     if (c6 <= 63) r.delta_lon_microdeg = -10000000 + 156250 * c6;

@@ -1,11 +1,8 @@
 #pragma once
-// Main message struct (Safe tagged union)
-//
-// Safe tagged union: payload (Mt43Data/Mt44Data) is held in raw aligned
-// storage. Copy/destroy use placement-new + explicit destructor so the
-// active payload's own copy/move/destructor semantics are honored. The
-// payload-internal sub-objects (e.g. Mt43Data's dispatch storage) must
-// remain trivially copyable, as Mt43Data's copyFrom relies on memcpy.
+// Main message struct.
+// Safe tagged union: payload held in raw aligned storage; copy/destroy use
+// placement-new + explicit destructor. Payload sub-objects must stay
+// trivially copyable (Mt43Data::copyFrom uses memcpy).
 
 #if defined(__AVR__)
 #include "internal/avr_std/algorithm"
@@ -33,8 +30,6 @@
 
 namespace azaraC {
 
-// Unsupported reason enum
-
 enum class UnsupportedReason : uint8_t {
     None = 0,
     DisabledAtCompileTime = 1,
@@ -42,15 +37,11 @@ enum class UnsupportedReason : uint8_t {
     UnsupportedVersion = 3,
 };
 
-// Message payload type tag
-
 enum class MsgPayloadType : uint8_t {
     Empty,
     Mt43,
     Mt44
 };
-
-// main message struct (Safe tagged union)
 
 struct Message {
     uint8_t  svid = 0;
@@ -60,10 +51,8 @@ struct Message {
     UnsupportedReason unsupported_reason = UnsupportedReason::None;
     MsgPayloadType payload_type = MsgPayloadType::Empty;
 
-    // Storage for the active payload (aligned to 8 bytes)
-    // Size is based on the maximum of Mt43Data and Mt44Data to ensure
-    // safe placement-new for either payload type. (Ternary instead of
-    // std::max: Arduino's Arduino.h defines a `max` function-like macro.)
+    // Max of Mt43Data/Mt44Data for safe placement-new of either.
+    // Ternary instead of std::max: Arduino.h defines `max` as a macro.
     static constexpr size_t payload_size_ =
         (sizeof(Mt43Data) > sizeof(Mt44Data) ? sizeof(Mt43Data) : sizeof(Mt44Data));
     alignas(8) unsigned char payload_storage_[payload_size_];
@@ -101,9 +90,8 @@ struct Message {
         destroyPayload();
     }
 
-    // Reset scalars and destroy payload WITHOUT zeroing payload_storage_.
-    // Use before initPayload() to avoid a redundant memset when storage will
-    // be immediately overwritten by placement-new.
+    // Reset scalars and destroy payload without zeroing payload_storage_
+    // (avoids a redundant memset before initPayload()).
     void clear() {
         destroyPayload();
         svid = 0;

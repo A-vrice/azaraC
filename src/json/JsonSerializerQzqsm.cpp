@@ -55,7 +55,6 @@ bool serializeEEW(const Mt43Data* d, Print& out) {
     wf_u(out, "intensity_upper", eew->intensity_upper);
     wf_s(out, "intensity_upper_label",
         qzss_dcr_jma_seismic_intensity_upper_limit_lookup(eew->intensity_upper));
-    // regions array
     wk(out, "regions"); out.print('[');
     for (uint8_t i = 0; i < eew->region_count; ++i) {
         if (i) writeChar(out, ',');
@@ -135,7 +134,7 @@ bool serializeNankai(const Mt43Data* d, Print& out) {
     wf_s(out, "info_code_label",
         qzss_dcr_jma_information_serial_code_lookup(nankai->info_code));
     
-    // Output aggregated text if available (multi-page complete)
+    // Aggregated complete text if available, else per-page info + hex
     if (nankai->is_aggregated && nankai->aggregated_len > 0) {
         wf_u(out, "truncated", nankai->truncated ? 1u : 0u);
         wf_u(out, "page", 1);
@@ -143,10 +142,8 @@ bool serializeNankai(const Mt43Data* d, Print& out) {
         wk(out, "text_utf8");
         writeStr(out, std::string_view(nankai->aggregated_text_ptr, nankai->aggregated_len));
     } else {
-        // Single page or incomplete - output page info and hex
         wf_u(out, "page", nankai->page);
         wf_u(out, "total_page", nankai->total_page);
-        // text as hex bytes array
         wk(out, "text_hex"); out.print('[');
         for (uint8_t i = 0; i < 18; ++i) {
             if (i) writeChar(out, ',');
@@ -257,6 +254,9 @@ bool serializeVolcano(const Mt43Data* d, Print& out) {
 //   2 = Ash Fall Forecast (Detailed)   = 詳細
 // azarashi 0.16.4 は辞書テーブルを持たずデコーダでハードコードしているため、
 // 定義ヘッダには存在しない。仕様準拠のラベルをここで提供する。
+// 注意: 他のラベルは AZARAC_LOOKUP_LANG で JA→EN フォールバックするが、
+// これはハードコードのため #if/#elif で排他的に分岐する（両言語有効時は JA 優先）。
+// 意図的な設計。EN フォールバックが必要になったら AZARAC_LOOKUP_LANG に揃えること。
 static std::optional<std::string_view> ashFallWarningTypeLabel(uint8_t code) {
 #if AZARAC_LANG_JA
     switch (code) {

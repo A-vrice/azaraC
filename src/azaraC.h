@@ -4,13 +4,8 @@
 #error "This tool requires C++17 or later"
 #endif
 
-// Workarounds for Arduino core headers that define function-like macros
-// colliding with C++ standard library names:
-//   - arduino:mbed_nano (and other mbed cores): pinDefinitions.h defines `abs`
-//     as a macro, breaking std::chrono / standard headers using abs().
-//   - arduino:avr (Uno etc.): Arduino.h defines `min`/`max` as macros,
-//     breaking std::min/std::max (used by Message.h and the AVR stdlib shims).
-// Undefine them before including any header that uses the std names.
+// Undefine Arduino-core `abs`/`min`/`max` macros that collide with std names
+// (mbed pinDefinitions.h defines abs; Arduino.h defines min/max).
 #if defined(ARDUINO)
 #  if defined(abs)
 #    undef abs
@@ -23,8 +18,7 @@
 #  endif
 #endif
 
-// Users may #define AZARAC_* overrides BEFORE this include.
-// Those overrides are picked up by azaraC_config.h.
+// AZARAC_* overrides defined before this include are honored by azaraC_config.h.
 
 #include "azaraC_config.h"
 

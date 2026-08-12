@@ -30,10 +30,8 @@ protected:
     // report_unix: UNIX time from GPS module (recommended) or SNTP, 0 = unresolved
     TimeFields extractDHM(const uint8_t* buf, uint16_t start, uint32_t report_unix);
 
-    // Resolve TimeFields from components using report_time as baseline.
-    // report_unix: UNIX time from GPS module (recommended) or SNTP
-    //   - If >= 2000-01-01: use as baseline for year/month resolution
-    //   - If < 2000-01-01: return with unix_time = 0 (unresolved)
+    // Resolve TimeFields from components using report_unix as baseline.
+    // report_unix < 2000-01-01 → unix_time = 0 (unresolved).
     static TimeFields resolveTime(uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint32_t report_unix);
 
     // Resolve 12-bit arrival time (day_offset:1, hour:5, min:6) into TimeFields
@@ -48,17 +46,13 @@ protected:
 
     bool decodeQzqsm(const uint8_t* bits, Message& out, uint32_t report_unix);
 
-    // OOB (out-of-bounds) flag: set by getBits/getBits64 when a read exceeds
-    // the 256-bit frame boundary. decode() clears it before each decode session
-    // and returns false if OOB is detected after sub-decoding.
+    // OOB flag: set by getBits/getBits64 on reads beyond the 256-bit frame
+    // boundary. decode() clears it per session and fails if OOB is detected.
     bool oob_ = false;
 
-    // MT=43 JMA sub-decoders
-    // report_unix: UNIX time from GPS module for DHM resolution
-    // Declarations are unconditional: the AZARAC_ENABLE_* guards on the
-    // definitions in DecoderQzqsm.cpp control code size, while decodeQzqsm()
-    // dispatches through the shared AZARAC_DC_CATEGORIES table (constant-
-    // folded guards, so disabled sub-decoders are never called).
+    // MT=43 JMA sub-decoders. Declarations unconditional: guards on the
+    // definitions control code size; decodeQzqsm() dispatches via the shared
+    // AZARAC_DC_CATEGORIES table (constant-folded guards, disabled never called).
     void decodeEEW(const uint8_t* b, Message& out, uint32_t report_unix);
     void decodeHypocenter(const uint8_t* b, Message& out, uint32_t report_unix);
     void decodeSeismic(const uint8_t* b, Message& out, uint32_t report_unix);

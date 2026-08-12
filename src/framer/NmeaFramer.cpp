@@ -36,9 +36,7 @@ bool NmeaFramer::feed(uint8_t b, Frame& out) {
                 _xsum ^= b;
                 _buf[_pos++] = static_cast<char>(c);
             }
-            // else: silently drop the byte. If the sentence is garbage, the checksum
-            // will reject it later. Truncating is safer than resetting mid-sentence
-            // which could drop the sentence boundary.
+            // else: drop the byte; checksum rejects garbage, truncation avoids resetting mid-sentence.
         }
         break;
     case St::CSUM1: {
@@ -100,8 +98,8 @@ bool NmeaFramer::parse(Frame& out) {
         }
     }
 
-    // Validate length: QZSS L1S is 252 bits (250 data + 2-bit zero padding per spec Table 4.3.1-1) = 63 hex chars.
-    // Some receivers output 64 hex chars (32 bytes), so accept both 63 and 64.
+    // QZSS L1S = 252 bits (250 data + 2-bit padding, spec Table 4.3.1-1) = 63 hex chars;
+    // some receivers output 64, so accept both.
     if (hex_count != 63 && hex_count != 64) return false;
 
     // Handle trailing nibble (odd hex length, e.g. 63 chars)
@@ -110,8 +108,7 @@ bool NmeaFramer::parse(Frame& out) {
     }
     if (byte_idx < 31) return false;  // Need at least 31 bytes for 250 bits
     
-    // For 64 hex chars (32 bytes), mask the last nibble to isolate data bits
-    // lower nibble (bits 252-255) zeroed; bits 250-251 are spec-guaranteed 00
+    // 64 hex chars (32 bytes): mask lower nibble (bits 252-255); bits 250-251 are spec-guaranteed 00
     if (hex_count == 64) {
         out.bits[31] &= 0xF0;
     }

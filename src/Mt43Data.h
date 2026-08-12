@@ -2,11 +2,10 @@
 // MT=43 (QZQSM/DCR) data structures and tagged union
 // Bit offsets derived from azarashi (IS-QZSS-DCR-016)
 //
-// CONTRACT: every payload type (EewData, ..., MarineData) MUST remain
-// trivially copyable and trivially destructible (scalars, fixed arrays,
-// POD structs only, no owning pointers). Copy/move/destroy accordingly
-// reduce to memcpy / tag reset. Adding a non-trivial member (e.g.
-// std::string) breaks this header.
+// CONTRACT: every payload type (EewData, …, MarineData) MUST stay trivially
+// copyable/destructible (scalars, fixed arrays, POD only, no owning
+// pointers), so copy/move/destroy reduce to memcpy / tag reset. A
+// non-trivial member (e.g. std::string) breaks this.
 
 #if defined(__AVR__)
 #include "internal/avr_std/cstdint"
@@ -103,21 +102,13 @@ struct SeismicData {
 };
 
 #if AZARAC_ENABLE_NANKAI
-// Nankai Trough page aggregation data.
-//
-// IMPORTANT LIFETIME: When is_aggregated == true, aggregated_text_ptr is a
-// borrowed pointer into the Parser's internal, statically-held
-// NankaiPageBuffer::aggregated_text[] storage. This pointer is valid ONLY
-// until the next Parser::feed() call, Parser::reset(), or a subsequent
-// Nankai aggregation that reuses the same buffer slot. At that point the
-// buffer may be overwritten and its contents replaced with data from a
-// different event. The caller MUST immediately copy or serialize the
-// aggregated text — do not retain the pointer across feed() boundaries.
-//
-// Design rationale: This is a zero-copy embedded optimisation. Copying the
-// full aggregated text (up to AZARAC_NANKAI_MAX_PAGES * 18 bytes) into the
-// Message would increase RAM usage significantly. The trade-off is an
-// explicit lifetime contract the caller must honour.
+// Nankai Trough page aggregation.
+// LIFETIME: when is_aggregated, aggregated_text_ptr borrows the Parser's
+// statically-held NankaiPageBuffer::aggregated_text[] and is invalidated by
+// the next feed()/reset() or a Nankai aggregation reusing the slot; the
+// buffer may then hold a different event. Caller MUST copy/serialize
+// immediately. Zero-copy: avoids copying up to AZARAC_NANKAI_MAX_PAGES*18
+// bytes into each Message.
 struct NankaiData {
     uint8_t info_code;
     uint8_t text[18];

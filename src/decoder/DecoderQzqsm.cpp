@@ -5,8 +5,8 @@
 namespace azaraC {
 namespace internal {
 
-// MT=43 QZQSM / DC Report  (IS-QZSS-DCR-016)
-// Outer frame layout (all offsets 0-indexed from preamble):
+// MT=43 QZQSM / DC Report (IS-QZSS-DCR-016)
+// Outer frame layout (offsets 0-indexed from preamble):
 //   [14..16]  report_classification (3b)
 //   [17..20]  disaster_category     (4b)
 //   [21..24]  report_time month     (4b)  — not stored, used only for DHM resolve
@@ -16,12 +16,10 @@ namespace internal {
 //   [41..42]  information_type      (2b)
 //   [43..46]  reserved / sub-type start
 //   [214..219] version (6b) — must be 1
-// Sub-type field layouts (EEW, Hypocenter, ... ) per IS-QZSS-DCR-016 §4.1.2.3.
-// Single authoritative source for the MT=43 disaster-category mapping.
-// Each entry: X(code, enable_macro, sub_decoder). The same table drives the
-// category support check, the known-category classification, and the
-// sub-decoder dispatch in decodeQzqsm(). Adding or removing a category
-// requires changing this list only.
+// Sub-type layouts per IS-QZSS-DCR-016 §4.1.2.3.
+// Single authoritative category table: X(code, enable_macro, sub_decoder) drives
+// the support check, known-category classification, and dispatch in decodeQzqsm().
+// Change categories here only.
 #define AZARAC_DC_CATEGORIES(X) \
     X(1,  AZARAC_ENABLE_EEW,          decodeEEW)        \
     X(2,  AZARAC_ENABLE_HYPOCENTER,   decodeHypocenter) \
@@ -42,11 +40,8 @@ bool Decoder::decodeQzqsm(const uint8_t* bits, Message& out, uint32_t report_uni
         return false;
     }
 
-    // Category support check — generated from AZARAC_DC_CATEGORIES, the single
-    // authoritative category table. Each entry carries its own compile-time
-    // AZARAC_ENABLE_* guard; the guard is evaluated as a constant (0/1), so a
-    // disabled category yields category_supported = false exactly as if its
-    // case were absent.
+    // Support check from AZARAC_DC_CATEGORIES; each guard is a constant (0/1),
+    // so a disabled category reads category_supported = false.
     uint8_t dc_probe = getBits(bits, 17, 4);
     bool category_supported = false;
     bool decoded = false;
@@ -58,9 +53,7 @@ bool Decoder::decodeQzqsm(const uint8_t* bits, Message& out, uint32_t report_uni
         default: break;
     }
     if (!category_supported) {
-        // Recognized but disabled, or unknown. Known codes come from the same
-        // table (guard-independent), so the classification cannot drift from
-        // the decoder mapping.
+        // Recognized-but-disabled or unknown; known codes share the table (guard-independent).
         bool known = false;
         switch (dc_probe) {
 #define AZARAC_DC_KNOWN_CASE(code, enable, decoder) case code:
@@ -76,7 +69,6 @@ bool Decoder::decodeQzqsm(const uint8_t* bits, Message& out, uint32_t report_uni
         return false;
     }
 
-    // Initialize Mt43Data payload using placement new
     out.initPayload<Mt43Data>();
     Mt43Data* d = out.getMt43();
     if (!d) return false;
@@ -95,9 +87,7 @@ bool Decoder::decodeQzqsm(const uint8_t* bits, Message& out, uint32_t report_uni
     uint32_t event_unix = d->event_time.unix_time;
     uint32_t sub_base = (event_unix > 0) ? event_unix : report_unix;
 
-    // Dispatch to sub-decoder — same table, same guards. The guard is a
-    // constant, so disabled categories compile to dead branches that never
-    // call their (uncompiled) sub-decoder.
+    // Dispatch via same table; guard is a constant → disabled categories are dead branches.
     switch (dc_probe) {
 #define AZARAC_DC_DISPATCH_CASE(code, enable, decoder) \
         case code: \
@@ -396,9 +386,8 @@ void Decoder::decodeFlood(const uint8_t* b, Message& out, uint32_t report_unix) 
     flood->count = 0;
     for (uint8_t i = 0; i < 3; ++i) {
         uint16_t off = 53 + i * 44;
-        // IS-QZSS-DCR-016: If no object, corresponding Lv and Pl are "0".
-        // Region 1 Lv Effective Range is 1-15 (0=unused), so 44-bit zero means no entry.
-        // Use getBits64 to safely read all 44 bits (getBits only returns uint32_t).
+        // 44-bit zero means no entry (Region1 Lv range 1-15, 0=unused);
+        // getBits64 reads all 44 bits (getBits only returns uint32_t).
         if (getBits64(b, off, 44) == 0) break;
         flood->entries[flood->count].warning_level = getBits(b, off, 4);
         // 40-bit region code — read as two 20-bit halves

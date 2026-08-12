@@ -13,14 +13,9 @@
 namespace azaraC {
 
 //
-// Minimum RAM requirements:
-//   - Parser object: ~1.3 KB total (static, with default Nankai 4-buffer config):
-//       ~992 B NankaiPageBufferManager (4 × 248 B, configurable via AZARAC_NANKAI_BUFFERS)
-//       + framers, decoder, dedup (~320 B)
-//   - Stack per feed(): ~220 B (Message ~190B + Frame ~34B)
-//   - Total: ~1.5 KB recommended for full config
-//   - Minimal: ~650 B (Nankai 1 buffer) + framers/decoder/dedup = ~970 B
-//   - For 2 KB targets (Arduino Uno): disable DCX and Nankai entirely
+// RAM: Parser obj ~1.3 KB (static, default Nankai 4-buffer: ~992 B manager + ~320 B
+// framers/decoder/dedup); stack per feed() ~220 B (Message ~190B + Frame ~34B).
+// ~1.5 KB recommended; min ~970 B (Nankai 1 buffer). For 2 KB targets disable DCX+Nankai.
 //
 class Parser {
 public:

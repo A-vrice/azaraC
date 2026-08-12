@@ -1,19 +1,12 @@
 #pragma once
 // Definition-table string access with AVR PROGMEM support.
+// On AVR, label strings live in Flash; std::string_view cannot address it, so
+// lookups copy into a shared RAM buffer. The returned view/pointer is valid
+// only until the NEXT definition lookup call. Non-AVR: identity passthroughs.
 //
-// On AVR (Harvard architecture), generated definition tables place label
-// strings in Flash (PROGMEM). std::string_view cannot address Flash,
-// so lookups copy the string into a shared RAM buffer and return a
-// view/pointer into it. The returned value is valid only until the NEXT
-// definition lookup call.
-//
-// On non-AVR platforms these helpers are identity passthroughs
-// (data already in .rodata).
-//
-// AVR address-space limitation: string pools use 16-bit Flash offsets.
-// On ATmega2560 (256 KB Flash) a pool may be placed above 64 KB by the
-// linker. If you encounter garbled labels, disable large categories
-// (DCX, EX1) for that board. ATmega328P (Uno, 32 KB) is always safe.
+// AVR address-space limitation: string pools use 16-bit Flash offsets, so a
+// pool on ATmega2560 (256 KB) may land above 64 KB. If labels garble, disable
+// large categories (DCX, EX1). ATmega328P (Uno, 32 KB) is always safe.
 
 #include "../azaraC_config.h"
 #if defined(__AVR__)
@@ -37,10 +30,8 @@ namespace def {
 
 #ifdef __AVR__
 #include <avr/pgmspace.h>
-// Single shared RAM buffer for both helpers. Two separate static buffers
-// would cost AZARAC_FLASH_BUF_SIZE bytes each — 800 B × 2 overflows the
-// Uno's 2 KB SRAM. The returned pointer/view is valid only until the next
-// definition lookup call (documented contract).
+// Single shared RAM buffer: two static buffers (800 B each) would overflow
+// the Uno's 2 KB SRAM. Valid until the next definition lookup call.
 inline char* azarac_flash_buf() {
     static char buf[AZARAC_FLASH_BUF_SIZE];
     return buf;

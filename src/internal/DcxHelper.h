@@ -7,55 +7,35 @@
 namespace azaraC {
 namespace internal {
 
-// Decode helpers
-
-// Decode latitude from 16-bit code (A12)
-// Latitude = -90 + (180 / (2^16 - 1)) * code
-// Returns microdegrees (×1,000,000)
+// A12: Latitude = -90 + (180/(2^16-1)) * code, microdegrees
 int32_t decodeLatitude16(uint16_t code);
 
-// Decode longitude from 17-bit code (A13)
-// Longitude = -180 + (360 / (2^17 - 1)) * code
-// Returns microdegrees (×1,000,000)
+// A13: Longitude = -180 + (360/(2^17-1)) * code, microdegrees
 int32_t decodeLongitude17(uint32_t code);
 
-// Decode additional ellipse latitude from 17-bit code (EX3)
-// Same formula as A12 but with 17 bits
-// Returns microdegrees (×1,000,000)
+// EX3: same formula as A12 but 17-bit, microdegrees
 int32_t decodeLatitude17(uint32_t code);
 
-// Decode additional ellipse longitude from 17-bit code (EX4)
-// Longitude = 45 + (180 / (2^17 - 1)) * code
-// Returns microdegrees (×1,000,000)
+// EX4: Longitude = 45 + (180/(2^17-1)) * code, microdegrees
 int32_t decodeLongitude17_45_225(uint32_t code);
 
-// Decode radius from 5-bit code (A14/A15/EX5/EX6)
-// Uses logarithmic table from IS-QZSS-DCX-003 Table 4.2-17
-// Returns meters (×1,000 from km)
+// A14/A15/EX5/EX6: log table IS-QZSS-DCX-003 Table 4.2-17, meters (×1,000 from km)
 int32_t decodeRadiusCode(uint8_t code);
 
-// Decode azimuth from 6-bit code (A16)
-// Azimuth = -90 + (180 / 2^6) * code
-// Returns dexadegrees (×100,000)
+// A16: Azimuth = -90 + (180/2^6) * code, dexadegrees (×100,000)
 int32_t decodeAzimuth6(uint8_t code);
 
-// Decode azimuth from 7-bit code (EX7)
-// Azimuth = -90 + (180 / 2^7) * code
-// Returns dexadegrees (×100,000)
+// EX7: Azimuth = -90 + (180/2^7) * code, dexadegrees (×100,000)
 int32_t decodeAzimuth7(uint8_t code);
 
 // J-Alert EX9 decoding
 
-// Decode EX9 as prefecture bitmask (EX8=0)
-// EX9 64-bit field: [47-bit prefecture][17-bit reserved]
-// The 47-bit prefecture field is in ex9[63:17] (shift right by 17 to extract).
-// Bit 0 (LSB) of the 47-bit integer = Hokkaido (JIS code 1)
-// Bit 46 (MSB) of the 47-bit integer = Okinawa (JIS code 47)
-// Fills out_positions array (must be at least 47 bytes) and returns the number of written positions.
+// EX8=0: EX9 = [47-bit prefecture][17-bit reserved]; prefecture = ex9[63:17].
+// Bit 0 (LSB) = Hokkaido (JIS 1) … bit 46 (MSB) = Okinawa (JIS 47).
+// Fills out_positions (≥47 bytes); returns count written.
 uint8_t decodePrefectureBitmask(uint64_t ex9, uint8_t* out_positions);
 
-// Decode EX9 as city/town/village code list (EX8=1)
-// Fills out_codes array (must be at least 4 elements) and returns the number of written codes.
+// EX8=1: four 16-bit codes; fills out_codes (≥4 elements); returns count written.
 uint8_t decodeCityCodeList(uint64_t ex9, uint16_t* out_codes);
 
 // B1 (A17=00) - Improved Resolution of Main Ellipse (EWSS CAMF v1.1 §3.7.1)
@@ -64,26 +44,22 @@ uint8_t decodeCityCodeList(uint64_t ex9, uint16_t* out_codes);
 // C1 = a18[14:12] (3b), C2 = a18[11:9] (3b), C3 = a18[8:6] (3b),
 // C4 = a18[5:3] (3b), Reserved = a18[2:0] (3b)
 struct B1Refinement {
-    uint8_t c1; // 3 bits - latitude refinement (0-7)
-    uint8_t c2; // 3 bits - longitude refinement (0-7)
-    uint8_t c3; // 3 bits - semi-major axis refinement (0-7) → EWSS CAMF v1.1 §3.7.1.3
-    uint8_t c4; // 3 bits - semi-minor axis refinement (0-7) → EWSS CAMF v1.1 §3.7.1.4
+    uint8_t c1; // latitude refinement (0-7)
+    uint8_t c2; // longitude refinement (0-7)
+    uint8_t c3; // semi-major axis refinement (0-7), §3.7.1.3
+    uint8_t c4; // semi-minor axis refinement (0-7), §3.7.1.4
 };
 
 B1Refinement decodeB1Refinement(uint16_t a18);
 
-// Calculate latitude refinement offset (microdegrees)
-// delta = C1 × 180 / (8 × 65535)
+// delta = C1 × 180/(8×65535), microdegrees
 int32_t b1RefinedLatitudeOffset(uint8_t c1);
 
-// Calculate longitude refinement offset (microdegrees)
-// delta = C2 × 360 / (8 × 131071)
+// delta = C2 × 360/(8×131071), microdegrees
 int32_t b1RefinedLongitudeOffset(uint8_t c2);
 
-// Calculate refined radius (meters) for C3/C4
-// refined_length = base_radius_m - (delta_m * code + 4) / 8  （四捨五入）
-// where delta_m = decodeRadiusCode(original_radius_code) - decodeRadiusCode(original_radius_code - 1)
-// original_radius_code: the unrefined 5-bit radius code (A14 for semi-major, A15 for semi-minor)
+// refined = base_radius_m - (delta_m*code + 4)/8 （四捨五入）
+// delta_m = radius(code) - radius(code-1); original_radius_code: A14 (semi-major) / A15 (semi-minor)
 int32_t b1RefinedRadiusM(uint8_t code, int32_t base_radius_m, uint8_t original_radius_code);
 
 // B2 (A17=01) - Position of the Centre of the Hazard (EWSS CAMF v1.1 §3.7.2)

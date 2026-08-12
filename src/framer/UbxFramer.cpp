@@ -75,9 +75,8 @@ bool UbxFramer::parse(Frame& out) {
     if (numWords < 8) return false;  // L1S subframe = 8 words × 32 bits = 256 bits (250 data bits)
     if (_len < 8u + numWords * 4u) return false;
 
-    // Pack 250 nav bits MSB-first into out.bits[32].
-    // For QZSS L1S, u-blox RXM-SFRBX provides 8 words of 32 bits (256 bits total).
-    // The first 250 bits are data, and the last 6 bits of the 8th word are padding (zero-filled).
+    // Pack 250 nav bits MSB-first into out.bits[32]: 8 words × 32 bits (256 total),
+    // first 250 are data, last 6 of word 8 are zero-filled padding.
     memset(out.bits, 0, sizeof(out.bits));
     uint16_t bit_pos = 0;
     for (uint8_t w = 0; w < numWords && bit_pos < 250; ++w) {
@@ -93,7 +92,7 @@ bool UbxFramer::parse(Frame& out) {
             }
         }
     }
-    // Convert ublox svId to L1S PRN if possible, otherwise keep original
+    // Convert ublox svId to L1S PRN if possible, else keep original
     auto prn_str = def::ublox_qzss_svid_prn_map_lookup(svId);
     if (prn_str.has_value()) {
         out.svid = 0;

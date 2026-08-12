@@ -35,13 +35,11 @@ void writeDouble(Print& out, double v, int precision) {
         return;
     }
 
-    // Compute rounding offset (0.5 * 10^{-precision})
+    // Rounding offset 0.5 * 10^{-precision}
     double round_off = 0.5;
     for (int i = 0; i < precision; ++i) round_off /= 10.0;
 
-    // Suppress sign for values that round to zero at this precision.
-    // Must be done BEFORE sign output to prevent "-0.000000" when a
-    // tiny negative number (e.g. -0.0000001) rounds to zero.
+    // Zero out values that round to zero, before sign output, to avoid "-0.000000"
     if (v > -round_off && v < round_off) {
         v = 0.0;
     }
@@ -61,8 +59,7 @@ void writeDouble(Print& out, double v, int precision) {
     for (int i = 0; i < precision; ++i) {
         frac *= 10.0;
         int digit = (int)frac;
-        // Guard against floating-point rounding where frac*10 yields exactly 10.0.
-        // Clamping to 0-9 prevents ':' (ASCII 58) from being emitted as a digit.
+        // Clamp: frac*10 rounding to exactly 10.0 would emit ':' (ASCII 58)
         if (digit > 9) { digit = 9; frac = 0.0; }
         else if (digit < 0) { digit = 0; frac = 0.0; }
         out.print(static_cast<char>('0' + digit));

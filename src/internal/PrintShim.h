@@ -24,7 +24,6 @@ public:
 };
 
 // ホストテスト用: 動的バッファ（オーバーフローフリー）
-// すべてのprint/writeメソッドをオーバーライドしてバッファに追加
 class StringPrint : public Print {
     std::string _buf;
 

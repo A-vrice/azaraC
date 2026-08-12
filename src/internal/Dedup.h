@@ -1,7 +1,6 @@
 #pragma once
-// Ring-buffer duplicate suppression.
-// A message is considered duplicate when {svid, msg_type, crc24} matches
-// any slot in the ring.
+// Ring-buffer duplicate suppression: a message is a duplicate when
+// {svid, msg_type, crc24} matches any slot in the ring.
 
 #include "../azaraC_config.h"  // single source of truth for AZARAC_DEDUP_SLOTS
 #include "MtCommonTypes.h"      // shared integer types (cstdint AVR switch lives here)
@@ -23,8 +22,7 @@ struct DedupKey {
 class DedupFilter {
 public:
     DedupFilter() {
-        // Fill ring with sentinel svid=0xFF so unused slots never match valid keys.
-        // Valid QZSS L1S SVIDs are 184-202, so 0xFF is safe.
+        // Sentinel svid=0xFF so unused slots never match; valid SVIDs are 184-202.
         memset(_ring, 0xFF, sizeof(_ring));
     }
 
