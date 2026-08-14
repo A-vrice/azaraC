@@ -1,5 +1,7 @@
 <img src="https://raw.githubusercontent.com/A-vrice/azaraC/refs/heads/main/logo.png" width="256">
 
+![CI](https://github.com/A-vrice/azaraC/actions/workflows/ci.yml/badge.svg) ![CodeQL](https://github.com/A-vrice/azaraC/actions/workflows/codeql-run.yml/badge.svg) [![Release](https://img.shields.io/github/v/release/A-vrice/azaraC)](https://github.com/A-vrice/azaraC/releases) [![License: MIT](https://img.shields.io/badge/License-MIT-blue)](https://github.com/A-vrice/azaraC/blob/main/LICENSE) ![C++17](https://img.shields.io/badge/C%2B%2B-17-blue)
+
 # azaraC
 
 準天頂衛星みちびき（QZSS）L1S 信号の災害通報メッセージをデコードする Arduino 向け C++17 ライブラリ。[azarashi](https://github.com/nbtk/azarashi)（Python）の移植です。外部依存ゼロ、ヒープアロケーションなし。
@@ -100,9 +102,9 @@ make -C test run
 
 ## ドキュメント
 
-詳細は [`docs/`](docs/README.md) を参照してください。
+詳細は [`docs/`](docs/getting-started.md) を参照してください。
 
-- [クイックスタート & 使用例](docs/README.md)
+- [クイックスタート & 使用例](docs/getting-started.md)
 - [API リファレンス](docs/api-reference.md)
 - [アーキテクチャ](docs/architecture.md)
 - [開発者ガイド](docs/developer-guide.md)

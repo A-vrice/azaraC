@@ -1,6 +1,6 @@
 <img src="https://raw.githubusercontent.com/A-vrice/azaraC/refs/heads/main/logo.png" width="256">
 
-# AzaraC
+# はじめに
 
 A QZSS DCR DCX Decoder for Arduino.
 
