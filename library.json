@@ -1,0 +1,17 @@
+{
+  "$schema": "https://raw.githubusercontent.com/platformio/platformio-core/develop/platformio/assets/schema/library.json",
+  "name": "azaraC",
+  "version": "1.0.0",
+  "description": "QZSS L1S disaster report decoder for Arduino: MT=43 DCR (all 12 JMA categories) and MT=44 DCX/CAMF (L-Alert, J-Alert). Zero heap allocation, no external dependencies. UBX (RXM-SFRBX) and NMEA ($QZQSM) input.",
+  "keywords": ["qzss", "l1s", "michibiki", "disaster", "qzqsm", "dcr", "dcx", "camf", "eew", "arduino"],
+  "repository": { "type": "git", "url": "https://github.com/A-vrice/azaraC.git" },
+  "authors": [{ "name": "A-vrice", "url": "https://github.com/A-vrice" }],
+  "license": "MIT",
+  "homepage": "https://github.com/A-vrice/azaraC",
+  "frameworks": ["arduino"],
+  "platforms": "*",
+  "headers": ["azaraC.h"],
+  "export": {
+    "include": ["src", "examples", "library.json", "library.properties", "keywords.txt", "README.md", "LICENSE"]
+  }
+}

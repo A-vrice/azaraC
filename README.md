@@ -11,7 +11,19 @@
 | 43       | IS-QZSS-DCR-016 | DCR 12種類（QZQSM） |
 | 44       | IS-QZSS-DCX-004 | DCX / CAMF（L-Alert, J-Alert など） |
 
+定義テーブルの生成元 azarashi バージョンは `.azarashi-version` で固定（現在 0.16.4）
+
 ## インストール
+
+```bash
+# Arduino IDE: Library Manager で "azaraC" を検索して導入
+#（Sketch → Include Library → Manage Libraries...）
+
+# PlatformIO
+pio pkg install azaraC
+```
+
+登録前の直接利用（git clone）:
 
 ```bash
 # Arduino IDE

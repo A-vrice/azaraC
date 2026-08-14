@@ -1,0 +1,7 @@
+# Syntax Coloring Map for azaraC
+Parser	KEYWORD1
+Message	KEYWORD1
+feed	KEYWORD2
+reset	KEYWORD2
+toJson	KEYWORD2
+getNankaiBuffer	KEYWORD2

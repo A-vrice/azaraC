@@ -13,7 +13,7 @@ jobs:
       pull-requests: write
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
 
@@ -45,7 +45,7 @@ jobs:
 
       - name: Install Arduino CLI
         if: steps.ver.outputs.changed == 'true'
-        uses: arduino/setup-arduino-cli@v2
+        uses: arduino/setup-arduino-cli@81d310742121c928ea9c8bbd407b4217b432ae02 # v2
         with:
           version: "1.x"
 
@@ -82,7 +82,7 @@ jobs:
 
       - name: Create Pull Request
         if: steps.ver.outputs.changed == 'true'
-        uses: peter-evans/create-pull-request@v6
+        uses: peter-evans/create-pull-request@c5a7806660adbe173f04e3e038b0ccdcd758773c # v6
         with:
           title: "chore: update definitions (azarashi ${{ steps.ver.outputs.latest }})"
           branch: "auto/azarashi-${{ steps.ver.outputs.latest }}"
