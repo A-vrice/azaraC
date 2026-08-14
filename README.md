@@ -1,6 +1,6 @@
 <img src="https://raw.githubusercontent.com/A-vrice/azaraC/refs/heads/main/logo.png" width="256">
 
-# AzaraC
+# azaraC
 
 準天頂衛星みちびき（QZSS）L1S 信号の災害通報メッセージをデコードする Arduino 向け C++17 ライブラリ。[azarashi](https://github.com/nbtk/azarashi)（Python）の移植です。外部依存ゼロ、ヒープアロケーションなし。
 
