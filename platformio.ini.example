@@ -1,0 +1,17 @@
+; azaraC を使う PlatformIO プロジェクトの設定例
+; プロジェクトルートに platformio.ini としてコピーして使う
+; azaraC は C++17 必須のため -std=gnu++17 を指定する
+
+[env:uno]
+platform = atmelavr
+board = uno
+framework = arduino
+lib_deps = azaraC
+build_flags = -std=gnu++17
+
+[env:esp32dev]
+platform = espressif32
+board = esp32dev
+framework = arduino
+lib_deps = azaraC
+build_flags = -std=gnu++17
