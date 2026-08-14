@@ -2,6 +2,8 @@
 
 # azaraC
 
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/b3588525b57047f89f8d2ee988d155d3)](https://app.codacy.com/gh/A-vrice/azaraC?utm_source=github.com&utm_medium=referral&utm_content=A-vrice/azaraC&utm_campaign=Badge_Grade)
+
 準天頂衛星みちびき（QZSS）L1S 信号の災害通報メッセージをデコードする Arduino 向け C++17 ライブラリ。[azarashi](https://github.com/nbtk/azarashi)（Python）の移植です。外部依存ゼロ、ヒープアロケーションなし。
 
 ## 対応メッセージ
