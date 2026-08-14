@@ -49,7 +49,7 @@ jobs:
           persist-credentials: false
 
       - name: Run Arduino Lint
-        uses: arduino/arduino-lint-action@4de5fc895deecbda2f6b1cc05de7a8fdd5c4c51f # v2
+        uses: arduino/arduino-lint-action@9a3603836c75e41753e531167395edeb90ba5dae # v3.0.0
         with:
           library-manager: submit
           compliance: strict
