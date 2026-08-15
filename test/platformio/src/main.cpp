@@ -1,5 +1,6 @@
 // Minimal PlatformIO compile test for azaraC.
 // Exercises the public API so the library actually links.
+#include <Arduino.h>
 #include <azaraC.h>
 
 azaraC::Parser parser;
