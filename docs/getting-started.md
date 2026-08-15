@@ -1,4 +1,4 @@
-<img src="https://raw.githubusercontent.com/A-vrice/azaraC/refs/heads/main/logo.png" width="256">
+<img src="https://raw.githubusercontent.com/A-vrice/azaraC/refs/heads/main/logo.png" alt="azaraC" width="256">
 
 # はじめに
 

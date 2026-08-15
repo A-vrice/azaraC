@@ -96,7 +96,7 @@ bool connectServer() {
 class WifiPrint : public Print {
 public:
     WiFiClient& client;
-    WifiPrint(WiFiClient& c) : client(c) {}
+    explicit WifiPrint(WiFiClient& c) : client(c) {}
     size_t write(uint8_t c) override { return client.write(c); }
     size_t write(const uint8_t* buf, size_t len) override { return client.write(buf, len); }
 };

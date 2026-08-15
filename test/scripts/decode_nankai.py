@@ -1,6 +1,5 @@
 import azarashi
 import json
-import sys
 from datetime import datetime
 
 def json_serial(obj):

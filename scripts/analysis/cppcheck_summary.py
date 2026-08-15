@@ -73,7 +73,7 @@ def run_cppcheck(check_level: str = "exhaustive") -> str:
     # cppcheck は issue があると exit code 1 になるが、XML は stdout に出力される
     xml_output = result.stdout.strip()
     if not xml_output:
-        print(f"[cppcheck_summary] WARNING: cppcheck produced no XML output.",
+        print("[cppcheck_summary] WARNING: cppcheck produced no XML output.",
               file=sys.stderr)
         print(f"  cwd={REPO_ROOT}  stderr={result.stderr[:200] if result.stderr else '(empty)'}",
               file=sys.stderr)
@@ -173,7 +173,7 @@ def generate_markdown(issues: dict) -> str:
                 sev_label, emoji = SEVERITY_ORDER[sev_key]
             else:
                 sev_label, emoji = sev_key, "❓"
-            lines.append(f"<details>")
+            lines.append("<details>")
             lines.append(f"<summary>{emoji} {sev_label} ({count})</summary>")
             lines.append("")
             lines.append("| File | Line | Message |")

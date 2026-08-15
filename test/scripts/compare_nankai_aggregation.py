@@ -273,7 +273,7 @@ def main():
     #    decode_to_json は Parser を使用するよう改修済み（集約対応）。
     #    nankai_vectors.json には 20/27 ページしかないため、
     #    不足ページ（2-7, 27）の NMEA を合成して全27ページを入力する。
-    if os.path.exists(AAZARAC_BIN := AZARAC_BIN):
+    if os.path.exists(AZARAC_BIN):
         print("=== AzaraC decode_to_json: aggregation verification ===")
         print(f"  nankai_vectors.json provides {len(vectors)} NMEA messages (pages {sorted(azarashi_pages.keys())})")
         print("  Generating filler NMEA for missing pages (2-7, 27)...")

@@ -147,7 +147,7 @@ def json_serial(obj):
         return {k: json_serial(v) for k, v in obj.__dict__.items()}
     try:
         return str(obj)
-    except:
+    except Exception:
         return repr(obj)
 
 
@@ -515,8 +515,8 @@ def main():
     print(f"{'='*60}")
 
     if failed_cases:
-        print(f"\nFailed cases (showing first 5):")
-        for idx, (i, nmea, diffs, err) in enumerate(failed_cases[:5]):
+        print("\nFailed cases (showing first 5):")
+        for (i, nmea, diffs, err) in failed_cases[:5]:
             if err:
                 print(f"  [{i}] ERROR: {err}")
             else:

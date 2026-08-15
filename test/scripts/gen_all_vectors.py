@@ -3,7 +3,6 @@
 import azarashi
 import json
 import os
-import sys
 from datetime import datetime
 
 def json_serial(obj):
@@ -19,7 +18,7 @@ def json_serial(obj):
     # その他の型は文字列化
     try:
         return str(obj)
-    except:
+    except Exception:
         return repr(obj)
 
 def decode_nmea(nmea_str):
