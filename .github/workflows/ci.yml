@@ -375,6 +375,11 @@ jobs:
           cd test && gcovr . --filter='../src/' --exclude='.*test_.*\.cpp' \
             --json-pretty -o coverage_report.json
 
+      - name: Generate gcovr Cobertura report
+        run: |
+          cd test && gcovr . --filter='../src/' --exclude='.*test_.*\.cpp' \
+            --xml-pretty -o coverage.xml
+
       - name: Generate coverage step summary
         run: python scripts/analysis/gcovr_summary.py --input test/coverage_report.json >> $GITHUB_STEP_SUMMARY
 
@@ -383,6 +388,14 @@ jobs:
         with:
           name: coverage-report
           path: test/coverage_report.json
+
+      - name: Upload coverage to Codacy
+        if: ${{ secrets.CODACY_PROJECT_TOKEN != '' }}
+        uses: codacy/codacy-coverage-reporter-action@89d6c85cfafaec52c72b6c5e8b2878d33104c699 # v1.3.0
+        with:
+          project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
+          coverage-reports: test/coverage.xml
+          language: cpp
 
   # ── メモリプロファイリング ────────────────────────────────────────────────
   memprof:
