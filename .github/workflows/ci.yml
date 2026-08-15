@@ -278,6 +278,23 @@ jobs:
             fi
           done
 
+  # ── PlatformIO コンパイルテスト ─────────────────────────────────────────
+  # platformio.ini.example で宣伝している PIO 経由のビルドが実際に通ることを
+  # ゲートとして検証する（uno / esp32dev）。
+  platformio-compile:
+    name: PlatformIO compile
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Install PlatformIO
+        run: pip install platformio
+
+      - name: Compile (uno, esp32dev)
+        run: pio run -d test/platformio
+
   # ── マクロサイズ計測 ─────────────────────────────────────────────────────
   macro-size-check:
     name: Macro size check
