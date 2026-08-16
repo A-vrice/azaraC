@@ -411,7 +411,7 @@ jobs:
 
       - name: Generate gcovr reports
         run: |
-          cd test && gcovr . --filter='../src/' --exclude='.*test_.*\.cpp' \
+          cd test && gcovr . --filter='../src/' --exclude='.*test_.*\.cpp' --exclude='.*definition.*' \
             --json coverage_report.json --json-pretty \
             --xml coverage.xml --xml-pretty
 

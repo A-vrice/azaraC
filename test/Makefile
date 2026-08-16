@@ -165,7 +165,7 @@ coverage:
 	@echo "Running tests with coverage..."
 	$(RUN_PREFIX)$(TEST_BIN)
 	@echo "----------------------------------------"
-	gcovr . --filter=../src/ --exclude='.*test_.*\.cpp' --txt
+	gcovr . --filter=../src/ --exclude='.*test_.*\.cpp' --exclude='.*definition.*' --txt
 
 # --- Memory Profiling ---
 # メモリプロファイリング (Valgrind Massifによるヒープ検証)
