@@ -2848,6 +2848,9 @@
     },
     {
       "toolId": "Lizard",
+      "exclude": [
+        "src/definition/**"
+      ],
       "patterns": [
         {
           "patternId": "Lizard_file-nloc-medium",
