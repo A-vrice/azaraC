@@ -99,6 +99,15 @@ def _coverage_emoji(coverage_pct: float) -> str:
         return "🔴"
 
 
+def _short_path(file_path: str) -> str:
+    """冗長な前パス（/home/runner/work/... 等）を削り src/... 形式で表示する。"""
+    marker = "src/"
+    idx = file_path.rfind(marker)
+    if idx != -1:
+        return file_path[idx:]
+    return file_path
+
+
 def generate_markdown(stats: dict) -> str:
     """カバレッジ統計から Markdown サマリーを生成。"""
     lines: list[str] = []
@@ -119,7 +128,7 @@ def generate_markdown(stats: dict) -> str:
     lines.append("| File | Lines | Executed | Coverage |")
     lines.append("|------|-------|----------|----------|")
     for entry in per_file:
-        file_display = f"`{entry['file']}`"
+        file_display = f"`{_short_path(entry['file'])}`"
         emoji = _coverage_emoji(entry["coverage"])
         lines.append(
             f"| {file_display} "
