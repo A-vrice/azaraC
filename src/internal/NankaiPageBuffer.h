@@ -301,16 +301,6 @@ public:
         }
     }
 
-    uint8_t getActiveCount() const {
-        uint8_t count = 0;
-        for (uint8_t i = 0; i < MAX_BUFFERS; ++i) {
-            if (!_buffers[i].isEmpty()) {
-                count++;
-            }
-        }
-        return count;
-    }
-
 private:
     NankaiPageBuffer _buffers[MAX_BUFFERS];
 

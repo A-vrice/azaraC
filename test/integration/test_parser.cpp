@@ -54,6 +54,7 @@ TEST_CASE("decodeEEW: 基本的なEEWメッセージのデコード") {
     TestDecoder::testDecodeEEW(bits, msg, now_unix);
 
     REQUIRE(mt43 != nullptr);
+    // cppcheck-suppress nullPointerRedundantCheck -- REQUIRE guards the deref; cppcheck can't see through the macro
     CHECK(mt43->disaster_category == 1);
     
     const EewData* eew = mt43->getEew();
@@ -476,10 +477,11 @@ TEST_CASE("DCX B1: L-AlertメッセージでのB1解析") {
     REQUIRE(mt44 != nullptr);
     CHECK(mt44->service_kind == Mt44ServiceKind::LAlert);
     CHECK(mt44->camf.b1_present == true);
-    CHECK(mt44->camf.b1_c1 == 5);
-    CHECK(mt44->camf.b1_c2 == 3);
-    CHECK(mt44->camf.b1_c3 == 2);
-    CHECK(mt44->camf.b1_c4 == 1);
+    // C1=5, C2=3, C3=2, C4=1 → decoded refinement values
+    CHECK(mt44->mt44_decoded.main_ellipse.b1_lat_offset_microdeg == 1717);
+    CHECK(mt44->mt44_decoded.main_ellipse.b1_lon_offset_microdeg == 1030);
+    CHECK(mt44->mt44_decoded.main_ellipse.b1_refined_semi_major_m == 4133);
+    CHECK(mt44->mt44_decoded.main_ellipse.b1_refined_semi_minor_m == 2339);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
