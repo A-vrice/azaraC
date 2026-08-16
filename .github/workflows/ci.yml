@@ -22,9 +22,6 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: clean test files
-        run: make -C test clean
-
       - name: Build & run
         run: make -C test run
 
@@ -412,15 +409,11 @@ jobs:
       - name: Build & run with coverage
         run: make -C test coverage
 
-      - name: Generate gcovr JSON report
+      - name: Generate gcovr reports
         run: |
           cd test && gcovr . --filter='../src/' --exclude='.*test_.*\.cpp' \
-            --json-pretty -o coverage_report.json
-
-      - name: Generate gcovr Cobertura report
-        run: |
-          cd test && gcovr . --filter='../src/' --exclude='.*test_.*\.cpp' \
-            --xml-pretty -o coverage.xml
+            --json coverage_report.json --json-pretty \
+            --xml coverage.xml --xml-pretty
 
       - name: Generate coverage step summary
         run: python scripts/analysis/gcovr_summary.py --input test/coverage_report.json >> $GITHUB_STEP_SUMMARY
@@ -543,7 +536,7 @@ jobs:
           echo "| arduino-lint | ${{ needs.arduino-lint.result }} |" >> comment.md
           echo "| arduino-compile-required | ${{ needs.arduino-compile-required.result }} |" >> comment.md
           failed=0; total=0
-          expected=8  # ponytail: arduino-compile-extended matrix size; update if matrix changes
+          expected=8  # arduino-compile-extended matrix size; update if matrix changes
           for f in artifacts/extended/*/extended_outcome.txt; do
             [ -f "$f" ] || continue
             total=$((total+1))

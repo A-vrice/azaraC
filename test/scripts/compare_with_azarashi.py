@@ -145,11 +145,15 @@ def json_serial(obj):
         return obj.hex()
     if hasattr(obj, '__dict__'):
         return {k: json_serial(v) for k, v in obj.__dict__.items()}
-    # str() can raise on objects with a broken __str__; repr() never raises.
+    # str()/repr() can raise on objects with a broken __str__/__repr__;
+    # fall back to a stable placeholder so serialization never propagates.
     try:
         return str(obj)
     except Exception:  # noqa: BLE001
-        return repr(obj)
+        try:
+            return repr(obj)
+        except Exception:  # noqa: BLE001
+            return f"<{type(obj).__name__}>"
 
 
 def decode_with_azarashi(nmea: str) -> dict:

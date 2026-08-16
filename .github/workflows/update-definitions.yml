@@ -24,7 +24,7 @@ jobs:
         id: ver
         run: |
           # PyPI JSON API (stable) instead of experimental `pip index` + fragile grep
-          LATEST=$(curl -fsSL https://pypi.org/pypi/azarashi/json | jq -r '.info.version')
+          LATEST=$(curl -fsSL --retry 3 --retry-delay 2 --max-time 30 https://pypi.org/pypi/azarashi/json | jq -r '.info.version')
           if [[ -z "$LATEST" || "$LATEST" == "null" ]]; then
             echo "::error::Failed to determine latest azarashi version (PyPI API returned empty)" >&2
             exit 1

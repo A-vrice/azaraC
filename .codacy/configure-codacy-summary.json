@@ -180,7 +180,7 @@
   },
   "securityCoverage": {
     "deduplication": [
-      "flawfinder disabled — buffer-overflow (CWE-120) and format-string (CWE-134) concerns covered by cppcheck bufferAccessOutOfBounds / invalidPrintfArgType / wrongPrintfScanfArgNum",
+      "flawfinder kept-enabled — disable blocked by Coding Standard (409); buffer-overflow (CWE-120) and format-string (CWE-134) coverage relies on cppcheck on Cloud",
       "Prospector_bandit disabled — covered by Bandit tool",
       "Ruff_S603 disabled — covered by Bandit_B603"
     ],
@@ -199,7 +199,7 @@
     "CHANGELOG.md excluded from markdownlint (duplicate-heading convention)"
   ],
   "localConfigTools": [],
-  "codacyYaml": "---\nexclude_paths:\nengines:\n  markdownlint:\n    exclude_paths:\n      - \"CHANGELOG.md\"\n",
+  "codacyYaml": "---\nengines:\n  markdownlint:\n    exclude_paths:\n      - \"CHANGELOG.md\"\n",
   "importResults": {
     "status": "success",
     "toolsConfigured": 11,
