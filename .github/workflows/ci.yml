@@ -8,6 +8,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   # ── ホストユニットテスト ────────────────────────────────────────────────
   host-test:
@@ -305,6 +309,7 @@ jobs:
   platformio-compile:
     name: PlatformIO compile
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -348,9 +353,6 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
-
-      - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install -y g++ make
 
       - name: Run all 13 individual macro-disabled runtime tests
         run: make -C test macro
@@ -541,13 +543,17 @@ jobs:
           echo "| arduino-lint | ${{ needs.arduino-lint.result }} |" >> comment.md
           echo "| arduino-compile-required | ${{ needs.arduino-compile-required.result }} |" >> comment.md
           failed=0; total=0
+          expected=8  # ponytail: arduino-compile-extended matrix size; update if matrix changes
           for f in artifacts/extended/*/extended_outcome.txt; do
             [ -f "$f" ] || continue
             total=$((total+1))
             [ "$(cat "$f")" = "success" ] || failed=$((failed+1))
           done
+          missing=$((expected-total))
           if [ "$total" -eq 0 ]; then
             ext_status="not run"
+          elif [ "$missing" -gt 0 ]; then
+            ext_status="failure ($failed/$total boards, $missing missing)"
           elif [ "$failed" -eq 0 ]; then
             ext_status="success"
           else
