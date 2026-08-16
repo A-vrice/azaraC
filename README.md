@@ -2,7 +2,9 @@
 
 <img src="https://raw.githubusercontent.com/A-vrice/azaraC/refs/heads/main/logo.png" alt="azaraC" width="256">
 
-![CI](https://github.com/A-vrice/azaraC/actions/workflows/ci.yml/badge.svg) ![CodeQL](https://github.com/A-vrice/azaraC/actions/workflows/codeql-run.yml/badge.svg) [![Release](https://img.shields.io/github/v/release/A-vrice/azaraC)](https://github.com/A-vrice/azaraC/releases) [![License: MIT](https://img.shields.io/badge/License-MIT-blue)](https://github.com/A-vrice/azaraC/blob/main/LICENSE) ![C++17](https://img.shields.io/badge/C%2B%2B-17-blue) [![Codacy Badge](https://app.codacy.com/project/badge/Grade/b3588525b57047f89f8d2ee988d155d3)](https://app.codacy.com/gh/A-vrice/azaraC/dashboard) [![Codacy Coverage](https://app.codacy.com/project/badge/Coverage/b3588525b57047f89f8d2ee988d155d3)](https://app.codacy.com/gh/A-vrice/azaraC/dashboard)
+![CI](https://img.shields.io/github/actions/workflow/status/A-vrice/azaraC/ci.yml?style=for-the-badge&label=CI) ![CodeQL](https://img.shields.io/github/actions/workflow/status/A-vrice/azaraC/codeql-run.yml?style=for-the-badge&label=CodeQL) ![Last Commit](https://img.shields.io/github/last-commit/A-vrice/azaraC?style=for-the-badge)
+[![Release](https://img.shields.io/github/v/release/A-vrice/azaraC?style=for-the-badge)](https://github.com/A-vrice/azaraC/releases) [![License: MIT](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](https://github.com/A-vrice/azaraC/blob/main/LICENSE) ![C++17](https://img.shields.io/badge/C%2B%2B-17-blue?style=for-the-badge)
+[![Codacy Grade](https://app.codacy.com/project/badge/Grade/b3588525b57047f89f8d2ee988d155d3)](https://app.codacy.com/gh/A-vrice/azaraC/dashboard) [![Codacy Coverage](https://app.codacy.com/project/badge/Coverage/b3588525b57047f89f8d2ee988d155d3)](https://app.codacy.com/gh/A-vrice/azaraC/dashboard) [![Scorecard](https://img.shields.io/ossf-scorecard/github.com/A-vrice/azaraC?style=for-the-badge&label=Scorecard)](https://scorecard.dev/viewer/?uri=github.com/A-vrice/azaraC)
 
 準天頂衛星みちびき（QZSS）L1S 信号の災害通報メッセージをデコードする Arduino 向け C++17 ライブラリ。[azarashi](https://github.com/nbtk/azarashi)（Python）の移植です。外部依存ゼロ、ヒープアロケーションなし。
 
