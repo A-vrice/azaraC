@@ -6,7 +6,7 @@
     },
     "enabledTools": {
       "before": 13,
-      "after": 11
+      "after": 12
     },
     "issues": {
       "before": 714,
@@ -26,8 +26,8 @@
   "toolChanges": [
     {
       "toolId": "flawfinder",
-      "action": "disabled",
-      "reason": "Heuristic noise — flags every memcpy/printf regardless of safety (180 issues, all false positives on safe fixed-size copies and constant format strings). Buffer-overflow (CWE-120) and format-string (CWE-134) concerns remain covered by cppcheck's real data-flow analysis.",
+      "action": "kept-enabled",
+      "reason": "Disable failed — Conflict (409): enabled by Coding Standard (AI Policy / Default coding standard). 180 heuristic false positives remain (every memcpy/printf flagged regardless of safety). Buffer-overflow (CWE-120) and format-string (CWE-134) coverage relies on cppcheck on Cloud (not added to local config).",
       "patternsAffected": 222
     },
     {
@@ -192,7 +192,7 @@
   },
   "keyImprovements": [
     "Local issues cut 714→133 (81% reduction) while keeping all security coverage",
-    "flawfinder removed — 180 heuristic false positives; buffer/format concerns still covered by cppcheck",
+    "flawfinder remains enabled — disable blocked by Coding Standard (409); 180 heuristic false positives remain",
     "spectral removed — no OpenAPI files in repo",
     "Minor CodeStyle/Documentation noise disabled per 38% Critical+High noise floor",
     "Lizard complexity thresholds tuned to match codebase profile",

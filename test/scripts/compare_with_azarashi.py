@@ -145,9 +145,10 @@ def json_serial(obj):
         return obj.hex()
     if hasattr(obj, '__dict__'):
         return {k: json_serial(v) for k, v in obj.__dict__.items()}
+    # str() can raise on objects with a broken __str__; repr() never raises.
     try:
         return str(obj)
-    except Exception:
+    except Exception:  # noqa: BLE001
         return repr(obj)
 
 

@@ -16,9 +16,10 @@ def json_serial(obj):
     if hasattr(obj, '__dict__'):
         return {k: json_serial(v) for k, v in obj.__dict__.items()}
     # その他の型は文字列化
+    # str() can raise on objects with a broken __str__; repr() never raises.
     try:
         return str(obj)
-    except Exception:
+    except Exception:  # noqa: BLE001
         return repr(obj)
 
 def decode_nmea(nmea_str):

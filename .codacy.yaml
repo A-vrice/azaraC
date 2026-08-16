@@ -1,5 +1,4 @@
 ---
-exclude_paths:
 engines:
   markdownlint:
     exclude_paths:
