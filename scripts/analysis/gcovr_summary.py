@@ -100,7 +100,7 @@ def _coverage_emoji(coverage_pct: float) -> str:
 
 
 def _short_path(file_path: str) -> str:
-    """冗長な前パス（/home/runner/work/... 等）を削り src/... 形式で表示する。"""
+    """冗長な前パス(/home/runner/work/... 等)を削り src/... 形式で表示する。"""
     marker = "src/"
     idx = file_path.rfind(marker)
     if idx != -1:
