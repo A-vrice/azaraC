@@ -22,9 +22,16 @@ jobs:
 
       - name: Create source archive
         id: archive
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
         run: |
-          TAG="${{ github.ref_name }}"
-          NAME="azaraC-${TAG#v}"
+          # タグは semver (vX.Y.Z) のみ許可。github.ref_name はシェル注入
+          # ベクタのため、アーカイブ名に使う前に形式を検証する。
+          if [[ ! "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Rejecting invalid release tag: $RELEASE_TAG" >&2
+            exit 1
+          fi
+          NAME="azaraC-${RELEASE_TAG#v}"
           mkdir "$NAME"
           # 配布に必要なファイルのみ含める（.github, test, scripts は除外）
           cp -r src examples docs "$NAME/"
@@ -35,13 +42,13 @@ jobs:
 
       - name: Compute subjects (base64)
         id: hash
+        env:
+          ARCHIVE_NAME: ${{ steps.archive.outputs.name }}
         run: |
-          TAG="${{ github.ref_name }}"
-          NAME="azaraC-${TAG#v}"
-          TAR_SHA=$(sha256sum "${NAME}.tar.gz" | cut -d' ' -f1)
-          ZIP_SHA=$(sha256sum "${NAME}.zip" | cut -d' ' -f1)
+          TAR_SHA=$(sha256sum "${ARCHIVE_NAME}.tar.gz" | cut -d' ' -f1)
+          ZIP_SHA=$(sha256sum "${ARCHIVE_NAME}.zip" | cut -d' ' -f1)
           printf 'sha256:%s %s.tar.gz\nsha256:%s %s.zip\n' \
-            "$TAR_SHA" "$NAME" "$ZIP_SHA" "$NAME" > subjects.txt
+            "$TAR_SHA" "$ARCHIVE_NAME" "$ZIP_SHA" "$ARCHIVE_NAME" > subjects.txt
           echo "subjects=$(base64 -w0 subjects.txt)" >> $GITHUB_OUTPUT
 
       - name: Upload archive as artifact
@@ -59,7 +66,9 @@ jobs:
       actions: read
       id-token: write
       contents: write
-    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0
+    # fqdn は可変タグ v2.1.0 だと移動で未検証コード実行の恐れがあるため
+    # コミット SHA に固定。更新は Renovate (pinGitHubActionDigests) が担う。
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@f7dd8c54c2067bafc12ca7a55595d5ee9b75204a # v2.1.0
     with:
       base64-subjects: "${{ needs.build.outputs.subjects }}"
       upload-assets: true
@@ -80,15 +89,17 @@ jobs:
       - name: Upload assets and set release metadata
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          ARCHIVE_NAME: ${{ needs.build.outputs.artifact-name }}
         run: |
           # リリース本体は SLSA generator (upload-assets: true) が既に
           # 作成済み。provenance を壊さず tar.gz/zip を追加しメタデータを付与する。
-          gh release upload "${{ github.ref_name }}" \
-            ${{ needs.build.outputs.artifact-name }}.tar.gz \
-            ${{ needs.build.outputs.artifact-name }}.zip
+          gh release upload "$RELEASE_TAG" \
+            "${ARCHIVE_NAME}.tar.gz" \
+            "${ARCHIVE_NAME}.zip"
           # gh release edit に --generate-notes は無いため API で生成する。
           NOTES="$(gh api -X POST "repos/{owner}/{repo}/releases/generate-notes" \
-            -f tag_name="${{ github.ref_name }}" --jq .body)"
-          gh release edit "${{ github.ref_name }}" \
-            --title "azaraC ${{ github.ref_name }}" \
+            -f tag_name="$RELEASE_TAG" --jq .body)"
+          gh release edit "$RELEASE_TAG" \
+            --title "azaraC $RELEASE_TAG" \
             --notes "$NOTES"
