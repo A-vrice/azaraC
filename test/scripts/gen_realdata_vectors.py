@@ -444,101 +444,101 @@ def generate_cpp(history: list, noto: list, data_txt: list,
 
         if dc == 1:  # EEW
             w(f'    // dc={dc} {dc_name_label}: {len(entries)} entries')
-            w(f'    struct EewExpected {{ uint16_t depth; uint8_t magnitude; uint16_t epicenter; uint8_t intensity_lower; uint8_t intensity_upper; uint8_t long_period_lower; uint8_t long_period_upper; }};')
-            w(f'    static const EewExpected eew_expected[] = {{')
+            w('    struct EewExpected { uint16_t depth; uint8_t magnitude; uint16_t epicenter; uint8_t intensity_lower; uint8_t intensity_upper; uint8_t long_period_lower; uint8_t long_period_upper; };')
+            w('    static const EewExpected eew_expected[] = {')
             for _, f in entries:
                 w(f'        {{{f["depth"]}, {f["magnitude"]}, {f["epicenter"]}, {f["intensity_lower"]}, {f["intensity_upper"]}, {f["long_period_lower"]}, {f["long_period_upper"]}}},')
-            w(f'    }};')
+            w('    };')
             w('')
 
         elif dc == 2:  # Hypocenter
             w(f'    // dc={dc} {dc_name_label}: {len(entries)} entries')
-            w(f'    struct HypoExpected {{ uint16_t depth; uint8_t magnitude; uint16_t epicenter; }};')
-            w(f'    static const HypoExpected hypo_expected[] = {{')
+            w('    struct HypoExpected { uint16_t depth; uint8_t magnitude; uint16_t epicenter; };')
+            w('    static const HypoExpected hypo_expected[] = {')
             for _, f in entries:
                 w(f'        {{{f["depth"]}, {f["magnitude"]}, {f["epicenter"]}}},')
-            w(f'    }};')
+            w('    };')
             w('')
 
         elif dc == 3:  # Seismic
             w(f'    // dc={dc} {dc_name_label}: {len(entries)} entries')
-            w(f'    struct SeismicExpected {{ uint8_t count; }};')
-            w(f'    static const SeismicExpected seismic_expected[] = {{')
+            w('    struct SeismicExpected { uint8_t count; };')
+            w('    static const SeismicExpected seismic_expected[] = {')
             for _, f in entries:
                 w(f'        {{{f["count"]}}},')
-            w(f'    }};')
+            w('    };')
             w('')
 
         elif dc == 5:  # Tsunami
             w(f'    // dc={dc} {dc_name_label}: {len(entries)} entries')
-            w(f'    struct TsunamiExpected {{ uint8_t warning_code; uint8_t count; }};')
-            w(f'    static const TsunamiExpected tsunami_expected[] = {{')
+            w('    struct TsunamiExpected { uint8_t warning_code; uint8_t count; };')
+            w('    static const TsunamiExpected tsunami_expected[] = {')
             for _, f in entries:
                 w(f'        {{{f["warning_code"]}, {f["count"]}}},')
-            w(f'    }};')
+            w('    };')
             w('')
 
         elif dc == 6:  # NW Pacific
             w(f'    // dc={dc} {dc_name_label}: {len(entries)} entries')
-            w(f'    struct NwPacExpected {{ uint8_t potential; uint8_t count; }};')
-            w(f'    static const NwPacExpected nwpac_expected[] = {{')
+            w('    struct NwPacExpected { uint8_t potential; uint8_t count; };')
+            w('    static const NwPacExpected nwpac_expected[] = {')
             for _, f in entries:
                 w(f'        {{{f["potential"]}, {f["count"]}}},')
-            w(f'    }};')
+            w('    };')
             w('')
 
         elif dc == 8:  # Volcano
             w(f'    // dc={dc} {dc_name_label}: {len(entries)} entries')
-            w(f'    struct VolcanoExpected {{ uint16_t volcano_name; uint8_t warning_code; }};')
-            w(f'    static const VolcanoExpected volcano_expected[] = {{')
+            w('    struct VolcanoExpected { uint16_t volcano_name; uint8_t warning_code; };')
+            w('    static const VolcanoExpected volcano_expected[] = {')
             for _, f in entries:
                 w(f'        {{{f["volcano_name"]}, {f["warning_code"]}}},')
-            w(f'    }};')
+            w('    };')
             w('')
 
         elif dc == 9:  # Ash Fall
             w(f'    // dc={dc} {dc_name_label}: {len(entries)} entries')
-            w(f'    struct AshFallExpected {{ uint16_t volcano_name; uint8_t warning_type; }};')
-            w(f'    static const AshFallExpected ashfall_expected[] = {{')
+            w('    struct AshFallExpected { uint16_t volcano_name; uint8_t warning_type; };')
+            w('    static const AshFallExpected ashfall_expected[] = {')
             for _, f in entries:
                 w(f'        {{{f["volcano_name"]}, {f["warning_type"]}}},')
-            w(f'    }};')
+            w('    };')
             w('')
 
         elif dc == 10:  # Weather
             w(f'    // dc={dc} {dc_name_label}: {len(entries)} entries')
-            w(f'    struct WeatherExpected {{ uint8_t warning_state; uint8_t count; }};')
-            w(f'    static const WeatherExpected weather_expected[] = {{')
+            w('    struct WeatherExpected { uint8_t warning_state; uint8_t count; };')
+            w('    static const WeatherExpected weather_expected[] = {')
             for _, f in entries:
                 w(f'        {{{f["warning_state"]}, {f["count"]}}},')
-            w(f'    }};')
+            w('    };')
             w('')
 
         elif dc == 11:  # Flood
             w(f'    // dc={dc} {dc_name_label}: {len(entries)} entries')
-            w(f'    struct FloodExpected {{ uint8_t count; }};')
-            w(f'    static const FloodExpected flood_expected[] = {{')
+            w('    struct FloodExpected { uint8_t count; };')
+            w('    static const FloodExpected flood_expected[] = {')
             for _, f in entries:
                 w(f'        {{{f["count"]}}},')
-            w(f'    }};')
+            w('    };')
             w('')
 
         elif dc == 12:  # Typhoon
             w(f'    // dc={dc} {dc_name_label}: {len(entries)} entries')
-            w(f'    struct TyphoonExpected {{ uint16_t pressure; uint8_t max_wind; uint8_t max_gust; }};')
-            w(f'    static const TyphoonExpected typhoon_expected[] = {{')
+            w('    struct TyphoonExpected { uint16_t pressure; uint8_t max_wind; uint8_t max_gust; };')
+            w('    static const TyphoonExpected typhoon_expected[] = {')
             for _, f in entries:
                 w(f'        {{{f["pressure"]}, {f["max_wind"]}, {f["max_gust"]}}},')
-            w(f'    }};')
+            w('    };')
             w('')
 
         elif dc == 14:  # Marine
             w(f'    // dc={dc} {dc_name_label}: {len(entries)} entries')
-            w(f'    struct MarineExpected {{ uint8_t count; }};')
-            w(f'    static const MarineExpected marine_expected[] = {{')
+            w('    struct MarineExpected { uint8_t count; };')
+            w('    static const MarineExpected marine_expected[] = {')
             for _, f in entries:
                 w(f'        {{{f["count"]}}},')
-            w(f'    }};')
+            w('    };')
             w('')
 
     w('} // anonymous namespace')
@@ -593,8 +593,8 @@ def generate_cpp(history: list, noto: list, data_txt: list,
             w(f'                CHECK({varname}->long_period_lower == eew_expected[{idx_var}].long_period_lower);')
             w(f'                CHECK({varname}->long_period_upper == eew_expected[{idx_var}].long_period_upper);')
             w(f'                {idx_var}++;')
-            w(f'                break;')
-            w(f'            }}')
+            w('                break;')
+            w('            }')
 
         elif dc == 2:  # Hypocenter
             w(f'            case {dc}: {{')
@@ -604,8 +604,8 @@ def generate_cpp(history: list, noto: list, data_txt: list,
             w(f'                CHECK({varname}->magnitude == hypo_expected[{idx_var}].magnitude);')
             w(f'                CHECK({varname}->epicenter == hypo_expected[{idx_var}].epicenter);')
             w(f'                {idx_var}++;')
-            w(f'                break;')
-            w(f'            }}')
+            w('                break;')
+            w('            }')
 
         elif dc == 3:  # Seismic
             w(f'            case {dc}: {{')
@@ -613,8 +613,8 @@ def generate_cpp(history: list, noto: list, data_txt: list,
             w(f'                REQUIRE({varname} != nullptr);')
             w(f'                CHECK({varname}->count == seismic_expected[{idx_var}].count);')
             w(f'                {idx_var}++;')
-            w(f'                break;')
-            w(f'            }}')
+            w('                break;')
+            w('            }')
 
         elif dc == 5:  # Tsunami
             w(f'            case {dc}: {{')
@@ -623,8 +623,8 @@ def generate_cpp(history: list, noto: list, data_txt: list,
             w(f'                CHECK({varname}->warning_code == tsunami_expected[{idx_var}].warning_code);')
             w(f'                CHECK({varname}->count == tsunami_expected[{idx_var}].count);')
             w(f'                {idx_var}++;')
-            w(f'                break;')
-            w(f'            }}')
+            w('                break;')
+            w('            }')
 
         elif dc == 6:  # NW Pacific
             w(f'            case {dc}: {{')
@@ -633,8 +633,8 @@ def generate_cpp(history: list, noto: list, data_txt: list,
             w(f'                CHECK({varname}->potential == nwpac_expected[{idx_var}].potential);')
             w(f'                CHECK({varname}->count == nwpac_expected[{idx_var}].count);')
             w(f'                {idx_var}++;')
-            w(f'                break;')
-            w(f'            }}')
+            w('                break;')
+            w('            }')
 
         elif dc == 8:  # Volcano
             w(f'            case {dc}: {{')
@@ -643,8 +643,8 @@ def generate_cpp(history: list, noto: list, data_txt: list,
             w(f'                CHECK({varname}->volcano_name == volcano_expected[{idx_var}].volcano_name);')
             w(f'                CHECK({varname}->warning_code == volcano_expected[{idx_var}].warning_code);')
             w(f'                {idx_var}++;')
-            w(f'                break;')
-            w(f'            }}')
+            w('                break;')
+            w('            }')
 
         elif dc == 9:  # Ash Fall
             w(f'            case {dc}: {{')
@@ -653,8 +653,8 @@ def generate_cpp(history: list, noto: list, data_txt: list,
             w(f'                CHECK({varname}->volcano_name == ashfall_expected[{idx_var}].volcano_name);')
             w(f'                CHECK({varname}->warning_type == ashfall_expected[{idx_var}].warning_type);')
             w(f'                {idx_var}++;')
-            w(f'                break;')
-            w(f'            }}')
+            w('                break;')
+            w('            }')
 
         elif dc == 10:  # Weather
             w(f'            case {dc}: {{')
@@ -663,8 +663,8 @@ def generate_cpp(history: list, noto: list, data_txt: list,
             w(f'                CHECK({varname}->warning_state == weather_expected[{idx_var}].warning_state);')
             w(f'                CHECK({varname}->count == weather_expected[{idx_var}].count);')
             w(f'                {idx_var}++;')
-            w(f'                break;')
-            w(f'            }}')
+            w('                break;')
+            w('            }')
 
         elif dc == 11:  # Flood
             w(f'            case {dc}: {{')
@@ -672,8 +672,8 @@ def generate_cpp(history: list, noto: list, data_txt: list,
             w(f'                REQUIRE({varname} != nullptr);')
             w(f'                CHECK({varname}->count == flood_expected[{idx_var}].count);')
             w(f'                {idx_var}++;')
-            w(f'                break;')
-            w(f'            }}')
+            w('                break;')
+            w('            }')
 
         elif dc == 12:  # Typhoon
             w(f'            case {dc}: {{')
@@ -683,8 +683,8 @@ def generate_cpp(history: list, noto: list, data_txt: list,
             w(f'                CHECK({varname}->max_wind == typhoon_expected[{idx_var}].max_wind);')
             w(f'                CHECK({varname}->max_gust == typhoon_expected[{idx_var}].max_gust);')
             w(f'                {idx_var}++;')
-            w(f'                break;')
-            w(f'            }}')
+            w('                break;')
+            w('            }')
 
         elif dc == 14:  # Marine
             w(f'            case {dc}: {{')
@@ -692,8 +692,8 @@ def generate_cpp(history: list, noto: list, data_txt: list,
             w(f'                REQUIRE({varname} != nullptr);')
             w(f'                CHECK({varname}->count == marine_expected[{idx_var}].count);')
             w(f'                {idx_var}++;')
-            w(f'                break;')
-            w(f'            }}')
+            w('                break;')
+            w('            }')
 
     w('            default: break;')
     w('        }')

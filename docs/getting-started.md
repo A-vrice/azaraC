@@ -1,6 +1,6 @@
-<img src="https://raw.githubusercontent.com/A-vrice/azaraC/refs/heads/main/logo.png" width="256">
+# はじめに
 
-# AzaraC
+<img src="https://raw.githubusercontent.com/A-vrice/azaraC/refs/heads/main/logo.png" alt="azaraC" width="256">
 
 A QZSS DCR DCX Decoder for Arduino.
 
@@ -15,7 +15,7 @@ AzaraCは準天頂衛星みちびきが送信する災危通報メッセージ�
 | msg_type | 規格            | 内容                             |
 | -------- | --------------- | -------------------------------- |
 | 43       | IS-QZSS-DCR-016 | JMA DC Report (QZQSM) — 全12種   |
-| 44       | IS-QZSS-DCX-003 | DCX / CAMF (L-Alert, J-Alert 等) |
+| 44       | IS-QZSS-DCX-004 | DCX / CAMF (L-Alert, J-Alert 等) |
 
 ### MT=43 防災カテゴリ一覧
 

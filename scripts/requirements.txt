@@ -1,1 +1,2 @@
 azarashi>=0.16.0
+platformio==6.1.19

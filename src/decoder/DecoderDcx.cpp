@@ -45,10 +45,6 @@ bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix)
     d->camf.a18 = getBits(bits, 131, 15);
 
     d->camf.b1_present = false;
-    d->camf.b1_c1 = 0;
-    d->camf.b1_c2 = 0;
-    d->camf.b1_c3 = 0;
-    d->camf.b1_c4 = 0;
 
     d->camf.b2_present = false;
     d->camf.b2_c5 = 0;
@@ -127,7 +123,7 @@ bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix)
         } else if (d->camf.a3 == 1) {
             d->service_kind = Mt44ServiceKind::LAlert;
             d->ex_kind = ExtendedKind::LAlertOrLocal;
-        } else if (d->camf.a3 >= 4 && d->camf.a3 <= 31) {
+        } else if (d->camf.a3 <= 31) {
             // A3=4: Local Government (IS-QZSS-DCX-003 §4.2.1.2)
             // A3=5-31: Local Government codes reserved for future use (IS-QZSS-DCX-003 §4.2.1.2)
             d->service_kind = Mt44ServiceKind::LocalGovernment;
@@ -198,10 +194,6 @@ bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix)
         if (d->camf.a17 == 0) {
             B1Refinement b1 = decodeB1Refinement(d->camf.a18);
             d->camf.b1_present = (b1.c1 != 0 || b1.c2 != 0 || b1.c3 != 0 || b1.c4 != 0);
-            d->camf.b1_c1 = b1.c1;
-            d->camf.b1_c2 = b1.c2;
-            d->camf.b1_c3 = b1.c3;
-            d->camf.b1_c4 = b1.c4;
 
             // Store refinement values in decoded ellipse (EWSS CAMF v1.1 §3.7.1.3/4)
             dec.main_ellipse.b1_lat_offset_microdeg = b1RefinedLatitudeOffset(b1.c1);

@@ -43,3 +43,6 @@ qzssmsg.txt
 Thumbs.db
 .DS_Store
 test/NUL
+
+# cppcheck --dump の一時出力
+*.dump

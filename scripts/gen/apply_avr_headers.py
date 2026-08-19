@@ -16,7 +16,7 @@
 
 import os, re, sys
 sys.path.insert(0, os.path.dirname(__file__))
-from gen_definitions import build_header, GUARD_MAP
+from gen_definitions import build_header
 
 DEF_DIR = os.path.normpath(os.path.join(
     os.path.dirname(__file__), "..", "..", "src", "definition"))

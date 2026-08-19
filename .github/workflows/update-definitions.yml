@@ -5,6 +5,9 @@ on:
     - cron: "0 6 * * *"
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   update:
     runs-on: ubuntu-latest
@@ -20,10 +23,10 @@ jobs:
       - name: Get latest azarashi version
         id: ver
         run: |
-          LATEST=$(pip index versions azarashi 2>/dev/null \
-            | grep -oP '(?<=azarashi \()([\d.]+)' | head -1)
-          if [[ -z "$LATEST" ]]; then
-            echo "::error::Failed to determine latest azarashi version (pip index / grep returned empty)" >&2
+          # PyPI JSON API (stable) instead of experimental `pip index` + fragile grep
+          LATEST=$(curl -fsSL --retry 3 --retry-delay 2 --max-time 30 https://pypi.org/pypi/azarashi/json | jq -r '.info.version')
+          if [[ -z "$LATEST" || "$LATEST" == "null" ]]; then
+            echo "::error::Failed to determine latest azarashi version (PyPI API returned empty)" >&2
             exit 1
           fi
           CURRENT=$(cat .azarashi-version 2>/dev/null | tr -d '\n' || echo "0.0.0")

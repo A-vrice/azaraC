@@ -8,6 +8,8 @@ CXXFLAGS = -std=c++17 -Wall -Wextra -I../src -I. -DARDUINO=0 -DAZARAC_LANG_JA=1 
 # ビット演算を多用する組み込み向けコードにおいて修正コストが高すぎるため削除する。
 ANALYSIS_CXXFLAGS = $(CXXFLAGS) -Wpedantic -Wnull-dereference -Wdouble-promotion -Wformat=2 -Werror
 COVERAGE_FLAGS    = -O0 -fprofile-arcs -ftest-coverage
+# check / check-xml で共有する cppcheck オプション（ドリフト防止）
+CPPCHECK_OPTS = --enable=warning,performance,portability --check-level=exhaustive --inline-suppr --suppress=missingIncludeSystem --suppress=*:doctest.h --suppress=uninitMemberVarNoCtor --error-exitcode=1 --std=c++17 -I../src -I. -DAZARAC_NANKAI_MAX_PAGES=63 ../src .
 
 # MinGW-w64 bin path (override on command line if needed, e.g. make MINGW64_BIN=C:\mingw64\bin)
 MINGW64_BIN ?= D:\apps\mingw64\bin
@@ -137,14 +139,16 @@ compare-realdata: $(DECODE_BIN)
 # 静的解析 (時間をかけた厳格なチェック)
 check:
 	@echo "Running cppcheck..."
-	cppcheck --enable=warning,performance,portability --check-level=exhaustive --inline-suppr --suppress=missingIncludeSystem --suppress=*:doctest.h --error-exitcode=1 --std=c++17 -I../src -I. -DAZARAC_NANKAI_MAX_PAGES=63 ../src .
+	cppcheck $(CPPCHECK_OPTS)
 	@echo "Compiling library with strict warnings..."
 	$(CXX) $(ANALYSIS_CXXFLAGS) -c $(LIB_SRCS)
 
-# cppcheck の XML レポートをファイルに保存（サマリー生成用）
+# cppcheck の XML レポートをファイルに保存（サマリー生成用）。
+# --error-exitcode=1 で所見があれば失敗させる（CI ゲート）。
+# uninitMemberVarNoCtor は集約構造体・自動生成定義テーブル由来の誤検知なので抑制。
 check-xml:
 	@echo "Running cppcheck (XML output)..."
-	cppcheck --enable=warning,performance,portability --check-level=exhaustive --inline-suppr --suppress=missingIncludeSystem --suppress=*:doctest.h --xml --xml-version=2 --output-file=cppcheck_report.xml --std=c++17 -I../src -I. -DAZARAC_NANKAI_MAX_PAGES=63 ../src . 2> cppcheck_stderr.log || true
+	cppcheck --xml --xml-version=2 --output-file=cppcheck_report.xml $(CPPCHECK_OPTS) 2> cppcheck_stderr.log
 	@echo "cppcheck XML report saved to cppcheck_report.xml"
 
 # 厳格コンパイルチェックのみ（check から cppcheck を除いた部分）
@@ -161,7 +165,7 @@ coverage:
 	@echo "Running tests with coverage..."
 	$(RUN_PREFIX)$(TEST_BIN)
 	@echo "----------------------------------------"
-	gcovr . --filter=../src/ --exclude='.*test_.*\.cpp' --txt
+	gcovr . --filter=../src/ --exclude='.*test_.*\.cpp' --exclude='.*definition.*' --txt
 
 # --- Memory Profiling ---
 # メモリプロファイリング (Valgrind Massifによるヒープ検証)

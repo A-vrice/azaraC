@@ -3,7 +3,6 @@
 import azarashi
 import json
 import os
-import sys
 from datetime import datetime
 
 def json_serial(obj):
@@ -17,10 +16,15 @@ def json_serial(obj):
     if hasattr(obj, '__dict__'):
         return {k: json_serial(v) for k, v in obj.__dict__.items()}
     # その他の型は文字列化
+    # str()/repr() can raise on objects with a broken __str__/__repr__;
+    # fall back to a stable placeholder so serialization never propagates.
     try:
         return str(obj)
-    except:
-        return repr(obj)
+    except Exception:  # noqa: BLE001
+        try:
+            return repr(obj)
+        except Exception:  # noqa: BLE001
+            return f"<{type(obj).__name__}>"
 
 def decode_nmea(nmea_str):
     try:

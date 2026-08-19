@@ -145,10 +145,15 @@ def json_serial(obj):
         return obj.hex()
     if hasattr(obj, '__dict__'):
         return {k: json_serial(v) for k, v in obj.__dict__.items()}
+    # str()/repr() can raise on objects with a broken __str__/__repr__;
+    # fall back to a stable placeholder so serialization never propagates.
     try:
         return str(obj)
-    except:
-        return repr(obj)
+    except Exception:  # noqa: BLE001
+        try:
+            return repr(obj)
+        except Exception:  # noqa: BLE001
+            return f"<{type(obj).__name__}>"
 
 
 def decode_with_azarashi(nmea: str) -> dict:
@@ -515,8 +520,8 @@ def main():
     print(f"{'='*60}")
 
     if failed_cases:
-        print(f"\nFailed cases (showing first 5):")
-        for idx, (i, nmea, diffs, err) in enumerate(failed_cases[:5]):
+        print("\nFailed cases (showing first 5):")
+        for (i, nmea, diffs, err) in failed_cases[:5]:
             if err:
                 print(f"  [{i}] ERROR: {err}")
             else:

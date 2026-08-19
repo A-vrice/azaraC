@@ -8,6 +8,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   # ── ホストユニットテスト ────────────────────────────────────────────────
   host-test:
@@ -17,9 +21,6 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
-
-      - name: clean test files
-        run: make -C test clean
 
       - name: Build & run
         run: make -C test run
@@ -160,48 +161,56 @@ jobs:
       matrix:
         include:
           - name: RP2350 Pico 2
+            slug: pico2
             core: rp2040:rp2040
             fqbn: rp2040:rp2040:rpipico2
             additional_urls: https://github.com/earlephilhower/arduino-pico/releases/download/global/package_rp2040_index.json
             build_flags: ""
 
           - name: ESP32-S3
+            slug: esp32s3
             core: esp32:esp32
             fqbn: esp32:esp32:esp32s3
             additional_urls: https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
             build_flags: ""
 
           - name: STM32 Nucleo H563ZI
+            slug: stm32h563
             core: STMicroelectronics:stm32
             fqbn: STMicroelectronics:stm32:Nucleo_144:pnum=NUCLEO_H563ZI
             additional_urls: https://github.com/stm32duino/BoardManagerFiles/raw/main/package_stmicroelectronics_index.json
             build_flags: "-DENABLE_HWSERIAL1 -DPIN_SERIAL_RX=PA9 -DPIN_SERIAL_TX=PA10"
 
           - name: Arduino GIGA R1 WiFi
+            slug: giga
             core: arduino:mbed_giga
             fqbn: arduino:mbed_giga:giga
             additional_urls: https://downloads.arduino.cc/packages/package_index.json
             build_flags: ""
 
           - name: nRF52840 Nano 33 BLE
+            slug: nano33ble
             core: arduino:mbed_nano
             fqbn: arduino:mbed_nano:nano33ble
             additional_urls: https://downloads.arduino.cc/packages/package_index.json
             build_flags: ""
 
           - name: Teensy 4.0
+            slug: teensy40
             core: teensy:avr
             fqbn: teensy:avr:teensy40
             additional_urls: https://www.pjrc.com/teensy/package_teensy_index.json
             build_flags: ""
 
           - name: RP2040 Pico W
+            slug: picow
             core: rp2040:rp2040
             fqbn: rp2040:rp2040:rpipicow
             additional_urls: https://github.com/earlephilhower/arduino-pico/releases/download/global/package_rp2040_index.json
             build_flags: ""
 
           - name: Arduino Zero
+            slug: zero
             core: arduino:samd
             fqbn: arduino:samd:arduino_zero_native
             additional_urls: https://downloads.arduino.cc/packages/package_index.json
@@ -244,6 +253,7 @@ jobs:
           find ~/.arduino15/packages/ -type f \( -name "*.h" -o -name "*.cpp" -o -name "*.c" \) -exec sed -i "$PATCH_SCRIPT" {} + 2>/dev/null || true
 
       - name: Compile examples
+        id: compile
         run: |
           LIB_DIR=$(arduino-cli config get directories.user)/libraries
           mkdir -p "$LIB_DIR"
@@ -278,6 +288,38 @@ jobs:
             fi
           done
 
+      - name: Record compile outcome
+        if: always()
+        run: echo "${{ steps.compile.outcome }}" > extended_outcome.txt
+
+      - name: Upload extended outcome
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: extended-outcome-${{ matrix.slug }}
+          path: extended_outcome.txt
+
+  # ── PlatformIO コンパイルテスト ─────────────────────────────────────────
+  # test/platformio の lib_deps = ../.. でリポジトリ作業ツリーを uno/esp32dev
+  # でコンパイルすることを検証する（Registry の A-vrice/azaraC@^1.0.0 は
+  # 解決しない。公開確認後に Registry 解決テストを別途追加）。
+  platformio-compile:
+    name: PlatformIO compile
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Install PlatformIO
+        run: pip install -r scripts/requirements.txt
+
+      - name: Compile (uno, esp32dev)
+        run: pio run -d test/platformio
+
   # ── マクロサイズ計測 ─────────────────────────────────────────────────────
   macro-size-check:
     name: Macro size check
@@ -310,9 +352,6 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
-
-      - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install -y g++ make
 
       - name: Run all 13 individual macro-disabled runtime tests
         run: make -C test macro
@@ -359,6 +398,8 @@ jobs:
     permissions:
       contents: read
       actions: read
+    env:
+      HAS_CODACY_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN != '' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -370,10 +411,11 @@ jobs:
       - name: Build & run with coverage
         run: make -C test coverage
 
-      - name: Generate gcovr JSON report
+      - name: Generate gcovr reports
         run: |
-          cd test && gcovr . --filter='../src/' --exclude='.*test_.*\.cpp' \
-            --json-pretty -o coverage_report.json
+          cd test && gcovr . --filter='../src/' --exclude='.*test_.*\.cpp' --exclude='.*definition.*' \
+            --json coverage_report.json --json-pretty \
+            --xml coverage.xml --xml-pretty
 
       - name: Generate coverage step summary
         run: python scripts/analysis/gcovr_summary.py --input test/coverage_report.json >> $GITHUB_STEP_SUMMARY
@@ -383,6 +425,14 @@ jobs:
         with:
           name: coverage-report
           path: test/coverage_report.json
+
+      - name: Upload coverage to Codacy
+        if: ${{ env.HAS_CODACY_TOKEN == 'true' }}
+        uses: codacy/codacy-coverage-reporter-action@89d6c85cfafaec52c72b6c5e8b2878d33104c699 # v1.3.0
+        with:
+          project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
+          coverage-reports: test/coverage.xml
+          language: cpp
 
   # ── メモリプロファイリング ────────────────────────────────────────────────
   memprof:
@@ -437,6 +487,7 @@ jobs:
       - static-analysis
       - coverage
       - memprof
+      - platformio-compile
     if: always()
     permissions:
       contents: read
@@ -467,6 +518,13 @@ jobs:
           name: memprof-report
           path: artifacts/memprof
 
+      - name: Download extended outcomes
+        continue-on-error: true
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          pattern: extended-outcome-*
+          path: artifacts/extended
+
       - name: Generate comment body
         run: |
           cat  << 'EOF' > comment.md
@@ -479,12 +537,30 @@ jobs:
           echo "| fuzz-test | ${{ needs.fuzz-test.result }} |" >> comment.md
           echo "| arduino-lint | ${{ needs.arduino-lint.result }} |" >> comment.md
           echo "| arduino-compile-required | ${{ needs.arduino-compile-required.result }} |" >> comment.md
-          echo "| arduino-compile-extended | ${{ needs.arduino-compile-extended.result }} |" >> comment.md
+          failed=0; total=0
+          expected=8  # arduino-compile-extended matrix size; update if matrix changes
+          for f in artifacts/extended/*/extended_outcome.txt; do
+            [ -f "$f" ] || continue
+            total=$((total+1))
+            [ "$(cat "$f")" = "success" ] || failed=$((failed+1))
+          done
+          missing=$((expected-total))
+          if [ "$total" -eq 0 ]; then
+            ext_status="not run"
+          elif [ "$missing" -gt 0 ]; then
+            ext_status="failure ($failed/$total boards, $missing missing)"
+          elif [ "$failed" -eq 0 ]; then
+            ext_status="success"
+          else
+            ext_status="failure ($failed/$total boards)"
+          fi
+          echo "| arduino-compile-extended | $ext_status |" >> comment.md
           echo "| macro-size-check | ${{ needs.macro-size-check.result }} |" >> comment.md
           echo "| macro-runtime-test | ${{ needs.macro-runtime-test.result }} |" >> comment.md
           echo "| static-analysis | ${{ needs.static-analysis.result }} |" >> comment.md
           echo "| coverage | ${{ needs.coverage.result }} |" >> comment.md
           echo "| memprof | ${{ needs.memprof.result }} |" >> comment.md
+          echo "| platformio-compile | ${{ needs.platformio-compile.result }} |" >> comment.md
           echo "" >> comment.md
           echo "---" >> comment.md
           echo "" >> comment.md

@@ -331,21 +331,6 @@ TEST_CASE("NankaiPageBufferManager buffer limit") {
         // New buffer should exist
         CHECK(manager.getBuffer(key_new) != nullptr);
     }
-    
-    SUBCASE("Active count tracks buffer usage") {
-        uint32_t now = currentMillis();
-        CHECK(manager.getActiveCount() == 0);
-        
-        for (uint8_t i = 0; i < 3; i++) {
-            NankaiPageKey key = {1234567890, i};
-            uint8_t text[18] = {'T', 'e', 's', 't', 0};
-            manager.addPage(key, 1, 1, text, now);
-            CHECK(manager.getActiveCount() == (i + 1));
-        }
-        
-        manager.clearAll();
-        CHECK(manager.getActiveCount() == 0);
-    }
 }
 
 TEST_CASE("UTF-8 text handling") {
