@@ -72,7 +72,12 @@ jobs:
     uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0
     with:
       base64-subjects: "${{ needs.build.outputs.subjects }}"
-      upload-assets: true
+      # upload-assets は意図的に false（既定）のまま: generator に空リリースを
+      # 作らせない。リリース作成は検証成功後に release ジョブが単独で担う。
+      # private-repository: この generator (v2.1.0) は public リポジトリを
+      # private と誤判定して停止することがある。public なので公開透明性ログ
+      # へのリポジトリ名露出は問題なし。オーバーライドで誤判定ガードを外す。
+      private-repository: true
 
   # GitHub Release 作成 + アセットアップロード
   release:
@@ -111,20 +116,19 @@ jobs:
             --source-uri "github.com/A-vrice/azaraC" \
             --source-tag "$RELEASE_TAG"
 
-      - name: Upload assets and set release metadata
+      - name: Create release and upload assets
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ github.ref_name }}
           ARCHIVE_NAME: ${{ needs.build.outputs.artifact-name }}
+          PROVENANCE: ${{ needs.provenance.outputs.provenance-name }}
         run: |
-          # リリース本体は SLSA generator (upload-assets: true) が既に
-          # 作成済み。provenance を壊さず tar.gz/zip を追加しメタデータを付与する。
-          gh release upload "$RELEASE_TAG" \
+          # このステップに到達 = 上流の Verify SLSA provenance が検証成功。
+          # リリース作成はここが単一の所有者。provenance 失敗時はこのジョブが
+          # そもそも skipped になるため、空のリリースは残らない。
+          gh release create "$RELEASE_TAG" \
             "${ARCHIVE_NAME}.tar.gz" \
-            "${ARCHIVE_NAME}.zip"
-          # gh release edit に --generate-notes は無いため API で生成する。
-          NOTES="$(gh api -X POST "repos/{owner}/{repo}/releases/generate-notes" \
-            -f tag_name="$RELEASE_TAG" --jq .body)"
-          gh release edit "$RELEASE_TAG" \
+            "${ARCHIVE_NAME}.zip" \
+            "$PROVENANCE" \
             --title "azaraC $RELEASE_TAG" \
-            --notes "$NOTES"
+            --generate-notes
