@@ -80,11 +80,34 @@ jobs:
     needs: [build, provenance]
     permissions:
       contents: write
+      id-token: write # slsa-verifier が GitHub OIDC で検証するために必要
     steps:
       - name: Download source archive
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: ${{ needs.build.outputs.artifact-name }}
+
+      - name: Download SLSA provenance
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: ${{ needs.provenance.outputs.provenance-name }}
+
+      - name: Install slsa-verifier
+        uses: slsa-framework/slsa-verifier/actions/installer@ea584f4502babc6f60d9bc799dbbb13c1caa9ee6 # v2.7.1
+
+      - name: Verify SLSA provenance
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+          ARCHIVE_NAME: ${{ needs.build.outputs.artifact-name }}
+        # provenance が本物で、tar.gz の digest とソースリポジトリ・タグが
+        # 一致することを検証する。失敗すればこのジョブが止まり、成果物は
+        # アップロードされない（SLSA Level 3 の実証はここで確立される）。
+        run: |
+          slsa-verifier verify-artifact \
+            "${ARCHIVE_NAME}.tar.gz" \
+            --provenance-path "${{ needs.provenance.outputs.provenance-name }}" \
+            --source-uri "github.com/A-vrice/azaraC" \
+            --source-tag "$RELEASE_TAG"
 
       - name: Upload assets and set release metadata
         env:
