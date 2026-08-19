@@ -66,9 +66,10 @@ jobs:
       actions: read
       id-token: write
       contents: write
-    # fqdn は可変タグ v2.1.0 だと移動で未検証コード実行の恐れがあるため
-    # コミット SHA に固定。更新は Renovate (pinGitHubActionDigests) が担う。
-    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@f7dd8c54c2067bafc12ca7a55595d5ee9b75204a # v2.1.0
+    # 注意: slsa-github-generator の generic generator は SHA 参照をサポート
+    # しない。公式 README により「@vX.Y.Z 形式のタグ参照が MUST。SHA 参照だと
+    # ビルドが失敗する」。更新は Renovate が担う。
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0
     with:
       base64-subjects: "${{ needs.build.outputs.subjects }}"
       upload-assets: true
@@ -80,7 +81,6 @@ jobs:
     needs: [build, provenance]
     permissions:
       contents: write
-      id-token: write # slsa-verifier が GitHub OIDC で検証するために必要
     steps:
       - name: Download source archive
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
@@ -99,12 +99,14 @@ jobs:
         env:
           RELEASE_TAG: ${{ github.ref_name }}
           ARCHIVE_NAME: ${{ needs.build.outputs.artifact-name }}
-        # provenance が本物で、tar.gz の digest とソースリポジトリ・タグが
-        # 一致することを検証する。失敗すればこのジョブが止まり、成果物は
-        # アップロードされない（SLSA Level 3 の実証はここで確立される）。
+        # provenance が本物で、tar.gz と zip の各 digest が subject と一致し、
+        # ソースリポジトリ・タグが一致することを検証する。失敗すればこの
+        # ジョブが止まり、成果物はアップロードされない。
+        # （SLSA Level 3 の実証はここで確立される）
         run: |
           slsa-verifier verify-artifact \
             "${ARCHIVE_NAME}.tar.gz" \
+            "${ARCHIVE_NAME}.zip" \
             --provenance-path "${{ needs.provenance.outputs.provenance-name }}" \
             --source-uri "github.com/A-vrice/azaraC" \
             --source-tag "$RELEASE_TAG"
