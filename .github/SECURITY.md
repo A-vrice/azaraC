@@ -14,7 +14,7 @@ Responsible disclosure protects all users of this library.
 If you discover a security vulnerability:
 
 1. **Do NOT open a public issue.**
-2. Email [avrice@proton.me](mailto:avrice@proton.me) with:
+2. Email [azaraC+security@vrice.f5.si](mailto:azaraC+security@vrice.f5.si) with:
    - Description of the vulnerability
    - Steps to reproduce
    - Potential impact assessment
