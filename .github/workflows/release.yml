@@ -120,7 +120,9 @@ jobs:
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@ef244123eb79f2f7a7e75d99086184ef3e0a0dc8 # v2
         with:
-          subject-path: '${{ needs.build.outputs.artifact-name }}.tar.gz, ${{ needs.build.outputs.artifact-name }}.zip'
+          subject-path: |
+            ${{ needs.build.outputs.artifact-name }}.tar.gz
+            ${{ needs.build.outputs.artifact-name }}.zip
 
       - name: Create release and upload assets
         env:
