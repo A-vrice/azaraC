@@ -119,6 +119,9 @@ jobs:
       - name: Create release and upload assets
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # release ジョブは checkout しないため、gh は git remote から
+          # リポジトリを解決できない。GH_REPO で明示する（CodeRabbit 対応）。
+          GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ github.ref_name }}
           ARCHIVE_NAME: ${{ needs.build.outputs.artifact-name }}
           PROVENANCE: ${{ needs.provenance.outputs.provenance-name }}
@@ -126,9 +129,12 @@ jobs:
           # このステップに到達 = 上流の Verify SLSA provenance が検証成功。
           # リリース作成はここが単一の所有者。provenance 失敗時はこのジョブが
           # そもそも skipped になるため、空のリリースは残らない。
+          # --verify-tag: タグが無い場合に gh がデフォルトブランチから自動作成
+          # して別コミットへ公開するのを防ぐ（CodeRabbit 対応）。
           gh release create "$RELEASE_TAG" \
             "${ARCHIVE_NAME}.tar.gz" \
             "${ARCHIVE_NAME}.zip" \
             "$PROVENANCE" \
             --title "azaraC $RELEASE_TAG" \
-            --generate-notes
+            --generate-notes \
+            --verify-tag
