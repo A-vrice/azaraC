@@ -45,10 +45,9 @@ jobs:
         env:
           ARCHIVE_NAME: ${{ steps.archive.outputs.name }}
         run: |
-          TAR_SHA=$(sha256sum "${ARCHIVE_NAME}.tar.gz" | cut -d' ' -f1)
-          ZIP_SHA=$(sha256sum "${ARCHIVE_NAME}.zip" | cut -d' ' -f1)
-          printf 'sha256:%s %s.tar.gz\nsha256:%s %s.zip\n' \
-            "$TAR_SHA" "$ARCHIVE_NAME" "$ZIP_SHA" "$ARCHIVE_NAME" > subjects.txt
+          # slsa-generator の base64-subjects は sha256sum 出力形式（bare hex、
+          # 接頭辞なし）を要求。sha256sum をそのまま使うのがこの形式と一致。
+          sha256sum "${ARCHIVE_NAME}.tar.gz" "${ARCHIVE_NAME}.zip" > subjects.txt
           echo "subjects=$(base64 -w0 subjects.txt)" >> $GITHUB_OUTPUT
 
       - name: Upload archive as artifact
