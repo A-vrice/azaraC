@@ -5,11 +5,6 @@
 // trivially copyable (Mt43Data::copyFrom uses memcpy).
 
 #if defined(__AVR__)
-#include "internal/avr_std/algorithm"
-#else
-#include <algorithm>
-#endif
-#if defined(__AVR__)
 #include "internal/avr_std/cstdint"
 #else
 #include <cstdint>

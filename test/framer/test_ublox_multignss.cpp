@@ -118,7 +118,6 @@ TEST_CASE("UBX: QZSS after 100 GPS frames") {
     }
     REQUIRE(found);
     CHECK(out.svid == 184);  // svId=2 → PRN184
-    CHECK(out.source == FrameSource::UBX);
 }
 
 TEST_CASE("UBX: Mixed gnssId stream preserves QZSS") {
@@ -150,7 +149,6 @@ TEST_CASE("UBX: Mixed gnssId stream preserves QZSS") {
         if (f.expect) {
             REQUIRE(found);
             CHECK(out.svid == f.expected_svid);
-            CHECK(out.source == FrameSource::UBX);
             ++qzss_index;
         } else {
             CHECK_FALSE(found);

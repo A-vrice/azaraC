@@ -6,8 +6,8 @@
 //   - default / nullopt / value construction (incl. implicit from the
 //     return value of lookup functions)
 //   - copy / move construction and assignment
-//   - has_value(), operator bool, operator*, operator->, value(), emplace,
-//     reset(), operator=(nullopt_t)
+//   - has_value(), operator bool, value(), value_or(), reset(),
+//     operator=(nullopt_t)
 //
 // No exceptions are used (AVR has no runtime); access is unchecked.
 
@@ -73,19 +73,6 @@ public:
         return has_ ? value() : static_cast<T>(static_cast<U&&>(default_value));
     }
 
-    T& operator*() { return value(); }
-    const T& operator*() const { return value(); }
-    T* operator->() { return &value(); }
-    const T* operator->() const { return &value(); }
-
-    template <typename... Args>
-    T& emplace(Args&&... args) {
-        reset();
-        new (static_cast<void*>(storage_)) T(static_cast<Args&&>(args)...);
-        has_ = true;
-        return value();
-    }
-
     void reset() {
         if (has_) {
             value().~T();
@@ -94,6 +81,14 @@ public:
     }
 
 private:
+    template <typename... Args>
+    T& emplace(Args&&... args) {
+        reset();
+        new (static_cast<void*>(storage_)) T(static_cast<Args&&>(args)...);
+        has_ = true;
+        return value();
+    }
+
     template <typename U>
     void construct(U&& u) {
         new (static_cast<void*>(storage_)) T(static_cast<U&&>(u));

@@ -47,7 +47,7 @@ azaraC/
 │   ├── internal/             # 内部ヘッダ・実装（avr_std/ シム、FlashString.h 含む）
 │   └── definition/           # 自動生成定義テーブル（103ファイル）
 ├── scripts/                  # 定義ファイル生成スクリプト
-│   ├── gen/                  # 定義生成・AVR 移行（gen_definitions.py, apply_avr_headers.py, apply_avr_std_includes.py, strategy.py）
+│   ├── gen/                  # 定義生成（gen_definitions.py, strategy.py）
 │   └── analysis/             # 静的解析サマリ（cppcheck_summary.py, gcovr_summary.py）
 ├── test/                     # テスト
 │   ├── Makefile
@@ -136,7 +136,7 @@ python scripts/gen/gen_definitions.py --out-dir src/definition
 AVR ツールチェーン（avr-gcc）は libstdc++ を一切含まないため、標準ライブラリ依存は `src/internal/avr_std/` の最小シム（`optional` / `string_view` / `std::move` 等）が `#if defined(__AVR__)` で自動適用されます。シムの検証は `test/internal/test_avr_std_shim.cpp` で行います。
 
 - **PROGMEM 分岐のホスト検証**: `make -C test pgm-stub` が `__AVR__` とスタブ `test/stub/avr/pgmspace.h` で全テストをコンパイルし、PROGMEM コードパスをホストで検証します。
-- **生成ヘッダの AVR 移行**: 生成済み定義ヘッダの AVR 分岐追加は `scripts/gen/apply_avr_headers.py`、標準 include のシム切替は `scripts/gen/apply_avr_std_includes.py` が行います。生成物の再生成は `scripts/gen/gen_definitions.py --out-dir src/definition` です。
+- **定義ヘッダの再生成**: `scripts/gen/gen_definitions.py --out-dir src/definition` で再生成できます。
 - **定義テーブルは CI（`.github/workflows/update-definitions.yml`）で azarashi から自動生成されるため手編集禁止**です。
 - **AVR プリセット**（`src/azaraC_config.h`）: 有効カテゴリは SEISMIC/TSUNAMI のみ（他カテゴリは無効）、`AZARAC_DEDUP_SLOTS=4`、`AZARAC_NANKAI_BUFFERS=1`。Uno ジョブ（`.github/workflows/ci.yml` の `arduino-compile-required`）は `basic_ubx` / `basic_nmea` / `basic_uno` の 3 例題をコンパイル検証します。
 

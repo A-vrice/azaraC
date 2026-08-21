@@ -257,7 +257,6 @@ TEST_CASE("DCR: Tsunami arrival time boundary - arrived (hour=31, min=63)") {
     Frame frame{};
     memcpy(frame.bits, bits, 32);
     frame.svid = 55;
-    frame.source = FrameSource::NMEA;
     Decoder dec;
     REQUIRE(dec.decode(frame, msg, 1777122000u));
 

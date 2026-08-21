@@ -120,7 +120,6 @@ bool NmeaFramer::parse(Frame& out) {
         out.svid = svid;
     }
     
-    out.source = FrameSource::NMEA;
     return true;
 }
 

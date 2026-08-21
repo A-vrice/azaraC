@@ -103,7 +103,6 @@ bool UbxFramer::parse(Frame& out) {
         out.svid = svId;
     }
     
-    out.source = FrameSource::UBX;
     return true;
 }
 

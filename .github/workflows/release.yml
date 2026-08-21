@@ -118,7 +118,7 @@ jobs:
             --source-tag "$RELEASE_TAG"
 
       - name: Generate artifact attestation
-        uses: actions/attest-build-provenance@ef244123eb79f2f7a7e75d99086184ef3e0a0dc8 # v2
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
           subject-path: |
             ${{ needs.build.outputs.artifact-name }}.tar.gz
