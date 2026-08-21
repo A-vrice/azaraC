@@ -86,7 +86,8 @@ TEST_CASE("avr_std string_view operations") {
     std::string_view s("abcdef", 6);
     CHECK(s.size() == 6);
     CHECK_FALSE(s.empty());
-    CHECK(s.data()[0] == 'a');
+    CHECK(s[0] == 'a');
+    CHECK(s[5] == 'f');
 
     // C-string constructor
     std::string_view c = "hello";

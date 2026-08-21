@@ -3,7 +3,7 @@
 // Minimal std::string_view shim for the Arduino AVR toolchain (no libstdc++).
 //
 // Supports what azaraC uses: construction from (ptr, len) and from C strings,
-// data()/size()/empty(), begin()/end(), comparison operators.
+// data()/size()/empty(), operator[], begin()/end(), comparison operators.
 // No exceptions (AVR has no runtime).
 
 #include <stddef.h>
