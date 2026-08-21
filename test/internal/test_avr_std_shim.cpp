@@ -73,7 +73,7 @@ TEST_CASE("avr_std optional string_view integration") {
     CHECK(r.has_value());
     CHECK(r.value().size() == 18);
     CHECK(r.value().data() == buf);
-    CHECK(r.value().data() == buf);
+
 
     std::optional<std::string_view> none = std::nullopt;
     CHECK_FALSE(none.has_value());

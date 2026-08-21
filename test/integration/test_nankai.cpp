@@ -107,13 +107,12 @@ TEST_CASE("NankaiPageBuffer basic operations") {
     
     SUBCASE("Mismatched total_pages is rejected") {
         uint8_t text[18] = {'T', 'e', 's', 't', 0};
-        
+
         buffer.addPage(1, 3, text, now);
         bool result = buffer.addPage(2, 2, text, now);
-        
-        CHECK(!result);
-}
 
+        CHECK(!result);
+    }
 }
 
 TEST_CASE("NankaiPageBuffer truncation") {
@@ -169,6 +168,33 @@ TEST_CASE("NankaiPageBuffer truncation") {
         buffer.addPage(1, 1, text, now);
         CHECK_FALSE(buffer.truncated);
         CHECK(buffer.total_pages == 1);
+    }
+}
+
+TEST_CASE("NankaiPageBuffer text aggregation") {
+    NankaiPageBuffer buffer;
+    uint32_t now = currentMillis();
+
+    SUBCASE("Pages received out of order are stored correctly") {
+        uint8_t text1[18] = {'P', '1', 0};
+        uint8_t text2[18] = {'P', '2', 0};
+        uint8_t text3[18] = {'P', '3', 0};
+        CHECK(buffer.addPage(3, 3, text3, now));
+        CHECK(buffer.addPage(1, 3, text1, now));
+        CHECK(buffer.addPage(2, 3, text2, now));
+        CHECK(buffer.isComplete());
+        CHECK(buffer.getTextLength() == 6);
+        CHECK(memcmp(buffer.aggregated_text + 0 * 18, "P1", 2) == 0);
+        CHECK(memcmp(buffer.aggregated_text + 1 * 18, "P2", 2) == 0);
+        CHECK(memcmp(buffer.aggregated_text + 2 * 18, "P3", 2) == 0);
+    }
+
+    SUBCASE("Null byte terminates page length") {
+        uint8_t text[18] = {'A', 'B', 0, 'C', 'D', 0};
+        buffer.addPage(1, 1, text, now);
+        CHECK(buffer.getTextLength() == 2);
+        CHECK(buffer.aggregated_text[0] == 'A');
+        CHECK(buffer.aggregated_text[1] == 'B');
     }
 }
 
