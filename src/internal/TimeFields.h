@@ -5,13 +5,14 @@
 // - Arduino: Uses millis() with volatile uint64_t to handle ~49.7-day overflow.
 //            No <atomic> dependency — avoids libatomic link issues on 32-bit MCUs.
 // - Host: Uses std::chrono::steady_clock with uint64_t
-
+// ponytail: volatile + non-atomic 64-bit update is racy on multi-core (ESP32)
+//           but only for time-keeping — worst case is a duplicate timestamp.
+//           Strict fix is atomic<uint64_t>; add when multi-core time ordering matters.
 #if defined(__AVR__)
 #include "avr_std/cstdint"
 #else
 #include <cstdint>
 #endif
-
 #if defined(ARDUINO) && ARDUINO >= 1
 #include <Arduino.h>
 #else

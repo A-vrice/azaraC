@@ -85,10 +85,36 @@ static void outputTask(void* pvParameters);
 static void processByte(uint8_t b, azaraC::Parser& parser);
 
 // バイト処理
-
+// Note: Nankai aggregated_text_ptr は Parser 内部バッファへの借用ポインタ
+// （次の feed()/reset() や別イベントの集約で無効化される）。queue 経由で
+// 別タスクへ渡す前にコピー/シリアライズしないと dangling になるため、
+// is_aggregated の場合はここで JSON にシリアライズしてから送信するか、
+// 下記のように aggregated テキストをコピーしてから enqueue すること。
 static void processByte(uint8_t b, azaraC::Parser& parser) {
     azaraC::Message msg;
     if (parser.feed(b, msg, g_cachedGnssUnixTime)) {
+#if AZARAC_ENABLE_NANKAI
+        // Nankai 集約メッセージは aggregated_text_ptr が Parser 内部を指すため、
+        // queue に入れる前に必要ならコピー/シリアライズする。
+        // 最小コストで安全にするなら、ここで JSON 化して文字列キューに送るのが
+        // 最もシンプル（Parser と queue でライフタイムが分離される）。
+        // 例: 文字列化して送る場合
+        //   if (msg.payload_type == azaraC::MsgPayloadType::Mt43) {
+        //       if (auto* m43 = msg.getMt43()) {
+        //           if (auto* n = m43->getNankai()) {
+        //               if (n->is_aggregated) {
+        //                   // n->aggregated_text_ptr は次の feed() で無効化される
+        //                   // ここで toJson(msg, buf) して buf を queue に送る
+        //               }
+        //           }
+        //       }
+        //   }
+        // 本サンプルは Message 自体を queue に送るが、出力タスク側で
+        // aggregated_text_ptr を使わない前提（toJson が内部でコピーする）
+        // で動作する。別イベントでバッファが再利用されると上書きされる
+        // 可能性があるため、厳密には上記コメントのように RX 側で
+        // シリアライズしてから送ることを推奨する。
+#endif
         // キューに送信 (待たない)
         if (xQueueSend(g_messageQueue, &msg, 0) != pdTRUE) {
             g_stats.queueFullErrors++;

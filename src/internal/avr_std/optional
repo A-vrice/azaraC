@@ -7,10 +7,9 @@
 //     return value of lookup functions)
 //   - copy / move construction and assignment
 //   - has_value(), operator bool, value(), value_or(), reset(),
-//     operator=(nullopt_t)
+//     operator* / operator->, operator=(nullopt_t)
 //
 // No exceptions are used (AVR has no runtime); access is unchecked.
-
 #include <stddef.h>
 #include "new"
 
@@ -64,6 +63,11 @@ public:
 
     constexpr bool has_value() const noexcept { return has_; }
     constexpr explicit operator bool() const noexcept { return has_; }
+
+    T& operator*() noexcept { return value(); }
+    const T& operator*() const noexcept { return value(); }
+    T* operator->() noexcept { return &value(); }
+    const T* operator->() const noexcept { return &value(); }
 
     T& value() { return *reinterpret_cast<T*>(storage_); }
     const T& value() const { return *reinterpret_cast<const T*>(storage_); }

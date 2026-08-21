@@ -4,6 +4,7 @@
 
 #include "../azaraC_config.h"  // single source of truth for AZARAC_DEDUP_SLOTS
 #include "MtCommonTypes.h"      // shared integer types (cstdint AVR switch lives here)
+static_assert(AZARAC_DEDUP_SLOTS > 0, "AZARAC_DEDUP_SLOTS must be > 0");
 #if defined(__AVR__)
 #include "avr_std/cstring"
 #else
