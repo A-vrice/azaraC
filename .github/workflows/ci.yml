@@ -13,7 +13,26 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # ── ホストユニットテスト ────────────────────────────────────────────────
+  # ── バージョン整合性チェック ──────────────────────────────────────────────
+  version-sync:
+    name: Version sync check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Check library.json / library.properties version sync
+        run: |
+          JSON_VER=$(jq -r .version library.json)
+          PROP_VER=$(grep -E '^version=' library.properties | cut -d= -f2 | tr -d '\r')
+          echo "library.json: $JSON_VER"
+          echo "library.properties: $PROP_VER"
+          if [[ "$JSON_VER" != "$PROP_VER" ]]; then
+            echo "::error::Version mismatch: library.json ($JSON_VER) != library.properties ($PROP_VER)"
+            exit 1
+          fi
+          echo "Version sync OK: $JSON_VER"
   host-test:
     name: Host unit tests (g++)
     runs-on: ubuntu-latest
