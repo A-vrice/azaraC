@@ -30,11 +30,11 @@ TEST_CASE("NankaiPageKey equality") {
     }
     
     SUBCASE("Different info_code") {
-        CHECK(key1 != key3);
+        CHECK(!(key1 == key3));
     }
     
     SUBCASE("Different event_time") {
-        CHECK(key1 != key4);
+        CHECK(!(key1 == key4));
     }
     
     SUBCASE("Invalid key") {
@@ -112,25 +112,8 @@ TEST_CASE("NankaiPageBuffer basic operations") {
         bool result = buffer.addPage(2, 2, text, now);
         
         CHECK(!result);
-    }
+}
 
-    SUBCASE("Pages received out of order are stored correctly") {
-        uint8_t text1[18] = {'P', '1', 0};
-        uint8_t text2[18] = {'P', '2', 0};
-        uint8_t text3[18] = {'P', '3', 0};
-        
-        // Add pages in reverse order
-        CHECK(buffer.addPage(3, 3, text3, now));
-        CHECK(buffer.addPage(1, 3, text1, now));
-        CHECK(buffer.addPage(2, 3, text2, now));
-        
-        CHECK(buffer.isComplete());
-        
-        // getText should return them in page order (1, 2, 3)
-        char result[256];
-        buffer.getText(result, sizeof(result));
-        CHECK(std::string(result) == "P1P2P3");
-    }
 }
 
 TEST_CASE("NankaiPageBuffer truncation") {
@@ -189,76 +172,7 @@ TEST_CASE("NankaiPageBuffer truncation") {
     }
 }
 
-TEST_CASE("NankaiPageBuffer text aggregation") {
-    NankaiPageBuffer buffer;
-    uint32_t now = currentMillis();
-    
-    SUBCASE("Single page text") {
-        uint8_t text[18] = {'H', 'e', 'l', 'l', 'o', 0};
-        buffer.addPage(1, 1, text, now);
-        
-        CHECK(buffer.isComplete());
-        CHECK(buffer.getTextLength() == 5);
-        
-        char result[256];
-        buffer.getText(result, sizeof(result));
-        CHECK(std::string(result) == "Hello");
-    }
-    
-    SUBCASE("Multi-page text concatenation") {
-        uint8_t text1[18] = {'P', 'a', 'g', 'e', '1', ' ', 0};
-        uint8_t text2[18] = {'P', 'a', 'g', 'e', '2', 0};
-        
-        buffer.addPage(1, 2, text1, now);
-        buffer.addPage(2, 2, text2, now);
-        
-        CHECK(buffer.isComplete());
-        
-        char result[256];
-        buffer.getText(result, sizeof(result));
-        CHECK(std::string(result) == "Page1 Page2");
-    }
-    
-    SUBCASE("Null byte terminates page") {
-        uint8_t text[18] = {'A', 'B', 0, 'C', 'D', 0};
-        buffer.addPage(1, 1, text, now);
-        
-        CHECK(buffer.getTextLength() == 2);
-        
-        char result[256];
-        buffer.getText(result, sizeof(result));
-        CHECK(std::string(result) == "AB");
-    }
-    
-    SUBCASE("Empty page handling") {
-        uint8_t text1[18] = {'A', 'B', 0};
-        uint8_t text2[18] = {0};
-        uint8_t text3[18] = {'C', 'D', 0};
-        
-        buffer.addPage(1, 3, text1, now);
-        buffer.addPage(2, 3, text2, now);
-        buffer.addPage(3, 3, text3, now);
-        
-        char result[256];
-        buffer.getText(result, sizeof(result));
-        CHECK(std::string(result) == "ABCD");
-    }
 
-    SUBCASE("getText stops at max_len boundary") {
-        uint8_t text1[18] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J',
-                             'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R'};
-        uint8_t text2[18] = {'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 0};
-
-        buffer.addPage(1, 2, text1, now);
-        buffer.addPage(2, 2, text2, now);
-        CHECK(buffer.isComplete());
-
-        char result_small[10];
-        buffer.getText(result_small, sizeof(result_small));
-        CHECK(std::string(result_small).length() <= 9);
-        CHECK(result_small[9] == '\0');
-    }
-}
 
 TEST_CASE("NankaiPageBufferManager") {
     NankaiPageBufferManager manager;
@@ -333,51 +247,4 @@ TEST_CASE("NankaiPageBufferManager buffer limit") {
     }
 }
 
-TEST_CASE("UTF-8 text handling") {
-    NankaiPageBuffer buffer;
-    uint32_t now = currentMillis();
-    
-    SUBCASE("Japanese text") {
-        uint8_t text[18] = {
-            0xE3, 0x81, 0x93,  // こ
-            0xE3, 0x82, 0x93,  // ん
-            0xE3, 0x81, 0xAB,  // に
-            0xE3, 0x81, 0xA1,  // ち
-            0xE3, 0x81, 0xAF,  // は
-            0x00
-        };
-        
-        buffer.addPage(1, 1, text, now);
-        
-        CHECK(buffer.getTextLength() == 15);
-        
-        char result[256];
-        buffer.getText(result, sizeof(result));
-        CHECK(std::string(result) == "こんにちは");
-    }
-    
-    SUBCASE("Multi-page Japanese text") {
-        uint8_t text1[18] = {
-            0xE5, 0x8D, 0x97,  // 南
-            0xE6, 0xB5, 0xB7,  // 海
-            0xE3, 0x83, 0x88,  // ト
-            0xE3, 0x83, 0xA9,  // ラ
-            0x00
-        };
-        
-        uint8_t text2[18] = {
-            0xE3, 0x83, 0x95,  // フ
-            0xE5, 0x9C, 0xB0,  // 地
-            0xE9, 0x9C, 0x87,  // 震
-            0x00
-        };
-        
-        buffer.addPage(1, 2, text1, now);
-        buffer.addPage(2, 2, text2, now);
-        
-        char result[256];
-        buffer.getText(result, sizeof(result));
-        CHECK(std::string(result) == "南海トラフ地震");
-    }
-}
 #endif // AZARAC_ENABLE_NANKAI

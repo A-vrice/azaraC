@@ -3,8 +3,8 @@
 // Minimal std::string_view shim for the Arduino AVR toolchain (no libstdc++).
 //
 // Supports what azaraC uses: construction from (ptr, len) and from C strings,
-// data()/size()/empty(), element access, begin()/end(), substr(), compare(),
-// find(). No exceptions (AVR has no runtime).
+// data()/size()/empty(), begin()/end(), comparison operators.
+// No exceptions (AVR has no runtime).
 
 #include <stddef.h>
 #include <string.h>
@@ -31,30 +31,8 @@ public:
     constexpr size_type length() const noexcept { return size_; }
     constexpr bool empty() const noexcept { return size_ == 0; }
 
-    constexpr char operator[](size_type i) const noexcept { return data_[i]; }
-    constexpr char front() const noexcept { return data_[0]; }
-    constexpr char back() const noexcept { return data_[size_ - 1]; }
-
     constexpr const char* begin() const noexcept { return data_; }
     constexpr const char* end() const noexcept { return data_ + size_; }
-
-    string_view substr(size_type pos = 0, size_type count = npos) const {
-        if (pos > size_) pos = size_;
-        size_type rlen = (count == npos || count > size_ - pos) ? size_ - pos : count;
-        return string_view(data_ + pos, rlen);
-    }
-
-    int compare(string_view other) const noexcept {
-        size_type n = size_ < other.size_ ? size_ : other.size_;
-        for (size_type i = 0; i < n; ++i) {
-            // Compare as unsigned char (char_traits<char>::compare semantics)
-            unsigned char a = static_cast<unsigned char>(data_[i]);
-            unsigned char b = static_cast<unsigned char>(other.data_[i]);
-            if (a != b) return a < b ? -1 : 1;
-        }
-        if (size_ == other.size_) return 0;
-        return size_ < other.size_ ? -1 : 1;
-    }
 
     bool operator==(string_view other) const noexcept {
         return size_ == other.size_ && compare(other) == 0;
@@ -63,20 +41,18 @@ public:
     bool operator<(string_view other) const noexcept { return compare(other) < 0; }
     bool operator>(string_view other) const noexcept { return compare(other) > 0; }
 
-    size_type find(string_view s, size_type pos = 0) const noexcept {
-        if (s.size_ == 0) return pos <= size_ ? pos : npos;
-        // Subtraction-based bounds checks avoid overflow on pos + s.size_
-        if (pos > size_ || s.size_ > size_ - pos) return npos;
-        size_type limit = size_ - s.size_;
-        for (size_type i = pos; i <= limit; ++i) {
-            size_type j = 0;
-            while (j < s.size_ && data_[i + j] == s.data_[j]) ++j;
-            if (j == s.size_) return i;
+private:
+    int compare(string_view other) const noexcept {
+        size_type n = size_ < other.size_ ? size_ : other.size_;
+        for (size_type i = 0; i < n; ++i) {
+            unsigned char a = static_cast<unsigned char>(data_[i]);
+            unsigned char b = static_cast<unsigned char>(other.data_[i]);
+            if (a != b) return a < b ? -1 : 1;
         }
-        return npos;
+        if (size_ == other.size_) return 0;
+        return size_ < other.size_ ? -1 : 1;
     }
 
-private:
     const char* data_;
     size_type size_;
 

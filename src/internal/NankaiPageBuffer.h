@@ -46,10 +46,6 @@ struct NankaiPageKey {
                fallback_minute == o.fallback_minute;
     }
 
-    bool operator!=(const NankaiPageKey& o) const {
-        return !(*this == o);
-    }
-
     bool isValid() const {
         return event_time_unix != 0 || fallback_day != 0;
     }
@@ -171,34 +167,6 @@ struct NankaiPageBuffer {
         return len;
     }
 
-    // Combined text in page order (offset-based storage guarantees order),
-    // stopping at first 0x00 per page. Only reads received pages.
-    void getText(char* out, uint16_t max_len) const {
-        if (!out || max_len == 0) return;
-
-        uint16_t pos = 0;
-        uint64_t bm = received_bitmap;
-        uint8_t p = 0;
-
-        while (bm && p < total_pages && pos < max_len - 1) {
-            if (bm & 1) {
-                const char* src = aggregated_text + p * TEXT_PER_PAGE;
-                uint8_t page_len = pageTextLength_(src);
-                uint8_t to_copy = (page_len < (max_len - 1 - pos))
-                                  ? page_len
-                                  : (max_len - 1 - pos);
-                if (to_copy > 0) {
-                    memcpy(out + pos, src, to_copy);
-                    pos += to_copy;
-                }
-            }
-            bm >>= 1;
-            ++p;
-        }
-
-        out[pos] = '\0';  // Null terminate
-    }
-
     bool isExpired(uint64_t current_ms) const {
         if (total_pages == 0) return false;
         return (current_ms - last_update_ms) > TIMEOUT_MS;
@@ -282,11 +250,6 @@ public:
         }
 
         return nullptr;
-    }
-
-    NankaiPageBuffer* getBuffer(const NankaiPageKey& key) {
-        int8_t idx = findBuffer(key);
-        return (idx >= 0) ? &_buffers[idx] : nullptr;
     }
 
     const NankaiPageBuffer* getBuffer(const NankaiPageKey& key) const {

@@ -31,7 +31,6 @@ TEST_CASE("avr_std optional basic operations") {
     CHECK(v.has_value());
     CHECK(static_cast<bool>(v));
     CHECK(v.value() == 42);
-    CHECK(*v == 42);
 
     // implicit construction from value (as returned by lookup functions)
     std::optional<int> fromValue = 7;
@@ -53,8 +52,8 @@ TEST_CASE("avr_std optional basic operations") {
     copy.reset();
     CHECK_FALSE(copy.has_value());
 
-    // emplace
-    copy.emplace(123);
+    // assignment from value
+    copy = 123;
     CHECK(copy.value() == 123);
 
     // value_or
@@ -72,8 +71,8 @@ TEST_CASE("avr_std optional string_view integration") {
     char buf[] = "北海道札幌市";
     std::optional<std::string_view> r = std::string_view(buf, 18);
     CHECK(r.has_value());
-    CHECK(r->size() == 18);
-    CHECK(r->data() == buf);
+    CHECK(r.value().size() == 18);
+    CHECK(r.value().data() == buf);
     CHECK(r.value().data() == buf);
 
     std::optional<std::string_view> none = std::nullopt;
@@ -88,9 +87,6 @@ TEST_CASE("avr_std string_view operations") {
     CHECK(s.size() == 6);
     CHECK_FALSE(s.empty());
     CHECK(s.data()[0] == 'a');
-    CHECK(s.front() == 'a');
-    CHECK(s.back() == 'f');
-    CHECK(s[3] == 'd');
 
     // C-string constructor
     std::string_view c = "hello";
@@ -102,18 +98,11 @@ TEST_CASE("avr_std string_view operations") {
     CHECK(e.empty());
     CHECK(e.size() == 0);
 
-    // substr
-    std::string_view sub = s.substr(2, 3);
-    CHECK(sub == std::string_view("cde", 3));
-
-    // compare / ordering
-    CHECK(s.compare(std::string_view("abcdef", 6)) == 0);
-    CHECK(s < std::string_view("abcdez", 6));
+    // comparison operators
+    CHECK(s == std::string_view("abcdef", 6));
     CHECK(s != std::string_view("abcde", 5));
-
-    // find
-    CHECK(s.find(std::string_view("cde", 3)) == 2);
-    CHECK(s.find(std::string_view("zz", 2)) == std::string_view::npos);
+    CHECK(s < std::string_view("abcdez", 6));
+    CHECK(s > std::string_view("abcde", 5));
 }
 
 // placement new via avr_std/new

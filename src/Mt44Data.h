@@ -116,10 +116,6 @@ struct Mt44AlertIdentity {
     uint8_t  a3;
     uint8_t  a4;
     uint16_t ex1;
-
-    bool operator==(const Mt44AlertIdentity& o) const {
-        return a2 == o.a2 && a3 == o.a3 && a4 == o.a4 && ex1 == o.ex1;
-    }
 };
 
 struct Mt44Decoded {

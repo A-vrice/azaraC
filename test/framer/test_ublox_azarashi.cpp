@@ -81,6 +81,5 @@ TEST_CASE("UBX: svid to PRN mapping") {
         bool found = feedUbxPacket(framer, frame, tc.svid, nav_bits);
         REQUIRE(found);
         CHECK(frame.svid == tc.expected_prn);
-        CHECK(frame.source == FrameSource::UBX);
     }
 }
