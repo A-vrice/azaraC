@@ -31,6 +31,8 @@ public:
     constexpr size_type length() const noexcept { return size_; }
     constexpr bool empty() const noexcept { return size_ == 0; }
 
+    constexpr char operator[](size_type i) const noexcept { return data_[i]; }
+
     constexpr const char* begin() const noexcept { return data_; }
     constexpr const char* end() const noexcept { return data_ + size_; }
 
