@@ -184,6 +184,7 @@ struct NankaiPageBuffer {
         received_bitmap = 0;
         last_update_ms = 0;
         truncated = false;
+        memset(aggregated_text, 0, sizeof(aggregated_text));
     }
 
     bool isEmpty() const {
