@@ -5,8 +5,6 @@
 #else
 #include <cstdint>
 #endif
-// TODO(azarashi): stop emitting avr_std/iterator include — AVR branch derives the
-// bsearch bound via sizeof and never calls std::size. See ponytail-review.
 #if defined(__AVR__)
 #include "../internal/avr_std/optional"
 #else
