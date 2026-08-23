@@ -99,9 +99,7 @@ struct Message {
 
     template<typename T>
     void initPayload() {
-        // No static_assert(is_trivially_copyable_v<T>) here: Mt43Data has
-        // user-defined copy/move ctors so is_trivially_copyable_v is false.
-        // The actual payload types are guarded by Mt43Data::initAs<T>().
+        // Payload triviality is guarded by Mt43Data::initAs<T>().
         destroyPayload();
         new (payload_storage_) T();
         payload_type = typeForPayload<T>();

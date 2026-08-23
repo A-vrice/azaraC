@@ -5,11 +5,8 @@
 // - Arduino: Uses millis() with volatile uint64_t to handle ~49.7-day overflow.
 //            No <atomic> dependency — avoids libatomic link issues on 32-bit MCUs.
 // - Host: Uses std::chrono::steady_clock with uint64_t
-// ponytail: volatile + read-compute-write is unsynchronized on multi-core
-//           (ESP32): can return non-monotonic values, move s_last backward,
-//           and lose an epoch near millis() wraparound. Single-core /
-//           main-loop-only usage is unaffected. Strict fix needs a critical
-//           section or compare_exchange loop around the whole update.
+// volatile + read-compute-write is unsynchronized: multi-core callers
+//           may see non-monotonic values. Single-core / single-task use is safe.
 #if defined(__AVR__)
 #include "avr_std/cstdint"
 #else

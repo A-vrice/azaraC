@@ -94,13 +94,8 @@ static void processByte(uint8_t b, azaraC::Parser& parser) {
     azaraC::Message msg;
     if (parser.feed(b, msg, g_cachedGnssUnixTime)) {
 #if AZARAC_ENABLE_NANKAI
-        // Nankai 集約メッセージは aggregated_text_ptr が Parser 内部バッファへの
-        // 借用ポインタ (次の feed()/reset()/集約再利用で無効化)。
-        // 本サンプルは Message をそのままキューへ投入しており、outputTask 側の
-        // toJson() は出力時にこの借用ポインタを参照する (内部コピーしない)。
-        // RX タスクと出力タスクの並行性により、出力前にバッファが再利用されると
-        // text_utf8 が破損し得る。厳密には xQueueSend() 前に toJson() で文字列化
-        // するか、集約テキストを所有コピーしたキュー要素を送ること。
+        // aggregated_text_ptr は Parser 内部バッファへの借用ポインタ。
+        // toJson() はバッファを直接参照するため、並行 feed() で破損し得る。
 #endif
         // キューに送信 (待たない)
         if (xQueueSend(g_messageQueue, &msg, 0) != pdTRUE) {

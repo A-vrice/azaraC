@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **PR #18 レビュー対応 (Codacy / CodeRabbit)**:
-  - `examples/error_handling/error_handling.ino`: `to_unix_time()` の秒数計算を `uint32_t` にキャストして符号付きオーバーフロー UB を回避 (2038-01-19 以降の 32bit `long` 環境で発生)。
+  - `examples/error_handling/error_handling.ino`: `to_unix_time()` の秒数計算を `uint32_t` にキャストして符号付きオーバーフロー UB を回避 (2038-01-19 以降の 32-bit `long` 環境で発生)。
   - `examples/rtos_freertos/rtos_freertos.ino`: Nankai 集約メッセージの借用ポインタに関するコメントを事実どおり訂正 (toJson は内部コピーしない)。
   - `src/internal/avr_std/optional`: `operator->` の `&value()` を `reinterpret_cast<T*>(storage_)` に変更し、`operator&` 過載型での誤動作を回避。回帰テスト追加。
   - `src/internal/TimeFields.h`: マルチコア競合の影響記述を訂正 (非単調返却・s_last 後退・エポック喪失の可能性を明記)。
