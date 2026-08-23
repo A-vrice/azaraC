@@ -5,9 +5,11 @@
 // - Arduino: Uses millis() with volatile uint64_t to handle ~49.7-day overflow.
 //            No <atomic> dependency — avoids libatomic link issues on 32-bit MCUs.
 // - Host: Uses std::chrono::steady_clock with uint64_t
-// ponytail: volatile + non-atomic 64-bit update is racy on multi-core (ESP32)
-//           but only for time-keeping — worst case is a duplicate timestamp.
-//           Strict fix is atomic<uint64_t>; add when multi-core time ordering matters.
+// ponytail: volatile + read-compute-write is unsynchronized on multi-core
+//           (ESP32): can return non-monotonic values, move s_last backward,
+//           and lose an epoch near millis() wraparound. Single-core /
+//           main-loop-only usage is unaffected. Strict fix needs a critical
+//           section or compare_exchange loop around the whole update.
 #if defined(__AVR__)
 #include "avr_std/cstdint"
 #else
@@ -31,10 +33,9 @@ static inline uint64_t getMillis() {
 #if defined(ARDUINO) && ARDUINO >= 1
     // 32-bit millis() extended to 64-bit: upper 32 bits track overflow count,
     // lower 32 bits = last raw millis() value.
-    // volatile ensures each call reads/writes actual memory (no register caching).
-    // On single-core platforms this is naturally race-free.
-    // On multi-core / FreeRTOS platforms tiny windows between read and write
-    // are acceptable for time-keeping; worst-case is a duplicate timestamp.
+    // On multi-core / FreeRTOS platforms the unsynchronized read-compute-write
+    // can return non-monotonic values or lose an epoch near wraparound;
+    // acceptable only for coarse time-keeping from a single task.
     static volatile uint64_t s_last = 0;
 
     uint32_t raw = millis();

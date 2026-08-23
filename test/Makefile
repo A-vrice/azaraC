@@ -175,9 +175,10 @@ ifeq ($(OS),Windows_NT)
 memprof:
 	@echo "memprof: SKIP — Valgrind is not available on Windows. Run on Linux or WSL."
 else
-memprof: $(TEST_BIN)
-	@command -v valgrind >/dev/null 2>&1 || { echo "memprof: SKIP — valgrind not found. Install with: sudo apt install valgrind"; exit 0; }
-	valgrind --tool=massif --pages-as-heap=yes --massif-out-file=massif.out $(RUN_PREFIX)$(TEST_BIN)
+memprof:
+	@command -v valgrind >/dev/null 2>&1 || { echo "memprof: SKIP — valgrind not found. Install with: sudo apt install valgrind"; exit 0; } ; \
+	$(MAKE) $(TEST_BIN) && \
+	valgrind --tool=massif --pages-as-heap=yes --massif-out-file=massif.out $(RUN_PREFIX)$(TEST_BIN) && \
 	ms_print massif.out | head -n 30
 endif
 # --- AZARAC_ENABLE_* Macro Tests ---

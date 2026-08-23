@@ -66,8 +66,8 @@ public:
 
     T& operator*() noexcept { return value(); }
     const T& operator*() const noexcept { return value(); }
-    T* operator->() noexcept { return &value(); }
-    const T* operator->() const noexcept { return &value(); }
+    T* operator->() noexcept { return reinterpret_cast<T*>(storage_); }
+    const T* operator->() const noexcept { return reinterpret_cast<const T*>(storage_); }
 
     T& value() { return *reinterpret_cast<T*>(storage_); }
     const T& value() const { return *reinterpret_cast<const T*>(storage_); }

@@ -94,26 +94,13 @@ static void processByte(uint8_t b, azaraC::Parser& parser) {
     azaraC::Message msg;
     if (parser.feed(b, msg, g_cachedGnssUnixTime)) {
 #if AZARAC_ENABLE_NANKAI
-        // Nankai 集約メッセージは aggregated_text_ptr が Parser 内部を指すため、
-        // queue に入れる前に必要ならコピー/シリアライズする。
-        // 最小コストで安全にするなら、ここで JSON 化して文字列キューに送るのが
-        // 最もシンプル（Parser と queue でライフタイムが分離される）。
-        // 例: 文字列化して送る場合
-        //   if (msg.payload_type == azaraC::MsgPayloadType::Mt43) {
-        //       if (auto* m43 = msg.getMt43()) {
-        //           if (auto* n = m43->getNankai()) {
-        //               if (n->is_aggregated) {
-        //                   // n->aggregated_text_ptr は次の feed() で無効化される
-        //                   // ここで toJson(msg, buf) して buf を queue に送る
-        //               }
-        //           }
-        //       }
-        //   }
-        // 本サンプルは Message 自体を queue に送るが、出力タスク側で
-        // aggregated_text_ptr を使わない前提（toJson が内部でコピーする）
-        // で動作する。別イベントでバッファが再利用されると上書きされる
-        // 可能性があるため、厳密には上記コメントのように RX 側で
-        // シリアライズしてから送ることを推奨する。
+        // Nankai 集約メッセージは aggregated_text_ptr が Parser 内部バッファへの
+        // 借用ポインタ (次の feed()/reset()/集約再利用で無効化)。
+        // 本サンプルは Message をそのままキューへ投入しており、outputTask 側の
+        // toJson() は出力時にこの借用ポインタを参照する (内部コピーしない)。
+        // RX タスクと出力タスクの並行性により、出力前にバッファが再利用されると
+        // text_utf8 が破損し得る。厳密には xQueueSend() 前に toJson() で文字列化
+        // するか、集約テキストを所有コピーしたキュー要素を送ること。
 #endif
         // キューに送信 (待たない)
         if (xQueueSend(g_messageQueue, &msg, 0) != pdTRUE) {

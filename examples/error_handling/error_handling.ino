@@ -71,10 +71,10 @@ static uint32_t to_unix_time(uint16_t year, uint8_t month, uint8_t day,
     uint32_t doy = (153 * (m + (m > 2 ? -3 : 9)) + 2) / 5 + d - 1;
     uint32_t doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
     int32_t days_since_epoch = (int32_t)(era * 146097 + doe - 719468);
-    return (uint32_t)((days_since_epoch * 86400L) +
-                      (hour * 3600L) +
-                      (minute * 60L) +
-                      sec);
+    return (uint32_t)((uint32_t)days_since_epoch * 86400UL +
+                      (uint32_t)hour * 3600UL +
+                      (uint32_t)minute * 60UL +
+                      (uint32_t)sec);
 }
 
 static uint32_t cached_gnss_unix_time = 0;

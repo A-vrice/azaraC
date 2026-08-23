@@ -82,6 +82,21 @@ TEST_CASE("avr_std optional string_view integration") {
     }
 }
 
+TEST_CASE("avr_std optional operator-> bypasses overloaded operator&") {
+    struct AddressOverloaded {
+        int value;
+        AddressOverloaded* operator&() { return nullptr; }
+        const AddressOverloaded* operator&() const { return nullptr; }
+    };
+    std::optional<AddressOverloaded> v(AddressOverloaded{0});
+    v->value = 42;
+    CHECK(v->value == 42);
+    CHECK(v.has_value());
+
+    const std::optional<AddressOverloaded>& cv = v;
+    CHECK(cv->value == 42);
+}
+
 TEST_CASE("avr_std string_view operations") {
     std::string_view s("abcdef", 6);
     CHECK(s.size() == 6);
