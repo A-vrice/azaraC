@@ -22,6 +22,9 @@
 #else
 #include <new>
 #endif
+#if !defined(__AVR__) || defined(AZARAC_AVR_STUB)
+#include <type_traits>
+#endif
 
 #include "azaraC_config.h"
 #include "internal/MtCommonTypes.h"
@@ -285,6 +288,10 @@ struct Mt43Data {
 
     template<typename T>
     void initAs() {
+#if !defined(__AVR__) || defined(AZARAC_AVR_STUB)
+        static_assert(std::is_trivially_copyable_v<T>,
+                      "Payload type must be trivially copyable for placement new");
+#endif
         destroyActive();
         new (storage_) T();
         active_type = typeFor<T>();

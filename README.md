@@ -1,6 +1,6 @@
 # azaraC
 
-<img src="logo.png" alt="azaraCのlogo" height="128">
+<!-- <img src="logo.png" alt="azaraCのlogo" height="128"> -->
 
 ![CI](https://img.shields.io/github/actions/workflow/status/A-vrice/azaraC/ci.yml?style=flat-square&label=CI&logo=githubactions)  ![CodeQL](https://img.shields.io/github/actions/workflow/status/A-vrice/azaraC/codeql-run.yml?style=flat-square&label=CodeQL&logo=github)  ![Last Commit](https://img.shields.io/github/last-commit/A-vrice/azaraC?style=flat-square&logo=git)
 
@@ -21,15 +21,7 @@
 
 ## インストール
 
-```bash
-# Arduino IDE: Library Manager で "azaraC" を検索して導入
-#（Sketch → Include Library → Manage Libraries...）
-
-# PlatformIO
-pio pkg install azaraC
-```
-
-直接利用（git clone）:
+git clone で直接導入できます:
 
 ```bash
 # Arduino IDE
@@ -39,80 +31,14 @@ git clone https://github.com/A-vrice/azaraC <PROJECT_DIR>/libraries/azaraC
 git clone https://github.com/A-vrice/azaraC <PROJECT_DIR>/.pio/libdeps/<TARGET_BOARD>/azaraC
 ```
 
-## クイックスタート
-
-```cpp
-#include <azaraC.h>
-
-azaraC::Parser  parser;
-azaraC::Message msg;
-
-void setup() {
-    Serial.begin(115200);
-    Serial1.begin(9600, SERIAL_8N1, /*rx=*/20, /*tx=*/21);
-}
-
-void loop() {
-    while (Serial1.available()) {
-        if (parser.feed(Serial1.read(), msg)) {
-            azaraC::toJson(msg, Serial);
-            Serial.println();
-        }
-    }
-}
-```
-
-`feed()` は UBX（RXM-SFRBX）と NMEA（$QZQSM）を自動判別します。UNIX 時刻を渡すとメッセージの年月日も解決できます。
-
-```cpp
-uint32_t now = (uint32_t)time(nullptr);
-if (parser.feed(byte, msg, now)) { ... }
-```
-
-## コンパイル時設定
-
-`azaraC.h` をインクルードする前に `#define` で指定します（`azaraC_config.h` に一元管理）。
-
-| マクロ | デフォルト | 説明 |
-| ------ | ---------- | ---- |
-| `AZARAC_DEDUP_SLOTS` | 8 | 重複除去リングバッファのスロット数 |
-| `AZARAC_LANG_JA` / `AZARAC_LANG_EN` | 1 / 0 | 定義テーブルの言語選択 |
-| `AZARAC_ENABLE_*`（13個） | 1 | 災害カテゴリ別の定義テーブル除外 |
-| `AZARAC_NANKAI_*` | 12 / 4 | 南海トラフページ集約のバッファ設定 |
-| `AZARAC_FLASH_BUF_SIZE` | 800 | AVR の PROGMEM ルックアップ用共有 RAM バッファ |
-
-AVR（Arduino Uno 等）では RAM/Flash が少ないため、プリセットにより有効カテゴリが SEISMIC/TSUNAMI のみに絞られます。
-
-## Examples
-
-詳細な使用例は [`examples/`](examples/) を参照してください。
-
-| Example | 説明 |
-| ------- | ---- |
-| [basic_nmea](examples/basic_nmea/) | NMEA $QZQSMプロトコルでの使用例 |
-| [basic_ubx](examples/basic_ubx/) | UBXプロトコルでの使用例 |
-| [basic_uno](examples/basic_uno/) | Arduino Uno用使用例 |
-| [with_sntp](examples/with_sntp/) | SNTP時刻解決 + EEWフィルタ |
-| [filter_by_category](examples/filter_by_category/) | 災害カテゴリ別フィルタリング |
-| [error_handling](examples/error_handling/) | エラーハンドリングと統計 |
-| [wifi_client](examples/wifi_client/) | Wi-Fiクライアント出力 |
-| [rtos_freertos](examples/rtos_freertos/) | FreeRTOSタスクベース処理 |
-
-## テスト
-
-```bash
-# インストール後リポジトリのrootにて:
-make -C test run
-```
+> **注:** Library Manager / `pio pkg install` は未申請のため現時点で利用できません。
 
 ## ドキュメント
 
-詳細は [`はじめに`](docs/getting-started.md) を参照してください。
-
-- [クイックスタート & 使用例](docs/getting-started.md)
+- [はじめに（クイックスタート・Examples・コンパイル時設定）](docs/getting-started.md)
 - [API リファレンス](docs/api-reference.md)
 - [アーキテクチャ](docs/architecture.md)
-- [開発者ガイド](docs/developer-guide.md)
+- [開発者ガイド（ビルド・テストなど）](docs/developer-guide.md)
 
 ## ライセンス
 

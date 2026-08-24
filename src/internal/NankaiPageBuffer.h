@@ -35,6 +35,10 @@ struct NankaiPageKey {
     uint8_t  fallback_minute = 0;  // 1B
     // 合計 8B（パディングなし）
 
+    constexpr NankaiPageKey() = default;
+    constexpr NankaiPageKey(uint32_t et, uint8_t ic, uint8_t d = 0, uint8_t h = 0, uint8_t m = 0)
+        : event_time_unix(et), info_code(ic), fallback_day(d), fallback_hour(h), fallback_minute(m) {}
+
     bool operator==(const NankaiPageKey& o) const {
         if (event_time_unix != 0 || o.event_time_unix != 0) {
             return info_code == o.info_code &&
@@ -180,6 +184,7 @@ struct NankaiPageBuffer {
         received_bitmap = 0;
         last_update_ms = 0;
         truncated = false;
+        memset(aggregated_text, 0, sizeof(aggregated_text));
     }
 
     bool isEmpty() const {
@@ -210,6 +215,8 @@ private:
 #ifndef AZARAC_NANKAI_BUFFERS
 #define AZARAC_NANKAI_BUFFERS 4
 #endif
+static_assert(AZARAC_NANKAI_BUFFERS > 0 && AZARAC_NANKAI_BUFFERS <= 32,
+              "AZARAC_NANKAI_BUFFERS must be in range 1-32");
 
 class NankaiPageBufferManager {
 public:

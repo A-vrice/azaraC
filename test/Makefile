@@ -169,15 +169,17 @@ coverage:
 
 # --- Memory Profiling ---
 # メモリプロファイリング (Valgrind Massifによるヒープ検証)
+# Windows では Valgrind が無いためスキップを明示する。
 ifeq ($(OS),Windows_NT)
 memprof:
-	@echo "memprof: Valgrind is not available on Windows. Run on Linux or WSL."
+	@echo "memprof: SKIP — Valgrind is not available on Windows. Run on Linux or WSL."
 else
-memprof: $(TEST_BIN)
-	valgrind --tool=massif --pages-as-heap=yes --massif-out-file=massif.out $(RUN_PREFIX)$(TEST_BIN)
-	ms_print massif.out | head -n 30
+memprof:
+	@command -v valgrind >/dev/null 2>&1 || { echo "memprof: SKIP — valgrind not found. Install with: sudo apt install valgrind"; exit 0; } ; \
+	$(MAKE) $(TEST_BIN) && \
+	valgrind --tool=massif --pages-as-heap=yes --massif-out-file=massif.out $(RUN_PREFIX)$(TEST_BIN) && \
+	ms_print massif.out > massif_report.txt && head -n 30 massif_report.txt
 endif
-
 # --- AZARAC_ENABLE_* Macro Tests ---
 # 全マクロ無効化でもコンパイルが通ることを検証する
 MACRO_OFF_FLAGS = \

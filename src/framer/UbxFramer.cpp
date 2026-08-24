@@ -73,7 +73,7 @@ bool UbxFramer::parse(Frame& out) {
     if (gnssId != 5)  return false;
     if (sigId != 0 && sigId != 1) return false;
     if (numWords < 8) return false;  // L1S subframe = 8 words × 32 bits = 256 bits (250 data bits)
-    if (_len < 8u + numWords * 4u) return false;
+    if (_len != 8u + static_cast<uint16_t>(numWords) * 4u) return false;
 
     // Pack 250 nav bits MSB-first into out.bits[32]: 8 words × 32 bits (256 total),
     // first 250 are data, last 6 of word 8 are zero-filled padding.

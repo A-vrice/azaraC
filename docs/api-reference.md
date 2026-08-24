@@ -116,7 +116,7 @@ const internal::NankaiPageBuffer* getNankaiBuffer(const internal::NankaiPageKey&
 
 | フィールド | 型 | 説明 |
 |-----------|-----|------|
-| `svid` | `uint8_t` | 衛星ID (QZSS L1S: 183-192) |
+| `svid` | `uint8_t` | 衛星ID (QZSS L1S PRN: 183-191) |
 | `msg_type` | `uint8_t` | メッセージタイプ (43=QZQSM, 44=DCX) |
 | `crc24` | `uint32_t` | CRC-24Qチェックサム |
 | `valid` | `bool` | メッセージの妥当性フラグ |
@@ -462,48 +462,9 @@ public:
 
 ---
 
-## エラーコード
-
-### MT=44 パース結果コード
-
-| コード | 名称 | 説明 |
-|-------|------|------|
-| 001 | `INVALID_PAB` | 不正なPAB |
-| 002 | `INVALID_MT` | 不正なMT |
-| 003 | `INVALID_SD` | 不正なSD |
-| 004 | `INVALID_CAMF` | 不正なCAMF |
-| 005 | `INVALID_EX` | 不正な拡張フィールド |
-| 006 | `INVALID_CRC` | CRC不一致 |
-| 007 | `INVALID_LENGTH` | 不正な長さ |
-| 100 | `SUCCESS` | 成功 |
-| 101-109 | `WARN_*` | 警告 (処理は継続) |
-
----
-
 ## 使用パターン
 
-### 基本的な使用パターン
-
-```cpp
-#include <azaraC.h>
-
-azaraC::Parser parser;
-azaraC::Message msg;
-
-void setup() {
-    Serial.begin(115200);
-    Serial1.begin(9600, SERIAL_8N1, 20, 21);
-}
-
-void loop() {
-    while (Serial1.available()) {
-        if (parser.feed(Serial1.read(), msg)) {
-            azaraC::toJson(msg, Serial);
-            Serial.println();
-        }
-    }
-}
-```
+基本パターンは[はじめに](getting-started.md#クイックスタート)を参照。
 
 ### エラーハンドリング付きパターン
 
@@ -516,7 +477,7 @@ void processMessage(const azaraC::Message& msg) {
     }
     
     // SVID範囲チェック
-    if (msg.svid < 183 || msg.svid > 192) {
+    if (msg.svid < 183 || msg.svid > 191) {
         Serial.print(F("[WARN] Unexpected SVID: "));
         Serial.println(msg.svid);
     }
@@ -527,40 +488,6 @@ void processMessage(const azaraC::Message& msg) {
         if (mt43 && mt43->disaster_category == 1) {
             // EEW処理
             handleEEW(*mt43);
-        }
-    }
-}
-```
-
-### SNTP時刻解決付きパターン
-
-```cpp
-#include <WiFi.h>
-#include <azaraC.h>
-
-const char* ssid = "YOUR_SSID";
-const char* pass = "YOUR_PASS";
-
-azaraC::Parser parser;
-azaraC::Message msg;
-
-void setup() {
-    Serial.begin(115200);
-    Serial1.begin(9600, SERIAL_8N1, 20, 21);
-    
-    WiFi.begin(ssid, pass);
-    while (WiFi.status() != WL_CONNECTED) delay(500);
-    
-    configTime(9 * 3600, 0, "ntp.nict.jp"); // JST
-}
-
-void loop() {
-    uint32_t now = (uint32_t)time(nullptr);
-    
-    while (Serial1.available()) {
-        if (parser.feed(Serial1.read(), msg, now)) {
-            azaraC::toJson(msg, Serial);
-            Serial.println();
         }
     }
 }

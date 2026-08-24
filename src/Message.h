@@ -99,6 +99,7 @@ struct Message {
 
     template<typename T>
     void initPayload() {
+        // Payload triviality is guarded by Mt43Data::initAs<T>().
         destroyPayload();
         new (payload_storage_) T();
         payload_type = typeForPayload<T>();

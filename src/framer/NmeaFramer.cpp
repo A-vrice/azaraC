@@ -109,8 +109,8 @@ bool NmeaFramer::parse(Frame& out) {
     if (byte_idx < 31) return false;  // Need at least 31 bytes for 250 bits
     
     // 64 hex chars (32 bytes): mask lower nibble (bits 252-255); bits 250-251 are spec-guaranteed 00
-    if (hex_count == 64) {
-        out.bits[31] &= 0xF0;
+    if (hex_count >= 63) {
+        out.bits[31] &= 0xC0;  // 250 data bits MSB-first, byte31 bits 5..0 are padding
     }
 
     // QZQSM NMEA SVID is L1S PRN - 128 (e.g. 56 -> 184)

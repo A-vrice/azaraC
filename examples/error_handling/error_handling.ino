@@ -57,28 +57,24 @@ static constexpr uint32_t STATS_INTERVAL = 10;  // メッセージ数
 // ============================================================
 // to_unix_time ヘルパー関数
 // UTCの年月日時分秒からUNIX時刻（秒）を計算します。
-// 簡易実装: 1970年1月1日からの日数を計算して86400を乗算。
-// うるう年を考慮した正確な計算を行います。
+// 整数演算のみ（Decoder::days_from_civil と同等、AVRで軽量）。
 // ============================================================
 static uint32_t to_unix_time(uint16_t year, uint8_t month, uint8_t day,
                              uint8_t hour, uint8_t minute, uint8_t sec) {
-    // 月を3月起点に調整（うるう年計算を簡単にするため）
-    if (month <= 2) {
-        year--;
-        month += 12;
-    }
-    // ユリウス日数からの近似計算
-    int32_t a = year / 100;
-    int32_t b = 2 - a + (a / 4);
-    int32_t jd = (int32_t)(365.25 * (year + 4716)) +
-                 (int32_t)(30.6001 * (month + 1)) +
-                 day + b - 1524;
-    // UNIXエポック (1970-01-01) のユリウス日数 = 2440588
-    int32_t days_since_epoch = jd - 2440588;
-    return (uint32_t)((days_since_epoch * 86400UL) +
-                      (hour * 3600UL) +
-                      (minute * 60UL) +
-                      sec);
+    // Howard Hinnant days_from_civil — 整数のみ、浮動小数点不使用
+    uint32_t y = year;
+    uint32_t m = month;
+    uint32_t d = day;
+    y -= (m <= 2);
+    uint32_t era = y / 400;
+    uint32_t yoe = y - era * 400;
+    uint32_t doy = (153 * (m + (m > 2 ? -3 : 9)) + 2) / 5 + d - 1;
+    uint32_t doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+    int32_t days_since_epoch = (int32_t)(era * 146097 + doe - 719468);
+    return (uint32_t)((uint32_t)days_since_epoch * 86400UL +
+                      (uint32_t)hour * 3600UL +
+                      (uint32_t)minute * 60UL +
+                      (uint32_t)sec);
 }
 
 static uint32_t cached_gnss_unix_time = 0;
