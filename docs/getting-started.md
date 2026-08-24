@@ -18,7 +18,7 @@ git clone https://github.com/A-vrice/azaraC \
   <PROJECT_DIR>/.pio/libdeps/<TARGET_BOARD>/azaraC
 ```
 
-Library Manager / `pio pkg install` でも導入できます。詳細は [README.md](../README.md) を参照。
+> **注:** Library Manager / `pio pkg install` は未申請のため現時点で利用できません。
 
 ## クイックスタート
 
