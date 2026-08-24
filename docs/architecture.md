@@ -14,16 +14,15 @@ graph TD
     GNSS -->|"UART: NMEA $QZQSM / UBX-RXM-SFRBX"| Parser
 
     subgraph Parser
-        FramerAuto["フレーマー自動判別"]
+        FramerAuto["フレーマー自動判別<br/>(UBX/NMEA)"]
         UBX["UbxFramer"]
         NMEA["NmeaFramer"]
-        Custom["CustomFramer (IFramer)"]
+        FramerAuto --> UBX
+        FramerAuto --> NMEA
+        Custom["CustomFramer<br/>(排他モード: IFramer)"]
         UBX --> Frame
         NMEA --> Frame
         Custom --> Frame
-        FramerAuto --> UBX
-        FramerAuto --> NMEA
-        FramerAuto --> Custom
         Frame["Frame (ビット列)"]
         Frame --> Decoder
         Decoder["Decoder<br/>CRC-24Q → msg_type 分岐"]
@@ -31,8 +30,10 @@ graph TD
         Decoder --> MT44["MT=44 DCX/CAMF<br/>(A1-A18, B1-B4)"]
         MT43 --> Msg["Message"]
         MT44 --> Msg
-        Msg --> Nankai["NankaiPageBuffer<br/>(南海トラフページ集約)"]
-        Nankai --> Dedup["DedupFilter<br/>{svid, msg_type, crc24}"]
+        Msg --> Nankai{"MT=43 cat.4?"}
+        Nankai -->|"Yes"| NankaiBuf["NankaiPageBuffer<br/>ページ集約"]
+        Nankai -->|"No"| Dedup["DedupFilter<br/>{svid, msg_type, crc24}"]
+        NankaiBuf --> Dedup
         Dedup --> Out["Message 出力"]
     end
 
@@ -99,8 +100,10 @@ graph TD
     A["GNSSモジュール"] -->|"1バイトずつ"| B["Parser::feed()"]
     B --> C["Framer: フレーム境界検出"]
     C --> D["Decoder: CRC検証 → デコード"]
-    D --> E["NankaiPageBuffer: ページ集約"]
-    E --> F["DedupFilter: 重複チェック"]
+    D --> E{"MT=43 cat.4?"}
+    E -->|"Yes"| E2["NankaiPageBuffer: ページ集約"]
+    E -->|"No"| F["DedupFilter: 重複チェック"]
+    E2 --> F
     F --> G["Message出力"]
     G --> H["toJson()"]
     H --> I["Print& (Serial, WiFiClient 等)"]
