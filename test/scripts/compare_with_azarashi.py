@@ -30,37 +30,12 @@ except ImportError:
     print("ERROR: azarashi package not found. Install with: pip install azarashi", file=sys.stderr)
     sys.exit(1)
 
-# ── パス設定 ──────────────────────────────────────────────────────────────
-BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-REALDATA = os.path.join(BASE, 'realdata')
-_exe = '.exe' if os.name == 'nt' else ''
-AZARAC_BIN = os.path.join(BASE, 'test', f'decode_to_json{_exe}')
-PYTHON = os.environ.get('PYTHON', sys.executable)
-
-# ── NMEA生成ヘルパー ──────────────────────────────────────────────────────
-
-def nmea_checksum(body: str) -> str:
-    cs = 0
-    for ch in body:
-        cs ^= ord(ch)
-    return f"*{cs:02X}"
-
-
-def make_qzqsm(svid: int, hex_payload: str) -> str:
-    body = f"QZQSM,{svid},{hex_payload}"
-    return f"${body}{nmea_checksum(body)}"
-
-
-# ── realdata パーサ ───────────────────────────────────────────────────────
-
-DC_MAP = {
-    '緊急地震速報': 1, '震源': 2, '震度': 3, '南海トラフ地震': 4,
-    '津波': 5, '北西太平洋津波': 6, '火山': 8, '降灰': 9,
-    '気象': 10, '洪水': 11, '台風': 12, '海上': 14,
-}
-
-IT_MAP = {'発表': 0, '訂正': 1, '取消': 2}
-RC_MAP = {'最優先': 1, '優先': 2, '通常': 3, '訓練/試験': 7}
+# ── 共通定数/ヘルパは _common に集約 ───────────────────
+from _common import (  # type: ignore[import-not-found]
+    BASE, REALDATA, AZARAC_BIN, PYTHON,
+    DC_MAP, IT_MAP, RC_MAP,
+    nmea_checksum, make_qzqsm, json_serial,
+)
 
 
 def parse_history(filepath: str) -> list[dict]:
@@ -140,20 +115,7 @@ def parse_l1s_archive(filepath: str) -> list[dict]:
 
 # ── azarashi でデコード ───────────────────────────────────────────────────
 
-def json_serial(obj):
-    if isinstance(obj, bytes):
-        return obj.hex()
-    if hasattr(obj, '__dict__'):
-        return {k: json_serial(v) for k, v in obj.__dict__.items()}
-    # str()/repr() can raise on objects with a broken __str__/__repr__;
-    # fall back to a stable placeholder so serialization never propagates.
-    try:
-        return str(obj)
-    except Exception:  # noqa: BLE001
-        try:
-            return repr(obj)
-        except Exception:  # noqa: BLE001
-            return f"<{type(obj).__name__}>"
+# json_serial は _common から import（重複削除）
 
 
 def decode_with_azarashi(nmea: str) -> dict:

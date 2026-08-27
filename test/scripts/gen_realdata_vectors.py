@@ -14,62 +14,20 @@ decode_to_json CLI を用いて各NMEA文をデコードし、
 
 import re
 import csv
-import os
-import sys
 import json
-import subprocess
+import os
 import platform
+import re
+import subprocess
+import sys
 
-BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-REALDATA = os.path.join(BASE, 'realdata')
+from _common import (  # type: ignore[import-not-found]
+    BASE, REALDATA, DECODE_BIN,
+    DC_MAP, IT_MAP, RC_MAP,
+    nmea_checksum, make_qzqsm,
+)
+
 OUT_CPP = os.path.join(BASE, 'test', 'integration', 'test_realdata.cpp')
-DECODE_BIN = os.path.join(BASE, 'test', 'decode_to_json.exe' if platform.system() == 'Windows' else 'decode_to_json')
-
-# ── 災害カテゴリ名 → コード ──────────────────────────────────────────────
-DC_MAP = {
-    '緊急地震速報': 1,
-    '震源': 2,
-    '震度': 3,
-    '南海トラフ地震': 4,
-    '津波': 5,
-    '北西太平洋津波': 6,
-    '火山': 8,
-    '降灰': 9,
-    '気象': 10,
-    '洪水': 11,
-    '台風': 12,
-    '海上': 14,
-}
-
-# ── 情報種別名 → コード ──────────────────────────────────────────────────
-IT_MAP = {
-    '発表': 0,
-    '訂正': 1,
-    '取消': 2,
-}
-
-# ── 報告分類名 → コード ──────────────────────────────────────────────────
-RC_MAP = {
-    '最優先': 1,
-    '優先': 2,
-    '通常': 3,
-    '訓練/試験': 7,
-}
-
-
-def nmea_checksum(body: str) -> str:
-    """NMEA チェックサム計算"""
-    cs = 0
-    for ch in body:
-        cs ^= ord(ch)
-    return f"*{cs:02X}"
-
-
-def make_qzqsm(svid: int, hex_payload: str) -> str:
-    """$QZQSM NMEA 文を構築（チェックサム付き）"""
-    body = f"QZQSM,{svid},{hex_payload}"
-    return f"${body}{nmea_checksum(body)}"
-
 
 # ═══════════════════════════════════════════════════════════════════════════
 # decode_to_json CLI 統合
