@@ -47,9 +47,9 @@ graph TD
 
 [`Parser`](../src/Parser.h)はライブラリのメインエントリーポイントです。
 
-- **フレーマー自動判別**: 入力バイトストリームからUBX/NMEAを自動判別（UBX同期文字 `0xB5 0x62`、NMEA `$` 文字で判定）
+- **フレーマー自動判別**: 入力バイトストリームからUBX/NMEAを自動判別（UBX同期文字`0xB5 0x62`、NMEA`$`文字で判定）
 - **メッセージデコード**: フレームの復号とCRC検証
-- **重複除去 + 南海トラフページ集約**: `postDecode()` が Nankai集約・重複チェック・メッセージ出力を一元管理
+- **重複除去 + 南海トラフページ集約**: `postDecode()` がNankai集約・重複チェック・メッセージ出力を一元管理
 
 ```mermaid
 graph LR
@@ -75,15 +75,15 @@ graph LR
 
 [`Decoder`](../src/decoder/Decoder.h)はビット列からメッセージフィールドを抽出します。
 
-**共通処理**: CRC-24Q検証（IS-QZSS-L1S §3.2.8準拠）、MSB-first ビット抽出、UNIX時刻ベースの年月補正。
+**共通処理**: CRC-24Q検証（IS-QZSS-L1S §3.2.8準拠）、MSB-firstビット抽出、UNIX時刻ベースの年月補正。
 
-**MT=43**: `DecoderQzqsm` が X-macro テーブル `AZARAC_DC_CATEGORIES` から全12カテゴリのサポート判定・ディスパッチを生成。カテゴリ一覧は[APIリファレンス](api-reference.md#azaracmt43data-mt43-qzqsm)を参照。
+**MT=43**: `DecoderQzqsm`がX-macroテーブル`AZARAC_DC_CATEGORIES`から全12カテゴリのサポート判定・ディスパッチを生成。カテゴリ一覧は[APIリファレンス](api-reference.md#azaracmt43data-mt43-qzqsm)を参照。
 
 **MT=44**: 階層構造のCAMFフォーマット（A1-A18 + B1-B4拡張）を解析。サービス種別（L-Alert, J-Alert 等）の判定条件は[APIリファレンス](api-reference.md#azaracmt44data-mt44-dcxcamf)を参照。
 
 ### 4. DedupFilter (重複除去)
 
-[`DedupFilter`](../src/internal/Dedup.h)は `{svid, msg_type, crc24}` によるリングバッファで重複除去。デフォルト8スロット。複数衛星受信時は `AZARAC_DEDUP_SLOTS` を増やす。
+[`DedupFilter`](../src/internal/Dedup.h)は`{svid, msg_type, crc24}`によるリングバッファで重複除去。デフォルト8スロット。複数衛星受信時は `AZARAC_DEDUP_SLOTS`を増やす。
 
 ### 5. NankaiPageBuffer (南海トラフページ集約)
 
