@@ -2,7 +2,7 @@
 
 ## 名前空間
 
-すべてのAPIは `azaraC` 名前空間に含まれています。
+すべてのAPIは`azaraC`名前空間に含まれています。
 
 ```cpp
 #include <azaraC.h>
@@ -421,11 +421,11 @@ if (client.connect(server, port)) {
 
 | マクロ | デフォルト | 説明 |
 |-------|-----------|------|
-| `AZARAC_FLASH_BUF_SIZE` | 800（AVR プリセット: 64、DCX/CAMF 有効時 800） | PROGMEM ルックアップ用の共有 RAM バッファサイズ (バイト) |
+| `AZARAC_FLASH_BUF_SIZE` | 800（AVRプリセット: 64、DCX/CAMF有効時800） | PROGMEMルックアップ用の共有RAMバッファサイズ (バイト) |
 
-**AVR プリセット**: `__AVR__` では `azaraC_config.h` のプリセットがデフォルトを変更します。有効カテゴリは SEISMIC/TSUNAMI のみ（他 11 カテゴリは無効）、`AZARAC_DEDUP_SLOTS=4`、`AZARAC_NANKAI_BUFFERS=1`、`AZARAC_NANKAI_MAX_PAGES=4`。`-D` または `#define`（`azaraC.h` インクルード前）で上書き可能です。
+**AVRプリセット**: `__AVR__`では`azaraC_config.h`のプリセットがデフォルトを変更します。有効カテゴリはSEISMIC/TSUNAMIのみ（他11カテゴリは無効）、`AZARAC_DEDUP_SLOTS=4`、`AZARAC_NANKAI_BUFFERS=1`、`AZARAC_NANKAI_MAX_PAGES=4`となります。`-D`または`#define`（`azaraC.h`インクルード前）で明示することで上書き可能です。
 
-**AVR 標準ライブラリシム**: AVR ツールチェーンは libstdc++ を含まないため、`#if defined(__AVR__)` で `src/internal/avr_std/` の最小シム（`optional` / `string_view` / `std::move` 等）が自動適用されます。ライブラリの API は非 AVR と同一です。
+**AVR 標準ライブラリシム**: AVRツールチェーンはlibstdc++を含まないため、`#if defined(__AVR__)`で`src/internal/avr_std/`の最小シム（`optional`/`string_view`/`std::move`等）が自動適用されます。ライブラリの利用方法/API自体は非AVRと同一です。
 
 ---
 

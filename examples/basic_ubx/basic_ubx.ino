@@ -27,7 +27,7 @@ azaraC::Message msg;
 uint32_t cached_gnss_unix_time = 0;
 
 void setup() {
-    // AVR: GNSS と JSON 出力が同一 Serial を共用するため 9600 (1回のみ)。
+    // AVR: GNSSとJSON出力が同一Serialを共用するためボーレートを9600に設定。
 #if defined(ARDUINO_ARCH_AVR)
     Serial.begin(9600);
 #else
@@ -45,7 +45,7 @@ void setup() {
 }
 
 void loop() {
-    // AVR: GNSS は単一ハードウェア UART の Serial、それ以外は Serial1
+    // AVR: GNSSはUARTの Serial、それ以外は Serial1
 #if defined(ARDUINO_ARCH_AVR)
     Stream& gnss = Serial;
 #else
@@ -55,7 +55,7 @@ void loop() {
         uint8_t b = static_cast<uint8_t>(gnss.read());
 
 
-        // 第3引数 now_unix に最新の時刻を渡すことで、DCR/DCX電文の「年」を正確に算出できます。
+        // 第3引数now_unixにGNSSなどの時刻を渡すことで、DCR/DCX電文の「年」を正確に算出できます。
         // 未同期時 (now_unix = 0) の場合、年は解決されませんが、
         // 電文の生データ (月・日・時・分) は正しく取得・出力されます。
         if (parser.feed(b, msg, cached_gnss_unix_time)) {

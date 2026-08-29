@@ -1,10 +1,9 @@
 # はじめに
 
-<img src="https://raw.githubusercontent.com/A-vrice/azaraC/refs/heads/main/logo.png" alt="azaraC" width="256">
+<img src="../logo.svg" alt="azaraCのロゴ" height="128">
 
-AzaraC は準天頂衛星みちびきの L1S 災害通報メッセージをデコードする Arduino 向け C++17 ライブラリ。
-MT=43（DCR/QZQSM）と MT=44（DCX/CAMF）に対応し、外部依存なし・ヒープ割り当てなしで動作します。
-`Parser` が UBX と NMEA を自動判別するため、コードはどちらでも同じです。
+
+準天頂衛星みちびき(QZSS)から発信されたL1S信号の災危通報メッセージをデコードするArduino向けC++17ライブラリ。[azarashi](https://github.com/nbtk/azarashi)(Python)の移植です。外部依存やヒープの動的割り当てはせず、負荷を抑えています。
 
 ## インストール
 
@@ -21,6 +20,8 @@ git clone https://github.com/A-vrice/azaraC \
 > **注:** Library Manager / `pio pkg install` は未申請のため現時点で利用できません。
 
 ## クイックスタート
+
+ライブラリ側でプロトコルを自動判別するため、UBX/NMEAでコードは変わりません。
 
 ```cpp
 #include <azaraC.h>
