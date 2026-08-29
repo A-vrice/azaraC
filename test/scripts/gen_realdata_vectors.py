@@ -57,6 +57,7 @@ def decode_batch(nmea_list: list) -> list:
             encoding='utf-8',
             errors='replace',
             timeout=120,
+            check=False,
         )
         if proc.returncode != 0:
             print(f"WARNING: decode_to_json failed (rc={proc.returncode}): {proc.stderr[:200]}", file=sys.stderr)
@@ -74,7 +75,7 @@ def decode_batch(nmea_list: list) -> list:
     except json.JSONDecodeError as e:
         print(f"WARNING: decode_to_json JSON error: {e}", file=sys.stderr)
         return [None] * len(nmea_list)
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 — decode_batch のフォールバック
         print(f"WARNING: decode_to_json unexpected error: {e}", file=sys.stderr)
         return [None] * len(nmea_list)
 

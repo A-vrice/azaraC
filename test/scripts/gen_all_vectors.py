@@ -4,14 +4,13 @@ import json
 import os
 
 import azarashi  # type: ignore[import-not-found]
-
 from _common import json_serial  # type: ignore[import-not-found]
 
 def decode_nmea(nmea_str):
     try:
         r = azarashi.decode(nmea_str.strip())
         return {"nmea": nmea_str.strip(), "type": type(r).__name__, "params": r.get_params()}
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 — azarashi が多様な例外を投げる
         return {"nmea": nmea_str.strip(), "error": str(e)}
 
 def decode_ublox(data_hex):
@@ -19,7 +18,7 @@ def decode_ublox(data_hex):
         r = azarashi.decode(bytes.fromhex(data_hex), 'ublox')
         return {"type": type(r).__name__, "nmea": r.nmea, "satellite_id": r.satellite_id,
                 "satellite_prn": r.satellite_prn, "params": r.get_params()}
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 — azarashi が多様な例外を投げる
         return {"error": str(e)}
 
 def process_log(input_path, output_path):

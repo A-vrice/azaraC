@@ -15,15 +15,14 @@ AzaraC のデコード結果を比較する。
     python test/scripts/compare_with_azarashi.py --source data_txt
 """
 
+import argparse
 import csv
 import json
 import os
 import re
 import subprocess
 import sys
-import argparse
 import urllib.request
-
 try:
     import azarashi
 except ImportError:
@@ -86,7 +85,7 @@ def parse_l1s_archive(filepath: str) -> list[dict]:
         try:
             urllib.request.urlretrieve(url, filepath)
             print(f"Saved to {filepath}")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — urlretrieve が多様な例外
             print(f"ERROR: Failed to download L1S archive: {e}", file=sys.stderr)
             sys.exit(1)
 
@@ -122,11 +121,9 @@ def decode_with_azarashi(nmea: str) -> dict:
     try:
         r = azarashi.decode(nmea.strip())
         return r.get_params()
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 — azarashi が多様な例外
         return {"_error": str(e)}
 
-
-# ── AzaraC でデコード ─────────────────────────────────────────────────────
 
 def decode_with_azarac(nmeas: list[str], raw: bool = False) -> list[dict]:
     """AzaraC CLI ツールを呼び出してデコード"""
@@ -147,7 +144,8 @@ def decode_with_azarac(nmeas: list[str], raw: bool = False) -> list[dict]:
             text=True,
             timeout=30,
             encoding='utf-8',
-            errors='replace'
+            errors='replace',
+            check=False,
         )
         if result.returncode != 0:
             print(f"WARNING: AzaraC binary returned code {result.returncode}", file=sys.stderr)
@@ -378,10 +376,7 @@ def values_equal(az_val, ac_val, ac_flat: dict, ac_key: str) -> bool:
         if az_val is None and ac_val == 0:
             return True
         # azarashi の null は AzaraC の空文字ラベルと同等
-        if az_val is None and ac_val == "":
-            return True
-        return False
-
+        return bool(az_val is None and ac_val == "")  # noqa: SIM103
     # リスト比較
     if isinstance(az_val, list) and isinstance(ac_val, list):
         if len(az_val) != len(ac_val):
