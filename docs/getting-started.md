@@ -1,6 +1,6 @@
 # はじめに
 
-<img src="https://raw.githubusercontent.com/A-vrice/azaraC/refs/heads/main/logo.png" alt="azaraC" width="256">
+<img src="../logo.svg" alt="azaraC" height="128">
 
 AzaraC は準天頂衛星みちびきの L1S 災害通報メッセージをデコードする Arduino 向け C++17 ライブラリ。
 MT=43（DCR/QZQSM）と MT=44（DCX/CAMF）に対応し、外部依存なし・ヒープ割り当てなしで動作します。

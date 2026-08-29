@@ -1,6 +1,6 @@
 # azaraC
 
-<!-- <img src="logo.png" alt="azaraCのlogo" height="128"> -->
+<img src="logo.svg" alt="azaraCのlogo" height="128">
 
 ![CI](https://img.shields.io/github/actions/workflow/status/A-vrice/azaraC/ci.yml?style=flat-square&label=CI&logo=githubactions)  ![CodeQL](https://img.shields.io/github/actions/workflow/status/A-vrice/azaraC/codeql-run.yml?style=flat-square&label=CodeQL&logo=github)  ![Last Commit](https://img.shields.io/github/last-commit/A-vrice/azaraC?style=flat-square&logo=git)
 
@@ -8,8 +8,7 @@
 
 [![Codacy Grade](https://app.codacy.com/project/badge/Grade/b3588525b57047f89f8d2ee988d155d3)](https://app.codacy.com/gh/A-vrice/azaraC/dashboard) [![Codacy Coverage](https://app.codacy.com/project/badge/Coverage/b3588525b57047f89f8d2ee988d155d3)](https://app.codacy.com/gh/A-vrice/azaraC/dashboard) [![OSSF Scorecard](https://img.shields.io/ossf-scorecard/github.com/A-vrice/azaraC?style=flat-square&label=Scorecard)](https://scorecard.dev/viewer/?uri=github.com/A-vrice/azaraC) [![SLSA Level3](https://img.shields.io/badge/SLSA-Level3-brightgreen?style=flat-square&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3MDAgNzAwIj48cGF0aCBmaWxsPSIjZmY2NzQwIiBkPSJNMTI1IDFRODIgNiA1MCAzM0MzOSA0MyAyNCA1OSAyNSA2MWw4IDEyIDcgMTIgMzQgNDYgMjAgMjRhMTAzNCAxMDM0IDAgMCAwIDcyIDc1cTExIDExIDEyIDhhODM4IDgzOCAwIDAgMCAyMTMtODRsNTMtMzNhODI0IDgyNCAwIDAgMCA5Ni03Nmw0My00My0zLTF6bTQ5NiAzNGE4OTQgODk0IDAgMCAxLTk4IDkwbC0xNSAxMi0xOCAxMy03NyA0OGMtOCA2LTUzIDI5LTcwIDM2YTg5NyA4OTcgMCAwIDEtMTExIDQybC03IDIgOSA4IDEyIDkgNDkgMzJhODY4IDg2OCAwIDAgMCA4NSA0NWw0NiAxOSA1IDIgMTMgNSAzMyAxMSA3IDIgOC02YzktNiAzMS0yNSAzOS0zMmwxMy0xMmE5MTAgOTEwIDAgMCAwIDY2LTY5bDExLTE0YzMtMiAyOS0zOCAzMi00Mmw0MC02MSA3LTExdi0xOWwtMi0yNi0yLTEwYy0xLTctNy0yNS0xMS0zMmExNDYgMTQ2IDAgMCAwLTQ4LTU0bC0zLTJ6TTEgMTE5djQ2MmgxOGwyMi0xIDEyLTIgMTEtMSA5LTEgMTgtMiAxNC0yIDktMSA4LTEgNy0yIDIxLTMgNy0yIDctMiA3Ny0yMSA3MC0yNyAxMy02YTk3MiA5NzIgMCAwIDAgODEtNDJsMjgtMTctNi0zYTg4OSA4ODkgMCAwIDEtMjY0LTE1MWwtNy01LTctNy03LTYtMTItMTEtNjUtNjYtNTMtNjgtMTAtMTN6Ii8+PHBhdGggZmlsbD0iI2ZmNjc0MCIgZD0iTTY5OCAyNTlhOTM3IDkzNyAwIDAgMS02MSA3NyA5ODQgOTg0IDAgMCAxLTczIDc1IDg2NyA4NjcgMCAwIDEtMjQ1IDE1M2wtMTcgNy0xMyA1LTIwIDctNjAgMTlhOTM2IDkzNiAwIDAgMS0xMTUgMjNsLTkgMS0xOSAyLTEwIDEtMTQgMS0yMiAxYy0xIDIgMTIgMTggMjAgMjdsMTUgMTMgMjIgMTRxMTUgOCAzNSAxMmwxMCAzaDQ1NmwxMC0zYTE0MSAxNDEgMCAwIDAgMTEwLTExM2MyLTExIDItMTYgMi0xNjlWMjU3eiIvPjwvc3ZnPg==)](https://slsa.dev)
 
-準天頂衛星みちびき(QZSS)から発信されたL1S信号の災害通報メッセージをデコードするArduino向けC++17ライブラリ。[azarashi](https://github.com/nbtk/azarashi)(Python)の移植です。外部依存やヒープの割り当てなどは行なわないようにしています。
-
+準天頂衛星みちびき(QZSS)から発信されたL1S信号の災害通報メッセージをデコードするArduino向けC++17ライブラリ。[azarashi](https://github.com/nbtk/azarashi)(Python)の移植です。外部依存やヒープの動的割り当てなどは行っていません。
 ## 対応メッセージ
 
 | msg_type | 規格            | 名称            |
@@ -17,7 +16,7 @@
 | 43       | [IS-QZSS-DCR-016](https://qzss.go.jp/technical/download/is_qzss_dcr_016_agree.html) | DCR 12種類（QZQSM） |
 | 44       | [IS-QZSS-DCX-004](https://qzss.go.jp/technical/download/is_qzss_dcx_004_agree.html) | DCX / CAMF（L-Alert, J-Alert など） |
 
-定義テーブル生成に使用したazarashiのバージョンは[`.azarashi-version`](.azarashi-version)を参照のこと。
+定義テーブル生成に使用したazarashiのバージョンは[`.azarashi-version`](.azarashi-version)に記載しています。
 
 ## インストール
 
