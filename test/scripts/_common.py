@@ -1,16 +1,15 @@
-#!/usr/bin/env python3
 """_common.py — test/scripts 共通ヘルパ（DC_MAP / NMEA / JSON serialize / パス）"""
 import os
 import sys
 from datetime import datetime
 
 # ── パス ──────────────────────────────────────────────────────────────
+_exe = ".exe" if os.name == "nt" else ""
 BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 REALDATA = os.path.join(BASE, "realdata")
 DECODE_BIN = os.path.join(BASE, "test", f"decode_to_json{_exe}")
 AZARAC_BIN = DECODE_BIN  # alias for compare_with_azarashi.py
 PYTHON = os.environ.get("PYTHON", sys.executable)
-
 # ── 災害カテゴリ / 情報種別 / 報告分類 ────────────────────────────────
 DC_MAP = {
     "緊急地震速報": 1, "震源": 2, "震度": 3, "南海トラフ地震": 4,

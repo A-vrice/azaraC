@@ -32,9 +32,9 @@ except ImportError:
 
 # ── 共通定数/ヘルパは _common に集約 ───────────────────
 from _common import (  # type: ignore[import-not-found]
-    BASE, REALDATA, AZARAC_BIN, PYTHON,
-    DC_MAP, IT_MAP, RC_MAP,
-    nmea_checksum, make_qzqsm, json_serial,
+    AZARAC_BIN,
+    REALDATA,
+    make_qzqsm,
 )
 
 

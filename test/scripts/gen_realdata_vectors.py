@@ -12,19 +12,21 @@ decode_to_json CLI を用いて各NMEA文をデコードし、
 主要フィールドの期待値をC++ テストコードに埋め込む。
 """
 
-import re
 import csv
 import json
 import os
-import platform
 import re
 import subprocess
 import sys
 
 from _common import (  # type: ignore[import-not-found]
-    BASE, REALDATA, DECODE_BIN,
-    DC_MAP, IT_MAP, RC_MAP,
-    nmea_checksum, make_qzqsm,
+    BASE,
+    DC_MAP,
+    DECODE_BIN,
+    IT_MAP,
+    RC_MAP,
+    REALDATA,
+    make_qzqsm,
 )
 
 OUT_CPP = os.path.join(BASE, 'test', 'integration', 'test_realdata.cpp')

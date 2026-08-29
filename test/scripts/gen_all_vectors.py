@@ -3,7 +3,7 @@
 import json
 import os
 
-import azarashi
+import azarashi  # type: ignore[import-not-found]
 
 from _common import json_serial  # type: ignore[import-not-found]
 
