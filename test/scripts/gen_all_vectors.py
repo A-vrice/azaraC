@@ -1,36 +1,17 @@
 #!/usr/bin/env python3
 """全テストベクター生成スクリプト"""
-import azarashi
 import json
 import os
-from datetime import datetime
 
-def json_serial(obj):
-    if isinstance(obj, datetime):
-        return obj.isoformat()
-    if isinstance(obj, bytes):
-        return obj.hex()
-    if isinstance(obj, set):
-        return list(obj)
-    # azarashi のカスタムオブジェクトを再帰的にdictに変換
-    if hasattr(obj, '__dict__'):
-        return {k: json_serial(v) for k, v in obj.__dict__.items()}
-    # その他の型は文字列化
-    # str()/repr() can raise on objects with a broken __str__/__repr__;
-    # fall back to a stable placeholder so serialization never propagates.
-    try:
-        return str(obj)
-    except Exception:  # noqa: BLE001
-        try:
-            return repr(obj)
-        except Exception:  # noqa: BLE001
-            return f"<{type(obj).__name__}>"
+import azarashi  # type: ignore[import-not-found]
+
+from _common import json_serial  # type: ignore[import-not-found]
 
 def decode_nmea(nmea_str):
     try:
         r = azarashi.decode(nmea_str.strip())
         return {"nmea": nmea_str.strip(), "type": type(r).__name__, "params": r.get_params()}
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 — azarashi が多様な例外を投げる
         return {"nmea": nmea_str.strip(), "error": str(e)}
 
 def decode_ublox(data_hex):
@@ -38,7 +19,7 @@ def decode_ublox(data_hex):
         r = azarashi.decode(bytes.fromhex(data_hex), 'ublox')
         return {"type": type(r).__name__, "nmea": r.nmea, "satellite_id": r.satellite_id,
                 "satellite_prn": r.satellite_prn, "params": r.get_params()}
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 — azarashi が多様な例外を投げる
         return {"error": str(e)}
 
 def process_log(input_path, output_path):
