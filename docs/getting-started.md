@@ -1,6 +1,6 @@
 # はじめに
 
-<img src="../logo.svg" alt="azaraC" height="128">
+<img src="../logo.svg" alt="azaraCのロゴ" height="128">
 
 
 準天頂衛星みちびき(QZSS)から発信されたL1S信号の災危通報メッセージをデコードするArduino向けC++17ライブラリ。[azarashi](https://github.com/nbtk/azarashi)(Python)の移植です。外部依存やヒープの動的割り当てはせず、負荷を抑えています。
