@@ -5,7 +5,7 @@ import os
 
 import azarashi  # type: ignore[import-not-found]
 
-from _common import json_serial  # type: ignore[import-not-found]  # noqa: I001
+from _common import json_serial  # type: ignore[import-not-found]
 
 def decode_nmea(nmea_str):
     try:
