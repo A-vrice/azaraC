@@ -14,7 +14,7 @@ namespace azaraC {
 
 //
 // RAM: Parser obj ~1.3 KB (static, default Nankai 4-buffer: ~992 B manager + ~320 B
-// framers/decoder/dedup); stack per feed() ~220 B (Message ~190B + Frame ~34B).
+// framers/decoder/dedup); stack per feed() ~330 B (Message 296B + Frame 33B, host-measured default config).
 // ~1.5 KB recommended; min ~970 B (Nankai 1 buffer). For 2 KB targets disable DCX+Nankai.
 //
 class Parser {
