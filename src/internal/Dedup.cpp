@@ -23,6 +23,7 @@ bool DedupFilter::isDuplicate(const DedupKey& key) {
 void DedupFilter::reset() {
     _head = 0;
     _full = false;
+    memset(_ring, 0xFF, sizeof(_ring));
 }
 
 } // namespace internal

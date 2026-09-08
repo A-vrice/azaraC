@@ -50,6 +50,10 @@ private:
     // Returns true if message should be output (valid, non-duplicate, aggregation handled).
     bool postDecode(const Message& decoded, Message& out);
 
+    // Shared decode → postDecode path; on decode failure copies the cleared
+    // Decoder state into `out` so a reused Message never retains stale payload.
+    bool handleFrame(const internal::Frame& frame, Message& out, uint32_t report_unix);
+
 #if AZARAC_ENABLE_NANKAI
     // Process Nankai Trough page aggregation
     // Returns true if message should be output (page aggregation complete or not Nankai)

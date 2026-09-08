@@ -15,11 +15,6 @@
 #else
 #include <cstring>
 #endif
-#if defined(__AVR__)
-#include "avr_std/climits"
-#else
-#include <climits>
-#endif
 #include "TimeFields.h"
 
 namespace azaraC {

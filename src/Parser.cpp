@@ -9,14 +9,7 @@ bool Parser::feed(uint8_t byte, Message& out, uint32_t report_unix) {
     // カスタムフレーマ（排他モード）
     if (_custom) {
         if (!_custom->feed(byte, frame)) return false;
-        Message decoded;
-        if (!_decoder.decode(frame, decoded, report_unix)) {
-            out.unsupported_reason = decoded.unsupported_reason;
-            out.msg_type = decoded.msg_type;
-            out.svid     = decoded.svid;
-            return false;
-        }
-        return postDecode(decoded, out);
+        return handleFrame(frame, out, report_unix);
     }
 
     // AUTO 常時: UBX優先試行（UBXはバイナリ、NMEAはASCIIで競合しない）
@@ -24,11 +17,15 @@ bool Parser::feed(uint8_t byte, Message& out, uint32_t report_unix) {
     bool nmea_ok = ubx_ok ? false : _nmea.feed(byte, frame);
     if (!ubx_ok && !nmea_ok) return false;
 
+    return handleFrame(frame, out, report_unix);
+}
+
+bool Parser::handleFrame(const internal::Frame& frame, Message& out, uint32_t report_unix) {
     Message decoded;
     if (!_decoder.decode(frame, decoded, report_unix)) {
-        out.unsupported_reason = decoded.unsupported_reason;
-        out.msg_type = decoded.msg_type;
-        out.svid     = decoded.svid;
+        // decoded is already cleared by decode(); copy it whole so a reused
+        // out holding a previous valid message cannot leak stale payload.
+        out = decoded;
         return false;
     }
     return postDecode(decoded, out);
