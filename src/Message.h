@@ -122,8 +122,12 @@ struct Message {
     }
 
     Mt44Data* getMt44() {
+#if AZARAC_ENABLE_DCX_CAMF
         return (payload_type == MsgPayloadType::Mt44)
             ? reinterpret_cast<Mt44Data*>(payload_storage_) : nullptr;
+#else
+        return nullptr;
+#endif
     }
 
     const Mt43Data* getMt43() const {
@@ -132,8 +136,12 @@ struct Message {
     }
 
     const Mt44Data* getMt44() const {
+#if AZARAC_ENABLE_DCX_CAMF
         return (payload_type == MsgPayloadType::Mt44)
             ? reinterpret_cast<const Mt44Data*>(payload_storage_) : nullptr;
+#else
+        return nullptr;
+#endif
     }
 
 private:
