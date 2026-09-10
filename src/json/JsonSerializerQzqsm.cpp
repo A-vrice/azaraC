@@ -137,8 +137,8 @@ bool serializeNankai(const Mt43Data* d, Print& out) {
     // Aggregated complete text if available, else per-page info + hex
     if (nankai->is_aggregated && nankai->aggregated_len > 0) {
         wf_u(out, "truncated", nankai->truncated ? 1u : 0u);
-        wf_u(out, "page", 1);
-        wf_u(out, "total_page", 1);
+        wf_u(out, "page", nankai->page);
+        wf_u(out, "total_page", nankai->total_page);
         wk(out, "text_utf8");
         writeStr(out, std::string_view(nankai->aggregated_text_ptr, nankai->aggregated_len));
     } else {

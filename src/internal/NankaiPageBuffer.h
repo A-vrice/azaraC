@@ -166,6 +166,24 @@ struct NankaiPageBuffer {
         return len;
     }
 
+    // Compact received pages into a contiguous C string (call only when complete).
+    // Non-final pages may be short (NUL hole); getTextLength sums per-page lengths
+    // but serialize emits [ptr, ptr+len) contiguously, so holes would leak NULs.
+    // In-place is safe: w <= p*TEXT_PER_PAGE always, earlier writes end at or
+    // before the next source page.
+    uint16_t compactText() {
+        uint16_t w = 0;
+        for (uint8_t p = 0; p < total_pages; ++p) {
+            const char* src = aggregated_text + (uint16_t)p * TEXT_PER_PAGE;
+            uint8_t n = pageTextLength_(src);
+            if ((uint16_t)p * TEXT_PER_PAGE != w)
+                memmove(aggregated_text + w, src, n);
+            w += n;
+        }
+        aggregated_text[w] = '\0';
+        return w;
+    }
+
     bool isExpired(uint64_t current_ms) const {
         if (total_pages == 0) return false;
         return (current_ms - last_update_ms) > TIMEOUT_MS;

@@ -39,6 +39,7 @@ bool Parser::postDecode(const Message& decoded, Message& out) {
         if (mt43 && mt43->disaster_category == 4) {
             // decoded と out を別オブジェクトにすることでエイリアシング UB を回避
             if (!processNankaiAggregation(decoded, out, mt43, internal::getMillis())) {
+                out.clear();
                 return false;
             }
             // Aggregation complete - check dedup before outputting
@@ -51,10 +52,9 @@ bool Parser::postDecode(const Message& decoded, Message& out) {
         }
     }
 #endif
-
     // 重複チェック
     internal::DedupKey key{ decoded.svid, decoded.msg_type, decoded.crc24 };
-    if (_dedup.isDuplicate(key)) return false;
+    if (_dedup.isDuplicate(key)) { out.clear(); return false; }
 
     out = decoded;
     return true;
@@ -105,8 +105,10 @@ bool Parser::processNankaiAggregation(const Message& decoded, Message& out, cons
                 outNankai->aggregated_len = 0;
                 outNankai->aggregated_text_ptr = nullptr;
                 outNankai->truncated = completed->truncated;
+                outNankai->page = 1;
+                outNankai->total_page = completed->original_total_pages;
 
-                uint16_t textLen = completed->getTextLength();
+                uint16_t textLen = completed->compactText();
                 if (textLen > 0) {
                     // Zero-copy: point into NankaiPageBuffer's internal storage.
                     // VALID ONLY until next feed() or reset() — see NankaiData docs.
