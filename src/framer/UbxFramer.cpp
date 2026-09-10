@@ -21,18 +21,25 @@ bool UbxFramer::feed(uint8_t b, Frame& out) {
         if (b == 0xB5) _st = St::SYNC2;
         break;
     case St::SYNC2:
-        _st = (b == 0x62) ? St::CLASS : St::SYNC1;
+        if (b == 0x62) _st = St::CLASS;
+        else if (b != 0xB5) _st = St::SYNC1;
+        // else: keep SYNC2 (this 0xB5 may start a frame)
         break;
     case St::CLASS:
+        // SFRBX header is fixed 02 13 28 00: 0xB5 here cannot belong to SFRBX,
+        // so treat it as a fresh sync candidate instead of losing the frame.
+        if (b == 0xB5) { _st = St::SYNC2; break; }
         _class = b; _ck_a = _ck_b = 0;
         _ck_a += b; _ck_b += _ck_a;
         _st = St::ID;
         break;
     case St::ID:
+        if (b == 0xB5) { _st = St::SYNC2; break; }
         _id = b; _ck_a += b; _ck_b += _ck_a;
         _st = St::LEN_L;
         break;
     case St::LEN_L:
+        if (b == 0xB5) { _st = St::SYNC2; break; }
         _len = b; _ck_a += b; _ck_b += _ck_a;
         _st = St::LEN_H;
         break;
@@ -40,7 +47,7 @@ bool UbxFramer::feed(uint8_t b, Frame& out) {
         _len |= (uint16_t)b << 8;
         _ck_a += b; _ck_b += _ck_a;
         _pos = 0;
-        _st = (_len > 0 && _len <= sizeof(_buf)) ? St::PAYLOAD : St::SYNC1;
+        _st = (_len > 0 && _len <= sizeof(_buf)) ? St::PAYLOAD : (b == 0xB5 ? St::SYNC2 : St::SYNC1);
         break;
     case St::PAYLOAD:
         _buf[_pos++] = b;
@@ -48,15 +55,17 @@ bool UbxFramer::feed(uint8_t b, Frame& out) {
         if (_pos >= _len) _st = St::CK_A;
         break;
     case St::CK_A:
-        if (b != _ck_a) { reset(); return false; }
+        if (b != _ck_a) { bool sync = (b == 0xB5); reset(); if (sync) _st = St::SYNC2; return false; }
         _st = St::CK_B;
         break;
     case St::CK_B:
         _st = St::SYNC1;
-        if (b != _ck_b) return false;
+        // b doubles as potential next-frame sync: preserve 0xB5 candidate on any reject.
+        if (b != _ck_b) { if (b == 0xB5) _st = St::SYNC2; return false; }
         // class=0x02 id=0x13 = RXM-SFRBX
-        if (_class != 0x02 || _id != 0x13) return false;
-        return parse(out);
+        if (_class != 0x02 || _id != 0x13) { if (b == 0xB5) _st = St::SYNC2; return false; }
+        if (!parse(out)) { if (b == 0xB5) _st = St::SYNC2; return false; }
+        return true;
     }
     return false;
 }

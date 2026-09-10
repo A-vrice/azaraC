@@ -121,14 +121,22 @@ jobs:
 
       - name: Configure board manager
         run: |
-          arduino-cli config init
+          # 'config init'自体がindex更新を行い、一時的な取得失敗でexit 1になる
+          # (例: #92 Nano 33 BLEで2連続 "Some indexes could not be updated")。
+          # config作成が目的なので失敗許容し、update-index側でリトライする。
+          arduino-cli config init --overwrite || true
           # Boards with a built-in core (e.g. arduino:avr) have no additional
           # index URL; an empty URL makes 'core update-index' fail with
           # "Invalid index URL".
           if [[ -n "${{ matrix.additional_urls }}" ]]; then
             arduino-cli config add board_manager.additional_urls "${{ matrix.additional_urls }}"
           fi
-          arduino-cli core update-index
+          for i in 1 2 3; do
+            arduino-cli core update-index && break
+            echo "::warning::core update-index failed (attempt $i/3), retrying..."
+            sleep 10
+            [[ $i -eq 3 ]] && exit 1
+          done
 
       - name: Install core
         run: arduino-cli core install "${{ matrix.core }}"
@@ -248,14 +256,22 @@ jobs:
 
       - name: Configure board manager
         run: |
-          arduino-cli config init
+          # 'config init'自体がindex更新を行い、一時的な取得失敗でexit 1になる
+          # (例: #92 Nano 33 BLEで2連続 "Some indexes could not be updated")。
+          # config作成が目的なので失敗許容し、update-index側でリトライする。
+          arduino-cli config init --overwrite || true
           # Boards with a built-in core (e.g. arduino:avr) have no additional
           # index URL; an empty URL makes 'core update-index' fail with
           # "Invalid index URL".
           if [[ -n "${{ matrix.additional_urls }}" ]]; then
             arduino-cli config add board_manager.additional_urls "${{ matrix.additional_urls }}"
           fi
-          arduino-cli core update-index
+          for i in 1 2 3; do
+            arduino-cli core update-index && break
+            echo "::warning::core update-index failed (attempt $i/3), retrying..."
+            sleep 10
+            [[ $i -eq 3 ]] && exit 1
+          done
 
       - name: Install core
         run: arduino-cli core install "${{ matrix.core }}"
@@ -334,7 +350,9 @@ jobs:
           persist-credentials: false
 
       - name: Install PlatformIO
-        run: pip install -r scripts/requirements.txt
+        run: |
+          pip install -r scripts/requirements.txt
+          pip install --no-deps "starlette>=1.6.0"  # ponytail: platformio 6.1.19 pins starlette<0.53 (PYSEC-2026-161/2280/2281/248/249); --no-deps bypasses resolver, pio run is unaffected (starlette is only for pio home UI)
 
       - name: Compile (uno, esp32dev)
         run: pio run -d test/platformio

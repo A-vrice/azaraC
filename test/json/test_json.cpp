@@ -35,11 +35,13 @@ static void initMt43(Message& m, uint8_t disaster_category) {
     }
 }
 
+#if (AZARAC_ENABLE_DCX_CAMF)
 static void initMt44(Message& m) {
     m.msg_type = 44;
     m.payload_type = MsgPayloadType::Mt44;
     m.initPayload<Mt44Data>();
 }
+#endif // AZARAC_ENABLE_DCX_CAMF
 
 // Helper: init Mt43 with specific sub-type (avoids repetitive initAs pattern)
 static void initMt43As(Message& m, uint8_t dc) {
@@ -727,10 +729,13 @@ TEST_CASE("JSON Serialization: Balanced braces/brackets") {
             test_balanced(m);
         }
     }
+#if (AZARAC_ENABLE_DCX_CAMF)
     SUBCASE("MT=44") {
         Message m{}; initMt44(m);
         test_balanced(m);
     }
+#endif
+#if (AZARAC_ENABLE_DCX_CAMF)
     SUBCASE("MT=44 JAlert prefecture mode") {
         Message m{}; initMt44(m);
         Mt44Data* mt44 = m.getMt44();
@@ -767,6 +772,7 @@ TEST_CASE("JSON Serialization: Balanced braces/brackets") {
         mt44->mt44_decoded.city_codes[2] = 47101;
         test_balanced(m);
     }
+#endif // AZARAC_ENABLE_DCX_CAMF
 #if (AZARAC_ENABLE_DCX_CAMF)
     SUBCASE("MT=44 JAlert real vector (47 prefectures)") {
         // 実データ: J-Alert Missile Attack, 全47都道府県 (test_azarashi_dcx.cpp と同一ベクタ)

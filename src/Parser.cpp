@@ -9,14 +9,7 @@ bool Parser::feed(uint8_t byte, Message& out, uint32_t report_unix) {
     // カスタムフレーマ（排他モード）
     if (_custom) {
         if (!_custom->feed(byte, frame)) return false;
-        Message decoded;
-        if (!_decoder.decode(frame, decoded, report_unix)) {
-            out.unsupported_reason = decoded.unsupported_reason;
-            out.msg_type = decoded.msg_type;
-            out.svid     = decoded.svid;
-            return false;
-        }
-        return postDecode(decoded, out);
+        return handleFrame(frame, out, report_unix);
     }
 
     // AUTO 常時: UBX優先試行（UBXはバイナリ、NMEAはASCIIで競合しない）
@@ -24,11 +17,15 @@ bool Parser::feed(uint8_t byte, Message& out, uint32_t report_unix) {
     bool nmea_ok = ubx_ok ? false : _nmea.feed(byte, frame);
     if (!ubx_ok && !nmea_ok) return false;
 
+    return handleFrame(frame, out, report_unix);
+}
+
+bool Parser::handleFrame(const internal::Frame& frame, Message& out, uint32_t report_unix) {
     Message decoded;
     if (!_decoder.decode(frame, decoded, report_unix)) {
-        out.unsupported_reason = decoded.unsupported_reason;
-        out.msg_type = decoded.msg_type;
-        out.svid     = decoded.svid;
+        // decoded is already cleared by decode(); copy it whole so a reused
+        // out holding a previous valid message cannot leak stale payload.
+        out = decoded;
         return false;
     }
     return postDecode(decoded, out);
@@ -42,6 +39,7 @@ bool Parser::postDecode(const Message& decoded, Message& out) {
         if (mt43 && mt43->disaster_category == 4) {
             // decoded と out を別オブジェクトにすることでエイリアシング UB を回避
             if (!processNankaiAggregation(decoded, out, mt43, internal::getMillis())) {
+                out.clear();
                 return false;
             }
             // Aggregation complete - check dedup before outputting
@@ -54,10 +52,9 @@ bool Parser::postDecode(const Message& decoded, Message& out) {
         }
     }
 #endif
-
     // 重複チェック
     internal::DedupKey key{ decoded.svid, decoded.msg_type, decoded.crc24 };
-    if (_dedup.isDuplicate(key)) return false;
+    if (_dedup.isDuplicate(key)) { out.clear(); return false; }
 
     out = decoded;
     return true;
@@ -108,8 +105,10 @@ bool Parser::processNankaiAggregation(const Message& decoded, Message& out, cons
                 outNankai->aggregated_len = 0;
                 outNankai->aggregated_text_ptr = nullptr;
                 outNankai->truncated = completed->truncated;
+                outNankai->page = 1;
+                outNankai->total_page = completed->original_total_pages;
 
-                uint16_t textLen = completed->getTextLength();
+                uint16_t textLen = completed->compactText();
                 if (textLen > 0) {
                     // Zero-copy: point into NankaiPageBuffer's internal storage.
                     // VALID ONLY until next feed() or reset() — see NankaiData docs.

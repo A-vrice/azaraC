@@ -386,3 +386,17 @@ TEST_CASE("NMEA: Invalid NMEA-like lines don't break subsequent QZQSM") {
     REQUIRE(found);
     CHECK(out.svid == 184);  // NMEA 56 + 128 = PRN184
 }
+
+TEST_CASE("UBX: SYNC2 resync on stray 0xB5") {
+    uint8_t bits[32] = {0x53};
+    auto pkt = makeUbxSfrbx(2, bits);
+    UbxFramer framer;
+    Frame out;
+    framer.feed(0xB5, out);  // stray sync byte
+    int found = 0;
+    for (auto b : pkt) {
+        if (framer.feed(b, out)) found++;
+    }
+    CHECK(found == 1);
+    CHECK(out.svid == 184);
+}

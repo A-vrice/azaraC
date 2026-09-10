@@ -37,6 +37,7 @@ TEST_CASE("Message: MT=43ペイロードの初期化とアクセス") {
     CHECK(msg.getMt44() == nullptr);
 }
 
+#if (AZARAC_ENABLE_DCX_CAMF)
 TEST_CASE("Message: MT=44ペイロードの初期化とアクセス") {
     Message msg;
     msg.initPayload<Mt44Data>();
@@ -51,6 +52,7 @@ TEST_CASE("Message: MT=44ペイロードの初期化とアクセス") {
 
     CHECK(msg.getMt43() == nullptr);
 }
+#endif // AZARAC_ENABLE_DCX_CAMF
 
 TEST_CASE("Message: コピーコンストラクタ") {
     Message msg1;
@@ -72,19 +74,36 @@ TEST_CASE("Message: コピーコンストラクタ") {
 TEST_CASE("Message: コピー代入演算子") {
     Message msg1;
     msg1.svid = 185;
+#if (AZARAC_ENABLE_DCX_CAMF)
     msg1.msg_type = 44;
+#else
+    msg1.msg_type = 43;
+#endif
     msg1.crc24 = 0x654321;
     msg1.valid = true;
+#if (AZARAC_ENABLE_DCX_CAMF)
     msg1.initPayload<Mt44Data>();
+#else
+    msg1.initPayload<Mt43Data>();
+#endif
 
     Message msg2;
     msg2 = msg1;
     CHECK(msg2.svid == 185);
+#if (AZARAC_ENABLE_DCX_CAMF)
     CHECK(msg2.msg_type == 44);
+#else
+    CHECK(msg2.msg_type == 43);
+#endif
     CHECK(msg2.crc24 == 0x654321);
     CHECK(msg2.valid == true);
+#if (AZARAC_ENABLE_DCX_CAMF)
     CHECK(msg2.payload_type == MsgPayloadType::Mt44);
     CHECK(msg2.getMt44() != nullptr);
+#else
+    CHECK(msg2.payload_type == MsgPayloadType::Mt43);
+    CHECK(msg2.getMt43() != nullptr);
+#endif
 }
 
 // ── Mt43Dataの安全なタグ付き共用体のテスト ──────────────────────────────────

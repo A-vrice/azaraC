@@ -440,21 +440,15 @@ TEST_CASE("Nankai E2E: NUL byte mid-page stops aggregation at null") {
 
     const uint8_t* page_texts[TOTAL] = { p1, p2, p3 };
 
-    // ポインタ化後: aggregated_text_ptr は NankaiPageBuffer 内部の raw buffer を指す。
-    // そのためデータはページ単位（18バイト固定オフセット）で格納されており、
-    // NUL バイト以降のデータも raw buffer 上には存在する。
-    // aggregated_len は論理的な結合長（NUL 打ち切り後）を示す。
+    // compactText() により完成時は NUL ホールが詰められ、[ptr, ptr+len) は
+    // 連続したテキストになる。aggregated_len は論理的な結合長 (NUL 打ち切り後)。
     static constexpr uint16_t EXPECTED_LEN = 18 + 9 + 18; // 45
 
-    // Raw buffer 上の期待レイアウト（ページ単位）
-    // Page 1 at offset 0:  18 bytes of 'A'
-    // Page 2 at offset 18: 9 'A', NUL, 8 'B'
-    // Page 3 at offset 36: 18 bytes of 'C'
-    // aggregated_len = 45 だが、aggregated_text_ptr から 45 バイト読むと NUL + 'B' を含む
-    char expected_raw[3 * NankaiPageBuffer::TEXT_PER_PAGE];
-    memcpy(expected_raw +  0, p1, 18);
-    memcpy(expected_raw + 18, p2, 18);
-    memcpy(expected_raw + 36, p3, 18);
+    // Compact 後の期待レイアウト (連続): A*18 + A*9 + C*18
+    char expected_compact[18 + 9 + 18];
+    memcpy(expected_compact +  0, p1, 18);
+    memcpy(expected_compact + 18, p2, 9);
+    memcpy(expected_compact + 27, p3, 18);
 
     azaraC::Parser parser;
     azaraC::Message msg;
@@ -488,13 +482,10 @@ TEST_CASE("Nankai E2E: NUL byte mid-page stops aggregation at null") {
             REQUIRE(nankai != nullptr);
             CHECK(nankai->is_aggregated == true);
 
-            // aggregated_len が論理的な結合長（NUL 打ち切り後）を示すこと
+            // compact 後の [ptr, ptr+len) は NUL ホールなしの連続テキスト
             CHECK(nankai->aggregated_len == EXPECTED_LEN);
-
-            // aggregated_text_ptr は NankaiPageBuffer 内の raw buffer を指す
-            // → ページ単位のレイアウトを持つ（NUL バイトも保持）
             CHECK(nankai->aggregated_text_ptr != nullptr);
-            CHECK(memcmp(nankai->aggregated_text_ptr, expected_raw, sizeof(expected_raw)) == 0);
+            CHECK(memcmp(nankai->aggregated_text_ptr, expected_compact, EXPECTED_LEN) == 0);
         }
     }
 
@@ -506,17 +497,15 @@ TEST_CASE("Nankai E2E: NUL byte mid-page stops aggregation at null") {
     CHECK(nankai->is_aggregated == true);
     CHECK(nankai->aggregated_len == EXPECTED_LEN);
     CHECK(nankai->aggregated_text_ptr != nullptr);
+    CHECK(memcmp(nankai->aggregated_text_ptr, expected_compact, EXPECTED_LEN) == 0);
 
-    // JSON 出力に text_utf8 が使われること
-    // 注: ポインタ化後、aggregated_text_ptr は raw buffer（NUL 含む）を指すため、
-    // JSON 出力には NUL 以降のデータも含まれる。これは実データ（UTF-8 Japanese, NUL 不含）では問題にならない。
+    // JSON 出力に text_utf8 が使われること (compact 済みのため embedded NUL なし)
     StringPrint sp;
     internal::JsonSerializer::serialize(msg, sp);
     const auto& s = sp.str();
     CHECK(s.find("\"text_utf8\":") != std::string::npos);
     CHECK(s.find("\"text_hex\"") == std::string::npos);
 }
-
 // ═══════════════════════════════════════════════════════════════════════════════
 // Nankai ページ欠損 e2e テスト (integration_e2e.md #3)
 // 27ページ中 page 14 をスキップ → 集約未完了 → 欠損ページ投入で集約完了

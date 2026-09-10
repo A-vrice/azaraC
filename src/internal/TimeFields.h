@@ -36,6 +36,7 @@ static inline uint64_t getMillis() {
     static volatile uint64_t s_last = 0;
 
     uint32_t raw = millis();
+    noInterrupts();
     uint64_t prev = s_last;  // volatile read
     uint32_t prev_low = static_cast<uint32_t>(prev);
     uint64_t high = prev & 0xFFFFFFFF00000000ULL;
@@ -44,6 +45,7 @@ static inline uint64_t getMillis() {
     }
     uint64_t current = high | raw;
     s_last = current;  // volatile store
+    interrupts();
     return current;
 #else
     auto now = std::chrono::steady_clock::now();

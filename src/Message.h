@@ -20,6 +20,7 @@
 #include <new>
 #endif
 
+#include "azaraC_config.h"
 #include "Mt43Data.h"
 #include "Mt44Data.h"
 
@@ -46,10 +47,16 @@ struct Message {
     UnsupportedReason unsupported_reason = UnsupportedReason::None;
     MsgPayloadType payload_type = MsgPayloadType::Empty;
 
-    // Max of Mt43Data/Mt44Data for safe placement-new of either.
+    // Max of enabled payloads for safe placement-new.
+    // DCX off: Mt44 is never decoded, so drop its storage to save SRAM
+    // (Uno has 2 KB; Mt44Data alone is ~280 B per Message).
     // Ternary instead of std::max: Arduino.h defines `max` as a macro.
+#if AZARAC_ENABLE_DCX_CAMF
     static constexpr size_t payload_size_ =
         (sizeof(Mt43Data) > sizeof(Mt44Data) ? sizeof(Mt43Data) : sizeof(Mt44Data));
+#else
+    static constexpr size_t payload_size_ = sizeof(Mt43Data);
+#endif
     alignas(8) unsigned char payload_storage_[payload_size_];
 
     Message() : payload_type(MsgPayloadType::Empty) {
@@ -99,6 +106,10 @@ struct Message {
 
     template<typename T>
     void initPayload() {
+        // Compile-time guard: instantiating a disabled payload (e.g. Mt44
+        // with AZARAC_ENABLE_DCX_CAMF=0) fails here instead of overflowing.
+        static_assert(sizeof(T) <= payload_size_,
+                      "Payload type exceeds Message storage (disabled at compile time?)");
         // Payload triviality is guarded by Mt43Data::initAs<T>().
         destroyPayload();
         new (payload_storage_) T();
@@ -111,8 +122,12 @@ struct Message {
     }
 
     Mt44Data* getMt44() {
+#if AZARAC_ENABLE_DCX_CAMF
         return (payload_type == MsgPayloadType::Mt44)
             ? reinterpret_cast<Mt44Data*>(payload_storage_) : nullptr;
+#else
+        return nullptr;
+#endif
     }
 
     const Mt43Data* getMt43() const {
@@ -121,8 +136,12 @@ struct Message {
     }
 
     const Mt44Data* getMt44() const {
+#if AZARAC_ENABLE_DCX_CAMF
         return (payload_type == MsgPayloadType::Mt44)
             ? reinterpret_cast<const Mt44Data*>(payload_storage_) : nullptr;
+#else
+        return nullptr;
+#endif
     }
 
 private:
@@ -133,9 +152,11 @@ private:
             case MsgPayloadType::Mt43:
                 getMt43()->~Mt43Data();
                 break;
+#if AZARAC_ENABLE_DCX_CAMF
             case MsgPayloadType::Mt44:
                 getMt44()->~Mt44Data();
                 break;
+#endif
             default: break;
         }
         payload_type = MsgPayloadType::Empty;
@@ -146,9 +167,11 @@ private:
             case MsgPayloadType::Mt43:
                 new (payload_storage_) Mt43Data(*other.getMt43());
                 break;
+#if AZARAC_ENABLE_DCX_CAMF
             case MsgPayloadType::Mt44:
                 new (payload_storage_) Mt44Data(*other.getMt44());
                 break;
+#endif
             default: break;
         }
     }

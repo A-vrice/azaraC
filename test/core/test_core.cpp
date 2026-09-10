@@ -757,7 +757,7 @@ TEST_CASE("DedupFilter: 大量メッセージの処理") {
 TEST_CASE("Memory: sizeof guards for embedded targets") {
 #if defined(__GNUC__) && ARDUINO == 0
     // Message payload_storage_ = max(sizeof(Mt43Data), sizeof(Mt44Data))
-    // Current: Mt43Data=128, Mt44Data=376 → Message=392
+    // Current (host-measured): Mt43Data=128, Mt44Data=280, Message=296, Frame=33
     CHECK(sizeof(Message) <= 420);
     CHECK(sizeof(Mt43Data) <= 240);
     CHECK(sizeof(Mt44Data) <= 420);
