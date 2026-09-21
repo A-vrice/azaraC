@@ -46,3 +46,12 @@ test/NUL
 
 # cppcheck --dump の一時出力
 *.dump
+
+# テスト・解析の生成物（test/ 直下）
+test/cppcheck_report.xml
+test/cppcheck_stderr.log
+test/coverage_report.json
+test/massif.out
+test/massif_report.txt
+test/macro_sizes.txt
+test/memprof_output.txt

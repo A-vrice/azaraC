@@ -48,7 +48,6 @@ CPPCHECK_BASE_ARGS = [
     "-Isrc",
     "-Itest",
     "-DAZARAC_NANKAI_MAX_PAGES=63",
-    "-DAZARAC_NANKAI_AGGREGATED_TEXT_SIZE=1135",
     "src",
     "test",
 ]

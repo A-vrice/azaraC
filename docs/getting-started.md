@@ -58,11 +58,12 @@ if (parser.feed(byte, msg, now)) { ... }
 | マクロ | デフォルト | 説明 |
 | ------ | ---------- | ---- |
 | `AZARAC_DEDUP_SLOTS` | 8 | 重複除去リングバッファのスロット数 |
+| `AZARAC_NANKAI_MAX_PAGES` / `AZARAC_NANKAI_BUFFERS` | 63 / 1 | 防災気象情報(南海トラフ地震)の最大収集ページ数(1-63)と最大同時追跡数(1-) |
 | `AZARAC_LANG_JA` / `AZARAC_LANG_EN` | 1 / 0 | 定義テーブルの言語選択 |
 | `AZARAC_ENABLE_*`（13個） | 1 | 災害カテゴリ別の定義テーブル除外 |
 | `AZARAC_FLASH_BUF_SIZE` | 800 | AVR の PROGMEM ルックアップ用共有 RAM バッファ |
 
-AVR（Uno 等）ではプリセットにより有効カテゴリが絞られ、バッファサイズも縮小されます。詳細は [README.md](../README.md) を参照。
+AVR（Arduino Uno等）ではプリセットにより有効カテゴリが絞られ、バッファサイズも縮小されます。プリセット値とメモリ要件の詳細は [アーキテクチャ](architecture.md#メモリ設計) を参照。
 
 ## Examples
 

@@ -44,6 +44,9 @@ jobs:
       - name: Build & run
         run: make -C test run
 
+      - name: Build & run (reduced page budget, AZARAC_NANKAI_MAX_PAGES=8)
+        run: make -C test run-small-pages
+
   # ── ファジングテスト ────────────────────────────────────────────────────
   fuzz-test:
     name: Fuzz testing
@@ -105,8 +108,9 @@ jobs:
             fqbn: arduino:avr:uno
             additional_urls: ""
             # Uno (32 KB Flash / 2 KB SRAM) cannot hold all definition pools
-            # (44 KB for tables alone). The AVR preset in azaraC_config.h
-            # keeps SEISMIC/TSUNAMI only (~4.5 KB tables) so the sketches fit.
+            # (all-category tables are ~248 KB; see docs/architecture.md). The
+            # AVR preset in azaraC_config.h keeps SEISMIC/TSUNAMI only
+            # (~3.4 KB tables) so the sketches fit.
             build_flags: ""
 
     steps:

@@ -33,6 +33,8 @@ git clone https://github.com/A-vrice/azaraC <PROJECT_DIR>/.pio/libdeps/<TARGET_B
 
 > **注:** Library Manager / `pio pkg install` は未申請のため現時点で利用できません。
 
+> **注:** 本ライブラリは C++17 必須です。Arduino IDE / PlatformIO のビルドで `-std=gnu++17` を指定してください（設定例は [`platformio.ini.example`](platformio.ini.example) を参照）。
+
 ## ドキュメント
 
 - [はじめに（クイックスタート・Examples・コンパイル時設定）](docs/getting-started.md)

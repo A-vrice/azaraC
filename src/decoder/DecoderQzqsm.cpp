@@ -214,6 +214,11 @@ void Decoder::decodeNankai(const uint8_t* b, Message& out, uint32_t report_unix)
     nankai->info_code   = getBits(b, 53, 4);
     nankai->page        = getBits(b, 201, 6);
     nankai->total_page  = getBits(b, 207, 6);
+    // decodeQzqsm() が event_time に使うビット位置と同じ。NankaiPageKey 用に生値で保持する。
+    nankai->report_month  = getBits(b, 21, 4);
+    nankai->report_day    = getBits(b, 25, 5);
+    nankai->report_hour   = getBits(b, 30, 5);
+    nankai->report_minute = getBits(b, 35, 6);
     // 18 bytes of text: bits [57..200] = 18×8 = 144 bits
     for (uint8_t i = 0; i < 18; ++i)
         nankai->text[i] = getBits(b, 57 + i * 8, 8);

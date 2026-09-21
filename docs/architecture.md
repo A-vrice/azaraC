@@ -87,11 +87,11 @@ graph LR
 
 ### 5. NankaiPageBuffer (南海トラフページ集約)
 
-[`NankaiPageBuffer`](../src/internal/NankaiPageBuffer.h)は最大63ページに分割される南海トラフ地震メッセージを集約。受信したページのみを保持し、典型的なメッセージ（1〜5ページ）では70〜80%のメモリ削減。バッファが全て使用中の場合はLRUエビクションで最も古いバッファを解放。
+[`NankaiPageBuffer`](../src/internal/NankaiPageBuffer.h)は最大63ページに分割される南海トラフ地震メッセージを集約。`MAX_PAGES×18+1`バイトのメモリを確保し、受信したページをビットマップで管理しながら直接書き込む（ソート不要）。バッファが全て使用中の場合はLRUエビクションで最も古いバッファから解放。
 
 ### 6. JsonSerializer (JSONシリアライザ)
 
-[`JsonSerializer`](../src/json/JsonSerializer.h)はMessageをJSON形式にシリアライズ。ヒープアロケーションなし、固定バッファで処理。`Print&` 経由で出力（Serial, WiFiClient 等）。日本語/英語ラベルの選択的コンパイル対応。
+[`JsonSerializer`](../src/json/JsonSerializer.h)はMessageをJSON形式にシリアライズ。ヒープアロケーションなし、固定バッファで処理。`Print&` 経由で出力（Serial, WiFiClient等）。日本語/英語ラベルの選択的コンパイル対応。
 
 ## データフロー
 
@@ -113,9 +113,9 @@ graph TD
 
 | コンポーネント | メモリ使用量 | 備考 |
 |---------------|-------------|------|
-| DedupFilter | `AZARAC_DEDUP_SLOTS × 6` B | デフォルト48B |
-| NankaiPageBuffer | 可変（~200B + ページ数 × 20B） | LRUエビクション |
-| 定義テーブル | 約15-30KB | AVR では Flash (PROGMEM) 配置 |
+| DedupFilter | `AZARAC_DEDUP_SLOTS × 8` B + 4B 管理 | デフォルト68B（`DedupKey` はアラインメント込み 8B/スロット） |
+| NankaiPageBuffer | 28B（メタデータ）+ `MAX_PAGES × 18 + 1` B | 既定 63 ページで構造体 1,168B。LRUエビクション |
+| 定義テーブル | 約248KB（全て有効時 `g++ -O2 -fdata-sections`） | Flash(AVRではPROGMEM)に配置。AVRプリセット（`-D__AVR__ -DAZARAC_AVR_STUB`）では約3.4KB |
 
 ## 関連ドキュメント
 

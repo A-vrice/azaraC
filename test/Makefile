@@ -1,7 +1,7 @@
 # test/Makefile — ホストビルド
 
 CXX      = g++
-CXXFLAGS = -std=c++17 -Wall -Wextra -I../src -I. -DARDUINO=0 -DAZARAC_LANG_JA=1 -DAZARAC_LANG_EN=1 -DAZARAC_NANKAI_MAX_PAGES=63 -MMD -MP
+CXXFLAGS = -std=c++17 -Wall -Wextra -I../src -I. -DARDUINO=0 -DAZARAC_LANG_JA=1 -DAZARAC_LANG_EN=1 -MMD -MP
 
 # --- Static Analysis and Coverage ---
 # 過剰に厳格な警告オプション（-Wshadow, -Wconversion, -Wsign-conversion）は、
@@ -11,16 +11,19 @@ COVERAGE_FLAGS    = -O0 -fprofile-arcs -ftest-coverage
 # check / check-xml で共有する cppcheck オプション（ドリフト防止）
 CPPCHECK_OPTS = --enable=warning,performance,portability --check-level=exhaustive --inline-suppr --suppress=missingIncludeSystem --suppress=*:doctest.h --suppress=uninitMemberVarNoCtor --error-exitcode=1 --std=c++17 -I../src -I. -DAZARAC_NANKAI_MAX_PAGES=63 ../src .
 
-# MinGW-w64 bin path (override on command line if needed, e.g. make MINGW64_BIN=C:\mingw64\bin)
-MINGW64_BIN ?= D:\apps\mingw64\bin
+# MinGW-w64 bin path (opt-in; set on the command line if g++ is not on PATH,
+# e.g. make MINGW64_BIN=C:\mingw64\bin)
+MINGW64_BIN ?=
 
 # OS detection
 ifeq ($(OS),Windows_NT)
   TEST_BIN   = run_tests.exe
   RUN_PREFIX =
   RM         = rm -f
-  ifneq ($(wildcard $(MINGW64_BIN)/g++.exe),)
-    export PATH := $(MINGW64_BIN);$(PATH)
+  ifneq ($(MINGW64_BIN),)
+    ifneq ($(wildcard $(MINGW64_BIN)/g++.exe),)
+      export PATH := $(MINGW64_BIN);$(PATH)
+    endif
   endif
   # /dev/null fallback — Windows では NUL
   DEVNULL = NUL
@@ -92,7 +95,7 @@ OBJS = $(TEST_OBJS) $(LIB_OBJS)
 # VPATH for library sources
 VPATH = ../src:../src/decoder:../src/framer:../src/json:../src/internal
 
-.PHONY: all clean run fuzz decode compare-realdata check check-xml check-strict-compile coverage memprof pgm-stub
+.PHONY: all clean run run-small-pages fuzz decode compare-realdata check check-xml check-strict-compile coverage memprof pgm-stub
 
 all: $(TEST_BIN)
 
@@ -106,6 +109,14 @@ $(TEST_BIN): $(OBJS)
 
 run: all
 	$(RUN_PREFIX)$(TEST_BIN)
+
+# 縮小バジェット経路の検証（既定は 63 = 仕様最大）。打ち切りを含む MAX_PAGES
+# 依存の分岐を通すため -B で全体を再ビルドする。CXXFLAGS_EXTRA は依存関係に
+# 載らないため、-B で作った .o を残すと既定構成と混在して以降の run が
+# 再ビルドされない（= 縮小構成のまま「既定を検証した」と誤認する）か、
+# check-strict-compile 後に混在リンクして落ちる。必ず clean する。
+run-small-pages:
+	$(MAKE) -B CXXFLAGS_EXTRA="-DAZARAC_NANKAI_MAX_PAGES=8" run; status=$$?; $(MAKE) clean; exit $$status
 
 # Fuzz target — FUZZ_ITERATIONS をargv[1]として渡す (argv[1] > getenv > default)
 FUZZ_BIN = fuzz_decoder
@@ -326,7 +337,7 @@ endif
 -include $(TEST_OBJS:.o=.d) $(LIB_OBJS:.o=.d) $(FUZZ_OBJS:.o=.d) $(DECODE_OBJS:.o=.d)
 
 clean:
-	-@$(RM) *.o *.exe *.d *.gcno *.gcda massif.out cppcheck_report.xml cppcheck_stderr.log coverage_report.json
+	-@$(RM) *.o *.exe *.d *.gcno *.gcda massif.out massif_report.txt cppcheck_report.xml cppcheck_stderr.log coverage.xml coverage_report.json macro_sizes.txt memprof_output.txt
 	-@$(RM) core/*.o core/*.d core/*.gcno core/*.gcda
 	-@$(RM) decoder/*.o decoder/*.d decoder/*.gcno decoder/*.gcda
 	-@$(RM) framer/*.o framer/*.d framer/*.gcno framer/*.gcda
@@ -341,8 +352,11 @@ clean:
 # Compiles all tests with __AVR__ defined and a stub avr/pgmspace.h so the
 # PROGMEM code paths (memcpy_P / pgm_read_dword) exercise on the host.
 # AVR presets that conflict with test assumptions (BUFFERS=1, DEDUP_SLOTS=4)
-# are neutralized.
+# are neutralized. 実行後は clean する（-D 群が依存関係に載らず、残った .o が
+# 既定構成の .o と混在して次の `make run` が再ビルドされない／混在リンクで
+# 落ちるため）。実行行は `;` を含むため必ずシェル経由になり、シェルは cwd を
+# 探索しないので `./` を明示する（RUN_PREFIX は空か `./` のため使わない）。
 pgm-stub:
 	$(MAKE) clean
-	$(MAKE) CXXFLAGS="-std=c++17 -Wall -Wextra -Istub -I../src -I. -DARDUINO=0 -D__AVR__ -DAZARAC_AVR_STUB -DAZARAC_LANG_JA=1 -DAZARAC_LANG_EN=1 -DAZARAC_NANKAI_MAX_PAGES=63 -DAZARAC_NANKAI_BUFFERS=4 -DAZARAC_DEDUP_SLOTS=8 -DAZARAC_ENABLE_EEW=1 -DAZARAC_ENABLE_HYPOCENTER=1 -DAZARAC_ENABLE_SEISMIC=1 -DAZARAC_ENABLE_NANKAI=1 -DAZARAC_ENABLE_TSUNAMI=1 -DAZARAC_ENABLE_NW_PAC_TSUNAMI=1 -DAZARAC_ENABLE_VOLCANO=1 -DAZARAC_ENABLE_ASH_FALL=1 -DAZARAC_ENABLE_WEATHER=1 -DAZARAC_ENABLE_FLOOD=1 -DAZARAC_ENABLE_TYPHOON=1 -DAZARAC_ENABLE_MARINE=1 -DAZARAC_ENABLE_DCX_CAMF=1 -MMD -MP -g"
-	$(RUN_PREFIX)$(TEST_BIN)
+	$(MAKE) CXXFLAGS="-std=c++17 -Wall -Wextra -Istub -I../src -I. -DARDUINO=0 -D__AVR__ -DAZARAC_AVR_STUB -DAZARAC_LANG_JA=1 -DAZARAC_LANG_EN=1 -DAZARAC_NANKAI_MAX_PAGES=63 -DAZARAC_NANKAI_BUFFERS=4 -DAZARAC_DEDUP_SLOTS=8 -DAZARAC_ENABLE_EEW=1 -DAZARAC_ENABLE_HYPOCENTER=1 -DAZARAC_ENABLE_SEISMIC=1 -DAZARAC_ENABLE_NANKAI=1 -DAZARAC_ENABLE_TSUNAMI=1 -DAZARAC_ENABLE_NW_PAC_TSUNAMI=1 -DAZARAC_ENABLE_VOLCANO=1 -DAZARAC_ENABLE_ASH_FALL=1 -DAZARAC_ENABLE_WEATHER=1 -DAZARAC_ENABLE_FLOOD=1 -DAZARAC_ENABLE_TYPHOON=1 -DAZARAC_ENABLE_MARINE=1 -DAZARAC_ENABLE_DCX_CAMF=1 -MMD -MP -g" $(TEST_BIN)
+	./$(TEST_BIN); status=$$?; $(MAKE) clean; exit $$status

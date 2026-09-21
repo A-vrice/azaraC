@@ -66,25 +66,16 @@ bool Parser::processNankaiAggregation(const Message& decoded, Message& out, cons
     const NankaiData* nankai = d->getNankai();
     if (!nankai) return false;
 
-    // Create key for this event (svid NOT included - see design doc)
+    // 事象の identity = info_code + report_time month/day/hour/minute。値は電文の生ビット
+    // (NankaiData::report_*) から取り、正規化済みの Mt43Data::event_time は使わない:
+    // resolveTime() は暦外の日付を書き換えたり（2/30 → 3/1）月=0 に近い月を割り当てるため、
+    // 放送途中で report_unix が現れると1つの事象が複数バッファに分裂する。NankaiPageKey 参照。
     internal::NankaiPageKey key;
-    key.info_code = nankai->info_code;
-    key.event_time_unix = d->event_time.unix_time;
-    if (!key.isValid()) {
-        bool time_provided = (d->event_time.month != 0 || d->event_time.day != 0 ||
-                              d->event_time.hour != 0 || d->event_time.minute != 0);
-        if (time_provided) {
-            // UNIX time was not resolved but DHM fields exist → use as fallback key
-            // month is not included (month boundary crossing doesn't uniquely identify date)
-            key.fallback_day    = d->event_time.day;
-            key.fallback_hour   = d->event_time.hour;
-            key.fallback_minute = d->event_time.minute;
-            // isValid() now returns true → proceeds to normal aggregation flow
-        }
-        // time_provided == false → key stays invalid (fallback fields unset).
-        // addPage does NOT check key.isValid(); it still keys on info_code and
-        // aggregates pages, so aggregation proceeds with the unresolved key.
-    }
+    key.info_code       = nankai->info_code;
+    key.report_month    = nankai->report_month;
+    key.report_day      = nankai->report_day;
+    key.report_hour     = nankai->report_hour;
+    key.report_minute   = nankai->report_minute;
 
     // Add page to buffer
     internal::NankaiPageBuffer* completed = _nankaiBuffers.addPage(
