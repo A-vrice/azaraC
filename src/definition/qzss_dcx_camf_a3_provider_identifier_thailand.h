@@ -50,28 +50,28 @@ static const QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_THAILAND_Entry QZSS_DCX_CAMF_A
     const char* AZARAC_PROGMEM p = reinterpret_cast<const char*>(&QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_THAILAND_TABLE[id - 1u]);
     uint16_t off = pgm_read_word(p + offsetof(QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_THAILAND_Entry, offset));
     uint16_t n = pgm_read_word(p + offsetof(QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_THAILAND_Entry, len));
-    if (n == 0) return std::nullopt;
     return azarac_pgm_view(QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_THAILAND_POOL + off, n);
 }
 #else
-inline constexpr std::optional<std::string_view> QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_THAILAND_TABLE[] = {
-    std::string_view{"Department of Disaster Prevention and Mitigation", 48},
-    std::string_view{"Thai Meteorological Department", 30},
-    std::string_view{"National Disaster Warning Center", 32},
-    std::string_view{"Department of Mineral Resources", 31},
-    std::string_view{"Navy Hydrographic Department, Royal Thai Navy", 45},
-    std::string_view{"Department of Water Resources", 29},
-    std::string_view{"Royal Irrigation Department", 27},
-    std::string_view{"Department of Pollution Control", 31},
-    std::string_view{"Geo-Informatics and Space Technology Development Agency", 55},
-    std::string_view{"Electricity Generating Authority of Thailand", 44},
-    std::string_view{"Royal Forest Department", 23},
-    std::string_view{"Department of Parks, Wildlife and Plant Conservation", 52},
-    std::string_view{"Water Crisis Prevention Center", 30}
+inline constexpr const char* QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_THAILAND_TABLE[] = {
+    "Department of Disaster Prevention and Mitigation",
+    "Thai Meteorological Department",
+    "National Disaster Warning Center",
+    "Department of Mineral Resources",
+    "Navy Hydrographic Department, Royal Thai Navy",
+    "Department of Water Resources",
+    "Royal Irrigation Department",
+    "Department of Pollution Control",
+    "Geo-Informatics and Space Technology Development Agency",
+    "Electricity Generating Authority of Thailand",
+    "Royal Forest Department",
+    "Department of Parks, Wildlife and Plant Conservation",
+    "Water Crisis Prevention Center"
 };
 [[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_a3_provider_identifier_thailand_lookup(uint8_t id) noexcept {
     if (id < QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_THAILAND_BASE || id >= QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_THAILAND_BASE + QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_THAILAND_SIZE) return std::nullopt;
-    return QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_THAILAND_TABLE[id - QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_THAILAND_BASE];
+    const char* s = QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_THAILAND_TABLE[id - QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_THAILAND_BASE];
+    return s ? std::optional<std::string_view>(std::string_view{s}) : std::nullopt;
 }
 #endif
 

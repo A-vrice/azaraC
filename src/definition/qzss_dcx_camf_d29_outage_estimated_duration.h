@@ -50,28 +50,28 @@ static const QZSS_DCX_CAMF_D29_OUTAGE_ESTIMATED_DURATION_Entry QZSS_DCX_CAMF_D29
     const char* AZARAC_PROGMEM p = reinterpret_cast<const char*>(&QZSS_DCX_CAMF_D29_OUTAGE_ESTIMATED_DURATION_TABLE[id - 0u]);
     uint16_t off = pgm_read_word(p + offsetof(QZSS_DCX_CAMF_D29_OUTAGE_ESTIMATED_DURATION_Entry, offset));
     uint16_t n = pgm_read_word(p + offsetof(QZSS_DCX_CAMF_D29_OUTAGE_ESTIMATED_DURATION_Entry, len));
-    if (n == 0) return std::nullopt;
     return azarac_pgm_view(QZSS_DCX_CAMF_D29_OUTAGE_ESTIMATED_DURATION_POOL + off, n);
 }
 #else
-inline constexpr std::optional<std::string_view> QZSS_DCX_CAMF_D29_OUTAGE_ESTIMATED_DURATION_TABLE[] = {
-    std::string_view{"0 < duration < 30 min", 21},
-    std::string_view{"30 min ≤ duration < 45 min", 28},
-    std::string_view{"45 min ≤ duration < 1 h", 25},
-    std::string_view{"1 h ≤ duration < 1 h 30 min", 29},
-    std::string_view{"1 h 30 min ≤ duration < 2 h", 29},
-    std::string_view{"2 h ≤ duration < 3 h", 22},
-    std::string_view{"3 h ≤ duration < 4 h", 22},
-    std::string_view{"4 h ≤ duration < 5 h", 22},
-    std::string_view{"5 h ≤ duration < 10 h", 23},
-    std::string_view{"10 h ≤ duration < 24 h", 24},
-    std::string_view{"24 h ≤ duration < 2 days", 26},
-    std::string_view{"2 days ≤ duration < 7 days", 28},
-    std::string_view{"7 days ≤ duration", 19}
+inline constexpr const char* QZSS_DCX_CAMF_D29_OUTAGE_ESTIMATED_DURATION_TABLE[] = {
+    "0 < duration < 30 min",
+    "30 min ≤ duration < 45 min",
+    "45 min ≤ duration < 1 h",
+    "1 h ≤ duration < 1 h 30 min",
+    "1 h 30 min ≤ duration < 2 h",
+    "2 h ≤ duration < 3 h",
+    "3 h ≤ duration < 4 h",
+    "4 h ≤ duration < 5 h",
+    "5 h ≤ duration < 10 h",
+    "10 h ≤ duration < 24 h",
+    "24 h ≤ duration < 2 days",
+    "2 days ≤ duration < 7 days",
+    "7 days ≤ duration"
 };
 [[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_d29_outage_estimated_duration_lookup(uint8_t id) noexcept {
     if (id < QZSS_DCX_CAMF_D29_OUTAGE_ESTIMATED_DURATION_BASE || id >= QZSS_DCX_CAMF_D29_OUTAGE_ESTIMATED_DURATION_BASE + QZSS_DCX_CAMF_D29_OUTAGE_ESTIMATED_DURATION_SIZE) return std::nullopt;
-    return QZSS_DCX_CAMF_D29_OUTAGE_ESTIMATED_DURATION_TABLE[id - QZSS_DCX_CAMF_D29_OUTAGE_ESTIMATED_DURATION_BASE];
+    const char* s = QZSS_DCX_CAMF_D29_OUTAGE_ESTIMATED_DURATION_TABLE[id - QZSS_DCX_CAMF_D29_OUTAGE_ESTIMATED_DURATION_BASE];
+    return s ? std::optional<std::string_view>(std::string_view{s}) : std::nullopt;
 }
 #endif
 

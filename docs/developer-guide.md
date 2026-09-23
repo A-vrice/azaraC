@@ -171,6 +171,7 @@ AVR ツールチェーン（avr-gcc）は libstdc++ を一切含まないため�
 - **ヒープアロケーションゼロ**: `new`, `malloc`等の動的メモリ管理はしないこと。
 - **静的バッファ**: 固定サイズの配列を使用すること。
 - **静的な定義テーブル**: RAM容量節約のためAVRでは`AZARAC_PROGMEM`経由でFlash(PROGMEM)を使用、非AVRではno-opを使用すること。
+- **定義テーブルの格納形式**: AVRは文字列プール + `{offset,len}`（16bit×2）、非AVRは `const char*` 配列（4B/エントリ、32bit機）。非AVRのルックアップ戻り値は両者で `std::optional<std::string_view>` に統一し、`nullptr`＝欠落・`""`＝定義済み空文字列を区別すること（`opt`系エミッタと手書きの `qzss_dcx_camf_a3_provider_identifier.h` が対象）。文字列実体は各ヘッダにリテラルとして現れるが、リンカの重複統合により同一文字列は1コピーに落ちる。
 - **AVRでの標準ライブラリ**： 基本AzaraCで実装したシム(`src/internal/avr_std/`)のみ利用するため、`std::`の新規関数の仕様はシムへの追加が必要
 
 ## 関連ドキュメント

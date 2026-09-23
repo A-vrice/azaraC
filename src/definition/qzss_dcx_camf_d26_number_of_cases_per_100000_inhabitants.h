@@ -58,36 +58,36 @@ static const QZSS_DCX_CAMF_D26_NUMBER_OF_CASES_PER_100000_INHABITANTS_Entry QZSS
     const char* AZARAC_PROGMEM p = reinterpret_cast<const char*>(&QZSS_DCX_CAMF_D26_NUMBER_OF_CASES_PER_100000_INHABITANTS_TABLE[id - 0u]);
     uint16_t off = pgm_read_word(p + offsetof(QZSS_DCX_CAMF_D26_NUMBER_OF_CASES_PER_100000_INHABITANTS_Entry, offset));
     uint16_t n = pgm_read_word(p + offsetof(QZSS_DCX_CAMF_D26_NUMBER_OF_CASES_PER_100000_INHABITANTS_Entry, len));
-    if (n == 0) return std::nullopt;
     return azarac_pgm_view(QZSS_DCX_CAMF_D26_NUMBER_OF_CASES_PER_100000_INHABITANTS_POOL + off, n);
 }
 #else
-inline constexpr std::optional<std::string_view> QZSS_DCX_CAMF_D26_NUMBER_OF_CASES_PER_100000_INHABITANTS_TABLE[] = {
-    std::string_view{"0 - 9", 5},
-    std::string_view{"10 - 20", 7},
-    std::string_view{"21 - 50", 7},
-    std::string_view{"51 - 70", 7},
-    std::string_view{"71 - 100", 8},
-    std::string_view{"101- 125", 8},
-    std::string_view{"126 - 150", 9},
-    std::string_view{"151 - 175", 9},
-    std::string_view{"176 - 200", 9},
-    std::string_view{"201 - 250", 9},
-    std::string_view{"251 - 300", 9},
-    std::string_view{"301 - 350", 9},
-    std::string_view{"351 - 400", 9},
-    std::string_view{"401 - 450", 9},
-    std::string_view{"451 - 500", 9},
-    std::string_view{"501 - 750", 9},
-    std::string_view{"751 - 1000", 10},
-    std::string_view{"> 1000", 6},
-    std::string_view{"> 2000", 6},
-    std::string_view{"> 3000", 6},
-    std::string_view{"> 5000", 6}
+inline constexpr const char* QZSS_DCX_CAMF_D26_NUMBER_OF_CASES_PER_100000_INHABITANTS_TABLE[] = {
+    "0 - 9",
+    "10 - 20",
+    "21 - 50",
+    "51 - 70",
+    "71 - 100",
+    "101- 125",
+    "126 - 150",
+    "151 - 175",
+    "176 - 200",
+    "201 - 250",
+    "251 - 300",
+    "301 - 350",
+    "351 - 400",
+    "401 - 450",
+    "451 - 500",
+    "501 - 750",
+    "751 - 1000",
+    "> 1000",
+    "> 2000",
+    "> 3000",
+    "> 5000"
 };
 [[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_d26_number_of_cases_per_100000_inhabitants_lookup(uint8_t id) noexcept {
     if (id < QZSS_DCX_CAMF_D26_NUMBER_OF_CASES_PER_100000_INHABITANTS_BASE || id >= QZSS_DCX_CAMF_D26_NUMBER_OF_CASES_PER_100000_INHABITANTS_BASE + QZSS_DCX_CAMF_D26_NUMBER_OF_CASES_PER_100000_INHABITANTS_SIZE) return std::nullopt;
-    return QZSS_DCX_CAMF_D26_NUMBER_OF_CASES_PER_100000_INHABITANTS_TABLE[id - QZSS_DCX_CAMF_D26_NUMBER_OF_CASES_PER_100000_INHABITANTS_BASE];
+    const char* s = QZSS_DCX_CAMF_D26_NUMBER_OF_CASES_PER_100000_INHABITANTS_TABLE[id - QZSS_DCX_CAMF_D26_NUMBER_OF_CASES_PER_100000_INHABITANTS_BASE];
+    return s ? std::optional<std::string_view>(std::string_view{s}) : std::nullopt;
 }
 #endif
 

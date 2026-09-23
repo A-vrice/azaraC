@@ -59,6 +59,7 @@ TEST_SRCS = \
 	internal/test_dcx_helper_b4.cpp \
 	internal/test_dcx_helper.cpp \
 	internal/test_avr_std_shim.cpp \
+	internal/test_definition_labels.cpp \
 	json/test_json.cpp \
 	json/test_json_dcx_b1b4.cpp \
 	integration/test_parser.cpp \

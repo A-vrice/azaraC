@@ -53,31 +53,31 @@ static const QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_Entry QZSS_DCX_CAMF_D31_CHEM
     const char* AZARAC_PROGMEM p = reinterpret_cast<const char*>(&QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_TABLE[id - 0u]);
     uint16_t off = pgm_read_word(p + offsetof(QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_Entry, offset));
     uint16_t n = pgm_read_word(p + offsetof(QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_Entry, len));
-    if (n == 0) return std::nullopt;
     return azarac_pgm_view(QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_POOL + off, n);
 }
 #else
-inline constexpr std::optional<std::string_view> QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_TABLE[] = {
-    std::string_view{"Explosives", 10},
-    std::string_view{"Flammable gases", 15},
-    std::string_view{"Flammable aerosols and aerosols", 31},
-    std::string_view{"Oxidizing gases", 15},
-    std::string_view{"Gases under pressure", 20},
-    std::string_view{"Flammable liquids", 17},
-    std::string_view{"Flammable solids", 16},
-    std::string_view{"Self-reactive substance/mixture", 31},
-    std::string_view{"Pyrophoric liquids. Pyrophoric materials are often water-reactive as well and will ignite when they contact water or humid air.", 127},
-    std::string_view{"Pyrophoric solids. Pyrophoric materials are often water-reactive as well and will ignite when they contact water or humid air.", 126},
-    std::string_view{"Self-heating substance/mixture", 30},
-    std::string_view{"Water-reactive - emits flammable gases", 38},
-    std::string_view{"Oxidising liquids", 17},
-    std::string_view{"Oxidising solids", 16},
-    std::string_view{"Organic peroxides", 17},
-    std::string_view{"Corrosive to metals", 19}
+inline constexpr const char* QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_TABLE[] = {
+    "Explosives",
+    "Flammable gases",
+    "Flammable aerosols and aerosols",
+    "Oxidizing gases",
+    "Gases under pressure",
+    "Flammable liquids",
+    "Flammable solids",
+    "Self-reactive substance/mixture",
+    "Pyrophoric liquids. Pyrophoric materials are often water-reactive as well and will ignite when they contact water or humid air.",
+    "Pyrophoric solids. Pyrophoric materials are often water-reactive as well and will ignite when they contact water or humid air.",
+    "Self-heating substance/mixture",
+    "Water-reactive - emits flammable gases",
+    "Oxidising liquids",
+    "Oxidising solids",
+    "Organic peroxides",
+    "Corrosive to metals"
 };
 [[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_d31_chemical_hazard_type_lookup(uint8_t id) noexcept {
     if (id < QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_BASE || id >= QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_BASE + QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_SIZE) return std::nullopt;
-    return QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_TABLE[id - QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_BASE];
+    const char* s = QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_TABLE[id - QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_BASE];
+    return s ? std::optional<std::string_view>(std::string_view{s}) : std::nullopt;
 }
 #endif
 

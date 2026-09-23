@@ -1000,6 +1000,40 @@ TEST_CASE("JSON Serialization: MT=44 zero-value fields output") {
     CHECK(hasField(s, "\"a10_library_version\":0"));
     CHECK(hasField(s, "\"a11_guidance\":0"));
 }
+
+// a11=0 は「定義済みの空ラベル」であって欠落ではない。AVR と非AVRは同じ
+// 結果でなければならない: 空の JSON 文字列であって null ではない。
+// (writeOptStr は nullopt と optional("") を同じ "" に描画するため、この
+//  テストは JSON 経由で Step 3 のバグを区別できない。区別するのは
+//  test/internal/test_definition_labels.cpp の lookup レベルの検査。ここは
+//  非AVR の const char* 化が JSON 出力を変えていないことの回帰ガード。)
+TEST_CASE("JSON Serialization: a11 empty label is present, not absent") {
+    Message m{};
+    m.svid = 193; m.crc24 = 0xABCDEF;
+    initMt44(m);
+    Mt44Data* mt44 = m.getMt44();
+    REQUIRE(mt44 != nullptr);
+
+    mt44->service_kind = Mt44ServiceKind::LAlert;
+    mt44->is_null_message = false;
+    mt44->ex_kind = ExtendedKind::LAlertOrLocal;
+    mt44->camf.a1 = 1; mt44->camf.a2 = 111; mt44->camf.a3 = 1;
+    mt44->camf.a4 = 10; mt44->camf.a5 = 3;
+    mt44->camf.a6 = 1; mt44->camf.a7 = 1; mt44->camf.a8 = 1;
+    mt44->camf.a9 = 0;   // Japanese library -> a11_japanese_library_ja
+    mt44->camf.a10 = 1;
+    mt44->camf.a11 = 0;  // 空文字列として定義されている
+    mt44->ex_lalert_local.ex1 = 1100;
+    mt44->ex_lalert_local.vn = 1;
+    mt44->sd.sdmt = 0; mt44->sd.sdm = 0x1FF;
+
+    StringPrint sp;
+    internal::JsonSerializer::serialize(m, sp);
+    const auto& s = sp.str();
+
+    CHECK(hasField(s, "\"a11_guidance_label\":\"\""));
+    CHECK(s.find("\"a11_guidance_label\":null") == std::string::npos);
+}
 #endif // AZARAC_ENABLE_DCX_CAMF
 
 // ═══════════════════════════════════════════════════════════════════════════════

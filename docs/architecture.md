@@ -115,7 +115,7 @@ graph TD
 |---------------|-------------|------|
 | DedupFilter | `AZARAC_DEDUP_SLOTS × 8` B + 4B 管理 | デフォルト68B（`DedupKey` はアラインメント込み 8B/スロット） |
 | NankaiPageBuffer | 28B（メタデータ）+ `MAX_PAGES × 18 + 1` B | 既定 63 ページで構造体 1,168B。LRUエビクション |
-| 定義テーブル | 約248KB（全て有効時 `g++ -O2 -fdata-sections`） | Flash(AVRではPROGMEM)に配置。AVRプリセット（`-D__AVR__ -DAZARAC_AVR_STUB`）では約3.4KB |
+| 定義テーブル | 表エントリ約122KB + 文字列実体。文字列はリンカが重複統合（全て有効時 64bit `g++ -O2 -fdata-sections` で `.rdata` 289KB） | Flash(AVRではPROGMEM)に配置。非AVRはエントリを `const char*`（32bit機で4B）で保持。AVRプリセット（`-D__AVR__ -DAZARAC_AVR_STUB`）では約3.4KB |
 
 ## 関連ドキュメント
 
