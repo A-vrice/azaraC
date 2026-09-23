@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """compare_nankai_aggregation.py — azarashi 出力と AzaraC 集約結果を比較する
 
 test/data/nankai_vectors.json（azarashi 出力）を唯一の情報源とする。
@@ -13,11 +12,11 @@ C++ と Python でページデータが二重管理されることはない。
   3. test/decode_to_json に 27 電文を通したときの集約本文が期待値と一致するか
 """
 
+import io
 import json
 import os
 import subprocess
 import sys
-import io
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
 sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
@@ -81,9 +80,11 @@ def main():
     print("=== AzaraC decode_to_json aggregation verification ===")
     input_text = "\n".join(nmeas[n] for n in range(1, total + 1)) + "\n"
     try:
+        # check=False: 失敗時は returncode と stderr を自前で整形して報告する
+        # （CalledProcessError にスタックトレースを出させない）。
         result = subprocess.run(
             [AZARAC_BIN], input=input_text, capture_output=True, text=True,
-            timeout=30, encoding='utf-8', errors='replace')
+            timeout=30, encoding='utf-8', errors='replace', check=False)
     except Exception as e:  # noqa: BLE001 — 手動ツールのため広く捕捉
         print(f"  ERROR running {AZARAC_BIN}: {e}")
         return 1
