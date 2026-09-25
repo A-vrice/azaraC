@@ -1,11 +1,6 @@
 // Common JSON writer helpers for serializers
 
 #include "JsonWriter.h"
-#if defined(__AVR__)
-#include "../internal/avr_std/cstdio"
-#else
-#include <cstdio>
-#endif
 
 namespace azaraC {
 namespace internal {
@@ -81,10 +76,10 @@ static void writeEscaped(Print& out, std::string_view s) {
             case '\t': out.print("\\t");  break;
             default:
                 if (c < 0x20) {
-                    // Control characters: use \u00XX
-                    char buf[7];
-                    std::snprintf(buf, sizeof(buf), "\\u%04x", c);
-                    out.print(buf);
+                    // Control characters: \u00XX via nibbles (no snprintf/printf dep).
+                    out.print("\\u00");
+                    out.print(HEX_CHARS[c >> 4]);
+                    out.print(HEX_CHARS[c & 0xF]);
                 } else {
                     // Printable ASCII and UTF-8 bytes pass through
                     out.print(static_cast<char>(c));

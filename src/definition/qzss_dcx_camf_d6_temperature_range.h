@@ -53,31 +53,31 @@ static const QZSS_DCX_CAMF_D6_TEMPERATURE_RANGE_Entry QZSS_DCX_CAMF_D6_TEMPERATU
     const char* AZARAC_PROGMEM p = reinterpret_cast<const char*>(&QZSS_DCX_CAMF_D6_TEMPERATURE_RANGE_TABLE[id - 0u]);
     uint16_t off = pgm_read_word(p + offsetof(QZSS_DCX_CAMF_D6_TEMPERATURE_RANGE_Entry, offset));
     uint16_t n = pgm_read_word(p + offsetof(QZSS_DCX_CAMF_D6_TEMPERATURE_RANGE_Entry, len));
-    if (n == 0) return std::nullopt;
     return azarac_pgm_view(QZSS_DCX_CAMF_D6_TEMPERATURE_RANGE_POOL + off, n);
 }
 #else
-inline constexpr std::optional<std::string_view> QZSS_DCX_CAMF_D6_TEMPERATURE_RANGE_TABLE[] = {
-    std::string_view{"T ≤ -30°C", 12},
-    std::string_view{"-30°C < T ≤ -25°C", 21},
-    std::string_view{"-25°C < T ≤ -20°C", 21},
-    std::string_view{"-20°C < T ≤ -15°C", 21},
-    std::string_view{"-15°C < T ≤ -10°C", 21},
-    std::string_view{"-10°C < T ≤ -5°C", 20},
-    std::string_view{"-5°C < T ≤ 0°C", 18},
-    std::string_view{"0°C < T ≤ 5°C", 17},
-    std::string_view{"5°C < T ≤ 10°C", 18},
-    std::string_view{"10°C < T ≤ 15°C", 19},
-    std::string_view{"15°C < T ≤ 20°C", 19},
-    std::string_view{"20°C < T ≤ 25°C", 19},
-    std::string_view{"25°C < T ≤ 30°C", 19},
-    std::string_view{"30°C < T ≤ 35°C", 19},
-    std::string_view{"35°C < T ≤ 45°C", 19},
-    std::string_view{"T > 45°C", 9}
+inline constexpr const char* QZSS_DCX_CAMF_D6_TEMPERATURE_RANGE_TABLE[] = {
+    "T ≤ -30°C",
+    "-30°C < T ≤ -25°C",
+    "-25°C < T ≤ -20°C",
+    "-20°C < T ≤ -15°C",
+    "-15°C < T ≤ -10°C",
+    "-10°C < T ≤ -5°C",
+    "-5°C < T ≤ 0°C",
+    "0°C < T ≤ 5°C",
+    "5°C < T ≤ 10°C",
+    "10°C < T ≤ 15°C",
+    "15°C < T ≤ 20°C",
+    "20°C < T ≤ 25°C",
+    "25°C < T ≤ 30°C",
+    "30°C < T ≤ 35°C",
+    "35°C < T ≤ 45°C",
+    "T > 45°C"
 };
 [[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_d6_temperature_range_lookup(uint8_t id) noexcept {
     if (id < QZSS_DCX_CAMF_D6_TEMPERATURE_RANGE_BASE || id >= QZSS_DCX_CAMF_D6_TEMPERATURE_RANGE_BASE + QZSS_DCX_CAMF_D6_TEMPERATURE_RANGE_SIZE) return std::nullopt;
-    return QZSS_DCX_CAMF_D6_TEMPERATURE_RANGE_TABLE[id - QZSS_DCX_CAMF_D6_TEMPERATURE_RANGE_BASE];
+    const char* s = QZSS_DCX_CAMF_D6_TEMPERATURE_RANGE_TABLE[id - QZSS_DCX_CAMF_D6_TEMPERATURE_RANGE_BASE];
+    return s ? std::optional<std::string_view>(std::string_view{s}) : std::nullopt;
 }
 #endif
 

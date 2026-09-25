@@ -58,7 +58,6 @@ static const QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_Entry
         if (eid == id) {
             uint16_t off = pgm_read_word(ep + offsetof(QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_Entry, offset));
             uint16_t n = pgm_read_word(ep + offsetof(QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_Entry, len));
-            if (n == 0) return std::nullopt;
             return azarac_pgm_view(QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_POOL + off, n);
         }
         if (eid < id) lo = static_cast<uint8_t>(mid + 1); else hi = mid;
@@ -66,32 +65,35 @@ static const QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_Entry
     return std::nullopt;
 }
 #else
-struct QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_Entry { uint8_t id; std::optional<std::string_view> label; };
+struct QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_Entry { uint8_t id; const char* label; };
 inline constexpr QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_Entry QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_TABLE[] = {
-    {0u, std::string_view{"IC-C-01", 7}},
-    {1u, std::string_view{"IC-C-02", 7}},
-    {2u, std::string_view{"IC-C-03", 7}},
-    {3u, std::string_view{"IC-C-04", 7}},
-    {4u, std::string_view{"IC-C-05", 7}},
-    {5u, std::string_view{"IC-C-06", 7}},
-    {6u, std::string_view{"IC-C-07", 7}},
-    {7u, std::string_view{"IC-C-08", 7}},
-    {8u, std::string_view{"IC-C-09", 7}},
-    {9u, std::string_view{"IC-C-10", 7}},
-    {10u, std::string_view{"IC-C-11", 7}},
-    {11u, std::string_view{"IC-C-12", 7}},
-    {12u, std::string_view{"IC-C-13", 7}},
-    {13u, std::string_view{"IC-C-14", 7}},
-    {14u, std::string_view{"IC-C-15", 7}},
-    {15u, std::string_view{"IC-C-16", 7}},
-    {16u, std::string_view{"IC-C-17", 7}},
-    {30u, std::string_view{"IC-C-31", 7}},
-    {31u, std::string_view{"IC-C-32", 7}},};
+    {0u, "IC-C-01"},
+    {1u, "IC-C-02"},
+    {2u, "IC-C-03"},
+    {3u, "IC-C-04"},
+    {4u, "IC-C-05"},
+    {5u, "IC-C-06"},
+    {6u, "IC-C-07"},
+    {7u, "IC-C-08"},
+    {8u, "IC-C-09"},
+    {9u, "IC-C-10"},
+    {10u, "IC-C-11"},
+    {11u, "IC-C-12"},
+    {12u, "IC-C-13"},
+    {13u, "IC-C-14"},
+    {14u, "IC-C-15"},
+    {15u, "IC-C-16"},
+    {16u, "IC-C-17"},
+    {30u, "IC-C-31"},
+    {31u, "IC-C-32"},};
 [[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_c10_instruction_library_for_second_ellipse_code_lookup(uint8_t id) noexcept {
     uint8_t lo = 0, hi = 19;
     while (lo < hi) {
         uint8_t mid = static_cast<uint8_t>(lo + (hi - lo) / 2);
-        if (QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_TABLE[mid].id == id) return QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_TABLE[mid].label;
+        if (QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_TABLE[mid].id == id) {
+            const char* s = QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_TABLE[mid].label;
+            return s ? std::optional<std::string_view>(std::string_view{s}) : std::nullopt;
+        }
         if (QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_TABLE[mid].id < id) lo = mid + 1;
         else hi = mid;
     }

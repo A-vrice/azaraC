@@ -232,8 +232,6 @@ def emit_array(varname, entries, guard, kt):
         f"    if (id < {guard}_BASE || id >= {guard}_BASE + {guard}_SIZE) return nullptr;",
         f"    const char* AZARAC_PROGMEM p = reinterpret_cast<const char*>(&{guard}_TABLE[id - {base}u]);",
         f"    uint16_t off = pgm_read_word(p + offsetof({guard}_Entry, offset));",
-        f"    uint16_t n = pgm_read_word(p + offsetof({guard}_Entry, len));",
-        "    if (n == 0) return nullptr;",
         f"    return azarac_pgm_copy({guard}_POOL + off);",
         "}",
     ])
@@ -289,19 +287,22 @@ def emit_array_optional(varname, entries, guard, kt):
         f"    const char* AZARAC_PROGMEM p = reinterpret_cast<const char*>(&{guard}_TABLE[id - {base}u]);",
         f"    uint16_t off = pgm_read_word(p + offsetof({guard}_Entry, offset));",
         f"    uint16_t n = pgm_read_word(p + offsetof({guard}_Entry, len));",
-        "    if (n == 0) return std::nullopt;",
         f"    return azarac_pgm_view({guard}_POOL + off, n);",
         "}",
     ])
-    # Non-AVR (unchanged constexpr logic)
+    # Non-AVR: const char* payload (4 B on 32-bit targets vs 12 B for a
+    # std::optional<std::string_view> entry).  The lookup still returns
+    # std::optional<std::string_view> so that absent (nullptr) and
+    # defined-but-empty ("") stay distinguishable at the call site.
     rows = ",\n    ".join(
-        f'std::string_view{{{c_str_literal(v)}, {len(v.encode("utf-8"))}}}' if v is not None else "std::nullopt" for v in table)
+        c_str_literal(v) if v is not None else "nullptr" for v in table)
     non_avr_body = "\n".join([
-        f"inline constexpr std::optional<std::string_view> {guard}_TABLE[] = {{",
+        f"inline constexpr const char* {guard}_TABLE[] = {{",
         f"    {rows}", "};",
         f"[[nodiscard]] inline constexpr std::optional<std::string_view> {varname}_lookup({kt} id) noexcept {{",
         f"    if (id < {guard}_BASE || id >= {guard}_BASE + {guard}_SIZE) return std::nullopt;",
-        f"    return {guard}_TABLE[id - {guard}_BASE];", "}",
+        f"    const char* s = {guard}_TABLE[id - {guard}_BASE];",
+        "    return s ? std::optional<std::string_view>(std::string_view{s}) : std::nullopt;", "}",
     ])
     return "\n".join([
         f"inline constexpr {kt} {guard}_BASE = {base};",
@@ -353,8 +354,6 @@ def emit_bsearch(varname, entries, guard, kt):
         f"        {kt} eid = {read_id};",
         "        if (eid == id) {",
         f"            uint16_t off = pgm_read_word(ep + offsetof({guard}_Entry, offset));",
-        f"            uint16_t n = pgm_read_word(ep + offsetof({guard}_Entry, len));",
-        "            if (n == 0) return nullptr;",
         f"            return azarac_pgm_copy({guard}_POOL + off);",
         "        }",
         f"        if (eid < id) lo = static_cast<{idx_type}>(mid + 1); else hi = mid;",
@@ -421,7 +420,6 @@ def emit_bsearch_optional(varname, entries, guard, kt):
         "        if (eid == id) {",
         f"            uint16_t off = pgm_read_word(ep + offsetof({guard}_Entry, offset));",
         f"            uint16_t n = pgm_read_word(ep + offsetof({guard}_Entry, len));",
-        "            if (n == 0) return std::nullopt;",
         f"            return azarac_pgm_view({guard}_POOL + off, n);",
         "        }",
         f"        if (eid < id) lo = static_cast<{idx_type}>(mid + 1); else hi = mid;",
@@ -429,17 +427,22 @@ def emit_bsearch_optional(varname, entries, guard, kt):
         "    return std::nullopt;",
         "}",
     ])
-    # Non-AVR (unchanged constexpr)
-    rows = "\n".join(f'    {{{k}u, std::string_view{{{c_str_literal(entries[k])}, {len(entries[k].encode("utf-8"))}}}}},' for k in keys)
+    # Non-AVR: const char* payload, same width as emit_bsearch.  The lookup
+    # still returns std::optional<std::string_view>; a missing key is the
+    # absent signal for binary search, so no nullptr row is needed.
+    rows = "\n".join(f'    {{{k}u, {c_str_literal(entries[k])}}},' for k in keys)
     non_avr_body = "\n".join([
-        f"struct {guard}_Entry {{ {kt} id; std::optional<std::string_view> label; }};",
+        f"struct {guard}_Entry {{ {kt} id; const char* label; }};",
         f"inline constexpr {guard}_Entry {guard}_TABLE[] = {{",
         rows + "};",
         f"[[nodiscard]] inline constexpr std::optional<std::string_view> {varname}_lookup({kt} id) noexcept {{",
         f"    {idx_type} lo = 0, hi = {n};",
         "    while (lo < hi) {",
         f"        {idx_type} mid = static_cast<{idx_type}>(lo + (hi - lo) / 2);",
-        f"        if ({guard}_TABLE[mid].id == id) return {guard}_TABLE[mid].label;",
+        f"        if ({guard}_TABLE[mid].id == id) {{",
+        f"            const char* s = {guard}_TABLE[mid].label;",
+        "            return s ? std::optional<std::string_view>(std::string_view{s}) : std::nullopt;",
+        "        }",
         f"        if ({guard}_TABLE[mid].id < id) lo = mid + 1;",
         "        else hi = mid;",
         "    }",
@@ -573,7 +576,7 @@ def run(out_dir):
                 continue
             hdr = build_header(modname, attr, obj, ver, all_varnames, obj)
             if hdr is None: continue
-            with open(os.path.join(out_dir, f"{attr}.h"), "w", encoding="utf-8") as f:
+            with open(os.path.join(out_dir, f"{attr}.h"), "w", encoding="utf-8", newline="\n") as f:
                 f.write(hdr)
             generated.append(attr)
     # _index.h
@@ -595,11 +598,11 @@ def run(out_dir):
         + "\n"
         + extra_includes
     )
-    with open(os.path.join(out_dir, "_index.h"), "w", encoding="utf-8") as f:
+    with open(os.path.join(out_dir, "_index.h"), "w", encoding="utf-8", newline="\n") as f:
         f.write(idx)
     # version marker (write to repo root, relative to script location)
-    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    with open(os.path.join(repo_root, ".azarashi-version"), "w") as f:
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    with open(os.path.join(repo_root, ".azarashi-version"), "w", newline="\n") as f:
         f.write(ver + "\n")
     print(f"Generated {len(generated)} headers + _index.h  (azarashi {ver})")
 

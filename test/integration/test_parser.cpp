@@ -142,6 +142,15 @@ TEST_CASE("decodeDcx: L-Alert メッセージのデコード") {
     CHECK(mt44->camf.a3 == 1);
     CHECK(mt44->ex_lalert_local.ex1 == 1100);
     CHECK(mt44->ex_lalert_local.vn == 1);
+
+    // Main ellipse (A12-A16) decoded through DcxHelper (wiring check)
+    const Mt44Decoded& dec = mt44->mt44_decoded;
+    CHECK(dec.main_ellipse_present);
+    CHECK(dec.main_ellipse.lat_microdeg == 35688258);   // decodeLatitude16(45761)
+    CHECK(dec.main_ellipse.lon_microdeg == 139690855);  // decodeLongitude17(116395)
+    CHECK(dec.main_ellipse.semi_major_m == 10933);      // radius code 13
+    CHECK(dec.main_ellipse.semi_minor_m == 5979);       // radius code 11
+    CHECK(dec.main_ellipse.azimuth_decideg == 4500000); // decodeAzimuth6(48)
 }
 
 TEST_CASE("decodeDcx: J-Alert メッセージのデコード") {
@@ -245,6 +254,16 @@ TEST_CASE("decodeDcx: Local Government メッセージのデコード") {
     CHECK(mt44->ex_lalert_local.ex6 == 11);
     CHECK(mt44->ex_lalert_local.ex7 == 96);
     CHECK(mt44->ex_lalert_local.vn == 1);
+
+    // Additional area (EX2-EX7) decoded through DcxHelper (wiring check)
+    const Mt44Decoded& dec = mt44->mt44_decoded;
+    CHECK(dec.additional_area.present);
+    CHECK(dec.additional_area.head_to_area);
+    CHECK(dec.additional_area.ellipse.lat_microdeg == 35687299);   // decodeLatitude17(91522)
+    CHECK(dec.additional_area.ellipse.lon_microdeg == 139689138);  // decodeLongitude17_45_225(68950)
+    CHECK(dec.additional_area.ellipse.semi_major_m == 10933);      // radius code 13
+    CHECK(dec.additional_area.ellipse.semi_minor_m == 5979);       // radius code 11
+    CHECK(dec.additional_area.ellipse.azimuth_decideg == 4500000); // decodeAzimuth7(96)
 }
 
 TEST_CASE("decodeDcx: Outside Japan メッセージのデコード") {

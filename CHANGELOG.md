@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **南海トラフ既定バッファ予算を修正**: 非 AVR の既定 `AZARAC_NANKAI_MAX_PAGES` を 12 → 63（仕様最大、Pn/Pm は 6bit）に、`AZARAC_NANKAI_BUFFERS` を 4 → 1 に変更した。既定構成でページ打ち切りが構造的に発生しない。集約領域を常時確保するため `Parser` の RAM は 1256B → 1432B に増加する（削減したい場合は `AZARAC_NANKAI_MAX_PAGES` を下げる）。AVR プリセット（4 ページ / 1 バッファ）は変更なし。
+- **`NankaiPageBuffer.h` の既定値重複定義を削除**: `AZARAC_NANKAI_MAX_PAGES` / `AZARAC_NANKAI_BUFFERS` の定義元を `azaraC_config.h` に一本化した。
+- **CI の PlatformIO インストール手順を簡素化**: `platformio==6.2.0` は `starlette<2` を要求し、旧 6.1.19 の `starlette<0.53` 制約（PYSEC-2026-161/2280/2281/248/249）は解消済みのため、`scripts/requirements.txt` を超えて starlette を強制上書きしていた `pip install --no-deps` ワークアラウンドを削除した。
+- **ドキュメントを実装に一致**: `architecture.md` のメモリ表（`DedupFilter` 8B/スロット、`NankaiPageBuffer` 28B + `MAX_PAGES × 18 + 1`、定義テーブル: 表エントリ 39 本で 122KiB（124,960B）、定義文字列を含むライブラリ全体の `.rdata` 344KiB（351,896B）、AVR プリセットは 3.4KiB（3,520B）。全カテゴリ・日英ラベル有効、64bit ホスト `g++ 15.2 -O2 -fdata-sections`（AVR は `-O0`）実測。253,568B は `const char*` 化前の表エントリ計量）、`library.properties` の EWSS CAMF 版数（v1.1 → v1.2）、`developer-guide.md` の定義ファイル数（103 → 104）とテスト構成、`getting-started.md` の参照先と設定マクロ表、`README.md` の C++17 要件を修正した。`README.md` の連続する引用ブロックを `>` で連結し、Markdown パーサ間で別ブロック引用と解釈され得る空白行を除去した（markdownlint MD028）。
+- **`NankaiPageKey` の identity を report_time DHM に正規化**: 鍵を `{info_code, report_time month/day/hour/minute}` に統一し、解決済み UNIX 時刻を identity から除外した（`event_time_unix` フィールドを削除、`month` を追加）。`report_unix` が受信中に解決/未解決へ変わっても同一イベントが 1 バッファに集約される。従来は解決済み鍵と未解決鍵が不一致となり、`AZARAC_NANKAI_BUFFERS=1` では投入済みページが破棄され、`>1` ではバッファが分裂して集約が完了しなかった。`getNankaiBuffer()` に渡す鍵の生成方法が変わる（コンストラクタ引数は `(info_code, month, day, hour, minute)`）。
+
+### Fixed
+
+- **テストが既定構成を検証していなかった問題を修正**: `test/Makefile` が `-DAZARAC_NANKAI_MAX_PAGES=63` を無条件に渡していたため、ライブラリ既定値の経路が未検証だった。`-D` を削除し、既定（63）を `make -C test run` で検証、縮小バジェット経路を `make -C test run-small-pages`（`AZARAC_NANKAI_MAX_PAGES=8`）と CI ステップで検証する。`run-small-pages` / `pgm-stub` は `-D` 群が依存関係に載らないため終了時に `clean` し、別構成の `.o` が既定構成の `.o` と混在して以降の `run` が再ビルドされない（または `check-strict-compile` 後の混在リンクで落ちる）問題を防ぐ。
+- **`NankaiPageKey::isValid()` を削除**: 本番コードから呼ばれておらず（`addPage` は `isValid()` を見ない）、identity が生 `report_time` + `info_code` に一本化された後は意味のある不変条件を表さないため削除した。空バッファ誤マッチは `NankaiPageBuffer::matchesKey()` の `isEmpty()` ガードが担う。
+- **打ち切りの E2E テストを追加**: `total_pages > MAX_PAGES` のとき `MAX_PAGES` ページで集約が完了し `truncated=true` / `total_page` が電文の総ページ数を報告することを検証する。
+- `scripts/analysis/cppcheck_summary.py` から削除済みマクロ `AZARAC_NANKAI_AGGREGATED_TEXT_SIZE` の指定を削除した。
+- **`.gitignore` と `test/Makefile clean` を整備**: テスト生成物（`cppcheck_report.xml`, `coverage_report.json`, `massif*`, `macro_sizes.txt`, `memprof_output.txt` 等）を追跡対象外にした。`test/Makefile` の `MINGW64_BIN` 既定値から個人パスを削除し、コマンドライン指定の任意設定にした。
+- **ゼロ鍵が空バッファに誤マッチする問題を修正**: `NankaiPageBuffer::matchesKey()` が空（全ゼロ鍵）バッファを一致扱いしていたため、ゼロ鍵イベントが継続中バッファではなく空きスロットに書かれ、スロット再利用時に分裂し得た。空バッファは一致しないようにした。
+- **Nankai ページフィクスチャを azarashi から生成し二重管理を解消**: `test/scripts/gen_all_vectors.py` の Nankai 入力を上流の 27 電文に拡張し、`test/data/nankai_vectors.json` を 27 ページに完全化、同じ JSON から `test/data/nankai_pages_generated.h`（C++ フィクスチャ）を生成するようにした。`test_nankai_e2e.cpp` の手書き配列と `compare_nankai_aggregation.py` の重複コピーを削除した。実データの最終ページは NUL 埋め（「い。」のみ）で、期待集約長は合成値時代の 486 ではなく 474 バイトになる（テストは NUL 打ち切りを反映して算出）。
+- **DCX の未検証項目にテストを追加**: `decodeLatitude17` / `decodeLongitude17_45_225` / `decodeB2HazardCenter`（`c5/c6 > 63` の丸め分岐を含む）/ `decodeCityCodeList` の単体テスト、B4 の複数レイアウト（a4=47/51/64/77/80/82）の JSON raw 値と未知 a4、主楕円・追加楕円の統合座標を検証する。
+- **デッドコードを削除**: `#if 0` の `test/integration/test_azarashi.cpp` と、未使用の `test/test_helpers.h` の `testDecode*` ラッパ 11 個を削除した。
+
 ## [1.0.3] - 2026-08-29
 
 ### Added

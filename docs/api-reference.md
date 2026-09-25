@@ -84,6 +84,8 @@ void reset();
 const internal::NankaiPageBuffer* getNankaiBuffer(const internal::NankaiPageKey& key) const;
 ```
 
+`NankaiPageKey`の識別子は`{info_code, report_timeのmonth/day/hour/minute}`です。呼び出しキーは`NankaiPageKey{info_code, month, day, hour, minute}` で生成できます。引数は `Decoder` が解決する前の生の `report_time` 値を渡す（`resolveTime` の正規化で鍵が変わらないようにするため）。
+
 ---
 
 ### `azaraC::internal::NankaiPageBufferManager`
@@ -94,13 +96,14 @@ const internal::NankaiPageBuffer* getNankaiBuffer(const internal::NankaiPageKey&
 
 | マクロ | デフォルト | 説明 |
 |--------|-----------|------|
-| `AZARAC_NANKAI_BUFFERS` | 4 | 同時に追跡可能なイベント数 |
+| `AZARAC_NANKAI_MAX_PAGES` | 63 | 1 電文あたりの最大ページ数（仕様最大 63、6bit） |
+| `AZARAC_NANKAI_BUFFERS` | 1 | 同時に追跡可能な南海トラフ数 |
 
 #### メモリ使用量
 
-各バッファは受信したページのみを保持するため、メモリ使用量は可変です：
-- バッファあたり: ~200B（メタデータ）+ 受信ページ数 × 20B
-- 4バッファ全使用時（各5ページ）: ~2KB
+各バッファはページを`aggregated_text[MAX_PAGES * 18 + 1]`に保管します：
+- バッファあたり: メタデータ28B + `MAX_PAGES×18+1` B（既定63ページで1,135B、構造体サイズはアラインメント込み1,168B）
+- バッファ: 規定1バッファで約1.17KB。バッファ数を増やすと比例して増加（4バッファ・63ページで約4.7KB）
 
 #### LRU エビクション
 

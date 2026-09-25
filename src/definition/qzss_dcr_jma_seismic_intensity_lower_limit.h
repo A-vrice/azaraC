@@ -51,7 +51,6 @@ static const QZSS_DCR_JMA_SEISMIC_INTENSITY_LOWER_LIMIT_Entry QZSS_DCR_JMA_SEISM
         if (eid == id) {
             uint16_t off = pgm_read_word(ep + offsetof(QZSS_DCR_JMA_SEISMIC_INTENSITY_LOWER_LIMIT_Entry, offset));
             uint16_t n = pgm_read_word(ep + offsetof(QZSS_DCR_JMA_SEISMIC_INTENSITY_LOWER_LIMIT_Entry, len));
-            if (n == 0) return std::nullopt;
             return azarac_pgm_view(QZSS_DCR_JMA_SEISMIC_INTENSITY_LOWER_LIMIT_POOL + off, n);
         }
         if (eid < id) lo = static_cast<uint8_t>(mid + 1); else hi = mid;
@@ -59,25 +58,28 @@ static const QZSS_DCR_JMA_SEISMIC_INTENSITY_LOWER_LIMIT_Entry QZSS_DCR_JMA_SEISM
     return std::nullopt;
 }
 #else
-struct QZSS_DCR_JMA_SEISMIC_INTENSITY_LOWER_LIMIT_Entry { uint8_t id; std::optional<std::string_view> label; };
+struct QZSS_DCR_JMA_SEISMIC_INTENSITY_LOWER_LIMIT_Entry { uint8_t id; const char* label; };
 inline constexpr QZSS_DCR_JMA_SEISMIC_INTENSITY_LOWER_LIMIT_Entry QZSS_DCR_JMA_SEISMIC_INTENSITY_LOWER_LIMIT_TABLE[] = {
-    {1u, std::string_view{"震度0", 7}},
-    {2u, std::string_view{"震度1", 7}},
-    {3u, std::string_view{"震度2", 7}},
-    {4u, std::string_view{"震度3", 7}},
-    {5u, std::string_view{"震度4", 7}},
-    {6u, std::string_view{"震度5弱", 10}},
-    {7u, std::string_view{"震度5強", 10}},
-    {8u, std::string_view{"震度6弱", 10}},
-    {9u, std::string_view{"震度6強", 10}},
-    {10u, std::string_view{"震度7", 7}},
-    {14u, std::string_view{"なし", 6}},
-    {15u, std::string_view{"不明", 6}},};
+    {1u, "震度0"},
+    {2u, "震度1"},
+    {3u, "震度2"},
+    {4u, "震度3"},
+    {5u, "震度4"},
+    {6u, "震度5弱"},
+    {7u, "震度5強"},
+    {8u, "震度6弱"},
+    {9u, "震度6強"},
+    {10u, "震度7"},
+    {14u, "なし"},
+    {15u, "不明"},};
 [[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_seismic_intensity_lower_limit_lookup(uint8_t id) noexcept {
     uint8_t lo = 0, hi = 12;
     while (lo < hi) {
         uint8_t mid = static_cast<uint8_t>(lo + (hi - lo) / 2);
-        if (QZSS_DCR_JMA_SEISMIC_INTENSITY_LOWER_LIMIT_TABLE[mid].id == id) return QZSS_DCR_JMA_SEISMIC_INTENSITY_LOWER_LIMIT_TABLE[mid].label;
+        if (QZSS_DCR_JMA_SEISMIC_INTENSITY_LOWER_LIMIT_TABLE[mid].id == id) {
+            const char* s = QZSS_DCR_JMA_SEISMIC_INTENSITY_LOWER_LIMIT_TABLE[mid].label;
+            return s ? std::optional<std::string_view>(std::string_view{s}) : std::nullopt;
+        }
         if (QZSS_DCR_JMA_SEISMIC_INTENSITY_LOWER_LIMIT_TABLE[mid].id < id) lo = mid + 1;
         else hi = mid;
     }

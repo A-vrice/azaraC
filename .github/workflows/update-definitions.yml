@@ -55,7 +55,7 @@ jobs:
       - name: Configure board manager URLs
         if: steps.ver.outputs.changed == 'true'
         run: |
-          arduino-cli config init
+          arduino-cli config init --overwrite || true
           arduino-cli config add board_manager.additional_urls \
             https://github.com/earlephilhower/arduino-pico/releases/download/global/package_rp2040_index.json \
             https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
@@ -63,7 +63,12 @@ jobs:
       - name: Install required cores
         if: steps.ver.outputs.changed == 'true'
         run: |
-          arduino-cli core update-index
+          for i in 1 2 3; do
+            arduino-cli core update-index && break
+            echo "::warning::core update-index failed (attempt $i/3), retrying..."
+            sleep 10
+            [[ $i -eq 3 ]] && exit 1
+          done
           arduino-cli core install rp2040:rp2040
           arduino-cli core install esp32:esp32
 
