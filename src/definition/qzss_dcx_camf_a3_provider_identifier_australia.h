@@ -49,27 +49,27 @@ static const QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_AUSTRALIA_Entry QZSS_DCX_CAMF_
     const char* AZARAC_PROGMEM p = reinterpret_cast<const char*>(&QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_AUSTRALIA_TABLE[id - 1u]);
     uint16_t off = pgm_read_word(p + offsetof(QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_AUSTRALIA_Entry, offset));
     uint16_t n = pgm_read_word(p + offsetof(QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_AUSTRALIA_Entry, len));
-    if (n == 0) return std::nullopt;
     return azarac_pgm_view(QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_AUSTRALIA_POOL + off, n);
 }
 #else
-inline constexpr std::optional<std::string_view> QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_AUSTRALIA_TABLE[] = {
-    std::string_view{"National Emergency Management Agency", 36},
-    std::string_view{"Bureau of Meteorology", 21},
-    std::string_view{"Australian Climate Service", 26},
-    std::string_view{"Geoscience Australia", 20},
-    std::string_view{"Commonwealth Scientific and Industrial Research Organisation", 60},
-    std::string_view{"Australian Bureau of Statistics", 31},
-    std::string_view{"Resilience New South Wales", 26},
-    std::string_view{"State Emergency Service New South Wales", 39},
-    std::string_view{"New South Wales Rural Fire Service", 34},
-    std::string_view{"Joint Australian Tsunami Warning Centre", 39},
-    std::string_view{"Flood Knowledge Centre", 22},
-    std::string_view{"Australian Broadcasting Corporation", 35}
+inline constexpr const char* QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_AUSTRALIA_TABLE[] = {
+    "National Emergency Management Agency",
+    "Bureau of Meteorology",
+    "Australian Climate Service",
+    "Geoscience Australia",
+    "Commonwealth Scientific and Industrial Research Organisation",
+    "Australian Bureau of Statistics",
+    "Resilience New South Wales",
+    "State Emergency Service New South Wales",
+    "New South Wales Rural Fire Service",
+    "Joint Australian Tsunami Warning Centre",
+    "Flood Knowledge Centre",
+    "Australian Broadcasting Corporation"
 };
 [[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_a3_provider_identifier_australia_lookup(uint8_t id) noexcept {
     if (id < QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_AUSTRALIA_BASE || id >= QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_AUSTRALIA_BASE + QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_AUSTRALIA_SIZE) return std::nullopt;
-    return QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_AUSTRALIA_TABLE[id - QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_AUSTRALIA_BASE];
+    const char* s = QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_AUSTRALIA_TABLE[id - QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_AUSTRALIA_BASE];
+    return s ? std::optional<std::string_view>(std::string_view{s}) : std::nullopt;
 }
 #endif
 

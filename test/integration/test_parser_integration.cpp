@@ -16,7 +16,7 @@ using namespace azaraC;
 TEST_CASE("Parser getNankaiBuffer returns nullptr for unknown key") {
     Parser parser;
 
-    azaraC::internal::NankaiPageKey key = {1234567890, 1};
+    azaraC::internal::NankaiPageKey key = {1};
     const azaraC::internal::NankaiPageBuffer* buf = parser.getNankaiBuffer(key);
     CHECK(buf == nullptr);
 }

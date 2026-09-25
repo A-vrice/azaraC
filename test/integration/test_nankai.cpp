@@ -20,26 +20,32 @@ static uint32_t currentMillis() {
 
 #if (AZARAC_ENABLE_NANKAI)
 TEST_CASE("NankaiPageKey equality") {
-    NankaiPageKey key1 = {1234567890, 1};
-    NankaiPageKey key2 = {1234567890, 1};
-    NankaiPageKey key3 = {1234567890, 2};
-    NankaiPageKey key4 = {987654321u, 1};
-    
+    // Identity = info_code + report_time DHM (month/day/hour/minute).
+    NankaiPageKey key1 = {1, 4, 10, 30, 15};
+    NankaiPageKey key2 = {1, 4, 10, 30, 15};
+    NankaiPageKey key3 = {2, 4, 10, 30, 15};  // different info_code
+    NankaiPageKey key4 = {1, 4, 10, 30, 16};  // different minute
+    NankaiPageKey key5 = {1, 5, 10, 30, 15};  // different month
+
     SUBCASE("Same keys are equal") {
         CHECK(key1 == key2);
     }
-    
+
     SUBCASE("Different info_code") {
         CHECK(!(key1 == key3));
     }
-    
-    SUBCASE("Different event_time") {
+
+    SUBCASE("Different report_time") {
         CHECK(!(key1 == key4));
+        CHECK(!(key1 == key5));
     }
-    
-    SUBCASE("Invalid key") {
-        NankaiPageKey invalid = {0, 0};
-        CHECK(!invalid.isValid());
+
+    SUBCASE("Identity depends only on report_time, not resolution") {
+        // The key carries no resolved UNIX time, so the same message yields the
+        // same key whether or not report_unix is available.
+        NankaiPageKey from_unresolved = {1, 4, 10, 30, 15};
+        NankaiPageKey from_resolved   = {1, 4, 10, 30, 15};
+        CHECK(from_resolved == from_unresolved);
     }
 }
 
@@ -118,21 +124,21 @@ TEST_CASE("NankaiPageBuffer basic operations") {
 TEST_CASE("NankaiPageBuffer truncation") {
     // When total_pages > MAX_PAGES, the buffer caps to MAX_PAGES
     // and sets the truncated flag.
-    // With the test Makefile default MAX_PAGES=63, we need total_pages > 63.
-    // Since SPEC_MAX_PAGES=63, we can only test with total_pages values
-    // between 64 and 255 (uint8_t max) where page_num is still <= 63.
+    // MAX_PAGES = NankaiPageBuffer::MAX_PAGES (library default, overridable).
+    // Since SPEC_MAX_PAGES=63, total_pages values above 63 are the only way to
+    // exceed a MAX_PAGES=63 build; page_num must stay <= SPEC_MAX_PAGES.
     NankaiPageBuffer buffer;
     uint32_t now = currentMillis();
     
     SUBCASE("total_pages > MAX_PAGES sets truncated flag") {
         uint8_t text[18] = {'T', 'e', 's', 't', 0};
         
-        // total_pages=99, MAX_PAGES=63 (test default)
+        // total_pages=99, capped to MAX_PAGES
         bool result = buffer.addPage(1, 99, text, now);
         
         CHECK(result);
         CHECK(buffer.truncated);
-        CHECK(buffer.total_pages == NankaiPageBuffer::MAX_PAGES);  // capped to 63
+        CHECK(buffer.total_pages == NankaiPageBuffer::MAX_PAGES);  // capped
         CHECK(buffer.original_total_pages == 99);  // original preserved
     }
     
@@ -157,8 +163,9 @@ TEST_CASE("NankaiPageBuffer truncation") {
         uint8_t text[18] = {'T', 'e', 's', 't', 0};
         
         buffer.addPage(1, 99, text, now);
-        // MAX_PAGES=63, so page 64 should be rejected
-        bool result = buffer.addPage(64, 99, text, now);
+        // MAX_PAGES 超のページ番号は effective_total (= MAX_PAGES) で拒否され、
+        // SPEC_MAX_PAGES=63 を超える値は先に範囲チェックで拒否される。
+        bool result = buffer.addPage(static_cast<uint8_t>(NankaiPageBuffer::MAX_PAGES + 1), 99, text, now);
         
         CHECK_FALSE(result);
     }
@@ -204,7 +211,7 @@ TEST_CASE("NankaiPageBufferManager") {
     NankaiPageBufferManager manager;
     
     SUBCASE("Add page to new buffer") {
-        NankaiPageKey key = {1234567890, 1};
+        NankaiPageKey key = {1};
         uint8_t text[18] = {'T', 'e', 's', 't', 0};
         
         NankaiPageBuffer* result = manager.addPage(key, 1, 1, text, currentMillis());
@@ -213,7 +220,7 @@ TEST_CASE("NankaiPageBufferManager") {
     }
     
     SUBCASE("Add page to existing buffer") {
-        NankaiPageKey key = {1234567890, 1};
+        NankaiPageKey key = {1};
         uint8_t text1[18] = {'P', '1', 0};
         uint8_t text2[18] = {'P', '2', 0};
         
@@ -224,9 +231,10 @@ TEST_CASE("NankaiPageBufferManager") {
         CHECK(result2 != nullptr);
     }
     
+#if AZARAC_NANKAI_BUFFERS >= 2
     SUBCASE("Multiple events") {
-        NankaiPageKey key1 = {1234567890, 1};
-        NankaiPageKey key2 = {1234567890, 2};
+        NankaiPageKey key1 = {1};
+        NankaiPageKey key2 = {2};
         uint8_t text[18] = {'T', 'e', 's', 't', 0};
         
         manager.addPage(key1, 1, 1, text, currentMillis());
@@ -235,9 +243,10 @@ TEST_CASE("NankaiPageBufferManager") {
         CHECK(manager.getBuffer(key1) != nullptr);
         CHECK(manager.getBuffer(key2) != nullptr);
     }
+#endif // AZARAC_NANKAI_BUFFERS >= 2
     
     SUBCASE("Clear all buffers") {
-        NankaiPageKey key = {1234567890, 1};
+        NankaiPageKey key = {1};
         uint8_t text[18] = {'T', 'e', 's', 't', 0};
         
         manager.addPage(key, 1, 1, text, currentMillis());
@@ -254,23 +263,96 @@ TEST_CASE("NankaiPageBufferManager buffer limit") {
         uint32_t now = currentMillis();
         // Fill all buffers
         for (uint8_t i = 0; i < NankaiPageBufferManager::MAX_BUFFERS; i++) {
-            NankaiPageKey key = {1234567890, i};
+            NankaiPageKey key = {static_cast<uint8_t>(i + 1)};
             uint8_t text[18] = {'T', 'e', 's', 't', 0};
             manager.addPage(key, 1, 1, text, now);
         }
         
         // Adding one more should evict the oldest
-        NankaiPageKey key_new = {1234567890, NankaiPageBufferManager::MAX_BUFFERS};
+        NankaiPageKey key_new = {static_cast<uint8_t>(NankaiPageBufferManager::MAX_BUFFERS + 1)};
         uint8_t text[18] = {'N', 'e', 'w', 0};
         manager.addPage(key_new, 1, 1, text, now);
         
-        // Oldest buffer (key 0) should be evicted
-        NankaiPageKey key0 = {1234567890, 0};
+        // Oldest buffer (first inserted key) should be evicted
+        NankaiPageKey key0 = {1};
         CHECK(manager.getBuffer(key0) == nullptr);
         
         // New buffer should exist
         CHECK(manager.getBuffer(key_new) != nullptr);
     }
 }
+
+// ゼロ鍵が空スロットに誤マッチしないこと
+
+TEST_CASE("NankaiPageBufferManager empty slots never match") {
+    NankaiPageBufferManager manager;
+    NankaiPageKey zero;  // all-zero identity
+
+    // Empty slots hold an all-zero key; getBuffer must not return one.
+    CHECK(manager.getBuffer(zero) == nullptr);
+
+    uint8_t text[18] = {'T', 'e', 's', 't', 0};
+    manager.addPage(zero, 1, 2, text, 1000);
+    CHECK(manager.getBuffer(zero) != nullptr);
+    // The same zero-key event continues in its buffer, not a fresh empty slot.
+    CHECK(manager.addPage(zero, 2, 2, text, 1000) != nullptr);
+}
+
+// 失効（TIMEOUT_MS）と LRU の区別
+
+TEST_CASE("NankaiPageBuffer expiry") {
+    SUBCASE("isExpired boundary") {
+        NankaiPageBuffer buffer;
+        uint8_t text[18] = {'P', 0};
+        buffer.addPage(1, 2, text, 1000);
+        CHECK_FALSE(buffer.isExpired(1000 + NankaiPageBuffer::TIMEOUT_MS));
+        CHECK(buffer.isExpired(1000 + NankaiPageBuffer::TIMEOUT_MS + 1));
+    }
+
+    SUBCASE("expireBuffers drops a stale buffer") {
+        NankaiPageBufferManager manager;
+        NankaiPageKey key = {1, 4, 10, 30, 15};
+        uint8_t text[18] = {'P', 0};
+        manager.addPage(key, 1, 2, text, 1000);
+        CHECK(manager.getBuffer(key) != nullptr);
+
+        // Touching the manager past the timeout expires the stale buffer.
+        manager.addPage({2, 4, 10, 30, 15}, 1, 1, text,
+                        1000 + NankaiPageBuffer::TIMEOUT_MS + 1);
+        CHECK(manager.getBuffer(key) == nullptr);
+    }
+}
+
+#if AZARAC_NANKAI_BUFFERS >= 2
+TEST_CASE("NankaiPageBufferManager expiry is not LRU eviction") {
+    NankaiPageBufferManager manager;
+    NankaiPageKey k1 = {1, 4, 10, 30, 15};
+    NankaiPageKey k2 = {2, 4, 10, 30, 15};
+    uint8_t text[18] = {'P', 0};
+    manager.addPage(k1, 1, 2, text, 1000);
+    manager.addPage(k2, 1, 2, text, 1000);
+    // Both buffers are equally old: past the timeout both must expire, whereas a
+    // single LRU eviction would drop only one.
+    manager.addPage({3, 4, 10, 30, 15}, 1, 1, text,
+                    1000 + NankaiPageBuffer::TIMEOUT_MS + 1);
+    CHECK(manager.getBuffer(k1) == nullptr);
+    CHECK(manager.getBuffer(k2) == nullptr);
+}
+
+TEST_CASE("NankaiPageBufferManager: zero key follows its buffer across slot reuse") {
+    NankaiPageBufferManager manager;
+    uint8_t text[18] = {'T', 'e', 's', 't', 0};
+    NankaiPageKey nonzero = {7, 6, 15, 12, 30};
+    NankaiPageKey zero;  // all-zero identity
+
+    CHECK(manager.addPage(nonzero, 1, 2, text, 0) == nullptr);        // slot 0 (stale later)
+    CHECK(manager.addPage(zero, 1, 2, text, 30000) == nullptr);       // slot 1
+
+    // At t=70000 slot 0 expires; a zero-key page must continue in its own buffer
+    // (slot 1), not bind to the freshly emptied slot 0.
+    NankaiPageBuffer* done = manager.addPage(zero, 2, 2, text, 70000);
+    CHECK(done != nullptr);
+}
+#endif // AZARAC_NANKAI_BUFFERS >= 2
 
 #endif // AZARAC_ENABLE_NANKAI

@@ -15,51 +15,46 @@
 #else
 #include <cstring>
 #endif
-#if defined(__AVR__)
-#include "avr_std/climits"
-#else
-#include <climits>
-#endif
-#include "TimeFields.h"
+#include "../azaraC_config.h"
 
 namespace azaraC {
 namespace internal {
 
 // Event key. svid deliberately excluded: multiple QZSS satellites relay the same
 // message, so including svid would create duplicate buffers for one event.
+//
+// Identity is {info_code, report_time month/day/hour/minute} and the DHM values
+// are the RAW protocol bits (NankaiData::report_*), not the normalized
+// Mt43Data::event_time: resolveTime() rewrites out-of-calendar dates (2/30 → 3/1)
+// and picks a month when the field is 0, so a page arriving with a report_unix
+// baseline would hash differently from one arriving without — splitting one event
+// across buffers. Raw bits keep the identity stable across resolution changes.
 struct NankaiPageKey {
-    uint32_t event_time_unix = 0;  // 4B — largest alignment first
     uint8_t  info_code = 0;        // 1B
-    uint8_t  fallback_day    = 0;  // 1B
-    uint8_t  fallback_hour   = 0;  // 1B
-    uint8_t  fallback_minute = 0;  // 1B
-    // 合計 8B（パディングなし）
+    uint8_t  report_month  = 0;    // 1B — raw report_time month (4b)
+    uint8_t  report_day    = 0;    // 1B — raw report_time day (5b)
+    uint8_t  report_hour   = 0;    // 1B — raw report_time hour (5b)
+    uint8_t  report_minute = 0;    // 1B — raw report_time minute (6b)
+    // 合計 5B（パディングなし）
 
     constexpr NankaiPageKey() = default;
-    constexpr NankaiPageKey(uint32_t et, uint8_t ic, uint8_t d = 0, uint8_t h = 0, uint8_t m = 0)
-        : event_time_unix(et), info_code(ic), fallback_day(d), fallback_hour(h), fallback_minute(m) {}
+    constexpr NankaiPageKey(uint8_t ic, uint8_t mo = 0, uint8_t d = 0, uint8_t h = 0, uint8_t m = 0)
+        : info_code(ic), report_month(mo), report_day(d), report_hour(h), report_minute(m) {}
 
     bool operator==(const NankaiPageKey& o) const {
-        if (event_time_unix != 0 || o.event_time_unix != 0) {
-            return info_code == o.info_code &&
-                   event_time_unix == o.event_time_unix;
-        }
         return info_code == o.info_code &&
-               fallback_day   == o.fallback_day &&
-               fallback_hour  == o.fallback_hour &&
-               fallback_minute == o.fallback_minute;
-    }
-
-    bool isValid() const {
-        return event_time_unix != 0 || fallback_day != 0;
+               report_month  == o.report_month &&
+               report_day    == o.report_day &&
+               report_hour   == o.report_hour &&
+               report_minute == o.report_minute;
     }
 
     void clear() {
         info_code = 0;
-        event_time_unix = 0;
-        fallback_day = 0;
-        fallback_hour = 0;
-        fallback_minute = 0;
+        report_month = 0;
+        report_day = 0;
+        report_hour = 0;
+        report_minute = 0;
     }
 };
 
@@ -67,10 +62,9 @@ struct NankaiPageKey {
 // (page_num-1)*TEXT_PER_PAGE; bitmap tracks received pages.
 // Truncation: if total_pages > MAX_PAGES, keep pages 1..MAX_PAGES and set
 // truncated; the rest are silently dropped.
-// Config AZARAC_NANKAI_MAX_PAGES (default 12, max 63, Pn/Pm range 1-63 = 6 bits).
-#ifndef AZARAC_NANKAI_MAX_PAGES
-#define AZARAC_NANKAI_MAX_PAGES 12
-#endif
+// ページ数上限・バッファ数は azaraC_config.h の
+// AZARAC_NANKAI_MAX_PAGES / AZARAC_NANKAI_BUFFERS が唯一の定義元。
+// MAX_PAGES の範囲は spec の Pn/Pm（1-63, 6bit）に従う。
 
 // Static assertion ensures MAX_PAGES fits in a 64-bit bitmap (63 max per spec)
 static_assert(AZARAC_NANKAI_MAX_PAGES > 0 && AZARAC_NANKAI_MAX_PAGES <= 63,
@@ -82,7 +76,7 @@ struct NankaiPageBuffer {
     static constexpr uint8_t TEXT_PER_PAGE = 18;
     static constexpr uint32_t TIMEOUT_MS = 60000;  // 60 seconds timeout
 
-    NankaiPageKey key;                  // 8B
+    NankaiPageKey key;                  // 5B
     uint64_t received_bitmap = 0;       // 8B — bitmap: bit (page_num-1) set when received
     uint64_t last_update_ms = 0;        // 8B
     uint8_t total_pages = 0;            // 1B — Effective total (capped at MAX_PAGES)
@@ -171,6 +165,24 @@ struct NankaiPageBuffer {
         return len;
     }
 
+    // Compact received pages into a contiguous C string (call only when complete).
+    // Non-final pages may be short (NUL hole); getTextLength sums per-page lengths
+    // but serialize emits [ptr, ptr+len) contiguously, so holes would leak NULs.
+    // In-place is safe: w <= p*TEXT_PER_PAGE always, earlier writes end at or
+    // before the next source page.
+    uint16_t compactText() {
+        uint16_t w = 0;
+        for (uint8_t p = 0; p < total_pages; ++p) {
+            const char* src = aggregated_text + (uint16_t)p * TEXT_PER_PAGE;
+            uint8_t n = pageTextLength_(src);
+            if ((uint16_t)p * TEXT_PER_PAGE != w)
+                memmove(aggregated_text + w, src, n);
+            w += n;
+        }
+        aggregated_text[w] = '\0';
+        return w;
+    }
+
     bool isExpired(uint64_t current_ms) const {
         if (total_pages == 0) return false;
         return (current_ms - last_update_ms) > TIMEOUT_MS;
@@ -191,8 +203,11 @@ struct NankaiPageBuffer {
         return total_pages == 0;
     }
 
+    // Empty buffers hold an all-zero key, which would otherwise equal a zero-key
+    // event and bind incoming pages to a free slot instead of the buffer already
+    // tracking the event. Never match an empty buffer.
     bool matchesKey(const NankaiPageKey& k) const {
-        return key == k;
+        return !isEmpty() && key == k;
     }
 
     void setKey(const NankaiPageKey& k) {
@@ -209,12 +224,8 @@ private:
 };
 
 // Manages multiple page buffers with bitmap tracking + LRU eviction;
-// buffer count = AZARAC_NANKAI_BUFFERS.
+// buffer count = AZARAC_NANKAI_BUFFERS (defined in azaraC_config.h).
 
-// Default buffer count if not user-defined
-#ifndef AZARAC_NANKAI_BUFFERS
-#define AZARAC_NANKAI_BUFFERS 4
-#endif
 static_assert(AZARAC_NANKAI_BUFFERS > 0 && AZARAC_NANKAI_BUFFERS <= 32,
               "AZARAC_NANKAI_BUFFERS must be in range 1-32");
 

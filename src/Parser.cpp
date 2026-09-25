@@ -9,14 +9,7 @@ bool Parser::feed(uint8_t byte, Message& out, uint32_t report_unix) {
     // カスタムフレーマ（排他モード）
     if (_custom) {
         if (!_custom->feed(byte, frame)) return false;
-        Message decoded;
-        if (!_decoder.decode(frame, decoded, report_unix)) {
-            out.unsupported_reason = decoded.unsupported_reason;
-            out.msg_type = decoded.msg_type;
-            out.svid     = decoded.svid;
-            return false;
-        }
-        return postDecode(decoded, out);
+        return handleFrame(frame, out, report_unix);
     }
 
     // AUTO 常時: UBX優先試行（UBXはバイナリ、NMEAはASCIIで競合しない）
@@ -24,11 +17,15 @@ bool Parser::feed(uint8_t byte, Message& out, uint32_t report_unix) {
     bool nmea_ok = ubx_ok ? false : _nmea.feed(byte, frame);
     if (!ubx_ok && !nmea_ok) return false;
 
+    return handleFrame(frame, out, report_unix);
+}
+
+bool Parser::handleFrame(const internal::Frame& frame, Message& out, uint32_t report_unix) {
     Message decoded;
     if (!_decoder.decode(frame, decoded, report_unix)) {
-        out.unsupported_reason = decoded.unsupported_reason;
-        out.msg_type = decoded.msg_type;
-        out.svid     = decoded.svid;
+        // decoded is already cleared by decode(); copy it whole so a reused
+        // out holding a previous valid message cannot leak stale payload.
+        out = decoded;
         return false;
     }
     return postDecode(decoded, out);
@@ -42,6 +39,7 @@ bool Parser::postDecode(const Message& decoded, Message& out) {
         if (mt43 && mt43->disaster_category == 4) {
             // decoded と out を別オブジェクトにすることでエイリアシング UB を回避
             if (!processNankaiAggregation(decoded, out, mt43, internal::getMillis())) {
+                out.clear();
                 return false;
             }
             // Aggregation complete - check dedup before outputting
@@ -54,10 +52,9 @@ bool Parser::postDecode(const Message& decoded, Message& out) {
         }
     }
 #endif
-
     // 重複チェック
     internal::DedupKey key{ decoded.svid, decoded.msg_type, decoded.crc24 };
-    if (_dedup.isDuplicate(key)) return false;
+    if (_dedup.isDuplicate(key)) { out.clear(); return false; }
 
     out = decoded;
     return true;
@@ -69,25 +66,16 @@ bool Parser::processNankaiAggregation(const Message& decoded, Message& out, cons
     const NankaiData* nankai = d->getNankai();
     if (!nankai) return false;
 
-    // Create key for this event (svid NOT included - see design doc)
+    // 事象の identity = info_code + report_time month/day/hour/minute。値は電文の生ビット
+    // (NankaiData::report_*) から取り、正規化済みの Mt43Data::event_time は使わない:
+    // resolveTime() は暦外の日付を書き換えたり（2/30 → 3/1）月=0 に近い月を割り当てるため、
+    // 放送途中で report_unix が現れると1つの事象が複数バッファに分裂する。NankaiPageKey 参照。
     internal::NankaiPageKey key;
-    key.info_code = nankai->info_code;
-    key.event_time_unix = d->event_time.unix_time;
-    if (!key.isValid()) {
-        bool time_provided = (d->event_time.month != 0 || d->event_time.day != 0 ||
-                              d->event_time.hour != 0 || d->event_time.minute != 0);
-        if (time_provided) {
-            // UNIX time was not resolved but DHM fields exist → use as fallback key
-            // month is not included (month boundary crossing doesn't uniquely identify date)
-            key.fallback_day    = d->event_time.day;
-            key.fallback_hour   = d->event_time.hour;
-            key.fallback_minute = d->event_time.minute;
-            // isValid() now returns true → proceeds to normal aggregation flow
-        }
-        // time_provided == false → key stays invalid (fallback fields unset).
-        // addPage does NOT check key.isValid(); it still keys on info_code and
-        // aggregates pages, so aggregation proceeds with the unresolved key.
-    }
+    key.info_code       = nankai->info_code;
+    key.report_month    = nankai->report_month;
+    key.report_day      = nankai->report_day;
+    key.report_hour     = nankai->report_hour;
+    key.report_minute   = nankai->report_minute;
 
     // Add page to buffer
     internal::NankaiPageBuffer* completed = _nankaiBuffers.addPage(
@@ -108,8 +96,10 @@ bool Parser::processNankaiAggregation(const Message& decoded, Message& out, cons
                 outNankai->aggregated_len = 0;
                 outNankai->aggregated_text_ptr = nullptr;
                 outNankai->truncated = completed->truncated;
+                outNankai->page = 1;
+                outNankai->total_page = completed->original_total_pages;
 
-                uint16_t textLen = completed->getTextLength();
+                uint16_t textLen = completed->compactText();
                 if (textLen > 0) {
                     // Zero-copy: point into NankaiPageBuffer's internal storage.
                     // VALID ONLY until next feed() or reset() — see NankaiData docs.

@@ -136,11 +136,15 @@
 #endif
 
 // Nankai Trough page buffer config
+// 63 = 仕様最大ページ数（Pn/Pm は 6bit、1-63）。既定でページ打ち切りが
+// 構造的に発生しないようにする。縮小する場合の目安: 実観測の最大は 27。
+// 1 = 南海トラフは 1 電文として連続放送され、複数イベントが同時並行しない。
+// 複数イベントを同時追跡する場合のみ増やす（RAM はバッファ数に比例）。
 #ifndef AZARAC_NANKAI_MAX_PAGES
-#define AZARAC_NANKAI_MAX_PAGES 12
+#define AZARAC_NANKAI_MAX_PAGES 63
 #endif
 #ifndef AZARAC_NANKAI_BUFFERS
-#define AZARAC_NANKAI_BUFFERS 4
+#define AZARAC_NANKAI_BUFFERS 1
 #endif
 
 #if AZARAC_NANKAI_BUFFERS > 2 && defined(ARDUINO_AVR_UNO)

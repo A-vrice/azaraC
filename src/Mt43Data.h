@@ -117,6 +117,13 @@ struct NankaiData {
     uint8_t text[18];
     uint8_t page;
     uint8_t total_page;
+    // MT=43 ペイロードの report_time（bit 21/25/30/35）を受信そのまま保持する。
+    // 集約キーの軸: event_time と違い Decoder::resolveTime の正規化を受けないため、
+    // 放送途中で report_unix が有効/無効になっても鍵がずれない。
+    uint8_t report_month;   // 1-12 (4b)
+    uint8_t report_day;     // 1-31 (5b)
+    uint8_t report_hour;    // 0-23 (5b)
+    uint8_t report_minute;  // 0-59 (6b)
     const char* aggregated_text_ptr = nullptr;  // lifetime: until next feed() or reset()
     uint16_t aggregated_len = 0;
     bool is_aggregated = false;

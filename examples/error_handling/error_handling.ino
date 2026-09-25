@@ -17,7 +17,7 @@ azaraC::Message msg;
 
 // 定数定義
 static constexpr uint8_t  QZSS_SVID_MIN  = 183;
-static constexpr uint8_t  QZSS_SVID_MAX  = 192;
+static constexpr uint8_t  QZSS_SVID_MAX  = 191;
 static constexpr uint8_t  MSG_TYPE_MT43  = 43;
 static constexpr uint8_t  MSG_TYPE_MT44  = 44;
 static constexpr uint32_t HEARTBEAT_MS   = 5000;

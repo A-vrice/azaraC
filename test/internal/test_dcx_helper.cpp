@@ -58,3 +58,63 @@ TEST_CASE("decodeAzimuth7: boundary and known values") {
     CHECK(decodeAzimuth7(32) == -4500000);
     CHECK(decodeAzimuth7(96) == 4500000);
 }
+
+TEST_CASE("decodeLatitude17: boundary and known values") {
+    // EX3: same formula as A12 but 17-bit, microdegrees
+    CHECK(decodeLatitude17(0) == -90000000);
+    CHECK(decodeLatitude17(131071) == 90000000);
+    CHECK(decodeLatitude17(32767) == -45001030);
+    CHECK(decodeLatitude17(65535) == -687);
+    CHECK(decodeLatitude17(65536) == 687);
+}
+
+TEST_CASE("decodeLongitude17_45_225: boundary and known values") {
+    // EX4: 45 + (180/(2^17-1)) * code, microdegrees (45..225 deg)
+    CHECK(decodeLongitude17_45_225(0) == 45000000);
+    CHECK(decodeLongitude17_45_225(131071) == 225000000);
+    CHECK(decodeLongitude17_45_225(65535) == 134999313);
+}
+
+TEST_CASE("decodeB2HazardCenter: C5/C6 table and >63 rounding branch") {
+    // EWSS CAMF v1.1 §3.7.2: delta = -10 + 20*code/128 deg.
+    // code <= 63 uses code directly; code > 63 adds +1 (the +1 rounding branch).
+    CHECK(decodeB2HazardCenter(0, 0).delta_lat_microdeg == -10000000);
+    CHECK(decodeB2HazardCenter(0, 0).delta_lon_microdeg == -10000000);
+    CHECK(decodeB2HazardCenter(43, 16).delta_lat_microdeg == -3281250);
+    CHECK(decodeB2HazardCenter(63, 63).delta_lat_microdeg == -156250);
+    // > 63: the +1 rounding branch
+    CHECK(decodeB2HazardCenter(64, 64).delta_lat_microdeg == 156250);
+    CHECK(decodeB2HazardCenter(127, 127).delta_lon_microdeg == 10000000);
+
+    // c5 and c6 are independent
+    B2HazardCenter b2 = decodeB2HazardCenter(86, 107);
+    CHECK(b2.c5 == 86);
+    CHECK(b2.c6 == 107);
+    CHECK(b2.delta_lat_microdeg == 3593750);
+    CHECK(b2.delta_lon_microdeg == 6875000);
+}
+
+TEST_CASE("decodeCityCodeList: layout, zero skip and order") {
+    // EX8=1: four 16-bit codes at ex9[0:15],[16:31],[32:47],[48:63]
+    uint16_t codes[4] = {0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF};
+    uint64_t ex9 = ((uint64_t)0x1234) | ((uint64_t)0x5678 << 16) |
+                   ((uint64_t)0x9ABC << 32) | ((uint64_t)0xDEF0 << 48);
+    uint8_t n = decodeCityCodeList(ex9, codes);
+    CHECK(n == 4);
+    CHECK(codes[0] == 0x1234);
+    CHECK(codes[1] == 0x5678);
+    CHECK(codes[2] == 0x9ABC);
+    CHECK(codes[3] == 0xDEF0);
+
+    // Zero codes are skipped; the remaining codes keep their relative order.
+    codes[0] = codes[1] = codes[2] = codes[3] = 0xFFFF;
+    uint64_t ex9_zero = ((uint64_t)0x0000) | ((uint64_t)0x0007 << 16) |
+                        ((uint64_t)0x0000 << 32) | ((uint64_t)0x0009 << 48);
+    n = decodeCityCodeList(ex9_zero, codes);
+    CHECK(n == 2);
+    CHECK(codes[0] == 0x0007);
+    CHECK(codes[1] == 0x0009);
+
+    // All zero -> no codes.
+    CHECK(decodeCityCodeList(0, codes) == 0);
+}

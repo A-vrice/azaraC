@@ -231,88 +231,10 @@ struct TestDecoder : Decoder {
     }
 #endif
 
-#if (AZARAC_ENABLE_HYPOCENTER)
-    static void testDecodeHypocenter(const uint8_t* bits, Message& out, uint32_t now_unix) {
-        TestDecoder t;
-        t.decodeHypocenter(bits, out, now_unix);
-    }
-#endif
-
-#if (AZARAC_ENABLE_TSUNAMI)
-    static void testDecodeTsunami(const uint8_t* bits, Message& out, uint32_t now_unix) {
-        TestDecoder t;
-        t.decodeTsunami(bits, out, now_unix);
-    }
-#endif
-
-#if (AZARAC_ENABLE_NANKAI)
-    static void testDecodeNankai(const uint8_t* bits, Message& out) {
-        TestDecoder t;
-        t.decodeNankai(bits, out, 0);
-    }
-#endif
-
-#if (AZARAC_ENABLE_ASH_FALL)
-    static void testDecodeAshFall(const uint8_t* bits, Message& out, uint32_t now) {
-        TestDecoder t;
-        t.decodeAshFall(bits, out, now);
-    }
-#endif
-
-#if (AZARAC_ENABLE_FLOOD)
-    static void testDecodeFlood(const uint8_t* bits, Message& out) {
-        TestDecoder t;
-        t.decodeFlood(bits, out, 0);
-    }
-#endif
-
-#if (AZARAC_ENABLE_WEATHER)
-    static void testDecodeWeather(const uint8_t* bits, Message& out) {
-        TestDecoder t;
-        t.decodeWeather(bits, out, 0);
-    }
-#endif
-
-#if (AZARAC_ENABLE_SEISMIC)
-    static void testDecodeSeismic(const uint8_t* bits, Message& out, uint32_t now) {
-        TestDecoder t;
-        t.decodeSeismic(bits, out, now);
-    }
-#endif
-
-
     // Arrival time resolution (static method, but declared protected in base)
     static TimeFields testResolveArrivalTime(uint16_t raw, uint32_t base_unix) {
         return resolveArrivalTime(raw, base_unix);
     }
-
-#if (AZARAC_ENABLE_VOLCANO)
-    static void testDecodeVolcano(const uint8_t* bits, Message& out, uint32_t now) {
-        TestDecoder t;
-        t.decodeVolcano(bits, out, now);
-    }
-#endif
-
-#if (AZARAC_ENABLE_NW_PAC_TSUNAMI)
-    static void testDecodeNwPacTsu(const uint8_t* bits, Message& out, uint32_t now) {
-        TestDecoder t;
-        t.decodeNwPacTsu(bits, out, now);
-    }
-#endif
-
-#if (AZARAC_ENABLE_TYPHOON)
-    static void testDecodeTyphoon(const uint8_t* bits, Message& out, uint32_t now_unix) {
-        TestDecoder t;
-        t.decodeTyphoon(bits, out, now_unix);
-    }
-#endif
-
-#if (AZARAC_ENABLE_MARINE)
-    static void testDecodeMarine(const uint8_t* bits, Message& out) {
-        TestDecoder t;
-        t.decodeMarine(bits, out, 0);
-    }
-#endif
 
     // 時間解決
     static TimeFields testResolveTime(uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint32_t now_unix) {

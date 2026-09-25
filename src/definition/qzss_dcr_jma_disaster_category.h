@@ -50,8 +50,6 @@ static const QZSS_DCR_JMA_DISASTER_CATEGORY_Entry QZSS_DCR_JMA_DISASTER_CATEGORY
         uint8_t eid = static_cast<uint8_t>(pgm_read_byte(ep + offsetof(QZSS_DCR_JMA_DISASTER_CATEGORY_Entry, id)));
         if (eid == id) {
             uint16_t off = pgm_read_word(ep + offsetof(QZSS_DCR_JMA_DISASTER_CATEGORY_Entry, offset));
-            uint16_t n = pgm_read_word(ep + offsetof(QZSS_DCR_JMA_DISASTER_CATEGORY_Entry, len));
-            if (n == 0) return nullptr;
             return azarac_pgm_copy(QZSS_DCR_JMA_DISASTER_CATEGORY_POOL + off);
         }
         if (eid < id) lo = static_cast<uint8_t>(mid + 1); else hi = mid;
