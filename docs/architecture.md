@@ -71,11 +71,11 @@ graph LR
 | [`NmeaFramer`](../src/framer/NmeaFramer.h) | NMEA $QZQSM | Furuno GT-87, 汎用GNSS |
 | Custom (IFramer) | 任意 | Sony, その他 |
 
-`Frame::svid` の契約は **QZSS L1S PRN**（183–191）。Satellite ID は「PRN を表す 8bit の下位 6bit」
+`Frame::svid` の契約は **QZSS L1S PRN**（181–191）。Satellite ID は「PRN を表す 8bit の下位 6bit」
 （IS-QZSS-DCR-017 §4.3.1）なので、`NmeaFramer` は常に `svid | 0x80`（53→181, 54→182,
 55–63→183–191）、`UbxFramer` は `ublox_qzss_svid_prn_map` の該当時のみ PRN に変換し、
 表に無い svId はそのまま通す。`JsonSerializer` は `svid_label` を引くときだけ `& 0x3F` で
-6 LSB に戻す（定義表 `qzss_dcr_satellite_prn` のキーは 55/56/57/58/61）。
+6 LSB に戻す（PRN 空間の値のみ。定義表 `qzss_dcr_satellite_prn` のキーは 55/56/57/58/61）。
 
 ### 3. Decoder (デコーダー)
 

@@ -19,7 +19,7 @@ azarashi 0.17.0 に通した結果。`Parser` 経由（重複除去あり）で�
 | キー | 型 | 内容 |
 |---|---|---|
 | `svid` | int | QZSS L1S PRN。`NmeaFramer` は Satellite ID を `\| 0x80` で正規化（53→181, 54→182, 55–63→183–191）、`UbxFramer` は `ublox_qzss_svid_prn_map` で変換（1–4→183–186、7→189）。どちらの表にも無い値は入力のまま |
-| `svid_label` | str | `svid & 0x3F` を鍵に `qzss_dcr_satellite_prn` を引く（表は 55/56/57/58/61）。重複除去後 156 レコードのうち 95 件が `PRN183`–`PRN189` に解決し、残り 61 件（PRN181/182 = DCX 実データ）は表の範囲外のため `""` |
+| `svid_label` | str | `svid` が PRN 空間（128–191）のときだけ `svid & 0x3F` を鍵に `qzss_dcr_satellite_prn` を引く（表は 55/56/57/58/61）。重複除去後 156 レコードのうち 95 件が `PRN183`–`PRN189` に解決し、残り 61 件（PRN181/182 = DCX 実データ）は表の範囲外のため `""`。フレーマが変換せず通した生の svId（UBX の表外値）にもラベルは付かない |
 | `msg_type` | int | 43 / 44 |
 | `msg_type_label` | str | `"DCR"` / `"DCX"` |
 | `crc24` | str | `"0x00F92C3F"`。azarashi の出力には無い |
@@ -27,7 +27,7 @@ azarashi 0.17.0 に通した結果。`Parser` 経由（重複除去あり）で�
 
 **MT43** は共通ヘッダのあとに `report_classification` / `disaster_category` /
 `information_type` と各 `_label`、`report_time{month,day,hour,min,unix}`、`detail{...}` を持つ。
-**MT44** は共通部を持たず、A フィールドを最上位に展開する。
+**MT44** は MT43 固有項目を持たず、A フィールドを最上位に展開する。
 
 ラベルは `_label` サフィックスのキーに 1 本だけ出る。`AZARAC_LANG_JA=1` かつ
 `AZARAC_LANG_EN=1` の構成では、文字列リテラルのキーを持つ `_label` に `_label_en` が

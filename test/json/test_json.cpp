@@ -324,6 +324,17 @@ TEST_CASE("JSON Serialization: svid_label resolves the framer-normalised svid") 
         internal::JsonSerializer::serialize(m, sp);
         CHECK(hasLabel(sp.str(), "svid_label", ""));
     }
+
+    // PRN 空間（128–191）の外は、6 LSB が表のキーと一致してもラベルを付けない。
+    // NmeaFramer の `id | 0x80` は 119 → 247 を作るが、247 & 0x3F = 55 (= PRN183) と
+    // 衝突する。UbxFramer は表に無い svId（例 55）をそのまま通す。
+    for (uint8_t svid : {uint8_t{247}, uint8_t{119}, uint8_t{55}, uint8_t{191}, uint8_t{193}}) {
+        m.svid = svid;
+        StringPrint sp;
+        internal::JsonSerializer::serialize(m, sp);
+        INFO("svid=", (int)svid);
+        CHECK(hasLabel(sp.str(), "svid_label", ""));
+    }
 }
 
 #if (AZARAC_ENABLE_EEW)
