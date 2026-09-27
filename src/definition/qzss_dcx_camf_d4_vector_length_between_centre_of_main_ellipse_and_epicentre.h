@@ -1,6 +1,6 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.16.4 with CI-CD
-// Source module : qzss_dcx_camf_b4_lower_level_fields_tables
+// AUTO-GENERATED from azarashi 0.17.0 with CI-CD
+// Source module : azarashi.definitions.camf.d_fields
 // Variable      : qzss_dcx_camf_d4_vector_length_between_centre_of_main_ellipse_and_epicentre
 // Entries       : 16
 // Strategy      : array

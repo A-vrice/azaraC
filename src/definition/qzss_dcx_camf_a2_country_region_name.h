@@ -1,6 +1,6 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.16.4 with CI-CD
-// Source module : qzss_dcx_camf_a2_country_region_name
+// AUTO-GENERATED from azarashi 0.17.0 with CI-CD
+// Source module : azarashi.definitions.camf.a2_country_region_name
 // Variable      : qzss_dcx_camf_a2_country_region_name
 // Entries       : 252
 // Strategy      : binary_search

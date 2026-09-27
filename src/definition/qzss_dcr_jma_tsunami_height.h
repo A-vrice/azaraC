@@ -1,8 +1,8 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.16.4 with CI-CD
-// Source module : qzss_dcr_jma_tsunami_height
+// AUTO-GENERATED from azarashi 0.17.0 with CI-CD
+// Source module : azarashi.definitions.qzss.dcr.tsunami_height
 // Variable      : qzss_dcr_jma_tsunami_height
-// Entries       : 8
+// Entries       : 9
 // Strategy      : switch
 
 // NOTE: This function may return nullptr for unknown IDs.
@@ -23,7 +23,7 @@
 namespace azaraC {
 namespace def {
 
-#if (AZARAC_ENABLE_TSUNAMI)
+#if (AZARAC_ENABLE_TSUNAMI) && (AZARAC_LANG_JA)
 
 #if defined(__AVR__)
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_tsunami_height_lookup(uint8_t id) noexcept {
@@ -34,6 +34,7 @@ namespace def {
         case 4: { static const char AZARAC_PROGMEM s[] = "5m"; return azarac_pgm_view(s, 2); }
         case 5: { static const char AZARAC_PROGMEM s[] = "10m"; return azarac_pgm_view(s, 3); }
         case 6: { static const char AZARAC_PROGMEM s[] = "10m超"; return azarac_pgm_view(s, 6); }
+        case 13: { static const char AZARAC_PROGMEM s[] = "該当情報なし"; return azarac_pgm_view(s, 18); }
         case 14: { static const char AZARAC_PROGMEM s[] = "不明"; return azarac_pgm_view(s, 6); }
         case 15: { static const char AZARAC_PROGMEM s[] = "その他の津波の高さ"; return azarac_pgm_view(s, 27); }
         default: return std::nullopt;
@@ -48,6 +49,7 @@ namespace def {
         case 4: return std::string_view{"5m", 2};
         case 5: return std::string_view{"10m", 3};
         case 6: return std::string_view{"10m超", 6};
+        case 13: return std::string_view{"該当情報なし", 18};
         case 14: return std::string_view{"不明", 6};
         case 15: return std::string_view{"その他の津波の高さ", 27};
         default: return std::nullopt;

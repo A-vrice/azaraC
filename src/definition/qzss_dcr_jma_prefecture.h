@@ -1,6 +1,6 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.16.4 with CI-CD
-// Source module : qzss_dcr_jma_prefecture
+// AUTO-GENERATED from azarashi 0.17.0 with CI-CD
+// Source module : azarashi.definitions.qzss.dcr.prefecture
 // Variable      : qzss_dcr_jma_prefecture
 // Entries       : 47
 // Strategy      : array
@@ -23,7 +23,7 @@
 namespace azaraC {
 namespace def {
 
-#if (AZARAC_ENABLE_SEISMIC || AZARAC_ENABLE_DCX_CAMF)
+#if (AZARAC_ENABLE_SEISMIC || AZARAC_ENABLE_DCX_CAMF) && (AZARAC_LANG_JA)
 
 inline constexpr uint8_t QZSS_DCR_JMA_PREFECTURE_BASE = 1;
 inline constexpr uint8_t QZSS_DCR_JMA_PREFECTURE_SIZE = 47;

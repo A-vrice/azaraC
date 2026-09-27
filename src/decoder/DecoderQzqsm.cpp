@@ -1,11 +1,11 @@
-// MT=43 QZQSM / DC Report decoder (IS-QZSS-DCR-016)
+// MT=43 QZQSM / DC Report decoder (IS-QZSS-DCR-017)
 
 #include "Decoder.h"
 
 namespace azaraC {
 namespace internal {
 
-// MT=43 QZQSM / DC Report (IS-QZSS-DCR-016)
+// MT=43 QZQSM / DC Report (IS-QZSS-DCR-017)
 // Outer frame layout (offsets 0-indexed from preamble):
 //   [14..16]  report_classification (3b)
 //   [17..20]  disaster_category     (4b)
@@ -16,7 +16,7 @@ namespace internal {
 //   [41..42]  information_type      (2b)
 //   [43..46]  reserved / sub-type start
 //   [214..219] version (6b) — must be 1
-// Sub-type layouts per IS-QZSS-DCR-016 §4.1.2.3.
+// Sub-type layouts per IS-QZSS-DCR-017 §4.1.2.3.
 // Single authoritative category table: X(code, enable_macro, sub_decoder) drives
 // the support check, known-category classification, and dispatch in decodeQzqsm().
 // Change categories here only.
@@ -244,7 +244,7 @@ void Decoder::decodeTsunami(const uint8_t* b, Message& out, uint32_t report_unix
     tsunami->count = 0;
     for (uint8_t i = 0; i < 5; ++i) {
         uint16_t off = 84 + i * 26;
-        // IS-QZSS-DCR-016 Figure 4.1.2-5, Table 4.1.2-21:
+        // IS-QZSS-DCR-017 Figure 4.1.2-5, Table 4.1.2-21:
         //   Ta(12): Expected Tsunami Arrival Time
         //   Th(4):  Tsunami Height
         //   Pl(10): Tsunami Forecast Region (100–1000)
@@ -278,7 +278,7 @@ void Decoder::decodeNwPacTsu(const uint8_t* b, Message& out, uint32_t report_uni
     nw_pac->count = 0;
     for (uint8_t i = 0; i < 5; ++i) {
         uint16_t off = 56 + i * 28;
-        // IS-QZSS-DCR-016 Figure 4.1.2-6, Table 4.1.2-26:
+        // IS-QZSS-DCR-017 Figure 4.1.2-6, Table 4.1.2-26:
         //   Ta(12): Expected Tsunami Arrival Time
         //   Th(9):  Tsunami Height (Table 4.1.2-27a)
         //   Pl(7):  Coastal Region (Table 4.1.2-28, 1–100)
@@ -433,7 +433,7 @@ void Decoder::decodeMarine(const uint8_t* b, Message& out, uint32_t report_unix)
 
 #if (AZARAC_ENABLE_TYPHOON)
 // Typhoon  (disaster_category == 12)
-// IS-QZSS-DCR-016 Table 4.1.2-47
+// IS-QZSS-DCR-017 Table 4.1.2-47
 // Bit layout (from preamble):
 //   [53..68]  Bt  Reference Time (day(5)+hour(5)+min(6))
 //   [69..71]  Dt  Type of Reference Time (3 bits)

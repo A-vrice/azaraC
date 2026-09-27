@@ -1,6 +1,6 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.16.4 with CI-CD
-// Source module : qzss_dcr_satellite_prn
+// AUTO-GENERATED from azarashi 0.17.0 with CI-CD
+// Source module : azarashi.definitions.qzss.l1s
 // Variable      : qzss_dcr_satellite_prn
 // Entries       : 5
 // Strategy      : switch

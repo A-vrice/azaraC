@@ -1,6 +1,6 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.16.4 with CI-CD
-// Source module : qzss_dcr_jma_report_classification
+// AUTO-GENERATED from azarashi 0.17.0 with CI-CD
+// Source module : azarashi.definitions.qzss.dcr.report_classification
 // Variable      : qzss_dcr_jma_report_classification_en
 // Entries       : 4
 // Strategy      : switch

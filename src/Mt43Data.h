@@ -1,6 +1,6 @@
 #pragma once
 // MT=43 (QZQSM/DCR) data structures and tagged union
-// Bit offsets derived from azarashi (IS-QZSS-DCR-016)
+// Bit offsets derived from azarashi (IS-QZSS-DCR-017)
 //
 // CONTRACT: every payload type (EewData, …, MarineData) MUST stay trivially
 // copyable/destructible (scalars, fixed arrays, POD only, no owning

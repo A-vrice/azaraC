@@ -33,6 +33,7 @@ coverage.xml
 .agents/
 plans/
 .plans
+.pl/
 .omp/
 realdata/
 qzss-specs/

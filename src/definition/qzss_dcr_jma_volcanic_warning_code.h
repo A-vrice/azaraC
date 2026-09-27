@@ -1,6 +1,6 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.16.4 with CI-CD
-// Source module : qzss_dcr_jma_volcanic_warning_code
+// AUTO-GENERATED from azarashi 0.17.0 with CI-CD
+// Source module : azarashi.definitions.qzss.dcr.volcanic_warning_code
 // Variable      : qzss_dcr_jma_volcanic_warning_code
 // Entries       : 15
 // Strategy      : binary_search
@@ -23,7 +23,7 @@
 namespace azaraC {
 namespace def {
 
-#if (AZARAC_ENABLE_VOLCANO)
+#if (AZARAC_ENABLE_VOLCANO) && (AZARAC_LANG_JA)
 
 #if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_VOLCANIC_WARNING_CODE_POOL[] = "レベル1(活火山であることに留意)\000レベル2(火口周辺規制)\000レベル3(入山規制)\000レベル4(高齢者等避難)\000レベル5(避難)\000活火山であることに留意\000火口周辺危険\000入山危険\000山麓厳重警戒\000居住地域厳重警戒\000活火山であることに留意(海底火山)\000周辺海域警戒\000噴火\000噴火したもよう\000その他の防災気象情報要素\000";
