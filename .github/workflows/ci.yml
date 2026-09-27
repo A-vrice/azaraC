@@ -47,6 +47,9 @@ jobs:
       - name: Build & run (reduced page budget, AZARAC_NANKAI_MAX_PAGES=8)
         run: make -C test run-small-pages
 
+      - name: Build & run (JA-only and EN-only language configs)
+        run: make -C test run-lang-defaults
+
   # ── ファジングテスト ────────────────────────────────────────────────────
   fuzz-test:
     name: Fuzz testing

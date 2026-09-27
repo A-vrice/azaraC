@@ -76,6 +76,7 @@ bool Decoder::decodeQzqsm(const uint8_t* bits, Message& out, uint32_t report_uni
     d->report_classification = getBits(bits, 14,  3);
     d->disaster_category     = dc_probe;
     d->information_type      = getBits(bits, 41,  2);
+    d->version               = ver;
 
     // report_time: month(4b)+day(5b)+hour(5b)+min(6b) at bit 21
     uint8_t  rt_month  = getBits(bits, 21, 4);

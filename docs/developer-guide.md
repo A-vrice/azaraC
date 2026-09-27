@@ -178,3 +178,4 @@ AVR ツールチェーン（avr-gcc）は libstdc++ を一切含まないため�
 
 - [API リファレンス](api-reference.md)
 - [アーキテクチャドキュメント](architecture.md)
+- [JSON 出力仕様の対照表](json-formats.md) — azarashi との差、落ちる情報、互換方針

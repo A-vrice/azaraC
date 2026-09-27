@@ -15,6 +15,25 @@ static bool has(const std::string& s, const char* sub) {
     return s.find(sub) != std::string::npos;
 }
 
+static bool has(const std::string& s, const std::string& sub) {
+    return s.find(sub) != std::string::npos;
+}
+
+// ラベルはビルド時に選んだ言語で出力される。これらのテストが検証するのは
+// コード→ラベルの対応（S1-lookup 回帰）なので、言語ごとの期待値を持たせて
+// どの構成でも意味を保つ。
+#if AZARAC_LANG_JA
+#  define LBL(ja, en) ja
+#elif AZARAC_LANG_EN
+#  define LBL(ja, en) en
+#else
+#  define LBL(ja, en) ""
+#endif
+
+static bool hasLabel(const std::string& s, const char* key, const char* value) {
+    return s.find(std::string("\"") + key + "\":\"" + value + "\"") != std::string::npos;
+}
+
 // JSON文字列中で "key":value が正しい境界で存在することを検証
 // value の直後が , } または文字列終端であることを確認
 static bool hasField(const std::string& s, const std::string& key_val) {
@@ -297,17 +316,92 @@ TEST_CASE("JSON Serialization: MT=43 EEW") {
 
     CHECK(hasField(s,"\"disaster_category\":1"));
     // S1-lookup regression: disaster_category は疎キー(binary_search)テーブル
-    CHECK(hasField(s,"\"disaster_category_label\":\"緊急地震速報\""));
+    CHECK(hasLabel(s, "disaster_category_label", LBL("緊急地震速報", "Earthquake Early Warning")));
     // S1-lookup regression: seismic_intensity_lower/upper_limit の疎キーテーブル
-    CHECK(hasField(s,"\"intensity_lower_label\":\"震度4\""));
-    CHECK(hasField(s,"\"intensity_upper_label\":\"震度5弱\""));
+    CHECK(hasLabel(s, "intensity_lower_label", LBL("震度4", "Seismic intensity of 4")));
+    CHECK(hasLabel(s, "intensity_upper_label", LBL("震度5弱", "Seismic intensity of 5-lower")));
     // S1-lookup regression: eew_forecast_region の疎キーテーブル (code 1 → 北海道道央)
-    CHECK(hasField(s,"\"code\":1,\"label\":\"北海道道央\""));
+    CHECK(has(s, std::string("\"code\":1,\"label\":\"") + LBL("北海道道央", "Central Area of Hokkaido (Do'o)") + "\""));
     CHECK(has(s,"\"detail\":{"));
     CHECK(hasField(s,"\"depth\":60"));
     CHECK(hasField(s,"\"magnitude\":65"));
+    CHECK(hasLabel(s, "depth_label", LBL("60km", "60 km")));
+    CHECK(hasLabel(s, "magnitude_label", LBL("6.5", "6.5")));
     CHECK(has(s,"\"regions\":["));
 }
+#endif // AZARAC_ENABLE_EEW
+
+// _label_en は _label と別言語のラベルを併記する。両言語 ON のときだけ出る。
+// AZARAC_LANG_EN 単独でガードすると JA=0/EN=1 でも走り、その構成では
+// _label が EN になるため JA 前提の期待値が成立しない。
+#if (AZARAC_ENABLE_EEW) && (AZARAC_LANG_JA) && (AZARAC_LANG_EN)
+TEST_CASE("JSON Serialization: label_en is emitted when both languages are on") {
+    Message m{};
+    initMt43As(m, 1);                    // EEW
+    Mt43Data* mt43 = m.getMt43();
+    REQUIRE(mt43 != nullptr);
+    EewData* eew = mt43->getEew();
+    REQUIRE(eew != nullptr);
+    eew->depth = 60;
+    eew->magnitude = 65;
+
+    StringPrint sp;
+    internal::JsonSerializer::serialize(m, sp);
+    const auto& s = sp.str();
+
+    // _label は JA、_label_en は EN（併記）
+    CHECK(hasLabel(s, "depth_label", "60km"));
+    CHECK(hasLabel(s, "depth_label_en", "60 km"));
+    CHECK(hasLabel(s, "magnitude_label", "6.5"));
+    CHECK(hasLabel(s, "magnitude_label_en", "6.5"));
+}
+#endif // AZARAC_ENABLE_EEW && AZARAC_LANG_JA && AZARAC_LANG_EN
+
+// 数量コードの境界値とセンチネルがラベルとして可視化されること（本作業の目的）。
+// 501/101 は「境界超過」、511/127 は「不明」で、生コード値だけでは利用者が判別できない。
+#if (AZARAC_ENABLE_EEW)
+// 両言語とも無効な構成では LBL が "" を返し、hasLabel(..., "") が常に真になる
+// （空振り通過）。その構成ではラベル自体が出力されないため検証対象が無く、
+// テストごとコンパイルしない。
+#if (AZARAC_LANG_JA) || (AZARAC_LANG_EN)
+TEST_CASE("JSON Serialization: quantity labels expose bounds and sentinels") {
+    Message m{};
+    initMt43As(m, 1);                    // EEW
+    Mt43Data* mt43 = m.getMt43();
+    REQUIRE(mt43 != nullptr);
+    EewData* eew = mt43->getEew();
+    REQUIRE(eew != nullptr);
+
+    eew->depth = 501;      // 500km より深い（境界）
+    eew->magnitude = 101;  // 10.0 より大きい（境界）
+    StringPrint sp1;
+    internal::JsonSerializer::serialize(m, sp1);
+    CHECK(hasLabel(sp1.str(), "depth_label", LBL("500kmより深い", "Deeper than 500 km")));
+    CHECK(hasLabel(sp1.str(), "magnitude_label", LBL("10.0より大きい", "Over 10.0")));
+    // ラベルが空振りしていないことを生コード側でも押さえる
+    CHECK(hasField(sp1.str(), "\"depth\":501"));
+    CHECK(hasField(sp1.str(), "\"magnitude\":101"));
+
+    eew->depth = 511;      // 不明（センチネル）
+    eew->magnitude = 127;  // 不明（センチネル）
+    StringPrint sp2;
+    internal::JsonSerializer::serialize(m, sp2);
+    CHECK(hasLabel(sp2.str(), "depth_label", LBL("不明", "Unknown")));
+    CHECK(hasLabel(sp2.str(), "magnitude_label", LBL("不明", "Unknown")));
+    CHECK(hasField(sp2.str(), "\"depth\":511"));
+    CHECK(hasField(sp2.str(), "\"magnitude\":127"));
+
+#if (AZARAC_LANG_JA) && (AZARAC_LANG_EN)
+    // 併記される英語ラベルも境界/センチネルを反映すること
+    eew->depth = 501;
+    eew->magnitude = 127;
+    StringPrint sp3;
+    internal::JsonSerializer::serialize(m, sp3);
+    CHECK(hasLabel(sp3.str(), "depth_label_en", "Deeper than 500 km"));
+    CHECK(hasLabel(sp3.str(), "magnitude_label_en", "Unknown"));
+#endif
+}
+#endif // (AZARAC_LANG_JA) || (AZARAC_LANG_EN)
 #endif // AZARAC_ENABLE_EEW
 
 #if (AZARAC_ENABLE_SEISMIC)
@@ -329,12 +423,12 @@ TEST_CASE("JSON Serialization: MT=43 Seismic Intensity") {
     const auto& s = sp.str();
 
     CHECK(hasField(s,"\"disaster_category\":3"));
-    CHECK(hasField(s,"\"disaster_category_label\":\"震度\""));
+    CHECK(hasLabel(s, "disaster_category_label", LBL("震度", "Seismic Intensity")));
     CHECK(has(s,"\"entries\":["));
     CHECK(hasField(s,"\"intensity\":4"));
-    CHECK(hasField(s,"\"intensity_label\":\"5強\""));
+    CHECK(hasLabel(s, "intensity_label", LBL("5強", "5-upper")));
     CHECK(hasField(s,"\"prefecture\":13"));
-    CHECK(hasField(s,"\"prefecture_label\":\"東京都\""));
+    CHECK(hasLabel(s, "prefecture_label", LBL("東京都", "Tokyo Metropolis")));
 }
 #endif // AZARAC_ENABLE_SEISMIC
 
@@ -359,15 +453,50 @@ TEST_CASE("JSON Serialization: MT=43 Hypocenter") {
     const auto& s = sp.str();
 
     CHECK(hasField(s, "\"disaster_category\":2"));
-    CHECK(hasField(s, "\"disaster_category_label\":\"震源\""));
+    CHECK(hasLabel(s, "disaster_category_label", LBL("震源", "Hypocenter")));
     CHECK(has(s, "\"detail\":{"));
     CHECK(hasField(s, "\"depth\":40"));
     CHECK(hasField(s, "\"magnitude\":64"));
+    CHECK(hasLabel(s, "depth_label", LBL("40km", "40 km")));
+    CHECK(hasLabel(s, "magnitude_label", LBL("6.4", "6.4")));
     CHECK(hasField(s, "\"epicenter\":791"));
-    CHECK(hasField(s, "\"epicenter_label\":\"日向灘\""));
+    CHECK(hasLabel(s, "epicenter_label", LBL("日向灘", "Hyuganada Sea")));
     CHECK(has(s, "\"notifications\":["));
-    CHECK(hasField(s, "\"code\":201,\"label\":\"強い揺れに警戒してください。\""));
+    CHECK(has(s, std::string("\"code\":201,\"label\":\"") + LBL("強い揺れに警戒してください。", "Watch out for strong tremors.") + "\""));
 }
+
+#if (AZARAC_LANG_JA) || (AZARAC_LANG_EN)
+TEST_CASE("JSON Serialization: hypocenter quantity labels expose bounds and sentinels") {
+    Message m{};
+    initMt43As(m, 2);
+    Mt43Data* mt43 = m.getMt43();
+    REQUIRE(mt43 != nullptr);
+    HypocenterData* hypo = mt43->getHypocenter();
+    REQUIRE(hypo != nullptr);
+    hypo->epicenter = 791;   // 既存テストと同じ値。epicenter_label を非空に保つ
+
+    // depth は EEW と同じ depth_of_hypocenter テーブル。実ガードは
+    // (EEW || HYPOCENTER || NW_PAC_TSUNAMI) なので、EEW=0 構成でも
+    // Hypocenter 側で境界とセンチネルを検証できる。
+    hypo->depth = 501;       // 500km より深い
+    hypo->magnitude = 126;   // 不明(8.0より大きい) — Hypocenter 専用の境界マーカー
+    StringPrint sp1;
+    internal::JsonSerializer::serialize(m, sp1);
+    CHECK(hasField(sp1.str(), "\"depth\":501"));
+    CHECK(hasLabel(sp1.str(), "depth_label", LBL("500kmより深い", "Deeper than 500 km")));
+    CHECK(hasField(sp1.str(), "\"magnitude\":126"));
+    CHECK(hasLabel(sp1.str(), "magnitude_label", LBL("不明(8.0より大きい)", "Unknown (Over 8.0)")));
+
+    hypo->depth = 511;       // 不明
+    hypo->magnitude = 127;   // 不明
+    StringPrint sp2;
+    internal::JsonSerializer::serialize(m, sp2);
+    CHECK(hasField(sp2.str(), "\"depth\":511"));
+    CHECK(hasLabel(sp2.str(), "depth_label", LBL("不明", "Unknown")));
+    CHECK(hasField(sp2.str(), "\"magnitude\":127"));
+    CHECK(hasLabel(sp2.str(), "magnitude_label", LBL("不明", "Unknown")));
+}
+#endif // (AZARAC_LANG_JA) || (AZARAC_LANG_EN)
 #endif // AZARAC_ENABLE_HYPOCENTER
 
 #if (AZARAC_ENABLE_TSUNAMI)
@@ -392,14 +521,14 @@ TEST_CASE("JSON Serialization: MT=43 Tsunami") {
     const auto& s = sp.str();
 
     CHECK(hasField(s, "\"disaster_category\":5"));
-    CHECK(hasField(s, "\"disaster_category_label\":\"津波\""));
+    CHECK(hasLabel(s, "disaster_category_label", LBL("津波", "Tsunami")));
     CHECK(has(s, "\"detail\":{"));
     CHECK(hasField(s, "\"warning_code\":3"));
-    CHECK(hasField(s, "\"warning_code_label\":\"津波警報\""));
+    CHECK(hasLabel(s, "warning_code_label", LBL("津波警報", "Tsunami Warning")));
     CHECK(has(s, "\"entries\":["));
     CHECK(hasField(s, "\"region\":65"));
     CHECK(hasField(s, "\"height\":4"));
-    CHECK(hasField(s, "\"height_label\":\"5m\""));
+    CHECK(hasLabel(s, "height_label", LBL("5m", "5 m")));
 }
 #endif // AZARAC_ENABLE_TSUNAMI
 
@@ -426,7 +555,7 @@ TEST_CASE("JSON Serialization: MT=43 Nankai Trough") {
     const auto& s = sp.str();
 
     CHECK(hasField(s, "\"disaster_category\":4"));
-    CHECK(hasField(s, "\"disaster_category_label\":\"南海トラフ地震\""));
+    CHECK(hasLabel(s, "disaster_category_label", LBL("南海トラフ地震", "Nankai Trough Earthquake")));
     CHECK(has(s, "\"detail\":{"));
     CHECK(hasField(s, "\"info_code\":1"));
     CHECK(hasField(s, "\"info_code_label\":\"調査中A（監視領域内でマグニチュード6.8以上の地震が発生したことにより、臨時に「南海トラフ沿いの地震に関する評価検討会」を開催）\""));
@@ -455,7 +584,7 @@ TEST_CASE("JSON Serialization: MT=43 NW Pacific Tsunami") {
     const auto& s = sp.str();
 
     CHECK(hasField(s, "\"disaster_category\":6"));
-    CHECK(hasField(s, "\"disaster_category_label\":\"北西太平洋津波\""));
+    CHECK(hasLabel(s, "disaster_category_label", LBL("北西太平洋津波", "Northwest Pacific Tsunami")));
     CHECK(has(s, "\"detail\":{"));
     CHECK(hasField(s, "\"potential\":2"));
     CHECK(hasField(s, "\"potential_label\":\"There is a Possibility of a Destructive Regional Tsunami\""));
@@ -478,7 +607,7 @@ TEST_CASE("JSON Serialization: MT=43 Volcano") {
 
     vol->warning_code = 52;
     vol->volcano_name = 503;
-    vol->ambiguity = 0;
+    vol->ambiguity = 5;   // 近似時刻（日）— 表に存在するコードで引く
     vol->lg_count = 1;
     vol->local_govs[0] = 4600000;
 
@@ -488,12 +617,16 @@ TEST_CASE("JSON Serialization: MT=43 Volcano") {
 
     CHECK(hasField(s, "\"disaster_category\":8"));
     // S1-lookup regression: dc=8 は火山（修正前は array 戦略で降灰にズレていた）
-    CHECK(hasField(s, "\"disaster_category_label\":\"火山\""));
+    CHECK(hasLabel(s, "disaster_category_label", LBL("火山", "Volcano")));
     CHECK(has(s, "\"detail\":{"));
+    // 言語非依存表（JA 兄弟なし）なので _label_en は出ず、常に同じ英語ラベル
+    CHECK(hasField(s, "\"ambiguity\":5"));
+    CHECK(hasField(s, "\"ambiguity_label\":\"Approximate time (day)\""));
+    CHECK_FALSE(has(s, "ambiguity_label_en"));
     CHECK(hasField(s, "\"warning_code\":52"));
-    CHECK(hasField(s, "\"warning_code_label\":\"噴火\""));
+    CHECK(hasLabel(s, "warning_code_label", LBL("噴火", "Volcanic eruptions")));
     CHECK(hasField(s, "\"volcano_name\":503"));
-    CHECK(hasField(s, "\"volcano_name_label\":\"阿蘇山\""));
+    CHECK(hasLabel(s, "volcano_name_label", LBL("阿蘇山", "Asosan")));
     CHECK(has(s, "\"local_govs\":["));
 }
 #endif // AZARAC_ENABLE_VOLCANO
@@ -523,14 +656,14 @@ TEST_CASE("JSON Serialization: MT=43 Ash Fall") {
     const auto& s = sp.str();
 
     CHECK(hasField(s, "\"disaster_category\":9"));
-    CHECK(hasField(s, "\"disaster_category_label\":\"降灰\""));
+    CHECK(hasLabel(s, "disaster_category_label", LBL("降灰", "Ash Fall")));
     CHECK(has(s, "\"detail\":{"));
     CHECK(hasField(s, "\"warning_type\":1"));
-    CHECK(hasField(s, "\"warning_type_label\":\"速報\""));
+    CHECK(hasLabel(s, "warning_type_label", LBL("速報", "Preliminary")));
     CHECK(hasField(s, "\"volcano_name\":503"));
-    CHECK(hasField(s, "\"volcano_name_label\":\"阿蘇山\""));
+    CHECK(hasLabel(s, "volcano_name_label", LBL("阿蘇山", "Asosan")));
     CHECK(has(s, "\"entries\":["));
-    CHECK(hasField(s, "\"warning_code\":2,\"warning_code_label\":\"やや多量の降灰\""));
+    CHECK(has(s, std::string("\"warning_code\":2,\"warning_code_label\":\"") + LBL("やや多量の降灰", "Moderate ash fall") + "\""));
 }
 #endif // AZARAC_ENABLE_ASH_FALL
 
@@ -558,15 +691,15 @@ TEST_CASE("JSON Serialization: MT=43 Weather") {
     const auto& s = sp.str();
 
     CHECK(hasField(s, "\"disaster_category\":10"));
-    CHECK(hasField(s, "\"disaster_category_label\":\"気象\""));
+    CHECK(hasLabel(s, "disaster_category_label", LBL("気象", "Weather")));
     CHECK(has(s, "\"detail\":{"));
     CHECK(hasField(s, "\"warning_state\":1"));
-    CHECK(hasField(s, "\"warning_state_label\":\"発表\""));
+    CHECK(hasLabel(s, "warning_state_label", LBL("発表", "Announcement")));
     CHECK(has(s, "\"entries\":["));
     CHECK(hasField(s, "\"sub_category\":2"));
-    CHECK(hasField(s, "\"sub_category_label\":\"大雨特別警報\""));
+    CHECK(hasLabel(s, "sub_category_label", LBL("大雨特別警報", "Heavy Rain Emergency Warning")));
     CHECK(hasField(s, "\"region\":11000"));
-    CHECK(hasField(s, "\"region_label\":\"宗谷地方\""));
+    CHECK(hasLabel(s, "region_label", LBL("宗谷地方", "Soya Region")));
 }
 #endif // AZARAC_ENABLE_WEATHER
 
@@ -591,11 +724,11 @@ TEST_CASE("JSON Serialization: MT=43 Flood") {
     const auto& s = sp.str();
 
     CHECK(hasField(s, "\"disaster_category\":11"));
-    CHECK(hasField(s, "\"disaster_category_label\":\"洪水\""));
+    CHECK(hasLabel(s, "disaster_category_label", LBL("洪水", "Flood")));
     CHECK(has(s, "\"detail\":{"));
     CHECK(has(s, "\"entries\":["));
     CHECK(hasField(s, "\"warning_level\":3"));
-    CHECK(hasField(s, "\"warning_level_label\":\"氾濫危険情報\""));
+    CHECK(hasLabel(s, "warning_level_label", LBL("氾濫危険情報", "Information on potential flood hazards")));
 }
 #endif // AZARAC_ENABLE_FLOOD
 
@@ -615,6 +748,7 @@ TEST_CASE("JSON Serialization: MT=43 Typhoon") {
     typh->pressure = 980;
     typh->max_wind = 35;
     typh->max_gust = 50;
+    typh->elapsed = 24;
     typh->coords.lat_ns = 0;
     typh->coords.lat_deg = 25;
     typh->coords.lon_ew = 0;
@@ -625,15 +759,30 @@ TEST_CASE("JSON Serialization: MT=43 Typhoon") {
     const auto& s = sp.str();
 
     CHECK(hasField(s, "\"disaster_category\":12"));
-    CHECK(hasField(s, "\"disaster_category_label\":\"台風\""));
+    CHECK(hasLabel(s, "disaster_category_label", LBL("台風", "Typhoon")));
     CHECK(has(s, "\"detail\":{"));
     CHECK(hasField(s, "\"number\":21"));
+    CHECK(hasLabel(s, "number_label", LBL("21号", "No. 21")));
     CHECK(hasField(s, "\"scale\":3"));
     CHECK(hasField(s, "\"intensity\":2"));
-    CHECK(hasField(s, "\"intensity_label\":\"非常に強い\""));
+    CHECK(hasLabel(s, "intensity_label", LBL("非常に強い", "Very Strong")));
     CHECK(hasField(s, "\"pressure\":980"));
+    CHECK(hasLabel(s, "pressure_label", LBL("980hPa", "980 hPa")));
     CHECK(hasField(s, "\"max_wind\":35"));
+    CHECK(hasLabel(s, "max_wind_label", LBL("35m/s", "35 m/s")));
     CHECK(hasField(s, "\"max_gust\":50"));
+    CHECK(hasLabel(s, "max_gust_label", LBL("50m/s", "50 m/s")));
+    CHECK(hasField(s, "\"elapsed\":24"));
+    CHECK(hasLabel(s, "elapsed_label", LBL("24時間後", "24 hours ahead")));
+
+#if (AZARAC_LANG_JA) || (AZARAC_LANG_EN)
+    // max_gust 0 は「突風なし/不明」のセンチネル。生コード 0 では意味が取れない
+    typh->max_gust = 0;
+    StringPrint sp0;
+    internal::JsonSerializer::serialize(m, sp0);
+    CHECK(hasField(sp0.str(), "\"max_gust\":0"));
+    CHECK(hasLabel(sp0.str(), "max_gust_label", LBL("不明", "Unknown")));
+#endif
 }
 #endif // AZARAC_ENABLE_TYPHOON
 
@@ -659,14 +808,14 @@ TEST_CASE("JSON Serialization: MT=43 Marine") {
 
     CHECK(hasField(s, "\"disaster_category\":14"));
     // S1-lookup regression: dc=14 は海上（修正前は array 戦略で out-of-bounds→空）
-    CHECK(hasField(s, "\"disaster_category_label\":\"海上\""));
+    CHECK(hasLabel(s, "disaster_category_label", LBL("海上", "Marine")));
     CHECK(has(s, "\"detail\":{"));
     CHECK(has(s, "\"entries\":["));
     CHECK(hasField(s, "\"warning_code\":19"));
     CHECK(hasField(s, "\"region\":100"));
     // 疎キー negative: marine warning code 19 は未定義→空(""), 20 → 海上風警報
     CHECK(hasField(s, "\"warning_code\":19,\"warning_code_label\":\"\""));
-    CHECK(hasField(s, "\"warning_code\":20,\"warning_code_label\":\"海上風警報\""));
+    CHECK(has(s, std::string("\"warning_code\":20,\"warning_code_label\":\"") + LBL("海上風警報", "Wind Warning") + "\""));
 }
 #endif // AZARAC_ENABLE_MARINE
 
@@ -1022,7 +1171,7 @@ TEST_CASE("JSON Serialization: a11 empty label is present, not absent") {
     mt44->camf.a6 = 1; mt44->camf.a7 = 1; mt44->camf.a8 = 1;
     mt44->camf.a9 = 0;   // Japanese library -> a11_japanese_library_ja
     mt44->camf.a10 = 1;
-    mt44->camf.a11 = 0;  // 空文字列として定義されている
+    mt44->camf.a11 = 0;  // JA: 定義済みの空文字列 / EN: "No instruction" (azarashi 0.17)
     mt44->ex_lalert_local.ex1 = 1100;
     mt44->ex_lalert_local.vn = 1;
     mt44->sd.sdmt = 0; mt44->sd.sdm = 0x1FF;
@@ -1031,7 +1180,8 @@ TEST_CASE("JSON Serialization: a11 empty label is present, not absent") {
     internal::JsonSerializer::serialize(m, sp);
     const auto& s = sp.str();
 
-    CHECK(hasField(s, "\"a11_guidance_label\":\"\""));
+    // 定義済みのラベルは "null" にならない（欠落と空文字列の区別）
+    CHECK(hasField(s, std::string("\"a11_guidance_label\":\"") + LBL("", "No instruction") + "\""));
     CHECK(s.find("\"a11_guidance_label\":null") == std::string::npos);
 }
 #endif // AZARAC_ENABLE_DCX_CAMF

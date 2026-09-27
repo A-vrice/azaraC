@@ -400,9 +400,61 @@ if (client.connect(server, port)) {
 | `AZARAC_LANG_JA` | 1 | 日本語ラベルを有効化 |
 | `AZARAC_LANG_EN` | 0 | 英語ラベルを有効化 |
 
+両方 1 のときは日本語を優先し、そのコードに日本語が無ければ英語を使う。
+`AZARAC_LANG_JA=0 / AZARAC_LANG_EN=1` では英語ラベルを出力する。
+英語表を持たない項目（例: 南海トラフの情報番号）は日本語のままになる。
+どちらも 0 のときは原則ラベルを出力しない。欠落時の値は表の戻り値型で変わる — `std::optional` を返す表は `""`、`const char*` を返す表は `null`（この非対称は `f8cc09d` で導入）。ただし言語非依存表（北西太平洋津波の 3 表など）は値があれば 0/0 でも解決して返す。
+
+英語ラベルは azarashi 0.17.0 以降の定義テーブルに由来する。
+`AZARAC_LANG_EN` で有効になるのは `_en` という接尾辞のヘッダで、
+対応する日本語表と対で生成される。
+
+逆に**日本語版を持たない英語専用表**（北西太平洋津波の `potential` /
+`height` / `region`）は言語非依存で、`AZARAC_LANG_EN` に関係なく常に出力される。
+仕様自体が英語で日本語版が存在しないため、これらを `AZARAC_LANG_EN` で
+ガードすると、既定構成（`AZARAC_LANG_JA=1 / AZARAC_LANG_EN=0`）でラベルが
+全滅する。同じ扱いの表が CAMF に多数ある（定義テーブルの `_en` は
+「対応する JA 表があるものだけ」が言語切替の対象）。
+
+**両方 1 のときの併記**: `AZARAC_LANG_JA=1` かつ `AZARAC_LANG_EN=1` のとき、
+文字列リテラルのキーを持つ `_label` フィールドには `_label_en` が併記される。
+`_label` は従来どおり日本語優先（無ければ英語）、`_label_en` は常に英語。
+
+```json
+{ "depth": 60, "depth_label": "60km", "depth_label_en": "60 km" }
+```
+
+配列要素のラベル（`notifications[].label` / `regions[].region_label` /
+`prefecture_labels[]` / `city_labels[]`）は `_label_en` を持たない。これらは
+汎用キーで要素ごとにコード体系が異なるため、`label_en` という固定キー名では
+並記しても意味が通らない。要素ごとに言語を選びたい場合は
+`AZARAC_LANG_JA=0 / AZARAC_LANG_EN=1` 構成を使う。
+
+数量フィールド（`depth` / `magnitude` / `pressure` / `max_wind` / `max_gust` /
+`elapsed` / `number`）にも `_label` / `_label_en` が付く。生のコード値だけでは
+意味が取れない値を含む:
+
+| コード | ラベル | 意味 |
+|---|---|---|
+| `depth` 501 | `500kmより深い` / `Deeper than 500 km` | 範囲の境界 |
+| `magnitude` 101 | `10.0より大きい` / `Over 10.0` | 範囲の境界 |
+| `magnitude` 126（震源情報のみ） | `不明(8.0より大きい)` / `Unknown (Over 8.0)` | 範囲の境界 |
+| `depth` 511 / `magnitude` 127 | `不明` / `Unknown` | センチネル |
+| `max_wind` 0 / `max_gust` 0 | `不明` / `Unknown` | センチネル |
+
+センチネルは全フィールド共通ではない。`depth` 0 は `0km`、`pressure` 0 は `0hPa`、
+`elapsed` 0 は `0時間後` で、それぞれ実値として意味を持つ。`number` 0 は定義表に
+エントリが無く `""` になる。
+
+`AZARAC_LANG_EN=0`（ライブラリ既定）では `_label_en` は出力されず、
+`AZARAC_LANG_JA=0 / AZARAC_LANG_EN=1` でも `_label` 自体が英語になるため
+併記しない。つまり既定構成の出力は本機能の追加前と変わらない。
+
 ### 災害カテゴリ選択
 
 不要なカテゴリの定義テーブルをコンパイル時に除外しFlash使用量を削減できます。
+日本語表と英語表は同じデータなので、**カテゴリを無効にすると両方が同時に除外されます**
+（`AZARAC_LANG_EN` だけの英語専用表も含む）。
 
 | マクロ | デフォルト | 説明 |
 |-------|-----------|------|

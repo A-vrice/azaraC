@@ -37,6 +37,23 @@
 #define AZARAC_LOOKUP_LANG(func_ja, func_en, id) std::nullopt
 #endif
 
+// ラベルを 1 本書き、両言語 ON のときだけ _label_en を併記する。
+// それ以外の構成では従来どおり 1 本だけ出す（出力は現状と同一）。
+// _label は必ず AZARAC_LOOKUP_LANG を経由する: func_ja を直に呼ぶと
+// AZARAC_LANG_JA=0 のビルドで JA テーブルがコンパイル除外され、
+// _label が空文字列になって EN の内容が失われる。
+// key は文字列リテラルに限る（key "_en" を連結するため）。
+#if AZARAC_LANG_JA && AZARAC_LANG_EN
+#define AZARAC_LABEL(out, key, func_ja, func_en, id, last) \
+    do { \
+        wf_s(out, key, AZARAC_LOOKUP_LANG(func_ja, func_en, id), /*last=*/false); \
+        wf_s(out, key "_en", func_en(id), /*last=*/last); \
+    } while (0)
+#else
+#define AZARAC_LABEL(out, key, func_ja, func_en, id, last) \
+    wf_s(out, key, AZARAC_LOOKUP_LANG(func_ja, func_en, id), /*last=*/last)
+#endif
+
 namespace azaraC {
 namespace internal {
 

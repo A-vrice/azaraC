@@ -62,6 +62,7 @@ TEST_SRCS = \
 	internal/test_definition_labels.cpp \
 	json/test_json.cpp \
 	json/test_json_dcx_b1b4.cpp \
+	json/test_json_wellformed.cpp \
 	integration/test_parser.cpp \
 	integration/test_parser_integration.cpp \
 	integration/test_nankai.cpp \
@@ -96,7 +97,7 @@ OBJS = $(TEST_OBJS) $(LIB_OBJS)
 # VPATH for library sources
 VPATH = ../src:../src/decoder:../src/framer:../src/json:../src/internal
 
-.PHONY: all clean run run-small-pages fuzz decode compare-realdata check check-xml check-strict-compile coverage memprof pgm-stub
+.PHONY: all clean run run-small-pages run-lang-defaults fuzz decode compare-realdata check check-xml check-strict-compile coverage memprof pgm-stub
 
 all: $(TEST_BIN)
 
@@ -118,6 +119,15 @@ run: all
 # check-strict-compile 後に混在リンクして落ちる。必ず clean する。
 run-small-pages:
 	$(MAKE) -B CXXFLAGS_EXTRA="-DAZARAC_NANKAI_MAX_PAGES=8" run; status=$$?; $(MAKE) clean; exit $$status
+
+# 言語構成の検証。ライブラリ既定は JA=1 / EN=0 で、テスト既定（JA=1 / EN=1）とは
+# 出力が変わる: 日本語版を持たない英語専用表が EN=0 で消える回帰は、テスト既定では
+# 一切現れない（テスト既定では EN 表が生きているため）。両方を回して初めて
+# 「既定構成でラベルが消える」型のバグを検出できる。
+run-lang-defaults:
+	$(MAKE) -B CXXFLAGS_EXTRA="-DAZARAC_LANG_JA=0 -DAZARAC_LANG_EN=1" run; s1=$$?; \
+	$(MAKE) -B CXXFLAGS_EXTRA="-DAZARAC_LANG_JA=1 -DAZARAC_LANG_EN=0" run; s2=$$?; \
+	$(MAKE) clean; [ $$s1 -eq 0 ] && [ $$s2 -eq 0 ]
 
 # Fuzz target — FUZZ_ITERATIONS をargv[1]として渡す (argv[1] > getenv > default)
 FUZZ_BIN = fuzz_decoder

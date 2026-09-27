@@ -85,14 +85,20 @@ void JsonSerializer::serialize(const Message& msg, Print& out) {
         }
         
         wf_u(out, "report_classification", d->report_classification);
-        wf_s(out, "report_classification_label",
-            AZARAC_LOOKUP_LANG(qzss_dcr_jma_report_classification_lookup, qzss_dcr_jma_report_classification_en_lookup, d->report_classification));
+        AZARAC_LABEL(out, "report_classification_label",
+            qzss_dcr_jma_report_classification_lookup,
+            qzss_dcr_jma_report_classification_en_lookup, d->report_classification, false);
         wf_u(out, "disaster_category", d->disaster_category);
-        wf_s(out, "disaster_category_label",
-            AZARAC_LOOKUP_LANG(qzss_dcr_jma_disaster_category_lookup, qzss_dcr_jma_disaster_category_en_lookup, d->disaster_category));
+        AZARAC_LABEL(out, "disaster_category_label",
+            qzss_dcr_jma_disaster_category_lookup,
+            qzss_dcr_jma_disaster_category_en_lookup, d->disaster_category, false);
         wf_u(out, "information_type", d->information_type);
-        wf_s(out, "information_type_label",
-            AZARAC_LOOKUP_LANG(qzss_dcr_jma_information_type_lookup, qzss_dcr_jma_information_type_en_lookup, d->information_type));
+        AZARAC_LABEL(out, "information_type_label",
+            qzss_dcr_jma_information_type_lookup,
+            qzss_dcr_jma_information_type_en_lookup, d->information_type, false);
+        // Vn は仕様上 1 以外を decodeQzqsm が拒否するため、ここでは常に 1。
+        // 「値が無い」と「1 だった」を区別できるよう明示する。
+        wf_u(out, "version", d->version);
         writeDHM(out, "report_time", d->event_time);
         wk(out, "detail"); out.print('{');
 

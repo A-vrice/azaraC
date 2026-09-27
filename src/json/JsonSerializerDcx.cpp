@@ -86,9 +86,9 @@ void serializeDcx(const Message& m, Print& out) {
             qzss_dcx_camf_a11_international_library_lookup(d->camf.a11));
     } else {
         // Japanese library (A9=0)
-        wf_s(out, "a11_guidance_label",
-            AZARAC_LOOKUP_LANG(qzss_dcx_camf_a11_japanese_library_ja_lookup,
-                               qzss_dcx_camf_a11_japanese_library_en_lookup, d->camf.a11));
+        AZARAC_LABEL(out, "a11_guidance_label",
+            qzss_dcx_camf_a11_japanese_library_ja_lookup,
+            qzss_dcx_camf_a11_japanese_library_en_lookup, d->camf.a11, false);
     }
 
     // A17/A18 Specific Settings
@@ -244,8 +244,9 @@ writeDField("d36_typhoon_cat",      b4.d_values[35], b4.d_present[35], qzss_dcx_
     // Extended Message fields
     if (d->ex_kind == ExtendedKind::LAlertOrLocal) {
         wf_u(out, "ex1_target_area", d->ex_lalert_local.ex1);
-        wf_s(out, "ex1_target_area_label",
-            AZARAC_LOOKUP_LANG(qzss_dcx_ex1_target_area_code_ja_lookup, qzss_dcx_ex1_target_area_code_en_lookup, d->ex_lalert_local.ex1));
+        AZARAC_LABEL(out, "ex1_target_area_label",
+            qzss_dcx_ex1_target_area_code_ja_lookup,
+            qzss_dcx_ex1_target_area_code_en_lookup, d->ex_lalert_local.ex1, false);
 
         // Decoded target area code (when main ellipse is absent)
         if (dec.target_area_code_present) {
@@ -289,7 +290,7 @@ writeDField("d36_typhoon_cat",      b4.d_values[35], b4.d_present[35], qzss_dcx_
             for (uint8_t i = 0; i < dec.prefecture_count; ++i) {
                 if (i) writeChar(out, ',');
                 uint8_t pos = dec.prefecture_positions[i];
-                std::optional<std::string_view> label = qzss_dcr_jma_prefecture_lookup(pos);
+                std::optional<std::string_view> label = AZARAC_LOOKUP_LANG(qzss_dcr_jma_prefecture_lookup, qzss_dcr_jma_prefecture_en_lookup, pos);
                 writeOptStr(out, label);
             }
             out.print("],");

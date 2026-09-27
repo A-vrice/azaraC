@@ -3,11 +3,57 @@
 // azarashi v0.16.1 のデコード結果と照合
 
 #include "../test_helpers.h"
+#include "../src/json/JsonSerializer.h"
+#include "../src/internal/PrintShim.h"
 #include "doctest.h"
 #include <cstring>
 #include <string>
 
 using namespace azaraC;
+
+// hasField: value の直後が JSON の区切り文字であることまで見る（境界チェック）。
+// test_json.cpp と同じ流儀。
+static bool hasField(const std::string& s, const std::string& key_val) {
+    auto pos = s.find(key_val);
+    if (pos == std::string::npos) return false;
+    size_t end = pos + key_val.size();
+    return end >= s.size() || s[end] == ',' || s[end] == '}' || s[end] == '\n' || s[end] == ' ';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Vn（Version Number）— 6bit at [214..219]、仕様は 1 を要求
+//
+// decodeQzqsm は Vn != 1 を UnsupportedVersion として拒否する。保持された値は
+// 「フィールドが無い」ではなく「1 だった」ことを示すために出力する。
+// 電文が EEW なので EEW 無効時は decode が通らない（＝検証対象外）。
+// ═══════════════════════════════════════════════════════════════════════════════
+
+#if (AZARAC_ENABLE_EEW)
+TEST_CASE("DCR: version (Vn) is retained on decoded reports") {
+    // Vn=1 の実電文（EEW）。デコードが通る＝1 が検証を通過した証拠。
+    const char* nmea = "$QZQSM,56,C6AF8C542000DB240000A8400548C5E2C000000003DFF8001C000010ADDB5D8*0D";
+    Message msg{};
+    REQUIRE(decodeNmea(nmea, msg));
+    REQUIRE(msg.msg_type == 43);
+
+    const Mt43Data* mt43 = msg.getMt43();
+    REQUIRE(mt43 != nullptr);
+    CHECK(mt43->version == 1);
+
+    // 修正の対象はシリアライザなので、実際の JSON 出力を固定する。
+    // "version":1 の直後は , か } でなければならない（境界まで見る）。
+    StringPrint sp;
+    internal::JsonSerializer::serialize(msg, sp);
+    const std::string& s = sp.str();
+    CHECK(hasField(s, "\"version\":1"));
+}
+#endif // AZARAC_ENABLE_EEW
+
+TEST_CASE("DCR: version defaults to 0 before decode") {
+    // 生の 0 と「Vn=1 を読んだ」が区別できることを固定する。
+    Mt43Data fresh;
+    CHECK(fresh.version == 0);
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Nankai Trough 20メッセージ — test_scenario3
