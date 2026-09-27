@@ -207,4 +207,29 @@ TEST_CASE("DCX: J-Alert a3={0,2,3} (FDMA/Cabinet Office) - Non-null message") {
         CHECK(mt44->mt44_decoded.jalert_prefecture_mode == true);
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Satellite ID 53/54 の E2E — 実データ（test/data/dcx_vectors.json）に存在する
+//
+// 仕様は Satellite ID を「PRN を表す 8bit の下位 6bit」と定め、azarashi も
+// `satellite_id | 0x80` で PRN 化する。93 電文 (53) / 54 電文 (54) が該当し、
+// 旧実装は 55-63 しか変換せず生 ID のまま通していた。
+// azarashi の期待値は satellite_prn = 181 / 182。
+// ═══════════════════════════════════════════════════════════════════════════════
+
+TEST_CASE("DCX E2E: Satellite ID 53/54 は PRN181/182 に正規化される") {
+    struct Case { const char* nmea; uint8_t expected_prn; };
+    // test/data/dcx_vectors.json の satellite_id -> satellite_prn より
+    const Case cases[] = {
+        {"$QZQSM,53,9AB08408E0598969E00066AFFE8E6F70091200000000000000000100CD1A410*09", 181},
+        {"$QZQSM,54,53B0840DE0000000000000000000000000000000000000000000000012ACBD4*0F", 182},
+    };
+    for (const auto& c : cases) {
+        Message msg{};
+        INFO("nmea=", c.nmea);
+        REQUIRE(decodeNmea(c.nmea, msg));
+        CHECK(msg.msg_type == 44);
+        CHECK(msg.svid == c.expected_prn);
+    }
+}
 #endif

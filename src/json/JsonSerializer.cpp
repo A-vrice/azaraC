@@ -64,8 +64,12 @@ void JsonSerializer::serialize(const Message& msg, Print& out) {
     using namespace azaraC::def;
     out.print('{');
     wf_u(out, "svid",     msg.svid);
+    // IS-QZSS-DCR-017 §4.3.1: "Satellite ID is 6 LSB of the 8 bit which
+    // represented PRN of the L1S". The framers normalise svid to PRN
+    // (NmeaFramer adds 128, UbxFramer maps through svid_prn), so mask back to
+    // the 6 LSB the table is keyed by (55/56/57/58/61).
     wf_s(out, "svid_label",
-        qzss_dcr_satellite_prn_lookup(msg.svid));
+        qzss_dcr_satellite_prn_lookup(msg.svid & 0x3F));
     wf_u(out, "msg_type", msg.msg_type);
     wf_s(out, "msg_type_label",
         qzss_dcr_message_type_lookup(msg.msg_type));

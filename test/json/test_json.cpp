@@ -295,6 +295,37 @@ TEST_CASE("JSON Serialization: MT=44 DCX main ellipse") {
 // MT=43 DCR JSON 出力テスト
 // ═══════════════════════════════════════════════════════════════════════════════
 
+TEST_CASE("JSON Serialization: svid_label resolves the framer-normalised svid") {
+    // IS-QZSS-DCR-017 §4.3.1: Satellite ID は PRN を表す 8bit の 6 LSB。フレーマは
+    // svid を PRN に正規化する（NmeaFramer は `id | 0x80`、UbxFramer は svid_prn 経由）
+    // ため、シリアライザは 6 LSB に戻してから表（55/56/57/58/61）を引く。
+    Message m{};
+    initMt43As(m, 1);
+
+    struct { uint8_t svid; const char* label; } cases[] = {
+        {184, "PRN184"},   // 56 & 0x3F
+        {185, "PRN185"},   // 57 & 0x3F
+        {186, "PRN186"},   // 58 & 0x3F
+        {189, "PRN189"},   // 61 & 0x3F
+        {183, "PRN183"},   // 55 & 0x3F
+    };
+    for (const auto& c : cases) {
+        m.svid = c.svid;
+        StringPrint sp;
+        internal::JsonSerializer::serialize(m, sp);
+        CHECK(hasLabel(sp.str(), "svid_label", c.label));
+    }
+
+    // 表に無い PRN（181/182 = 生 ID 53/54）はラベルが無いので空文字列。
+    // 表が覆うのは 55/56/57/58/61 のみで、これは仕様の Satellite ID 一覧と一致する。
+    for (uint8_t prn : {uint8_t{181}, uint8_t{182}}) {
+        m.svid = prn;
+        StringPrint sp;
+        internal::JsonSerializer::serialize(m, sp);
+        CHECK(hasLabel(sp.str(), "svid_label", ""));
+    }
+}
+
 #if (AZARAC_ENABLE_EEW)
 TEST_CASE("JSON Serialization: MT=43 EEW") {
     Message m{};
