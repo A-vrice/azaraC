@@ -403,7 +403,7 @@ if (client.connect(server, port)) {
 両方 1 のときは日本語を優先し、そのコードに日本語が無ければ英語を使う。
 `AZARAC_LANG_JA=0 / AZARAC_LANG_EN=1` では英語ラベルを出力する。
 英語表を持たない項目（例: 南海トラフの情報番号）は日本語のままになる。
-どちらも 0 のときは原則ラベルを出力しない。欠落時の値は表の戻り値型で変わる — `std::optional` を返す表は `""`、`const char*` を返す表は `null`（この非対称は `f8cc09d` で導入）。ただし言語非依存表（北西太平洋津波の 3 表など）は値があれば 0/0 でも解決して返す。
+どちらも 0 のときは原則ラベルを出力しない。欠落時の値は表の戻り値型で変わる — `std::optional` を返す表は `""`、`const char*` を返す表は `null`。ただし言語非依存表（北西太平洋津波の 3 表など）は値があれば 0/0 でも解決して返す。
 
 英語ラベルは azarashi 0.17.0 以降の定義テーブルに由来する。
 `AZARAC_LANG_EN` で有効になるのは `_en` という接尾辞のヘッダで、
@@ -418,7 +418,7 @@ if (client.connect(server, port)) {
 
 **両方 1 のときの併記**: `AZARAC_LANG_JA=1` かつ `AZARAC_LANG_EN=1` のとき、
 文字列リテラルのキーを持つ `_label` フィールドには `_label_en` が併記される。
-`_label` は従来どおり日本語優先（無ければ英語）、`_label_en` は常に英語。
+`_label` は日本語優先（無ければ英語）、`_label_en` は常に英語。
 
 ```json
 { "depth": 60, "depth_label": "60km", "depth_label_en": "60 km" }
@@ -447,8 +447,8 @@ if (client.connect(server, port)) {
 エントリが無く `""` になる。
 
 `AZARAC_LANG_EN=0`（ライブラリ既定）では `_label_en` は出力されず、
-`AZARAC_LANG_JA=0 / AZARAC_LANG_EN=1` でも `_label` 自体が英語になるため
-併記しない。つまり既定構成の出力は本機能の追加前と変わらない。
+`AZARAC_LANG_JA=0 / AZARAC_LANG_EN=1` でも `_label` 自体が英語になるため併記しない。
+`_label_en` が出るのは両言語を 1 にした構成だけ。
 
 ### 災害カテゴリ選択
 

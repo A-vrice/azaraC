@@ -71,6 +71,12 @@ graph LR
 | [`NmeaFramer`](../src/framer/NmeaFramer.h) | NMEA $QZQSM | Furuno GT-87, 汎用GNSS |
 | Custom (IFramer) | 任意 | Sony, その他 |
 
+`Frame::svid` の契約は **QZSS L1S PRN**（183–191）。Satellite ID は「PRN を表す 8bit の下位 6bit」
+（IS-QZSS-DCR-017 §4.3.1）なので、`NmeaFramer` は常に `svid | 0x80`（53→181, 54→182,
+55–63→183–191）、`UbxFramer` は `ublox_qzss_svid_prn_map` の該当時のみ PRN に変換し、
+表に無い svId はそのまま通す。`JsonSerializer` は `svid_label` を引くときだけ `& 0x3F` で
+6 LSB に戻す（定義表 `qzss_dcr_satellite_prn` のキーは 55/56/57/58/61）。
+
 ### 3. Decoder (デコーダー)
 
 [`Decoder`](../src/decoder/Decoder.h)はビット列からメッセージフィールドを抽出します。
@@ -115,7 +121,7 @@ graph TD
 |---------------|-------------|------|
 | DedupFilter | `AZARAC_DEDUP_SLOTS × 8` B + 4B 管理 | デフォルト68B（`DedupKey` はアラインメント込み 8B/スロット） |
 | NankaiPageBuffer | 28B（メタデータ）+ `MAX_PAGES × 18 + 1` B | 既定 63 ページで構造体 1,168B。LRUエビクション |
-| 定義テーブル | 表エントリ 39 本で 122KiB（124,960B）、定義文字列を含むライブラリ全体の `.rdata` は 344KiB（351,896B、12 TU + 空 main をリンク）。同一 TU 内の同一リテラルは定数プールで 1 コピーに統合されるが、TU を跨ぐ統合はツールチェーン依存。計測条件: 全カテゴリ + 日英ラベル有効、64bit ホスト `g++ 15.2 -std=c++17 -O2 -fdata-sections`（`const char*` 化前の表エントリは 253,568B） | Flash(AVRではPROGMEM)に配置。非AVRはエントリを `const char*`（32bit機で4B）で保持。AVRプリセット（`-D__AVR__ -DAZARAC_AVR_STUB`、SEISMIC/TSUNAMI のみ、`-O0`）では表 + プール計 3.4KiB（3,520B） |
+| 定義テーブル | 表エントリ 39 本で 122KiB（124,960B）、定義文字列を含むライブラリ全体の読み取り専用セクションは 344KiB（351,896B、12 TU + 空 main をリンク）。同一 TU 内の同一リテラルは定数プールで 1 コピーに統合されるが、TU を跨ぐ統合はツールチェーン依存。計測条件: 全カテゴリ + 日英ラベル有効、64bit ホスト `g++ 15.2 -std=c++17 -O2 -fdata-sections` | Flash(AVRではPROGMEM)に配置。非AVRはエントリを `const char*`（32bit機で4B）で保持。AVRプリセット（`-D__AVR__ -DAZARAC_AVR_STUB`、SEISMIC/TSUNAMI のみ、`-O0`）では表 + プール計 3.4KiB（3,520B） |
 
 ## 関連ドキュメント
 

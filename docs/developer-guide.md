@@ -45,7 +45,7 @@ azaraC/
 │   ├── framer/               # フレーマー実装
 │   ├── json/                 # JSONシリアライズ実装
 │   ├── internal/             # 内部ヘッダ・実装（avr_std/ シム、FlashString.h 含む）
-│   └── definition/           # 自動生成定義テーブル（104ファイル）
+│   └── definition/           # 自動生成定義テーブル（144ファイル、_index.h で集約）
 ├── scripts/                  # 定義ファイル生成スクリプト
 │   ├── gen/                  # 定義生成（gen_definitions.py, strategy.py）
 │   └── analysis/             # 静的解析サマリ（cppcheck_summary.py, gcovr_summary.py）
@@ -80,11 +80,13 @@ make -C test run MINGW64_BIN=C:\mingw64\bin
 ### テスト結果例
 
 ```
-=== azaraC unit tests ===
-  PASS  crc_known_zeros
-  PASS  crc_known_a5
-  ...
-=== all passed ===
+$ make -C test run
+run_tests.exe
+[doctest] doctest version is "2.5.0"
+===============================================================================
+[doctest] test cases:   403 |   403 passed | 0 failed | 0 skipped
+[doctest] assertions: 10721 | 10721 passed | 0 failed |
+[doctest] Status: SUCCESS!
 ```
 
 ### テストカテゴリ
@@ -178,4 +180,4 @@ AVR ツールチェーン（avr-gcc）は libstdc++ を一切含まないため�
 
 - [API リファレンス](api-reference.md)
 - [アーキテクチャドキュメント](architecture.md)
-- [JSON 出力仕様の対照表](json-formats.md) — azarashi との差、落ちる情報、互換方針
+- [JSON 出力仕様](json-formats.md) — azaraC のスキーマ、azarashi との差、落ちる情報と互換方針

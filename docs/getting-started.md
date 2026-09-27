@@ -91,3 +91,4 @@ make -C test run
 | [API リファレンス](api-reference.md) | 詳細な API 仕様・データ構造 |
 | [アーキテクチャ](architecture.md) | 内部設計とデータフロー |
 | [開発者ガイド](developer-guide.md) | ビルド方法、テスト、コーディング規約 |
+| [JSON 出力仕様](json-formats.md) | azaraC の出力スキーマと azarashi との対応 |
