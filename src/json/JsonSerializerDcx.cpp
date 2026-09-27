@@ -79,16 +79,25 @@ void serializeDcx(const Message& m, Print& out) {
         qzss_dcx_camf_a10_library_version_lookup(d->camf.a10));
 
     // A11 Guidance to react library
+    // IS-QZSS-DCX-004 §4.2.3.9 Table 4.2-12: A9=0 International library,
+    // A9=1 Country/region library。国の表は日本の分だけ持つので、
+    // A9=1 で A2≠111 のときは表なし（空ラベル）として扱う。
     wf_u(out, "a11_guidance", d->camf.a11);
-    if (d->camf.a9 == 1) {
-        // International library (A9=1)
+    if (d->camf.a9 == 0) {
+        // International library は 0-31 の英語のみ。A11 は 10bit なので表の範囲で
+        // 判定してから 8bit に落とさない（落とすと上位ビットが折り返して 0 に当たる）。
         wf_s(out, "a11_guidance_label",
-            qzss_dcx_camf_a11_international_library_lookup(d->camf.a11));
-    } else {
-        // Japanese library (A9=0)
+            d->camf.a11 < QZSS_DCX_CAMF_A11_INTERNATIONAL_LIBRARY_BASE +
+                              QZSS_DCX_CAMF_A11_INTERNATIONAL_LIBRARY_SIZE
+                ? qzss_dcx_camf_a11_international_library_lookup(
+                      static_cast<uint8_t>(d->camf.a11))
+                : std::nullopt);
+    } else if (d->camf.a2 == DCX_COUNTRY_CODE_JAPAN) {
         AZARAC_LABEL(out, "a11_guidance_label",
             qzss_dcx_camf_a11_japanese_library_ja_lookup,
             qzss_dcx_camf_a11_japanese_library_en_lookup, d->camf.a11, false);
+    } else {
+        wf_s(out, "a11_guidance_label", std::nullopt);
     }
 
     // A17/A18 Specific Settings

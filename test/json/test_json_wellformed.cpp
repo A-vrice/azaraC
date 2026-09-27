@@ -285,7 +285,7 @@ TEST_CASE("JSON well-formedness: MT44 DCX") {
     mt44->ex_kind = ExtendedKind::LAlertOrLocal;
     mt44->camf.a1 = 1; mt44->camf.a2 = 111; mt44->camf.a3 = 1;
     mt44->camf.a4 = 10; mt44->camf.a5 = 3; mt44->camf.a8 = 4;
-    mt44->camf.a9 = 0; mt44->camf.a11 = 1;   // 日本語ライブラリ（AZARAC_LOOKUP_LANG 経路）
+    mt44->camf.a9 = 1; mt44->camf.a11 = 1;   // 日本語ライブラリ（AZARAC_LOOKUP_LANG 経路）
     mt44->ex_lalert_local.ex1 = 1100;
     mt44->ex_lalert_local.vn = 1;
     mt44->sd.sdmt = 0; mt44->sd.sdm = 0x1FF;

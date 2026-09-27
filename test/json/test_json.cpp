@@ -1200,7 +1200,7 @@ TEST_CASE("JSON Serialization: a11 empty label is present, not absent") {
     mt44->camf.a1 = 1; mt44->camf.a2 = 111; mt44->camf.a3 = 1;
     mt44->camf.a4 = 10; mt44->camf.a5 = 3;
     mt44->camf.a6 = 1; mt44->camf.a7 = 1; mt44->camf.a8 = 1;
-    mt44->camf.a9 = 0;   // Japanese library -> a11_japanese_library_ja
+    mt44->camf.a9 = 1;   // Country/region library (A2=111) -> a11_japanese_library_ja / _en
     mt44->camf.a10 = 1;
     mt44->camf.a11 = 0;  // JA: 定義済みの空文字列 / EN: "No instruction" (azarashi 0.17)
     mt44->ex_lalert_local.ex1 = 1100;
@@ -1214,6 +1214,126 @@ TEST_CASE("JSON Serialization: a11 empty label is present, not absent") {
     // 定義済みのラベルは "null" にならない（欠落と空文字列の区別）
     CHECK(hasField(s, std::string("\"a11_guidance_label\":\"") + LBL("", "No instruction") + "\""));
     CHECK(s.find("\"a11_guidance_label\":null") == std::string::npos);
+}
+
+// IS-QZSS-DCX-004 §4.2.3.9 Table 4.2-12: A9=0 は International library (0-31, 英語のみ)。
+TEST_CASE("JSON Serialization: A9=0 uses the international library") {
+    Message m{};
+    m.svid = 193; m.crc24 = 0xABCDEF;
+    initMt44(m);
+    Mt44Data* mt44 = m.getMt44();
+    REQUIRE(mt44 != nullptr);
+
+    mt44->service_kind = Mt44ServiceKind::LAlert;
+    mt44->is_null_message = false;
+    mt44->ex_kind = ExtendedKind::LAlertOrLocal;
+    mt44->camf.a1 = 1; mt44->camf.a2 = 111; mt44->camf.a3 = 1;
+    mt44->camf.a4 = 10; mt44->camf.a5 = 3;
+    mt44->camf.a6 = 1; mt44->camf.a7 = 1; mt44->camf.a8 = 1;
+    mt44->camf.a9 = 0;   // International library
+    mt44->camf.a10 = 1;
+    mt44->camf.a11 = 1;  // "You are in the danger zone, ..."
+    mt44->ex_lalert_local.ex1 = 1100;
+    mt44->ex_lalert_local.vn = 1;
+    mt44->sd.sdmt = 0; mt44->sd.sdm = 0x1FF;
+
+    StringPrint sp;
+    internal::JsonSerializer::serialize(m, sp);
+    const auto& s = sp.str();
+
+    CHECK(has(s, "\"a11_guidance_label\":\"You are in the danger zone"));
+    CHECK_FALSE(has(s, "a11_guidance_label_en"));
+}
+
+TEST_CASE("JSON Serialization: A9=0 code 0 is an empty international label") {
+    Message m{};
+    m.svid = 193; m.crc24 = 0xABCDEF;
+    initMt44(m);
+    Mt44Data* mt44 = m.getMt44();
+    REQUIRE(mt44 != nullptr);
+
+    mt44->service_kind = Mt44ServiceKind::LAlert;
+    mt44->is_null_message = false;
+    mt44->ex_kind = ExtendedKind::LAlertOrLocal;
+    mt44->camf.a1 = 1; mt44->camf.a2 = 111; mt44->camf.a3 = 1;
+    mt44->camf.a4 = 10; mt44->camf.a5 = 3;
+    mt44->camf.a6 = 1; mt44->camf.a7 = 1; mt44->camf.a8 = 1;
+    mt44->camf.a9 = 0;
+    mt44->camf.a10 = 1;
+    mt44->camf.a11 = 0;
+    mt44->ex_lalert_local.ex1 = 1100;
+    mt44->ex_lalert_local.vn = 1;
+    mt44->sd.sdmt = 0; mt44->sd.sdm = 0x1FF;
+
+    StringPrint sp;
+    internal::JsonSerializer::serialize(m, sp);
+    const auto& s = sp.str();
+
+    CHECK(hasField(s, "\"a11_guidance_label\":\"\""));
+    CHECK(s.find("\"a11_guidance_label\":null") == std::string::npos);
+
+    // A11 は 10bit。表の範囲（0–31）で判定せず uint8_t に切り詰めると、257 が 1 に
+    // 当たって国際表の 1 行目が出てしまう。
+    mt44->camf.a11 = 257;
+    StringPrint sp2;
+    internal::JsonSerializer::serialize(m, sp2);
+    CHECK(hasField(sp2.str(), "\"a11_guidance_label\":\"\""));
+    CHECK_FALSE(has(sp2.str(), "You are in the danger zone"));
+}
+
+// A9=1 は国/地域 library だが、表を持っているのは日本のみ（A2=111）。
+TEST_CASE("JSON Serialization: A9=1 outside Japan has no country library") {
+    Message m{};
+    m.svid = 193; m.crc24 = 0xABCDEF;
+    initMt44(m);
+    Mt44Data* mt44 = m.getMt44();
+    REQUIRE(mt44 != nullptr);
+
+    mt44->service_kind = Mt44ServiceKind::OutsideJapan;
+    mt44->is_null_message = false;
+    mt44->ex_kind = ExtendedKind::OutsideJapan;
+    mt44->camf.a1 = 1; mt44->camf.a2 = 71; mt44->camf.a3 = 1;
+    mt44->camf.a4 = 10; mt44->camf.a5 = 3;
+    mt44->camf.a6 = 1; mt44->camf.a7 = 1; mt44->camf.a8 = 1;
+    mt44->camf.a9 = 1;   // Country/region library
+    mt44->camf.a10 = 1;
+    // 1 は International library では「You are in the danger zone…」。A2≠111 で
+    // 表を引いていないこと（空になること）を区別できるよう、範囲内のコードを使う。
+    mt44->camf.a11 = 1;
+    mt44->ex_lalert_local.ex1 = 1100;
+    mt44->ex_lalert_local.vn = 1;
+    mt44->sd.sdmt = 0; mt44->sd.sdm = 0x1FF;
+
+    StringPrint sp;
+    internal::JsonSerializer::serialize(m, sp);
+    const auto& s = sp.str();
+
+    CHECK(hasField(s, "\"a11_guidance_label\":\"\""));
+    CHECK(s.find("\"a11_guidance_label\":null") == std::string::npos);
+    CHECK_FALSE(has(s, "You are in the danger zone"));
+}
+
+// 実データ (J-Alert, a2=111 / a9=1 / a10=0 / a11=136) で国/地域 library の
+// 日本語ラベルが出る。
+TEST_CASE("JSON Serialization: real J-Alert resolves the A11 country library label") {
+    Message msg{};
+    REQUIRE(decodeNmea(
+        "$QZQSM,55,53B0840DE3E208FD208800000000000000001FFFFFFFFFFFC0000011BFAF780*79", msg));
+    const Mt44Data* mt44 = msg.getMt44();
+    REQUIRE(mt44 != nullptr);
+    CHECK(mt44->camf.a2 == 111);
+    CHECK(mt44->camf.a9 == 1);
+    CHECK(mt44->camf.a11 == 136);
+
+    StringPrint sp;
+    internal::JsonSerializer::serialize(msg, sp);
+    const auto& s = sp.str();
+    CHECK(hasLabel(s, "a11_guidance_label",
+                   LBL("これは、Jアラートのテストです。",
+                       "This is a test message for J-Alert.")));
+#if (AZARAC_LANG_JA) && (AZARAC_LANG_EN)
+    CHECK(hasLabel(s, "a11_guidance_label_en", "This is a test message for J-Alert."));
+#endif
 }
 #endif // AZARAC_ENABLE_DCX_CAMF
 

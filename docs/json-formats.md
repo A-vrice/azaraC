@@ -164,17 +164,24 @@ B4（A17=11）の D1–D36 は **`{"raw": 生値, "label": 表示文字列}`** �
 |---|---|---|
 | 未定義コード | `recognized:false`, `labels:{}`, `code` 保持 | `"_label": ""`, 元コードは数値キーに残る |
 | 定義済み・表示なし | `labels: {}` | `"_label": ""` |
-| A11 code 0（A9=1） | `{"scheme":"camf.instruction.country_111.library_1.version_0", … "labels":{"en":"No instruction"}}` | `a11_guidance_label: ""` |
 | provider code 0（Fiji, A2=71） | `recognized:false`, `labels:{}` | `a3_provider_label: ""` |
 
-下 2 例は azaraC 側で**同じ `""`** になる。「指示なし」と「未知の提供者」を読み手は区別できない。
+「定義済み・表示なし」（例: A11 code 0）と「未知の提供者」（provider code 0, Fiji）は
+azaraC 側で**同じ `""`** になる。両者を読み手は区別できない。
 
-`a11_guidance_label` はこれに加えて実データ全 133 通で `""` になる。DCX-004 Table 4.2-12 は
-A9=0 を International library、A9=1 を Country/region library と定め、日本の実データは
-A9=1 / A11=128–136（例: 136 = 「これは、Jアラートのテストです。」）だが、
-`JsonSerializerDcx.cpp` は A9=1 で国際ライブラリ表（コード 0–31）を引く。日本のコードは
-A9=0 側の `qzss_dcx_camf_a11_japanese_library_ja` にあるため範囲外になる。仕様と実装の
-対応が逆で、azarashi は同コードを `camf.instruction.country_111.library_1.version_*` として解決する。
+`a11_guidance_label` は元コード A11 と、A9/A2 で選ぶライブラリ（DCX-004 §4.2.3.9
+Table 4.2-12）で決まる:
+
+| A9 | A2 | 引く表 | 出力 |
+|---|---|---|---|
+| 0 | — | International library（コード 0–31） | `_label` 1 本のみ（日本語の兄弟表が無いので `_label_en` は出ない） |
+| 1 | 111 | Japanese library | `_label`（＋両言語ビルドでは `_label_en`） |
+| 1 | ≠111 | 無し | `_label: ""` |
+
+範囲外のコードは `""`。実データ 133 通（重複文を除く）では A9=1 / A2=111 が 125 通
+（A11=136 が 41 通、128 が 1、134 が 1、0 が 82）、A9=1 / A2=71 が 6 通、A9=0 / A2=111
+（Null Message）が 2 通。国内表に当たる 43 通だけがラベル非空になり（例: 136 =
+「これは、Jアラートのテストです。」）、残り 90 通は空になる。
 
 ### 2.3 数量（数値＋単位）
 

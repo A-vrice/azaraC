@@ -9,9 +9,6 @@ namespace internal {
 
 #if (AZARAC_ENABLE_DCX_CAMF)
 
-// Country code for Japan in A2 field (9-bit: 001101111 = 111)
-static constexpr uint16_t DCX_COUNTRY_CODE_JAPAN = 111;
-
 bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix) {
     out.initPayload<Mt44Data>();
     Mt44Data* d = out.getMt44();
