@@ -1,60 +1,100 @@
-# 概要(azaraCとazarashiのスキーマについて)
+# JSON 出力仕様（v2） — azaraC と azarashi の対応
 
-azaraCの`JsonSerializer`（C++ / `Print&`）が出力するJSONと、一部参照実装であるazarashi(v0.17.0)の`to_json_dict()`が出力するJSONの**スキーマが異なる**ため比較を行いました。(差異は当ライブラリが先行してJSONを実装し始めたため生じている)
-それぞれの用途や対象は異なるため、あくまで優劣ではなく互換性のための比較になります。
+azaraC の `JsonSerializer`（C++ / `Print&`）が出力する JSON と、一部参照実装である
+azarashi（v0.17.0）の `to_json_dict()` が出力する JSON は **スキーマが異なる**。
+差異は当ライブラリが先行して JSON を実装し始めたためで、それぞれの用途や対象も
+異なるため、優劣ではなく互換性のための比較になる。
 
-なお比較には当リポジトリ内のテスト電文`test/data/*.json`のNMEA文236件(MT43: 103件/MT44: 133件)を使用しました。
+**v2 は v1 と非互換**。互換エイリアスは設けず、読み手は `schema_version` で分岐する。
+変更点は §5。
+
+比較には当リポジトリ内のテスト電文 `test/data/*.json` の NMEA 236 通（重複文を除く。
+MT43 103 / MT44 133）を用いた。azaraC 側は重複文もそのまま流す `--raw` でも計測する
+（236 / 245 の両方を §2.6 に記載）。
 
 ---
 
 ## 1. azaraC の JSON スキーマ
 
+ルートの形は 2 通り。本文（電文の内容）は常に `data` の中に入る。
+
+```json
+{"schema_version":2,"svid":186,"msg_type":43,"crc24":"0x00F92C3F",
+ "report_classification":1,"report_classification_label":"最優先",
+ "disaster_category":5,"disaster_category_label":"津波",
+ "information_type":0,"information_type_label":"発表",
+ "version":1,"report_time":{…},"data":{…}}
+
+{"schema_version":2,"svid":184,"msg_type":44,"crc24":"0x00074DAD","data":{…}}
+```
+
+デコードに失敗した場合（`invalid_mt43` / `invalid_mt44` / `unsupported_category` /
+`unsupported_msg_type`）は `crc24` の直後に `note` が出て `data` は出ない
+（MT43 のメタ情報と `version` / `report_time` も出ない）。
+
 ### 1.1 共通ヘッダ
 
 | キー | 型 | 内容 |
 |---|---|---|
-| `svid` | int | QZSS L1S PRN。NEMA、UBXともに正規化され基本181-191になる |
-| `svid_label` | str | `svid`が既知のみちびき（128–191）を示す場合は`qzss_dcr_satellite_prn`を引く（表は 55/56/57/58/61）。比較では156レコードのうち 95件がに解決され、残り61件（PRN181/182 = DCX 実データ）は表の範囲外のため`""`と出力した。なおフレーマがsvidを変換できなかったときはラベルは付かない |
-| `msg_type` | int | `43`か`44` |
-| `msg_type_label` | str | `"DCR"`が`"DCX"` |
-| `crc24` | str | `"0x00F92C3F"`などのチェックディジット。azarashiの出力には無い |
-| `version` | int | MT43のみDCRの `Vn`（214から219までの6bit`）。仕様は1を要求し、かつ`decodeQzqsm`も1以外を拒否するため常に1 |
+| `schema_version` | int | 常に 2 |
+| `svid` | int | QZSS L1S PRN。`NmeaFramer` は Satellite ID を `\| 0x80` で正規化（53→181, 54→182, 55–63→183–191）、`UbxFramer` は `ublox_qzss_svid_prn_map` で変換（1–4→183–186、7→189）。どちらの表にも無い値は入力のまま |
+| `msg_type` | int | 43 / 44 |
+| `crc24` | str | `"0x00F92C3F"`。azarashi の出力には無い |
+| `data` | obj | 本文（§1.2 / §1.3）。失敗時は代わりに `note` |
+| `note` | str | `invalid_mt43` / `invalid_mt44` / `unsupported_category` / `unsupported_msg_type` |
 
-**MT43**は共通ヘッダのあとに `report_classification` / `disaster_category` /`information_type`と各`_label`、`report_time{month,day,hour,min,unix}`、`detail{...}`を持つ。
-**MT44**ではMT43固有のキーは表示せず、Aフィールドを1層目に持つ。
+MT43 はこれに加えて DCR の報告ヘッダをルートに持つ: `report_classification`(+`_label`) /
+`disaster_category`(+`_label`) / `information_type`(+`_label`) / `version` /
+`report_time{month,day,hour,min,unix}`。MT44 のルートは `crc24` までで、A フィールド・
+拡張部・`sd_sdmt` / `sd_sdm` はすべて `data` の中。
 
-ラベルは`_label`サフィックスのキーに出力される。`AZARAC_LANG_JA=1`かつ`AZARAC_LANG_EN=1`(日英ともに有効化された状態)の条件では、日本語の文字列のキーは`_label`、英語には`_label_en`が併記される。`entries[]` 要素の`height_label` / `prefecture_label` / `warning_level_label` / `sub_category_label`などが対象。
-対象外なのは汎用キーのラベル（`notifications[].label`, `regions[].region_label`, `prefecture_labels[]`, `city_labels[]`）で、
-要素ごとにコード体系が異なるため固定キー名の `_label_en`では意味が通らない。
-詳細は [API リファレンス](api-reference.md#言語選択)。
+`svid` はラベルを持たない。`msg_type` のラベルも出さない（43=DCR / 44=DCX は数値から一意）。
 
-### 1.2 MT43 の `detail`（カテゴリ別）
+### 1.2 MT43 の `data`（カテゴリ別）
 
-テスト電文で確認した形（カテゴリ6のみ実装から記載）。`(+_label)`は`_label`が付くキー。
+テスト電文で確認した形（カテゴリ 6 のみ実装から記載）。`(+_label)` は `_label` が付くキー。
 
-| cat | ラベル | `detail` のキー |
+| cat | ラベル | `data` のキー |
 |---|---|---|
 | 1 | 緊急地震速報 | `long_period_lower/upper`(+`_label`), `notifications[]{code,label}`, `quake_time`, `depth`(+`_label`), `magnitude`(+`_label`), `epicenter`(+`_label`), `intensity_lower/upper`(+`_label`), `regions[]{code,label}` |
 | 2 | 震源 | `coords{lat_deg,lat_min,lat_sec,lat_ns,lon_deg,lon_min,lon_sec,lon_ew}`, `depth`(+`_label`), `magnitude`(+`_label`), `epicenter`(+`_label`), `notifications[]`, `quake_time` |
 | 3 | 震度 | `entries[]{prefecture(+_label),intensity(+_label)}`, `quake_time` |
 | 4 | 南海トラフ地震 | `info_code`(+`_label`), `page`, `total_page`, `truncated`, `text_utf8`（ページ集約後）/ `text_hex[]`（ページ単体） |
-| 5 | 津波 | `warning_code`(+`_label`), `entries[]{arrival_day_offset,arrival_hour,arrival_min,arrival_time_raw,arrival_time,height(+_label),region(+_label)}` |
+| 5 | 津波 | `warning_code`(+`_label`), `entries[]{arrival_time_raw,arrival_status?,arrival_time?,height(+_label),region(+_label)}` |
 | 6 | 北西太平洋津波 | `potential`(+`_label`), `entries[]{…cat5 と同形}` |
 | 8 | 火山 | `ambiguity`(+`_label`), `activity_time`, `warning_code`(+`_label`), `volcano_name`(+`_label`), `local_govs[]{code,label}` |
-| 9 | 降灰 | `activity_time`, `warning_type`(+`_label`), `volcano_name`(+`_label`), `entries[]{arrival_hour,warning_code(+_label),local_gov(+_label)}` |
+| 9 | 降灰 | `activity_time`, `warning_type`(+`_label`), `volcano_name`(+`_label`), `entries[]{arrival_time_code(+_label),warning_code(+_label),local_gov(+_label)}` |
 | 10 | 気象 | `warning_state`(+`_label`), `entries[]{region(+_label),sub_category(+_label)}` |
 | 11 | 洪水 | `entries[]{region(+_label),warning_level(+_label)}` |
 | 12 | 台風 | `coords`, `elapsed`(+`_label`), `intensity`(+`_label`), `max_gust`(+`_label`), `max_wind`(+`_label`), `number`(+`_label`), `pressure`(+`_label`), `ref_type`(+`_label`), `reference_time`, `scale`(+`_label`) |
 | 14 | 海上 | `entries[]{region(+_label),warning_code(+_label)}` |
 
-カテゴリ6の電文は`test/integration/test_realdata.cpp`にのみある。洪水の予報区コードのように10桁を超えるコードは`uint64_t`でそのまま返却。
+カテゴリ 6 の電文は `test/integration/test_realdata.cpp` にのみある。洪水の予報区コードのように
+10 桁を超えるコードは `uint64_t` のまま数値で出る。
 
-### 1.3 MT44のキー
+津波の到着時刻は `arrival_time_raw`（12bit: day_offset 1 + hour 5 + min 6）だけを残し、
+`arrival_time` は解決できたときだけオブジェクト、できないときは `null`。
+解決できなかった理由は `arrival_status` に出る（通常時刻ではキーごと出ない）。
 
-検証データに含まれていた最上位キー。共通ヘッダ5キーを除いて41種。
+| 判定（上から最初に一致したもの） | `arrival_status` | `arrival_time` |
+|---|---|---|
+| `hour == 31 && min == 63`（cat 5） | `"arrival_estimated"` | `null` |
+| `hour == 31 && min == 63`（cat 6） | `"arrived_or_unknown"` | `null` |
+| `day_offset == 0 && hour == 30 && min == 62`（cat 5 のみ） | `"no_information"` | `null` |
+| `raw == 0`、または `hour > 23`、または `min > 59` | `"unrecognized_code"` | `null` |
+| 上記以外 | キーを出さない | `{month,day,hour,min,unix}` |
 
-A フィールド: `dcx_type` / `dcx_type_label`（`NULL` / `L_ALERT` / `J_ALERT` / `LOCAL_GOV` /
-`OUTSIDE_JAPAN` / `UNKNOWN`）、`a1_msg_type`, `a2_country`(+`_label`),
+判定順は azarashi と同じ（センチネル → 範囲外）。範囲外チェックを先に置くと `hour == 30` の
+`no_information` が到達不能になる。`raw == 0` は azarashi が「同日 00:00」に解決するのに対し
+azaraC の `resolveArrivalTime()` は空を返すため `unrecognized_code` になる
+（読み手は `arrival_time_raw: 0` で `1982` 等と区別できる）。
+
+### 1.3 MT44 の `data` のキー
+
+テスト電文 133 通（すべて A17=0）で確認した `data` 内のキー。
+
+A フィールド: `dcx_type`（`"NULL"` / `"L_ALERT"` / `"J_ALERT"` / `"LOCAL_GOV"` /
+`"OUTSIDE_JAPAN"` / `"UNKNOWN"`。数値ではなく文字列）、`a1_msg_type`, `a2_country`(+`_label`),
 `a3_provider`(+`_label`), `a4_hazard` / `a4_hazard_category` / `a4_hazard_type` /
 `a4_hazard_definition`, `a5_severity`(+`_label`), `a6_onset_week`(+`_label`),
 `a7_onset_minute`, `a8_duration`(+`_label`), `onset_time`,
@@ -63,64 +103,86 @@ A フィールド: `dcx_type` / `dcx_type_label`（`NULL` / `L_ALERT` / `J_ALERT
 
 条件付きブロック（該当時のみ出現）:
 
-| ブロック | 条件 | キー |
+| ブロック | 契機 | キー |
 |---|---|---|
-| `main_ellipse` | A12–A16が存在 | `lat_deg`, `lon_deg`, `semi_major_km`, `semi_minor_km`, `azimuth_deg` |
+| `main_ellipse` | A12–A16 あり | `lat_deg`, `lon_deg`, `semi_major_km`, `semi_minor_km`, `azimuth_deg` |
 | `main_ellipse.b1_refinement` | B1 | `c1_lat_offset_deg`, `c2_lon_offset_deg`, `c3_refined_semi_major_km`, `c4_refined_semi_minor_km` |
 | `hazard_center` | B2 | `c5_raw`, `c6_raw`, `delta_lat_deg`, `delta_lon_deg` |
 | `secondary_ellipse` | B3 | `c7_shift`, `c8_homothetic`, `c9_bearing`, `c10_guidance`(+`_label`), `c10_guidance_code` |
-| `detailed_info` | B4 | `a4_code`とa4に応じたDフィールド（§1.4） |
-| `jalert_target` | J-Alert | `prefecture_mode`, `prefecture_positions[]` + `prefecture_labels[]`（都道府県）/ `city_codes[]` + `city_labels[]`（市区町村） |
+| `detailed_info` | B4 | a4 に応じた D フィールド（§1.4）。レイアウトが無ければ `{}` |
+| `jalert_target` | J-Alert | `prefectures[]{position,label}`（都道府県）/ `cities[]{code,label}`（市区町村）。どちらか一方だけが出る |
 | `additional_area` | EX2–EX7（地方自治体） | `head_to_area`, `ellipse{lat_deg,lon_deg,semi_major_km,semi_minor_km,azimuth_deg}` |
 | `ex1_target_area`(+`_label`), `target_area_code` | L-Alert | — |
 | `ex8_area_type` | J-Alert | — |
 | `ex11_raw` | 国外 | — |
 | `ex_vn` | 拡張部あり | 拡張部の版数 |
-| `alert_identity{a2,a3,a4,ex1}`, `sd_sdmt`, `sd_sdm` | 常時（MT44） | — |
+| `sd_sdmt`, `sd_sdm` | 常時（MT44 の最後） | — |
 
-`main_ellipse`は133通中9通に出て、いずれも `b1_refinement`を伴う（A17=0でも
-C1–C4が非ゼロならB1として出る）。`hazard_center`（B2）・`secondary_ellipse`（B3）・
+`main_ellipse` は 133 通中 9 通に出て、いずれも `b1_refinement` を伴う（A17=0 でも
+C1–C4 が非ゼロなら B1 として出る）。`hazard_center`（B2）・`secondary_ellipse`（B3）・
 `detailed_info`（B4）・`additional_area`（EX2–EX7）を含む電文はテストデータに無く、
 `test/json/test_json_dcx_b1b4.cpp` の合成メッセージで検証している。
 
+`jalert_target` の `position` は **JIS 都道府県コード（1–47、1 始まり）**。
+`cities[].code` は EX1 の市町村コード（仕様と同じ値）。どちらの配列も
+`{code|position, label}` のオブジェクト配列で、並列配列ではない。
+
 ### 1.4 D フィールドの形
 
-B4（A17=11）の D1–D36 は **`{"raw": 生値, "label": 表示文字列}`** の2キーで出る。
+B4（A17=11）の D1–D36 は **`"dX_name": 生値` と `"dX_name_label": 表示文字列` の 2 キー**で出る。
 
 ```json
 "detailed_info": {
-  "a4_code": 36,
-  "d1_magnitude":     {"raw": 6, "label": "7.0-7.9 - Major"},
-  "d2_seismic_coeff": {"raw": 7, "label": "7"},
-  "d3_azimuth":       {"raw": 5,  "label": "112.5"},
-  "d4_vector_length": {"raw": 9,  "label": "30"},
-  "d5_wave_height":   {"raw": 6,  "label": "5.0m < H ≤ 10.0m"}
+  "d1_magnitude": 6,      "d1_magnitude_label": "7.0-7.9 - Major",
+  "d2_seismic_coeff": 7,  "d2_seismic_coeff_label": "7",
+  "d3_azimuth": 5,        "d3_azimuth_label": "112.5",
+  "d4_vector_length": 9,  "d4_vector_length_label": "30",
+  "d5_wave_height": 6,    "d5_wave_height_label": "5.0m < H ≤ 10.0m"
 }
 ```
 
-`a4_code`（ハザード種別）ごとに「どの D が意味を持つか」が決まり、該当しないものは
-**キーごと出ない**（`a4=1` なら `a4_code` だけ）。欠落と `raw: 0` は別物。
-`d5_wave_height` のラベルにあるように、範囲の情報はラベル文字列の中にしか無い（§2.3）。
+a4 のハザード種別ごとに「どの D が意味を持つか」が決まり、該当しないものは
+**キーごと出ない**。欠落と `0` は別物。D レイアウトを持たない a4（例 a4=1）では
+`detailed_info` が空オブジェクト `{}` になる（B4 が存在した事実は残る）。
 
 `d1_magnitude` は raw が 4bit（0–15）だが表は 0–8 しか持たない。表外の raw（例 15）は
-`label: ""` になる。azarashi は同コードを `recognized: false` として区別する。
+`d1_magnitude_label: null` になる。azarashi は同コードを `recognized: false` として区別する。
+
+### 1.5 ラベルの 3 値規則
+
+キーは常に出力する（キーごと省くことはしない）。
+
+| 状況 | 出力 |
+|---|---|
+| 表を引いたが該当コードが無い（未定義・範囲外） | `"x_label": null` |
+| 表に該当し、ラベルが空文字列（例: A11 国際ライブラリ code 0） | `"x_label": ""` |
+| 表に該当し、ラベルがある | `"x_label": "…"` |
+| この構成にラベル表自体が無い（A9=1 かつ A2≠111 / `AZARAC_LANG_JA=0` かつ `AZARAC_LANG_EN=0`） | `"x_label": null` |
+
+`AZARAC_LANG_JA=1` かつ `AZARAC_LANG_EN=1` の構成では、文字列リテラルのキーを持つ
+`_label` に `_label_en` が併記される。`_label_en` も同じ規則。`_label_en` を持たないのは
+汎用キーのラベル（`notifications[].label`, `regions[].region_label`, `prefectures[].label`,
+`cities[].label`, `entries[].label`, `local_govs[].label`）で、要素ごとにコード体系が
+異なるため固定キー名の `_label_en` では意味が通らない。詳細は
+[API リファレンス](api-reference.md#言語選択)。
 
 ---
 
 ## 2. azarashi との対応
 
-### 2.1 その他概要キー
-| 要素 | azarashi 0.17 | azaraC | 差 |
+### 2.1 レコード封筒
+
+| 概念 | azarashi 0.17 | azaraC v2 | 差 |
 |---|---|---|---|
-| バージョン | `schema_version: 1` | なし | azaraCはレコード形式の版を持たない |
+| レコード版 | `schema_version: 1` | `schema_version: 2` | 版数は独立（意味が違う） |
 | 電文版（DCR の `Vn`） | `data.version: 1` | `version: 1`（MT43 のみ） | azaraC は DCR の `Vn` だけを `version` として運ぶ |
-| 種別 | `type: "qzss.dcr.tsunami"` | `msg_type: 43` + `msg_type_label` + `disaster_category` | azaraC は数値の組合せ |
+| 種別 | `type: "qzss.dcr.tsunami"` | `msg_type: 43` + `disaster_category` | azaraC は数値の組合せ |
 | 訓練/試験 | `test: true` | なし | azaraC は `report_classification == 7` を読み手が解釈する |
-| 受信時刻 | `received_at: "...Z"` | なし（`report_time.unix` は `Parser` に時刻を渡さないと 0） | azaraC は受信時刻を運ばない |
-| 衛星 | `satellite: {system, prn}` \| `null` | `svid` + `svid_label` | azaraC は 1 つの数値で PRN を運ぶ |
+| 受信時刻 | `received_at: "...Z"` | なし（`report_time.unix` は `Parser` に時刻を渡さないと `null`） | azaraC は受信時刻を運ばない |
+| 衛星 | `satellite: {system, prn}` \| `null` | `svid` | azaraC は PRN を 1 つの数値で運ぶ。ラベルは無い |
 | 元電文 | `nmea` | なし | azaraC は再生成しない |
 | 本文 | `text`, `text_en` | 南海トラフのみ（`text_utf8`、ページ単体では `text_hex[]`） | azaraC は他カテゴリで本文を生成しない |
-| ペイロード | `data`（種別ごと） | 最上位に `detail` 等（種別ごと） | ネストが1段浅い |
+| ペイロード | `data`（種別ごと） | `data`（種別ごと） | 同じ名前・同じ位置 |
 | 検査値 | なし | `crc24` | azaraC のみ |
 
 ### 2.2 コード値の表し方
@@ -132,45 +194,43 @@ B4（A17=11）の D1–D36 は **`{"raw": 生値, "label": 表示文字列}`** �
  "recognized": true, "labels": {"ja": "高知県", "en": "Kochi Prefecture"}}
 ```
 
-- `scheme`がコード体系を一意に決める（`camf.a5_severity`, `qzss.dcr.*`, `camf.provider.country_111` …）
-- `code`は十進文字列。大きな整数コード（洪水の 12桁等）も落ちない
-- `recognized: false` = コード表に定義が無い。`labels`は`{}`で、**コード番号そのものは保持**
-- 表示文字列が無い定義済みコードも`labels: {}`。「未定義」と区別できる
+- `scheme` がコード体系を一意に決める（`camf.a5_severity`, `qzss.dcr.*`, `camf.provider.country_111` …）
+- `code` は十進文字列。大整数コード（洪水の 12 桁等）も落ちない
+- `recognized: false` = コード表に定義が無い。`labels` は `{}` で、**コード番号そのものは保持**
+- 表示文字列が無い定義済みコードも `labels: {}`。「未定義」と区別できる
 - `ja`/`en` は併記される（両方ある場合）
 
-**azaraC** — 数値とラベルの並置。
+**azaraC v2** — 数値とラベルの並置。
 
 ```json
 {"region": 610, "region_label": "高知県"}
 ```
 
-- キー名が `region` なので体系は文脈依存（`scheme` に相当する情報はキー名とカテゴリだけ） //修正予定
-- 値は数値。洪水のような大コードは`uint64_t` で数値のまま
-- ラベルは`_label`サフィックスのキーで、言語はビルド時に決定
-- 未定義コードは`""`、定義済みの空ラベルも`""`→ **区別できない** //修正予定
+- キー名が `region` なので体系は文脈依存（`scheme` に相当する情報はキー名とカテゴリだけ）
+- 値は数値。洪水のような大コードは `uint64_t` で数値のまま
+- ラベルは `_label` サフィックスのキーで、言語はビルド時に決定
+- 未定義コードは `null`、定義済みの空ラベルは `""` → **区別できる**
 
-| 状況 | azarashi | azaraC |
+| 状況 | azarashi | azaraC v2 |
 |---|---|---|
-| 未定義コード | `recognized:false`, `labels:{}`, `code` 保持 | `"_label": ""`, 元コードは数値キーに残る |
+| 未定義コード | `recognized:false`, `labels:{}`, `code` 保持 | `"_label": null`, 元コードは数値キーに残る |
 | 定義済み・表示なし | `labels: {}` | `"_label": ""` |
-| provider code 0（Fiji, A2=71） | `recognized:false`, `labels:{}` | `a3_provider_label: ""` |
-
-「定義済み・表示なし」（例: A11 code 0）と「未知の提供者」（provider code 0, Fiji）は
-azaraC 側で**同じ `""`** になる。両者を読み手は区別できない。
+| provider code 0（Fiji, A2=71） | `recognized:false`, `labels:{}` | `a3_provider_label: null` |
+| 表そのものが無い | `recognized:false` | `"_label": null` |
 
 `a11_guidance_label` は元コード A11 と、A9/A2 で選ぶライブラリ（DCX-004 §4.2.3.9
 Table 4.2-12）で決まる:
 
 | A9 | A2 | 引く表 | 出力 |
 |---|---|---|---|
-| 0 | — | International library（コード 0–31） | `_label` 1 本のみ（日本語の兄弟表が無いので `_label_en` は出ない） |
+| 0 | — | International library（コード 0–31） | `_label`（＋両言語ビルドでは `_label_en`） |
 | 1 | 111 | Japanese library | `_label`（＋両言語ビルドでは `_label_en`） |
-| 1 | ≠111 | 無し | `_label: ""` |
+| 1 | ≠111 | 無し | `_label: null` |
 
-範囲外のコードは `""`。実データ 133 通（重複文を除く）では A9=1 / A2=111 が 125 通
+範囲外のコードは `null`。実データ 133 通（重複文を除く）では A9=1 / A2=111 が 125 通
 （A11=136 が 41 通、128 が 1、134 が 1、0 が 82）、A9=1 / A2=71 が 6 通、A9=0 / A2=111
 （Null Message）が 2 通。国内表に当たる 43 通だけがラベル非空になり（例: 136 =
-「これは、Jアラートのテストです。」）、残り 90 通は空になる。
+「これは、Jアラートのテストです。」）、残り 90 通は `null` になる。
 
 ### 2.3 数量（数値＋単位）
 
@@ -183,7 +243,7 @@ Table 4.2-12）で決まる:
 | `category` | コードのみ（数値境界なし） | 北西太平洋津波の高さ区分 |
 | `missing` | `reason` (`unknown`/`no_information`/`unrecognized_code`) | 深さ 511 |
 
-**azaraC** — `kind` も `unit` も無く、数値を素で置く。ただし数量フィールドには `_label` が
+**azaraC v2** — `kind` も `unit` も無く、数値を素で置く。ただし数量フィールドには `_label` が
 付き、境界（`500kmより深い`）とセンチネル（`不明`）は可視化される。
 
 | 電文 | フィールド | azarashi | azaraC | 落ちるもの |
@@ -197,7 +257,7 @@ Table 4.2-12）で決まる:
 
 `_label` / `_label_en` により単位とセンチネルは**人間には読める**が、値自体は生コードのままなので
 **機械可読な単位・境界型は持たない**。津波の高さは特に注意が必要で、仕様の `3m` は
-「1m 超〜3m 以下」という *範囲* であり単一値ではない（`is-qzss-dcr-017`
+「1m 超〜3m 以下」という *範囲* であり単一値ではない（`qzss-specs/is-qzss-dcr-017.md`
 Table 4.1.2-23）。
 
 ### 2.4 時刻
@@ -215,34 +275,28 @@ Table 4.1.2-23）。
 
 `basis` は「年・月・日を補うのに何を基準にしたか」を示す。
 
-**azaraC** — `{month, day, hour, min, unix}` の 5 項目。
+**azaraC v2** — `{month, day, hour, min, unix}` の 5 項目。`unix` は
+`unix_time == 0`（未解決）のとき **`null`**、解決済みのときは数値。
+`month` / `day` / `hour` / `min` は生の分解値のまま（未解決時は 0）。
 
-`resolveArrivalTime()`（`src/decoder/Decoder.cpp`）は
+- 津波の到着時刻は §1.2 の `arrival_status` で状態を明示する。実測
+  （`test/integration/test_realdata.cpp` の `$QZQSM,56,53ADA8BECF…`、Ta = 2047 = hour 31, min 63）:
 
-```cpp
-if (hour > 23 || min > 59) return t;   // 全ゼロ
-```
+  ```
+  azarashi:  "arrival": {"status": "arrival_estimated", "value": null, "basis": null}
+  azaraC v2: "arrival_time_raw": 2047, "arrival_status": "arrival_estimated", "arrival_time": null
+  ```
 
-とするため、**`31:63`（到達中）と `30:62`（情報なし）と `25:00`（不正）がすべて同じ全ゼロに潰れる**。 //修正予定
-実測（`test/integration/test_realdata.cpp` の `$QZQSM,56,53ADA8BECF…`、Ta = 2047 = hour 31, min 63）:
+  v1 は 3 状態（`31:63` / `30:62` / 不正）が全ゼロの `arrival_time` に潰れていたが、
+  v2 は区別できる。`arrival_time_raw` は導出前の生値として残る。
+- DCX の `onset_time` は A7=0 でも「未使用」と「解決できなかった」を区別しない
+  （`unix: null` は両方で出る）。azarashi の `not_used` に相当する status は持たない。
 
-```
-azarashi:  "arrival": {"status": "arrival_estimated", "value": null, "basis": null}
-azaraC  :  "arrival_hour": 31, "arrival_min": 63, "arrival_time_raw": 2047,
-           "arrival_time": {"month":0,"day":0,"hour":0,"min":0,"unix":0}
-```
-
-azaraC は `arrival_time_raw` と分解フィールド（`arrival_hour`/`arrival_min`）を残すので
-情報自体は失われていないが、`arrival_time` だけを見ると「時刻不明」と読める。
-
-| 項目 | azarashi | azaraC |
+| 項目 | azarashi | azaraC v2 |
 |---|---|---|
-| `report_time` | `status:time`, `basis:received_at` | `Parser::feed()` に渡した時刻で解決。CLI は 0 を渡すため `unix` は 0 |
-| DCX `onset` | 週 + 週内分から `received_at` を基準に解決 | 同上（CLI では全ゼロ） |
+| `report_time` | `status:time`, `basis:received_at` | `Parser::feed()` に渡した時刻で解決。CLI は 0 を渡すため `unix` は `null` |
+| DCX `onset` | 週 + 週内分から `received_at` を基準に解決 | 同上（CLI では `null`） |
 | 火山の曖昧さ | `activity_time_ambiguity`（コードオブジェクト）を必須で併記し、`Du` に応じて `activity_time` の有効範囲を解釈 | `ambiguity` + `ambiguity_label`（`Du` の 0–7 を明示）。`activity_time` の有効範囲は解釈しない |
-
-`unix: 0` は「未解決」の意味だが、スキーマ上は正当な値（1970-01-01）でもある。
-azarashi は `status` で明示するのでこの曖昧さが無い。
 
 ### 2.5 繰り返し項目の組み方
 
@@ -254,77 +308,112 @@ azarashi は `status` で明示するのでこの曖昧さが無い。
 ]
 ```
 
-**azaraC** — 種別により 2 通り。
+**azaraC v2** — `entries[]` などの数値キーと `_label` の並置、および J-Alert の
+オブジェクト配列の 2 通り。
 
 ```json
-"entries": [{"arrival_*": …, "height": 3, "region": 600, "region_label": "…"}]
-"jalert_target": {"prefecture_mode": 1,
-                  "prefecture_positions": [1,2,3,…],
-                  "prefecture_labels": ["北海道","青森県",…]}
+"entries": [{"arrival_time_raw": 488, "arrival_time": {…}, "height": 3,
+             "region": 600, "region_label": "…"}]
+"jalert_target": {"prefectures": [{"position": 1, "label": "北海道"},
+                                  {"position": 2, "label": "青森県"}]}
 ```
 
-J-Alert の都道府県は **並列配列**で、`prefecture_positions[i]` と `prefecture_labels[i]` の
-対応を読み手が保つ必要がある（`city_codes`/`city_labels` も同様）。azarashi は
-`target_regions` のオブジェクト配列で、`qzss.dcx.prefecture_bit` の code を
-**下位から 0 始まりのビット位置**として持つ。azaraC は 1 始まりの位置を出す
-（同じ電文で azaraC `[1,2,…]` ↔ azarashi `code: "0"`, `"1"`, …）。
+`entries[]` の要素は平坦（`{height, height_label}` の並置）のままで、ネストした
+`{code, label}` オブジェクトにはしない。唯一のオブジェクト配列は `jalert_target` の
+`prefectures` / `cities`。
+
+プロトコル上の位置は「どのオブジェクト配列か」で決まるので、
+`prefectures` / `cities` のどちらが出たか（および `data.ex8_area_type`）で読み分ける。
+`position` は JIS 都道府県コード（1–47、1 始まり）で、azarashi が
+`qzss.dcx.prefecture_bit` の code として **下位から 0 始まりのビット位置**を出すのとは
+基準が違う（同じ電文で azaraC `1` ↔ azarashi `code: "0"`）。
 
 EX9 の元 64 ビット整数は azarashi は出さない（`nmea` に残る）。azaraC は
-`prefecture_positions` / `city_codes` に展開する。
+`prefectures` / `cities` に展開する。
 
 ### 2.6 サイズと入れ子の深さ
 
 同一 236 電文の合計（区切り文字なしのコンパクト表現、UTF-8 バイト）。
+全行とも同じ計量関数で測った実測で、azarashi は `to_json_dict()` の完全レコード、
+v1 は同一コミットの worktree をビルドして測る。
 
 | 対象 | バイト | 1 レコード平均 |
 |---|---|---|
-| azarashi レコード全体 | 708,539 | 3,002 |
-| azarashi `data` のみ | 362,858 | 1,538 |
-| **azaraC レコード全体（`--raw`）** | **261,339** | **1,107** |
-| azaraC レコード全体（重複除去あり） | 205,925 | — |
+| azarashi レコード全体 | 652,740 | 2,765 |
+| azarashi `data` のみ | 352,777 | 1,494 |
+| azaraC v1 レコード全体 | 259,450 | 1,099 |
+| **azaraC v2 レコード全体** | **254,196** | **1,077** |
+| **azaraC v2 `data` のみ** | **208,043** | **881** |
 
-azarashi のレコード全体では `data` が 51%、`text`/`text_en` が 41% を占める。
-`data` の内訳は `labels` オブジェクトが 32%、`scheme` キー＋値が 25%
-（`scheme` は 236 電文で 2,483 回出現し、同じ体系名が地域の数だけ繰り返される）。
+重複除去なしの 245 通では v1 272,217 → v2 268,816（平均 1,111 → 1,097）。
 
-入れ子の深さ（オブジェクト／配列の段数、ルートを 1 とする）:
+レコード単位の増減（236 通）:
 
-| 電文 | azarashi | azaraC |
-|---|---|---|
-| Tsunami | 7 | 5 |
-| EEW | 5 | 4 |
-| Volcano | 5 | 4 |
-| Typhoon | 5 | 3 |
-| J-Alert | 5 | 3 |
+| 種別 | 最小 | 最大 | 合計 |
+|---|---|---|---|
+| MT44 | −115 | **+859** | −3,734 |
+| MT43 | −241 | **+242** | −1,520 |
 
-azarashi が深いのは、コード値を `{scheme, code, recognized, labels}` で包むため。
-`scheme` は同じ体系名を要素の数だけ繰り返すので、`data` の中身に対して冗長な比重が大きい。
+- MT44 の最大増は J-Alert の 47 都道府県（`prefectures[]` が `position`/`label` の
+  オブジェクト配列になり、要素ごとの区切りが増える）。
+- MT43 の最大増は降灰（cat 9）で、`arrival_hour` 1 キーが
+  `arrival_time_code` + `arrival_time_label`(+`_label_en`) に増えたため。
+  `detail` → `data` はルート直下の同レベル改名なので深さは変わらず、
+  バイト数への寄与もキー名が 2 文字短くなる分（−2/レコード）だけ。
+- 総量が減るのは v1 で `dcx_type` の数値とラベル、`alert_identity`（4 キー）、
+  `detailed_info.a4_code`、分解済み到着時刻（`arrival_day_offset`/`arrival_hour`/
+  `arrival_min`）を重複して出していた分が消えるため。
 
----
+azarashi のレコード全体では `data` が 54%、`text`/`text_en` が 36% を占める。
+`data`（352,777 B）の内訳は `labels` オブジェクトが 84,367 B（24%）、
+`scheme` キー＋値が 87,440 B（25%。`scheme` は 236 電文で 2,483 回出現し、
+同じ体系名が地域の数だけ繰り返される）。
+
+入れ子の深さ（オブジェクト／配列の段数、ルートを 1 とする）。3 列とも同じ計量関数で
+同一 236 電文を測った実測（カテゴリごとの最大値）。azarashi は封筒
+（`schema_version` / `type` / `satellite` / `nmea` / `text` / `data` …）を含む完全レコード
+（`azarashi.json.to_json_dict()`）で測る。`get_params()` は封筒を外すため使わない。
+
+| 電文 | azarashi | azaraC v1 | azaraC v2 |
+|---|---|---|---|
+| Tsunami | 7 | 5 | 5 |
+| EEW | 6 | 4 | 4 |
+| Volcano | 5 | 4 | 4 |
+| Typhoon | 6 | 4 | 4 |
+| J-Alert | 6 | 4 | 5 |
+| Ash fall | 7 | 4 | 4 |
+
+v2 で深さが変わるのは MT44 だけ（4 → 5）。J-Alert の `jalert_target.prefectures[]` /
+`cities[]` がオブジェクト配列になった分であり、azarashi の 6 には 1 段届かない。
+MT43 は `detail` → `data` がルート直下の同レベル改名なので不変。
+azarashi 側が深いのは、コード値を `{scheme, code, recognized, labels}` で包むため。
 
 ## 3. 落ちる情報と互換方針
 
-azaraC が出さないもの（すべて §2 で特定）: 未定義コードの識別（`recognized`）、
-コード体系の明示（`scheme`）、時刻の状態（`status`/`basis`）、単位（`unit`）、
+azaraC v2 が出さないもの: コード体系の明示（`scheme`）、単位（`unit`）、
 津波高の範囲（`bounds`）、マグニチュードの実数値、受信時刻（`received_at`）、
-訓練/試験フラグ（`test`）、本文（`text`/`text_en`）。
+訓練/試験フラグ（`test`）、本文（`text`/`text_en`）、
+DCX `onset_time` の「未使用」と「未解決」の区別。
 
-ただし失っているのは主に**メタ情報**で、電文が運んだコード値そのものはほぼ全て残る
+v1 で落ちていたもののうち v2 で表現できるようになったもの:
+**未定義コードの識別**（`recognized` 相当。`_label: null`）、
+**時刻の状態**（`status` 相当。`unix: null` と `arrival_status`）。
+
+失っているのは主に**メタ情報**で、電文が運んだコード値そのものはほぼ全て残る
 （`arrival_time_raw`、生の `magnitude`、`ambiguity`、`sd_sdm` 等）。
 
 方針: **形は azaraC のまま、azarashi の意味論のうち azaraC が落としている部分だけを取り込む。**
-azarashi の封筒（`scheme`/`labels`/`bounds`）をそのまま真似るとサイズが 3 倍近くになり
+azarashi の封筒（`scheme`/`labels`/`bounds`）をそのまま真似るとサイズが 2.6 倍になり
 組込みでの利点を失う。
 
 - `scheme` は入れない — 体系はキー名（`region` → 津波の予報区、北西太平洋の沿岸区域、
   火山の自治体、…）とカテゴリで決まり、冗長性を払う価値が無い
 - `labels` は入れない — 言語はビルド時に選び、`_label` 1 本で運ぶ
 - `bounds` は入れない — 津波の高さだけが該当し、境界は `height_label` で読める
-- `text`/`text_en` は入れない — サイズが 41% 増える
+- `text`/`text_en` は入れない — azarashi のレコード全体の 36% を占める
 - `received_at` は `Parser::feed()` に与えた時刻を `report_time`/`onset_time` に反映する形で扱う
 
-`recognized` 相当（未定義コードの識別）、`unit`、津波高の境界型、`report_time` の
-`status`/`basis` は現状持たない。これらが必要な用途では azarashi の出力を使う。
+`unit`、津波高の境界型は現状持たない。これらが必要な用途では azarashi の出力を使う。
 
 ---
 
@@ -334,5 +423,32 @@ azarashi の封筒（`scheme`/`labels`/`bounds`）をそのまま真似るとサ
   `_time_value`（時刻の `status`）の原典
 - azarashi 0.17.0 `azarashi/json/schemas/report-v1.schema.json` — JSON Schema
 - azaraC `src/json/JsonSerializer*.cpp` / `src/json/JsonWriter.h` — 実装
+- azaraC `test/json/test_json.cpp` — v2 ヘッダ / `data` / 到着状態 / ラベル 3 値 / J-Alert
 - azaraC `test/json/test_json_dcx_b1b4.cpp` — B1–B4 の D フィールド検証
 - `qzss-specs/is-qzss-dcr-017.md` Table 4.1.2-21（Ta のセンチネル）、Table 4.1.2-23（津波高）
+
+## 5. v1 からの変更点
+
+| v1 | v2 |
+|---|---|
+| （版数なし） | `schema_version: 2` |
+| `svid_label` | 削除（`svid` は PRN そのもの） |
+| `msg_type_label` | 削除 |
+| `detail`（MT43 本文） | `data` |
+| MT44 のルート直下フィールド | `data` 配下 |
+| `dcx_type`（数値）+ `dcx_type_label` | `dcx_type`（文字列） |
+| `alert_identity{a2,a3,a4,ex1}` | 削除（`a2_country` 等と同値） |
+| `detailed_info.a4_code` | 削除（`a4_hazard` と同値） |
+| `detailed_info.dX:{raw,label}` | `dX` + `dX_label` |
+| `jalert_target.prefecture_mode` | 削除（`prefectures` / `cities` の有無で決まる） |
+| `jalert_target.prefecture_positions[]` + `prefecture_labels[]` | `jalert_target.prefectures[{position,label}]` |
+| `jalert_target.city_codes[]` + `city_labels[]` | `jalert_target.cities[{code,label}]` |
+| `entries[].arrival_day_offset` / `arrival_hour` / `arrival_min`（cat 5/6） | 削除（`arrival_time_raw` から導出、状態は `arrival_status`） |
+| `entries[].arrival_hour`（cat 9） | `arrival_time_code` + `arrival_time_label` |
+| 未定義・空ラベルの `""` | `null` / `""` を区別 |
+| `unix: 0`（未解決） | `unix: null` |
+
+`keys::` 定数のキー名（`note` / `code` / `label` / `region` / `region_label`）と、
+`hazard_center` / `secondary_ellipse` / `main_ellipse` / `additional_area` / `ex11_raw` /
+`sd_sdmt` / `sd_sdm` / `ex_vn` / `ex1_target_area` / `target_area_code` /
+`a4_hazard_category` 系のキー名は v1 のまま（`sd_sdmt` / `sd_sdm` は `data` の中へ移動）。

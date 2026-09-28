@@ -425,7 +425,7 @@ if (client.connect(server, port)) {
 ```
 
 配列要素のラベル（`notifications[].label` / `regions[].region_label` /
-`prefecture_labels[]` / `city_labels[]`）は `_label_en` を持たない。これらは
+`prefectures[].label` / `cities[].label`）は `_label_en` を持たない。これらは
 汎用キーで要素ごとにコード体系が異なるため、`label_en` という固定キー名では
 並記しても意味が通らない。要素ごとに言語を選びたい場合は
 `AZARAC_LANG_JA=0 / AZARAC_LANG_EN=1` 構成を使う。

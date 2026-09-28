@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed (破壊的変更 — JSON v2)
+
+- **`JsonSerializer` の出力を v2 に改訂（v1 と非互換）**: ルートに `schema_version: 2` を追加し、曖昧だった 4 点を明示化した。互換エイリアスは設けない（読み手は `schema_version` で分岐する）。`docs/json-formats.md` を v2 仕様として書き直した。
+  - **本文を `data` に統一**: MT43 は `detail` → `data`、MT44 はルート直下に散っていた A フィールド・拡張部・`sd_sdmt`/`sd_sdm` を `data` の下へ移動した。MT43 の報告ヘッダ（`report_classification` / `disaster_category` / `information_type` / `version` / `report_time`）はルートに残る。MT44 のルートは `schema_version` / `svid` / `msg_type` / `crc24` / `data` の 5 キーだけになる。
+  - **ラベルを 3 値に**: `_label` は「表に該当なし（未定義・範囲外・表なし）→ `null`」「定義済みだが空文字列 → `""`」「ラベルあり → 文字列」の 3 値。v1 は未定義と定義済み空が同じ `""` に潰れていた。キーは従来どおり常に出力する。
+  - **時刻の `unix` を `null` で未解決表示**: `unix_time == 0` は `"unix": 0`（1970-01-01 と区別できない）ではなく `"unix": null`。`month`/`day`/`hour`/`min` は v1 のまま。
+  - **津波の到着時刻の状態を明示**: cat 5/6 の `arrival_day_offset` / `arrival_hour` / `arrival_min` を削除し、`arrival_time_raw`（12bit の生値）＋解決できたときだけ `arrival_time`、できなければ `arrival_status`（`arrival_estimated` / `arrived_or_unknown` / `no_information` / `unrecognized_code`）にした。v1 は `31:63`（到達中と推測）・`30:62`（該当情報なし）・不正値が同じ全ゼロ時刻に潰れていた。判定順は azarashi と同じで、範囲外チェックを先に置くと `30:62` の `no_information` が到達不能になる。
+  - **重複キーの削除**: `svid_label` / `msg_type_label`（`msg_type` から一意）、`alert_identity{a2,a3,a4,ex1}`（`a2_country` 等と同値。`Mt44AlertIdentity` 構造体ごと削除）、`detailed_info.a4_code`（`a4_hazard` と同値）、`jalert_target.prefecture_mode`（`prefectures`/`cities` の有無で決まる）。
+  - **並列配列の解消**: `jalert_target` の `prefecture_positions[]` + `prefecture_labels[]` を `prefectures[{position,label}]` に、`city_codes[]` + `city_labels[]` を `cities[{code,label}]` に統合した。`position` は JIS 都道府県コード（1–47、1 始まり）で v1 の値を維持する。
+  - **D フィールドの平坦化**: B4 の `"dX": {"raw": N, "label": L}` を `"dX": N` + `"dX_label": L` にした（`JsonWriter` の `wf_v`）。D レイアウトを持たない a4 では `detailed_info` が空オブジェクトになる（B4 が存在した事実は残る）。
+  - **`dcx_type` を数値から文字列へ**: `"dcx_type": 1` + `"dcx_type_label": "L_ALERT"` → `"dcx_type": "L_ALERT"`。値は `Mt44ServiceKind` と同じ 6 種（`NULL` / `L_ALERT` / `J_ALERT` / `LOCAL_GOV` / `OUTSIDE_JAPAN` / `UNKNOWN`）。
+  - **降灰の `arrival_hour` を改名**: これは時刻ではなく 3bit の「予想降灰時刻」コードなので `arrival_time_code` + `arrival_time_label` にした（未使用だった `qzss_dcr_jma_expected_ash_fall_time{,_en}` を `AZARAC_LABEL` 経由で引く）。
+  - **実測サイズ**（同一 236 電文、コンパクト表現）: 254,196 B / 平均 1,077 B（v1 は 259,450 B / 1,099 B。同一コミットの worktree を再ビルドし同じ計量関数で測定）。MT44 の単体レコードは `prefectures` のオブジェクト配列化により最大 +859 B、MT43 は降灰（cat 9）で `arrival_hour` が `arrival_time_code` + `arrival_time_label`(+`_label_en`) になった分で最大 +242 B 増える（`detail` → `data` はルート直下の同レベル改名なので深さ・バイト数に影響しない）。総量は `dcx_type` の重複や `alert_identity` / `a4_code` / 分解済み到着時刻の削除で減る（MT44 合計 −3,734 B / MT43 合計 −1,520 B）。
+- **`writeOptStr` が `nullopt` を `null` として描画**: 従来は `nullopt` と `optional("")` をどちらも `""` にしていたため、JSON 層で「表に該当なし」と「定義済みの空ラベル」を区別できなかった。
+
 ### Added
 
 - **数量フィールドに `_label` を追加**: `depth` / `magnitude` / `pressure` / `max_wind` / `max_gust` / `elapsed` / `number` は境界（`depth` 501 = 500km より深い、`magnitude` 101 = 10.0 より大きい）とセンチネル（`depth` 511 / `magnitude` 127 / `max_wind` 0 / `max_gust` 0 = 不明）を含むコード値で、生の値からは意味が取れなかった。`JsonWriter.h` に `AZARAC_LABEL` を追加し、既存 28 箇所のラベル出力を集約したうえで、これら 7 フィールドに `_label` を付与した。センチネルは全フィールド共通ではなく、`depth` 0 は `0km`、`pressure` 0 は `0hPa`、`elapsed` 0 は `0時間後` で実値。表に無いコードは azaraC も azarashi もラベルを出さない（azarashi は `recognized: false`、`labels: {}`）。`CodeTable.__getitem__` は未知コードに `台風番号(コード番号：N)` を合成するが、JSON 経路の `_coded()` は `value in table` でガードしてから引くためその文字列は使われない。`number` 0（`typhoon_number` は `BASE=1`）は両者とも空のまま。
