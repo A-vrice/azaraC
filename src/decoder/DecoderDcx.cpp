@@ -168,12 +168,6 @@ bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix)
     dec.city_code_count = 0;
     dec.additional_area.present = false;
 
-    // Alert identity (IS-QZSS-DCX-003 §4.2.3.1)
-    dec.alert_identity.a2 = d->camf.a2;
-    dec.alert_identity.a3 = d->camf.a3;
-    dec.alert_identity.a4 = d->camf.a4;
-    dec.alert_identity.ex1 = 0;
-
     // Main ellipse (A12-A16): present if any of A12..A16 is non-zero
     bool has_main_ellipse = (d->camf.a12 != 0 || d->camf.a13 != 0 ||
                              d->camf.a14 != 0 || d->camf.a15 != 0 ||
@@ -236,8 +230,6 @@ bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix)
     }
 
     if (d->ex_kind == ExtendedKind::LAlertOrLocal) {
-        dec.alert_identity.ex1 = d->ex_lalert_local.ex1;
-
         // Target area code (EX1): used when main ellipse is absent
         if (!has_main_ellipse && d->ex_lalert_local.ex1 != 0) {
             dec.target_area_code_present = true;

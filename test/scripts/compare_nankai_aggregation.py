@@ -100,9 +100,9 @@ def main():
 
     aggregated = None
     for r in results:
-        detail = r.get('detail', {})
-        if 'text_utf8' in detail:
-            aggregated = detail['text_utf8'].encode('utf-8')
+        data_body = r.get('data', {})
+        if 'text_utf8' in data_body:
+            aggregated = data_body['text_utf8'].encode('utf-8')
             break
 
     if aggregated is None:

@@ -17,6 +17,17 @@
 namespace azaraC {
 namespace internal {
 
+// 12bit Ta から azarashi と同じ語彙の状態を返す。通常時刻なら nullptr。
+// 順序が本質: 範囲外チェックを先に置くと hour==30 の no_information が
+// 到達不能になる（30 > 23）。
+static const char* arrivalStatus(uint16_t raw, bool nwpac) {
+    uint8_t day = (raw >> 11) & 1u, hour = (raw >> 6) & 0x1Fu, min = raw & 0x3Fu;
+    if (hour == 31 && min == 63) return nwpac ? "arrived_or_unknown" : "arrival_estimated";
+    if (!nwpac && day == 0 && hour == 30 && min == 62) return "no_information";
+    if (raw == 0 || hour > 23 || min > 59) return "unrecognized_code";
+    return nullptr;
+}
+
 // MT=43 sub-type serializers
 // Each returns after writing its last field with last=true
 
@@ -192,9 +203,14 @@ bool serializeTsunami(const Mt43Data* d, Print& out) {
         const TsunamiEntry& e = tsunami->entries[i];
         out.print('{');
         uint16_t raw = e.arrival_time_raw;
-        writeArrivalTimeFields(out, raw);
+        const char* st = arrivalStatus(raw, /*nwpac=*/false);
         wf_u(out, "arrival_time_raw", raw);
-        writeDHM(out, "arrival_time", e.arrival_time);
+        if (st) {
+            wf_s(out, "arrival_status", st);
+            wk(out, "arrival_time"); out.print("null"); writeChar(out, ',');
+        } else {
+            writeDHM(out, "arrival_time", e.arrival_time);
+        }
         wf_u(out, "height",           e.height_code);
         AZARAC_LABEL(out, "height_label",
             qzss_dcr_jma_tsunami_height_lookup,
@@ -225,9 +241,14 @@ bool serializeNwPacTsu(const Mt43Data* d, Print& out) {
         const NwPacTsunamiEntry& e = nw_pac->entries[i];
         out.print('{');
         uint16_t raw = e.arrival_time_raw;
-        writeArrivalTimeFields(out, raw);
+        const char* st = arrivalStatus(raw, /*nwpac=*/true);
         wf_u(out, "arrival_time_raw", raw);
-        writeDHM(out, "arrival_time", e.arrival_time);
+        if (st) {
+            wf_s(out, "arrival_status", st);
+            wk(out, "arrival_time"); out.print("null"); writeChar(out, ',');
+        } else {
+            writeDHM(out, "arrival_time", e.arrival_time);
+        }
         wf_u(out, "height",           e.height_code);
         wf_s(out, "height_label",
             qzss_dcr_jma_northwest_pacific_tsunami_height_en_lookup(e.height_code));
@@ -295,7 +316,10 @@ bool serializeAshFall(const Mt43Data* d, Print& out) {
     for (uint8_t i = 0; i < ash->count; ++i) {
         if (i) writeChar(out, ',');
         out.print('{');
-        wf_u(out, "arrival_hour", ash->entries_time[i]);
+        wf_u(out, "arrival_time_code", ash->entries_time[i]);
+        AZARAC_LABEL(out, "arrival_time_label",
+            qzss_dcr_jma_expected_ash_fall_time_lookup,
+            qzss_dcr_jma_expected_ash_fall_time_en_lookup, ash->entries_time[i], false);
         wf_u(out, "warning_code", ash->entries_code[i]);
         AZARAC_LABEL(out, "warning_code_label",
             qzss_dcr_jma_ash_fall_warning_code_lookup,

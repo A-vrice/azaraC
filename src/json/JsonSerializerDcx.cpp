@@ -30,18 +30,18 @@ void serializeDcx(const Message& m, Print& out) {
         return;
     }
 
-    wf_u(out, "dcx_type", (uint32_t)static_cast<uint8_t>(d->service_kind));
+    wk(out, "data"); out.print('{');
 
-    std::string_view dcx_label = std::string_view{"UNKNOWN", 7};
+    const char* dcx_label = "UNKNOWN";
     switch (d->service_kind) {
-        case Mt44ServiceKind::NullMessage:     dcx_label = std::string_view{"NULL", 4}; break;
-        case Mt44ServiceKind::LAlert:          dcx_label = std::string_view{"L_ALERT", 7}; break;
-        case Mt44ServiceKind::JAlert:          dcx_label = std::string_view{"J_ALERT", 7}; break;
-        case Mt44ServiceKind::LocalGovernment: dcx_label = std::string_view{"LOCAL_GOV", 9}; break;
-        case Mt44ServiceKind::OutsideJapan:    dcx_label = std::string_view{"OUTSIDE_JAPAN", 13}; break;
+        case Mt44ServiceKind::NullMessage:     dcx_label = "NULL";          break;
+        case Mt44ServiceKind::LAlert:          dcx_label = "L_ALERT";       break;
+        case Mt44ServiceKind::JAlert:          dcx_label = "J_ALERT";       break;
+        case Mt44ServiceKind::LocalGovernment: dcx_label = "LOCAL_GOV";     break;
+        case Mt44ServiceKind::OutsideJapan:    dcx_label = "OUTSIDE_JAPAN"; break;
         default: break;
     }
-    wf_s(out, "dcx_type_label", dcx_label);
+    wf_s(out, "dcx_type", dcx_label);
 
     wf_s(out, "a1_msg_type",
         qzss_dcx_camf_a1_message_type_lookup(d->camf.a1));
@@ -175,26 +175,11 @@ void serializeDcx(const Message& m, Print& out) {
             first_detail_field = false;
         };
 
-        // a4_code is always present
-        beginDetailField();
-        wk(out, "a4_code");
-        writeUint32(out, d->camf.a4);
-
         // Helper lambda for lookups returning std::optional<std::string_view>
         auto writeDField = [&](const char* name, uint32_t value, bool present, auto lookup) {
             if (!present) return;
             beginDetailField();
-            wk(out, name);
-            out.print("{\"raw\":");
-            writeUint32(out, value);
-            out.print(",\"label\":");
-            auto label = lookup(static_cast<uint8_t>(value));
-            if (label) {
-                writeStr(out, *label);
-            } else {
-                out.print("\"\"");
-            }
-            out.print('}');
+            wf_v(out, name, value, lookup(static_cast<uint8_t>(value)), /*last=*/true);
         };
         // D3/D4 return const char* (array emitter); adapt to writeDField's optional shape
         auto d3Lookup = [](uint8_t v) -> std::optional<std::string_view> {
@@ -285,41 +270,31 @@ writeDField("d36_typhoon_cat",      b4.d_values[35], b4.d_present[35], qzss_dcx_
         // Decoded J-Alert target area
         wk(out, "jalert_target");
         out.print('{');
-        wf_u(out, "prefecture_mode", dec.jalert_prefecture_mode);
         if (dec.jalert_prefecture_mode) {
-            wk(out, "prefecture_positions");
-            out.print('[');
-            for (uint8_t i = 0; i < dec.prefecture_count; ++i) {
-                if (i) writeChar(out, ',');
-                writeUint32(out, dec.prefecture_positions[i]);
-            }
-            out.print("],");
-            wk(out, "prefecture_labels");
-            out.print('[');
+            wk(out, "prefectures"); out.print('[');
             for (uint8_t i = 0; i < dec.prefecture_count; ++i) {
                 if (i) writeChar(out, ',');
                 uint8_t pos = dec.prefecture_positions[i];
-                std::optional<std::string_view> label = AZARAC_LOOKUP_LANG(qzss_dcr_jma_prefecture_lookup, qzss_dcr_jma_prefecture_en_lookup, pos);
-                writeOptStr(out, label);
+                out.print('{');
+                wf_u(out, "position", pos);
+                wf_s(out, "label",
+                    AZARAC_LOOKUP_LANG(qzss_dcr_jma_prefecture_lookup, qzss_dcr_jma_prefecture_en_lookup, pos),
+                    /*last=*/true);
+                out.print('}');
             }
             out.print("],");
         } else {
-            wk(out, "city_codes");
-            out.print('[');
-            for (uint8_t i = 0; i < dec.city_code_count; ++i) {
-                if (i) writeChar(out, ',');
-                writeUint32(out, dec.city_codes[i]);
-            }
-            out.print("],");
-            wk(out, "city_labels");
-            out.print('[');
+            wk(out, "cities"); out.print('[');
             for (uint8_t i = 0; i < dec.city_code_count; ++i) {
                 if (i) writeChar(out, ',');
                 uint16_t code = dec.city_codes[i];
-                std::optional<std::string_view> label =
+                out.print('{');
+                wf_u(out, "code", code);
+                wf_s(out, "label",
                     AZARAC_LOOKUP_LANG(qzss_dcx_ex1_target_area_code_ja_lookup,
-                                       qzss_dcx_ex1_target_area_code_en_lookup, code);
-                writeOptStr(out, label);
+                                       qzss_dcx_ex1_target_area_code_en_lookup, code),
+                    /*last=*/true);
+                out.print('}');
             }
             out.print("],");
         }
@@ -342,18 +317,10 @@ writeDField("d36_typhoon_cat",      b4.d_values[35], b4.d_present[35], qzss_dcx_
         wf_u(out, "ex_vn", d->ex_outside.vn);
     }
 
-    // Alert identity
-    wk(out, "alert_identity");
-    out.print('{');
-    wf_u(out, "a2", dec.alert_identity.a2);
-    wf_u(out, "a3", dec.alert_identity.a3);
-    wf_u(out, "a4", dec.alert_identity.a4);
-    wf_u(out, "ex1", dec.alert_identity.ex1, /*last=*/true);
-    out.print('}');
-    writeChar(out, ',');
-
     wf_u(out, "sd_sdmt", d->sd.sdmt);
     wf_u(out, "sd_sdm", d->sd.sdm, /*last=*/true);
+
+    out.print('}');
 }
 
 #endif // AZARAC_ENABLE_DCX_CAMF

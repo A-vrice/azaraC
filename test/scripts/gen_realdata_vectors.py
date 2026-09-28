@@ -191,7 +191,7 @@ def parse_data_txt(filepath: str) -> list:
 
 def _collect_eew_fields(decoded: dict) -> dict:
     """EEW フィールドを収集"""
-    d = decoded.get('detail', {}) if decoded else {}
+    d = decoded.get('data', {}) if decoded else {}
     return {
         'depth': d.get('depth', 0),
         'magnitude': d.get('magnitude', 0),
@@ -205,7 +205,7 @@ def _collect_eew_fields(decoded: dict) -> dict:
 
 def _collect_hypo_fields(decoded: dict) -> dict:
     """Hypocenter フィールドを収集"""
-    d = decoded.get('detail', {}) if decoded else {}
+    d = decoded.get('data', {}) if decoded else {}
     return {
         'depth': d.get('depth', 0),
         'magnitude': d.get('magnitude', 0),
@@ -215,7 +215,7 @@ def _collect_hypo_fields(decoded: dict) -> dict:
 
 def _collect_seismic_fields(decoded: dict) -> dict:
     """Seismic フィールドを収集"""
-    d = decoded.get('detail', {}) if decoded else {}
+    d = decoded.get('data', {}) if decoded else {}
     entries = d.get('entries', [])
     return {
         'count': len(entries),
@@ -227,7 +227,7 @@ def _collect_seismic_fields(decoded: dict) -> dict:
 
 def _collect_tsunami_fields(decoded: dict) -> dict:
     """Tsunami フィールドを収集"""
-    d = decoded.get('detail', {}) if decoded else {}
+    d = decoded.get('data', {}) if decoded else {}
     entries = d.get('entries', [])
     return {
         'warning_code': d.get('warning_code', 0),
@@ -240,7 +240,7 @@ def _collect_tsunami_fields(decoded: dict) -> dict:
 
 def _collect_nwpac_fields(decoded: dict) -> dict:
     """NW Pacific Tsunami フィールドを収集"""
-    d = decoded.get('detail', {}) if decoded else {}
+    d = decoded.get('data', {}) if decoded else {}
     return {
         'potential': d.get('potential', 0),
         'count': len(d.get('entries', [])),
@@ -249,7 +249,7 @@ def _collect_nwpac_fields(decoded: dict) -> dict:
 
 def _collect_volcano_fields(decoded: dict) -> dict:
     """Volcano フィールドを収集"""
-    d = decoded.get('detail', {}) if decoded else {}
+    d = decoded.get('data', {}) if decoded else {}
     return {
         'volcano_name': d.get('volcano_name', 0),
         'warning_code': d.get('warning_code', 0),
@@ -258,7 +258,7 @@ def _collect_volcano_fields(decoded: dict) -> dict:
 
 def _collect_ashfall_fields(decoded: dict) -> dict:
     """Ash Fall フィールドを収集"""
-    d = decoded.get('detail', {}) if decoded else {}
+    d = decoded.get('data', {}) if decoded else {}
     return {
         'volcano_name': d.get('volcano_name', 0),
         'warning_type': d.get('warning_type', 0),
@@ -267,7 +267,7 @@ def _collect_ashfall_fields(decoded: dict) -> dict:
 
 def _collect_weather_fields(decoded: dict) -> dict:
     """Weather フィールドを収集"""
-    d = decoded.get('detail', {}) if decoded else {}
+    d = decoded.get('data', {}) if decoded else {}
     return {
         'warning_state': d.get('warning_state', 0),
         'count': len(d.get('entries', [])),
@@ -276,7 +276,7 @@ def _collect_weather_fields(decoded: dict) -> dict:
 
 def _collect_flood_fields(decoded: dict) -> dict:
     """Flood フィールドを収集"""
-    d = decoded.get('detail', {}) if decoded else {}
+    d = decoded.get('data', {}) if decoded else {}
     return {
         'count': len(d.get('entries', [])),
     }
@@ -284,7 +284,7 @@ def _collect_flood_fields(decoded: dict) -> dict:
 
 def _collect_typhoon_fields(decoded: dict) -> dict:
     """Typhoon フィールドを収集"""
-    d = decoded.get('detail', {}) if decoded else {}
+    d = decoded.get('data', {}) if decoded else {}
     return {
         'pressure': d.get('pressure', 0),
         'max_wind': d.get('max_wind', 0),
@@ -294,7 +294,7 @@ def _collect_typhoon_fields(decoded: dict) -> dict:
 
 def _collect_marine_fields(decoded: dict) -> dict:
     """Marine フィールドを収集"""
-    d = decoded.get('detail', {}) if decoded else {}
+    d = decoded.get('data', {}) if decoded else {}
     entries = d.get('entries', [])
     return {
         'count': len(entries),

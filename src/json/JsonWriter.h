@@ -76,6 +76,9 @@ void wf_x(Print& out, std::string_view k, uint32_t v, bool last = false);
 void wf_d(Print& out, std::string_view k, double v, bool last = false, int precision = 3);
 void wf_s(Print& out, std::string_view k, std::optional<std::string_view> v, bool last = false);
 void wf_s(Print& out, std::string_view k, const char* v, bool last = false);
+// "field":value,"field_label":label|null   (field は文字列リテラルに限る)
+void wf_v(Print& out, std::string_view field, uint32_t value,
+          std::optional<std::string_view> label, bool last = false);
 
 // Helpers for repeated structures
 
@@ -83,9 +86,6 @@ void wf_s(Print& out, std::string_view k, const char* v, bool last = false);
 void writeDHM(Print& out, std::string_view key, const TimeFields& t, bool last = false);
 
 void writeLatLon(Print& out, std::string_view key, const LatLon& ll, bool last = false);
-
-// Write the 12-bit packed arrival time (day_offset:1, hour:5, min:6)
-void writeArrivalTimeFields(Print& out, uint16_t raw);
 
 } // namespace internal
 

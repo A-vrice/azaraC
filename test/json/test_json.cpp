@@ -113,8 +113,7 @@ TEST_CASE("JSON Serialization: MT=44 DCX L-Alert") {
     const auto& s = sp.str();
 
     CHECK(hasField(s, "\"msg_type\":44"));
-    CHECK(hasField(s, "\"dcx_type\":1"));
-    CHECK(hasField(s, "\"dcx_type_label\":\"L_ALERT\""));
+    CHECK(hasField(s, "\"dcx_type\":\"L_ALERT\""));
     CHECK(hasField(s, "\"a2_country\":111"));
     CHECK(hasField(s, "\"a3_provider\":1"));
     CHECK(hasField(s, "\"ex1_target_area\":1100"));
@@ -148,15 +147,19 @@ TEST_CASE("JSON Serialization: MT=44 DCX J-Alert") {
     const auto& s = sp.str();
 
     CHECK(hasField(s, "\"msg_type\":44"));
-    CHECK(hasField(s, "\"dcx_type\":2"));
-    CHECK(hasField(s, "\"dcx_type_label\":\"J_ALERT\""));
+    CHECK(hasField(s, "\"dcx_type\":\"J_ALERT\""));
     CHECK(hasField(s, "\"a2_country\":111"));
     CHECK(hasField(s, "\"a3_provider\":2"));
     CHECK(hasField(s, "\"ex8_area_type\":0"));
     CHECK(has(s, "\"jalert_target\":{"));
-    CHECK(hasField(s, "\"prefecture_mode\":1"));
-    CHECK(hasField(s, "\"prefecture_positions\":[47,46,45]"));
-    // Regression: ex_vn must be preceded by a comma after the labels array close
+    CHECK(has(s, std::string("\"prefectures\":[{\"position\":47,\"label\":\"")
+                             + LBL("沖縄県", "Okinawa Prefecture") + "\""));
+    CHECK(hasField(s, "\"position\":46"));
+    CHECK(hasField(s, "\"position\":45"));
+    CHECK(s.find("prefecture_mode") == std::string::npos);
+    CHECK(s.find("prefecture_positions") == std::string::npos);
+    CHECK(s.find("prefecture_labels") == std::string::npos);
+    // Regression: ex_vn must be preceded by a comma after the array close
     // (was "]\"ex_vn\"" — invalid JSON). See bugfix: JAlert JSON missing comma.
     CHECK(s.find("],\"ex_vn\"") != std::string::npos);
     CHECK(s.find("]\"ex_vn\"") == std::string::npos);
@@ -190,8 +193,7 @@ TEST_CASE("JSON Serialization: MT=44 DCX Local Government") {
     const auto& s = sp.str();
 
     CHECK(hasField(s, "\"msg_type\":44"));
-    CHECK(hasField(s, "\"dcx_type\":3"));
-    CHECK(hasField(s, "\"dcx_type_label\":\"LOCAL_GOV\""));
+    CHECK(hasField(s, "\"dcx_type\":\"LOCAL_GOV\""));
     CHECK(hasField(s, "\"a3_provider\":4"));
     CHECK(hasField(s, "\"ex1_target_area\":1100"));
     CHECK(has(s, "\"additional_area\":{"));
@@ -216,8 +218,7 @@ TEST_CASE("JSON Serialization: MT=44 DCX Outside Japan") {
     const auto& s = sp.str();
 
     CHECK(hasField(s, "\"msg_type\":44"));
-    CHECK(hasField(s, "\"dcx_type\":4"));
-    CHECK(hasField(s, "\"dcx_type_label\":\"OUTSIDE_JAPAN\""));
+    CHECK(hasField(s, "\"dcx_type\":\"OUTSIDE_JAPAN\""));
     CHECK(hasField(s, "\"a2_country\":32"));
 }
 
@@ -238,8 +239,7 @@ TEST_CASE("JSON Serialization: MT=44 DCX Null Message") {
     const auto& s = sp.str();
 
     CHECK(hasField(s, "\"msg_type\":44"));
-    CHECK(hasField(s, "\"dcx_type\":0"));
-    CHECK(hasField(s, "\"dcx_type_label\":\"NULL\""));
+    CHECK(hasField(s, "\"dcx_type\":\"NULL\""));
 }
 
 TEST_CASE("JSON Serialization: MT=44 DCX Unknown") {
@@ -259,8 +259,7 @@ TEST_CASE("JSON Serialization: MT=44 DCX Unknown") {
     const auto& s = sp.str();
 
     CHECK(hasField(s, "\"msg_type\":44"));
-    CHECK(hasField(s, "\"dcx_type\":5"));
-    CHECK(hasField(s, "\"dcx_type_label\":\"UNKNOWN\""));
+    CHECK(hasField(s, "\"dcx_type\":\"UNKNOWN\""));
 }
 
 TEST_CASE("JSON Serialization: MT=44 DCX main ellipse") {
@@ -295,45 +294,20 @@ TEST_CASE("JSON Serialization: MT=44 DCX main ellipse") {
 // MT=43 DCR JSON 出力テスト
 // ═══════════════════════════════════════════════════════════════════════════════
 
-TEST_CASE("JSON Serialization: svid_label resolves the framer-normalised svid") {
-    // IS-QZSS-DCR-017 §4.3.1: Satellite ID は PRN を表す 8bit の 6 LSB。フレーマは
-    // svid を PRN に正規化する（NmeaFramer は `id | 0x80`、UbxFramer は svid_prn 経由）
-    // ため、シリアライザは 6 LSB に戻してから表（55/56/57/58/61）を引く。
+TEST_CASE("JSON v2: svid is the raw PRN, no svid_label") {
+    // フレーマは svid を PRN（128–191）に正規化して入れる。v2 はそれをそのまま
+    // 出し、ラベルは付けない（読み手は PRN から自分で引く）。
     Message m{};
     initMt43As(m, 1);
 
-    struct { uint8_t svid; const char* label; } cases[] = {
-        {184, "PRN184"},   // 56 & 0x3F
-        {185, "PRN185"},   // 57 & 0x3F
-        {186, "PRN186"},   // 58 & 0x3F
-        {189, "PRN189"},   // 61 & 0x3F
-        {183, "PRN183"},   // 55 & 0x3F
-    };
-    for (const auto& c : cases) {
-        m.svid = c.svid;
-        StringPrint sp;
-        internal::JsonSerializer::serialize(m, sp);
-        CHECK(hasLabel(sp.str(), "svid_label", c.label));
-    }
-
-    // 表に無い PRN（181/182 = 生 ID 53/54）はラベルが無いので空文字列。
-    // 表が覆うのは 55/56/57/58/61 のみで、これは仕様の Satellite ID 一覧と一致する。
-    for (uint8_t prn : {uint8_t{181}, uint8_t{182}}) {
-        m.svid = prn;
-        StringPrint sp;
-        internal::JsonSerializer::serialize(m, sp);
-        CHECK(hasLabel(sp.str(), "svid_label", ""));
-    }
-
-    // PRN 空間（128–191）の外は、6 LSB が表のキーと一致してもラベルを付けない。
-    // NmeaFramer の `id | 0x80` は 119 → 247 を作るが、247 & 0x3F = 55 (= PRN183) と
-    // 衝突する。UbxFramer は表に無い svId（例 55）をそのまま通す。
-    for (uint8_t svid : {uint8_t{247}, uint8_t{119}, uint8_t{55}, uint8_t{191}, uint8_t{193}}) {
+    for (uint8_t svid : {uint8_t{184}, uint8_t{186}, uint8_t{247}, uint8_t{119}}) {
         m.svid = svid;
         StringPrint sp;
         internal::JsonSerializer::serialize(m, sp);
+        const auto& s = sp.str();
         INFO("svid=", (int)svid);
-        CHECK(hasLabel(sp.str(), "svid_label", ""));
+        CHECK(hasField(s, std::string("\"svid\":") + std::to_string(svid)));
+        CHECK(s.find("svid_label") == std::string::npos);
     }
 }
 
@@ -364,7 +338,7 @@ TEST_CASE("JSON Serialization: MT=43 EEW") {
     CHECK(hasLabel(s, "intensity_upper_label", LBL("震度5弱", "Seismic intensity of 5-lower")));
     // S1-lookup regression: eew_forecast_region の疎キーテーブル (code 1 → 北海道道央)
     CHECK(has(s, std::string("\"code\":1,\"label\":\"") + LBL("北海道道央", "Central Area of Hokkaido (Do'o)") + "\""));
-    CHECK(has(s,"\"detail\":{"));
+    CHECK(has(s,"\"data\":{"));
     CHECK(hasField(s,"\"depth\":60"));
     CHECK(hasField(s,"\"magnitude\":65"));
     CHECK(hasLabel(s, "depth_label", LBL("60km", "60 km")));
@@ -496,7 +470,7 @@ TEST_CASE("JSON Serialization: MT=43 Hypocenter") {
 
     CHECK(hasField(s, "\"disaster_category\":2"));
     CHECK(hasLabel(s, "disaster_category_label", LBL("震源", "Hypocenter")));
-    CHECK(has(s, "\"detail\":{"));
+    CHECK(has(s, "\"data\":{"));
     CHECK(hasField(s, "\"depth\":40"));
     CHECK(hasField(s, "\"magnitude\":64"));
     CHECK(hasLabel(s, "depth_label", LBL("40km", "40 km")));
@@ -564,7 +538,7 @@ TEST_CASE("JSON Serialization: MT=43 Tsunami") {
 
     CHECK(hasField(s, "\"disaster_category\":5"));
     CHECK(hasLabel(s, "disaster_category_label", LBL("津波", "Tsunami")));
-    CHECK(has(s, "\"detail\":{"));
+    CHECK(has(s, "\"data\":{"));
     CHECK(hasField(s, "\"warning_code\":3"));
     CHECK(hasLabel(s, "warning_code_label", LBL("津波警報", "Tsunami Warning")));
     CHECK(has(s, "\"entries\":["));
@@ -598,7 +572,7 @@ TEST_CASE("JSON Serialization: MT=43 Nankai Trough") {
 
     CHECK(hasField(s, "\"disaster_category\":4"));
     CHECK(hasLabel(s, "disaster_category_label", LBL("南海トラフ地震", "Nankai Trough Earthquake")));
-    CHECK(has(s, "\"detail\":{"));
+    CHECK(has(s, "\"data\":{"));
     CHECK(hasField(s, "\"info_code\":1"));
     CHECK(hasField(s, "\"info_code_label\":\"調査中A（監視領域内でマグニチュード6.8以上の地震が発生したことにより、臨時に「南海トラフ沿いの地震に関する評価検討会」を開催）\""));
     CHECK(hasField(s, "\"page\":2"));
@@ -627,7 +601,7 @@ TEST_CASE("JSON Serialization: MT=43 NW Pacific Tsunami") {
 
     CHECK(hasField(s, "\"disaster_category\":6"));
     CHECK(hasLabel(s, "disaster_category_label", LBL("北西太平洋津波", "Northwest Pacific Tsunami")));
-    CHECK(has(s, "\"detail\":{"));
+    CHECK(has(s, "\"data\":{"));
     CHECK(hasField(s, "\"potential\":2"));
     CHECK(hasField(s, "\"potential_label\":\"There is a Possibility of a Destructive Regional Tsunami\""));
     CHECK(has(s, "\"entries\":["));
@@ -660,7 +634,7 @@ TEST_CASE("JSON Serialization: MT=43 Volcano") {
     CHECK(hasField(s, "\"disaster_category\":8"));
     // S1-lookup regression: dc=8 は火山（修正前は array 戦略で降灰にズレていた）
     CHECK(hasLabel(s, "disaster_category_label", LBL("火山", "Volcano")));
-    CHECK(has(s, "\"detail\":{"));
+    CHECK(has(s, "\"data\":{"));
     // 言語非依存表（JA 兄弟なし）なので _label_en は出ず、常に同じ英語ラベル
     CHECK(hasField(s, "\"ambiguity\":5"));
     CHECK(hasField(s, "\"ambiguity_label\":\"Approximate time (day)\""));
@@ -699,12 +673,15 @@ TEST_CASE("JSON Serialization: MT=43 Ash Fall") {
 
     CHECK(hasField(s, "\"disaster_category\":9"));
     CHECK(hasLabel(s, "disaster_category_label", LBL("降灰", "Ash Fall")));
-    CHECK(has(s, "\"detail\":{"));
+    CHECK(has(s, "\"data\":{"));
     CHECK(hasField(s, "\"warning_type\":1"));
     CHECK(hasLabel(s, "warning_type_label", LBL("速報", "Preliminary")));
     CHECK(hasField(s, "\"volcano_name\":503"));
     CHECK(hasLabel(s, "volcano_name_label", LBL("阿蘇山", "Asosan")));
     CHECK(has(s, "\"entries\":["));
+    CHECK(hasField(s, "\"arrival_time_code\":3"));
+    CHECK(hasLabel(s, "arrival_time_label", LBL("3時間", "3 hours")));
+    CHECK(s.find("arrival_hour") == std::string::npos);
     CHECK(has(s, std::string("\"warning_code\":2,\"warning_code_label\":\"") + LBL("やや多量の降灰", "Moderate ash fall") + "\""));
 }
 #endif // AZARAC_ENABLE_ASH_FALL
@@ -734,7 +711,7 @@ TEST_CASE("JSON Serialization: MT=43 Weather") {
 
     CHECK(hasField(s, "\"disaster_category\":10"));
     CHECK(hasLabel(s, "disaster_category_label", LBL("気象", "Weather")));
-    CHECK(has(s, "\"detail\":{"));
+    CHECK(has(s, "\"data\":{"));
     CHECK(hasField(s, "\"warning_state\":1"));
     CHECK(hasLabel(s, "warning_state_label", LBL("発表", "Announcement")));
     CHECK(has(s, "\"entries\":["));
@@ -767,7 +744,7 @@ TEST_CASE("JSON Serialization: MT=43 Flood") {
 
     CHECK(hasField(s, "\"disaster_category\":11"));
     CHECK(hasLabel(s, "disaster_category_label", LBL("洪水", "Flood")));
-    CHECK(has(s, "\"detail\":{"));
+    CHECK(has(s, "\"data\":{"));
     CHECK(has(s, "\"entries\":["));
     CHECK(hasField(s, "\"warning_level\":3"));
     CHECK(hasLabel(s, "warning_level_label", LBL("氾濫危険情報", "Information on potential flood hazards")));
@@ -802,7 +779,7 @@ TEST_CASE("JSON Serialization: MT=43 Typhoon") {
 
     CHECK(hasField(s, "\"disaster_category\":12"));
     CHECK(hasLabel(s, "disaster_category_label", LBL("台風", "Typhoon")));
-    CHECK(has(s, "\"detail\":{"));
+    CHECK(has(s, "\"data\":{"));
     CHECK(hasField(s, "\"number\":21"));
     CHECK(hasLabel(s, "number_label", LBL("21号", "No. 21")));
     CHECK(hasField(s, "\"scale\":3"));
@@ -851,12 +828,12 @@ TEST_CASE("JSON Serialization: MT=43 Marine") {
     CHECK(hasField(s, "\"disaster_category\":14"));
     // S1-lookup regression: dc=14 は海上（修正前は array 戦略で out-of-bounds→空）
     CHECK(hasLabel(s, "disaster_category_label", LBL("海上", "Marine")));
-    CHECK(has(s, "\"detail\":{"));
+    CHECK(has(s, "\"data\":{"));
     CHECK(has(s, "\"entries\":["));
     CHECK(hasField(s, "\"warning_code\":19"));
     CHECK(hasField(s, "\"region\":100"));
-    // 疎キー negative: marine warning code 19 は未定義→空(""), 20 → 海上風警報
-    CHECK(hasField(s, "\"warning_code\":19,\"warning_code_label\":\"\""));
+    // 疎キー negative: marine warning code 19 は未定義→null, 20 → 海上風警報
+    CHECK(hasField(s, "\"warning_code\":19,\"warning_code_label\":null"));
     CHECK(has(s, std::string("\"warning_code\":20,\"warning_code_label\":\"") + LBL("海上風警報", "Wind Warning") + "\""));
 }
 #endif // AZARAC_ENABLE_MARINE
@@ -1194,10 +1171,9 @@ TEST_CASE("JSON Serialization: MT=44 zero-value fields output") {
 
 // a11=0 は「定義済みの空ラベル」であって欠落ではない。AVR と非AVRは同じ
 // 結果でなければならない: 空の JSON 文字列であって null ではない。
-// (writeOptStr は nullopt と optional("") を同じ "" に描画するため、この
-//  テストは JSON 経由で Step 3 のバグを区別できない。区別するのは
-//  test/internal/test_definition_labels.cpp の lookup レベルの検査。ここは
-//  非AVR の const char* 化が JSON 出力を変えていないことの回帰ガード。)
+// v2 の 3 値規則では `""` = 表に当たったがラベルが空、`null` = 表に無い /
+// 表が無い。区別するのは test/internal/test_definition_labels.cpp の lookup
+// レベルの検査。ここは JSON 出力での回帰ガード。
 TEST_CASE("JSON Serialization: a11 empty label is present, not absent") {
     Message m{};
     m.svid = 193; m.crc24 = 0xABCDEF;
@@ -1284,11 +1260,11 @@ TEST_CASE("JSON Serialization: A9=0 code 0 is an empty international label") {
     CHECK(s.find("\"a11_guidance_label\":null") == std::string::npos);
 
     // A11 は 10bit。表の範囲（0–31）で判定せず uint8_t に切り詰めると、257 が 1 に
-    // 当たって国際表の 1 行目が出てしまう。
+    // 当たって国際表の 1 行目が出てしまう。範囲外なので v2 はラベル無し（null）。
     mt44->camf.a11 = 257;
     StringPrint sp2;
     internal::JsonSerializer::serialize(m, sp2);
-    CHECK(hasField(sp2.str(), "\"a11_guidance_label\":\"\""));
+    CHECK(hasField(sp2.str(), "\"a11_guidance_label\":null"));
     CHECK_FALSE(has(sp2.str(), "You are in the danger zone"));
 }
 
@@ -1319,8 +1295,8 @@ TEST_CASE("JSON Serialization: A9=1 outside Japan has no country library") {
     internal::JsonSerializer::serialize(m, sp);
     const auto& s = sp.str();
 
-    CHECK(hasField(s, "\"a11_guidance_label\":\"\""));
-    CHECK(s.find("\"a11_guidance_label\":null") == std::string::npos);
+    // 表が無い（A9=1 かつ A2≠111）ので v2 はラベル無し（null）
+    CHECK(hasField(s, "\"a11_guidance_label\":null"));
     CHECK_FALSE(has(s, "You are in the danger zone"));
 }
 
@@ -1373,7 +1349,7 @@ TEST_CASE("JSON Serialization: MT=43 unix_time=0 output") {
     internal::JsonSerializer::serialize(m, sp);
     const auto& s = sp.str();
 
-    CHECK(hasField(s, "\"unix\":0"));
+    CHECK(hasField(s, "\"unix\":null"));
 }
 #endif // AZARAC_ENABLE_EEW
 
@@ -1520,4 +1496,258 @@ TEST_CASE("writeDouble: 負の無限大はnull") {
     double ninf = -std::numeric_limits<double>::infinity();
     internal::writeDouble(sp, ninf, 3);
     CHECK(sp.str() == "null");
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// v2 スキーマ (schema_version: 2)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+TEST_CASE("writeOptStr: nullopt は null、空文字列は \"\"") {
+    StringPrint sp;
+    internal::writeOptStr(sp, std::nullopt);
+    CHECK(sp.str() == "null");
+
+    StringPrint sp2;
+    internal::writeOptStr(sp2, std::optional<std::string_view>(std::string_view{"", 0}));
+    CHECK(sp2.str() == "\"\"");
+}
+
+TEST_CASE("JSON v2: header and data layout") {
+    // MT43: ルートに DCR の報告ヘッダ、本文は data
+    {
+        Message m{};
+        m.svid = 186;
+        m.crc24 = 0x00A6C5B8;
+        initMt43As(m, 5);
+        Mt43Data* mt43 = m.getMt43();
+        REQUIRE(mt43 != nullptr);
+        mt43->version = 1;
+
+        StringPrint sp;
+        internal::JsonSerializer::serialize(m, sp);
+        const auto& s = sp.str();
+
+        CHECK(s.rfind("{\"schema_version\":2,\"svid\":186,\"msg_type\":43,\"crc24\":\"0x00A6C5B8\",", 0) == 0);
+        CHECK(has(s, "\"data\":{\"warning_code\""));
+        // メタ情報は data より前（ルート）にある
+        CHECK(s.find("\"version\":1") < s.find("\"data\":{"));
+        CHECK(s.find("\"report_time\"") < s.find("\"data\":{"));
+        CHECK(s.find("\"detail\"") == std::string::npos);
+        CHECK(s.find("svid_label") == std::string::npos);
+        CHECK(s.find("msg_type_label") == std::string::npos);
+    }
+    // MT44: ルートは svid/msg_type/crc24 と data だけ
+    {
+        Message m{};
+        m.svid = 193;
+        m.crc24 = 0x00074DAD;
+        initMt44(m);
+        Mt44Data* mt44 = m.getMt44();
+        REQUIRE(mt44 != nullptr);
+        mt44->service_kind = Mt44ServiceKind::JAlert;
+        mt44->ex_kind = ExtendedKind::JAlert;
+        mt44->ex_jalert.ex8 = 0;
+        mt44->ex_jalert.vn = 1;
+        mt44->sd.sdmt = 0;
+        mt44->sd.sdm = 0;
+        mt44->mt44_decoded.jalert_prefecture_mode = true;
+        mt44->mt44_decoded.prefecture_count = 1;
+        mt44->mt44_decoded.prefecture_positions[0] = 47;
+
+        StringPrint sp;
+        internal::JsonSerializer::serialize(m, sp);
+        const auto& s = sp.str();
+
+        CHECK(s.rfind("{\"schema_version\":2,\"svid\":193,\"msg_type\":44,\"crc24\":\"0x00074DAD\",\"data\":{\"dcx_type\":\"J_ALERT\",", 0) == 0);
+        // data の中身: dcx_type が先頭、sd_sdmt/sd_sdm が最後
+        CHECK(s.find("\"sd_sdmt\"") > s.find("\"data\":{"));
+        CHECK(s.find("\"sd_sdm\"") > s.find("\"data\":{"));
+        CHECK(s.rfind("\"sd_sdmt\":0,\"sd_sdm\":0}") != std::string::npos);
+        // ルート直下に dcx_type / sd_sdmt は無い（最初の dcx_type は data の直後）
+        const size_t dataPos = s.find("\"data\":{");
+        CHECK(dataPos != std::string::npos);
+        CHECK(s.compare(dataPos + 8, 11, "\"dcx_type\":") == 0);
+        CHECK(s.find("\"dcx_type\"") == dataPos + 8);
+        CHECK(has(s, "\"data\":{"));
+        CHECK(s.find("dcx_type_label") == std::string::npos);
+    }
+}
+
+TEST_CASE("JSON v2: arrival sentinel status") {
+    auto tsunamiJson = [](uint16_t raw) {
+        Message m{};
+        m.svid = 186;
+        initMt43As(m, 5);
+        TsunamiData* t = m.getMt43()->getTsunami();
+        t->count = 1;
+        t->entries[0].arrival_time_raw = raw;
+        t->entries[0].height_code = 4;
+        t->entries[0].region_code = 65;
+        StringPrint sp;
+        internal::JsonSerializer::serialize(m, sp);
+        return sp.str();
+    };
+    auto nwPacJson = [](uint16_t raw) {
+        Message m{};
+        m.svid = 186;
+        initMt43As(m, 6);
+        NwPacTsunamiData* t = m.getMt43()->getNwPac();
+        t->count = 1;
+        t->entries[0].arrival_time_raw = raw;
+        t->entries[0].height_code = 3;
+        t->entries[0].region_code = 1;
+        StringPrint sp;
+        internal::JsonSerializer::serialize(m, sp);
+        return sp.str();
+    };
+
+    // cat 5: 31:63 推定
+    {
+        const std::string s = tsunamiJson(2047);
+        CHECK(hasField(s, "\"arrival_time_raw\":2047"));
+        CHECK(has(s, "\"arrival_status\":\"arrival_estimated\""));
+        CHECK(has(s, "\"arrival_time\":null"));
+        CHECK(s.find("arrival_day_offset") == std::string::npos);
+    }
+    // cat 5: day0/30:62 = 情報なし（範囲外チェックを先に置くと到達不能になる）
+    {
+        const std::string s = tsunamiJson(1982);
+        CHECK(has(s, "\"arrival_status\":\"no_information\""));
+        CHECK(has(s, "\"arrival_time\":null"));
+    }
+    // cat 5: raw=0 は解決不能（デコーダは空を返す）
+    {
+        const std::string s = tsunamiJson(0);
+        CHECK(has(s, "\"arrival_status\":\"unrecognized_code\""));
+        CHECK(has(s, "\"arrival_time\":null"));
+    }
+    // cat 5: 通常時刻（hour 7 min 40）は status 無し、未解決なら unix が null
+    {
+        Message m{};
+        m.svid = 186;
+        initMt43As(m, 5);
+        TsunamiData* t = m.getMt43()->getTsunami();
+        t->count = 1;
+        t->entries[0].arrival_time_raw = (7u << 6) | 40u;
+        t->entries[0].arrival_time.month = 0;
+        t->entries[0].arrival_time.day = 0;
+        t->entries[0].arrival_time.hour = 7;
+        t->entries[0].arrival_time.minute = 40;
+        t->entries[0].arrival_time.unix_time = 0;   // 未解決
+        t->entries[0].height_code = 4;
+        t->entries[0].region_code = 65;
+        StringPrint sp;
+        internal::JsonSerializer::serialize(m, sp);
+        const std::string s = sp.str();
+        CHECK(s.find("\"arrival_status\"") == std::string::npos);
+        CHECK(has(s, "\"arrival_time\":{\"month\":0,\"day\":0,\"hour\":7,\"min\":40,\"unix\":null}"));
+    }
+    // cat 6: 31:63 は到着済み or 不明
+    {
+        const std::string s = nwPacJson(2047);
+        CHECK(has(s, "\"arrival_status\":\"arrived_or_unknown\""));
+        CHECK(has(s, "\"arrival_time\":null"));
+    }
+    // cat 6: 1982 は no_information ではなく範囲外
+    {
+        const std::string s = nwPacJson(1982);
+        CHECK(has(s, "\"arrival_status\":\"unrecognized_code\""));
+    }
+}
+
+TEST_CASE("JSON v2: unix is null only when unresolved") {
+    Message m{};
+    initMt43As(m, 2);
+    Mt43Data* mt43 = m.getMt43();
+    REQUIRE(mt43 != nullptr);
+
+    mt43->event_time.unix_time = 1704067200;
+    {
+        StringPrint sp;
+        internal::JsonSerializer::serialize(m, sp);
+        CHECK(hasField(sp.str(), "\"unix\":1704067200"));
+    }
+    mt43->event_time.unix_time = 0;
+    {
+        StringPrint sp;
+        internal::JsonSerializer::serialize(m, sp);
+        CHECK(hasField(sp.str(), "\"unix\":null"));
+    }
+}
+
+TEST_CASE("JSON v2: unknown label is null, empty label is a string") {
+    auto labelJson = [](uint16_t a11, uint16_t a2, uint8_t a9) {
+        Message m{};
+        m.svid = 193;
+        initMt44(m);
+        Mt44Data* mt44 = m.getMt44();
+        mt44->service_kind = Mt44ServiceKind::LAlert;
+        mt44->ex_kind = ExtendedKind::LAlertOrLocal;
+        mt44->camf.a1 = 1; mt44->camf.a2 = a2; mt44->camf.a3 = 1;
+        mt44->camf.a4 = 10; mt44->camf.a5 = 3;
+        mt44->camf.a9 = a9; mt44->camf.a11 = a11;
+        StringPrint sp;
+        internal::JsonSerializer::serialize(m, sp);
+        return sp.str();
+    };
+
+    // A9=0/A11=0: 国際表の定義済み空ラベル
+    {
+        const std::string s = labelJson(0, 111, 0);
+        CHECK(hasField(s, std::string("\"a11_guidance_label\":\"") + LBL("", "") + "\""));
+    }
+    // A9=0/A11=40: 国際表（0–31）の範囲外で定義なし
+    {
+        const std::string s = labelJson(40, 111, 0);
+        CHECK(hasField(s, "\"a11_guidance_label\":null"));
+    }
+    // A9=1/A2=71: 表そのものが無い
+    {
+        const std::string s = labelJson(1, 71, 1);
+        CHECK(hasField(s, "\"a11_guidance_label\":null"));
+    }
+}
+
+TEST_CASE("JSON v2: J-Alert objects") {
+    auto jalertJson = [](bool prefectureMode) {
+        Message m{};
+        m.svid = 193;
+        initMt44(m);
+        Mt44Data* mt44 = m.getMt44();
+        mt44->service_kind = Mt44ServiceKind::JAlert;
+        mt44->ex_kind = ExtendedKind::JAlert;
+        mt44->camf.a1 = 1; mt44->camf.a2 = 111; mt44->camf.a3 = 2;
+        mt44->camf.a4 = 5; mt44->camf.a5 = 3;
+        mt44->ex_jalert.ex8 = prefectureMode ? 0 : 1;
+        mt44->ex_jalert.vn = 1;
+        mt44->mt44_decoded.jalert_prefecture_mode = prefectureMode;
+        if (prefectureMode) {
+            mt44->mt44_decoded.prefecture_count = 1;
+            mt44->mt44_decoded.prefecture_positions[0] = 47;
+        } else {
+            mt44->mt44_decoded.city_code_count = 1;
+            mt44->mt44_decoded.city_codes[0] = 1101;
+        }
+        StringPrint sp;
+        internal::JsonSerializer::serialize(m, sp);
+        return sp.str();
+    };
+
+    {
+        const std::string s = jalertJson(true);
+        // position は JIS 都道府県コード（1 始まり）
+        CHECK(has(s, std::string("\"prefectures\":[{\"position\":47,\"label\":\"")
+                                 + LBL("沖縄県", "Okinawa Prefecture") + "\"}]"));
+        CHECK(s.find("prefecture_labels") == std::string::npos);
+        CHECK(s.find("prefecture_mode") == std::string::npos);
+        CHECK(s.find("cities") == std::string::npos);
+    }
+    {
+        const std::string s = jalertJson(false);
+        CHECK(has(s, std::string("\"cities\":[{\"code\":1101,\"label\":\"")
+                                 + LBL("札幌市中央区", "Chuo Ward, Sapporo City") + "\"}]"));
+        CHECK(s.find("city_codes") == std::string::npos);
+        CHECK(s.find("city_labels") == std::string::npos);
+        CHECK(s.find("prefectures") == std::string::npos);
+    }
 }
