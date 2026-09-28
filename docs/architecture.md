@@ -72,10 +72,7 @@ graph LR
 | Custom (IFramer) | 任意 | Sony, その他 |
 
 `Frame::svid` の契約は **QZSS L1S PRN**（181–191）。Satellite ID は「PRN を表す 8bit の下位 6bit」
-（IS-QZSS-DCR-017 §4.3.1）なので、`NmeaFramer` は常に `svid | 0x80`（53→181, 54→182,
-55–63→183–191）、`UbxFramer` は `ublox_qzss_svid_prn_map` の該当時のみ PRN に変換し、
-表に無い svId はそのまま通す。`JsonSerializer` は `svid_label` を引くときだけ `& 0x3F` で
-6 LSB に戻す（PRN 空間の値のみ。定義表 `qzss_dcr_satellite_prn` のキーは 55/56/57/58/61）。
+（IS-QZSS-DCR-017 §4.3.1）なので、`NmeaFramer`は常に`svid | 0x80`（53→181, 54→182, 55–63→183–191）、`UbxFramer`は`ublox_qzss_svid_prn_map`の該当時のみ PRNに変換し、表に無い svId はそのまま通す。`JsonSerializer` は `svid_label` を引くときだけ`& 0x3F`で6LSBに戻す（PRN空間の値のみ。定義表`qzss_dcr_satellite_prn`のキーは 55/56/57/58/61）。
 
 ### 3. Decoder (デコーダー)
 
@@ -85,11 +82,11 @@ graph LR
 
 **MT=43**: `DecoderQzqsm`がX-macroテーブル`AZARAC_DC_CATEGORIES`から全12カテゴリのサポート判定・ディスパッチを生成。カテゴリ一覧は[APIリファレンス](api-reference.md#azaracmt43data-mt43-qzqsm)を参照。
 
-**MT=44**: 階層構造のCAMFフォーマット（A1-A18 + B1-B4拡張）を解析。サービス種別（L-Alert, J-Alert 等）の判定条件は[APIリファレンス](api-reference.md#azaracmt44data-mt44-dcxcamf)を参照。
+**MT=44**: 階層構造のCAMFフォーマット（A1-A18 + B1-B4拡張）を解析。サービス種別（L-Alert, J-Alert等）の判定条件は[APIリファレンス](api-reference.md#azaracmt44data-mt44-dcxcamf)を参照。
 
 ### 4. DedupFilter (重複除去)
 
-[`DedupFilter`](../src/internal/Dedup.h)は`{svid, msg_type, crc24}`によるリングバッファで重複除去。デフォルト8スロット。複数衛星受信時は `AZARAC_DEDUP_SLOTS`を増やす。
+[`DedupFilter`](../src/internal/Dedup.h)は`{svid, msg_type, crc24}`によるリングバッファで重複除去。デフォルト8スロット。複数衛星受信時は`AZARAC_DEDUP_SLOTS`を増やすことを推奨。
 
 ### 5. NankaiPageBuffer (南海トラフページ集約)
 
@@ -97,7 +94,7 @@ graph LR
 
 ### 6. JsonSerializer (JSONシリアライザ)
 
-[`JsonSerializer`](../src/json/JsonSerializer.h)はMessageをJSON形式にシリアライズ。ヒープアロケーションなし、固定バッファで処理。`Print&` 経由で出力（Serial, WiFiClient等）。日本語/英語ラベルの選択的コンパイル対応。
+[`JsonSerializer`](../src/json/JsonSerializer.h)はMessageをJSON形式にシリアライズ。ヒープアロケーションなし、固定バッファで処理。`Print&`経由で出力（Serial, WiFiClient等）。日本語/英語ラベルの選択的コンパイルに対応。
 
 ## データフロー
 
@@ -121,7 +118,7 @@ graph TD
 |---------------|-------------|------|
 | DedupFilter | `AZARAC_DEDUP_SLOTS × 8` B + 4B 管理 | デフォルト68B（`DedupKey` はアラインメント込み 8B/スロット） |
 | NankaiPageBuffer | 28B（メタデータ）+ `MAX_PAGES × 18 + 1` B | 既定 63 ページで構造体 1,168B。LRUエビクション |
-| 定義テーブル | 表エントリ 39 本で 122KiB（124,960B）、定義文字列を含むライブラリ全体の読み取り専用セクションは 344KiB（351,896B、12 TU + 空 main をリンク）。同一 TU 内の同一リテラルは定数プールで 1 コピーに統合されるが、TU を跨ぐ統合はツールチェーン依存。計測条件: 全カテゴリ + 日英ラベル有効、64bit ホスト `g++ 15.2 -std=c++17 -O2 -fdata-sections` | Flash(AVRではPROGMEM)に配置。非AVRはエントリを `const char*`（32bit機で4B）で保持。AVRプリセット（`-D__AVR__ -DAZARAC_AVR_STUB`、SEISMIC/TSUNAMI のみ、`-O0`）では表 + プール計 3.4KiB（3,520B） |
+| 定義テーブル | 表エントリ39本で約122KiB、定義文字列を含むライブラリ全体の読み取り専用セクションは約344KiB（12TU+空のmainをリンク）。同一TU内の同一リテラルは定数プールで同じコピーに統合されるが、TUを跨ぐ統合はツールチェーン依存。計測条件: 全カテゴリ + 日英ラベル有効、64bit ホスト `g++ 15.2 -std=c++17 -O2 -fdata-sections` | Flash(AVRではPROGMEM)に配置。非AVRはエントリを `const char*`（32bit機で4B）で保持。AVRプリセット（`-D__AVR__ -DAZARAC_AVR_STUB`、SEISMIC/TSUNAMI のみ、`-O0`）では表 + プール計約3.4KiB |
 
 ## 関連ドキュメント
 

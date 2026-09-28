@@ -1,14 +1,9 @@
-# JSON 出力仕様 — azaraC と azarashi の対応
+# 概要(azaraCとazarashiのスキーマについて)
 
-azaraC の `JsonSerializer`（C++ / `Print&`）が出力する JSON の形と、azarashi 0.17.0 の
-`to_json_dict()`（Python）との対応を示す。両者は用途が違う — azaraC は組込みで `Serial` に
-流す前提、azarashi は PC での記録・機械処理の前提 — ため、優劣ではなく
-**どこで情報が落ちるか** を軸に整理する。
+azaraCの`JsonSerializer`（C++ / `Print&`）が出力するJSONと、一部参照実装であるazarashi(v0.17.0)の`to_json_dict()`が出力するJSONの**スキーマが異なる**ため比較を行いました。(差異は当ライブラリが先行してJSONを実装し始めたため生じている)
+それぞれの用途や対象は異なるため、あくまで優劣ではなく互換性のための比較になります。
 
-集計はリポジトリ内のテスト電文 `test/data/*.json` の NMEA 236 通（重複文を除く。
-MT43 103 / MT44 133）を `make -C test decode`（`--raw` で重複除去なし）と
-azarashi 0.17.0 に通した結果。`Parser` 経由（重複除去あり）では 156 レコード
-（MT43 23 / MT44 133）になる。
+なお比較には当リポジトリ内のテスト電文`test/data/*.json`のNMEA文236件(MT43: 103件/MT44: 133件)を使用しました。
 
 ---
 
@@ -18,28 +13,24 @@ azarashi 0.17.0 に通した結果。`Parser` 経由（重複除去あり）で�
 
 | キー | 型 | 内容 |
 |---|---|---|
-| `svid` | int | QZSS L1S PRN。`NmeaFramer` は Satellite ID を `\| 0x80` で正規化（53→181, 54→182, 55–63→183–191）、`UbxFramer` は `ublox_qzss_svid_prn_map` で変換（1–4→183–186、7→189）。どちらの表にも無い値は入力のまま |
-| `svid_label` | str | `svid` が PRN 空間（128–191）のときだけ `svid & 0x3F` を鍵に `qzss_dcr_satellite_prn` を引く（表は 55/56/57/58/61）。重複除去後 156 レコードのうち 95 件が `PRN183`–`PRN189` に解決し、残り 61 件（PRN181/182 = DCX 実データ）は表の範囲外のため `""`。フレーマが変換せず通した生の svId（UBX の表外値）にもラベルは付かない |
-| `msg_type` | int | 43 / 44 |
-| `msg_type_label` | str | `"DCR"` / `"DCX"` |
-| `crc24` | str | `"0x00F92C3F"`。azarashi の出力には無い |
-| `version` | int | MT43 のみ。DCR の `Vn`（6bit at `[214..219]`）。仕様は 1 を要求し、`decodeQzqsm` が 1 以外を拒否するため常に 1 |
+| `svid` | int | QZSS L1S PRN。NEMA、UBXともに正規化され基本181-191になる |
+| `svid_label` | str | `svid`が既知のみちびき（128–191）を示す場合は`qzss_dcr_satellite_prn`を引く（表は 55/56/57/58/61）。比較では156レコードのうち 95件がに解決され、残り61件（PRN181/182 = DCX 実データ）は表の範囲外のため`""`と出力した。なおフレーマがsvidを変換できなかったときはラベルは付かない |
+| `msg_type` | int | `43`か`44` |
+| `msg_type_label` | str | `"DCR"`が`"DCX"` |
+| `crc24` | str | `"0x00F92C3F"`などのチェックディジット。azarashiの出力には無い |
+| `version` | int | MT43のみDCRの `Vn`（214から219までの6bit`）。仕様は1を要求し、かつ`decodeQzqsm`も1以外を拒否するため常に1 |
 
-**MT43** は共通ヘッダのあとに `report_classification` / `disaster_category` /
-`information_type` と各 `_label`、`report_time{month,day,hour,min,unix}`、`detail{...}` を持つ。
-**MT44** は MT43 固有項目を持たず、A フィールドを最上位に展開する。
+**MT43**は共通ヘッダのあとに `report_classification` / `disaster_category` /`information_type`と各`_label`、`report_time{month,day,hour,min,unix}`、`detail{...}`を持つ。
+**MT44**ではMT43固有のキーは表示せず、Aフィールドを1層目に持つ。
 
-ラベルは `_label` サフィックスのキーに 1 本だけ出る。`AZARAC_LANG_JA=1` かつ
-`AZARAC_LANG_EN=1` の構成では、文字列リテラルのキーを持つ `_label` に `_label_en` が
-併記される。`entries[]` 要素の `height_label` / `prefecture_label` / `warning_level_label` /
-`sub_category_label` なども対象。対象外なのは汎用キーのラベル
-（`notifications[].label`, `regions[].region_label`, `prefecture_labels[]`, `city_labels[]`）で、
-要素ごとにコード体系が異なるため固定キー名の `_label_en` では意味が通らない。
+ラベルは`_label`サフィックスのキーに出力される。`AZARAC_LANG_JA=1`かつ`AZARAC_LANG_EN=1`(日英ともに有効化された状態)の条件では、日本語の文字列のキーは`_label`、英語には`_label_en`が併記される。`entries[]` 要素の`height_label` / `prefecture_label` / `warning_level_label` / `sub_category_label`などが対象。
+対象外なのは汎用キーのラベル（`notifications[].label`, `regions[].region_label`, `prefecture_labels[]`, `city_labels[]`）で、
+要素ごとにコード体系が異なるため固定キー名の `_label_en`では意味が通らない。
 詳細は [API リファレンス](api-reference.md#言語選択)。
 
 ### 1.2 MT43 の `detail`（カテゴリ別）
 
-テスト電文で確認した形（カテゴリ 6 のみ実装から記載）。`(+_label)` は `_label` が付くキー。
+テスト電文で確認した形（カテゴリ6のみ実装から記載）。`(+_label)`は`_label`が付くキー。
 
 | cat | ラベル | `detail` のキー |
 |---|---|---|
@@ -56,12 +47,11 @@ azarashi 0.17.0 に通した結果。`Parser` 経由（重複除去あり）で�
 | 12 | 台風 | `coords`, `elapsed`(+`_label`), `intensity`(+`_label`), `max_gust`(+`_label`), `max_wind`(+`_label`), `number`(+`_label`), `pressure`(+`_label`), `ref_type`(+`_label`), `reference_time`, `scale`(+`_label`) |
 | 14 | 海上 | `entries[]{region(+_label),warning_code(+_label)}` |
 
-カテゴリ 6 の電文は `test/integration/test_realdata.cpp` にのみある。洪水の予報区コードのように
-10 桁を超えるコードは `uint64_t` のまま数値で出る。
+カテゴリ6の電文は`test/integration/test_realdata.cpp`にのみある。洪水の予報区コードのように10桁を超えるコードは`uint64_t`でそのまま返却。
 
-### 1.3 MT44 のキー
+### 1.3 MT44のキー
 
-テスト電文 133 通（すべて A17=0）で確認した最上位キー。共通ヘッダ 5 キーを除いて 41 種。
+検証データに含まれていた最上位キー。共通ヘッダ5キーを除いて41種。
 
 A フィールド: `dcx_type` / `dcx_type_label`（`NULL` / `L_ALERT` / `J_ALERT` / `LOCAL_GOV` /
 `OUTSIDE_JAPAN` / `UNKNOWN`）、`a1_msg_type`, `a2_country`(+`_label`),
@@ -73,13 +63,13 @@ A フィールド: `dcx_type` / `dcx_type_label`（`NULL` / `L_ALERT` / `J_ALERT
 
 条件付きブロック（該当時のみ出現）:
 
-| ブロック | 契機 | キー |
+| ブロック | 条件 | キー |
 |---|---|---|
-| `main_ellipse` | A12–A16 あり | `lat_deg`, `lon_deg`, `semi_major_km`, `semi_minor_km`, `azimuth_deg` |
+| `main_ellipse` | A12–A16が存在 | `lat_deg`, `lon_deg`, `semi_major_km`, `semi_minor_km`, `azimuth_deg` |
 | `main_ellipse.b1_refinement` | B1 | `c1_lat_offset_deg`, `c2_lon_offset_deg`, `c3_refined_semi_major_km`, `c4_refined_semi_minor_km` |
 | `hazard_center` | B2 | `c5_raw`, `c6_raw`, `delta_lat_deg`, `delta_lon_deg` |
 | `secondary_ellipse` | B3 | `c7_shift`, `c8_homothetic`, `c9_bearing`, `c10_guidance`(+`_label`), `c10_guidance_code` |
-| `detailed_info` | B4 | `a4_code` と、a4 に応じた D フィールド（§1.4） |
+| `detailed_info` | B4 | `a4_code`とa4に応じたDフィールド（§1.4） |
 | `jalert_target` | J-Alert | `prefecture_mode`, `prefecture_positions[]` + `prefecture_labels[]`（都道府県）/ `city_codes[]` + `city_labels[]`（市区町村） |
 | `additional_area` | EX2–EX7（地方自治体） | `head_to_area`, `ellipse{lat_deg,lon_deg,semi_major_km,semi_minor_km,azimuth_deg}` |
 | `ex1_target_area`(+`_label`), `target_area_code` | L-Alert | — |
@@ -88,14 +78,14 @@ A フィールド: `dcx_type` / `dcx_type_label`（`NULL` / `L_ALERT` / `J_ALERT
 | `ex_vn` | 拡張部あり | 拡張部の版数 |
 | `alert_identity{a2,a3,a4,ex1}`, `sd_sdmt`, `sd_sdm` | 常時（MT44） | — |
 
-`main_ellipse` は 133 通中 9 通に出て、いずれも `b1_refinement` を伴う（A17=0 でも
-C1–C4 が非ゼロなら B1 として出る）。`hazard_center`（B2）・`secondary_ellipse`（B3）・
+`main_ellipse`は133通中9通に出て、いずれも `b1_refinement`を伴う（A17=0でも
+C1–C4が非ゼロならB1として出る）。`hazard_center`（B2）・`secondary_ellipse`（B3）・
 `detailed_info`（B4）・`additional_area`（EX2–EX7）を含む電文はテストデータに無く、
 `test/json/test_json_dcx_b1b4.cpp` の合成メッセージで検証している。
 
 ### 1.4 D フィールドの形
 
-B4（A17=11）の D1–D36 は **`{"raw": 生値, "label": 表示文字列}`** の 2 キーで出る。
+B4（A17=11）の D1–D36 は **`{"raw": 生値, "label": 表示文字列}`** の2キーで出る。
 
 ```json
 "detailed_info": {
@@ -119,11 +109,10 @@ B4（A17=11）の D1–D36 は **`{"raw": 生値, "label": 表示文字列}`** �
 
 ## 2. azarashi との対応
 
-### 2.1 レコード封筒
-
-| 概念 | azarashi 0.17 | azaraC | 差 |
+### 2.1 その他概要キー
+| 要素 | azarashi 0.17 | azaraC | 差 |
 |---|---|---|---|
-| レコード版 | `schema_version: 1` | なし | azaraC はレコード形式の版を持たない |
+| バージョン | `schema_version: 1` | なし | azaraCはレコード形式の版を持たない |
 | 電文版（DCR の `Vn`） | `data.version: 1` | `version: 1`（MT43 のみ） | azaraC は DCR の `Vn` だけを `version` として運ぶ |
 | 種別 | `type: "qzss.dcr.tsunami"` | `msg_type: 43` + `msg_type_label` + `disaster_category` | azaraC は数値の組合せ |
 | 訓練/試験 | `test: true` | なし | azaraC は `report_classification == 7` を読み手が解釈する |
@@ -131,7 +120,7 @@ B4（A17=11）の D1–D36 は **`{"raw": 生値, "label": 表示文字列}`** �
 | 衛星 | `satellite: {system, prn}` \| `null` | `svid` + `svid_label` | azaraC は 1 つの数値で PRN を運ぶ |
 | 元電文 | `nmea` | なし | azaraC は再生成しない |
 | 本文 | `text`, `text_en` | 南海トラフのみ（`text_utf8`、ページ単体では `text_hex[]`） | azaraC は他カテゴリで本文を生成しない |
-| ペイロード | `data`（種別ごと） | 最上位に `detail` 等（種別ごと） | 入れ子が 1 段浅い |
+| ペイロード | `data`（種別ごと） | 最上位に `detail` 等（種別ごと） | ネストが1段浅い |
 | 検査値 | なし | `crc24` | azaraC のみ |
 
 ### 2.2 コード値の表し方
@@ -143,10 +132,10 @@ B4（A17=11）の D1–D36 は **`{"raw": 生値, "label": 表示文字列}`** �
  "recognized": true, "labels": {"ja": "高知県", "en": "Kochi Prefecture"}}
 ```
 
-- `scheme` がコード体系を一意に決める（`camf.a5_severity`, `qzss.dcr.*`, `camf.provider.country_111` …）
-- `code` は十進文字列。大整数コード（洪水の 12 桁等）も落ちない
-- `recognized: false` = コード表に定義が無い。`labels` は `{}` で、**コード番号そのものは保持**
-- 表示文字列が無い定義済みコードも `labels: {}`。「未定義」と区別できる
+- `scheme`がコード体系を一意に決める（`camf.a5_severity`, `qzss.dcr.*`, `camf.provider.country_111` …）
+- `code`は十進文字列。大きな整数コード（洪水の 12桁等）も落ちない
+- `recognized: false` = コード表に定義が無い。`labels`は`{}`で、**コード番号そのものは保持**
+- 表示文字列が無い定義済みコードも`labels: {}`。「未定義」と区別できる
 - `ja`/`en` は併記される（両方ある場合）
 
 **azaraC** — 数値とラベルの並置。
@@ -155,10 +144,10 @@ B4（A17=11）の D1–D36 は **`{"raw": 生値, "label": 表示文字列}`** �
 {"region": 610, "region_label": "高知県"}
 ```
 
-- キー名が `region` なので体系は文脈依存（`scheme` に相当する情報はキー名とカテゴリだけ）
-- 値は数値。洪水のような大コードは `uint64_t` で数値のまま
-- ラベルは `_label` サフィックスのキーで、言語はビルド時に決定
-- 未定義コードは `""`、定義済みの空ラベルも `""` → **区別できない**
+- キー名が `region` なので体系は文脈依存（`scheme` に相当する情報はキー名とカテゴリだけ） //修正予定
+- 値は数値。洪水のような大コードは`uint64_t` で数値のまま
+- ラベルは`_label`サフィックスのキーで、言語はビルド時に決定
+- 未定義コードは`""`、定義済みの空ラベルも`""`→ **区別できない** //修正予定
 
 | 状況 | azarashi | azaraC |
 |---|---|---|
@@ -208,7 +197,7 @@ Table 4.2-12）で決まる:
 
 `_label` / `_label_en` により単位とセンチネルは**人間には読める**が、値自体は生コードのままなので
 **機械可読な単位・境界型は持たない**。津波の高さは特に注意が必要で、仕様の `3m` は
-「1m 超〜3m 以下」という *範囲* であり単一値ではない（`qzss-specs/is-qzss-dcr-017.md`
+「1m 超〜3m 以下」という *範囲* であり単一値ではない（`is-qzss-dcr-017`
 Table 4.1.2-23）。
 
 ### 2.4 時刻
@@ -234,7 +223,7 @@ Table 4.1.2-23）。
 if (hour > 23 || min > 59) return t;   // 全ゼロ
 ```
 
-とするため、**`31:63`（到達中）と `30:62`（情報なし）と `25:00`（不正）がすべて同じ全ゼロに潰れる**。
+とするため、**`31:63`（到達中）と `30:62`（情報なし）と `25:00`（不正）がすべて同じ全ゼロに潰れる**。 //修正予定
 実測（`test/integration/test_realdata.cpp` の `$QZQSM,56,53ADA8BECF…`、Ta = 2047 = hour 31, min 63）:
 
 ```
