@@ -64,6 +64,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Nankai ページフィクスチャを azarashi から生成し二重管理を解消**: `test/scripts/gen_all_vectors.py` の Nankai 入力を上流の 27 電文に拡張し、`test/data/nankai_vectors.json` を 27 ページに完全化、同じ JSON から `test/data/nankai_pages_generated.h`（C++ フィクスチャ）を生成するようにした。`test_nankai_e2e.cpp` の手書き配列と `compare_nankai_aggregation.py` の重複コピーを削除した。実データの最終ページは NUL 埋め（「い。」のみ）で、期待集約長は合成値時代の 486 ではなく 474 バイトになる（テストは NUL 打ち切りを反映して算出）。
 - **DCX の未検証項目にテストを追加**: `decodeLatitude17` / `decodeLongitude17_45_225` / `decodeB2HazardCenter`（`c5/c6 > 63` の丸め分岐を含む）/ `decodeCityCodeList` の単体テスト、B4 の複数レイアウト（a4=47/51/64/77/80/82）の JSON raw 値と未知 a4、主楕円・追加楕円の統合座標を検証する。
 - **デッドコードを削除**: `#if 0` の `test/integration/test_azarashi.cpp` と、未使用の `test/test_helpers.h` の `testDecode*` ラッパ 11 個を削除した。
+- **v2 テストにカテゴリマクロガードを追加**: 新規 5 テストが `#if (AZARAC_ENABLE_*)` の外にあり、`AZARAC_ENABLE_TSUNAMI=0` で 9 アサーション失敗、`AZARAC_ENABLE_DCX_CAMF=0` で `initMt44` 未宣言のコンパイルエラー 3 件（`test/json/test_json.cpp`）になっていた。`make -C test macro` が TSUNAMI で打ち切られるため DCX_CAMF は CI では未到達だった。テストが使うカテゴリのガードで囲み、アサーションは変更していない。
 
 ## [1.0.3] - 2026-08-29
 

@@ -16,7 +16,7 @@ azaraC::Parser  parser;
 azaraC::Message msg;
 
 // 定数定義
-static constexpr uint8_t  QZSS_SVID_MIN  = 183;
+static constexpr uint8_t  QZSS_SVID_MIN  = 181;  // PRN181–191（実データには ID 53/54 = PRN181/182 もある）
 static constexpr uint8_t  QZSS_SVID_MAX  = 191;
 static constexpr uint8_t  MSG_TYPE_MT43  = 43;
 static constexpr uint8_t  MSG_TYPE_MT44  = 44;
@@ -112,7 +112,7 @@ void printStatistics() {
 // この関数は feed() 呼出し前に呼ばれることはないため、msg.valid チェックはデッドコード。
 // 将来、invalid なメッセージも取得できる API が追加された時点で復活させる。
 bool validateMessage(const azaraC::Message& msg) {
-    // SVIDの範囲チェック (QZSS L1S: 183-191)
+    // SVIDの範囲チェック (QZSS L1S PRN: 181-191)
     if (msg.svid < QZSS_SVID_MIN || msg.svid > QZSS_SVID_MAX) {
         Serial.print(F("[WARN] Unexpected SVID: "));
         Serial.println(msg.svid);
