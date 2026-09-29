@@ -10,7 +10,7 @@ namespace azaraC {
 namespace internal {
 
 struct Frame {
-    uint8_t     svid;       // QZSS L1S PRN (181–191 from both framers)
+    uint8_t     svid;       // QZSS L1S PRN (181–191 when converted; unmapped UBX svId passes through as-is)
     uint8_t     bits[32];   // 250 bits MSB-first; bits[31] lower 6 = padding zeros
 };
 

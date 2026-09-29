@@ -23,7 +23,7 @@ struct DedupKey {
 class DedupFilter {
 public:
     DedupFilter() {
-        // Sentinel svid=0xFF so unused slots never match; valid SVIDs are 181-191.
+        // Sentinel svid=0xFF so unused slots never match; spec-conformant SVIDs are 181-191.
         memset(_ring, 0xFF, sizeof(_ring));
     }
 
