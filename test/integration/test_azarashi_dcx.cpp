@@ -212,7 +212,7 @@ TEST_CASE("DCX: J-Alert a3={0,2,3} (FDMA/Cabinet Office) - Non-null message") {
 // Satellite ID 53/54 の E2E — 実データ（test/data/dcx_vectors.json）に存在する
 //
 // 仕様は Satellite ID を「PRN を表す 8bit の下位 6bit」と定め、azarashi も
-// `satellite_id | 0x80` で PRN 化する。93 電文 (53) / 54 電文 (54) が該当し、
+// `satellite_id | 0x80` で PRN 化する。5 通 (53) / 56 通 (54) が該当し、
 // 旧実装は 55-63 しか変換せず生 ID のまま通していた。
 // azarashi の期待値は satellite_prn = 181 / 182。
 // ═══════════════════════════════════════════════════════════════════════════════
