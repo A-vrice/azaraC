@@ -1513,6 +1513,7 @@ TEST_CASE("writeOptStr: nullopt は null、空文字列は \"\"") {
 }
 
 TEST_CASE("JSON v2: header and data layout") {
+#if (AZARAC_ENABLE_TSUNAMI)
     // MT43: ルートに DCR の報告ヘッダ、本文は data
     {
         Message m{};
@@ -1536,6 +1537,8 @@ TEST_CASE("JSON v2: header and data layout") {
         CHECK(s.find("svid_label") == std::string::npos);
         CHECK(s.find("msg_type_label") == std::string::npos);
     }
+#endif // AZARAC_ENABLE_TSUNAMI
+#if (AZARAC_ENABLE_DCX_CAMF)
     // MT44: ルートは svid/msg_type/crc24 と data だけ
     {
         Message m{};
@@ -1571,9 +1574,12 @@ TEST_CASE("JSON v2: header and data layout") {
         CHECK(has(s, "\"data\":{"));
         CHECK(s.find("dcx_type_label") == std::string::npos);
     }
+#endif // AZARAC_ENABLE_DCX_CAMF
 }
 
+#if (AZARAC_ENABLE_TSUNAMI) || (AZARAC_ENABLE_NW_PAC_TSUNAMI)
 TEST_CASE("JSON v2: arrival sentinel status") {
+#if (AZARAC_ENABLE_TSUNAMI)
     auto tsunamiJson = [](uint16_t raw) {
         Message m{};
         m.svid = 186;
@@ -1587,6 +1593,8 @@ TEST_CASE("JSON v2: arrival sentinel status") {
         internal::JsonSerializer::serialize(m, sp);
         return sp.str();
     };
+#endif // AZARAC_ENABLE_TSUNAMI
+#if (AZARAC_ENABLE_NW_PAC_TSUNAMI)
     auto nwPacJson = [](uint16_t raw) {
         Message m{};
         m.svid = 186;
@@ -1600,7 +1608,9 @@ TEST_CASE("JSON v2: arrival sentinel status") {
         internal::JsonSerializer::serialize(m, sp);
         return sp.str();
     };
+#endif // AZARAC_ENABLE_NW_PAC_TSUNAMI
 
+#if (AZARAC_ENABLE_TSUNAMI)
     // cat 5: 31:63 推定
     {
         const std::string s = tsunamiJson(2047);
@@ -1642,6 +1652,8 @@ TEST_CASE("JSON v2: arrival sentinel status") {
         CHECK(s.find("\"arrival_status\"") == std::string::npos);
         CHECK(has(s, "\"arrival_time\":{\"month\":0,\"day\":0,\"hour\":7,\"min\":40,\"unix\":null}"));
     }
+#endif // AZARAC_ENABLE_TSUNAMI
+#if (AZARAC_ENABLE_NW_PAC_TSUNAMI)
     // cat 6: 31:63 は到着済み or 不明
     {
         const std::string s = nwPacJson(2047);
@@ -1653,7 +1665,9 @@ TEST_CASE("JSON v2: arrival sentinel status") {
         const std::string s = nwPacJson(1982);
         CHECK(has(s, "\"arrival_status\":\"unrecognized_code\""));
     }
+#endif // AZARAC_ENABLE_NW_PAC_TSUNAMI
 }
+#endif // (AZARAC_ENABLE_TSUNAMI) || (AZARAC_ENABLE_NW_PAC_TSUNAMI)
 
 TEST_CASE("JSON v2: unix is null only when unresolved") {
     Message m{};
@@ -1675,6 +1689,7 @@ TEST_CASE("JSON v2: unix is null only when unresolved") {
     }
 }
 
+#if (AZARAC_ENABLE_DCX_CAMF)
 TEST_CASE("JSON v2: unknown label is null, empty label is a string") {
     auto labelJson = [](uint16_t a11, uint16_t a2, uint8_t a9) {
         Message m{};
@@ -1707,7 +1722,9 @@ TEST_CASE("JSON v2: unknown label is null, empty label is a string") {
         CHECK(hasField(s, "\"a11_guidance_label\":null"));
     }
 }
+#endif // AZARAC_ENABLE_DCX_CAMF
 
+#if (AZARAC_ENABLE_DCX_CAMF)
 TEST_CASE("JSON v2: J-Alert objects") {
     auto jalertJson = [](bool prefectureMode) {
         Message m{};
@@ -1751,3 +1768,4 @@ TEST_CASE("JSON v2: J-Alert objects") {
         CHECK(s.find("prefectures") == std::string::npos);
     }
 }
+#endif // AZARAC_ENABLE_DCX_CAMF
