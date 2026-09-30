@@ -97,7 +97,7 @@ OBJS = $(TEST_OBJS) $(LIB_OBJS)
 # VPATH for library sources
 VPATH = ../src:../src/decoder:../src/framer:../src/json:../src/internal
 
-.PHONY: all clean run run-small-pages run-lang-defaults fuzz decode compare-realdata check check-xml check-strict-compile coverage memprof pgm-stub
+.PHONY: all clean run run-small-pages run-lang-defaults fuzz decode compare-realdata check check-xml check-strict-compile coverage test-no-alloc pgm-stub
 
 all: $(TEST_BIN)
 
@@ -189,18 +189,45 @@ coverage:
 	@echo "----------------------------------------"
 	gcovr . --filter=../src/ --exclude='.*test_.*\.cpp' --exclude='.*definition.*' --txt
 
-# --- Memory Profiling ---
-# メモリプロファイリング (Valgrind Massifによるヒープ検証)
-# Windows では Valgrind が無いためスキップを明示する。
-ifeq ($(OS),Windows_NT)
-memprof:
-	@echo "memprof: SKIP — Valgrind is not available on Windows. Run on Linux or WSL."
+# --- 動的確保ゼロ検証 (test-no-alloc) ---
+# GNU ld の --wrap は未解決参照しか差し替えないため、ライブラリとテストを 1 つの
+# 実行ファイルにリンクする。--wrap はリンク時にしか効かないので、通常の
+# run_tests とは別バイナリ・別オブジェクトディレクトリ (.noalloc/) を使う
+# （既定の .o と混在させると __real_* 未定義でリンクが落ちる）。
+# CXXFLAGS_EXTRA は依存関係に載らないため、実行後は clean する（残った
+# .noalloc/*.o が縮小構成のまま再利用されるのを避ける）。
+# macOS の ld64 は --wrap を持たないためスキップする（uname -s は MinGW で
+# MSYS_NT-* を返すので Darwin 判定で問題ない）。
+NOALLOC_BIN = no_alloc_tests$(suffix $(TEST_BIN))
+NOALLOC_TMP = .noalloc
+NOALLOC_WRAP = -Wl,--wrap=malloc -Wl,--wrap=calloc -Wl,--wrap=realloc -Wl,--wrap=posix_memalign
+NOALLOC_OBJS = $(addprefix $(NOALLOC_TMP)/,$(notdir $(LIB_SRCS:.cpp=.o))) $(NOALLOC_TMP)/test_no_alloc.o
+
+ifeq ($(shell uname -s),Darwin)
+test-no-alloc:
+	@echo "test-no-alloc: SKIP — GNU ld (--wrap) is required; macOS ld64 cannot provide it."
 else
-memprof:
-	@command -v valgrind >/dev/null 2>&1 || { echo "memprof: SKIP — valgrind not found. Install with: sudo apt install valgrind"; exit 0; } ; \
-	$(MAKE) $(TEST_BIN) && \
-	valgrind --tool=massif --pages-as-heap=yes --massif-out-file=massif.out $(RUN_PREFIX)$(TEST_BIN) && \
-	ms_print massif.out > massif_report.txt && head -n 30 massif_report.txt
+test-no-alloc:
+	$(MAKE) $(NOALLOC_BIN); b=$$?; if [ $$b -ne 0 ]; then $(MAKE) clean; exit $$b; fi; \
+	./$(NOALLOC_BIN); t=$$?; $(MAKE) clean; exit $$t
+
+$(NOALLOC_TMP):
+	@mkdir -p $@
+
+# ディレクトリは order-only にする（通常の prerequisite にすると mtime 変化で
+# 全 .o が毎回再ビルドされる）。
+$(NOALLOC_BIN): $(NOALLOC_OBJS) | $(NOALLOC_TMP)
+	$(CXX) $(CXXFLAGS) $(CXXFLAGS_EXTRA) $^ -o $@ $(LDFLAGS) $(NOALLOC_WRAP)
+
+$(NOALLOC_OBJS): | $(NOALLOC_TMP)
+
+# テスト本体はサブディレクトリにあり VPATH（../src 配下）に無いためパターン
+# ルールでは解決できない。明示ルールを置く。
+$(NOALLOC_TMP)/test_no_alloc.o: integration/test_no_alloc.cpp
+	$(CXX) $(CXXFLAGS) $(CXXFLAGS_EXTRA) -c $< -o $@
+
+$(NOALLOC_TMP)/%.o: %.cpp
+	$(CXX) $(CXXFLAGS) $(CXXFLAGS_EXTRA) -c $< -o $@
 endif
 # --- AZARAC_ENABLE_* Macro Tests ---
 # 全マクロ無効化でもコンパイルが通ることを検証する
@@ -348,7 +375,9 @@ endif
 -include $(TEST_OBJS:.o=.d) $(LIB_OBJS:.o=.d) $(FUZZ_OBJS:.o=.d) $(DECODE_OBJS:.o=.d)
 
 clean:
-	-@$(RM) *.o *.exe *.d *.gcno *.gcda massif.out massif_report.txt cppcheck_report.xml cppcheck_stderr.log coverage.xml coverage_report.json macro_sizes.txt memprof_output.txt
+	-@$(RM) *.o *.exe *.d *.gcno *.gcda cppcheck_report.xml cppcheck_stderr.log coverage.xml coverage_report.json macro_sizes.txt
+	-@$(RM) $(NOALLOC_BIN)
+	-@rm -rf $(NOALLOC_TMP)
 	-@$(RM) core/*.o core/*.d core/*.gcno core/*.gcda
 	-@$(RM) decoder/*.o decoder/*.d decoder/*.gcno decoder/*.gcda
 	-@$(RM) framer/*.o framer/*.d framer/*.gcno framer/*.gcda

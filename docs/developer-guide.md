@@ -115,7 +115,8 @@ make -C test fuzz FUZZ_ITERATIONS=100000
 | `make -C test decode` | decode_to_jsonのCLIビルド（azarashi 比較用） |
 | `make -C test compare-realdata` | azarashiとの処理比較（`pip install azarashi`が必要） |
 | `make -C test check` / `check-xml` | 静的解析（cppcheck）と厳格コンパイルチェック |
-| `make -C test coverage` / `memprof` | カバレッジ測定 / メモリプロファイル |
+| `make -C test coverage` | カバレッジ測定 |
+| `make -C test test-no-alloc` | 公開 API が動的確保を行わないことの検証（GNU ld の `--wrap`。macOS ではスキップ） |
 
 ## 定義ファイルの自動生成
 
