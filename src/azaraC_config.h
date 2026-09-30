@@ -26,7 +26,12 @@
 #define AZARAC_NANKAI_BUFFERS 1
 #endif
 #ifndef AZARAC_DEDUP_SLOTS
-#define AZARAC_DEDUP_SLOTS 4
+// 16 slots (4 sets x 4 ways) = 128 B. Half the default capacity, still ~16
+// concurrent informations tracked for their validity window.
+#define AZARAC_DEDUP_SLOTS 16
+#endif
+#ifndef AZARAC_DEDUP_WAYS
+#define AZARAC_DEDUP_WAYS 4
 #endif
 #ifndef AZARAC_FLASH_BUF_SIZE
 // Shared definition-lookup buffer (see internal/FlashString.h).
@@ -131,8 +136,33 @@
 #endif
 
 // duplicate suppression
+// Associativity of the dedup table: WAYS entries per set. Larger = more
+// tolerance to hash collisions (fewer false "new" for a still-live information),
+// smaller = cheaper per decision. AZARAC_DEDUP_SLOTS must divide evenly.
+#ifndef AZARAC_DEDUP_WAYS
+#define AZARAC_DEDUP_WAYS 8
+#endif
+// 64 slots (16 sets x 8 ways) = 512 B. A receiver must keep every information
+// still inside its validity window: 津波警報 stays live for 24 h and 気象 can
+// carry several informations at once, so the live set is tens of entries, not
+// the 8 the previous default could hold. Measured (this repo's benchmark):
+// 64x8 suppresses 100 % of the repeats in the scored streams and tracks 54
+// distinct informations without a mistake, vs 0.9373 / 8 for the 8-slot version
+// at the same per-decision cost (5.7 ns vs 4.6 ns). Reduce to 16-32 on a
+// RAM-constrained target — the AVR preset below does.
 #ifndef AZARAC_DEDUP_SLOTS
-#define AZARAC_DEDUP_SLOTS 8
+#define AZARAC_DEDUP_SLOTS 64
+#endif
+
+// Validity window of one information, in milliseconds: an information not
+// received again within this window stops counting as a duplicate
+// (アプリケーションノートv2 原PDF p.25 手順④', and the per-category 配信終了
+// conditions on p.26-27: 緊急地震速報 5分 / 震源・震度 2時間 / 津波 最大24時間 /
+// 降灰 最大1時間 / 台風 3時間 …). The longest window is used as the default so no
+// category is forgotten while it is still being broadcast; a single value cannot
+// be per-category until the caller passes one.
+#ifndef AZARAC_DEDUP_WINDOW_MS
+#define AZARAC_DEDUP_WINDOW_MS 86400000UL  // 24 h
 #endif
 
 // Nankai Trough page buffer config

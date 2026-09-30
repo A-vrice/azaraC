@@ -32,19 +32,32 @@ bool Parser::handleFrame(const internal::Frame& frame, Message& out, uint32_t re
 }
 
 bool Parser::postDecode(const Message& decoded, Message& out) {
+    // Reception time for the dedup validity window (手順④'). Nankai aggregation
+    // below uses the same clock, so both stages agree on "now".
+    const uint32_t now_ms = static_cast<uint32_t>(internal::getMillis());
+    const uint32_t window_ms = AZARAC_DEDUP_WINDOW_MS;
+
     // Nankai Trough page aggregation
 #if AZARAC_ENABLE_NANKAI
     if (decoded.payload_type == MsgPayloadType::Mt43) {
         const Mt43Data* mt43 = decoded.getMt43();
+        const NankaiData* nankai = mt43 ? mt43->getNankai() : nullptr;
         if (mt43 && mt43->disaster_category == 4) {
+            // getNankai() が無いのは電文として成立していない場合。集約できないので
+            // 以前と同じく出力しない。
+            if (!nankai) { out.clear(); return false; }
             // decoded と out を別オブジェクトにすることでエイリアシング UB を回避
-            if (!processNankaiAggregation(decoded, out, mt43, internal::getMillis())) {
+            if (!processNankaiAggregation(decoded, out, mt43, now_ms)) {
                 out.clear();
                 return false;
             }
-            // Aggregation complete - check dedup before outputting
-            internal::DedupKey key{ out.svid, out.msg_type, out.crc24 };
-            if (_dedup.isDuplicate(key)) {
+            // 同一性は事象そのもの（info_code + 報告時刻）。ページ集合を完成させた
+            // 電文は到着順で変わるため、その crc24 を鍵にすると同じ事象が再送の
+            // たびに別情報として通知される。
+            const internal::DedupKey key = internal::dedupEventKey(internal::dedupEventToken(
+                nankai->info_code, nankai->report_month, nankai->report_day,
+                nankai->report_hour, nankai->report_minute));
+            if (_dedup.isDuplicate(key, now_ms, window_ms)) {
                 out.clear();
                 return false;
             }
@@ -52,16 +65,16 @@ bool Parser::postDecode(const Message& decoded, Message& out) {
         }
     }
 #endif
-    // 重複チェック
-    internal::DedupKey key{ decoded.svid, decoded.msg_type, decoded.crc24 };
-    if (_dedup.isDuplicate(key)) { out.clear(); return false; }
+    // 重複チェック: 同一の情報（MT～VN の内容一致）は通知しない
+    internal::DedupKey key{ decoded.msg_type, decoded.crc24 };
+    if (_dedup.isDuplicate(key, now_ms, window_ms)) { out.clear(); return false; }
 
     out = decoded;
     return true;
 }
 
 #if AZARAC_ENABLE_NANKAI
-bool Parser::processNankaiAggregation(const Message& decoded, Message& out, const Mt43Data* d, uint64_t current_ms) {
+bool Parser::processNankaiAggregation(const Message& decoded, Message& out, const Mt43Data* d, uint32_t current_ms) {
 
     const NankaiData* nankai = d->getNankai();
     if (!nankai) return false;

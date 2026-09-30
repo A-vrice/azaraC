@@ -647,107 +647,183 @@ TEST_CASE("extractLatLon: 境界値テスト") {
     CHECK(ll.lon_sec == 59);
 }
 
-// ── 重複除去テスト (from test_dedup.cpp) ───────────────────────────────────
+// ── 重複除去テスト ─────────────────────────────────────────────────────────
+// アプリケーションノートv2 (原PDF p.23–25) のモデル:
+//   同一の情報 = 内容（MT～VN）の一致。受信衛星は情報の同一性に含まれない。
+//   履歴は 手順④' により「一定時間受信しなかった情報」を削除する。
+// isDuplicate の引数は (key, now_ms, window_ms)。
+
+namespace {
+constexpr uint32_t DEDUP_TEST_WINDOW = 300000;   // 5分
+constexpr uint32_t DEDUP_TEST_BASE   = 1000000;  // 適当な受信開始時刻
+} // namespace
 
 TEST_CASE("DedupFilter: 新規メッセージは重複しない") {
     DedupFilter filter;
-    DedupKey key{193, 43, 0xABCDEF};
-    CHECK_FALSE(filter.isDuplicate(key));
+    DedupKey key{43, 0xABCDEF};
+    CHECK_FALSE(filter.isDuplicate(key, DEDUP_TEST_BASE, DEDUP_TEST_WINDOW));
 }
 
-TEST_CASE("DedupFilter: 同じキーは重複と判定される") {
+TEST_CASE("DedupFilter: 同じ情報の再受信は重複と判定される") {
     DedupFilter filter;
-    DedupKey key{193, 43, 0xABCDEF};
-    CHECK_FALSE(filter.isDuplicate(key));
-    CHECK(filter.isDuplicate(key));
+    DedupKey key{43, 0xABCDEF};
+    CHECK_FALSE(filter.isDuplicate(key, DEDUP_TEST_BASE, DEDUP_TEST_WINDOW));
+    CHECK(filter.isDuplicate(key, DEDUP_TEST_BASE + 4000, DEDUP_TEST_WINDOW));
 }
 
-TEST_CASE("DedupFilter: 異なるsvidは重複しない") {
+TEST_CASE("DedupFilter: 複数衛星からの同一情報は重複と判定される") {
+    // 250ビットのデータに衛星IDは含まれないため、受信衛星が違っても同一情報。
+    // filter に渡す鍵は内容のみで、衛星ごとに通知が増えてはならない。
     DedupFilter filter;
-    DedupKey key1{193, 43, 0xABCDEF};
-    DedupKey key2{194, 43, 0xABCDEF};
-    CHECK_FALSE(filter.isDuplicate(key1));
-    CHECK_FALSE(filter.isDuplicate(key2));
+    DedupKey key{43, 0xABCDEF};
+    CHECK_FALSE(filter.isDuplicate(key, DEDUP_TEST_BASE, DEDUP_TEST_WINDOW));
+    for (uint32_t i = 1; i <= 3; ++i) {
+        CHECK(filter.isDuplicate(key, DEDUP_TEST_BASE + i * 4000, DEDUP_TEST_WINDOW));
+    }
 }
 
-TEST_CASE("DedupFilter: 異なるmsg_typeは重複しない") {
+TEST_CASE("DedupFilter: 異なるmsg_typeは別情報") {
     DedupFilter filter;
-    DedupKey key1{193, 43, 0xABCDEF};
-    DedupKey key2{193, 44, 0xABCDEF};
-    CHECK_FALSE(filter.isDuplicate(key1));
-    CHECK_FALSE(filter.isDuplicate(key2));
+    CHECK_FALSE(filter.isDuplicate(DedupKey{43, 0xABCDEF}, DEDUP_TEST_BASE, DEDUP_TEST_WINDOW));
+    CHECK_FALSE(filter.isDuplicate(DedupKey{44, 0xABCDEF}, DEDUP_TEST_BASE, DEDUP_TEST_WINDOW));
 }
 
-TEST_CASE("DedupFilter: 異なるcrc24は重複しない") {
+TEST_CASE("DedupFilter: 事象トークンの鍵は電文の鍵と衝突しない") {
+    // 南海トラフの集約結果はイベント自身のトークンで識別する。同じ数値を持つ
+    // 電文鍵とは別の情報として扱われなければならない（タグで名前空間を分ける）。
     DedupFilter filter;
-    DedupKey key1{193, 43, 0xABCDEF};
-    DedupKey key2{193, 43, 0x123456};
-    CHECK_FALSE(filter.isDuplicate(key1));
-    CHECK_FALSE(filter.isDuplicate(key2));
+    const uint32_t token = 0x123456;
+
+    CHECK_FALSE(filter.isDuplicate(dedupEventKey(token), DEDUP_TEST_BASE, DEDUP_TEST_WINDOW));
+    CHECK_FALSE(filter.isDuplicate(DedupKey{0, token}, DEDUP_TEST_BASE, DEDUP_TEST_WINDOW));
+    CHECK(filter.isDuplicate(dedupEventKey(token), DEDUP_TEST_BASE + 1, DEDUP_TEST_WINDOW));
+    CHECK(filter.isDuplicate(DedupKey{0, token}, DEDUP_TEST_BASE + 1, DEDUP_TEST_WINDOW));
+}
+
+TEST_CASE("DedupFilter: 事象トークンは事象ごとに決まる") {
+    CHECK(dedupEventToken(5, 6, 15, 12, 30) == dedupEventToken(5, 6, 15, 12, 30));
+    CHECK(dedupEventToken(5, 6, 15, 12, 30) != dedupEventToken(5, 6, 15, 12, 31));
+    CHECK(dedupEventToken(5, 6, 15, 12, 30) != dedupEventToken(4, 6, 15, 12, 30));
+}
+
+TEST_CASE("DedupFilter: 異なるcrc24は別情報") {
+    DedupFilter filter;
+    CHECK_FALSE(filter.isDuplicate(DedupKey{43, 0xABCDEF}, DEDUP_TEST_BASE, DEDUP_TEST_WINDOW));
+    CHECK_FALSE(filter.isDuplicate(DedupKey{43, 0x123456}, DEDUP_TEST_BASE, DEDUP_TEST_WINDOW));
 }
 
 TEST_CASE("DedupFilter: 複数メッセージの管理") {
     DedupFilter filter;
-    DedupKey key1{193, 43, 0xAAAAAA};
-    DedupKey key2{193, 43, 0xBBBBBB};
-    DedupKey key3{193, 43, 0xCCCCCC};
+    const DedupKey k1{43, 0xAAAAAA};
+    const DedupKey k2{43, 0xBBBBBB};
+    const DedupKey k3{43, 0xCCCCCC};
 
-    CHECK_FALSE(filter.isDuplicate(key1));
-    CHECK_FALSE(filter.isDuplicate(key2));
-    CHECK_FALSE(filter.isDuplicate(key3));
+    CHECK_FALSE(filter.isDuplicate(k1, DEDUP_TEST_BASE, DEDUP_TEST_WINDOW));
+    CHECK_FALSE(filter.isDuplicate(k2, DEDUP_TEST_BASE, DEDUP_TEST_WINDOW));
+    CHECK_FALSE(filter.isDuplicate(k3, DEDUP_TEST_BASE, DEDUP_TEST_WINDOW));
 
-    CHECK(filter.isDuplicate(key1));
-    CHECK(filter.isDuplicate(key2));
-    CHECK(filter.isDuplicate(key3));
+    CHECK(filter.isDuplicate(k1, DEDUP_TEST_BASE + 4000, DEDUP_TEST_WINDOW));
+    CHECK(filter.isDuplicate(k2, DEDUP_TEST_BASE + 4000, DEDUP_TEST_WINDOW));
+    CHECK(filter.isDuplicate(k3, DEDUP_TEST_BASE + 4000, DEDUP_TEST_WINDOW));
 }
 
-TEST_CASE("DedupFilter: reset後に新規として扱われる") {
+TEST_CASE("DedupFilter: reset後は新規として扱われる") {
     DedupFilter filter;
-    DedupKey key{193, 43, 0xABCDEF};
-    CHECK_FALSE(filter.isDuplicate(key));
-    CHECK(filter.isDuplicate(key));
+    DedupKey key{43, 0xABCDEF};
+    CHECK_FALSE(filter.isDuplicate(key, DEDUP_TEST_BASE, DEDUP_TEST_WINDOW));
+    CHECK(filter.isDuplicate(key, DEDUP_TEST_BASE, DEDUP_TEST_WINDOW));
 
     filter.reset();
-    CHECK_FALSE(filter.isDuplicate(key));
+    CHECK_FALSE(filter.isDuplicate(key, DEDUP_TEST_BASE, DEDUP_TEST_WINDOW));
 }
 
-TEST_CASE("DedupFilter: リングバッファのラップアラウンド") {
+// ── 手順④': 情報有効時間 ──────────────────────────────────────────────────
+
+TEST_CASE("DedupFilter: ウィンドウ経過後の再受信は新規として通知される") {
+    // 手順④' 一定時間受信しなかった情報は履歴から削除する。
+    // 削除後も、ウィンドウ内に受信し続けている他情報は重複のまま残る。
     DedupFilter filter;
-    DedupKey keys[33];
-    for (int i = 0; i < 33; i++) {
-        keys[i] = {193, 43, (uint32_t)(0x100000 + i)};
-    }
+    const DedupKey stale{43, 0xABCDEF};
+    const DedupKey live{43, 0x123456};
 
-    for (int i = 0; i < 32; i++) {
-        CHECK_FALSE(filter.isDuplicate(keys[i]));
-    }
+    CHECK_FALSE(filter.isDuplicate(stale, DEDUP_TEST_BASE, DEDUP_TEST_WINDOW));
+    CHECK_FALSE(filter.isDuplicate(live,  DEDUP_TEST_BASE, DEDUP_TEST_WINDOW));
+    // live だけ受信を続ける（有効時間は再受信で更新される）
+    CHECK(filter.isDuplicate(live, DEDUP_TEST_BASE + DEDUP_TEST_WINDOW - 1, DEDUP_TEST_WINDOW));
 
-    CHECK_FALSE(filter.isDuplicate(keys[32]));
-    CHECK_FALSE(filter.isDuplicate(keys[0]));
-    CHECK(filter.isDuplicate(keys[32]));
+    const uint32_t later = DEDUP_TEST_BASE + DEDUP_TEST_WINDOW + 1;
+    CHECK_FALSE(filter.isDuplicate(stale, later, DEDUP_TEST_WINDOW));  // 未受信 → 新規
+    CHECK(filter.isDuplicate(live, later, DEDUP_TEST_WINDOW));        // 受信継続中 → 重複
 }
 
-TEST_CASE("DedupFilter: 同一CRCでもsvidが異なれば別メッセージ") {
+TEST_CASE("DedupFilter: ウィンドウ境界では重複のまま") {
+    // 条件は「発表時刻から一定時間経過」なので、経過ちょうどまでは有効。
     DedupFilter filter;
-    DedupKey key1{55, 43, 0xABCDEF};
-    DedupKey key2{56, 43, 0xABCDEF};
-    DedupKey key3{57, 43, 0xABCDEF};
-
-    CHECK_FALSE(filter.isDuplicate(key1));
-    CHECK_FALSE(filter.isDuplicate(key2));
-    CHECK_FALSE(filter.isDuplicate(key3));
+    DedupKey key{43, 0xABCDEF};
+    CHECK_FALSE(filter.isDuplicate(key, DEDUP_TEST_BASE, DEDUP_TEST_WINDOW));
+    CHECK(filter.isDuplicate(key, DEDUP_TEST_BASE + DEDUP_TEST_WINDOW, DEDUP_TEST_WINDOW));
 }
 
-TEST_CASE("DedupFilter: 大量メッセージの処理") {
+TEST_CASE("DedupFilter: 再受信のたびに情報有効時間が更新される") {
+    // 「情報有効時間は、重複した場合にも更新され、最後に同情報を受信してから
+    //   一定時間有効とする」— 最後に受信した時刻を基準に判定する必要がある。
     DedupFilter filter;
-    for (int i = 0; i < 512; i++) {
-        DedupKey key{193, 43, (uint32_t)(0x100000 + i)};
-        CHECK_FALSE(filter.isDuplicate(key));
-    }
+    DedupKey key{43, 0xABCDEF};
 
-    for (int i = 512 - AZARAC_DEDUP_SLOTS; i < 512; i++) {
-        DedupKey key{193, 43, (uint32_t)(0x100000 + i)};
-        CHECK(filter.isDuplicate(key));
+    CHECK_FALSE(filter.isDuplicate(key, DEDUP_TEST_BASE, DEDUP_TEST_WINDOW));
+    const uint32_t refresh = DEDUP_TEST_BASE + DEDUP_TEST_WINDOW - 1;
+    CHECK(filter.isDuplicate(key, refresh, DEDUP_TEST_WINDOW));
+    // 最初の受信からはウィンドウを超えているが、最後の受信からは超えていない。
+    CHECK(filter.isDuplicate(key, refresh + DEDUP_TEST_WINDOW, DEDUP_TEST_WINDOW));
+}
+
+// ── 容量と追い出し ────────────────────────────────────────────────────────
+
+TEST_CASE("DedupFilter: 直近に受信した情報は容量超過後も重複と判定される") {
+    // 満杯時に捨てるのは最も古い情報であり、直近のものではない。
+    // （巡回リングで新着を捨てる実装や、古いエントリが固定される実装は
+    //   通知済みの情報を再通知することになる）
+    DedupFilter filter;
+    const int recent = AZARAC_DEDUP_WAYS;
+    const int churn  = 4 * AZARAC_DEDUP_SLOTS;
+
+    for (int i = 0; i < churn; ++i) {
+        DedupKey k{43, (uint32_t)(0x100000 + i)};
+        (void)filter.isDuplicate(k, DEDUP_TEST_BASE + (uint32_t)i, DEDUP_TEST_WINDOW);
+    }
+    for (int i = churn - recent; i < churn; ++i) {
+        DedupKey k{43, (uint32_t)(0x100000 + i)};
+        CHECK(filter.isDuplicate(k, DEDUP_TEST_BASE + (uint32_t)(churn + 1), DEDUP_TEST_WINDOW));
+    }
+}
+
+TEST_CASE("DedupFilter: msg_type が違っても内容が同じなら区別される") {
+    // 鍵は {msg_type, crc24} の両方。上位ビットに msg_type を埋める実装で
+    // 取り違えがないことを確認する。
+    DedupFilter filter;
+    const DedupKey legacy{28, 0x000003};   // 0x1C000003 相当
+    const DedupKey wide{43, 0x000000};     // 0x2B000000 相当
+
+    CHECK_FALSE(filter.isDuplicate(legacy, DEDUP_TEST_BASE, DEDUP_TEST_WINDOW));
+    CHECK_FALSE(filter.isDuplicate(wide,   DEDUP_TEST_BASE, DEDUP_TEST_WINDOW));
+    CHECK(filter.isDuplicate(legacy, DEDUP_TEST_BASE + 1, DEDUP_TEST_WINDOW));
+    CHECK(filter.isDuplicate(wide,   DEDUP_TEST_BASE + 1, DEDUP_TEST_WINDOW));
+}
+
+TEST_CASE("DedupFilter: 大量のメッセージを処理できる") {
+    // 容量を超える流入でも、直近の情報は取りこぼさない（満杯時は最古を置換）。
+    DedupFilter filter;
+    for (int i = 0; i < 512; ++i) {
+        DedupKey key{43, (uint32_t)(0x100000 + i)};
+        (void)filter.isDuplicate(key, DEDUP_TEST_BASE + (uint32_t)i, DEDUP_TEST_WINDOW);
+    }
+    for (int i = 512; i < 512 + AZARAC_DEDUP_WAYS; ++i) {
+        DedupKey key{43, (uint32_t)(0x100000 + i)};
+        (void)filter.isDuplicate(key, DEDUP_TEST_BASE + (uint32_t)i, DEDUP_TEST_WINDOW);
+    }
+    for (int i = 512 - AZARAC_DEDUP_WAYS; i < 512 + AZARAC_DEDUP_WAYS; ++i) {
+        DedupKey key{43, (uint32_t)(0x100000 + i)};
+        CHECK(filter.isDuplicate(key, DEDUP_TEST_BASE + 1000, DEDUP_TEST_WINDOW));
     }
 }
 

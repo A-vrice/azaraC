@@ -410,6 +410,39 @@ TEST_CASE("Nankai E2E: 27-page full aggregation with real text data") {
 }
 #endif // AZARAC_NANKAI_MAX_PAGES >= 27
 
+// 同じ事象を別のページ順で再受信しても再通知しない。集約メッセージの同一性は
+// ページ集合を完成させた電文ではなく事象そのもの（info_code + 報告時刻）。
+// 既定の AZARAC_NANKAI_BUFFERS=1 では事象BがAのページバッファを追い出すため、
+// 3手目は集約が再完了して dedup の判定に到達する（バッファ数が2以上でも
+// ページ重複で再完了しないだけで、期待値は同じ0）。
+#if AZARAC_NANKAI_MAX_PAGES >= 27
+TEST_CASE("Nankai E2E: 同一事象の再放送は再通知しない") {
+    azaraC::Parser parser;
+    azaraC::Message msg;
+    uint8_t bits[32];
+
+    auto feedEvent = [&](uint8_t rt_minute, bool reversed) -> int {
+        int emitted = 0;
+        for (uint8_t i = 0; i < 27; ++i) {
+            const uint8_t page = reversed ? static_cast<uint8_t>(27 - i)
+                                          : static_cast<uint8_t>(i + 1);
+            buildNankaiPage(page, 27, /*info_code=*/5,
+                            nankai_page_data[page - 1], NankaiPageBuffer::TEXT_PER_PAGE, bits,
+                            /*rt_month=*/6, /*rt_day=*/15, /*rt_hour=*/12, rt_minute);
+            std::string nmea = makeNmeaQzqsm(58, bits);
+            for (size_t k = 0; k < nmea.length(); ++k) {
+                if (parser.feed(nmea[k], msg, 0)) ++emitted;
+            }
+        }
+        return emitted;
+    };
+
+    CHECK(feedEvent(30, false) == 1);   // 事象A
+    CHECK(feedEvent(31, false) == 1);   // 事象B（報告時刻が違う＝別の情報）
+    CHECK(feedEvent(30, true) == 0);    // 事象Aの再放送（完成ページが入れ替わる）
+}
+#endif
+
 // Nankai NUL バイト打ち切り リグレッションテスト
 // ページ内に 0x00 が埋め込まれた場合、NUL 以降のデータが aggregated_text に
 // 含まれず aggregated_len が短縮されることを検証する。

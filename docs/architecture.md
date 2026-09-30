@@ -32,7 +32,7 @@ graph TD
         MT44 --> Msg
         Msg --> Nankai{"MT=43 cat.4?"}
         Nankai -->|"Yes"| NankaiBuf["NankaiPageBuffer<br/>ページ集約"]
-        Nankai -->|"No"| Dedup["DedupFilter<br/>{svid, msg_type, crc24}"]
+        Nankai -->|"No"| Dedup["DedupFilter<br/>{msg_type, crc24} + 受信時刻"]
         NankaiBuf --> Dedup
         Dedup --> Out["Message 出力"]
     end
@@ -86,7 +86,13 @@ graph LR
 
 ### 4. DedupFilter (重複除去)
 
-[`DedupFilter`](../src/internal/Dedup.h)は`{svid, msg_type, crc24}`によるリングバッファで重複除去。デフォルト8スロット。複数衛星受信時は`AZARAC_DEDUP_SLOTS`を増やすことを推奨。
+[`DedupFilter`](../src/internal/Dedup.h)はアプリケーションノートv2（原PDF p.23–25）の重複判定をそのまま実装します。
+
+- **同一性は内容**: 250ビットのフレームに衛星IDは含まれないため、情報の同一性は`{msg_type, crc24}`（MT～VN）の一致で判定します。受信衛星は鍵に含めません（複数衛星から中継された同一情報を1回だけ通知するため）。
+- **情報有効時間**: 手順④'「一定時間受信しなかった情報は履歴から削除する」に従い、`window_ms`以内に再受信した情報だけを重複と判定します。再受信のたびに有効時間は更新されます。カテゴリごとの配信終了条件（原PDF p.26–27）は`AZARAC_DEDUP_WINDOW_MS`で呼び出し側が調整します。
+- **構造**: セットアソシアティブ表（`AZARAC_DEDUP_SLOTS`÷`AZARAC_DEDUP_WAYS`セット、セット選択は内容のハッシュ）。満杯時は同一セット内で最も古い情報を置換します（新着を捨てる巡回リングではない）。1決定あたりの走査は`WAYS`で頭打ちになるため、スロット数を増やしてもコストは容量に比例しません。
+- **既定値**: 64スロット×8ウェイ = 512B。24時間有効な津波警報と複数の同時情報を保持するため。RAM制約のあるターゲットでは`AZARAC_DEDUP_SLOTS`を16〜32に落とします（AVRプリセットは16×4 = 128B）。
+- **集約結果の同一性**: 南海トラフの集約メッセージは、ページ集合を完成させた電文の`crc24`ではなく事象そのもの（`info_code` + 報告時刻）で識別します。到着順でどのページが最後になるかは変わるため、電文の鍵では同じ事象を再放送のたびに別情報と判定してしまいます。集約鍵は`DedupKey::synthetic`で電文鍵と名前空間を分けており、値が一致しても衝突しません。
 
 ### 5. NankaiPageBuffer (南海トラフページ集約)
 
@@ -116,7 +122,7 @@ graph TD
 
 | コンポーネント | メモリ使用量 | 備考 |
 |---------------|-------------|------|
-| DedupFilter | `AZARAC_DEDUP_SLOTS × 8` B + 4B 管理 | デフォルト68B（`DedupKey` はアラインメント込み 8B/スロット） |
+| DedupFilter | `AZARAC_DEDUP_SLOTS × 8` B | 既定 512B（64スロット）。1エントリ = 内容4B + 受信時刻4B |
 | NankaiPageBuffer | 28B（メタデータ）+ `MAX_PAGES × 18 + 1` B | 既定 63 ページで構造体 1,168B。LRUエビクション |
 | 定義テーブル | 表エントリ39本で約122KiB、定義文字列を含むライブラリ全体の読み取り専用セクションは約344KiB（12TU+空のmainをリンク）。同一TU内の同一リテラルは定数プールで同じコピーに統合されるが、TUを跨ぐ統合はツールチェーン依存。計測条件: 全カテゴリ + 日英ラベル有効、64bit ホスト `g++ 15.2 -std=c++17 -O2 -fdata-sections` | Flash(AVRではPROGMEM)に配置。非AVRはエントリを `const char*`（32bit機で4B）で保持。AVRプリセット（`-D__AVR__ -DAZARAC_AVR_STUB`、SEISMIC/TSUNAMI のみ、`-O0`）では表 + プール計約3.4KiB |
 

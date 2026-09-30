@@ -154,7 +154,7 @@ AVR ツールチェーン（avr-gcc）は libstdc++ を一切含まないため�
 - **PROGMEM 分岐のホスト検証**: `make -C test pgm-stub` が `__AVR__` とスタブ `test/stub/avr/pgmspace.h` で全テストをコンパイルし、PROGMEM コードパスをホストで検証します。
 - **定義ヘッダの再生成**: `scripts/gen/gen_definitions.py --out-dir src/definition` で再生成できます。
 - **定義テーブルは CI（`.github/workflows/update-definitions.yml`）で azarashi から自動生成されるため手編集禁止**です。
-- **AVR プリセット**（`src/azaraC_config.h`）: 有効カテゴリはSEISMIC/TSUNAMIのみ(他カテゴリは無効)、`AZARAC_DEDUP_SLOTS=4`、`AZARAC_NANKAI_MAX_PAGES=4`、`AZARAC_NANKAI_BUFFERS=1`。Uno ジョブ（`.github/workflows/ci.yml`の`arduino-compile-required`）は`basic_ubx` / `basic_nmea` / `basic_uno`の3つをコンパイル/検証します。
+- **AVR プリセット**（`src/azaraC_config.h`）: 有効カテゴリはSEISMIC/TSUNAMIのみ(他カテゴリは無効)、`AZARAC_DEDUP_SLOTS=16`（`AZARAC_DEDUP_WAYS=4`）、`AZARAC_NANKAI_MAX_PAGES=4`、`AZARAC_NANKAI_BUFFERS=1`。Uno ジョブ（`.github/workflows/ci.yml`の`arduino-compile-required`）は`basic_ubx` / `basic_nmea` / `basic_uno`の3つをコンパイル/検証します。
 
 ## コーディング規約
 

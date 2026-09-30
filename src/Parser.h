@@ -59,7 +59,7 @@ private:
 #if AZARAC_ENABLE_NANKAI
     // Process Nankai Trough page aggregation
     // Returns true if message should be output (page aggregation complete or not Nankai)
-    bool processNankaiAggregation(const Message& decoded, Message& out, const Mt43Data* d, uint64_t current_ms);
+    bool processNankaiAggregation(const Message& decoded, Message& out, const Mt43Data* d, uint32_t current_ms);
 #endif
 };
 

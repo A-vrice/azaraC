@@ -362,8 +362,9 @@ clean:
 # ---- PROGMEM stub (AVR branch semantics test on host) ----
 # Compiles all tests with __AVR__ defined and a stub avr/pgmspace.h so the
 # PROGMEM code paths (memcpy_P / pgm_read_dword) exercise on the host.
-# AVR presets that conflict with test assumptions (BUFFERS=1, DEDUP_SLOTS=4)
-# are neutralized. 実行後は clean する（-D 群が依存関係に載らず、残った .o が
+# AVR presets that conflict with test assumptions (BUFFERS=1, DEDUP_SLOTS=16)
+# are neutralized: SLOTS/WAYS are pinned to a pair the capacity tests can read.
+# 実行後は clean する（-D 群が依存関係に載らず、残った .o が
 # 既定構成の .o と混在して次の `make run` が再ビルドされない／混在リンクで
 # 落ちるため）。実行行は `;` を含むため必ずシェル経由になり、シェルは cwd を
 # 探索しないので `./` を明示する（RUN_PREFIX は空か `./` のため使わない）。
