@@ -3,13 +3,14 @@
 namespace azaraC {
 namespace internal {
 
-// Set index from the packed content: fold the high bits of the CRC down so the
-// truncated lanes still steer the set (taking only the low bits leaves whole
-// content lanes unused for small tables).
+// Set index from the packed content. DEDUP_SETS is a power of two, so the index is
+// the low log2(DEDUP_SETS) bits after folding the CRC down onto itself. Both shifts
+// stay below 24, so the fold is well defined for every legal AZARAC_DEDUP_SETS
+// (shifting by DEDUP_SETS/2, the previous form, is undefined once DEDUP_SETS >= 64).
 static inline uint16_t setIndexOf(uint32_t content) {
-    const uint32_t set_bits = DEDUP_SETS >> 1;   // 2^set_bits == DEDUP_SETS
     uint32_t h = content & 0xFFFFFFu;
-    h = (h & ((1u << set_bits) - 1)) ^ (h >> set_bits);
+    h ^= h >> 8;
+    h ^= h >> 4;
     return (uint16_t)(h & (DEDUP_SETS - 1));
 }
 
