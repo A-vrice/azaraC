@@ -97,7 +97,7 @@ OBJS = $(TEST_OBJS) $(LIB_OBJS)
 # VPATH for library sources
 VPATH = ../src:../src/decoder:../src/framer:../src/json:../src/internal
 
-.PHONY: all clean run run-small-pages run-lang-defaults fuzz decode compare-realdata check check-xml check-strict-compile coverage test-no-alloc pgm-stub
+.PHONY: all clean run run-small-pages run-lang-defaults fuzz decode dedup-realday compare-realdata check check-xml check-strict-compile coverage test-no-alloc pgm-stub
 
 all: $(TEST_BIN)
 
@@ -156,6 +156,23 @@ PYTHON ?= python
 COMPARE_ARGS ?=
 compare-realdata: $(DECODE_BIN)
 	$(PYTHON) scripts/compare_with_azarashi.py $(COMPARE_ARGS)
+
+# Real-day reproduction of the duplicate filter's error rate (default capacity).
+# realdata/ is .gitignore'd and absent from CI, so the input is optional.
+DEDUP_REALDAY_BIN  = dedup_realday
+DEDUP_REALDAY_SRCS = tools/dedup_realday.cpp
+DEDUP_REALDAY_OBJS = $(DEDUP_REALDAY_SRCS:.cpp=.o)
+REALDAY_INPUT ?= ../realdata/Q002_20240101.l1s
+
+dedup-realday: $(DEDUP_REALDAY_BIN)
+ifeq ($(wildcard $(REALDAY_INPUT)),)
+	@echo "dedup-realday: SKIP - $(REALDAY_INPUT) not found"
+else
+	$(RUN_PREFIX)$(DEDUP_REALDAY_BIN) $(REALDAY_INPUT)
+endif
+
+$(DEDUP_REALDAY_BIN): $(DEDUP_REALDAY_OBJS) $(LIB_OBJS)
+	$(CXX) $(CXXFLAGS) $(CXXFLAGS_EXTRA) $^ -o $@ $(LDFLAGS)
 
 # --- Static Analysis ---
 # 静的解析 (時間をかけた厳格なチェック)
@@ -372,7 +389,7 @@ macro:
 endif
 
 # Include dependency files
--include $(TEST_OBJS:.o=.d) $(LIB_OBJS:.o=.d) $(FUZZ_OBJS:.o=.d) $(DECODE_OBJS:.o=.d)
+-include $(TEST_OBJS:.o=.d) $(LIB_OBJS:.o=.d) $(FUZZ_OBJS:.o=.d) $(DECODE_OBJS:.o=.d) $(DEDUP_REALDAY_OBJS:.o=.d)
 
 clean:
 	-@$(RM) *.o *.exe *.d *.gcno *.gcda cppcheck_report.xml cppcheck_stderr.log coverage.xml coverage_report.json macro_sizes.txt
@@ -391,8 +408,10 @@ clean:
 # ---- PROGMEM stub (AVR branch semantics test on host) ----
 # Compiles all tests with __AVR__ defined and a stub avr/pgmspace.h so the
 # PROGMEM code paths (memcpy_P / pgm_read_dword) exercise on the host.
-# AVR presets that conflict with test assumptions (BUFFERS=1, DEDUP_SLOTS=16)
-# are neutralized: SLOTS/WAYS are pinned to a pair the capacity tests can read.
+# AVR presets that conflict with test assumptions (BUFFERS=1) are neutralized:
+# SLOTS/WAYS are pinned to values the capacity tests can read. These must match
+# the AVR preset (64 x 8): the previous SLOTS=8 combined with the AVR WAYS=8
+# produced SETS=1, so the tests exercised no associativity and no eviction at all.
 # 実行後は clean する（-D 群が依存関係に載らず、残った .o が
 # 既定構成の .o と混在して次の `make run` が再ビルドされない／混在リンクで
 # 落ちるため）。実行行は `;` を含むため必ずシェル経由になり、シェルは cwd を
@@ -402,4 +421,4 @@ clean:
 # 成功時はテストの終了コードを返す。
 pgm-stub:
 	$(MAKE) clean
-	$(MAKE) CXXFLAGS="-std=c++17 -Wall -Wextra -Istub -I../src -I. -DARDUINO=0 -D__AVR__ -DAZARAC_AVR_STUB -DAZARAC_LANG_JA=1 -DAZARAC_LANG_EN=1 -DAZARAC_NANKAI_MAX_PAGES=63 -DAZARAC_NANKAI_BUFFERS=4 -DAZARAC_DEDUP_SLOTS=8 -DAZARAC_ENABLE_EEW=1 -DAZARAC_ENABLE_HYPOCENTER=1 -DAZARAC_ENABLE_SEISMIC=1 -DAZARAC_ENABLE_NANKAI=1 -DAZARAC_ENABLE_TSUNAMI=1 -DAZARAC_ENABLE_NW_PAC_TSUNAMI=1 -DAZARAC_ENABLE_VOLCANO=1 -DAZARAC_ENABLE_ASH_FALL=1 -DAZARAC_ENABLE_WEATHER=1 -DAZARAC_ENABLE_FLOOD=1 -DAZARAC_ENABLE_TYPHOON=1 -DAZARAC_ENABLE_MARINE=1 -DAZARAC_ENABLE_DCX_CAMF=1 -MMD -MP -g" $(TEST_BIN); b=$$?; if [ $$b -ne 0 ]; then $(MAKE) clean; exit $$b; fi; ./$(TEST_BIN); t=$$?; $(MAKE) clean; exit $$t
+	$(MAKE) CXXFLAGS="-std=c++17 -Wall -Wextra -Istub -I../src -I. -DARDUINO=0 -D__AVR__ -DAZARAC_AVR_STUB -DAZARAC_LANG_JA=1 -DAZARAC_LANG_EN=1 -DAZARAC_NANKAI_MAX_PAGES=63 -DAZARAC_NANKAI_BUFFERS=4 -DAZARAC_DEDUP_SLOTS=64 -DAZARAC_ENABLE_EEW=1 -DAZARAC_ENABLE_HYPOCENTER=1 -DAZARAC_ENABLE_SEISMIC=1 -DAZARAC_ENABLE_NANKAI=1 -DAZARAC_ENABLE_TSUNAMI=1 -DAZARAC_ENABLE_NW_PAC_TSUNAMI=1 -DAZARAC_ENABLE_VOLCANO=1 -DAZARAC_ENABLE_ASH_FALL=1 -DAZARAC_ENABLE_WEATHER=1 -DAZARAC_ENABLE_FLOOD=1 -DAZARAC_ENABLE_TYPHOON=1 -DAZARAC_ENABLE_MARINE=1 -DAZARAC_ENABLE_DCX_CAMF=1 -MMD -MP -g" $(TEST_BIN); b=$$?; if [ $$b -ne 0 ]; then $(MAKE) clean; exit $$b; fi; ./$(TEST_BIN); t=$$?; $(MAKE) clean; exit $$t

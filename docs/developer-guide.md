@@ -113,6 +113,7 @@ make -C test fuzz FUZZ_ITERATIONS=100000
 | `make -C test pgm-stub` | `__AVR__` + スタブ `avr/pgmspace.h` で全テストをコンパイルし PROGMEM 分岐をホスト検証 |
 | `make -C test run-small-pages` | `AZARAC_NANKAI_MAX_PAGES=8` で全体を再ビルドし、ページ打ち切り経路を検証（既定 63 では打ち切りが発生せず該当テストが `#if` で除外されるため） |
 | `make -C test decode` | decode_to_jsonのCLIビルド（azarashi 比較用） |
+| `make -C test dedup-realday` | 実日の `.l1s`（`realdata/`、gitignore対象）に対する重複判定の再現計測。フレーム数・distinct・生存ピーク・再通知/取りこぼしを METRIC 行で出す。`REALDAY_CAT<n>_*` はカテゴリ別の内訳（`MISSED`=取りこぼし、`FALSE_RE`=再通知）、`REALDAY_UNALIGNED` は非整列フレーム数（0 でなければ数字を信用しない）。`REALDAY_INPUT` で入力、`CXXFLAGS_EXTRA="-DAZARAC_DEDUP_SLOTS=…"` + `-B` で容量を変えて反復（**`CXXFLAGS_EXTRA` は依存関係に載らないため、スイープ後は `make -C test clean`** で残った `.o` を消す） |
 | `make -C test compare-realdata` | azarashiとの処理比較（`pip install azarashi`が必要） |
 | `make -C test check` / `check-xml` | 静的解析（cppcheck）と厳格コンパイルチェック |
 | `make -C test coverage` | カバレッジ測定 |
@@ -155,7 +156,7 @@ AVR ツールチェーン（avr-gcc）は libstdc++ を一切含まないため�
 - **PROGMEM 分岐のホスト検証**: `make -C test pgm-stub` が `__AVR__` とスタブ `test/stub/avr/pgmspace.h` で全テストをコンパイルし、PROGMEM コードパスをホストで検証します。
 - **定義ヘッダの再生成**: `scripts/gen/gen_definitions.py --out-dir src/definition` で再生成できます。
 - **定義テーブルは CI（`.github/workflows/update-definitions.yml`）で azarashi から自動生成されるため手編集禁止**です。
-- **AVR プリセット**（`src/azaraC_config.h`）: 有効カテゴリはSEISMIC/TSUNAMIのみ(他カテゴリは無効)、`AZARAC_DEDUP_SLOTS=16`（`AZARAC_DEDUP_WAYS=4`）、`AZARAC_NANKAI_MAX_PAGES=4`、`AZARAC_NANKAI_BUFFERS=1`。Uno ジョブ（`.github/workflows/ci.yml`の`arduino-compile-required`）は`basic_ubx` / `basic_nmea` / `basic_uno`の3つをコンパイル/検証します。
+- **AVR プリセット**（`src/azaraC_config.h`）: 有効カテゴリはSEISMIC/TSUNAMIのみ(他カテゴリは無効)、`AZARAC_DEDUP_SLOTS=64`（`AZARAC_DEDUP_WAYS=8`、512B）、`AZARAC_NANKAI_MAX_PAGES=4`、`AZARAC_NANKAI_BUFFERS=1`。Uno ジョブ（`.github/workflows/ci.yml`の`arduino-compile-required`）は`basic_ubx` / `basic_nmea` / `basic_uno`の3つをコンパイル/検証します。
 
 ## コーディング規約
 

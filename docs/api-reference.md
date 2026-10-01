@@ -391,9 +391,9 @@ if (client.connect(server, port)) {
 
 | マクロ | デフォルト | 説明 |
 |-------|-----------|------|
-| `AZARAC_DEDUP_SLOTS` | 64 | 重複判定表のエントリ数（`AZARAC_DEDUP_WAYS`の倍数、商は2の冪）。1エントリ8B |
+| `AZARAC_DEDUP_SLOTS` | 512 | 重複判定表のエントリ数（`AZARAC_DEDUP_WAYS`の倍数、商は2の冪）。1エントリ8B |
 | `AZARAC_DEDUP_WAYS` | 8 | 表の連想度（1セットあたりのエントリ数）。大きいほどハッシュ衝突に強い |
-| `AZARAC_DEDUP_WINDOW_MS` | 86400000 | 情報有効時間(ms)。これを超えて未受信の情報は重複と判定しない（手順④'） |
+| `AZARAC_DEDUP_WINDOW_MS` | 86400000 | 情報有効時間(ms)のフォールバック。災害種別ごとの配信終了条件（`internal/DedupWindow.h`）に無いカテゴリ（MT=44など）だけがこれを使う |
 
 ### 言語選択
 
@@ -480,7 +480,7 @@ if (client.connect(server, port)) {
 |-------|-----------|------|
 | `AZARAC_FLASH_BUF_SIZE` | 800（AVRプリセット: 64、DCX/CAMF有効時800） | PROGMEMルックアップ用の共有RAMバッファサイズ (バイト) |
 
-**AVRプリセット**: `__AVR__`では`azaraC_config.h`のプリセットがデフォルトを変更します。有効カテゴリはSEISMIC/TSUNAMIのみ（他11カテゴリは無効）、`AZARAC_DEDUP_SLOTS=16`（`AZARAC_DEDUP_WAYS=4`、128B）、`AZARAC_NANKAI_BUFFERS=1`、`AZARAC_NANKAI_MAX_PAGES=4`となります。`-D`または`#define`（`azaraC.h`インクルード前）で明示することで上書き可能です。
+**AVRプリセット**: `__AVR__`では`azaraC_config.h`のプリセットがデフォルトを変更します。有効カテゴリはSEISMIC/TSUNAMIのみ（他11カテゴリは無効）、`AZARAC_DEDUP_SLOTS=64`（`AZARAC_DEDUP_WAYS=8`、512B）、`AZARAC_NANKAI_BUFFERS=1`、`AZARAC_NANKAI_MAX_PAGES=4`となります。`-D`または`#define`（`azaraC.h`インクルード前）で明示することで上書き可能です。
 
 **AVR 標準ライブラリシム**: AVRツールチェーンはlibstdc++を含まないため、`#if defined(__AVR__)`で`src/internal/avr_std/`の最小シム（`optional`/`string_view`/`std::move`等）が自動適用されます。ライブラリの利用方法/API自体は非AVRと同一です。
 

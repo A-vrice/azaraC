@@ -2,8 +2,10 @@
 # autoresearch.sh — dedup benchmark entrypoint.
 #
 #   primary    : NANOS_PER_OP   ns per dedup decision over the scored streams
-#   guardrails : NEW_RECALL (baseline 118/118), DUP_SUPPRESS >= 0.99, CAPACITY_DISTINCT,
-#                SRAM_*_BYTES, NANKAI_KEY_STABLE, ACCURACY_P*
+#   gates      : NEW_RECALL (NEW_CORRECT >= 118), DUP_SUPPRESS >= 0.99,
+#                NANKAI_KEY_STABLE == 1, PREAMBLE_KEY_STABLE == 1  (exit non-zero)
+#   reported   : CAPACITY_DISTINCT, SRAM_*_BYTES, ACCURACY_P*, CORPUS_* (printed,
+#                not gated — read them in the diff when they move)
 #
 # The scored streams are spec-model traffic (qzss-specs/アプリケーションノートv2.md
 # 原PDF p.23–27): the same information relayed by several satellites, rebroadcast
@@ -91,6 +93,32 @@ if [[ "$(awk -v d="$dup" -v m="$MIN_DUP_SUPPRESS" 'BEGIN { print (d + 0 < m + 0)
     echo "bench: DUP_SUPPRESS regressed ($dup < $MIN_DUP_SUPPRESS) — capacity must not be traded for speed" >&2
     exit 7
 fi
+
+# Guardrail: the two behavioural identity checks must report "stable" (1). They
+# are the only thing that catches a key widened back to the whole 250-bit frame
+# (PREAMBLE_KEY_STABLE: the preamble cycles A→B→C, so a widened key announces one
+# information three times) or a Nankai event identified by its completing page
+# (NANKAI_KEY_STABLE). NEW_RECALL and DUP_SUPPRESS both stay green under those
+# bugs, so without this gate the regression ships silently.
+# A non-1 value has two very different causes, so they get different messages:
+#   0        — the key is wrong (debug the identity, 手順③: MT～VN)
+#   missing  — the metric was not printed (bench did not run that check)
+#   -1       — the fixture is unusable (e.g. nankai_vectors.json lost its 27
+#              pages) — debug test/data/*.json, NOT the hash
+for name in NANKAI_KEY_STABLE PREAMBLE_KEY_STABLE; do
+    got="$(metric "$name")"
+    case "${got:-missing}" in
+    1) ;;
+    0)
+        echo "bench: $name regressed (0) — the identity key no longer matches the spec (手順③: MT～VN)" >&2
+        exit 8
+        ;;
+    *)
+        echo "bench: $name unusable (${got:-missing}) — fixture problem, not a key regression; check test/data/*.json" >&2
+        exit 9
+        ;;
+    esac
+done
 
 # Reported objective: cost per decision, penalised for lost duplicate
 # suppression. Constant NEW_RECALL terms cancel in comparisons.

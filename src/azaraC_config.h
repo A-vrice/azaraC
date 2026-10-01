@@ -26,12 +26,15 @@
 #define AZARAC_NANKAI_BUFFERS 1
 #endif
 #ifndef AZARAC_DEDUP_SLOTS
-// 16 slots (4 sets x 4 ways) = 128 B. Half the default capacity, still ~16
-// concurrent informations tracked for their validity window.
-#define AZARAC_DEDUP_SLOTS 16
+// 64 slots (8 sets x 8 ways) = 512 B. Measured on the same day restricted to the
+// AVR categories (dc=3 震度, dc=5 津波: 8,669 frames, 77 distinct MT～VN):
+// 64x8 re-announces 0 informations, 32x8 (256 B) also 0, 16x8 (128 B) 93, and
+// the previous 16x4 (128 B) 106. 32x8 is the measured floor; 64x8 costs 512 B
+// of an Uno's 2 KB SRAM. Do not drop below 32 (16x8 re-announces live alerts).
+#define AZARAC_DEDUP_SLOTS 64
 #endif
 #ifndef AZARAC_DEDUP_WAYS
-#define AZARAC_DEDUP_WAYS 4
+#define AZARAC_DEDUP_WAYS 8
 #endif
 #ifndef AZARAC_FLASH_BUF_SIZE
 // Shared definition-lookup buffer (see internal/FlashString.h).
@@ -142,25 +145,33 @@
 #ifndef AZARAC_DEDUP_WAYS
 #define AZARAC_DEDUP_WAYS 8
 #endif
-// 64 slots (16 sets x 8 ways) = 512 B. A receiver must keep every information
+// 512 slots (64 sets x 8 ways) = 4 KB. A receiver must keep every information
 // still inside its validity window: 津波警報 stays live for 24 h and 気象 can
-// carry several informations at once, so the live set is tens of entries, not
-// the 8 the previous default could hold. Measured (this repo's benchmark):
-// 64x8 suppresses 100 % of the repeats in the scored streams and tracks 54
-// distinct informations without a mistake, vs 0.9373 / 8 for the 8-slot version
-// at the same per-decision cost (5.7 ns vs 4.6 ns). Reduce to 16-32 on a
-// RAM-constrained target — the AVR preset below does.
+// carry several informations at once, so the live set is hundreds of entries.
+// Measured with the shipping DedupFilter over 30 QZSS archive days of 2024
+// (`make -C test dedup-realday REALDAY_INPUT=...`). Peak informations live at
+// once ranged 20..327 (median 66). False re-notifications by capacity (WAY=8):
+//   peak-live   days   256x8   512x8
+//     20-50      11       0       0
+//    51-100      13       0       0
+//   101-130       3       0       0
+//      327         1       2       0     (2024-08-28, typhoon + heavy rain)
+// 512 is the measured floor: the worst day still re-announces on 256 slots.
+// One quiet day alone suggests 128 is enough — it is not, once 300+ informations
+// are live at once. MISSED (a live alert suppressed) was 0 on every day and at
+// every capacity: the eviction policy makes a small table re-announce, not drop.
 #ifndef AZARAC_DEDUP_SLOTS
-#define AZARAC_DEDUP_SLOTS 64
+#define AZARAC_DEDUP_SLOTS 512
 #endif
 
-// Validity window of one information, in milliseconds: an information not
-// received again within this window stops counting as a duplicate
-// (アプリケーションノートv2 原PDF p.25 手順④', and the per-category 配信終了
-// conditions on p.26-27: 緊急地震速報 5分 / 震源・震度 2時間 / 津波 最大24時間 /
-// 降灰 最大1時間 / 台風 3時間 …). The longest window is used as the default so no
-// category is forgotten while it is still being broadcast; a single value cannot
-// be per-category until the caller passes one.
+// Fallback validity window of one information, in milliseconds: an information
+// not received again within its window stops counting as a duplicate
+// (アプリケーションノートv2 原PDF p.25 手順④'). The per-category table of
+// 配信終了条件 (p.26-27: 緊急地震速報 5分 / 震源・震度 2時間 / 津波 最大24時間 /
+// 降灰 最大1時間 / 台風 3時間 …) lives in internal/DedupWindow.h; this value is
+// used for MT=44 (CAMF has no 配信終了条件 in the spec) and for any category
+// missing from that table. 24 h is the longest window in the spec, so an
+// unlisted category is never re-announced while it is still live.
 #ifndef AZARAC_DEDUP_WINDOW_MS
 #define AZARAC_DEDUP_WINDOW_MS 86400000UL  // 24 h
 #endif

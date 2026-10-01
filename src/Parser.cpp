@@ -1,4 +1,5 @@
 #include "Parser.h"
+#include "internal/DedupWindow.h"
 #include "internal/TimeFields.h"
 
 namespace azaraC {
@@ -28,14 +29,22 @@ bool Parser::handleFrame(const internal::Frame& frame, Message& out, uint32_t re
         out = decoded;
         return false;
     }
-    return postDecode(decoded, out);
+    // 手順③ の照合対象は MT～VN（フレーム bit 8..219 = 212 bit。Vn は bit 214..219、その先の
+    // bit 220..225 は仕様上 Reserved）。プリアンブル（bit 0..7）は放送で A(0x53)→B(0x9A)→
+    // C(0xC6) と巡回するため鍵に含めない。250 ビット全体を鍵にすると同一情報がプリアンブル
+    // ごとに別物になる（実日: distinct 3,697 対 162）。Reserved 6 bit も含めてはいけない:
+    // 実放送では 16 値が巡回し、正しい 162 個のうち 138 個が複数の Reserved 値を持つため、
+    // 含めると 1 情報が約 11 個に分裂する（実測: distinct 1,764 対 162）。
+    // 受信衛星も鍵に含めない（Satellite ID はフレームに含まれず、NMEA/UBX ヘッダ由来の別レイヤ）。
+    const uint32_t identity = internal::Decoder::crc24q(frame.bits + 1, 212);
+    return postDecode(decoded, out, identity);
 }
 
-bool Parser::postDecode(const Message& decoded, Message& out) {
+bool Parser::postDecode(const Message& decoded, Message& out, uint32_t identity) {
     // Reception time for the dedup validity window (手順④'). Nankai aggregation
     // below uses the same clock, so both stages agree on "now".
     const uint32_t now_ms = static_cast<uint32_t>(internal::getMillis());
-    const uint32_t window_ms = AZARAC_DEDUP_WINDOW_MS;
+    const uint32_t window_ms = internal::dedupWindowMs(decoded);
 
     // Nankai Trough page aggregation
 #if AZARAC_ENABLE_NANKAI
@@ -66,7 +75,7 @@ bool Parser::postDecode(const Message& decoded, Message& out) {
     }
 #endif
     // 重複チェック: 同一の情報（MT～VN の内容一致）は通知しない
-    internal::DedupKey key{ decoded.msg_type, decoded.crc24 };
+    internal::DedupKey key{ decoded.msg_type, identity };
     if (_dedup.isDuplicate(key, now_ms, window_ms)) { out.clear(); return false; }
 
     out = decoded;

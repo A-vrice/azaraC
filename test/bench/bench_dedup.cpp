@@ -8,9 +8,13 @@
 //   test/data/nankai_vectors.json — Nankai multi-page event
 //
 // ── Spec model (qzss-specs/アプリケーションノートv2.md, 原PDF p.23–27) ───────
-//   ① 複数衛星からの受信 — 250 BITS 完全一致する場合は同じ情報。
+//   ① 複数衛星からの受信 — 照合の対象は MT～VN（フレーム bit 8..219 = 212 bit、
+//     付属フローチャートも「MT～Vnの212bitについて比較する」と明記）。250 ビット
+//     全体でもなく、プリアンブル（bit 0..7）も Reserved（bit 220..225）も含めない
+//     — どちらも放送で巡回するため、含めると 1 情報が分裂する。
 //     The 250-bit frame carries no satellite identifier (svid comes from the
-//     NMEA/UBX header), so the identity of an information is its content.
+//     NMEA/UBX header), so the key carries no svid — a per-satellite key would
+//     re-announce one information once per relay satellite.
 //   ② 連続受信 — 保存した履歴と照合し、一致すれば通知しない。履歴は
 //     手順④ 配信終了条件 / 手順④' 無受信タイムアウトで削除する。
 //     One information is therefore remembered for its validity window and
@@ -75,7 +79,7 @@ static double nowNanos() {
 // ───────────────────────────── corpus scanning ──────────────────────────────
 
 struct Entry {
-    DedupKey    key;     // content identity (msg_type + crc24)
+    DedupKey    key;     // content identity (msg_type + MT～VN digest)
     std::string nmea;    // re-composed, checksummed sentence
 };
 
@@ -94,7 +98,7 @@ static inline uint8_t hexVal(char c) {
 }
 
 // Extracts $QZQSM sentences from any text file (JSON, CSV, syslog dump).
-// msg_type = bits 8..13, crc24 = bits 226..249 of the 250-bit frame.
+// msg_type = bits 8..13; identity = CRC-24Q over bits 8..219 (MT～VN, 手順③).
 static void scanFile(const char* path, Corpus& out) {
     FILE* fp = fopen(path, "rb");
     if (!fp) { fprintf(stderr, "bench: cannot open %s\n", path); exit(2); }
@@ -123,14 +127,14 @@ static void scanFile(const char* path, Corpus& out) {
 
         Entry e;
         e.key.msg_type = (uint8_t)((hexVal(buf[h0 + 2]) << 2) | (hexVal(buf[h0 + 3]) >> 2));
-        // CRC field = frame bits 226..249 (the spec's 227th-250th bits): the low
-        // 6 bits of byte 28, bytes 29-30, and the top 2 bits of byte 31.
-        e.key.crc24 = (((uint32_t)((hexVal(buf[h0 + 56]) << 4 | hexVal(buf[h0 + 57])) & 0x3Fu)) << 18)
-                    | ((uint32_t)hexVal(buf[h0 + 58]) << 14)
-                    | ((uint32_t)hexVal(buf[h0 + 59]) << 10)
-                    | ((uint32_t)hexVal(buf[h0 + 60]) << 6)
-                    | ((uint32_t)hexVal(buf[h0 + 61]) << 2)
-                    | ((uint32_t)hexVal(buf[h0 + 62]) >> 2);
+        // 手順③ の照合対象 MT～VN = フレーム bit 8..219 = hex 2..55 文字目（26.5 バイト）。
+        // Parser::handleFrame と同じ digest を作る（プリアンブルも Reserved も含まない）。
+        uint8_t fbuf[32] = {};
+        for (int i = 0; i < 31; ++i) {
+            fbuf[i] = (uint8_t)((hexVal(buf[h0 + i * 2]) << 4) | hexVal(buf[h0 + i * 2 + 1]));
+        }
+        fbuf[31] = (uint8_t)(hexVal(buf[h0 + 62]) << 4);
+        e.key.identity = crc24qRef(fbuf + 1, 212);
         ++out.tokens;
 
         char frame[96];
@@ -168,7 +172,7 @@ struct Phase {
 };
 
 static inline uint64_t contentOf(const DedupKey& k) {
-    return ((uint64_t)k.msg_type << 24) | k.crc24;
+    return ((uint64_t)k.msg_type << 24) | k.identity;
 }
 
 static uint32_t lcg(uint32_t& s) {
@@ -221,7 +225,7 @@ static PhaseResult verifyPhase(const Phase& p) {
         if (actual != expected && verbose) {
             fprintf(stderr, "# %s mismatch @%zu expected=%d actual=%d mt=%u crc=%06X now=%llu\n",
                     p.name, r.scored - 1, (int)expected, (int)actual,
-                    op.key.msg_type, op.key.crc24, (unsigned long long)op.now_ms);
+                    op.key.msg_type, op.key.identity, (unsigned long long)op.now_ms);
         }
         seen_content.push_back(c);
         seen_at.push_back(op.now_ms);
@@ -451,6 +455,46 @@ static int nankaiKeyStable(const std::vector<std::string>& pages, uint32_t& key_
     return (a_first && b_own && !a_again) ? 1 : 0;
 }
 
+// ─────────────── spec identity: MT～VN, not the whole 250-bit frame ──────────
+
+// 手順③ の照合対象は MT～VN（フレーム bit 8..219 = 212 bit）で、プリアンブル（bit 0..7）も
+// Reserved（bit 220..225）も含まない。どちらも放送で巡回する（プリアンブルは A→B→C、
+// Reserved は 16 値）ので、250 ビット全体でも 218 bit でも 1 情報が分裂する。fixture の
+// 1 文について両方を回し、通知がちょうど 1 回であることを見る。
+// 1 = stable, 0 = unstable, -1 = fixture unusable（1 回も通知されない = デコード不能）。
+static int preambleKeyStable(const std::string& sentence) {
+    const size_t p = sentence.find(',', 7);
+    if (p == std::string::npos) return -1;
+    const unsigned svid = (unsigned)strtoul(sentence.c_str() + 7, nullptr, 10);
+    const char* hex = sentence.c_str() + p + 1;
+    if (strlen(hex) < 63) return -1;
+
+    uint8_t bits[32] = {};
+    for (int i = 0; i < 31; ++i) {
+        bits[i] = (uint8_t)((hexVal(hex[i * 2]) << 4) | hexVal(hex[i * 2 + 1]));
+    }
+    bits[31] = (uint8_t)(hexVal(hex[62]) << 4);
+
+    static const uint8_t kPreambles[3]  = {0x53, 0x9A, 0xC6};   // A/B/C 巡回
+    static const uint8_t kReserved[3]   = {0, 5, 15};           // Reserved は 16 値巡回
+    Parser p2;
+    azaraC::Message msg;
+    int notified = 0;
+    for (uint8_t preamble : kPreambles) {
+        for (uint8_t res : kReserved) {
+            setBits(bits, 0, 8, preamble);
+            setBits(bits, 220, 6, res);
+            setBits(bits, 226, 24, crc24qRef(bits, 226));
+            const std::string s = makeNmeaQzqsm((uint8_t)svid, bits);
+            for (size_t j = 0; j < s.size(); ++j) {
+                if (p2.feed((uint8_t)s[j], msg, 0)) ++notified;
+            }
+        }
+    }
+    if (notified == 0) return -1;                 // 1 通もデコードできない = fixture 不能
+    return (notified == 1) ? 1 : 0;               // 2 回以上 = 鍵が分裂
+}
+
 // ───────────────────────────── main ─────────────────────────────────────────
 
 // One pass over the given phases, in nanoseconds (used to size the timing loop).
@@ -577,6 +621,15 @@ int main() {
     uint32_t nk_steps = 0;
     const int nankai_stable = nk_ok ? nankaiKeyStable(nk_pages, nk_steps) : -1;
 
+    // Same shape, MT=43 only: one EEW sentence rebroadcast with each of the three
+    // cycling preambles must be announced exactly once.
+    int preamble_stable = -1;
+    for (const Entry& e : dcr.distinct) {
+        if (e.key.msg_type != 43) continue;
+        preamble_stable = preambleKeyStable(e.nmea);
+        break;
+    }
+
     // End-to-end sanity: duplicates are still suppressed through Parser.
     double parser_nanos = 0;
     size_t parser_out = 0, parser_sent = 0;
@@ -617,6 +670,7 @@ int main() {
     printf("METRIC SRAM_DEDUP_BYTES=%zu\n", sizeof(DedupFilter));
     printf("METRIC SRAM_PARSER_BYTES=%zu\n", sizeof(Parser));
     printf("METRIC NANKAI_KEY_STABLE=%d\n", nankai_stable);
+    printf("METRIC PREAMBLE_KEY_STABLE=%d\n", preamble_stable);
     printf("METRIC NANKAI_STEPS=%u\n", nk_steps);
     printf("METRIC PARSER_NANOS_PER_MSG=%.1f\n", parser_nanos);
     printf("METRIC PARSER_SENT=%zu\n", parser_sent);

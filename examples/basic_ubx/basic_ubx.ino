@@ -12,7 +12,9 @@
 //   CFG-SIGNAL-QZSS_L1S_ENA        = 1
 //   CFG-UART1-BAUDRATE              = 9600
 
-// #define AZARAC_DEDUP_SLOTS 16   // increase if using multiple SVs
+// (AZARAC_DEDUP_SLOTS needs no override: the non-AVR default is 512 slots and
+//  the AVR preset already lowers it to 64 — see src/azaraC_config.h for the
+//  measured false-re-notification counts before shrinking it further.)
 
 // Arduino Uno (AVR) compatibility: the Uno has no Serial1 (single hardware
 // UART = Serial on pins 0/1), so the GNSS module connects to Serial and JSON

@@ -3,7 +3,8 @@
 // Wi-Fi + SNTP で UNIX 時刻を取得し、DCR/DCX の発生時刻を解決する例
 // disaster_category == 1 (EEW) および MT=44 DCX メッセージ のみ Serial に警告ログを出力するフィルタ付き
 
-// #define AZARAC_DEDUP_SLOTS 16
+// (AZARAC_DEDUP_SLOTS is not overridden here: the default is sized from 30 QZSS
+//  archive days — see src/azaraC_config.h.)
 #include <azaraC.h>
 #include <WiFi.h>
 #include <time.h>
