@@ -1,4 +1,4 @@
-# AzaraC API リファレンス
+# azaraC API リファレンス
 
 ## 名前空間
 
@@ -405,18 +405,16 @@ if (client.connect(server, port)) {
 両方 1 のときは日本語を優先し、そのコードに日本語が無ければ英語を使う。
 `AZARAC_LANG_JA=0 / AZARAC_LANG_EN=1` では英語ラベルを出力する。
 英語表を持たない項目（例: 南海トラフの情報番号）は日本語のままになる。
-どちらも 0 のときは原則ラベルを出力しない。欠落時の値は表の戻り値型で変わる — `std::optional` を返す表は `""`、`const char*` を返す表は `null`。ただし言語非依存表（北西太平洋津波の 3 表など）は値があれば 0/0 でも解決して返す。
+どちらも 0 のときは原則ラベルを出力しない。欠落時は `null`、定義済みで空文字列のラベルは `""` として出力される。ただし言語非依存表（北西太平洋津波の 3 表など）は値があれば 0/0 でも解決して返す。
 
 英語ラベルは azarashi 0.17.0 以降の定義テーブルに由来する。
 `AZARAC_LANG_EN` で有効になるのは `_en` という接尾辞のヘッダで、
 対応する日本語表と対で生成される。
 
 逆に**日本語版を持たない英語専用表**（北西太平洋津波の `potential` /
-`height` / `region`）は言語非依存で、`AZARAC_LANG_EN` に関係なく常に出力される。
-仕様自体が英語で日本語版が存在しないため、これらを `AZARAC_LANG_EN` で
-ガードすると、既定構成（`AZARAC_LANG_JA=1 / AZARAC_LANG_EN=0`）でラベルが
-全滅する。同じ扱いの表が CAMF に多数ある（定義テーブルの `_en` は
-「対応する JA 表があるものだけ」が言語切替の対象）。
+`height` / `region`）は言語非依存で、`AZARAC_LANG_EN` に関係なく常に出力されます。
+仕様自体が英語で日本語版が無いためです。同じ扱いの表が CAMF に多数あります
+（定義テーブルの `_en` のうち、言語切替の対象になるのは対応する JA 表があるものだけ）。
 
 **両方 1 のときの併記**: `AZARAC_LANG_JA=1` かつ `AZARAC_LANG_EN=1` のとき、
 文字列リテラルのキーを持つ `_label` フィールドには `_label_en` が併記される。
@@ -478,7 +476,7 @@ if (client.connect(server, port)) {
 
 | マクロ | デフォルト | 説明 |
 |-------|-----------|------|
-| `AZARAC_FLASH_BUF_SIZE` | 800（AVRプリセット: 64、DCX/CAMF有効時800） | PROGMEMルックアップ用の共有RAMバッファサイズ (バイト) |
+| `AZARAC_FLASH_BUF_SIZE` | 800 | PROGMEMルックアップ用の共有RAMバッファサイズ (バイト)。AVRでは有効カテゴリに応じて 64（SEISMIC/TSUNAMI のみ）/ 80（＋北西太平洋津波）/ 540（＋南海トラフ）/ 800（＋DCX/CAMF）に自動縮小 |
 
 **AVRプリセット**: `__AVR__`では`azaraC_config.h`のプリセットがデフォルトを変更します。有効カテゴリはSEISMIC/TSUNAMIのみ（他11カテゴリは無効）、`AZARAC_DEDUP_SLOTS=64`（`AZARAC_DEDUP_WAYS=8`、512B）、`AZARAC_NANKAI_BUFFERS=1`、`AZARAC_NANKAI_MAX_PAGES=4`となります。`-D`または`#define`（`azaraC.h`インクルード前）で明示することで上書き可能です。
 
