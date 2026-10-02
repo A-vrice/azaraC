@@ -26,11 +26,10 @@
 #define AZARAC_NANKAI_BUFFERS 1
 #endif
 #ifndef AZARAC_DEDUP_SLOTS
-// 64 slots (8 sets x 8 ways) = 512 B. Measured on the same day restricted to the
-// AVR categories (dc=3 震度, dc=5 津波: 8,669 frames, 77 distinct MT～VN):
-// 64x8 re-announces 0 informations, 32x8 (256 B) also 0, 16x8 (128 B) 93, and
-// the previous 16x4 (128 B) 106. 32x8 is the measured floor; 64x8 costs 512 B
-// of an Uno's 2 KB SRAM. Do not drop below 32 (16x8 re-announces live alerts).
+// 64 slots (8 sets x 8 ways) = 512 B. Measured on the AVR categories (dc=3 震度,
+// dc=5 津波, 8,669 frames / 77 distinct MT～VN): 64x8 re-announces 0 informations,
+// 32x8 (256 B) also 0, 16x8 (128 B) 93. 32x8 is the measured floor, but 64x8 is
+// what 512 B of an Uno's 2 KB SRAM buys. Do not drop below 32.
 #define AZARAC_DEDUP_SLOTS 64
 #endif
 #ifndef AZARAC_DEDUP_WAYS
@@ -149,17 +148,11 @@
 // still inside its validity window: 津波警報 stays live for 24 h and 気象 can
 // carry several informations at once, so the live set is hundreds of entries.
 // Measured with the shipping DedupFilter over 30 QZSS archive days of 2024
-// (`make -C test dedup-realday REALDAY_INPUT=...`). Peak informations live at
-// once ranged 20..327 (median 66). False re-notifications by capacity (WAY=8):
-//   peak-live   days   256x8   512x8
-//     20-50      11       0       0
-//    51-100      13       0       0
-//   101-130       3       0       0
-//      327         1       2       0     (2024-08-28, typhoon + heavy rain)
-// 512 is the measured floor: the worst day still re-announces on 256 slots.
-// One quiet day alone suggests 128 is enough — it is not, once 300+ informations
-// are live at once. MISSED (a live alert suppressed) was 0 on every day and at
-// every capacity: the eviction policy makes a small table re-announce, not drop.
+// (`make -C test dedup-realday`): peak informations live at once ranged 20..327
+// (median 66), and the worst day (2024-08-28, 327 live) still re-announces on
+// 256 slots. 512 was the measured floor; one quiet day alone suggests 128 is
+// enough — it is not. MISSED (a live alert suppressed) was 0 on every day and at
+// every capacity.
 #ifndef AZARAC_DEDUP_SLOTS
 #define AZARAC_DEDUP_SLOTS 512
 #endif

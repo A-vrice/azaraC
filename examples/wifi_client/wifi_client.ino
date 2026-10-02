@@ -30,7 +30,6 @@
 #ifndef SERVER_PORT
   #define SERVER_PORT 1883
 #endif
-// ================
 
 azaraC::Parser  parser;
 azaraC::Message msg;

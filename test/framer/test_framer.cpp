@@ -8,7 +8,7 @@
 
 using namespace azaraC;
 
-// ── UBX Tests ──────────────────────────────────────────────────────────────
+// UBX Tests
 
 TEST_CASE("UBX Framer: basic decode with multiple svIds") {
     // svId -> PRN mapping: 2->184, 3->185, 7->189
@@ -127,7 +127,7 @@ TEST_CASE("UBX: SFRBX with different svid") {
     CHECK(ubx_frame.svid == 186);  // svId=4 -> PRN186
 }
 
-// ── NMEA Tests ──────────────────────────────────────────────────────────────
+// NMEA Tests
 
 TEST_CASE("NMEA Framer Basic") {
     // $QZQSM svid=56 -> PRN184 (QZS-2 L1S)
@@ -200,7 +200,7 @@ TEST_CASE("NMEA Oversize Recovery") {
     CHECK(out.svid == 189);  // NMEA 61 + 128 = PRN189
 }
 
-// ── NMEA ペイロード長検証 ────────────────────────────────────────────────────
+// NMEA ペイロード長検証
 // NmeaFramer のみをテスト（Decoder を経由しない）
 
 TEST_CASE("NMEA: 62文字の拒否") {
@@ -258,7 +258,7 @@ TEST_CASE("NMEA: Satellite ID は生 ID から PRN に正規化される") {
     }
 }
 
-// ── UBX SFRBX 境界値テスト ────────────────────────────────────────────────────
+// UBX SFRBX 境界値テスト
 
 TEST_CASE("UBX: SFRBX length must be 40") {
     // Build a packet with length=8 (header only, no words) so checksum is
@@ -306,7 +306,7 @@ TEST_CASE("UBX: Two consecutive frames decoded") {
     CHECK(found_count == 2);
 }
 
-// ── NMEA 部分フレーム復帰テスト ────────────────────────────────────────────────
+// NMEA 部分フレーム復帰テスト
 
 TEST_CASE("NMEA: Partial frame then valid frame recovery") {
     NmeaFramer framer;
@@ -326,7 +326,7 @@ TEST_CASE("NMEA: Partial frame then valid frame recovery") {
     CHECK(out.svid == 183);  // NMEA 55 + 128 = PRN183
 }
 
-// ── NMEA チェックサム境界値テスト ──────────────────────────────────────────────
+// NMEA チェックサム境界値テスト
 
 TEST_CASE("NMEA: Checksum *00 rejected (unless coincidentally correct)") {
     uint8_t bits[32] = {};
@@ -360,7 +360,7 @@ TEST_CASE("NMEA: Checksum *FF rejected (unless coincidentally correct)") {
     CHECK_FALSE(found);
 }
 
-// ── NMEA マルチセンテンス混在テスト ──────────────────────────────────────────
+// NMEA マルチセンテンス混在テスト
 
 TEST_CASE("NMEA: QZQSM between garbage lines") {
     // ゴミデータ → QZQSM → ゴミデータ の混在ストリームでも QZQSM が正常にデコードされる

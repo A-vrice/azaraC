@@ -7,7 +7,7 @@
 //   test/data/dcx_vectors.json    — 2024 QZQSM capture (MT44, 3 satellites)
 //   test/data/nankai_vectors.json — Nankai multi-page event
 //
-// ── Spec model (qzss-specs/アプリケーションノートv2.md, 原PDF p.23–27) ───────
+// Spec model (qzss-specs/アプリケーションノートv2.md, 原PDF p.23–27)
 //   ① 複数衛星からの受信 — 照合の対象は MT～VN（フレーム bit 8..219 = 212 bit、
 //     付属フローチャートも「MT～Vnの212bitについて比較する」と明記）。250 ビット
 //     全体でもなく、プリアンブル（bit 0..7）も Reserved（bit 220..225）も含めない
@@ -25,7 +25,7 @@
 // The aggregated Nankai check is behavioural, not a phase: the same event fed in
 // two page orders must be reported once (see nankaiKeyStable).
 //
-// ── What is optimised ───────────────────────────────────────────────────────
+// What is optimised
 // Primary     NANOS_PER_OP   — ns per decision over the scored stream.
 // Guardrails  NEW_RECALL     — fraction of genuinely-new informations reported
 //                              (a filter that suppresses everything scores 0
@@ -60,7 +60,7 @@ using azaraC::Parser;
 using azaraC::internal::DedupFilter;
 using azaraC::internal::DedupKey;
 
-// ───────────────────────────── measurement ──────────────────────────────────
+// measurement
 
 static inline uint64_t readCycles() {
 #ifdef BENCH_HAS_RDTSC
@@ -76,7 +76,7 @@ static double nowNanos() {
                std::chrono::steady_clock::now().time_since_epoch()).count();
 }
 
-// ───────────────────────────── corpus scanning ──────────────────────────────
+// corpus scanning
 
 struct Entry {
     DedupKey    key;     // content identity (msg_type + MT～VN digest)
@@ -152,7 +152,7 @@ static void scanFile(const char* path, Corpus& out) {
     }
 }
 
-// ───────────────────────────── stream model ─────────────────────────────────
+// stream model
 
 struct Op {
     DedupKey key;
@@ -180,7 +180,7 @@ static uint32_t lcg(uint32_t& s) {
     return s;
 }
 
-// ── Single call site facing the filter ──────────────────────────────────────
+// Single call site facing the filter
 static bool filterIsDuplicate(DedupFilter& f, const Phase& p, const Op& op) {
     return f.isDuplicate(op.key, op.now_ms, p.window_ms);
 }
@@ -233,7 +233,7 @@ static PhaseResult verifyPhase(const Phase& p) {
     return r;
 }
 
-// ───────────────────────────── phase builders ───────────────────────────────
+// phase builders
 
 static const uint32_t MS_SEC = 1000;
 static const uint32_t W_5MIN = 5 * 60 * MS_SEC;         // EEW 発表時刻から5分
@@ -387,7 +387,7 @@ static Phase phaseChurn(const Corpus& c) {
     return p;
 }
 
-// ─────────────── spec identity for aggregated Nankai events ─────────────────
+// spec identity for aggregated Nankai events
 
 // The completed aggregation is one information, so its identity must not depend
 // on which page completed the set: the page that finishes last is an artefact of
@@ -455,7 +455,7 @@ static int nankaiKeyStable(const std::vector<std::string>& pages, uint32_t& key_
     return (a_first && b_own && !a_again) ? 1 : 0;
 }
 
-// ─────────────── spec identity: MT～VN, not the whole 250-bit frame ──────────
+// spec identity: MT～VN, not the whole 250-bit frame
 
 // 手順③ の照合対象は MT～VN（フレーム bit 8..219 = 212 bit）で、プリアンブル（bit 0..7）も
 // Reserved（bit 220..225）も含まない。どちらも放送で巡回する（プリアンブルは A→B→C、
@@ -495,7 +495,7 @@ static int preambleKeyStable(const std::string& sentence) {
     return (notified == 1) ? 1 : 0;               // 2 回以上 = 鍵が分裂
 }
 
-// ───────────────────────────── main ─────────────────────────────────────────
+// main
 
 // One pass over the given phases, in nanoseconds (used to size the timing loop).
 static double nanosPerPass(Phase** phases, size_t count, size_t ops) {

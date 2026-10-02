@@ -20,13 +20,11 @@ static bool hasField(const std::string& s, const std::string& key_val) {
     return end >= s.size() || s[end] == ',' || s[end] == '}' || s[end] == '\n' || s[end] == ' ';
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // Vn（Version Number）— 6bit at [214..219]、仕様は 1 を要求
 //
 // decodeQzqsm は Vn != 1 を UnsupportedVersion として拒否する。保持された値は
 // 「フィールドが無い」ではなく「1 だった」ことを示すために出力する。
 // 電文が EEW なので EEW 無効時は decode が通らない（＝検証対象外）。
-// ═══════════════════════════════════════════════════════════════════════════════
 
 #if (AZARAC_ENABLE_EEW)
 TEST_CASE("DCR: version (Vn) is retained on decoded reports") {
@@ -55,10 +53,8 @@ TEST_CASE("DCR: version defaults to 0 before decode") {
     CHECK(fresh.version == 0);
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // Nankai Trough 20メッセージ — test_scenario3
 // azarashi でデコードした結果: page_number と total_page を検証
-// ═══════════════════════════════════════════════════════════════════════════════
 
 #if (AZARAC_ENABLE_NANKAI)
 TEST_CASE("DCR: Nankai Trough 20 messages - page tracking") {
@@ -131,10 +127,8 @@ TEST_CASE("DCR: Nankai Trough 20 messages - page tracking") {
 }
 #endif // AZARAC_ENABLE_NANKAI
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // Ash Fall 5メッセージ — test_scenario5
 // azarashi でデコードした結果: volcano_name, warning_codes, local_governments を検証
-// ═══════════════════════════════════════════════════════════════════════════════
 
 #if (AZARAC_ENABLE_ASH_FALL)
 TEST_CASE("DCR: Ash Fall Detailed 5 messages - field verification") {
@@ -190,10 +184,8 @@ TEST_CASE("DCR: Ash Fall Detailed 5 messages - field verification") {
 }
 #endif // AZARAC_ENABLE_ASH_FALL
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // Weather 3メッセージ — test_scenario6
 // azarashi でデコードした結果: sub_categories, region_codes を検証
-// ═══════════════════════════════════════════════════════════════════════════════
 
 #if (AZARAC_ENABLE_WEATHER)
 TEST_CASE("DCR: Weather 3 messages - field verification") {
@@ -239,9 +231,7 @@ TEST_CASE("DCR: Weather 3 messages - field verification") {
 }
 #endif // AZARAC_ENABLE_WEATHER
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // EEW 長周期地震動階級 — 仕様書ベースの網羅テスト
-// ═══════════════════════════════════════════════════════════════════════════════
 
 #if (AZARAC_ENABLE_EEW)
 TEST_CASE("DCR: EEW Long Period Ground Motion - exhaustive") {
@@ -263,9 +253,7 @@ TEST_CASE("DCR: EEW Long Period Ground Motion - exhaustive") {
 }
 #endif // AZARAC_ENABLE_EEW
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // Tsunami 到達時刻境界値テスト
-// ═══════════════════════════════════════════════════════════════════════════════
 
 #if (AZARAC_ENABLE_TSUNAMI)
 TEST_CASE("DCR: Tsunami arrival time boundary - arrived (hour=31, min=63)") {
@@ -319,9 +307,7 @@ TEST_CASE("DCR: Tsunami arrival time boundary - arrived (hour=31, min=63)") {
 }
 #endif // AZARAC_ENABLE_TSUNAMI
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // NW Pacific Tsunami Tsunamigenic Potential 網羅テスト
-// ═══════════════════════════════════════════════════════════════════════════════
 
 #if (AZARAC_ENABLE_NW_PAC_TSUNAMI)
 TEST_CASE("DCR: NW Pacific Tsunami - Tsunamigenic Potential patterns") {

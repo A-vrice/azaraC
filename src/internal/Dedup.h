@@ -1,52 +1,19 @@
 #pragma once
-// Duplicate suppression per アプリケーションノートv2 (原PDF p.23–25).
+// Duplicate suppression per アプリケーションノートv2 (手順③④', 原PDF p.23–25).
 //
-//   ① 複数衛星からの受信 — 同じ情報を 250 BITS で照合する（後段③ のとおり、
-//      照合に使うのは MT～VN の 212 bit）。
-//   ② 連続受信 — 保存した履歴と照合し、一致すれば通知しない。
-//   ③ 照合の対象は MT～VN（フレーム bit 8..219 = 212 bit）。付属フローチャートも
-//      「MT～Vnの212bitについて比較する」と明記する。プリアンブル（bit 0..7）も
-//      Reserved（bit 220..225）も含めない。
+// 同一性は MT～VN（フレーム bit 8..219 = 212 bit）の CRC-24Q。付属フローチャートも
+// 「MT～Vnの212bitについて比較する」と明記する。鍵に含めないもの:
+//   - プリアンブル（bit 0..7）と Reserved（bit 220..225）。放送で巡回する
+//     （A→B→C、Reserved は 16 値）ため、含めると 1 情報が分裂する。
+//   - svid。250 bit のフレームに衛星 ID は無く（NMEA/UBX ヘッダ由来の別レイヤ）、
+//     含めると中継衛星ごとに同じ情報を再通知する。
+// Callers pass the digest of MT～VN as `identity` — see Parser::handleFrame.
 //
-// The 250-bit frame carries no satellite identifier (svid comes from the
-// NMEA/UBX header), so a per-satellite key would re-announce the same
-// information once per relay satellite: the key carries no svid.
+// 履歴は手順④' のとおり有効時間で失効する。窓は災害種別ごと（原PDF p.26–27、
+// internal/DedupWindow.h）で、表に無いカテゴリは AZARAC_DEDUP_WINDOW_MS。
 //
-// The key excludes the preamble (bit 0..7) AND the Reserved 6 bits (220..225) on
-// purpose. The broadcast cycles the preamble A(0x53)→B(0x9A)→C(0xC6) and rotates
-// the Reserved field through all 16 values, so a wider key splits one
-// information into many: measured on one real day, the correct 212-bit span
-// yields 162 distinct informations, 218 bits yields 1,764, and all 250 bits
-// 3,697. Callers pass the digest of MT～VN as `identity` — see
-// Parser::handleFrame.
-//
-// History is dropped the way the note's 手順④' describes: an information that
-// has not been received within its validity window no longer counts as a
-// duplicate, so it is either replaced or reported again. The window differs per
-// disaster type (原PDF p.26–27: 緊急地震速報 5 分 … 津波 最大 24 時間) — see
-// internal/DedupWindow.h for the per-category table and AZARAC_DEDUP_WINDOW_MS
-// for its fallback.
-//
-// When the table is full the entry with the oldest last-seen time is evicted:
-// a uniform ring would instead drop the newest information, re-announcing a
-// live alert and keeping a stale one.
-//
-// ── 取りこぼし（ドロップ）率 ────────────────────────────────────────────────
-// 容量が足りないときの失敗の仕方は 2 種類あり、この実装は前者にしか倒れない:
-//   ・再通知 (FALSE_RE) — 窓内で生きている情報を「新規」と誤判定。通知が二重に
-//     出るだけで、警報そのものは失われない。
-//   ・取りこぼし (MISSED) — 生きていない情報を「重複」と誤判定し、通知が落ちる。
-// 追い出しは「最も古い=窓切れに近い」1 件を選ぶので、窓内で再受信し続けている
-// 情報が押し出される前に必ず自身の再受信で時刻が更新される。したがって容量不足は
-// 再通知として現れ、MISSED は 0 のままになる（実測でも 30 日 × 全容量で 0）。
-// つまり **この表の容量不足で警報が消えることはない**。影響は「同じ情報を二度
-// 通知しうる」ことに限られる。実測（2024 年の QZSS アーカイブ 30 日分、
-// `make -C test dedup-realday`）: 生存ピークは 20〜327（中央値 66）、512×8 は
-// 30 日すべて偽再通知 0、256×8 で偽再通知が出るのは最悪日（生存ピーク 327）1 日
-// のみ 2 件。**MISSED は 30 日 × 全容量で 0**。カテゴリ別の内訳は同ツールの
-// REALDAY_CAT<n>_* を参照。
-// この性質は「同一性が MT～VN に一致している」ことにも依存する: 鍵が広すぎると
-// 1 情報が複数の鍵に分裂し、その分だけ生きた情報が居座って再通知が増える。
+// 満杯時は最終受信が最も古い 1 件を追い出す。窓内で生きている情報は自身の再受信で
+// 時刻が更新されるため押し出されず、容量不足は「再通知」として現れる（警報は落ちない）。
 
 #include "../azaraC_config.h"  // single source of truth for AZARAC_DEDUP_SLOTS
 #include "MtCommonTypes.h"      // shared integer types (cstdint AVR switch lives here)
@@ -62,8 +29,7 @@ namespace internal {
 
 // Identity of one information: msg_type (6 bit) and the digest of MT～VN
 // (24 bit) — exactly one word. Receiving satellite and reception time are not
-// part of it. 8 B per slot: same footprint as the previous {svid, msg_type,
-// crc24} ring, with the last-seen time added for free.
+// part of it. 8 B per slot (identity 4 B + last-seen 4 B).
 struct DedupKey {
     uint8_t  msg_type;
     uint32_t identity;   // MT～VN (bit 8..219) の CRC-24Q。プリアンブルを含まない。

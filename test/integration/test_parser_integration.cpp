@@ -8,9 +8,7 @@
 
 using namespace azaraC;
 
-// =============================================================================
 // Non-category-specific tests (always compiled)
-// =============================================================================
 
 #if (AZARAC_ENABLE_NANKAI)
 TEST_CASE("Parser getNankaiBuffer returns nullptr for unknown key") {
@@ -22,9 +20,7 @@ TEST_CASE("Parser getNankaiBuffer returns nullptr for unknown key") {
 }
 #endif
 
-// =============================================================================
 // EEW-dependent tests (dc=1)
-// =============================================================================
 
 #if (AZARAC_ENABLE_EEW)
 
@@ -202,7 +198,7 @@ TEST_CASE("Parser handles mixed NMEA and UBX messages") {
 }
 #endif // AZARAC_ENABLE_DCX_CAMF
 
-// ── Parser 再入安全性テスト ─────────────────────────────────────────────────────
+// Parser 再入安全性テスト
 
 TEST_CASE("Parser: long garbage between valid frames recovers") {
     azaraC::Parser parser;

@@ -18,9 +18,7 @@
 
 using namespace azaraC;
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // 空ラベルは「存在する」— 欠落ではない
-// ═══════════════════════════════════════════════════════════════════════════════
 
 #if (AZARAC_ENABLE_DCX_CAMF)
 TEST_CASE("Definition lookup: empty label is present, not absent") {
@@ -54,9 +52,7 @@ TEST_CASE("Definition lookup: empty label is present, not absent") {
 }
 #endif // AZARAC_ENABLE_DCX_CAMF
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // const char* 化した表が内容を保っている（行・長さの取り違え検出）
-// ═══════════════════════════════════════════════════════════════════════════════
 
 #if (AZARAC_ENABLE_DCX_CAMF)
 TEST_CASE("Definition lookup: label content survives const char* storage") {
@@ -78,12 +74,10 @@ TEST_CASE("Definition lookup: label content survives const char* storage") {
 }
 #endif // AZARAC_ENABLE_DCX_CAMF
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // 英語索引 — azarashi 0.17 が追加した _en 表を、3 戦略すべてで引く
 //
 // 索引そのものが正しいこと（strategy ごとの境界と欠落）と、値が英語である
 // ことを確かめる。期待値は実ヘッダから実測したもの。
-// ═══════════════════════════════════════════════════════════════════════════════
 
 #if (AZARAC_LANG_EN)
 
@@ -249,11 +243,9 @@ TEST_CASE("Definition lookup EN: every label is English") {
 
 #endif // AZARAC_LANG_EN
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // JA と EN は同じコード集合を引く（索引の一致）
 //
 // 片方だけにコードがあると、言語を切り替えただけでラベルが消える。
-// ═══════════════════════════════════════════════════════════════════════════════
 
 #if (AZARAC_LANG_JA) && (AZARAC_LANG_EN)
 
@@ -296,7 +288,6 @@ TEST_CASE("Definition lookup: JA and EN cover the same codes") {
 
 #endif // AZARAC_LANG_JA && AZARAC_LANG_EN
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // 日本語版を持たない _en 表は言語非依存（AZARAC_LANG_EN に依存しない）
 //
 // これらは仕様自体が英語で、日本語版が存在しないため表の唯一の供給元になる。
@@ -304,7 +295,6 @@ TEST_CASE("Definition lookup: JA and EN cover the same codes") {
 // スタブになり、北西太平洋津波のラベルが全滅する。ガードを外した状態を固定
 // するため、このテストは AZARAC_LANG_EN でガードしない（両構成で走る）。
 // 期待値は実ヘッダから実測。
-// ═══════════════════════════════════════════════════════════════════════════════
 
 #if (AZARAC_ENABLE_NW_PAC_TSUNAMI)
 TEST_CASE("Definition lookup: lone _en tables resolve regardless of AZARAC_LANG_EN") {

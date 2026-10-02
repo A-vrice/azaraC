@@ -14,12 +14,12 @@ namespace internal {
 // 1 通に複数の副種別（気象の Ww、洪水の Lv、海上の Dw）が入る場合は「条件にて該当する
 // 情報の配信が終了する」ので、条件を満たす情報のうち最長の窓を採る: 窓を短くする誤りは
 // 「まだ生きている情報を新規として再通知する」側に倒れるため、長い側が安全。
-// fallback_ms は条件の無いカテゴリ（MT=44 CAMF、表に無い災害種別）に使う —
-// 実測ツールが厳密な値を要るため、定数へ畳まず引数で受ける。
+// fallback_ms は条件の無いカテゴリ（MT=44 CAMF、表に無い災害種別）に使う。
 //
-// 定数は必ず UL を付ける（AVR の unsigned int は 16 bit なので、`24u*60u*60u*1000u` は
-// 65536 で剰余を踏んで 23552 ms になり、全カテゴリの窓が 20〜61 秒に潰れる。ホストの
-// pgm-stub は int が 32 bit なのでこの欠陥を検出できない）。
+// 定数は必ず UL を付ける。AVR の unsigned int は 16 bit なので `60u*60u*1000u` は
+// 65536 で剰余を踏み（= 61056 ms）、`24u*60u*60u*1000u` も同様に（= 23552 ms）、
+// 全カテゴリの窓が 20〜61 秒に潰れる。ホストの pgm-stub は int が 32 bit なので
+// この欠陥を検出できない。
 constexpr uint32_t kMinuteMs = 60UL * 1000UL;
 constexpr uint32_t kHourMs   = 60UL * kMinuteMs;
 constexpr uint32_t kDayMs    = 24UL * kHourMs;
@@ -86,12 +86,9 @@ constexpr uint32_t dedupWindowMs(uint32_t fallback_ms, uint8_t disaster_category
     }
 }
 
-// 単位定数を固定する。AVR の unsigned int は 16 bit なので `60u*60u*1000u` は 65536 で
-// 剰余を踏み（= 61056 ms）、全カテゴリの窓が 20〜61 秒に潰れる。ホストの pgm-stub は
-// int が 32 bit なのでこの欠陥を検出できないが、Arduino ジョブの avr-g++ ではここで落ちる。
-// 各 case はこの 3 定数と `NUL * 定数` だけで組み立てるので、これで全窓が固定される
-// （関数自体は payload を cast するため定数式にはできない — C++17 では static_assert
-// から呼べないので、定数の側を固定する）。
+// 単位定数を固定する（AVR の 16 bit int での剰余を Arduino ジョブで落とす。pgm-stub は
+// int が 32 bit なので検出できない）。各 case はこの 3 定数と `NUL * 定数` だけで組み立てる
+// （関数自体は payload を cast するため定数式にはできず、static_assert から呼べない）。
 static_assert(kMinuteMs == 60000UL,    "1 minute must be exact on a 16-bit int");
 static_assert(kHourMs   == 3600000UL,   "1 hour must be exact on a 16-bit int");
 static_assert(kDayMs    == 86400000UL,  "1 day must be exact on a 16-bit int");

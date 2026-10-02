@@ -54,11 +54,9 @@ static constexpr uint32_t STATS_INTERVAL = 10;  // メッセージ数
 //
 // 詳細は with_sntp.ino の「SNTP時刻解決付きパターン」を参照してください。
 
-// ============================================================
 // to_unix_time ヘルパー関数
 // UTCの年月日時分秒からUNIX時刻（秒）を計算します。
 // 整数演算のみ（Decoder::days_from_civil と同等、AVRで軽量）。
-// ============================================================
 static uint32_t to_unix_time(uint16_t year, uint8_t month, uint8_t day,
                              uint8_t hour, uint8_t minute, uint8_t sec) {
     // Howard Hinnant days_from_civil — 整数のみ、浮動小数点不使用

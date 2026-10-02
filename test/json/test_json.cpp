@@ -86,9 +86,7 @@ static void initMt43As(Message& m, uint8_t dc) {
     }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // MT=44 DCX JSON 出力テスト
-// ═══════════════════════════════════════════════════════════════════════════════
 
 #if (AZARAC_ENABLE_DCX_CAMF)
 TEST_CASE("JSON Serialization: MT=44 DCX L-Alert") {
@@ -290,9 +288,7 @@ TEST_CASE("JSON Serialization: MT=44 DCX main ellipse") {
 }
 #endif // AZARAC_ENABLE_DCX_CAMF
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // MT=43 DCR JSON 出力テスト
-// ═══════════════════════════════════════════════════════════════════════════════
 
 TEST_CASE("JSON v2: svid is the raw PRN, no svid_label") {
     // フレーマは svid を PRN（128–191）に正規化して入れる。v2 はそれをそのまま
@@ -838,9 +834,7 @@ TEST_CASE("JSON Serialization: MT=43 Marine") {
 }
 #endif // AZARAC_ENABLE_MARINE
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // JSON 構造検証
-// ═══════════════════════════════════════════════════════════════════════════════
 TEST_CASE("JSON Serialization: Balanced braces/brackets") {
     auto test_balanced = [](const Message& m) {
         StringPrint sp;
@@ -961,9 +955,7 @@ TEST_CASE("JSON Serialization: Balanced braces/brackets") {
 #endif // AZARAC_ENABLE_DCX_CAMF
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // JSON エスケープ文字テスト (json_serialization.md #1)
-// ═══════════════════════════════════════════════════════════════════════════════
 
 TEST_CASE("JSON Serialization: Escape characters in writeStr") {
     // Test that writeStr properly escapes special JSON characters
@@ -1025,9 +1017,7 @@ TEST_CASE("JSON Serialization: Escape characters in writeStr") {
     }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // MT=43 report_time JSON 出力テスト (json_serialization.md #2)
-// ═══════════════════════════════════════════════════════════════════════════════
 
 #if (AZARAC_ENABLE_EEW)
 TEST_CASE("JSON Serialization: MT=43 report_time output") {
@@ -1059,9 +1049,7 @@ TEST_CASE("JSON Serialization: MT=43 report_time output") {
 }
 #endif // AZARAC_ENABLE_EEW
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // MT=44 onset_time JSON 出力テスト (json_serialization.md #3)
-// ═══════════════════════════════════════════════════════════════════════════════
 
 #if (AZARAC_ENABLE_DCX_CAMF)
 TEST_CASE("JSON Serialization: MT=44 onset_time output") {
@@ -1101,9 +1089,7 @@ TEST_CASE("JSON Serialization: MT=44 onset_time output") {
 }
 #endif // AZARAC_ENABLE_DCX_CAMF
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // MT=44 sd_sdmt=1 テスト (json_serialization.md #4)
-// ═══════════════════════════════════════════════════════════════════════════════
 
 #if (AZARAC_ENABLE_DCX_CAMF)
 TEST_CASE("JSON Serialization: MT=44 sd_sdmt=1 output") {
@@ -1131,9 +1117,7 @@ TEST_CASE("JSON Serialization: MT=44 sd_sdmt=1 output") {
 }
 #endif // AZARAC_ENABLE_DCX_CAMF
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // MT=44 a6=0 / a8=0 / a9=0 / a10=0 / a11=0 テスト (json_serialization.md #5)
-// ═══════════════════════════════════════════════════════════════════════════════
 
 #if (AZARAC_ENABLE_DCX_CAMF)
 TEST_CASE("JSON Serialization: MT=44 zero-value fields output") {
@@ -1324,9 +1308,7 @@ TEST_CASE("JSON Serialization: real J-Alert resolves the A11 country library lab
 }
 #endif // AZARAC_ENABLE_DCX_CAMF
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // MT=43 event_time 未解決 (report_unix=0) テスト (json_serialization.md #6)
-// ═══════════════════════════════════════════════════════════════════════════════
 
 #if (AZARAC_ENABLE_EEW)
 TEST_CASE("JSON Serialization: MT=43 unix_time=0 output") {
@@ -1353,9 +1335,7 @@ TEST_CASE("JSON Serialization: MT=43 unix_time=0 output") {
 }
 #endif // AZARAC_ENABLE_EEW
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // Nankai 集約後 text_utf8 出力テスト (integration_e2e.md #2)
-// ═══════════════════════════════════════════════════════════════════════════════
 
 #if (AZARAC_ENABLE_NANKAI)
 TEST_CASE("JSON Serialization: Nankai aggregated text_utf8 output") {
@@ -1411,9 +1391,7 @@ TEST_CASE("JSON Serialization: Nankai incomplete text_hex output") {
 }
 #endif // AZARAC_ENABLE_NANKAI
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // JsonWriter 個別関数テスト
-// ═══════════════════════════════════════════════════════════════════════════════
 
 TEST_CASE("wf_u64 出力") {
     StringPrint sp;
@@ -1438,9 +1416,7 @@ TEST_CASE("wf_u64 出力") {
     CHECK(sp.str() == "\"a\":1,");
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // writeDouble エッジケーステスト
-// ═══════════════════════════════════════════════════════════════════════════════
 TEST_CASE("writeDouble: 通常の正の値") {
     StringPrint sp;
     internal::writeDouble(sp, 3.14159, 2);
@@ -1498,9 +1474,7 @@ TEST_CASE("writeDouble: 負の無限大はnull") {
     CHECK(sp.str() == "null");
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // v2 スキーマ (schema_version: 2)
-// ═══════════════════════════════════════════════════════════════════════════════
 
 TEST_CASE("writeOptStr: nullopt は null、空文字列は \"\"") {
     StringPrint sp;

@@ -8,9 +8,7 @@
 
 using namespace azaraC;
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // resolveTime 単体テスト（report_unix あり）
-// ═══════════════════════════════════════════════════════════════════════════════
 
 TEST_CASE("Time: resolveTime with valid report_unix (2024-06-15)") {
     // report_unix = 2024-06-15 12:00:00 UTC
@@ -121,9 +119,7 @@ TEST_CASE("Time: resolveTime report_unix < 2000-01-01 returns unix_time=0") {
     CHECK(t.unix_time == 0);  // below 2000-01-01
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // 津波到着時刻解決 E2E テスト
-// ═══════════════════════════════════════════════════════════════════════════════
 
 #if (AZARAC_ENABLE_TSUNAMI)
 TEST_CASE("Time: Tsunami arrival_time unix resolved with valid report_unix") {
@@ -183,9 +179,7 @@ TEST_CASE("Time: Tsunami arrival_time unix=0 with report_unix=0") {
 #endif // AZARAC_ENABLE_TSUNAMI
 
 #if (AZARAC_ENABLE_DCX_CAMF)
-// ═══════════════════════════════════════════════════════════════════════════════
 // DCX onset_time 解決 E2E テスト
-// ═══════════════════════════════════════════════════════════════════════════════
 
 TEST_CASE("Time: DCX onset_time resolved with valid report_unix") {
     // DCX メッセージ: a6=0 (current week), a7=2 (Monday 00:01)
@@ -264,9 +258,7 @@ TEST_CASE("Time: DCX onset_time NOT resolved with report_unix=0") {
 }
 #endif
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // 実データ EEW と Hypocenter の event_time 検証
-// ═══════════════════════════════════════════════════════════════════════════════
 
 #if (AZARAC_ENABLE_EEW)
 TEST_CASE("Time: EEW event_time resolved with real report_unix") {

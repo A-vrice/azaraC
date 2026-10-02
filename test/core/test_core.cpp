@@ -7,7 +7,7 @@
 
 using namespace azaraC;
 
-// ── CRC-24Q テスト (from test_crc.cpp) ─────────────────────────────────────
+// CRC-24Q テスト (from test_crc.cpp)
 
 TEST_CASE("CRC-24Q vs reference") {
     uint8_t buf[29] = {};
@@ -126,7 +126,7 @@ TEST_CASE("getBits extraction") {
     CHECK(TestDecoder::extractBits(buf, 0, 16) == 0xABCD);
 }
 
-// ── Out-of-Bounds 検出テスト ──────────────────────────────────────────────
+// Out-of-Bounds 検出テスト
 
 TEST_CASE("getBits: OOB detected at boundary") {
     uint8_t buf[32] = {};
@@ -167,7 +167,7 @@ TEST_CASE("getBits64: OOB detected") {
     CHECK(val == 0);
 }
 
-// ── setBits セルフテスト ─────────────────────────────────────────────────
+// setBits セルフテスト
 
 TEST_CASE("setBits: roundtrip with getBits") {
     uint8_t buf[8] = {};
@@ -201,7 +201,7 @@ TEST_CASE("setBits: boundary at byte edge") {
     CHECK(TestDecoder::extractBits(buf, 0, 32) == 0xDEADBEEF);
 }
 
-// ── readNotifications テスト ──────────────────────────────────────────────
+// readNotifications テスト
 
 TEST_CASE("readNotifications: 3 codes") {
     uint8_t buf[8] = {};
@@ -284,7 +284,7 @@ TEST_CASE("MT=44 field extraction on synthetic frame") {
 }
 #endif
 
-// ── 時間変換テスト (from test_time.cpp) ────────────────────────────────────
+// 時間変換テスト (from test_time.cpp)
 
 TEST_CASE("daysFromCivil と civilFromDays の相互変換") {
     struct TestCase {
@@ -416,7 +416,7 @@ TEST_CASE("resolveTime: 無効な入力の処理") {
     CHECK(t4.unix_time == 0);
 }
 
-// ── DHM extraction テスト ────────────────────────────────────────────────
+// DHM extraction テスト
 
 TEST_CASE("extractDHM: basic extraction") {
     uint8_t buf[4] = {};
@@ -469,7 +469,7 @@ TEST_CASE("extractDHM: report_unix=0") {
     CHECK(t.unix_time == 0);
 }
 
-// ── resolveArrivalTime テスト ─────────────────────────────────────────────
+// resolveArrivalTime テスト
 
 TEST_CASE("resolveArrivalTime: raw=0 returns zeros") {
     TimeFields t = TestDecoder::testResolveArrivalTime(0, 1704067200u);
@@ -576,7 +576,7 @@ TEST_CASE("daysFromCivil と civilFromDays の網羅的ストレステスト (19
     }
 }
 
-// ── 緯度経度テスト (from test_latlon.cpp) ──────────────────────────────────
+// 緯度経度テスト (from test_latlon.cpp)
 
 TEST_CASE("extractLatLon: 基本的な緯度経度抽出") {
     uint8_t buf[32] = {};
@@ -647,7 +647,7 @@ TEST_CASE("extractLatLon: 境界値テスト") {
     CHECK(ll.lon_sec == 59);
 }
 
-// ── 重複除去テスト ─────────────────────────────────────────────────────────
+// 重複除去テスト
 // アプリケーションノートv2 (原PDF p.23–25) のモデル:
 //   同一の情報 = 内容（MT～VN）の一致。受信衛星は情報の同一性に含まれない。
 //   履歴は 手順④' により「一定時間受信しなかった情報」を削除する。
@@ -737,7 +737,7 @@ TEST_CASE("DedupFilter: reset後は新規として扱われる") {
     CHECK_FALSE(filter.isDuplicate(key, DEDUP_TEST_BASE, DEDUP_TEST_WINDOW));
 }
 
-// ── 手順④': 情報有効時間 ──────────────────────────────────────────────────
+// 手順④': 情報有効時間
 
 TEST_CASE("DedupFilter: ウィンドウ経過後の再受信は新規として通知される") {
     // 手順④' 一定時間受信しなかった情報は履歴から削除する。
@@ -777,7 +777,7 @@ TEST_CASE("DedupFilter: 再受信のたびに情報有効時間が更新され�
     CHECK(filter.isDuplicate(key, refresh + DEDUP_TEST_WINDOW, DEDUP_TEST_WINDOW));
 }
 
-// ── 容量と追い出し ────────────────────────────────────────────────────────
+// 容量と追い出し
 
 TEST_CASE("DedupFilter: 直近に受信した情報は容量超過後も重複と判定される") {
     // 満杯時に捨てるのは最も古い情報であり、直近のものではない。
@@ -827,7 +827,7 @@ TEST_CASE("DedupFilter: 大量のメッセージを処理できる") {
     }
 }
 
-// ── sizeof 回帰ガード ────────────────────────────────────────────────────────
+// sizeof 回帰ガード
 // RAMが制限された組込みターゲットで構造体が肥大化した場合に検出する。
 
 TEST_CASE("Memory: sizeof guards for embedded targets") {
@@ -845,7 +845,7 @@ TEST_CASE("Memory: sizeof guards for embedded targets") {
 #endif
 }
 
-// ── ファジースモークテスト ────────────────────────────────────────────────────
+// ファジースモークテスト
 // 統合 test スイート内で軽量 fuzz を実行し、クラッシュ・ハングがないことを確認
 
 TEST_CASE("Fuzz smoke: random frames no crash") {

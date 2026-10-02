@@ -29,13 +29,9 @@ bool Parser::handleFrame(const internal::Frame& frame, Message& out, uint32_t re
         out = decoded;
         return false;
     }
-    // 手順③ の照合対象は MT～VN（フレーム bit 8..219 = 212 bit。Vn は bit 214..219、その先の
-    // bit 220..225 は仕様上 Reserved）。プリアンブル（bit 0..7）は放送で A(0x53)→B(0x9A)→
-    // C(0xC6) と巡回するため鍵に含めない。250 ビット全体を鍵にすると同一情報がプリアンブル
-    // ごとに別物になる（実日: distinct 3,697 対 162）。Reserved 6 bit も含めてはいけない:
-    // 実放送では 16 値が巡回し、正しい 162 個のうち 138 個が複数の Reserved 値を持つため、
-    // 含めると 1 情報が約 11 個に分裂する（実測: distinct 1,764 対 162）。
-    // 受信衛星も鍵に含めない（Satellite ID はフレームに含まれず、NMEA/UBX ヘッダ由来の別レイヤ）。
+    // 手順③ の照合対象は MT～VN（フレーム bit 8..219 = 212 bit。bit 220..225 は
+    // Reserved）。プリアンブル（bit 0..7）と Reserved は放送で巡回するため鍵に含めない。
+    // 受信衛星も含めない（Satellite ID はフレームに無く、NMEA/UBX ヘッダ由来）。
     const uint32_t identity = internal::Decoder::crc24q(frame.bits + 1, 212);
     return postDecode(decoded, out, identity);
 }

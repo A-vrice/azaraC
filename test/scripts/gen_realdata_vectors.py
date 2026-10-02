@@ -373,10 +373,8 @@ def generate_cpp(history: list, noto: list, data_txt: list,
         dc_entries[dc].append((i, fields))
 
     # ファイルスコープの構造体定義と期待値配列を生成
-    w('// ═══════════════════════════════════════════════════════════════════════════════')
     w(f'// qzqsm_history.md: {len(history)} 件の過去配信データ')
     w('// デコード成功 + disaster_category 一致 + フィールド値検証')
-    w('// ═══════════════════════════════════════════════════════════════════════════════')
     w('')
 
     # History Case struct and data at file scope
@@ -663,10 +661,8 @@ def generate_cpp(history: list, noto: list, data_txt: list,
     w('')
 
     # ── Noto CSV テスト ───────────────────────────────────────────────────
-    w('// ═══════════════════════════════════════════════════════════════════════════════')
     w(f'// qzqsm_20240101-0107_noto.csv: {len(noto)} 件（能登半島地震）')
     w('// デコード成功 + disaster_category / information_type / report_classification 検証')
-    w('// ═══════════════════════════════════════════════════════════════════════════════')
     w('')
     w('namespace {')
     w('    struct NotoCase {')
@@ -707,11 +703,9 @@ def generate_cpp(history: list, noto: list, data_txt: list,
     w('')
 
     # ── data.txt テスト ───────────────────────────────────────────────────
-    w('// ═══════════════════════════════════════════════════════════════════════════════')
     w(f'// data.txt: {len(data_txt)} 件の DCX/DCR 混在生データ')
     w('// デコード成功 + msg_type + disaster_category/service_kind 検証')
     w('// (expected values from AzaraC decode_to_json)')
-    w('// ═══════════════════════════════════════════════════════════════════════════════')
     w('')
     w('namespace {')
     w('    struct DataTxtCase {')
