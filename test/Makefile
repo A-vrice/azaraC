@@ -97,7 +97,7 @@ OBJS = $(TEST_OBJS) $(LIB_OBJS)
 # VPATH for library sources
 VPATH = ../src:../src/decoder:../src/framer:../src/json:../src/internal
 
-.PHONY: all clean run run-small-pages run-lang-defaults fuzz decode dedup-realday compare-realdata check check-xml check-strict-compile coverage test-no-alloc pgm-stub
+.PHONY: all clean run run-small-pages run-lang-defaults fuzz decode dedup-realday bench compare-realdata check check-xml check-strict-compile coverage test-no-alloc pgm-stub
 
 all: $(TEST_BIN)
 
@@ -173,6 +173,10 @@ endif
 
 $(DEDUP_REALDAY_BIN): $(DEDUP_REALDAY_OBJS) $(LIB_OBJS)
 	$(CXX) $(CXXFLAGS) $(CXXFLAGS_EXTRA) $^ -o $@ $(LDFLAGS)
+
+# dedup ベンチ（autoresearch.sh）。入力は test/data/*.json のみで realdata は不要。
+bench:
+	@bash ../autoresearch.sh
 
 # --- Static Analysis ---
 # 静的解析 (時間をかけた厳格なチェック)

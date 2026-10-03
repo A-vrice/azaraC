@@ -53,6 +53,9 @@ jobs:
       - name: Build & run (no dynamic allocation check)
         run: make -C test test-no-alloc
 
+      - name: Dedup benchmark (gates)
+        run: make -C test bench
+
   # ── ファジングテスト ────────────────────────────────────────────────────
   fuzz-test:
     name: Fuzz testing
