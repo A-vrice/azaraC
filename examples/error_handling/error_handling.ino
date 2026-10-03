@@ -16,7 +16,7 @@ azaraC::Parser  parser;
 azaraC::Message msg;
 
 // 定数定義
-static constexpr uint8_t  QZSS_SVID_MIN  = 183;
+static constexpr uint8_t  QZSS_SVID_MIN  = 181;  // PRN181–191（実データには ID 53/54 = PRN181/182 もある）
 static constexpr uint8_t  QZSS_SVID_MAX  = 191;
 static constexpr uint8_t  MSG_TYPE_MT43  = 43;
 static constexpr uint8_t  MSG_TYPE_MT44  = 44;
@@ -54,11 +54,9 @@ static constexpr uint32_t STATS_INTERVAL = 10;  // メッセージ数
 //
 // 詳細は with_sntp.ino の「SNTP時刻解決付きパターン」を参照してください。
 
-// ============================================================
 // to_unix_time ヘルパー関数
 // UTCの年月日時分秒からUNIX時刻（秒）を計算します。
 // 整数演算のみ（Decoder::days_from_civil と同等、AVRで軽量）。
-// ============================================================
 static uint32_t to_unix_time(uint16_t year, uint8_t month, uint8_t day,
                              uint8_t hour, uint8_t minute, uint8_t sec) {
     // Howard Hinnant days_from_civil — 整数のみ、浮動小数点不使用
@@ -112,7 +110,7 @@ void printStatistics() {
 // この関数は feed() 呼出し前に呼ばれることはないため、msg.valid チェックはデッドコード。
 // 将来、invalid なメッセージも取得できる API が追加された時点で復活させる。
 bool validateMessage(const azaraC::Message& msg) {
-    // SVIDの範囲チェック (QZSS L1S: 183-191)
+    // SVIDの範囲チェック (QZSS L1S PRN: 181-191)
     if (msg.svid < QZSS_SVID_MIN || msg.svid > QZSS_SVID_MAX) {
         Serial.print(F("[WARN] Unexpected SVID: "));
         Serial.println(msg.svid);

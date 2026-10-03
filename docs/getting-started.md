@@ -3,7 +3,7 @@
 <img src="../logo.svg" alt="azaraCのロゴ" height="128">
 
 
-準天頂衛星みちびき(QZSS)から発信されたL1S信号の災危通報メッセージをデコードするArduino向けC++17ライブラリ。[azarashi](https://github.com/nbtk/azarashi)(Python)の移植です。外部依存やヒープの動的割り当てはせず、負荷を抑えています。
+準天頂衛星みちびき(QZSS)から発信された[災危通報メッセージ](https://qzss.go.jp/overview/services/sv08_dc-report.html)をデコードするC++17製のArduino向けライブラリです。[azarashi](https://github.com/nbtk/azarashi)(Python/MIT)の定義テーブルを参照しますが、マイコンや組み込みなどでも省リソースで動作します。
 
 ## インストール
 
@@ -21,7 +21,7 @@ git clone https://github.com/A-vrice/azaraC \
 
 ## クイックスタート
 
-ライブラリ側でプロトコルを自動判別するため、UBX/NMEAでコードは変わりません。
+ライブラリ側でプロトコルを自動判別するため、UBX/NMEAの形式を問わずそのままデコードできます。
 
 ```cpp
 #include <azaraC.h>
@@ -44,7 +44,7 @@ void loop() {
 }
 ```
 
-UNIX 時刻を渡すとメッセージの年月日も解決できます。
+UNIX時刻を渡すと発生時刻の年月日も解決/推測できます。
 
 ```cpp
 uint32_t now = (uint32_t)time(nullptr);
@@ -53,17 +53,19 @@ if (parser.feed(byte, msg, now)) { ... }
 
 ## コンパイル時設定
 
-`azaraC.h` の前に `#define` で指定します。
+`azaraC.h`の前に`#define`で指定します。
 
 | マクロ | デフォルト | 説明 |
 | ------ | ---------- | ---- |
-| `AZARAC_DEDUP_SLOTS` | 8 | 重複除去リングバッファのスロット数 |
+| `AZARAC_DEDUP_SLOTS` | 512 | 重複判定表のエントリ数（1エントリ8B。AVRプリセットは64） |
+| `AZARAC_DEDUP_WAYS` | 8 | 重複判定表の連想度 |
+| `AZARAC_DEDUP_WINDOW_MS` | 86400000 | 情報有効時間(ms)のフォールバック。災害種別ごとの配信終了条件に無いカテゴリだけが使う |
 | `AZARAC_NANKAI_MAX_PAGES` / `AZARAC_NANKAI_BUFFERS` | 63 / 1 | 防災気象情報(南海トラフ地震)の最大収集ページ数(1-63)と最大同時追跡数(1-32) |
 | `AZARAC_LANG_JA` / `AZARAC_LANG_EN` | 1 / 0 | 定義テーブルの言語選択 |
-| `AZARAC_ENABLE_*`（13個） | 1 | 災害カテゴリ別の定義テーブル除外 |
-| `AZARAC_FLASH_BUF_SIZE` | 800 | AVR の PROGMEM ルックアップ用共有 RAM バッファ |
+| `AZARAC_ENABLE_*`（13個） | 1 | 災害カテゴリ別のデコード有効化/無効化|
+| `AZARAC_FLASH_BUF_SIZE` | 800 | PROGMEM参照用RAMバッファのサイズ。AVRでは有効カテゴリに応じて 64 / 80 / 540 / 800 に自動縮小 |
 
-AVR（Arduino Uno等）ではプリセットにより有効カテゴリが絞られ、バッファサイズも縮小されます。プリセット値とメモリ要件の詳細は [アーキテクチャ](architecture.md#メモリ設計) を参照。
+AVR（Arduino Uno等）では専用プリセットにより有効カテゴリが絞られ、バッファサイズも縮小されます。プリセット値とメモリ要件の詳細は [アーキテクチャ](architecture.md#メモリ設計) を参照してください。
 
 ## Examples
 
@@ -91,3 +93,4 @@ make -C test run
 | [API リファレンス](api-reference.md) | 詳細な API 仕様・データ構造 |
 | [アーキテクチャ](architecture.md) | 内部設計とデータフロー |
 | [開発者ガイド](developer-guide.md) | ビルド方法、テスト、コーディング規約 |
+| [JSON 出力仕様](json-formats.md) | azaraC の出力スキーマと azarashi との対応 |

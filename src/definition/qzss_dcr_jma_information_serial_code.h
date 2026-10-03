@@ -1,6 +1,6 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.16.4 with CI-CD
-// Source module : qzss_dcr_jma_information_serial_code
+// AUTO-GENERATED from azarashi 0.17.0 with CI-CD
+// Source module : azarashi.definitions.qzss.dcr.information_serial_code
 // Variable      : qzss_dcr_jma_information_serial_code
 // Entries       : 7
 // Strategy      : switch

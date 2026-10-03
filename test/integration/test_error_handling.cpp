@@ -444,18 +444,12 @@ TEST_CASE("Decoder: MT=44 D36 typhoon category output") {
         const Mt44Data* mt44 = msg.getMt44();
         REQUIRE(mt44 != nullptr);
 
-        // Verify JSON output contains d36_typhoon_cat field (with embedded label)
+        // Verify JSON output carries the decoded d36 value and its flattened label
         StringPrint sp;
         internal::JsonSerializer::serialize(msg, sp);
         const auto& s = sp.str();
-        auto pos = s.find("\"d36_typhoon_cat\":");
-        CHECK(pos != std::string::npos);
-        // Find closing '}' of the d36_typhoon_cat nested object to bound search
-        auto close_brace = s.find('}', pos);
-        CHECK(close_brace != std::string::npos);
-        auto label_pos = s.find("\"label\":", pos);
-        CHECK(label_pos != std::string::npos);
-        CHECK(label_pos <= close_brace);
+        CHECK(s.find("\"d36_typhoon_cat\":" + std::to_string(d36_val)) != std::string::npos);
+        CHECK(s.find("\"d36_typhoon_cat_label\":") != std::string::npos);
     }
 }
 #endif

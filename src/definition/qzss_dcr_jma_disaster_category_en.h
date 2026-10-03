@@ -1,6 +1,6 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.16.4 with CI-CD
-// Source module : qzss_dcr_jma_disaster_category
+// AUTO-GENERATED from azarashi 0.17.0 with CI-CD
+// Source module : azarashi.definitions.qzss.dcr.disaster_category
 // Variable      : qzss_dcr_jma_disaster_category_en
 // Entries       : 12
 // Strategy      : binary_search

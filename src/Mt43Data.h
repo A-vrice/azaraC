@@ -1,6 +1,6 @@
 #pragma once
 // MT=43 (QZQSM/DCR) data structures and tagged union
-// Bit offsets derived from azarashi (IS-QZSS-DCR-016)
+// Bit offsets derived from azarashi (IS-QZSS-DCR-017)
 //
 // CONTRACT: every payload type (EewData, …, MarineData) MUST stay trivially
 // copyable/destructible (scalars, fixed arrays, POD only, no owning
@@ -197,6 +197,7 @@ struct Mt43Data {
     uint8_t  report_classification;
     uint8_t  disaster_category;
     uint8_t  information_type;
+    uint8_t  version;        // Vn, 6 bits at [214..219]; spec requires 1
     TimeFields event_time;
 
     enum class ActiveType : uint8_t {
@@ -237,6 +238,7 @@ struct Mt43Data {
         : report_classification(0)
         , disaster_category(0)
         , information_type(0)
+        , version(0)
         , event_time{}
         , active_type(ActiveType::None)
     {
@@ -247,6 +249,7 @@ struct Mt43Data {
         : report_classification(other.report_classification)
         , disaster_category(other.disaster_category)
         , information_type(other.information_type)
+        , version(other.version)
         , event_time(other.event_time)
         , active_type(other.active_type)
     {
@@ -259,6 +262,7 @@ struct Mt43Data {
             report_classification = other.report_classification;
             disaster_category = other.disaster_category;
             information_type = other.information_type;
+            version = other.version;
             event_time = other.event_time;
             active_type = other.active_type;
             copyFrom(other);
@@ -270,6 +274,7 @@ struct Mt43Data {
         : report_classification(other.report_classification)
         , disaster_category(other.disaster_category)
         , information_type(other.information_type)
+        , version(other.version)
         , event_time(other.event_time)
         , active_type(other.active_type)
     {
@@ -282,6 +287,7 @@ struct Mt43Data {
             report_classification = other.report_classification;
             disaster_category = other.disaster_category;
             information_type = other.information_type;
+            version = other.version;
             event_time = other.event_time;
             active_type = other.active_type;
             moveFrom(other);

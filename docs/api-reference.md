@@ -1,4 +1,4 @@
-# AzaraC API リファレンス
+# azaraC API リファレンス
 
 ## 名前空間
 
@@ -119,7 +119,7 @@ const internal::NankaiPageBuffer* getNankaiBuffer(const internal::NankaiPageKey&
 
 | フィールド | 型 | 説明 |
 |-----------|-----|------|
-| `svid` | `uint8_t` | 衛星ID (QZSS L1S PRN: 183-191) |
+| `svid` | `uint8_t` | 衛星ID。QZSS L1S PRN（`Satellite ID \| 0x80`）。DCR は 183–191、DCX 実データには 181/182 もある |
 | `msg_type` | `uint8_t` | メッセージタイプ (43=QZQSM, 44=DCX) |
 | `crc24` | `uint32_t` | CRC-24Qチェックサム |
 | `valid` | `bool` | メッセージの妥当性フラグ |
@@ -391,7 +391,9 @@ if (client.connect(server, port)) {
 
 | マクロ | デフォルト | 説明 |
 |-------|-----------|------|
-| `AZARAC_DEDUP_SLOTS` | 8 | 重複除去リングバッファのスロット数 |
+| `AZARAC_DEDUP_SLOTS` | 512 | 重複判定表のエントリ数（`AZARAC_DEDUP_WAYS`の倍数、商は2の冪）。1エントリ8B |
+| `AZARAC_DEDUP_WAYS` | 8 | 表の連想度（1セットあたりのエントリ数）。大きいほどハッシュ衝突に強い |
+| `AZARAC_DEDUP_WINDOW_MS` | 86400000 | 情報有効時間(ms)のフォールバック。災害種別ごとの配信終了条件（`internal/DedupWindow.h`）に無いカテゴリ（MT=44など）だけがこれを使う |
 
 ### 言語選択
 
@@ -400,9 +402,59 @@ if (client.connect(server, port)) {
 | `AZARAC_LANG_JA` | 1 | 日本語ラベルを有効化 |
 | `AZARAC_LANG_EN` | 0 | 英語ラベルを有効化 |
 
+両方 1 のときは日本語を優先し、そのコードに日本語が無ければ英語を使う。
+`AZARAC_LANG_JA=0 / AZARAC_LANG_EN=1` では英語ラベルを出力する。
+英語表を持たない項目（例: 南海トラフの情報番号）は日本語のままになる。
+どちらも 0 のときは原則ラベルを出力しない。欠落時は `null`、定義済みで空文字列のラベルは `""` として出力される。ただし言語非依存表（北西太平洋津波の 3 表など）は値があれば 0/0 でも解決して返す。
+
+英語ラベルは azarashi 0.17.0 以降の定義テーブルに由来する。
+`AZARAC_LANG_EN` で有効になるのは `_en` という接尾辞のヘッダで、
+対応する日本語表と対で生成される。
+
+逆に**日本語版を持たない英語専用表**（北西太平洋津波の `potential` /
+`height` / `region`）は言語非依存で、`AZARAC_LANG_EN` に関係なく常に出力されます。
+仕様自体が英語で日本語版が無いためです。同じ扱いの表が CAMF に多数あります
+（定義テーブルの `_en` のうち、言語切替の対象になるのは対応する JA 表があるものだけ）。
+
+**両方 1 のときの併記**: `AZARAC_LANG_JA=1` かつ `AZARAC_LANG_EN=1` のとき、
+文字列リテラルのキーを持つ `_label` フィールドには `_label_en` が併記される。
+`_label` は日本語優先（無ければ英語）、`_label_en` は常に英語。
+
+```json
+{ "depth": 60, "depth_label": "60km", "depth_label_en": "60 km" }
+```
+
+配列要素のラベル（`notifications[].label` / `regions[].region_label` /
+`prefectures[].label` / `cities[].label`）は `_label_en` を持たない。これらは
+汎用キーで要素ごとにコード体系が異なるため、`label_en` という固定キー名では
+並記しても意味が通らない。要素ごとに言語を選びたい場合は
+`AZARAC_LANG_JA=0 / AZARAC_LANG_EN=1` 構成を使う。
+
+数量フィールド（`depth` / `magnitude` / `pressure` / `max_wind` / `max_gust` /
+`elapsed` / `number`）にも `_label` / `_label_en` が付く。生のコード値だけでは
+意味が取れない値を含む:
+
+| コード | ラベル | 意味 |
+|---|---|---|
+| `depth` 501 | `500kmより深い` / `Deeper than 500 km` | 範囲の境界 |
+| `magnitude` 101 | `10.0より大きい` / `Over 10.0` | 範囲の境界 |
+| `magnitude` 126（震源情報のみ） | `不明(8.0より大きい)` / `Unknown (Over 8.0)` | 範囲の境界 |
+| `depth` 511 / `magnitude` 127 | `不明` / `Unknown` | センチネル |
+| `max_wind` 0 / `max_gust` 0 | `不明` / `Unknown` | センチネル |
+
+センチネルは全フィールド共通ではない。`depth` 0 は `0km`、`pressure` 0 は `0hPa`、
+`elapsed` 0 は `0時間後` で、それぞれ実値として意味を持つ。`number` 0 は
+`typhoon_number` 表（1 起点）に無いため `number_label` は `null` になる。
+
+`AZARAC_LANG_EN=0`（ライブラリ既定）では `_label_en` は出力されず、
+`AZARAC_LANG_JA=0 / AZARAC_LANG_EN=1` でも `_label` 自体が英語になるため併記しない。
+`_label_en` が出るのは両言語を 1 にした構成だけ。
+
 ### 災害カテゴリ選択
 
 不要なカテゴリの定義テーブルをコンパイル時に除外しFlash使用量を削減できます。
+日本語表と英語表は同じデータなので、**カテゴリを無効にすると両方が同時に除外されます**
+（`AZARAC_LANG_EN` だけの英語専用表も含む）。
 
 | マクロ | デフォルト | 説明 |
 |-------|-----------|------|
@@ -424,9 +476,9 @@ if (client.connect(server, port)) {
 
 | マクロ | デフォルト | 説明 |
 |-------|-----------|------|
-| `AZARAC_FLASH_BUF_SIZE` | 800（AVRプリセット: 64、DCX/CAMF有効時800） | PROGMEMルックアップ用の共有RAMバッファサイズ (バイト) |
+| `AZARAC_FLASH_BUF_SIZE` | 800 | PROGMEMルックアップ用の共有RAMバッファサイズ (バイト)。AVRでは有効カテゴリに応じて 64（SEISMIC/TSUNAMI のみ）/ 80（＋北西太平洋津波）/ 540（＋南海トラフ）/ 800（＋DCX/CAMF）に自動縮小 |
 
-**AVRプリセット**: `__AVR__`では`azaraC_config.h`のプリセットがデフォルトを変更します。有効カテゴリはSEISMIC/TSUNAMIのみ（他11カテゴリは無効）、`AZARAC_DEDUP_SLOTS=4`、`AZARAC_NANKAI_BUFFERS=1`、`AZARAC_NANKAI_MAX_PAGES=4`となります。`-D`または`#define`（`azaraC.h`インクルード前）で明示することで上書き可能です。
+**AVRプリセット**: `__AVR__`では`azaraC_config.h`のプリセットがデフォルトを変更します。有効カテゴリはSEISMIC/TSUNAMIのみ（他11カテゴリは無効）、`AZARAC_DEDUP_SLOTS=64`（`AZARAC_DEDUP_WAYS=8`、512B）、`AZARAC_NANKAI_BUFFERS=1`、`AZARAC_NANKAI_MAX_PAGES=4`となります。`-D`または`#define`（`azaraC.h`インクルード前）で明示することで上書き可能です。
 
 **AVR 標準ライブラリシム**: AVRツールチェーンはlibstdc++を含まないため、`#if defined(__AVR__)`で`src/internal/avr_std/`の最小シム（`optional`/`string_view`/`std::move`等）が自動適用されます。ライブラリの利用方法/API自体は非AVRと同一です。
 
@@ -479,8 +531,8 @@ void processMessage(const azaraC::Message& msg) {
         return;
     }
     
-    // SVID範囲チェック
-    if (msg.svid < 183 || msg.svid > 191) {
+    // SVID範囲チェック（PRN は 181-191: 53/54 -> 181/182 も実データに存在）
+    if (msg.svid < 181 || msg.svid > 191) {
         Serial.print(F("[WARN] Unexpected SVID: "));
         Serial.println(msg.svid);
     }

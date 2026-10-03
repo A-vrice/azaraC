@@ -3,7 +3,8 @@
 // Wi-Fi + SNTP で UNIX 時刻を取得し、DCR/DCX の発生時刻を解決する例
 // disaster_category == 1 (EEW) および MT=44 DCX メッセージ のみ Serial に警告ログを出力するフィルタ付き
 
-// #define AZARAC_DEDUP_SLOTS 16
+// (AZARAC_DEDUP_SLOTS is not overridden here: the default is sized from 30 QZSS
+//  archive days — see src/azaraC_config.h.)
 #include <azaraC.h>
 #include <WiFi.h>
 #include <time.h>
@@ -19,11 +20,11 @@
 #endif
 
 
-// ── グローバル ───────────────────────────────────────────────────────────────
+// グローバル
 azaraC::Parser  parser;
 azaraC::Message msg;
 
-// ── setup ───────────────────────────────────────────────────────────────────
+// setup
 void setup() {
     Serial.begin(115200);
     uint32_t start = millis();
@@ -57,7 +58,7 @@ void setup() {
     Serial.println(F("[azaraC] ready"));
 }
 
-// ── loop ────────────────────────────────────────────────────────────────────
+// loop
 void loop() {
     while (Serial1.available()) {
         // SNTPで取得した現在時刻を UNIX タイムスタンプとして渡す。
@@ -70,7 +71,7 @@ void loop() {
         uint32_t now = (now_t > 0) ? static_cast<uint32_t>(now_t) : 0;
 
         if (parser.feed(static_cast<uint8_t>(Serial1.read()), msg, now)) {
-            // ── EEW および DCX 災害警報のみ警告出力（他は通常 JSON）──────────
+            // EEW および DCX 災害警報のみ警告出力（他は通常 JSON）
             // 安全なアクセサを使用してunionメンバーにアクセス
             if (msg.msg_type == 43) {
                 const azaraC::Mt43Data* mt43 = msg.getMt43();

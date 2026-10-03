@@ -9,10 +9,8 @@
 
 using namespace azaraC;
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // qzqsm_history.md: 30 件の過去配信データ
 // デコード成功 + disaster_category 一致 + フィールド値検証
-// ═══════════════════════════════════════════════════════════════════════════════
 
 namespace {
     struct HistoryCase {
@@ -295,10 +293,8 @@ TEST_CASE("Realdata: History - decode and disaster_category") {
     }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // qzqsm_20240101-0107_noto.csv: 246 件（能登半島地震）
 // デコード成功 + disaster_category / information_type / report_classification 検証
-// ═══════════════════════════════════════════════════════════════════════════════
 
 namespace {
     struct NotoCase {
@@ -617,11 +613,9 @@ TEST_CASE("Realdata: Noto 2024 - decode and metadata") {
     }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // data.txt: 64 件の DCX/DCR 混在生データ
 // デコード成功 + msg_type + disaster_category/service_kind 検証
 // (expected values from AzaraC decode_to_json)
-// ═══════════════════════════════════════════════════════════════════════════════
 
 namespace {
     struct DataTxtCase {

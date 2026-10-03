@@ -1,6 +1,6 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.16.4 with CI-CD
-// Source module : qzss_dcr_jma_long_period_ground_motion_lower_limit
+// AUTO-GENERATED from azarashi 0.17.0 with CI-CD
+// Source module : azarashi.definitions.qzss.dcr.long_period_ground_motion_lower_limit
 // Variable      : qzss_dcr_jma_long_period_ground_motion_lower_limit
 // Entries       : 7
 // Strategy      : switch
@@ -23,7 +23,7 @@
 namespace azaraC {
 namespace def {
 
-#if (AZARAC_ENABLE_EEW)
+#if (AZARAC_ENABLE_EEW) && (AZARAC_LANG_JA)
 
 #if defined(__AVR__)
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_long_period_ground_motion_lower_limit_lookup(uint8_t id) noexcept {

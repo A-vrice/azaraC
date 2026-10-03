@@ -17,6 +17,19 @@
 namespace azaraC {
 namespace internal {
 
+#if (AZARAC_ENABLE_TSUNAMI) || (AZARAC_ENABLE_NW_PAC_TSUNAMI)
+// 12bit Ta から azarashi と同じ語彙の状態を返す。通常時刻なら nullptr。
+// 順序が本質: 範囲外チェックを先に置くと hour==30 の no_information が
+// 到達不能になる（30 > 23）。
+static const char* arrivalStatus(uint16_t raw, bool nwpac) {
+    uint8_t day = (raw >> 11) & 1u, hour = (raw >> 6) & 0x1Fu, min = raw & 0x3Fu;
+    if (hour == 31 && min == 63) return nwpac ? "arrived_or_unknown" : "arrival_estimated";
+    if (!nwpac && day == 0 && hour == 30 && min == 62) return "no_information";
+    if (raw == 0 || hour > 23 || min > 59) return "unrecognized_code";
+    return nullptr;
+}
+#endif  // AZARAC_ENABLE_TSUNAMI || AZARAC_ENABLE_NW_PAC_TSUNAMI
+
 // MT=43 sub-type serializers
 // Each returns after writing its last field with last=true
 
@@ -28,33 +41,44 @@ bool serializeEEW(const Mt43Data* d, Print& out) {
     if (!eew) return false;
     
     wf_u(out, "long_period_lower", eew->long_period_lower);
-    wf_s(out, "long_period_lower_label",
-        qzss_dcr_jma_long_period_ground_motion_lower_limit_lookup(eew->long_period_lower));
+    AZARAC_LABEL(out, "long_period_lower_label",
+        qzss_dcr_jma_long_period_ground_motion_lower_limit_lookup,
+        qzss_dcr_jma_long_period_ground_motion_lower_limit_en_lookup, eew->long_period_lower, false);
     wf_u(out, "long_period_upper", eew->long_period_upper);
-    wf_s(out, "long_period_upper_label",
-        qzss_dcr_jma_long_period_ground_motion_upper_limit_lookup(eew->long_period_upper));
+    AZARAC_LABEL(out, "long_period_upper_label",
+        qzss_dcr_jma_long_period_ground_motion_upper_limit_lookup,
+        qzss_dcr_jma_long_period_ground_motion_upper_limit_en_lookup, eew->long_period_upper, false);
     wk(out, "notifications"); out.print('[');
     for (uint8_t i = 0; i < eew->notification_count; ++i) {
         if (i) writeChar(out, ',');
         uint16_t code = eew->notification[i];
         out.print('{');
         wf_u(out, keys::code, code);
-        wf_s(out, keys::label, qzss_dcr_jma_notification_on_disaster_prevention_lookup(code), /*last=*/true);
+        wf_s(out, keys::label, AZARAC_LOOKUP_LANG(qzss_dcr_jma_notification_on_disaster_prevention_lookup, qzss_dcr_jma_notification_on_disaster_prevention_en_lookup, code), /*last=*/true);
         out.print('}');
     }
     out.print("],");
     writeDHM(out, "quake_time", eew->quake_time);
     wf_u(out, "depth", eew->depth);
+    AZARAC_LABEL(out, "depth_label",
+        qzss_dcr_jma_depth_of_hypocenter_lookup,
+        qzss_dcr_jma_depth_of_hypocenter_en_lookup, eew->depth, false);
     wf_u(out, "magnitude", eew->magnitude);
+    AZARAC_LABEL(out, "magnitude_label",
+        qzss_dcr_jma_eew_magnitude_lookup,
+        qzss_dcr_jma_eew_magnitude_en_lookup, eew->magnitude, false);
     wf_u(out, "epicenter", eew->epicenter);
-    wf_s(out, "epicenter_label",
-        qzss_dcr_jma_epicenter_and_hypocenter_lookup(eew->epicenter));
+    AZARAC_LABEL(out, "epicenter_label",
+        qzss_dcr_jma_epicenter_and_hypocenter_lookup,
+        qzss_dcr_jma_epicenter_and_hypocenter_en_lookup, eew->epicenter, false);
     wf_u(out, "intensity_lower", eew->intensity_lower);
-    wf_s(out, "intensity_lower_label",
-        qzss_dcr_jma_seismic_intensity_lower_limit_lookup(eew->intensity_lower));
+    AZARAC_LABEL(out, "intensity_lower_label",
+        qzss_dcr_jma_seismic_intensity_lower_limit_lookup,
+        qzss_dcr_jma_seismic_intensity_lower_limit_en_lookup, eew->intensity_lower, false);
     wf_u(out, "intensity_upper", eew->intensity_upper);
-    wf_s(out, "intensity_upper_label",
-        qzss_dcr_jma_seismic_intensity_upper_limit_lookup(eew->intensity_upper));
+    AZARAC_LABEL(out, "intensity_upper_label",
+        qzss_dcr_jma_seismic_intensity_upper_limit_lookup,
+        qzss_dcr_jma_seismic_intensity_upper_limit_en_lookup, eew->intensity_upper, false);
     wk(out, "regions"); out.print('[');
     for (uint8_t i = 0; i < eew->region_count; ++i) {
         if (i) writeChar(out, ',');
@@ -62,7 +86,7 @@ bool serializeEEW(const Mt43Data* d, Print& out) {
         out.print('{');
         wf_u(out, keys::code, code);
         wf_s(out, keys::label,
-            qzss_dcr_jma_eew_forecast_region_lookup(code), /*last=*/true);
+            AZARAC_LOOKUP_LANG(qzss_dcr_jma_eew_forecast_region_lookup, qzss_dcr_jma_eew_forecast_region_en_lookup, code), /*last=*/true);
         out.print('}');
     }
     out.print(']');
@@ -79,17 +103,24 @@ bool serializeHypocenter(const Mt43Data* d, Print& out) {
     
     writeDHM(out, "quake_time", hypo->quake_time);
     wf_u(out, "depth",     hypo->depth);
+    AZARAC_LABEL(out, "depth_label",
+        qzss_dcr_jma_depth_of_hypocenter_lookup,
+        qzss_dcr_jma_depth_of_hypocenter_en_lookup, hypo->depth, false);
     wf_u(out, "magnitude", hypo->magnitude);
+    AZARAC_LABEL(out, "magnitude_label",
+        qzss_dcr_jma_hypocenter_magnitude_lookup,
+        qzss_dcr_jma_hypocenter_magnitude_en_lookup, hypo->magnitude, false);
     wf_u(out, "epicenter", hypo->epicenter);
-    wf_s(out, "epicenter_label",
-        qzss_dcr_jma_epicenter_and_hypocenter_lookup(hypo->epicenter));
+    AZARAC_LABEL(out, "epicenter_label",
+        qzss_dcr_jma_epicenter_and_hypocenter_lookup,
+        qzss_dcr_jma_epicenter_and_hypocenter_en_lookup, hypo->epicenter, false);
     wk(out, "notifications"); out.print('[');
     for (uint8_t i = 0; i < hypo->notification_count; ++i) {
         if (i) writeChar(out, ',');
         uint16_t code = hypo->notification[i];
         out.print('{');
         wf_u(out, keys::code, code);
-        wf_s(out, keys::label, qzss_dcr_jma_notification_on_disaster_prevention_lookup(code), /*last=*/true);
+        wf_s(out, keys::label, AZARAC_LOOKUP_LANG(qzss_dcr_jma_notification_on_disaster_prevention_lookup, qzss_dcr_jma_notification_on_disaster_prevention_en_lookup, code), /*last=*/true);
         out.print('}');
     }
     out.print("],");
@@ -111,11 +142,13 @@ bool serializeSeismic(const Mt43Data* d, Print& out) {
         if (i) writeChar(out, ',');
         out.print('{');
         wf_u(out, "intensity", seis->entries[i].intensity_code);
-        wf_s(out, "intensity_label",
-            qzss_dcr_jma_seismic_intensity_lookup(seis->entries[i].intensity_code));
+        AZARAC_LABEL(out, "intensity_label",
+            qzss_dcr_jma_seismic_intensity_lookup,
+            qzss_dcr_jma_seismic_intensity_en_lookup, seis->entries[i].intensity_code, false);
         wf_u(out, "prefecture", seis->entries[i].prefecture_code);
-        wf_s(out, "prefecture_label",
-            qzss_dcr_jma_prefecture_lookup(seis->entries[i].prefecture_code), /*last=*/true);
+        AZARAC_LABEL(out, "prefecture_label",
+            qzss_dcr_jma_prefecture_lookup,
+            qzss_dcr_jma_prefecture_en_lookup, seis->entries[i].prefecture_code, /*last=*/true);
         out.print('}');
     }
     out.print(']');
@@ -163,23 +196,30 @@ bool serializeTsunami(const Mt43Data* d, Print& out) {
     if (!tsunami) return false;
     
     wf_u(out, "warning_code", tsunami->warning_code);
-    wf_s(out, "warning_code_label",
-        qzss_dcr_jma_tsunami_warning_code_lookup(tsunami->warning_code));
+    AZARAC_LABEL(out, "warning_code_label",
+        qzss_dcr_jma_tsunami_warning_code_lookup,
+        qzss_dcr_jma_tsunami_warning_code_en_lookup, tsunami->warning_code, false);
     wk(out, "entries"); out.print('[');
     for (uint8_t i = 0; i < tsunami->count; ++i) {
         if (i) writeChar(out, ',');
         const TsunamiEntry& e = tsunami->entries[i];
         out.print('{');
         uint16_t raw = e.arrival_time_raw;
-        writeArrivalTimeFields(out, raw);
+        const char* st = arrivalStatus(raw, /*nwpac=*/false);
         wf_u(out, "arrival_time_raw", raw);
-        writeDHM(out, "arrival_time", e.arrival_time);
+        if (st) {
+            wf_s(out, "arrival_status", st);
+            wk(out, "arrival_time"); out.print("null"); writeChar(out, ',');
+        } else {
+            writeDHM(out, "arrival_time", e.arrival_time);
+        }
         wf_u(out, "height",           e.height_code);
-        wf_s(out, "height_label",
-            qzss_dcr_jma_tsunami_height_lookup(e.height_code));
+        AZARAC_LABEL(out, "height_label",
+            qzss_dcr_jma_tsunami_height_lookup,
+            qzss_dcr_jma_tsunami_height_en_lookup, e.height_code, false);
         wf_u(out, keys::region,           e.region_code);
         wf_s(out, keys::region_label,
-            qzss_dcr_jma_tsunami_forecast_region_lookup(e.region_code), /*last=*/true);
+            AZARAC_LOOKUP_LANG(qzss_dcr_jma_tsunami_forecast_region_lookup, qzss_dcr_jma_tsunami_forecast_region_en_lookup, e.region_code), /*last=*/true);
         out.print('}');
     }
     out.print(']');
@@ -203,9 +243,14 @@ bool serializeNwPacTsu(const Mt43Data* d, Print& out) {
         const NwPacTsunamiEntry& e = nw_pac->entries[i];
         out.print('{');
         uint16_t raw = e.arrival_time_raw;
-        writeArrivalTimeFields(out, raw);
+        const char* st = arrivalStatus(raw, /*nwpac=*/true);
         wf_u(out, "arrival_time_raw", raw);
-        writeDHM(out, "arrival_time", e.arrival_time);
+        if (st) {
+            wf_s(out, "arrival_status", st);
+            wk(out, "arrival_time"); out.print("null"); writeChar(out, ',');
+        } else {
+            writeDHM(out, "arrival_time", e.arrival_time);
+        }
         wf_u(out, "height",           e.height_code);
         wf_s(out, "height_label",
             qzss_dcr_jma_northwest_pacific_tsunami_height_en_lookup(e.height_code));
@@ -227,20 +272,25 @@ bool serializeVolcano(const Mt43Data* d, Print& out) {
     if (!vol) return false;
     
     wf_u(out, "ambiguity",     vol->ambiguity);
+    // 日本語版を持たない英語専用表なので言語非依存（_label_en は出さない）
+    wf_s(out, "ambiguity_label",
+        qzss_dcr_jma_ambiguity_of_activity_time_en_lookup(vol->ambiguity));
     writeDHM(out, "activity_time", vol->activity_time);
     wf_u(out, "warning_code",  vol->warning_code);
-    wf_s(out, "warning_code_label",
-        qzss_dcr_jma_volcanic_warning_code_lookup(vol->warning_code));
+    AZARAC_LABEL(out, "warning_code_label",
+        qzss_dcr_jma_volcanic_warning_code_lookup,
+        qzss_dcr_jma_volcanic_warning_code_en_lookup, vol->warning_code, false);
     wf_u(out, "volcano_name",  vol->volcano_name);
-    wf_s(out, "volcano_name_label",
-        qzss_dcr_jma_volcano_name_lookup(vol->volcano_name));
+    AZARAC_LABEL(out, "volcano_name_label",
+        qzss_dcr_jma_volcano_name_lookup,
+        qzss_dcr_jma_volcano_name_en_lookup, vol->volcano_name, false);
     wk(out, "local_govs"); out.print('[');
     for (uint8_t i = 0; i < vol->lg_count; ++i) {
         if (i) writeChar(out, ',');
         out.print('{');
         wf_u(out, keys::code, vol->local_govs[i]);
         wf_s(out, keys::label,
-            qzss_dcr_jma_local_government_lookup(vol->local_govs[i]), /*last=*/true);
+            AZARAC_LOOKUP_LANG(qzss_dcr_jma_local_government_lookup, qzss_dcr_jma_local_government_en_lookup, vol->local_govs[i]), /*last=*/true);
         out.print('}');
     }
     out.print(']');
@@ -249,33 +299,6 @@ bool serializeVolcano(const Mt43Data* d, Print& out) {
 #endif // AZARAC_ENABLE_VOLCANO
 
 #if (AZARAC_ENABLE_ASH_FALL)
-// Dw1 Warning Type label (IS-QZSS-DCR-016 Table 4.1.2-35):
-//   1 = Ash Fall Forecast (Preliminary) = 速報
-//   2 = Ash Fall Forecast (Detailed)   = 詳細
-// azarashi 0.16.4 は辞書テーブルを持たずデコーダでハードコードしているため、
-// 定義ヘッダには存在しない。仕様準拠のラベルをここで提供する。
-// 注意: 他のラベルは AZARAC_LOOKUP_LANG で JA→EN フォールバックするが、
-// これはハードコードのため #if/#elif で排他的に分岐する（両言語有効時は JA 優先）。
-// 意図的な設計。EN フォールバックが必要になったら AZARAC_LOOKUP_LANG に揃えること。
-static std::optional<std::string_view> ashFallWarningTypeLabel(uint8_t code) {
-#if AZARAC_LANG_JA
-    switch (code) {
-        case 1: return std::string_view{"速報", 6};
-        case 2: return std::string_view{"詳細", 6};
-        default: return std::nullopt;
-    }
-#elif AZARAC_LANG_EN
-    switch (code) {
-        case 1: return std::string_view{"Preliminary", 11};
-        case 2: return std::string_view{"Detailed", 8};
-        default: return std::nullopt;
-    }
-#else
-    (void)code;
-    return std::nullopt;
-#endif
-}
-
 bool serializeAshFall(const Mt43Data* d, Print& out) {
     using namespace azaraC::def;
     
@@ -284,21 +307,29 @@ bool serializeAshFall(const Mt43Data* d, Print& out) {
     
     writeDHM(out, "activity_time", ash->activity_time);
     wf_u(out, "warning_type", ash->warning_type);
-    wf_s(out, "warning_type_label", ashFallWarningTypeLabel(ash->warning_type));
+    AZARAC_LABEL(out, "warning_type_label",
+        qzss_dcr_jma_ash_fall_warning_type_lookup,
+        qzss_dcr_jma_ash_fall_warning_type_en_lookup, ash->warning_type, false);
     wf_u(out, "volcano_name", ash->volcano_name);
-    wf_s(out, "volcano_name_label",
-        qzss_dcr_jma_volcano_name_lookup(ash->volcano_name));
+    AZARAC_LABEL(out, "volcano_name_label",
+        qzss_dcr_jma_volcano_name_lookup,
+        qzss_dcr_jma_volcano_name_en_lookup, ash->volcano_name, false);
     wk(out, "entries"); out.print('[');
     for (uint8_t i = 0; i < ash->count; ++i) {
         if (i) writeChar(out, ',');
         out.print('{');
-        wf_u(out, "arrival_hour", ash->entries_time[i]);
+        wf_u(out, "arrival_time_code", ash->entries_time[i]);
+        AZARAC_LABEL(out, "arrival_time_label",
+            qzss_dcr_jma_expected_ash_fall_time_lookup,
+            qzss_dcr_jma_expected_ash_fall_time_en_lookup, ash->entries_time[i], false);
         wf_u(out, "warning_code", ash->entries_code[i]);
-        wf_s(out, "warning_code_label",
-            qzss_dcr_jma_ash_fall_warning_code_lookup(ash->entries_code[i]));
+        AZARAC_LABEL(out, "warning_code_label",
+            qzss_dcr_jma_ash_fall_warning_code_lookup,
+            qzss_dcr_jma_ash_fall_warning_code_en_lookup, ash->entries_code[i], false);
         wf_u(out, "local_gov", ash->entries_lg[i]);
-        wf_s(out, "local_gov_label",
-            qzss_dcr_jma_local_government_lookup(ash->entries_lg[i]), /*last=*/true);
+        AZARAC_LABEL(out, "local_gov_label",
+            qzss_dcr_jma_local_government_lookup,
+            qzss_dcr_jma_local_government_en_lookup, ash->entries_lg[i], /*last=*/true);
         out.print('}');
     }
     out.print(']');
@@ -314,19 +345,21 @@ bool serializeWeather(const Mt43Data* d, Print& out) {
     if (!wx) return false;
     
     wf_u(out, "warning_state", wx->warning_state);
-    wf_s(out, "warning_state_label",
-        qzss_dcr_jma_weather_warning_state_lookup(wx->warning_state));
+    AZARAC_LABEL(out, "warning_state_label",
+        qzss_dcr_jma_weather_warning_state_lookup,
+        qzss_dcr_jma_weather_warning_state_en_lookup, wx->warning_state, false);
     wk(out, "entries"); out.print('[');
     for (uint8_t i = 0; i < wx->count; ++i) {
         if (i) writeChar(out, ',');
         const WeatherEntry& e = wx->entries[i];
         out.print('{');
         wf_u(out, "sub_category", e.sub_category);
-        wf_s(out, "sub_category_label",
-            qzss_dcr_jma_weather_related_disaster_sub_category_lookup(e.sub_category));
+        AZARAC_LABEL(out, "sub_category_label",
+            qzss_dcr_jma_weather_related_disaster_sub_category_lookup,
+            qzss_dcr_jma_weather_related_disaster_sub_category_en_lookup, e.sub_category, false);
         wf_u(out, keys::region, e.region_code);
         wf_s(out, keys::region_label,
-            qzss_dcr_jma_weather_forecast_region_lookup(e.region_code), /*last=*/true);
+            AZARAC_LOOKUP_LANG(qzss_dcr_jma_weather_forecast_region_lookup, qzss_dcr_jma_weather_forecast_region_en_lookup, e.region_code), /*last=*/true);
         out.print('}');
     }
     out.print(']');
@@ -347,11 +380,12 @@ bool serializeFlood(const Mt43Data* d, Print& out) {
         const FloodEntry& e = flood->entries[i];
         out.print('{');
         wf_u(out, "warning_level", e.warning_level);
-        wf_s(out, "warning_level_label",
-            qzss_dcr_jma_flood_warning_level_lookup(e.warning_level));
+        AZARAC_LABEL(out, "warning_level_label",
+            qzss_dcr_jma_flood_warning_level_lookup,
+            qzss_dcr_jma_flood_warning_level_en_lookup, e.warning_level, false);
         wf_u64(out, keys::region, e.region_code);
         wf_s(out, keys::region_label,
-            qzss_dcr_jma_flood_forecast_region_lookup(e.region_code), /*last=*/true);
+            AZARAC_LOOKUP_LANG(qzss_dcr_jma_flood_forecast_region_lookup, qzss_dcr_jma_flood_forecast_region_en_lookup, e.region_code), /*last=*/true);
         out.print('}');
     }
     out.print(']');
@@ -372,11 +406,12 @@ bool serializeMarine(const Mt43Data* d, Print& out) {
         const MarineEntry& e = marine->entries[i];
         out.print('{');
         wf_u(out, "warning_code", e.warning_code);
-        wf_s(out, "warning_code_label",
-            qzss_dcr_jma_marine_warning_code_lookup(e.warning_code));
+        AZARAC_LABEL(out, "warning_code_label",
+            qzss_dcr_jma_marine_warning_code_lookup,
+            qzss_dcr_jma_marine_warning_code_en_lookup, e.warning_code, false);
         wf_u(out, keys::region, e.region_code);
         wf_s(out, keys::region_label,
-            qzss_dcr_jma_marine_forecast_region_lookup(e.region_code), /*last=*/true);
+            AZARAC_LOOKUP_LANG(qzss_dcr_jma_marine_forecast_region_lookup, qzss_dcr_jma_marine_forecast_region_en_lookup, e.region_code), /*last=*/true);
         out.print('}');
     }
     out.print(']');
@@ -393,24 +428,42 @@ bool serializeTyphoon(const Mt43Data* d, Print& out) {
     
     writeDHM(out, "reference_time", typh->reference_time);
     wf_u(out, "ref_type", typh->ref_type);
-    wf_s(out, "ref_type_label",
-        qzss_dcr_jma_typhoon_reference_time_type_lookup(typh->ref_type));
+    AZARAC_LABEL(out, "ref_type_label",
+        qzss_dcr_jma_typhoon_reference_time_type_lookup,
+        qzss_dcr_jma_typhoon_reference_time_type_en_lookup, typh->ref_type, false);
     wf_u(out, "elapsed",   typh->elapsed);
+    AZARAC_LABEL(out, "elapsed_label",
+        qzss_dcr_jma_typhoon_elapsed_time_from_reference_time_lookup,
+        qzss_dcr_jma_typhoon_elapsed_time_from_reference_time_en_lookup, typh->elapsed, false);
     wf_u(out, "number",    typh->number);
+    AZARAC_LABEL(out, "number_label",
+        qzss_dcr_jma_typhoon_number_lookup,
+        qzss_dcr_jma_typhoon_number_en_lookup, typh->number, false);
     wf_u(out, "scale",     typh->scale);
-    wf_s(out, "scale_label",
-        qzss_dcr_jma_typhoon_scale_category_lookup(typh->scale));
+    AZARAC_LABEL(out, "scale_label",
+        qzss_dcr_jma_typhoon_scale_category_lookup,
+        qzss_dcr_jma_typhoon_scale_category_en_lookup, typh->scale, false);
     wf_u(out, "intensity", typh->intensity);
-    wf_s(out, "intensity_label",
-        qzss_dcr_jma_typhoon_intensity_category_lookup(typh->intensity));
+    AZARAC_LABEL(out, "intensity_label",
+        qzss_dcr_jma_typhoon_intensity_category_lookup,
+        qzss_dcr_jma_typhoon_intensity_category_en_lookup, typh->intensity, false);
     // Typhoon center coordinates (LatLon: 41-bit DMS format)
     writeLatLon(out, "coords", typh->coords);
     // Central pressure (11 bits, hPa)
     wf_u(out, "pressure", typh->pressure);
+    AZARAC_LABEL(out, "pressure_label",
+        qzss_dcr_jma_typhoon_central_pressure_lookup,
+        qzss_dcr_jma_typhoon_central_pressure_en_lookup, typh->pressure, false);
     // Maximum wind speed (7 bits, m/s)
     wf_u(out, "max_wind", typh->max_wind);
+    AZARAC_LABEL(out, "max_wind_label",
+        qzss_dcr_jma_typhoon_maximum_wind_speed_lookup,
+        qzss_dcr_jma_typhoon_maximum_wind_speed_en_lookup, typh->max_wind, false);
     // Maximum wind gust speed (7 bits, m/s)
-    wf_u(out, "max_gust", typh->max_gust, /*last=*/true);
+    wf_u(out, "max_gust", typh->max_gust);
+    AZARAC_LABEL(out, "max_gust_label",
+        qzss_dcr_jma_typhoon_maximum_gust_wind_speed_lookup,
+        qzss_dcr_jma_typhoon_maximum_gust_wind_speed_en_lookup, typh->max_gust, /*last=*/true);
     return true;
 }
 #endif // AZARAC_ENABLE_TYPHOON

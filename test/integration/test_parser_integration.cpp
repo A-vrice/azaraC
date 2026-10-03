@@ -8,9 +8,7 @@
 
 using namespace azaraC;
 
-// =============================================================================
 // Non-category-specific tests (always compiled)
-// =============================================================================
 
 #if (AZARAC_ENABLE_NANKAI)
 TEST_CASE("Parser getNankaiBuffer returns nullptr for unknown key") {
@@ -22,9 +20,7 @@ TEST_CASE("Parser getNankaiBuffer returns nullptr for unknown key") {
 }
 #endif
 
-// =============================================================================
 // EEW-dependent tests (dc=1)
-// =============================================================================
 
 #if (AZARAC_ENABLE_EEW)
 
@@ -202,7 +198,7 @@ TEST_CASE("Parser handles mixed NMEA and UBX messages") {
 }
 #endif // AZARAC_ENABLE_DCX_CAMF
 
-// ── Parser 再入安全性テスト ─────────────────────────────────────────────────────
+// Parser 再入安全性テスト
 
 TEST_CASE("Parser: long garbage between valid frames recovers") {
     azaraC::Parser parser;
@@ -341,4 +337,39 @@ TEST_CASE("Parser: stale NMEA partial data doesn't leak") {
     CHECK(mt43->disaster_category == 1);
 }
 
+// 手順③ の照合対象は MT～VN（フレーム bit 8..219 = 212 bit）で、付属フローチャートも
+// 「MT～Vnの212bitについて比較する」と明記する。プリアンブル（bit 0..7）は放送で
+// A(0x53)→B(0x9A)→C(0xC6) と巡回し、Reserved（bit 220..225）も 16 値が巡回する。
+// どちらを含めても 1 情報が分裂するので、両方について 1 回通知を固定する。
+TEST_CASE("Parser: プリアンブル/Reserved が違っても同一 MT～VN は 1 回だけ通知される") {
+    Parser parser;
+    Message msg;
+
+    // minute: MT～VN の内側にある唯一の「内容」マーカー（bit 35..40）。
+    // preamble と reserved は MT～VN の外側なので identity を変えない。
+    auto feedFrame = [&](uint8_t preamble, uint8_t minute, uint8_t reserved) -> int {
+        uint8_t bits[32] = {};
+        setBits(bits, 0, 8, preamble);
+        setBits(bits, 8, 6, 43);
+        setBits(bits, 14, 3, 1);      // report_classification
+        setBits(bits, 17, 4, 1);      // disaster_category = 1 (EEW)
+        setBits(bits, 35, 6, minute); // report_time minute
+        setBits(bits, 214, 6, 1);     // version (Vn = bit 214..219)
+        setBits(bits, 220, 6, reserved);
+        setBits(bits, 226, 24, crc24qRef(bits, 226));
+        const std::string nmea = makeNmeaQzqsm(58, bits);
+        int emitted = 0;
+        for (size_t i = 0; i < nmea.size(); ++i) {
+            if (parser.feed(static_cast<uint8_t>(nmea[i]), msg, 0)) ++emitted;
+        }
+        return emitted;
+    };
+
+    CHECK(feedFrame(0x53, 0, 0) == 1);   // 新規情報
+    CHECK(feedFrame(0x9A, 0, 0) == 0);   // プリアンブルだけ違う → 重複
+    CHECK(feedFrame(0xC6, 0, 0) == 0);   // 同様
+    CHECK(feedFrame(0x53, 0, 5) == 0);   // Reserved(220..225) だけ違う → 重複
+    CHECK(feedFrame(0x53, 0, 15) == 0);  // 同様（218 bit 鍵なら別情報になる）
+    CHECK(feedFrame(0x53, 1, 0) == 1);   // MT～VN が変われば別情報
+}
 #endif // AZARAC_ENABLE_EEW

@@ -11,9 +11,7 @@ using namespace azaraC;
 
 #if (AZARAC_ENABLE_DCX_CAMF)
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // DCX NullMessage 境界値テスト
-// ═══════════════════════════════════════════════════════════════════════════════
 
 TEST_CASE("DCX Edge: NullMessage with A1-A18 zero but extended non-zero") {
     // A1-A18 がすべてゼロでも、拡張フィールドが非ゼロなら NullMessage ではない
@@ -106,9 +104,7 @@ TEST_CASE("DCX Edge: A2=111, A3=0 だが CAMF 非ゼロ → JAlert, not Null") {
     CHECK(mt44->service_kind == Mt44ServiceKind::JAlert);
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // A2 国コードの境界値テスト
-// ═══════════════════════════════════════════════════════════════════════════════
 
 TEST_CASE("DCX Edge: A2=0 (unknown country) → OutsideJapan") {
     uint8_t bits[32] = {};
@@ -163,9 +159,7 @@ TEST_CASE("DCX Edge: A2=110 (Japan-1) → OutsideJapan") {
     CHECK(mt44->service_kind == Mt44ServiceKind::OutsideJapan);
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // A3 プロバイダの境界値テスト
-// ═══════════════════════════════════════════════════════════════════════════════
 
 TEST_CASE("DCX Edge: A3=0 (FDMA) with Japan → JAlert") {
     uint8_t bits[32] = {};
@@ -245,9 +239,7 @@ TEST_CASE("DCX Edge: A3=31 (max) with Japan → LocalGovernment") {
     CHECK(mt44->service_kind == Mt44ServiceKind::LocalGovernment);
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // B1-B4 と has_main_ellipse の分離テスト
-// ═══════════════════════════════════════════════════════════════════════════════
 
 TEST_CASE("DCX Edge: B4 (A17=3) without main ellipse") {
     // B4 は A12-A16（主楕円）の有無とは独立してデコードされる（DecoderDcx.cpp:259-267）
@@ -318,9 +310,7 @@ TEST_CASE("DCX Edge: A17=0 (B1) with all-zero codes → b1_present=false") {
     CHECK(mt44->mt44_decoded.main_ellipse_present == true);
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // OutsideJapan 拡張フィールドの検証
-// ═══════════════════════════════════════════════════════════════════════════════
 
 TEST_CASE("DCX Edge: OutsideJapan with all-zero extended fields") {
     // A2 != 111 で OutsideJapan になる場合、extended fields が空でも問題ない
@@ -350,9 +340,7 @@ TEST_CASE("DCX Edge: OutsideJapan with all-zero extended fields") {
     CHECK(mt44->ex_outside.vn == 1);
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // A5 severity 境界値テスト
-// ═══════════════════════════════════════════════════════════════════════════════
 
 TEST_CASE("DCX Edge: A5=3 (max) with L-Alert") {
     uint8_t bits[32] = {};
@@ -410,9 +398,7 @@ TEST_CASE("DCX Edge: A5=0 (Unknown) with L-Alert") {
     CHECK(mt44->service_kind == Mt44ServiceKind::LAlert);
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // SDMT/SDM 境界値テスト
-// ═══════════════════════════════════════════════════════════════════════════════
 
 TEST_CASE("DCX Edge: SDMT=1 (all), SDM=0") {
     uint8_t bits[32] = {};
@@ -469,9 +455,7 @@ TEST_CASE("DCX Edge: SDMT=1, SDM=511 (max 9-bit)") {
     CHECK(mt44->sd.sdm == 511);
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // DCX 廃番メッセージ（有効なバージョンの確認）
-// ═══════════════════════════════════════════════════════════════════════════════
 
 TEST_CASE("DCX Edge: Vn=0 (reserved) decoded") {
     // DCX の Vn フィールドは 0-63 の任意の値を受け入れる（MT=44 は version チェックがない）

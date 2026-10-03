@@ -10,10 +10,8 @@
 
 using namespace azaraC;
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // UBX SFRBX 5パターン — test_ublox (azarashi)
 // azarashi でデコードした結果: NMEA ラウンドトリップ + フィールド検証
-// ═══════════════════════════════════════════════════════════════════════════════
 
 // UBX SFRBXパケットを作成し、フレーマーでデコードするヘルパー
 static bool feedUbxPacket(UbxFramer& framer, Frame& frame, uint8_t svId, const uint8_t* nav_bits) {

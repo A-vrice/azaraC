@@ -47,6 +47,15 @@ jobs:
       - name: Build & run (reduced page budget, AZARAC_NANKAI_MAX_PAGES=8)
         run: make -C test run-small-pages
 
+      - name: Build & run (JA-only and EN-only language configs)
+        run: make -C test run-lang-defaults
+
+      - name: Build & run (no dynamic allocation check)
+        run: make -C test test-no-alloc
+
+      - name: Dedup benchmark (gates)
+        run: make -C test bench
+
   # ── ファジングテスト ────────────────────────────────────────────────────
   fuzz-test:
     name: Fuzz testing
@@ -374,12 +383,15 @@ jobs:
 
       - name: Measure macro size impact
         run: |
-          make -C test test-macro-sizes 2>&1 | tee test/macro_sizes.txt
+          set -o pipefail
+          status=0
+          make -C test test-macro-sizes 2>&1 | tee test/macro_sizes.txt || status=$?
           echo "### 📐 AZARAC_ENABLE_* Macro Size Impact" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Host g++ (-O0) .text bytes — relative comparison only; optimized builds are much smaller." >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           cat test/macro_sizes.txt >> $GITHUB_STEP_SUMMARY
+          exit $status
 
   # ── マクロ無効化ランタイムテスト ─────────────────────────────────────────────
   macro-runtime-test:
@@ -473,44 +485,6 @@ jobs:
           coverage-reports: test/coverage.xml
           language: cpp
 
-  # ── メモリプロファイリング ────────────────────────────────────────────────
-  memprof:
-    name: Memory profiling (Valgrind)
-    runs-on: ubuntu-latest
-    needs: host-test
-    timeout-minutes: 15
-    permissions:
-      contents: read
-      actions: read
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          persist-credentials: false
-
-      - name: Install valgrind
-        run: sudo apt-get update && sudo apt-get install -y valgrind
-
-      - name: Memory profiling (Heap usage verification)
-        run: |
-          set -o pipefail
-          make -C test memprof 2>&1 | tee test/memprof_output.txt
-      - name: Generate memprof step summary
-        if: always()
-        run: |
-          echo "### 💾 Memory Profile (Valgrind Massif)" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          head -20 test/memprof_output.txt >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-
-      - name: Upload memprof report artifact
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        with:
-          name: memprof-report
-          path: test/memprof_output.txt
-
   # ── 結果集約 ──────────────────────────────────────────────────────────────
   summary:
     name: CI Summary
@@ -525,7 +499,6 @@ jobs:
       - macro-runtime-test
       - static-analysis
       - coverage
-      - memprof
       - platformio-compile
     if: always()
     permissions:
@@ -549,13 +522,6 @@ jobs:
         with:
           name: coverage-report
           path: artifacts/coverage
-
-      - name: Download memprof report
-        continue-on-error: true
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
-        with:
-          name: memprof-report
-          path: artifacts/memprof
 
       - name: Download extended outcomes
         continue-on-error: true
@@ -598,7 +564,6 @@ jobs:
           echo "| macro-runtime-test | ${{ needs.macro-runtime-test.result }} |" >> comment.md
           echo "| static-analysis | ${{ needs.static-analysis.result }} |" >> comment.md
           echo "| coverage | ${{ needs.coverage.result }} |" >> comment.md
-          echo "| memprof | ${{ needs.memprof.result }} |" >> comment.md
           echo "| platformio-compile | ${{ needs.platformio-compile.result }} |" >> comment.md
           echo "" >> comment.md
           echo "---" >> comment.md
@@ -625,25 +590,6 @@ jobs:
             echo "### 🔍 Cppcheck Static Analysis Results" >> comment.md
             echo "" >> comment.md
             echo "⚠️ Cppcheck report not available (static-analysis job was skipped or failed)." >> comment.md
-            echo "" >> comment.md
-          fi
-
-          echo "" >> comment.md
-          echo "---" >> comment.md
-          echo "" >> comment.md
-
-          # Memory profile summary
-          if [ -f artifacts/memprof/memprof_output.txt ]; then
-            echo "### 💾 Memory Profile (Valgrind Massif)" >> comment.md
-            echo "" >> comment.md
-            echo '```' >> comment.md
-            tail -25 artifacts/memprof/memprof_output.txt >> comment.md
-            echo '```' >> comment.md
-            echo "" >> comment.md
-          else
-            echo "### 💾 Memory Profile (Valgrind Massif)" >> comment.md
-            echo "" >> comment.md
-            echo "⚠️ Memory profile not available (memprof job was skipped or failed or is on Windows)." >> comment.md
             echo "" >> comment.md
           fi
 

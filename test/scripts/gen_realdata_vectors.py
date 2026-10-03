@@ -191,7 +191,7 @@ def parse_data_txt(filepath: str) -> list:
 
 def _collect_eew_fields(decoded: dict) -> dict:
     """EEW フィールドを収集"""
-    d = decoded.get('detail', {}) if decoded else {}
+    d = decoded.get('data', {}) if decoded else {}
     return {
         'depth': d.get('depth', 0),
         'magnitude': d.get('magnitude', 0),
@@ -205,7 +205,7 @@ def _collect_eew_fields(decoded: dict) -> dict:
 
 def _collect_hypo_fields(decoded: dict) -> dict:
     """Hypocenter フィールドを収集"""
-    d = decoded.get('detail', {}) if decoded else {}
+    d = decoded.get('data', {}) if decoded else {}
     return {
         'depth': d.get('depth', 0),
         'magnitude': d.get('magnitude', 0),
@@ -215,7 +215,7 @@ def _collect_hypo_fields(decoded: dict) -> dict:
 
 def _collect_seismic_fields(decoded: dict) -> dict:
     """Seismic フィールドを収集"""
-    d = decoded.get('detail', {}) if decoded else {}
+    d = decoded.get('data', {}) if decoded else {}
     entries = d.get('entries', [])
     return {
         'count': len(entries),
@@ -227,7 +227,7 @@ def _collect_seismic_fields(decoded: dict) -> dict:
 
 def _collect_tsunami_fields(decoded: dict) -> dict:
     """Tsunami フィールドを収集"""
-    d = decoded.get('detail', {}) if decoded else {}
+    d = decoded.get('data', {}) if decoded else {}
     entries = d.get('entries', [])
     return {
         'warning_code': d.get('warning_code', 0),
@@ -240,7 +240,7 @@ def _collect_tsunami_fields(decoded: dict) -> dict:
 
 def _collect_nwpac_fields(decoded: dict) -> dict:
     """NW Pacific Tsunami フィールドを収集"""
-    d = decoded.get('detail', {}) if decoded else {}
+    d = decoded.get('data', {}) if decoded else {}
     return {
         'potential': d.get('potential', 0),
         'count': len(d.get('entries', [])),
@@ -249,7 +249,7 @@ def _collect_nwpac_fields(decoded: dict) -> dict:
 
 def _collect_volcano_fields(decoded: dict) -> dict:
     """Volcano フィールドを収集"""
-    d = decoded.get('detail', {}) if decoded else {}
+    d = decoded.get('data', {}) if decoded else {}
     return {
         'volcano_name': d.get('volcano_name', 0),
         'warning_code': d.get('warning_code', 0),
@@ -258,7 +258,7 @@ def _collect_volcano_fields(decoded: dict) -> dict:
 
 def _collect_ashfall_fields(decoded: dict) -> dict:
     """Ash Fall フィールドを収集"""
-    d = decoded.get('detail', {}) if decoded else {}
+    d = decoded.get('data', {}) if decoded else {}
     return {
         'volcano_name': d.get('volcano_name', 0),
         'warning_type': d.get('warning_type', 0),
@@ -267,7 +267,7 @@ def _collect_ashfall_fields(decoded: dict) -> dict:
 
 def _collect_weather_fields(decoded: dict) -> dict:
     """Weather フィールドを収集"""
-    d = decoded.get('detail', {}) if decoded else {}
+    d = decoded.get('data', {}) if decoded else {}
     return {
         'warning_state': d.get('warning_state', 0),
         'count': len(d.get('entries', [])),
@@ -276,7 +276,7 @@ def _collect_weather_fields(decoded: dict) -> dict:
 
 def _collect_flood_fields(decoded: dict) -> dict:
     """Flood フィールドを収集"""
-    d = decoded.get('detail', {}) if decoded else {}
+    d = decoded.get('data', {}) if decoded else {}
     return {
         'count': len(d.get('entries', [])),
     }
@@ -284,7 +284,7 @@ def _collect_flood_fields(decoded: dict) -> dict:
 
 def _collect_typhoon_fields(decoded: dict) -> dict:
     """Typhoon フィールドを収集"""
-    d = decoded.get('detail', {}) if decoded else {}
+    d = decoded.get('data', {}) if decoded else {}
     return {
         'pressure': d.get('pressure', 0),
         'max_wind': d.get('max_wind', 0),
@@ -294,7 +294,7 @@ def _collect_typhoon_fields(decoded: dict) -> dict:
 
 def _collect_marine_fields(decoded: dict) -> dict:
     """Marine フィールドを収集"""
-    d = decoded.get('detail', {}) if decoded else {}
+    d = decoded.get('data', {}) if decoded else {}
     entries = d.get('entries', [])
     return {
         'count': len(entries),
@@ -373,10 +373,8 @@ def generate_cpp(history: list, noto: list, data_txt: list,
         dc_entries[dc].append((i, fields))
 
     # ファイルスコープの構造体定義と期待値配列を生成
-    w('// ═══════════════════════════════════════════════════════════════════════════════')
     w(f'// qzqsm_history.md: {len(history)} 件の過去配信データ')
     w('// デコード成功 + disaster_category 一致 + フィールド値検証')
-    w('// ═══════════════════════════════════════════════════════════════════════════════')
     w('')
 
     # History Case struct and data at file scope
@@ -663,10 +661,8 @@ def generate_cpp(history: list, noto: list, data_txt: list,
     w('')
 
     # ── Noto CSV テスト ───────────────────────────────────────────────────
-    w('// ═══════════════════════════════════════════════════════════════════════════════')
     w(f'// qzqsm_20240101-0107_noto.csv: {len(noto)} 件（能登半島地震）')
     w('// デコード成功 + disaster_category / information_type / report_classification 検証')
-    w('// ═══════════════════════════════════════════════════════════════════════════════')
     w('')
     w('namespace {')
     w('    struct NotoCase {')
@@ -707,11 +703,9 @@ def generate_cpp(history: list, noto: list, data_txt: list,
     w('')
 
     # ── data.txt テスト ───────────────────────────────────────────────────
-    w('// ═══════════════════════════════════════════════════════════════════════════════')
     w(f'// data.txt: {len(data_txt)} 件の DCX/DCR 混在生データ')
     w('// デコード成功 + msg_type + disaster_category/service_kind 検証')
     w('// (expected values from AzaraC decode_to_json)')
-    w('// ═══════════════════════════════════════════════════════════════════════════════')
     w('')
     w('namespace {')
     w('    struct DataTxtCase {')

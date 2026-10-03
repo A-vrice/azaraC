@@ -209,7 +209,7 @@ def normalize_value(v):
 KEY_MAPPING = {
     # 共通ヘッダ
     "satellite_id": "svid",
-    "satellite_prn": None,  # AzaraC は svid_label に含む
+    "satellite_prn": None,  # AzaraC の svid は PRN（128–191）そのもの
     "message_type": None,  # "DCR"/"DCX" → 43/44
     "report_classification_no": "report_classification",
     "disaster_category_no": "disaster_category",
@@ -217,14 +217,14 @@ KEY_MAPPING = {
     "report_time": "report_time",  # フォーマット差異あり
 
     # EEW
-    "depth_of_hypocenter_raw": "detail.depth",
-    "magnitude_raw": "detail.magnitude",
-    "seismic_epicenter_raw": "detail.epicenter",
-    "seismic_intensity_lower_limit_raw": "detail.intensity_lower",
-    "seismic_intensity_upper_limit_raw": "detail.intensity_upper",
-    "notifications_on_disaster_prevention_raw": "detail.notifications",
-    "eew_forecast_regions_raw": "detail.regions",
-    "occurrence_time_of_earthquake": "detail.quake_time",
+    "depth_of_hypocenter_raw": "data.depth",
+    "magnitude_raw": "data.magnitude",
+    "seismic_epicenter_raw": "data.epicenter",
+    "seismic_intensity_lower_limit_raw": "data.intensity_lower",
+    "seismic_intensity_upper_limit_raw": "data.intensity_upper",
+    "notifications_on_disaster_prevention_raw": "data.notifications",
+    "eew_forecast_regions_raw": "data.regions",
+    "occurrence_time_of_earthquake": "data.quake_time",
 
     # 無視するキー (メタデータ・デバッグ用)
     "_ignore": [
@@ -241,32 +241,32 @@ KEY_MAPPING = {
 # azarashi のラベル文字列キーを AzaraC の対応 _label キーと比較する。
 # 各値は候補パスのリスト。候補はスカラー (str) か リスト規則 (配列パス, フィールド名)。
 # メッセージ種別により AzaraC の配置が異なるため複数候補を持つ場合がある
-# (例: local_governments は火山が detail.local_govs[]、降灰が detail.entries[].local_gov_label)。
+# (例: local_governments は火山が data.local_govs[]、降灰が data.entries[].local_gov_label)。
 # いずれかの候補が存在し一致すれば OK。候補が全て不在の場合は比較をスキップする
 # (azarashi のみが持つ構造的フィールド。ラベルバグではない)。
 LABEL_MAPPING = {
     "report_classification": ["report_classification_label"],
     "disaster_category": ["disaster_category_label"],
     "information_type": ["information_type_label"],
-    "seismic_intensity_lower_limit": ["detail.intensity_lower_label"],
-    "seismic_intensity_upper_limit": ["detail.intensity_upper_label"],
-    "seismic_epicenter": ["detail.epicenter_label"],
-    "long_period_ground_motion_lower_limit": ["detail.long_period_lower_label"],
-    "long_period_ground_motion_upper_limit": ["detail.long_period_upper_label"],
-    "eew_forecast_regions": [("detail.regions", "label")],
-    "notifications_on_disaster_prevention": [("detail.notifications", "label")],
-    "tsunami_heights": [("detail.entries", "height_label")],
-    "tsunami_forecast_regions": [("detail.entries", "region_label")],
-    "seismic_intensities": [("detail.entries", "intensity_label")],
-    "prefectures": [("detail.entries", "prefecture_label")],
-    "marine_warning_codes": [("detail.entries", "warning_code_label")],
-    "marine_forecast_regions": [("detail.entries", "region_label")],
-    "local_governments": [("detail.local_govs", "label"), ("detail.entries", "local_gov_label")],
-    "ash_fall_warning_codes": [("detail.entries", "warning_code_label")],
-    "tsunami_warning_code": ["detail.warning_code_label"],
-    "volcano_name": ["detail.volcano_name_label"],
-    "ash_fall_warning_type": ["detail.warning_type_label"],
-    "weather_warning_state": ["detail.warning_state_label"],
+    "seismic_intensity_lower_limit": ["data.intensity_lower_label"],
+    "seismic_intensity_upper_limit": ["data.intensity_upper_label"],
+    "seismic_epicenter": ["data.epicenter_label"],
+    "long_period_ground_motion_lower_limit": ["data.long_period_lower_label"],
+    "long_period_ground_motion_upper_limit": ["data.long_period_upper_label"],
+    "eew_forecast_regions": [("data.regions", "label")],
+    "notifications_on_disaster_prevention": [("data.notifications", "label")],
+    "tsunami_heights": [("data.entries", "height_label")],
+    "tsunami_forecast_regions": [("data.entries", "region_label")],
+    "seismic_intensities": [("data.entries", "intensity_label")],
+    "prefectures": [("data.entries", "prefecture_label")],
+    "marine_warning_codes": [("data.entries", "warning_code_label")],
+    "marine_forecast_regions": [("data.entries", "region_label")],
+    "local_governments": [("data.local_govs", "label"), ("data.entries", "local_gov_label")],
+    "ash_fall_warning_codes": [("data.entries", "warning_code_label")],
+    "tsunami_warning_code": ["data.warning_code_label"],
+    "volcano_name": ["data.volcano_name_label"],
+    "ash_fall_warning_type": ["data.warning_type_label"],
+    "weather_warning_state": ["data.warning_state_label"],
 }
 
 

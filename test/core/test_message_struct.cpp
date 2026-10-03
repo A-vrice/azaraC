@@ -9,7 +9,7 @@
 
 using namespace azaraC;
 
-// ── Message構造体のテスト ──────────────────────────────────────────────────
+// Message構造体のテスト
 
 TEST_CASE("Message: デフォルトコンストラクタ") {
     Message msg;
@@ -106,7 +106,7 @@ TEST_CASE("Message: コピー代入演算子") {
 #endif
 }
 
-// ── Mt43Dataの安全なタグ付き共用体のテスト ──────────────────────────────────
+// Mt43Dataの安全なタグ付き共用体のテスト
 
 TEST_CASE("Mt43Data: デフォルトコンストラクタ") {
     Mt43Data data;
@@ -466,7 +466,7 @@ TEST_CASE("Mt43Data: None のコピー/ムーブは安全") {
     CHECK(moved.active_type == Mt43Data::ActiveType::None);
 }
 
-// ── getMillis()のオーバーフロー対策テスト ────────────────────────────────────
+// getMillis()のオーバーフロー対策テスト
 
 TEST_CASE("getMillis: uint64_tを返す") {
     uint64_t ms = internal::getMillis();
