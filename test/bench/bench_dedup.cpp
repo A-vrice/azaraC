@@ -78,14 +78,14 @@ static double nowNanos() {
 
 // corpus scanning
 
-struct Entry {
+struct CorpusEntry {
     DedupKey    key;     // content identity (msg_type + MT～VN digest)
     std::string nmea;    // re-composed, checksummed sentence
 };
 
 struct Corpus {
-    std::vector<Entry> entries;   // one per observed (satellite, content)
-    std::vector<Entry> distinct;  // first occurrence of each content
+    std::vector<CorpusEntry> entries;   // one per observed (satellite, content)
+    std::vector<CorpusEntry> distinct;  // first occurrence of each content
     size_t tokens = 0;            // raw $QZQSM tokens in the file
 };
 
@@ -125,7 +125,7 @@ static void scanFile(const char* path, Corpus& out) {
         while (p < buf.size() && isHex(buf[p])) ++p;
         if (p - h0 < 63) { i += 7; continue; }
 
-        Entry e;
+        CorpusEntry e{};
         e.key.msg_type = (uint8_t)((hexVal(buf[h0 + 2]) << 2) | (hexVal(buf[h0 + 3]) >> 2));
         // 手順③ の照合対象 MT～VN = フレーム bit 8..219 = hex 2..55 文字目（26.5 バイト）。
         // Parser::handleFrame と同じ digest を作る（プリアンブルも Reserved も含まない）。
@@ -376,7 +376,7 @@ static Phase phaseChurn(const Corpus& c) {
     p.timing_only = true;
     uint32_t seed = 0x5EED1234u;
     std::vector<Op> order;
-    for (const Entry& e : c.distinct) {
+    for (const CorpusEntry& e : c.distinct) {
         Op op;
         op.key = e.key;
         op.now_ms = 50'000'000;
@@ -526,7 +526,7 @@ int main() {
     corpus.entries.insert(corpus.entries.end(), dcx.entries.begin(), dcx.entries.end());
     {
         std::set<uint64_t> uniq;
-        for (const Entry& e : corpus.entries) {
+        for (const CorpusEntry& e : corpus.entries) {
             if (uniq.insert(contentOf(e.key)).second) corpus.distinct.push_back(e);
         }
     }
@@ -614,7 +614,7 @@ int main() {
 
     std::vector<std::string> nk_pages;
     nk_pages.reserve(nankai.distinct.size());
-    for (const Entry& e : nankai.distinct) nk_pages.push_back(e.nmea);
+    for (const CorpusEntry& e : nankai.distinct) nk_pages.push_back(e.nmea);
     // nankai_vectors.json holds exactly one event: the real 27-page 南海トラフ message.
     // A different fixture size would silently measure something else.
     const bool nk_ok = (nk_pages.size() == 27);
@@ -624,7 +624,7 @@ int main() {
     // Same shape, MT=43 only: one EEW sentence rebroadcast with each of the three
     // cycling preambles must be announced exactly once.
     int preamble_stable = -1;
-    for (const Entry& e : dcr.distinct) {
+    for (const CorpusEntry& e : dcr.distinct) {
         if (e.key.msg_type != 43) continue;
         preamble_stable = preambleKeyStable(e.nmea);
         break;
@@ -638,7 +638,7 @@ int main() {
         azaraC::Message msg;
         const double s0 = nowNanos();
         for (int rep = 0; rep < 20; ++rep) {
-            for (const Entry& e : corpus.entries) {
+            for (const CorpusEntry& e : corpus.entries) {
                 ++parser_sent;
                 for (size_t j = 0; j < e.nmea.size(); ++j) {
                     if (p.feed((uint8_t)e.nmea[j], msg, 0)) ++parser_out;

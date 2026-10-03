@@ -17,6 +17,7 @@
 namespace azaraC {
 namespace internal {
 
+#if (AZARAC_ENABLE_TSUNAMI) || (AZARAC_ENABLE_NW_PAC_TSUNAMI)
 // 12bit Ta から azarashi と同じ語彙の状態を返す。通常時刻なら nullptr。
 // 順序が本質: 範囲外チェックを先に置くと hour==30 の no_information が
 // 到達不能になる（30 > 23）。
@@ -27,6 +28,7 @@ static const char* arrivalStatus(uint16_t raw, bool nwpac) {
     if (raw == 0 || hour > 23 || min > 59) return "unrecognized_code";
     return nullptr;
 }
+#endif  // AZARAC_ENABLE_TSUNAMI || AZARAC_ENABLE_NW_PAC_TSUNAMI
 
 // MT=43 sub-type serializers
 // Each returns after writing its last field with last=true
