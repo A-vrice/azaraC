@@ -127,7 +127,7 @@ graph LR
   残る 2 カテゴリは `dedup-realday` の対象外:
 
   - **南海トラフ(4)**: 集約前のページを対象にしないため、この計測では扱わない。Parser はページを集約し**事象トークン**（`info_code` + 報告時刻）で判定するため、MT～VN digest の経路を通らない。集約の同一性は `test/data/nankai_vectors.json`（27 ページ）と `test/integration/test_nankai_e2e.cpp` で検証する。
-  - **北西太平洋津波(6)**: `.l1s` の 30 日には出現しない。`declared_dc=6` の 2 文は `test/data/all_categories_vectors.json` にもある（計 30 文・11 カテゴリ）が、この fixture を読むテストは無い（テストはファイルを開かない — AVR スタブビルドで壊れるため）。手動の再現・参照用で、CI のゲートには入っていない。自動検証は `test/integration/test_realdata.cpp` のハードコード case（`realdata/qzqsm_history.md` 由来、`gen_realdata_vectors.py` が生成）が担う。
+  - **北西太平洋津波(6)**: `.l1s` の 30 日には出現しない。自動検証は `test/integration/test_realdata.cpp` のハードコード case（`realdata/qzqsm_history.md` 由来、`gen_realdata_vectors.py` が生成）が担う。
 
   同じ日でも衛星ごとに中身が違う（`.l1s` は衛星別。例 2024-08-07: Q002=distinct 106/生存68 → Q005=148/110）。`REALDAY_INPUT` を Q003..Q005 に切り替えるとカテゴリ被覆が増える。
 - **既定値**: 512スロット×8ウェイ = 4KB。30 日すべて FALSE_RE=0 / MISSED=0（生存ピーク 20〜327、最悪は 2024-08-28 の 327）。256×8 では最悪日に 2 件残るため、同時生存 327 件まで余裕を持たせるなら 512。能登 1 日だけなら 128 で足りる。AVR プリセットは 64×8 = 512B（能登の SEISMIC/TSUNAMI 部分に限定した計測: 8,669フレーム / distinct 77 で 0件、32×8 も 0件、16×8 は 93件、16×4 では 106件。AVR の対象カテゴリは震度・津波なので、気象・台風が主体の 2024-08-28 型の日は該当しない）。
@@ -163,7 +163,7 @@ graph TD
 |---------------|-------------|------|
 | DedupFilter | `AZARAC_DEDUP_SLOTS × 8` B | 既定 4,096B（512スロット。AVRプリセットは512B）。1エントリ = 内容4B + 受信時刻4B |
 | NankaiPageBuffer | 28B（メタデータ）+ `MAX_PAGES × 18 + 1` B | 既定 63 ページで構造体 1,168B。LRUエビクション |
-| 定義テーブル | 表エントリ39本で約122KiB、定義文字列を含むライブラリ全体の読み取り専用セクションは約344KiB。計測条件: 全カテゴリ + 日英ラベル有効、64bit ホスト `g++ 15.2 -std=c++17 -O2 -fdata-sections` | Flash(AVRではPROGMEM)に配置。同一TU内の同一リテラルは定数プールで同じコピーに統合されるが、TUを跨ぐ統合はツールチェーン依存。非AVRはエントリを `const char*`（32bit機で4B）で保持。AVRプリセット（`-D__AVR__ -DAZARAC_AVR_STUB`、SEISMIC/TSUNAMI のみ、`-O0`）では表 + プール計約3.4KiB |
+| 定義テーブル | 表エントリ39本で約122KiB、定義文字列を含むライブラリ全体の読み取り専用セクションは約344KiB。計測条件: 全カテゴリ + 日英ラベル有効、64bit ホスト `g++ 15.2 -std=c++17 -O2 -fdata-sections`（未使用 4 表を生成対象から外す前の実測） | Flash(AVRではPROGMEM)に配置。同一TU内の同一リテラルは定数プールで同じコピーに統合されるが、TUを跨ぐ統合はツールチェーン依存。非AVRはエントリを `const char*`（32bit機で4B）で保持。AVRプリセット（`-D__AVR__ -DAZARAC_AVR_STUB`、SEISMIC/TSUNAMI のみ、`-O0`）では表 + プール計約3.4KiB |
 
 ## 関連ドキュメント
 

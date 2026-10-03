@@ -45,7 +45,7 @@ azaraC/
 │   ├── framer/               # フレーマー実装
 │   ├── json/                 # JSONシリアライズ実装
 │   ├── internal/             # 内部ヘッダ・実装（avr_std/ シム、FlashString.h 含む）
-│   └── definition/           # 自動生成定義テーブル（144ファイル、_index.h で集約）
+│   └── definition/           # 自動生成定義テーブル（140ファイル、_index.h で集約）
 ├── scripts/                  # 定義ファイル生成スクリプト
 │   ├── gen/                  # 定義生成（gen_definitions.py, strategy.py）
 │   └── analysis/             # 静的解析サマリ（cppcheck_summary.py, gcovr_summary.py）
@@ -114,7 +114,8 @@ make -C test fuzz FUZZ_ITERATIONS=100000
 | `make -C test run-small-pages` | `AZARAC_NANKAI_MAX_PAGES=8` で全体を再ビルドし、ページ打ち切り経路を検証（既定 63 では打ち切りが発生せず該当テストが `#if` で除外されるため） |
 | `make -C test decode` | decode_to_jsonのCLIビルド（azarashi 比較用） |
 | `make -C test dedup-realday` | 実日の `.l1s`（`realdata/`）に対する重複判定の再現計測。フレーム数・distinct・生存ピーク・再通知/取りこぼしを METRIC 行で出す。`REALDAY_CAT<n>_*` はカテゴリ別の内訳（`MISSED`=取りこぼし、`FALSE_RE`=再通知）、`REALDAY_UNALIGNED` は非整列フレーム数。`REALDAY_INPUT` で入力、`CXXFLAGS_EXTRA="-DAZARAC_DEDUP_SLOTS=…"` + `-B` で容量を変えて反復（**`CXXFLAGS_EXTRA` は依存関係に載らないため、スイープ後は `make -C test clean`** で残った `.o` を消す） |
-| `make -C test compare-realdata` | azarashiとの処理比較（`pip install azarashi`が必要） |
+| `make -C test bench` | dedup フィルタのベンチ（`autoresearch.sh`）。`NEW_RECALL` / `DUP_SUPPRESS` / `*_KEY_STABLE` をゲート。CI の host-test でも実行 |
+| `make -C test compare-realdata` | azarashiとの処理比較（`pip install azarashi`が必要）。CI 外（手動。azarashi パッケージが必要） |
 | `make -C test check` / `check-xml` | 静的解析（cppcheck）と厳格コンパイルチェック |
 | `make -C test coverage` | カバレッジ測定 |
 | `make -C test test-no-alloc` | 公開 API が動的確保を行わないことの検証（GNU ld の `--wrap`。macOS ではスキップ） |
