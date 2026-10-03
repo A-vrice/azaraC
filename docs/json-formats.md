@@ -26,9 +26,12 @@ azarashi（v0.17.0）の `to_json_dict()` が出力する JSON は **スキー�
 {"schema_version":2,"svid":184,"msg_type":44,"crc24":"0x00074DAD","data":{…}}
 ```
 
-デコードに失敗した場合（`invalid_mt43` / `invalid_mt44` / `unsupported_category` /
-`unsupported_msg_type`）は `crc24` の直後に `note` が出て `data` は出ない
-（MT43 のメタ情報と `version` / `report_time` も出ない）。
+デコードに失敗した場合の `note` は 4 通り。`invalid_mt43` / `invalid_mt44` /
+`unsupported_msg_type` は `crc24` の直後に `note` が出て `data` は出ない
+（MT43 のメタ情報と `version` / `report_time` も出ない）。`unsupported_category`
+だけは MT43 のメタ情報・`version` / `report_time` を出したうえで
+`"data":{"note":"unsupported_category"}` を出す（`Parser` 経由では到達しない:
+カテゴリはデコード時に `AZARAC_ENABLE_*` で弾かれる）。
 
 ### 1.1 共通ヘッダ
 
@@ -39,7 +42,7 @@ azarashi（v0.17.0）の `to_json_dict()` が出力する JSON は **スキー�
 | `msg_type` | int | 43 / 44 |
 | `crc24` | str | `"0x00F92C3F"`。azarashi の出力には無い |
 | `data` | obj | 本文（§1.2 / §1.3）。失敗時は代わりに `note` |
-| `note` | str | `invalid_mt43` / `invalid_mt44` / `unsupported_category` / `unsupported_msg_type` |
+| `note` | str | `invalid_mt43` / `invalid_mt44` / `unsupported_category` / `unsupported_msg_type`（`unsupported_category` のみ `data` の中） |
 
 MT43 はこれに加えて DCR の報告ヘッダをルートに持つ: `report_classification`(+`_label`) /
 `disaster_category`(+`_label`) / `information_type`(+`_label`) / `version` /
@@ -222,7 +225,7 @@ Table 4.2-12）で決まる:
 
 | A9 | A2 | 引く表 | 出力 |
 |---|---|---|---|
-| 0 | — | International library（コード 0–31） | `_label`（＋両言語ビルドでは `_label_en`） |
+| 0 | — | International library（コード 0–31） | `_label`（国際表は英語のみのため `_label_en` は出ない） |
 | 1 | 111 | Japanese library | `_label`（＋両言語ビルドでは `_label_en`） |
 | 1 | ≠111 | 無し | `_label: null` |
 
