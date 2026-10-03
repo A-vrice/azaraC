@@ -26,9 +26,11 @@ bool DedupFilter::isDuplicate(const DedupKey& key, uint32_t now_ms, uint32_t win
             if (!free_slot) free_slot = &e;
             continue;
         }
-        // Unsigned difference, signed comparison: correct across the 49.7-day
-        // rollover of millis() and selects the true minimum.
-        if ((int32_t)(e.last_seen_ms - oldest->last_seen_ms) < 0) oldest = &e;
+        // Age from now, unsigned: correct across the 49.7-day rollover of
+        // millis() and for gaps beyond 2^31 ms. Comparing last_seen_ms values
+        // against each other wraps once the two entries are >24.8 days apart,
+        // and then picks the live entry as the victim.
+        if ((uint32_t)(now_ms - e.last_seen_ms) > (uint32_t)(now_ms - oldest->last_seen_ms)) oldest = &e;
         if (e.content != content) continue;
         if ((uint32_t)(now_ms - e.last_seen_ms) <= window_ms) {
             e.last_seen_ms = now_ms;   // seen again: extend validity (手順④')

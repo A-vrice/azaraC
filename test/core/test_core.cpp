@@ -797,6 +797,51 @@ TEST_CASE("DedupFilter: 直近に受信した情報は容量超過後も重複�
     }
 }
 
+TEST_CASE("DedupFilter: 32bit 時刻のラップをまたぐ victim 選択") {
+    // last_seen_ms は uint32 ミリ秒で 49.7 日周期。同一セット内の2エントリの
+    // 差が 2^31 ms（約 24.8 日）を超えると、生の時刻を int32 で引く実装は
+    // 新しい方を「古い」と誤認し、生きている情報を追い出して再通知させる。
+    // unsigned 差で比較する現行実装は、24.8 日を超える差でも順序が保たれる。
+    //
+    // 再現: 同一セットに「34.7 日前のエントリ」と「直近のエントリ」を置き、
+    // 新規鍵を入れる。誤実装は直近エントリを追い出す。
+    static_assert(DEDUP_SETS > 1, "need multiple sets to isolate a collision");
+
+    // Dedup.cpp の setIndexOf と同じ折り畳み（同ファイルでは static なので再現）。
+    auto setOf = [](uint32_t content) {
+        uint32_t h = content & 0xFFFFFFu;
+        h ^= h >> 8; h ^= h >> 4;
+        return (uint32_t)(h & (DEDUP_SETS - 1));
+    };
+    auto contentOf = [](const DedupKey& k) { return k.packed() | 0x80000000u; };
+
+    // 任意の鍵を基準に、その鍵と同じセットに入る衝突鍵を WAYS+1 個集める。
+    const uint32_t want_set = setOf(contentOf(DedupKey{43, 0}));
+    DedupKey keys[DEDUP_WAYS + 1];
+    int found = 0;
+    for (uint32_t i = 0; i < 1000000 && found < DEDUP_WAYS + 1; ++i) {
+        DedupKey k{43, (i * 2654435761u) & 0xFFFFFFu};
+        if (setOf(contentOf(k)) == want_set) keys[found++] = k;
+    }
+    REQUIRE(found == DEDUP_WAYS + 1);
+
+    const uint32_t recent_ms = 4000000000u;
+    const uint32_t old_ms    = recent_ms - 3000000000u;   // 34.7 日前（差 > 2^31）
+
+    DedupFilter filter;
+    // 古い鍵でセットを埋める（WAYS-1 個）。全て old_ms。
+    for (int i = 1; i < DEDUP_WAYS; ++i) {
+        CHECK_FALSE(filter.isDuplicate(keys[i], old_ms, DEDUP_TEST_WINDOW));
+    }
+    // 直近のエントリを追加（空き way に入る）。
+    CHECK_FALSE(filter.isDuplicate(keys[0], recent_ms, DEDUP_TEST_WINDOW));
+
+    // 新規鍵を入れる。セットが満杯なので最も古い1件だけが追い出されるべきで、
+    // 直近の keys[0] は残らねばならない。
+    CHECK_FALSE(filter.isDuplicate(keys[DEDUP_WAYS], recent_ms + 1000, DEDUP_TEST_WINDOW));
+    CHECK(filter.isDuplicate(keys[0], recent_ms + 2000, DEDUP_TEST_WINDOW));
+}
+
 TEST_CASE("DedupFilter: msg_type が違っても内容が同じなら区別される") {
     // 鍵は {msg_type, crc24} の両方。上位ビットに msg_type を埋める実装で
     // 取り違えがないことを確認する。

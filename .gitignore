@@ -57,3 +57,4 @@ test/no_alloc_tests
 
 # bench のビルド生成物（autoresearch.sh / bench_dedup.cpp は追跡する）
 test/bench/bench_dedup
+test/bench/*.cc

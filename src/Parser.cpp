@@ -39,7 +39,11 @@ bool Parser::handleFrame(const internal::Frame& frame, Message& out, uint32_t re
 bool Parser::postDecode(const Message& decoded, Message& out, uint32_t identity) {
     // Reception time for the dedup validity window (手順④'). Nankai aggregation
     // below uses the same clock, so both stages agree on "now".
-    const uint32_t now_ms = static_cast<uint32_t>(internal::getMillis());
+    // Keep the full 64-bit value: NankaiPageBuffer's timeout is uint64 and the
+    // 32-bit dedup window wraps every ~49.7 days; truncating here underflows the
+    // buffer's unsigned age comparison.
+    const uint64_t now_ms64 = internal::getMillis();
+    const uint32_t now_ms = static_cast<uint32_t>(now_ms64);
     const uint32_t window_ms = internal::dedupWindowMs(decoded);
 
     // Nankai Trough page aggregation
@@ -52,7 +56,7 @@ bool Parser::postDecode(const Message& decoded, Message& out, uint32_t identity)
             // 以前と同じく出力しない。
             if (!nankai) { out.clear(); return false; }
             // decoded と out を別オブジェクトにすることでエイリアシング UB を回避
-            if (!processNankaiAggregation(decoded, out, mt43, now_ms)) {
+            if (!processNankaiAggregation(decoded, out, mt43, now_ms64)) {
                 out.clear();
                 return false;
             }
@@ -79,7 +83,7 @@ bool Parser::postDecode(const Message& decoded, Message& out, uint32_t identity)
 }
 
 #if AZARAC_ENABLE_NANKAI
-bool Parser::processNankaiAggregation(const Message& decoded, Message& out, const Mt43Data* d, uint32_t current_ms) {
+bool Parser::processNankaiAggregation(const Message& decoded, Message& out, const Mt43Data* d, uint64_t current_ms) {
 
     const NankaiData* nankai = d->getNankai();
     if (!nankai) return false;

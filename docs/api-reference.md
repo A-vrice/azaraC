@@ -443,8 +443,8 @@ if (client.connect(server, port)) {
 | `max_wind` 0 / `max_gust` 0 | `不明` / `Unknown` | センチネル |
 
 センチネルは全フィールド共通ではない。`depth` 0 は `0km`、`pressure` 0 は `0hPa`、
-`elapsed` 0 は `0時間後` で、それぞれ実値として意味を持つ。`number` 0 は定義表に
-エントリが無く `""` になる。
+`elapsed` 0 は `0時間後` で、それぞれ実値として意味を持つ。`number` 0 は
+`typhoon_number` 表（1 起点）に無いため `number_label` は `null` になる。
 
 `AZARAC_LANG_EN=0`（ライブラリ既定）では `_label_en` は出力されず、
 `AZARAC_LANG_JA=0 / AZARAC_LANG_EN=1` でも `_label` 自体が英語になるため併記しない。
