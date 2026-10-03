@@ -58,7 +58,6 @@ GUARD_MAP = {
     "qzss_dcx_camf_a9_type_of_library": "AZARAC_ENABLE_DCX_CAMF",
     "qzss_dcx_camf_a10_library_version": "AZARAC_ENABLE_DCX_CAMF",
     "qzss_dcx_camf_a11_international_library": "AZARAC_ENABLE_DCX_CAMF",
-    "qzss_dcx_camf_a11_international_library_code": "AZARAC_ENABLE_DCX_CAMF",
     "qzss_dcx_camf_a11_japanese_library_en": "AZARAC_ENABLE_DCX_CAMF",
     "qzss_dcx_camf_a11_japanese_library_ja": "AZARAC_ENABLE_DCX_CAMF",
     "qzss_dcx_camf_a17_type_of_specific_settings": "AZARAC_ENABLE_DCX_CAMF",
@@ -104,7 +103,6 @@ GUARD_MAP = {
     "qzss_dcx_camf_ex9_target_area_code_ja": "AZARAC_ENABLE_DCX_CAMF",
     "qzss_dcx_ex1_target_area_code_en": "AZARAC_ENABLE_DCX_CAMF",
     "qzss_dcx_ex1_target_area_code_ja": "AZARAC_ENABLE_DCX_CAMF",
-    "qzss_dcr_preamble": "AZARAC_ENABLE_QZSS_DCR_PREAMBLE",
 
     # azarashi 0.17 added these. Their *_en siblings inherit the guard of the
     # JA table they translate (see category_guard_for), so only the tables with
@@ -138,6 +136,11 @@ SKIP_MODULES = {
     "a3_provider_identifier_map",
     "a3_provider_identifier_undefined",
     "a11_library",
+    # JSON v2 でラベルを消した／ガードが未定義／消費者が無い表（2026-10 時点で参照ゼロ）
+    "qzss_dcr_message_type",
+    "qzss_dcr_satellite_prn",
+    "qzss_dcr_preamble",
+    "qzss_dcx_camf_a11_international_library_code",
 }
 
 BASE_MOD = "azarashi.definitions"

@@ -1,6 +1,6 @@
 #pragma once
 // AUTO-GENERATED from azarashi 0.17.0 — do not edit
-// 141 generated + extra definition headers
+// 137 generated + extra definition headers
 
 #include "qzss_dcr_jma_ambiguity_of_activity_time_en.h"
 #include "qzss_dcr_jma_ash_fall_warning_code.h"
@@ -85,12 +85,8 @@
 #include "qzss_dcr_jma_weather_related_disaster_sub_category_en.h"
 #include "qzss_dcr_jma_weather_warning_state.h"
 #include "qzss_dcr_jma_weather_warning_state_en.h"
-#include "qzss_dcr_message_type.h"
-#include "qzss_dcr_preamble.h"
-#include "qzss_dcr_satellite_prn.h"
 #include "qzss_dcx_camf_a10_library_version.h"
 #include "qzss_dcx_camf_a11_international_library.h"
-#include "qzss_dcx_camf_a11_international_library_code.h"
 #include "qzss_dcx_camf_a11_japanese_library_en.h"
 #include "qzss_dcx_camf_a11_japanese_library_ja.h"
 #include "qzss_dcx_camf_a17_type_of_specific_settings.h"
