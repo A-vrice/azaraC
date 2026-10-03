@@ -84,8 +84,8 @@ $ make -C test run
 run_tests.exe
 [doctest] doctest version is "2.5.0"
 ===============================================================================
-[doctest] test cases:   420 |   420 passed | 0 failed | 0 skipped
-[doctest] assertions: 10275 | 10275 passed | 0 failed |
+[doctest] test cases:   430 |   430 passed | 0 failed | 0 skipped
+[doctest] assertions: 10368 | 10368 passed | 0 failed |
 [doctest] Status: SUCCESS!
 ```
 
@@ -94,7 +94,7 @@ run_tests.exe
 | ディレクトリ | 内容 |
 |-------------|------|
 | `core/` | CRC, 時間, 緯度経度, 重複除去 |
-| `internal/` | 内部ヘルパ（DcxHelper, avr_std シム） |
+| `internal/` | 内部ヘルパ（DcxHelper, 情報有効時間 DedupWindow, avr_std シム） |
 | `framer/` | NMEA/UBXフレーマー |
 | `json/` | JSON出力検証 |
 | `integration/` | エンドツーエンドテスト |
