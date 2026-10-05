@@ -71,10 +71,10 @@ TEST_CASE("JSON DCX B1: refinement fields") {
     const auto& s = sp.str();
 
     CHECK(has(s, "\"b1_refinement\":{"));
-    CHECK(has(s, "\"c1_lat_offset_deg\":"));
-    CHECK(has(s, "\"c2_lon_offset_deg\":"));
-    CHECK(has(s, "\"c3_refined_semi_major_km\":"));
-    CHECK(has(s, "\"c4_refined_semi_minor_km\":"));
+    CHECK(hasField(s, "\"c1_lat_offset_deg\":0.002400"));
+    CHECK(hasField(s, "\"c2_lon_offset_deg\":0.002400"));
+    CHECK(hasField(s, "\"c3_refined_semi_major_km\":215.125"));
+    CHECK(hasField(s, "\"c4_refined_semi_minor_km\":215.125"));
 }
 
 TEST_CASE("JSON DCX B2: hazard center fields") {

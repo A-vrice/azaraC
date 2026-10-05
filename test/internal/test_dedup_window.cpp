@@ -188,12 +188,61 @@ TEST_CASE("dedup window: Message overload routes MT43 payload and MT44 fallback"
 #endif
     // Mt43 でも payload 未設定の型は nullptr 経由（クラッシュせず 10 時間）
     CHECK(windowViaMessage(5, 0, Mt43Data::ActiveType::None) == 10UL * HR);
-    // Weather/Flood/Marine も payload を引く経路を通る（カテゴリ3種は条件付き）
-    CHECK(windowViaMessage(10, 0, Mt43Data::ActiveType::Weather) == 3UL * HR);
-    CHECK(windowViaMessage(11, 0, Mt43Data::ActiveType::Flood) == 3UL * HR);
-    CHECK(windowViaMessage(14, 0, Mt43Data::ActiveType::Marine) == 3UL * HR);
-    // 津波以外の payload 経路でもカテゴリ表の値を返す
-    CHECK(windowViaMessage(8, 0, Mt43Data::ActiveType::Weather) == DAY);
+    // Weather/Flood/Marine は payload を実際に埋めて条件分岐を通す（active_type だけ
+    // 設定した経路は payload が未設定＝nullptr で表の既定値が返るため、条件が壊れて
+    // いても検出できない）。
+#if AZARAC_ENABLE_WEATHER
+    {   // Weather: payload を実際に埋め、条件成立で DAY に伸びることを確認
+        Message m{};
+        m.svid = 186;
+        m.payload_type = MsgPayloadType::Mt43;
+        Mt43Data* d = m.getMt43();
+        REQUIRE(d != nullptr);
+        d->disaster_category = 10;
+        d->information_type = 0;
+        d->initAs<WeatherData>();
+        d->getWeather()->count = 1;
+        d->getWeather()->warning_state = 1;
+        d->getWeather()->entries[0].sub_category = 3;   // 特別警報系
+        CHECK(dedupWindowMs(m) == DAY);
+        d->getWeather()->entries[0].sub_category = 0;   // 条件非成立
+        CHECK(dedupWindowMs(m) == 3UL * HR);
+    }
+#endif
+#if AZARAC_ENABLE_FLOOD
+    {   // Flood: 条件成立で DAY
+        Message m{};
+        m.svid = 186;
+        m.payload_type = MsgPayloadType::Mt43;
+        Mt43Data* d = m.getMt43();
+        REQUIRE(d != nullptr);
+        d->disaster_category = 11;
+        d->information_type = 0;
+        d->initAs<FloodData>();
+        d->getFlood()->count = 1;
+        d->getFlood()->entries[0].warning_level = 3;    // Lv 2..4
+        CHECK(dedupWindowMs(m) == DAY);
+        d->getFlood()->entries[0].warning_level = 1;    // 条件非成立
+        CHECK(dedupWindowMs(m) == 3UL * HR);
+    }
+#endif
+#if AZARAC_ENABLE_MARINE
+    {   // Marine: 警報コード成立で DAY
+        Message m{};
+        m.svid = 186;
+        m.payload_type = MsgPayloadType::Mt43;
+        Mt43Data* d = m.getMt43();
+        REQUIRE(d != nullptr);
+        d->disaster_category = 14;
+        d->information_type = 0;
+        d->initAs<MarineData>();
+        d->getMarine()->count = 1;
+        d->getMarine()->entries[0].warning_code = 11;   // 表内コード（24 時間側）
+        CHECK(dedupWindowMs(m) == DAY);
+        d->getMarine()->entries[0].warning_code = 0;    // 解除
+        CHECK(dedupWindowMs(m) == 3UL * HR);
+    }
+#endif
     // Mt44 はカテゴリ条件を持たない → 一律 fallback を使う
     {
         Message m{};

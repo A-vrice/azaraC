@@ -10,6 +10,8 @@
 #include <cstring>
 #include <cstdio>
 #include <ctime>
+#include <cerrno>
+#include <climits>
 #include <random>
 #include <vector>
 #include <string>
@@ -984,15 +986,24 @@ int main(int argc, char* argv[]) {
     std::mt19937 rng(rd());
 
     // イテレーション数（環境変数 > コマンドライン引数 > デフォルト）
-    int iterations = 10000;
+    // atoi は不正入力で 0 を返し、0 回の「無検査 PASS」になる。値域を検証して落とす。
+    long long iterations = 10000;
     const char* env_iter = std::getenv("FUZZ_ITERATIONS");
+    const char* source = "default";
+    if (env_iter) { source = "FUZZ_ITERATIONS"; }
+    if (argc > 1) { env_iter = argv[1]; source = "argv[1]"; }
     if (env_iter) {
-        iterations = std::atoi(env_iter);
+        char* end = nullptr;
+        errno = 0;
+        const long long v = std::strtoll(env_iter, &end, 10);
+        if (errno != 0 || end == env_iter || *end != '\0' || v <= 0 || v > INT_MAX) {
+            fprintf(stderr, "FUZZ: invalid %s: '%s' (expected positive integer)\n",
+                    source, env_iter);
+            return 2;
+        }
+        iterations = v;
     }
-    if (argc > 1) {
-        iterations = std::atoi(argv[1]);
-    }
-    printf("Iterations per test: %d\n\n", iterations);
+    printf("Iterations per test: %lld\n\n", iterations);
 
     FuzzStats stats;
 

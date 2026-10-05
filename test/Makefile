@@ -267,7 +267,7 @@ MACRO_OFF_FLAGS = \
 test-macro-compile:
 	@echo "=== Compiling with ALL AZARAC_ENABLE_* macros disabled ==="
 	@mkdir -p $(MACRO_TMP)
-	@for f in $(LIB_SRCS); do bn=$$(basename $$f); $(CXX) $(CXXFLAGS) $(MACRO_OFF_FLAGS) -c $$f -o $(MACRO_TMP)/$$bn.o; done
+	@set -e; for f in $(LIB_SRCS); do bn=$$(basename $$f); $(CXX) $(CXXFLAGS) $(MACRO_OFF_FLAGS) -c $$f -o $(MACRO_TMP)/$$bn.o; done
 	@rm -rf $(MACRO_TMP)
 	@echo "===== SUCCESS: all macros disabled compilation passed ====="
 
@@ -372,6 +372,7 @@ macro:
 	@$(MAKE) _macro-test-one M=TYPHOON
 	@$(MAKE) _macro-test-one M=MARINE
 	@$(MAKE) _macro-test-one M=DCX_CAMF
+	@$(MAKE) clean 2>$(DEVNULL)
 	@echo ===== All macro runtime tests passed =====
 
 .PHONY: _macro-test-one
@@ -390,6 +391,7 @@ macro:
 		$(MAKE) clean 2>$(DEVNULL); \
 		$(MAKE) CXXFLAGS="$(CXXFLAGS) -DAZARAC_ENABLE_$${m}=0" run || exit 1; \
 	done
+	@$(MAKE) clean 2>$(DEVNULL)
 	@echo "===== All macro runtime tests passed ====="
 endif
 

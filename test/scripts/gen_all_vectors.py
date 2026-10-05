@@ -14,14 +14,6 @@ def decode_nmea(nmea_str):
     except Exception as e:  # noqa: BLE001 — azarashi が多様な例外を投げる
         return {"nmea": nmea_str.strip(), "error": str(e)}
 
-def decode_ublox(data_hex):
-    try:
-        r = azarashi.decode(bytes.fromhex(data_hex), 'ublox')
-        return {"type": type(r).__name__, "nmea": r.nmea, "satellite_id": r.satellite_id,
-                "satellite_prn": r.satellite_prn, "params": r.get_params()}
-    except Exception as e:  # noqa: BLE001 — azarashi が多様な例外を投げる
-        return {"error": str(e)}
-
 def process_log(input_path, output_path):
     results = []
     with open(input_path, 'r', encoding='utf-8') as f:
@@ -128,63 +120,6 @@ def main():
     # Nankai vectors (test_scenario3) — also emits nankai_pages_generated.h
     print("Processing Nankai vectors...")
     gen_nankai(data_dir)
-
-    # Ash Fall vectors (test_scenario5)
-    print("Processing Ash Fall vectors...")
-    ash_nmeas = [
-        "$QZQSM,58,C6AFC99CAA0001CAA43EE541F0782A1220813091811183E0F000001329B16E0*7F",
-        "$QZQSM,58,C6AFC99CAA0001CAA43EE8C2441046123023307C1E19848820000013E2F3E6C*00",
-        "$QZQSM,58,9AAFC99CAA0001CAA43EECC24604860F83C430910421848C080000106286874*00",
-        "$QZQSM,58,53AFC99CAA0001CAA43EF4C1F078A61220853091813183E0F0000010CE8C39C*77",
-        "$QZQSM,58,C6AFC99CAA0001CAA43EF8C24410C61230200000000000000000001148565F4*0A",
-    ]
-    results = [decode_nmea(n) for n in ash_nmeas]
-    with open(os.path.join(data_dir, 'ash_fall_vectors.json'), 'w', encoding='utf-8') as f:
-        json.dump(results, f, ensure_ascii=False, indent=2, default=json_serial)
-    print(f"  {len(results)} Ash Fall messages")
-
-    # Weather vectors (test_scenario6)
-    print("Processing Weather vectors...")
-    weather_nmeas = [
-        "$QZQSM,58,C6AFD19CB18001113880115F901186A011ADB011D4C011FBD00000135EAA3F8*73",
-        "$QZQSM,58,9AAFD19CB180011222E0B93880B95F90B986A0B9ADB0B9D4C0000013D276B60*0D",
-        "$QZQSM,58,53AFD19CB18001B9FBD0BA22E00000000000000000000000000000107AA71EC*76",
-    ]
-    results = [decode_nmea(n) for n in weather_nmeas]
-    with open(os.path.join(data_dir, 'weather_vectors.json'), 'w', encoding='utf-8') as f:
-        json.dump(results, f, ensure_ascii=False, indent=2, default=json_serial)
-    print(f"  {len(results)} Weather messages")
-
-    # DCX vectors (test_dcx)
-    print("Processing DCX vectors...")
-    dcx_nmeas = [
-        "$QZQSM,55,53B0840DE0000000000000000000000000000000000000000000000012ACBD4*0E",
-        "$QZQSM,56,9AB08408E0598969E00066AFFE8E6F70091200000000000000000100CD1A410*0C",
-        "$QZQSM,55,9AB0840DE10208ADE0000000000000000000011340000000000000132F0D238*04",
-        "$QZQSM,55,53B0840DE31188FC208600000000000000001FFFFFFFFFFFC00000120738628*00",
-    ]
-    results = [decode_nmea(n) for n in dcx_nmeas]
-    with open(os.path.join(data_dir, 'dcx_vectors_direct.json'), 'w', encoding='utf-8') as f:
-        json.dump(results, f, ensure_ascii=False, indent=2, default=json_serial)
-    print(f"  {len(results)} DCX messages")
-
-    # UBX vectors
-    print("Processing UBX vectors...")
-    ublox_data = [
-        {"name": "ublox_sv56_p1", "hex": "B56202132C000502010009400200C5F1AD9A04058011548DA0603F82D2110FAA7D50280C43C91000507D3179F028731810B2622F"},
-        {"name": "ublox_sv56_p2", "hex": "B56202132C0005020100094002007614AD535C03801A33EC000049482F14201B01520000000012000000A659B0C65B1FF3B23EB6"},
-        {"name": "ublox_sv57", "hex": "B56202132C000503010009410200A1E5ADC6120280366800000110503444D4EE00340000003C11000000149C5F6026CBC0F2EF1A"},
-        {"name": "ublox_sv61", "hex": "B56202132C000507010009450200A1E5ADC6120280366800000110503444D4EE00340000003C11000000149C5F6026CBC0F2F762"},
-        {"name": "ublox_sv55", "hex": "B56202132C000501010009450200A1E5ADC6120280366800000110503444D4EE00340000003C11000000149C5F6026CBC0F2F160"},
-    ]
-    results = []
-    for u in ublox_data:
-        r = decode_ublox(u["hex"])
-        r["name"] = u["name"]
-        results.append(r)
-    with open(os.path.join(data_dir, 'ublox_vectors.json'), 'w', encoding='utf-8') as f:
-        json.dump(results, f, ensure_ascii=False, indent=2, default=json_serial)
-    print(f"  {len(results)} UBX messages")
 
     print("\nDone!")
 

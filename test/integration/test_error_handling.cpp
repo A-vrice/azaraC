@@ -356,6 +356,7 @@ TEST_CASE("Decoder: MT=44 Outside Japan ex11_raw JSON output") {
     setBits(bits, 35, 5, 2);         // a3=2 (Fiji Meteorological Service)
     setBits(bits, 40, 7, 5);         // a4=5 - 7 bits
     setBits(bits, 47, 2, 3);         // a5=3 - 2 bits
+    setBits(bits, 146, 8, 0xAB);     // ex11_raw[0] = 0xAB
     setBits(bits, 214, 6, 1);
     uint32_t crc = crc24qRef(bits, 226);
     setBits(bits, 226, 24, crc);
@@ -368,11 +369,12 @@ TEST_CASE("Decoder: MT=44 Outside Japan ex11_raw JSON output") {
     bool result = dec.decode(frame, msg, 0);
     REQUIRE(result);
 
-    // Verify JSON output contains ex11_raw
+    // ex11_raw はビット 146..209 の 8 バイト + 210..213 の 4 ビットを hex 化した
+    // 17 文字。先頭バイトだけ 0xAB を入れてあるので、他の桁は 0 のままになる。
     StringPrint sp;
     internal::JsonSerializer::serialize(msg, sp);
     const auto& s = sp.str();
-    CHECK(s.find("\"ex11_raw\":") != std::string::npos);
+    CHECK(s.find("\"ex11_raw\":\"AB000000000000000\",") != std::string::npos);
 }
 
 TEST_CASE("Decoder: MT=44 A17/A18 specific settings output") {
@@ -404,8 +406,8 @@ TEST_CASE("Decoder: MT=44 A17/A18 specific settings output") {
     StringPrint sp;
     internal::JsonSerializer::serialize(msg, sp);
     const auto& s = sp.str();
-    CHECK(s.find("\"a17_type_of_specific_settings\":") != std::string::npos);
-    CHECK(s.find("\"a18_specific_settings\":") != std::string::npos);
+    CHECK(s.find("\"a17_type_of_specific_settings\":2,") != std::string::npos);
+    CHECK(s.find("\"a18_specific_settings\":4660,") != std::string::npos);
 }
 
 TEST_CASE("Decoder: MT=44 D36 typhoon category output") {

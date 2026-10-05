@@ -84,8 +84,8 @@ $ make -C test run
 run_tests.exe
 [doctest] doctest version is "2.5.0"
 ===============================================================================
-[doctest] test cases:   430 |   430 passed | 0 failed | 0 skipped
-[doctest] assertions: 10368 | 10368 passed | 0 failed |
+[doctest] test cases:   418 |   418 passed | 0 failed | 0 skipped
+[doctest] assertions: 10417 | 10417 passed | 0 failed |
 [doctest] Status: SUCCESS!
 ```
 

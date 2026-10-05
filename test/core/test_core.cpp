@@ -167,6 +167,13 @@ TEST_CASE("getBits64: OOB detected") {
     CHECK(val == 0);
 }
 
+TEST_CASE("getBits64: 64-bit exact extraction") {
+    uint8_t buf[8] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08};
+    CHECK(TestDecoder::extractBits64(buf, 0, 64) == 0x0102030405060708ULL);
+    TestDecoder::clearOob();
+    CHECK(TestDecoder::checkOob() == false);
+}
+
 // setBits セルフテスト
 
 TEST_CASE("setBits: roundtrip with getBits") {
@@ -890,74 +897,5 @@ TEST_CASE("Memory: sizeof guards for embedded targets") {
 #endif
 }
 
-// ファジースモークテスト
-// 統合 test スイート内で軽量 fuzz を実行し、クラッシュ・ハングがないことを確認
-
-TEST_CASE("Fuzz smoke: random frames no crash") {
-    std::mt19937 rng(42);
-    Decoder dec;
-    for (int i = 0; i < 1000; ++i) {
-        uint8_t bits[32];
-        generate_random_nav_bits(bits, sizeof(bits), rng);
-        Frame frame;
-        frame.svid = 193;
-        memcpy(frame.bits, bits, 32);
-        Message msg{};
-        dec.decode(frame, msg, 0);
-    }
-}
-
-TEST_CASE("Fuzz smoke: valid preamble + random data") {
-    std::mt19937 rng(42);
-    Decoder dec;
-    for (int i = 0; i < 1000; ++i) {
-        uint8_t bits[32];
-        generate_random_nav_bits(bits, sizeof(bits), rng);
-        // Set valid preamble: {0x53, 0x9A, 0xC6}
-        bits[0] = (uint8_t[]){0x53, 0x9A, 0xC6}[rng() % 3];
-        Frame frame;
-        frame.svid = 193;
-        memcpy(frame.bits, bits, 32);
-        Message msg{};
-        dec.decode(frame, msg, 0);
-    }
-}
-
-TEST_CASE("Fuzz smoke: valid MT=43 + correct CRC") {
-    std::mt19937 rng(42);
-    Decoder dec;
-    for (int i = 0; i < 1000; ++i) {
-        uint8_t bits[32] = {};
-        bits[0] = (uint8_t[]){0x53, 0x9A, 0xC6}[rng() % 3];
-        // Set MT=43 at bits [8, 14)
-        setBits(bits, 8, 6, 43);
-        // Fill remaining payload with random
-        for (int b = 14; b < 226; ++b) {
-            if (rng() & 1) bits[b / 8] |= (0x80 >> (b % 8));
-        }
-        // Set CRC
-        uint32_t crc = crc24qRef(bits, 226);
-        setBits(bits, 226, 24, crc);
-        Frame frame;
-        frame.svid = 193;
-        memcpy(frame.bits, bits, 32);
-        Message msg{};
-        dec.decode(frame, msg, 0);
-    }
-}
-
-TEST_CASE("Fuzz smoke: corrupted NMEA no crash") {
-    std::mt19937 rng(42);
-    NmeaFramer framer;
-    for (int i = 0; i < 1000; ++i) {
-        uint8_t bytes[64];
-        for (size_t j = 0; j < sizeof(bytes); ++j) {
-            bytes[j] = static_cast<uint8_t>(rng() & 0xFF);
-        }
-        Frame frame;
-        for (size_t j = 0; j < sizeof(bytes); ++j) {
-            framer.feed(bytes[j], frame);
-        }
-        framer.reset();
-    }
-}
+// 実ファズは test/fuzz/fuzz_decoder.cpp（make fuzz）が担う。ここに置く CHECK 無しの
+// スモークは、クラッシュを検出できない（CI は sanitizer 無しでビルドする）ため削除した。

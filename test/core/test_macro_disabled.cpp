@@ -2,7 +2,7 @@
 // AZARAC_ENABLE_* マクロ無効化時のランタイムテスト
 //
 // 各テストは #if !(AZARAC_ENABLE_XXX) ガードで囲まれている。
-// マクロが有効の場合は SKIP メッセージを出力して PASS する（そのマクロのテストは行わない）。
+// マクロ有効時は TEST_CASE 定義ごと消える（恒常 PASS する空テストを残さない）。
 //
 // このファイルを個別のマクロ無効化ビルドでコンパイルすることで、
 // 無効化されたデコーダが正しくエラーを返すことを検証する。
@@ -78,15 +78,11 @@ using namespace azaraC;
 
 // DCR カテゴリマクロ無効化テスト（13 個中 12 個）
 // 各テストは #if !(AZARAC_ENABLE_XXX) でガードされる。
-// マクロ有効時は SKIP として PASS する。
+// マクロ有効時は定義ごと消える（SKIP の空テストは残さない）。
 
 #if !(AZARAC_ENABLE_EEW)
 TEST_CASE("Macro: Disabled EEW (dc=1) rejected") {
     testDisabledDcrCategory(1);
-}
-#else
-TEST_CASE("Macro: Disabled EEW (dc=1) rejected") {
-    MESSAGE("SKIP: AZARAC_ENABLE_EEW is enabled, cannot test disabled path");
 }
 #endif
 
@@ -94,19 +90,11 @@ TEST_CASE("Macro: Disabled EEW (dc=1) rejected") {
 TEST_CASE("Macro: Disabled Hypocenter (dc=2) rejected") {
     testDisabledDcrCategory(2);
 }
-#else
-TEST_CASE("Macro: Disabled Hypocenter (dc=2) rejected") {
-    MESSAGE("SKIP: AZARAC_ENABLE_HYPOCENTER is enabled, cannot test disabled path");
-}
 #endif
 
 #if !(AZARAC_ENABLE_SEISMIC)
 TEST_CASE("Macro: Disabled Seismic (dc=3) rejected") {
     testDisabledDcrCategory(3);
-}
-#else
-TEST_CASE("Macro: Disabled Seismic (dc=3) rejected") {
-    MESSAGE("SKIP: AZARAC_ENABLE_SEISMIC is enabled, cannot test disabled path");
 }
 #endif
 
@@ -114,19 +102,11 @@ TEST_CASE("Macro: Disabled Seismic (dc=3) rejected") {
 TEST_CASE("Macro: Disabled Nankai (dc=4) rejected") {
     testDisabledDcrCategory(4);
 }
-#else
-TEST_CASE("Macro: Disabled Nankai (dc=4) rejected") {
-    MESSAGE("SKIP: AZARAC_ENABLE_NANKAI is enabled, cannot test disabled path");
-}
 #endif
 
 #if !(AZARAC_ENABLE_TSUNAMI)
 TEST_CASE("Macro: Disabled Tsunami (dc=5) rejected") {
     testDisabledDcrCategory(5);
-}
-#else
-TEST_CASE("Macro: Disabled Tsunami (dc=5) rejected") {
-    MESSAGE("SKIP: AZARAC_ENABLE_TSUNAMI is enabled, cannot test disabled path");
 }
 #endif
 
@@ -134,19 +114,11 @@ TEST_CASE("Macro: Disabled Tsunami (dc=5) rejected") {
 TEST_CASE("Macro: Disabled NW Pacific Tsunami (dc=6) rejected") {
     testDisabledDcrCategory(6);
 }
-#else
-TEST_CASE("Macro: Disabled NW Pacific Tsunami (dc=6) rejected") {
-    MESSAGE("SKIP: AZARAC_ENABLE_NW_PAC_TSUNAMI is enabled, cannot test disabled path");
-}
 #endif
 
 #if !(AZARAC_ENABLE_VOLCANO)
 TEST_CASE("Macro: Disabled Volcano (dc=8) rejected") {
     testDisabledDcrCategory(8);
-}
-#else
-TEST_CASE("Macro: Disabled Volcano (dc=8) rejected") {
-    MESSAGE("SKIP: AZARAC_ENABLE_VOLCANO is enabled, cannot test disabled path");
 }
 #endif
 
@@ -154,19 +126,11 @@ TEST_CASE("Macro: Disabled Volcano (dc=8) rejected") {
 TEST_CASE("Macro: Disabled Ash Fall (dc=9) rejected") {
     testDisabledDcrCategory(9);
 }
-#else
-TEST_CASE("Macro: Disabled Ash Fall (dc=9) rejected") {
-    MESSAGE("SKIP: AZARAC_ENABLE_ASH_FALL is enabled, cannot test disabled path");
-}
 #endif
 
 #if !(AZARAC_ENABLE_WEATHER)
 TEST_CASE("Macro: Disabled Weather (dc=10) rejected") {
     testDisabledDcrCategory(10);
-}
-#else
-TEST_CASE("Macro: Disabled Weather (dc=10) rejected") {
-    MESSAGE("SKIP: AZARAC_ENABLE_WEATHER is enabled, cannot test disabled path");
 }
 #endif
 
@@ -174,29 +138,17 @@ TEST_CASE("Macro: Disabled Weather (dc=10) rejected") {
 TEST_CASE("Macro: Disabled Flood (dc=11) rejected") {
     testDisabledDcrCategory(11);
 }
-#else
-TEST_CASE("Macro: Disabled Flood (dc=11) rejected") {
-    MESSAGE("SKIP: AZARAC_ENABLE_FLOOD is enabled, cannot test disabled path");
-}
 #endif
 
 #if !(AZARAC_ENABLE_TYPHOON)
 TEST_CASE("Macro: Disabled Typhoon (dc=12) rejected") {
     testDisabledDcrCategory(12);
 }
-#else
-TEST_CASE("Macro: Disabled Typhoon (dc=12) rejected") {
-    MESSAGE("SKIP: AZARAC_ENABLE_TYPHOON is enabled, cannot test disabled path");
-}
 #endif
 
 #if !(AZARAC_ENABLE_MARINE)
 TEST_CASE("Macro: Disabled Marine (dc=14) rejected") {
     testDisabledDcrCategory(14);
-}
-#else
-TEST_CASE("Macro: Disabled Marine (dc=14) rejected") {
-    MESSAGE("SKIP: AZARAC_ENABLE_MARINE is enabled, cannot test disabled path");
 }
 #endif
 
@@ -205,10 +157,6 @@ TEST_CASE("Macro: Disabled Marine (dc=14) rejected") {
 #if !(AZARAC_ENABLE_DCX_CAMF)
 TEST_CASE("Macro: Disabled DCX CAMF (MT=44) rejected") {
     testDisabledDcx();
-}
-#else
-TEST_CASE("Macro: Disabled DCX CAMF (MT=44) rejected") {
-    MESSAGE("SKIP: AZARAC_ENABLE_DCX_CAMF is enabled, cannot test disabled path");
 }
 #endif
 

@@ -31,26 +31,76 @@ from _common import (  # type: ignore[import-not-found]
 
 OUT_CPP = os.path.join(BASE, 'test', 'integration', 'test_realdata.cpp')
 
+# カテゴリ無効ビルド（make macro）では該当 dc の電文が DisabledAtCompileTime になり
+# デコードできない。生成物側にも #if ガードを出さないと、手で足したガードが
+# 再生成で消える。
+DISABLED_DC_MACROS = [
+    (1, 'AZARAC_ENABLE_EEW'),
+    (2, 'AZARAC_ENABLE_HYPOCENTER'),
+    (3, 'AZARAC_ENABLE_SEISMIC'),
+    (4, 'AZARAC_ENABLE_NANKAI'),
+    (5, 'AZARAC_ENABLE_TSUNAMI'),
+    (6, 'AZARAC_ENABLE_NW_PAC_TSUNAMI'),
+    (8, 'AZARAC_ENABLE_VOLCANO'),
+    (9, 'AZARAC_ENABLE_ASH_FALL'),
+    (10, 'AZARAC_ENABLE_WEATHER'),
+    (11, 'AZARAC_ENABLE_FLOOD'),
+    (12, 'AZARAC_ENABLE_TYPHOON'),
+    (14, 'AZARAC_ENABLE_MARINE'),
+]
+
 # ═══════════════════════════════════════════════════════════════════════════
 # decode_to_json CLI 統合
 # ═══════════════════════════════════════════════════════════════════════════
 
-def decode_batch(nmea_list: list) -> list:
+def _entry0(fields: dict, nmea: str) -> dict:
+    """entry[0] を返す。entry が無いフィクスチャは生成を失敗させる
+    （entries[0] を assert する側が範囲外を読む前に気付けるようにする）。"""
+    entries = fields.get('entries') or []
+    if not entries:
+        raise SystemExit(f"collector returned no entries for {nmea}")
+    return entries[0]
+
+
+def _emit_disabled_guard(w, cases_var: str) -> None:
+    """カテゴリ無効ビルドで該当 dc を skip するガードを生成する。
+
+    make macro は各 AZARAC_ENABLE_* を個別に 0 にして run する。無効カテゴリの
+    電文は Decoder が DisabledAtCompileTime で拒否するため、ガードが無いと
+    フルスイート以外（make macro）が落ちる。
+    """
+    w('        // Skip disabled-category cases (preprocessor-guarded, eliminated at compile time when enabled)')
+    w(f'        {{ uint8_t _dc = {cases_var}[i].expected_dc;')
+    for dc, macro in DISABLED_DC_MACROS:
+        w('#if !' + macro)
+        w(f'          if (_dc == {dc}) continue;')
+        w('#endif')
+    w('        (void)_dc;')
+    w('        }')
+
+
+def decode_batch(nmea_list: list, raw: bool = False) -> list:
     """decode_to_json CLI を使って NMEA 文をデコード
+
+    Args:
+        raw: True で --raw（dedup 無効）。data.txt は同一情報の重複を含むため、
+             既定の Parser 経路だと出力件数が入力件数より減り、インデックスが
+             ずれる（重複除去は「同じ情報を 2 度通知しない」機能なので当然）。
 
     Returns:
         list of dicts: 各NMEA文のデコード結果 (JSONパース済み)
-        デコード失敗時は None を返す
+
+    失敗時は SystemExit で落とす。以前は None を返してフィールド検査を
+    黙って削っていたため、デコードが壊れても生成物が「検査の少ない緑」になった。
     """
     if not os.path.exists(DECODE_BIN):
-        print(f"WARNING: decode_to_json not found at {DECODE_BIN}", file=sys.stderr)
-        print("         Field-level checks will be skipped.", file=sys.stderr)
-        return [None] * len(nmea_list)
+        raise SystemExit(f"decode_to_json not found: run `make -C test decode` first ({DECODE_BIN})")
 
     input_text = '\n'.join(nmea_list) + '\n'
+    cmd = [DECODE_BIN] + (['--raw'] if raw else [])
     try:
         proc = subprocess.run(
-            [DECODE_BIN],
+            cmd,
             input=input_text,
             capture_output=True,
             text=True,
@@ -59,25 +109,22 @@ def decode_batch(nmea_list: list) -> list:
             timeout=120,
             check=False,
         )
-        if proc.returncode != 0:
-            print(f"WARNING: decode_to_json failed (rc={proc.returncode}): {proc.stderr[:200]}", file=sys.stderr)
-            return [None] * len(nmea_list)
-
-        results = json.loads(proc.stdout)
-        if len(results) != len(nmea_list):
-            print(f"WARNING: decode_to_json returned {len(results)} results for {len(nmea_list)} inputs", file=sys.stderr)
-            while len(results) < len(nmea_list):
-                results.append(None)
-        return results
     except subprocess.TimeoutExpired as e:
-        print(f"WARNING: decode_to_json timeout: {e}", file=sys.stderr)
-        return [None] * len(nmea_list)
+        raise SystemExit(f"decode_to_json timeout: {e}")
+    if proc.returncode != 0:
+        raise SystemExit(f"decode_to_json failed (rc={proc.returncode}): {proc.stderr[:500]}")
+    try:
+        results = json.loads(proc.stdout)
     except json.JSONDecodeError as e:
-        print(f"WARNING: decode_to_json JSON error: {e}", file=sys.stderr)
-        return [None] * len(nmea_list)
-    except Exception as e:  # noqa: BLE001 — decode_batch のフォールバック
-        print(f"WARNING: decode_to_json unexpected error: {e}", file=sys.stderr)
-        return [None] * len(nmea_list)
+        raise SystemExit(f"decode_to_json returned invalid JSON: {e}")
+    if len(results) != len(nmea_list):
+        raise SystemExit(
+            f"decode_to_json returned {len(results)} results for {len(nmea_list)} inputs")
+
+    for nmea, r in zip(nmea_list, results):
+        if r is None:
+            raise SystemExit(f"decode failed for: {nmea}")
+    return results
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -268,9 +315,13 @@ def _collect_ashfall_fields(decoded: dict) -> dict:
 def _collect_weather_fields(decoded: dict) -> dict:
     """Weather フィールドを収集"""
     d = decoded.get('data', {}) if decoded else {}
+    entries = d.get('entries', [])
     return {
         'warning_state': d.get('warning_state', 0),
-        'count': len(d.get('entries', [])),
+        'count': len(entries),
+        'entries': [{'sub_category': e.get('sub_category', 0),
+                      'region_code': e.get('region', 0)}
+                     for e in entries[:1]],
     }
 
 
@@ -346,25 +397,12 @@ def generate_cpp(history: list, noto: list, data_txt: list,
     # 構造体定義と期待値配列をファイルスコープに配置（スタックオーバーフロー対策）
 
     # デコード結果から各dc typeごとの期待値配列を収集
-    # 1件でも decode 失敗した dc タイプは field-level check 全体を無効化し、
-    # *_expected[] 配列サイズと switch-case ヒット数の不一致による範囲外参照を防止する
-    dc_failed = set()       # decodeが1件でも失敗したdc
+    dc_entries = {}  # dc_code -> list of (history_index, collected_fields)
     for i, h in enumerate(history):
         dc = h['expected_dc']
-        if DC_INFO.get(dc) is None:
-            continue
-        decoded = history_decoded[i] if i < len(history_decoded) else None
-        if decoded is None:
-            dc_failed.add(dc)
-
-    dc_entries = {}  # dc_code -> list of (entry_index, collected_fields)
-    for i, h in enumerate(history):
-        dc = h['expected_dc']
-        decoded = history_decoded[i] if i < len(history_decoded) else None
+        decoded = history_decoded[i]
         info = DC_INFO.get(dc)
-        if info is None or decoded is None:
-            continue
-        if dc in dc_failed:
+        if info is None:
             continue
         _, _, _, collector = info
         fields = collector(decoded)
@@ -421,19 +459,21 @@ def generate_cpp(history: list, noto: list, data_txt: list,
 
         elif dc == 3:  # Seismic
             w(f'    // dc={dc} {dc_name_label}: {len(entries)} entries')
-            w('    struct SeismicExpected { uint8_t count; };')
+            w('    struct SeismicExpected { uint8_t intensity; uint8_t prefecture; uint8_t count; };')
             w('    static const SeismicExpected seismic_expected[] = {')
-            for _, f in entries:
-                w(f'        {{{f["count"]}}},')
+            for ei, f in entries:
+                e0 = _entry0(f, history[ei]['nmea'])
+                w(f'        {{{e0.get("intensity_code", 0)}, {e0.get("prefecture_code", 0)}, {f["count"]}}},')
             w('    };')
             w('')
 
         elif dc == 5:  # Tsunami
             w(f'    // dc={dc} {dc_name_label}: {len(entries)} entries')
-            w('    struct TsunamiExpected { uint8_t warning_code; uint8_t count; };')
+            w('    struct TsunamiExpected { uint8_t warning_code; uint8_t height; uint16_t region; uint8_t count; };')
             w('    static const TsunamiExpected tsunami_expected[] = {')
-            for _, f in entries:
-                w(f'        {{{f["warning_code"]}, {f["count"]}}},')
+            for ei, f in entries:
+                e0 = _entry0(f, history[ei]['nmea'])
+                w(f'        {{{f["warning_code"]}, {e0.get("height_code", 0)}, {e0.get("region_code", 0)}, {f["count"]}}},')
             w('    };')
             w('')
 
@@ -466,10 +506,11 @@ def generate_cpp(history: list, noto: list, data_txt: list,
 
         elif dc == 10:  # Weather
             w(f'    // dc={dc} {dc_name_label}: {len(entries)} entries')
-            w('    struct WeatherExpected { uint8_t warning_state; uint8_t count; };')
+            w('    struct WeatherExpected { uint8_t warning_state; uint8_t sub_category; uint32_t region; uint8_t count; };')
             w('    static const WeatherExpected weather_expected[] = {')
-            for _, f in entries:
-                w(f'        {{{f["warning_state"]}, {f["count"]}}},')
+            for ei, f in entries:
+                e0 = _entry0(f, history[ei]['nmea'])
+                w(f'        {{{f["warning_state"]}, {e0.get("sub_category", 0)}, {e0.get("region_code", 0)}, {f["count"]}}},')
             w('    };')
             w('')
 
@@ -493,10 +534,11 @@ def generate_cpp(history: list, noto: list, data_txt: list,
 
         elif dc == 14:  # Marine
             w(f'    // dc={dc} {dc_name_label}: {len(entries)} entries')
-            w('    struct MarineExpected { uint8_t count; };')
+            w('    struct MarineExpected { uint8_t warning_code; uint16_t region; uint8_t count; };')
             w('    static const MarineExpected marine_expected[] = {')
-            for _, f in entries:
-                w(f'        {{{f["count"]}}},')
+            for ei, f in entries:
+                e0 = _entry0(f, history[ei]['nmea'])
+                w(f'        {{{e0.get("warning_code", 0)}, {e0.get("region_code", 0)}, {f["count"]}}},')
             w('    };')
             w('')
 
@@ -523,6 +565,7 @@ def generate_cpp(history: list, noto: list, data_txt: list,
     w('        CAPTURE(i);')
     w('        CAPTURE(history_cases[i].label);')
     w('        CAPTURE(history_cases[i].nmea);')
+    _emit_disabled_guard(w, 'history_cases')
     w('        REQUIRE(decodeNmea(history_cases[i].nmea, msg));')
     w('        CHECK(msg.msg_type == 43);')
     w('        CHECK(msg.payload_type == MsgPayloadType::Mt43);')
@@ -570,6 +613,8 @@ def generate_cpp(history: list, noto: list, data_txt: list,
             w(f'            case {dc}: {{')
             w(f'                const {type_name}* {varname} = mt43->{getter}();')
             w(f'                REQUIRE({varname} != nullptr);')
+            w(f'                CHECK({varname}->entries[0].intensity_code == seismic_expected[{idx_var}].intensity);')
+            w(f'                CHECK({varname}->entries[0].prefecture_code == seismic_expected[{idx_var}].prefecture);')
             w(f'                CHECK({varname}->count == seismic_expected[{idx_var}].count);')
             w(f'                {idx_var}++;')
             w('                break;')
@@ -580,6 +625,8 @@ def generate_cpp(history: list, noto: list, data_txt: list,
             w(f'                const {type_name}* {varname} = mt43->{getter}();')
             w(f'                REQUIRE({varname} != nullptr);')
             w(f'                CHECK({varname}->warning_code == tsunami_expected[{idx_var}].warning_code);')
+            w(f'                CHECK({varname}->entries[0].height_code == tsunami_expected[{idx_var}].height);')
+            w(f'                CHECK({varname}->entries[0].region_code == tsunami_expected[{idx_var}].region);')
             w(f'                CHECK({varname}->count == tsunami_expected[{idx_var}].count);')
             w(f'                {idx_var}++;')
             w('                break;')
@@ -620,6 +667,8 @@ def generate_cpp(history: list, noto: list, data_txt: list,
             w(f'                const {type_name}* {varname} = mt43->{getter}();')
             w(f'                REQUIRE({varname} != nullptr);')
             w(f'                CHECK({varname}->warning_state == weather_expected[{idx_var}].warning_state);')
+            w(f'                CHECK({varname}->entries[0].sub_category == weather_expected[{idx_var}].sub_category);')
+            w(f'                CHECK({varname}->entries[0].region_code == weather_expected[{idx_var}].region);')
             w(f'                CHECK({varname}->count == weather_expected[{idx_var}].count);')
             w(f'                {idx_var}++;')
             w('                break;')
@@ -649,6 +698,8 @@ def generate_cpp(history: list, noto: list, data_txt: list,
             w(f'            case {dc}: {{')
             w(f'                const {type_name}* {varname} = mt43->{getter}();')
             w(f'                REQUIRE({varname} != nullptr);')
+            w(f'                CHECK({varname}->entries[0].warning_code == marine_expected[{idx_var}].warning_code);')
+            w(f'                CHECK({varname}->entries[0].region_code == marine_expected[{idx_var}].region);')
             w(f'                CHECK({varname}->count == marine_expected[{idx_var}].count);')
             w(f'                {idx_var}++;')
             w('                break;')
@@ -690,6 +741,7 @@ def generate_cpp(history: list, noto: list, data_txt: list,
     w('        CAPTURE(i);')
     w('        CAPTURE(noto_cases[i].label);')
     w('        CAPTURE(noto_cases[i].nmea);')
+    _emit_disabled_guard(w, 'noto_cases')
     w('        REQUIRE(decodeNmea(noto_cases[i].nmea, msg));')
     w('        CHECK(msg.msg_type == 43);')
     w('        CHECK(msg.payload_type == MsgPayloadType::Mt43);')
@@ -736,7 +788,11 @@ def generate_cpp(history: list, noto: list, data_txt: list,
     w('        CAPTURE(i);')
     w('        CAPTURE(data_txt_cases[i].line);')
     w('        CAPTURE(data_txt_cases[i].nmea);')
-    w('        REQUIRE(decodeNmea(data_txt_cases[i].nmea, msg));')
+    w('        if (!decodeNmea(data_txt_cases[i].nmea, msg)) {')
+    w('            // Skip cases where the category is disabled at compile time')
+    w('            if (msg.unsupported_reason == UnsupportedReason::DisabledAtCompileTime) continue;')
+    w('            REQUIRE(false);')
+    w('        }')
     w('        CHECK(msg.valid);')
     w('        CHECK(msg.msg_type == data_txt_cases[i].expected_msg_type);')
     w('        CHECK((msg.payload_type == MsgPayloadType::Mt43 || msg.payload_type == MsgPayloadType::Mt44));')
@@ -772,24 +828,17 @@ def main():
     history_nmeas = [h['nmea'] for h in history]
     history_decoded = decode_batch(history_nmeas)
     for i, (h, d) in enumerate(zip(history, history_decoded)):
-        dc = h['expected_dc']
-        if d:
-            print(f"  [{i}] dc={dc} {h['dc_name']}: decoded OK")
-        else:
-            print(f"  [{i}] dc={dc} {h['dc_name']}: decode FAILED")
+        print(f"  [{i}] dc={h['expected_dc']} {h['dc_name']}: decoded OK")
 
     print("\nDecoding data.txt entries...")
     data_txt_nmeas = [d['nmea'] for d in data_txt]
-    data_txt_decoded = decode_batch(data_txt_nmeas)
+    data_txt_decoded = decode_batch(data_txt_nmeas, raw=True)
     mt_counts = {}
     for i, (d, dec) in enumerate(zip(data_txt, data_txt_decoded)):
-        if dec:
-            mt = dec.get('msg_type', '?')
-            mt_counts[mt] = mt_counts.get(mt, 0) + 1
-            if i < 5 or i >= len(data_txt) - 2:
-                print(f"  [{i}] line={d['line']}: MT={mt}")
-        else:
-            print(f"  [{i}] line={d['line']}: decode FAILED")
+        mt = dec.get('msg_type', '?')
+        mt_counts[mt] = mt_counts.get(mt, 0) + 1
+        if i < 5 or i >= len(data_txt) - 2:
+            print(f"  [{i}] line={d['line']}: MT={mt}")
     print(f"  MT distribution: {mt_counts}")
 
     # Noto CSV は大量なのでデコードをスキップ（メタデータのみで十分）
@@ -800,7 +849,7 @@ def main():
                        history_decoded, noto_decoded, data_txt_decoded)
 
     os.makedirs(os.path.dirname(OUT_CPP), exist_ok=True)
-    with open(OUT_CPP, 'w', encoding='utf-8') as f:
+    with open(OUT_CPP, 'w', encoding='utf-8', newline='\n') as f:
         f.write(cpp)
     print(f"\nGenerated: {OUT_CPP} ({len(cpp)} bytes)")
 

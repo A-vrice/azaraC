@@ -56,6 +56,36 @@ jobs:
       - name: Dedup benchmark (gates)
         run: make -C test bench
 
+      - name: AVR-style stub build (PROGMEM, 16-bit int)
+        run: make -C test pgm-stub
+
+  # ── 生成フィクスチャのドリフト検査 ──────────────────────────────────────
+  # nankai_pages_generated.h は azarashi から生成される。生成器を直したのに
+  # 生成物を更新し忘れる（またはその逆）と、テストは古いフィクスチャのまま緑になる。
+  # dcr/dcx はリポジトリ外ログ由来、test_realdata.cpp は gitignore 済み realdata/
+  # 由来なので CI では再現できない。
+  #
+  # nankai_vectors.json は検査しない: azarashi が params に壁時計の timestamp を
+  # 埋めるため、git diff は常に非空になりゲートとして機能しない。C++ が読むのは
+  # ヘッダ（ページ本文のみで決定論的）なので、そちらだけを見る。
+  fixture-drift:
+    name: Generated fixture drift
+    runs-on: ubuntu-latest
+    needs: [host-test]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Install azarashi
+        run: pip install azarashi==0.17.0
+
+      - name: Regenerate fixtures
+        run: python test/scripts/gen_all_vectors.py
+
+      - name: Verify committed fixtures match the generator
+        run: git diff --exit-code -- test/data/nankai_pages_generated.h
+
   # ── ファジングテスト ────────────────────────────────────────────────────
   fuzz-test:
     name: Fuzz testing
@@ -491,6 +521,7 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - host-test
+      - fixture-drift
       - fuzz-test
       - arduino-lint
       - arduino-compile-required
@@ -539,6 +570,7 @@ jobs:
           |-----|--------|
           EOF
           echo "| host-test | ${{ needs.host-test.result }} |" >> comment.md
+          echo "| fixture-drift | ${{ needs.fixture-drift.result }} |" >> comment.md
           echo "| fuzz-test | ${{ needs.fuzz-test.result }} |" >> comment.md
           echo "| arduino-lint | ${{ needs.arduino-lint.result }} |" >> comment.md
           echo "| arduino-compile-required | ${{ needs.arduino-compile-required.result }} |" >> comment.md

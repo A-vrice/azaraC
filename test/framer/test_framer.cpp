@@ -287,6 +287,62 @@ TEST_CASE("UBX: SFRBX length must be 40") {
     CHECK_FALSE(found);
 }
 
+namespace {
+
+// UBX-RXM-SFRBX パケットを組み立てる。SFRBX ヘッダのフィールドを直接指定して、
+// 長さとチェックサムが整合したまま 1 フィールドだけ不正なパケットを作る。
+std::vector<uint8_t> makeSfrbxRaw(uint8_t gnssId, uint8_t sigId, uint8_t numWords) {
+    std::vector<uint8_t> pkt;
+    pkt.push_back(0xB5); pkt.push_back(0x62);  // SYNC
+    pkt.push_back(0x02); pkt.push_back(0x13);  // CLASS/ID (RXM-SFRBX)
+    const uint16_t len = static_cast<uint16_t>(8 + numWords * 4);
+    pkt.push_back(static_cast<uint8_t>(len & 0xFF));
+    pkt.push_back(static_cast<uint8_t>(len >> 8));
+    pkt.push_back(gnssId);    // SFRBX header[0]
+    pkt.push_back(2);         // svId
+    pkt.push_back(sigId);     // sigId
+    pkt.push_back(0);         // freqId
+    pkt.push_back(numWords);  // numWords
+    pkt.push_back(0);         // chn
+    pkt.push_back(1);         // version
+    pkt.push_back(0);         // reserved
+    for (uint8_t w = 0; w < numWords; ++w) {
+        pkt.push_back(0); pkt.push_back(0); pkt.push_back(0); pkt.push_back(0);
+    }
+    uint8_t cka = 0, ckb = 0;
+    for (size_t i = 2; i < pkt.size(); ++i) { cka += pkt[i]; ckb += cka; }
+    pkt.push_back(cka);
+    pkt.push_back(ckb);
+    return pkt;
+}
+
+bool feedSfrbx(const std::vector<uint8_t>& pkt) {
+    UbxFramer framer;
+    Frame out;
+    for (auto b : pkt) {
+        if (framer.feed(b, out)) return true;
+    }
+    return false;
+}
+
+} // namespace
+
+TEST_CASE("UBX: non-QZSS gnssId rejected (length and checksum valid)") {
+    CHECK_FALSE(feedSfrbx(makeSfrbxRaw(/*gnssId=*/3, /*sigId=*/0, /*numWords=*/8)));
+    // 対照: gnssId=5 なら同じ組み立てで受理される
+    CHECK(feedSfrbx(makeSfrbxRaw(/*gnssId=*/5, /*sigId=*/0, /*numWords=*/8)));
+}
+
+TEST_CASE("UBX: sigId outside {0,1} rejected") {
+    CHECK_FALSE(feedSfrbx(makeSfrbxRaw(/*gnssId=*/5, /*sigId=*/2, /*numWords=*/8)));
+    CHECK(feedSfrbx(makeSfrbxRaw(/*gnssId=*/5, /*sigId=*/1, /*numWords=*/8)));
+}
+
+TEST_CASE("UBX: numWords < 8 rejected even when length matches") {
+    // numWords=1 で length=8+1*4=12 とし、長さ検査より先に numWords 検査で弾かせる
+    CHECK_FALSE(feedSfrbx(makeSfrbxRaw(/*gnssId=*/5, /*sigId=*/0, /*numWords=*/1)));
+}
+
 TEST_CASE("UBX: Two consecutive frames decoded") {
     uint8_t bits1[32] = {0x53};
     uint8_t bits2[32] = {0x9A};

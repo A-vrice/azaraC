@@ -73,12 +73,6 @@ TEST_CASE("Boundary: Longitude 180°W") {
 
 TEST_CASE("Boundary: Hour=23, Minute=59") {
     uint32_t now = 1704067200u; // 2024-01-01 00:00:00 UTC
-    uint8_t bits[32] = {};
-
-    // day=15, hour=23, minute=59
-    setBits(bits, 0, 5, 15);     // day = 15
-    setBits(bits, 5, 5, 23);     // hour = 23
-    setBits(bits, 10, 6, 59);    // minute = 59
 
     TimeFields t = TestDecoder::testResolveTime(0, 15, 23, 59, now);
     CHECK(t.day == 15);

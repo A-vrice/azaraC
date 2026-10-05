@@ -68,18 +68,18 @@ namespace {
     };
 
     // dc=3 震度: 2 entries
-    struct SeismicExpected { uint8_t count; };
+    struct SeismicExpected { uint8_t intensity; uint8_t prefecture; uint8_t count; };
     static const SeismicExpected seismic_expected[] = {
-        {1},
-        {1},
+        {2, 12, 1},
+        {2, 46, 1},
     };
 
     // dc=5 津波: 3 entries
-    struct TsunamiExpected { uint8_t warning_code; uint8_t count; };
+    struct TsunamiExpected { uint8_t warning_code; uint8_t height; uint16_t region; uint8_t count; };
     static const TsunamiExpected tsunami_expected[] = {
-        {5, 1},
-        {3, 1},
-        {2, 1},
+        {5, 6, 530, 1},
+        {3, 3, 210, 1},
+        {2, 2, 772, 1},
     };
 
     // dc=6 北西太平洋津波: 2 entries
@@ -105,12 +105,12 @@ namespace {
     };
 
     // dc=10 気象: 4 entries
-    struct WeatherExpected { uint8_t warning_state; uint8_t count; };
+    struct WeatherExpected { uint8_t warning_state; uint8_t sub_category; uint32_t region; uint8_t count; };
     static const WeatherExpected weather_expected[] = {
-        {1, 3},
-        {1, 3},
-        {2, 2},
-        {1, 4},
+        {1, 3, 460100, 3},
+        {1, 21, 190000, 3},
+        {2, 23, 210000, 2},
+        {1, 22, 120000, 4},
     };
 
     // dc=11 洪水: 3 entries
@@ -130,11 +130,11 @@ namespace {
     };
 
     // dc=14 海上: 3 entries
-    struct MarineExpected { uint8_t count; };
+    struct MarineExpected { uint8_t warning_code; uint16_t region; uint8_t count; };
     static const MarineExpected marine_expected[] = {
-        {8},
-        {1},
-        {4},
+        {11, 1010, 8},
+        {0, 5100, 1},
+        {11, 4010, 4},
     };
 
 } // anonymous namespace
@@ -223,6 +223,8 @@ TEST_CASE("Realdata: History - decode and disaster_category") {
             case 3: {
                 const SeismicData* seis = mt43->getSeismic();
                 REQUIRE(seis != nullptr);
+                CHECK(seis->entries[0].intensity_code == seismic_expected[seis_idx].intensity);
+                CHECK(seis->entries[0].prefecture_code == seismic_expected[seis_idx].prefecture);
                 CHECK(seis->count == seismic_expected[seis_idx].count);
                 seis_idx++;
                 break;
@@ -231,6 +233,8 @@ TEST_CASE("Realdata: History - decode and disaster_category") {
                 const TsunamiData* tsunami = mt43->getTsunami();
                 REQUIRE(tsunami != nullptr);
                 CHECK(tsunami->warning_code == tsunami_expected[tsunami_idx].warning_code);
+                CHECK(tsunami->entries[0].height_code == tsunami_expected[tsunami_idx].height);
+                CHECK(tsunami->entries[0].region_code == tsunami_expected[tsunami_idx].region);
                 CHECK(tsunami->count == tsunami_expected[tsunami_idx].count);
                 tsunami_idx++;
                 break;
@@ -239,6 +243,7 @@ TEST_CASE("Realdata: History - decode and disaster_category") {
                 const NwPacTsunamiData* nw_pac = mt43->getNwPac();
                 REQUIRE(nw_pac != nullptr);
                 CHECK(nw_pac->potential == nwpac_expected[nw_pac_idx].potential);
+                CHECK(nw_pac->count == nwpac_expected[nw_pac_idx].count);
                 nw_pac_idx++;
                 break;
             }
@@ -261,6 +266,9 @@ TEST_CASE("Realdata: History - decode and disaster_category") {
             case 10: {
                 const WeatherData* weather = mt43->getWeather();
                 REQUIRE(weather != nullptr);
+                CHECK(weather->warning_state == weather_expected[weather_idx].warning_state);
+                CHECK(weather->entries[0].sub_category == weather_expected[weather_idx].sub_category);
+                CHECK(weather->entries[0].region_code == weather_expected[weather_idx].region);
                 CHECK(weather->count == weather_expected[weather_idx].count);
                 weather_idx++;
                 break;
@@ -284,6 +292,8 @@ TEST_CASE("Realdata: History - decode and disaster_category") {
             case 14: {
                 const MarineData* marine = mt43->getMarine();
                 REQUIRE(marine != nullptr);
+                CHECK(marine->entries[0].warning_code == marine_expected[marine_idx].warning_code);
+                CHECK(marine->entries[0].region_code == marine_expected[marine_idx].region);
                 CHECK(marine->count == marine_expected[marine_idx].count);
                 marine_idx++;
                 break;
