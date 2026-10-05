@@ -996,9 +996,12 @@ int main(int argc, char* argv[]) {
         char* end = nullptr;
         errno = 0;
         const long long v = std::strtoll(env_iter, &end, 10);
-        if (errno != 0 || end == env_iter || *end != '\0' || v <= 0 || v > INT_MAX) {
-            fprintf(stderr, "FUZZ: invalid %s: '%s' (expected positive integer)\n",
-                    source, env_iter);
+        // test_long_running / test_memory_stability に `iterations * 5` を渡すため、
+        // 上限は INT_MAX / 5。INT_MAX まで許すと int 引数への縮小で負値になり、
+        // ループが 1 回も回らず「無検査 PASS」に戻る。
+        if (errno != 0 || end == env_iter || *end != '\0' || v <= 0 || v > INT_MAX / 5) {
+            fprintf(stderr, "FUZZ: invalid %s: '%s' (expected integer in 1..%d)\n",
+                    source, env_iter, INT_MAX / 5);
             return 2;
         }
         iterations = v;
