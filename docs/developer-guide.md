@@ -2,7 +2,7 @@
 
 ## 概要
 
-azaraC ライブラリの開発に貢献する開発者向けのガイドです。
+azaraCライブラリの開発に貢献する開発者向けのガイドです。
 
 ## 開発環境のセットアップ
 
@@ -132,7 +132,7 @@ src/definition/*.h
 PR自動作成 → レビュー → マージ
 ```
 
-### 手動での生成
+### 手動での定義テーブル生成
 
 ```bash
 pip install --upgrade azarashi
@@ -141,8 +141,7 @@ python scripts/gen/gen_definitions.py --out-dir src/definition
 
 ### テストベクタの生成
 
-`test/data/*.json` はテスト用ベクタです。南海トラフ用の `test/data/nankai_pages_generated.h`
-も `nankai_vectors.json` と共に生成されるため、直接編集せず再生成してください。
+`test/data/*.json`はテスト用ベクタです。南海トラフ用の`test/data/nankai_pages_generated.h`も`nankai_vectors.json`と共に生成されるため、直接編集せず再生成してください。
 
 ```bash
 python test/scripts/gen_all_vectors.py    # 全ベクタ + nankai_pages_generated.h を再生成
@@ -153,12 +152,12 @@ python test/scripts/gen_all_vectors.py    # 全ベクタ + nankai_pages_generate
 
 ## AVR 開発
 
-AVR ツールチェーン（avr-gcc）は libstdc++ を一切含まないため、標準ライブラリ依存は `src/internal/avr_std/` の最小シム（`optional` / `string_view` / `std::move` 等）が `#if defined(__AVR__)` で自動適用されます。シムの検証は `test/internal/test_avr_std_shim.cpp` で行います。
+AVRツールチェーン（avr-gcc）はC++の標準ライブラリを一切含まないため、それらへの依存は`src/internal/avr_std/`にあるシム（`optional` / `string_view` / `std::move` 等）が自動で適用されます。シムの検証は`test/internal/test_avr_std_shim.cpp`で行います。
 
-- **PROGMEM 分岐のホスト検証**: `make -C test pgm-stub` が `__AVR__` とスタブ `test/stub/avr/pgmspace.h` で全テストをコンパイルし、PROGMEM コードパスをホストで検証します。
-- **定義ヘッダの再生成**: `scripts/gen/gen_definitions.py --out-dir src/definition` で再生成できます。
-- **定義テーブルは CI（`.github/workflows/update-definitions.yml`）で azarashi から自動生成されるため手編集禁止**です。
-- **AVR プリセット**（`src/azaraC_config.h`）: 有効カテゴリはSEISMIC/TSUNAMIのみ(他カテゴリは無効)、`AZARAC_DEDUP_SLOTS=64`（`AZARAC_DEDUP_WAYS=8`、512B）、`AZARAC_NANKAI_MAX_PAGES=4`、`AZARAC_NANKAI_BUFFERS=1`。Uno ジョブ（`.github/workflows/ci.yml`の`arduino-compile-required`）は`basic_ubx` / `basic_nmea` / `basic_uno`の3つをコンパイル/検証します。
+- **PROGMEM 分岐のホスト検証**: `make -C test pgm-stub`が`__AVR__`とスタブ`test/stub/avr/pgmspace.h`で全テストをコンパイルし、PROGMEMコードパスをホストで検証します。
+- **定義ヘッダの再生成**: `scripts/gen/gen_definitions.py --out-dir src/definition`で再生成できます。
+- **定義テーブルは CI（`.github/workflows/update-definitions.yml`）でazarashiから自動生成されるため手編集禁止**です。
+- **AVR プリセット**（`src/azaraC_config.h`）: 有効カテゴリはSEISMIC/TSUNAMIのみ(他カテゴリは無効)、`AZARAC_DEDUP_SLOTS=64`（`AZARAC_DEDUP_WAYS=8`、512B）、`AZARAC_NANKAI_MAX_PAGES=4`、`AZARAC_NANKAI_BUFFERS=1`。Unoジョブ（`.github/workflows/ci.yml`の`arduino-compile-required`）は`basic_ubx` / `basic_nmea` / `basic_uno`の3つをコンパイル/検証します。
 
 ## コーディング規約
 
