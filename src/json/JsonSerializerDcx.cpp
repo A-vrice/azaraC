@@ -79,19 +79,18 @@ void serializeDcx(const Message& m, Print& out) {
         qzss_dcx_camf_a10_library_version_lookup(d->camf.a10));
 
     // A11 Guidance to react library
-    // IS-QZSS-DCX-004 §4.2.3.9 Table 4.2-12: A9=0 International library,
-    // A9=1 Country/region library。国の表は日本の分だけ持つので、
-    // A9=1 で A2≠111 のときは表なし（空ラベル）として扱う。
+    // IS-QZSS-DCX-004 §4.2.3.9 Table 4.2-12 / EWSS CAMF v1.1 §3.5.3, §11:
+    // A11 は List A 5bit (a11 >> 5) と List B 5bit (a11 & 0x1F) の2コード。
+    // 国際表 (A9=0) は List A / List B を別々に引く。日本の表は 10bit を鍵に
+    // した結合表なので1本で足りる（List B は null）。
     wf_u(out, "a11_guidance", d->camf.a11);
+    std::optional<std::string_view> a11_b;
     if (d->camf.a9 == 0) {
-        // International library は 0-31 の英語のみ。A11 は 10bit なので表の範囲で
-        // 判定してから 8bit に落とさない（落とすと上位ビットが折り返して 0 に当たる）。
         wf_s(out, "a11_guidance_label",
-            d->camf.a11 < QZSS_DCX_CAMF_A11_INTERNATIONAL_LIBRARY_BASE +
-                              QZSS_DCX_CAMF_A11_INTERNATIONAL_LIBRARY_SIZE
-                ? qzss_dcx_camf_a11_international_library_lookup(
-                      static_cast<uint8_t>(d->camf.a11))
-                : std::nullopt);
+             qzss_dcx_camf_a11_international_library_lookup(
+                 static_cast<uint8_t>(d->camf.a11 >> 5)));
+        a11_b = qzss_dcx_camf_a11_international_library_b_lookup(
+            static_cast<uint8_t>(d->camf.a11 & 0x1Fu));
     } else if (d->camf.a2 == DCX_COUNTRY_CODE_JAPAN) {
         AZARAC_LABEL(out, "a11_guidance_label",
             qzss_dcx_camf_a11_japanese_library_ja_lookup,
@@ -99,6 +98,7 @@ void serializeDcx(const Message& m, Print& out) {
     } else {
         wf_s(out, "a11_guidance_label", std::nullopt);
     }
+    wf_s(out, "a11_guidance_list_b_label", a11_b);
 
     // A17/A18 Specific Settings
     wf_u(out, "a17_type_of_specific_settings", d->camf.a17);
@@ -181,20 +181,12 @@ void serializeDcx(const Message& m, Print& out) {
             beginDetailField();
             wf_v(out, name, value, lookup(static_cast<uint8_t>(value)), /*last=*/true);
         };
-        // D3/D4 return const char* (array emitter); adapt to writeDField's optional shape
-        auto d3Lookup = [](uint8_t v) -> std::optional<std::string_view> {
-            const char* s = qzss_dcx_camf_d3_azimuth_from_centre_of_main_ellipse_to_epicentre_lookup(v);
-            return s ? std::optional<std::string_view>(std::string_view{s}) : std::nullopt;
-        };
-        auto d4Lookup = [](uint8_t v) -> std::optional<std::string_view> {
-            const char* s = qzss_dcx_camf_d4_vector_length_between_centre_of_main_ellipse_and_epicentre_lookup(v);
-            return s ? std::optional<std::string_view>(std::string_view{s}) : std::nullopt;
-        };
-
         // All 36 D-fields go through writeDField
         // [0]=D1, [1]=D2, [2]=D3, [3]=D4, [4..35]=D5..D36
-        writeDField("d3_azimuth",       b4.d_values[2], b4.d_present[2], d3Lookup);
-        writeDField("d4_vector_length", b4.d_values[3], b4.d_present[3], d4Lookup);
+        writeDField("d3_azimuth",       b4.d_values[2], b4.d_present[2],
+                    qzss_dcx_camf_d3_azimuth_from_centre_of_main_ellipse_to_epicentre_lookup);
+        writeDField("d4_vector_length", b4.d_values[3], b4.d_present[3],
+                    qzss_dcx_camf_d4_vector_length_between_centre_of_main_ellipse_and_epicentre_lookup);
         writeDField("d1_magnitude",         b4.d_values[0],  b4.d_present[0],  qzss_dcx_camf_d1_magnitude_on_richter_scale_lookup);
 writeDField("d2_seismic_coeff",     b4.d_values[1],  b4.d_present[1],  qzss_dcx_camf_d2_seismic_coefficient_lookup);
 writeDField("d5_wave_height",       b4.d_values[4],  b4.d_present[4],  qzss_dcx_camf_d5_wave_height_lookup);

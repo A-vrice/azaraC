@@ -1,9 +1,10 @@
 // test/internal/test_definition_labels.cpp — 定義テーブルのラベル参照テスト
 //
-// 4つのテーブルは id 0 を「定義済みの空文字列」として持つ。AVR と非AVRは
-// 同じ値を返さなければならない: 存在する長さ0の view — nullopt ではない。
-// AVR 側の `if (n == 0) return std::nullopt;` は「欠落」と「空」を混同して
-// いたため、このテストはその回帰を検出する（pgm-stub ビルドで意味を持つ）。
+// 一部のテーブルは id 0 を「定義済みの空文字列」として持つ（国際表 List A な
+// ど）。AVR と非AVRは同じ値を返さなければならない: 存在する長さ0の view —
+// nullopt ではない。AVR 側の `if (n == 0) return std::nullopt;` は「欠落」と
+// 「空」を混同していたため、このテストはその回帰を検出する（pgm-stub ビルドで
+// 意味を持つ）。
 //
 // あわせて、非AVR のラベル実体を `const char*` 化した表が内容を失っていない
 // ことを、各 strategy（array / binary_search / 手書き）で1件ずつ確認する。
@@ -27,21 +28,34 @@ TEST_CASE("Definition lookup: empty label is present, not absent") {
     REQUIRE(intl.has_value());
     CHECK(intl->size() == 0);
 
-    // binary_search — 表に id 0 が空文字列として存在する
+    // binary_search — id 0 は azarashi 0.17.1 で語を持つようになった
     auto instr = def::qzss_dcx_camf_c10_instruction_library_for_second_ellipse_lookup(0);
     REQUIRE(instr.has_value());
-    CHECK(instr->size() == 0);
+    CHECK(*instr == std::string_view("No instruction"));
+
+    // List B は azarashi 0.17.1 が追加した 2 つ目の国際表。id 0 は定義済みの
+    // 空文字列で、29/30 は欠落（そのまま nullopt）。
+    auto list_b0 = def::qzss_dcx_camf_a11_international_library_b_lookup(0);
+    REQUIRE(list_b0.has_value());
+    CHECK(list_b0->size() == 0);
+    auto list_b1 = def::qzss_dcx_camf_a11_international_library_b_lookup(1);
+    REQUIRE(list_b1.has_value());
+    CHECK(*list_b1 == std::string_view(
+        "Check with the weather services and local authorities for additional information"));
+    CHECK_FALSE(def::qzss_dcx_camf_a11_international_library_b_lookup(29).has_value());
+    CHECK_FALSE(def::qzss_dcx_camf_a11_international_library_b_lookup(30).has_value());
 
 #if (AZARAC_LANG_JA)
     auto ja = def::qzss_dcx_camf_a11_japanese_library_ja_lookup(0);
     REQUIRE(ja.has_value());
-    CHECK(ja->size() == 0);
+    CHECK(*ja == std::string_view("指示なし"));
 #endif
 #if (AZARAC_LANG_EN)
     // azarashi 0.17 gave the English library a word for code 0 ("No
-    // instruction"), so only the presence holds here, not emptiness.
+    // instruction").
     auto en = def::qzss_dcx_camf_a11_japanese_library_en_lookup(0);
     REQUIRE(en.has_value());
+    CHECK(*en == std::string_view("No instruction"));
 #endif
 
     // 欠落は欠落のまま（範囲チェック／検索外れであって len ヒューリスティックではない）
@@ -277,9 +291,12 @@ TEST_CASE("Definition lookup: JA and EN cover the same codes") {
                      def::qzss_dcr_jma_seismic_intensity_lower_limit_en_lookup, 20, "seis_lower");
     expectSameKeySet(def::qzss_dcr_jma_seismic_intensity_upper_limit_lookup,
                      def::qzss_dcr_jma_seismic_intensity_upper_limit_en_lookup, 20, "seis_upper");
-    // id 0 は長周期地震動では「未使用」— JA/EN とも欠落で揃う
-    CHECK_FALSE(present(def::qzss_dcr_jma_long_period_ground_motion_lower_limit_lookup(0)));
-    CHECK_FALSE(present(def::qzss_dcr_jma_long_period_ground_motion_lower_limit_en_lookup(0)));
+#if (AZARAC_ENABLE_EEW)
+    // id 0 は長周期地震動では「該当情報なし」/ "No data"（azarashi 0.17.1）—
+    // JA/EN とも定義済みで揃う
+    CHECK(label(def::qzss_dcr_jma_long_period_ground_motion_lower_limit_lookup(0)) == "該当情報なし");
+    CHECK(label(def::qzss_dcr_jma_long_period_ground_motion_lower_limit_en_lookup(0)) == "No data");
+#endif // EEW
     expectSameKeySet(def::qzss_dcr_jma_long_period_ground_motion_lower_limit_lookup,
                      def::qzss_dcr_jma_long_period_ground_motion_lower_limit_en_lookup, 10, "lpgm_lower");
     expectSameKeySet(def::qzss_dcr_jma_long_period_ground_motion_upper_limit_lookup,

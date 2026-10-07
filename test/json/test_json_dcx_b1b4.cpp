@@ -171,7 +171,7 @@ TEST_CASE("JSON DCX B4: detailed info fields") {
     CHECK_FALSE(has(s, "a4_code"));
     CHECK(has(s, "\"d1_magnitude\":15"));
     CHECK(has(s, "\"d2_seismic_coeff\":7"));
-    CHECK(has(s, "\"d3_azimuth\":5,\"d3_azimuth_label\":\"112.5\""));
+    CHECK(has(s, "\"d3_azimuth\":5,\"d3_azimuth_label\":\"112.5°\""));
     CHECK(has(s, "\"d4_vector_length\":9,\"d4_vector_length_label\":\"30\""));
 }
 

@@ -1173,7 +1173,7 @@ TEST_CASE("JSON Serialization: a11 empty label is present, not absent") {
     mt44->camf.a6 = 1; mt44->camf.a7 = 1; mt44->camf.a8 = 1;
     mt44->camf.a9 = 1;   // Country/region library (A2=111) -> a11_japanese_library_ja / _en
     mt44->camf.a10 = 1;
-    mt44->camf.a11 = 0;  // JA: 定義済みの空文字列 / EN: "No instruction" (azarashi 0.17)
+    mt44->camf.a11 = 0;  // JA: "指示なし" / EN: "No instruction" (azarashi 0.17.1)
     mt44->ex_lalert_local.ex1 = 1100;
     mt44->ex_lalert_local.vn = 1;
     mt44->sd.sdmt = 0; mt44->sd.sdm = 0x1FF;
@@ -1183,37 +1183,69 @@ TEST_CASE("JSON Serialization: a11 empty label is present, not absent") {
     const auto& s = sp.str();
 
     // 定義済みのラベルは "null" にならない（欠落と空文字列の区別）
-    CHECK(hasField(s, std::string("\"a11_guidance_label\":\"") + LBL("", "No instruction") + "\""));
+    CHECK(hasField(s, std::string("\"a11_guidance_label\":\"") + LBL("指示なし", "No instruction") + "\""));
     CHECK(s.find("\"a11_guidance_label\":null") == std::string::npos);
+    // 日本の表は 10bit を鍵にした結合表なので List B は無い
+    CHECK(hasField(s, "\"a11_guidance_list_b_label\":null"));
 }
 
-// IS-QZSS-DCX-004 §4.2.3.9 Table 4.2-12: A9=0 は International library (0-31, 英語のみ)。
+// IS-QZSS-DCX-004 §4.2.3.9 Table 4.2-12 / EWSS CAMF v1.1 §3.5.3, §11: A9=0 は
+// International library。A11 は List A 5bit (a11 >> 5) と List B 5bit
+// (a11 & 0x1F) の2コードで、それぞれ別の表を引く。
 TEST_CASE("JSON Serialization: A9=0 uses the international library") {
-    Message m{};
-    m.svid = 193; m.crc24 = 0xABCDEF;
-    initMt44(m);
-    Mt44Data* mt44 = m.getMt44();
-    REQUIRE(mt44 != nullptr);
+    auto jsonFor = [](uint16_t a11) {
+        Message m{};
+        m.svid = 193; m.crc24 = 0xABCDEF;
+        initMt44(m);
+        Mt44Data* mt44 = m.getMt44();
+        REQUIRE(mt44 != nullptr);
 
-    mt44->service_kind = Mt44ServiceKind::LAlert;
-    mt44->is_null_message = false;
-    mt44->ex_kind = ExtendedKind::LAlertOrLocal;
-    mt44->camf.a1 = 1; mt44->camf.a2 = 111; mt44->camf.a3 = 1;
-    mt44->camf.a4 = 10; mt44->camf.a5 = 3;
-    mt44->camf.a6 = 1; mt44->camf.a7 = 1; mt44->camf.a8 = 1;
-    mt44->camf.a9 = 0;   // International library
-    mt44->camf.a10 = 1;
-    mt44->camf.a11 = 1;  // "You are in the danger zone, ..."
-    mt44->ex_lalert_local.ex1 = 1100;
-    mt44->ex_lalert_local.vn = 1;
-    mt44->sd.sdmt = 0; mt44->sd.sdm = 0x1FF;
+        mt44->service_kind = Mt44ServiceKind::LAlert;
+        mt44->is_null_message = false;
+        mt44->ex_kind = ExtendedKind::LAlertOrLocal;
+        mt44->camf.a1 = 1; mt44->camf.a2 = 111; mt44->camf.a3 = 1;
+        mt44->camf.a4 = 10; mt44->camf.a5 = 3;
+        mt44->camf.a6 = 1; mt44->camf.a7 = 1; mt44->camf.a8 = 1;
+        mt44->camf.a9 = 0;   // International library
+        mt44->camf.a10 = 1;
+        mt44->camf.a11 = a11;
+        mt44->ex_lalert_local.ex1 = 1100;
+        mt44->ex_lalert_local.vn = 1;
+        mt44->sd.sdmt = 0; mt44->sd.sdm = 0x1FF;
 
-    StringPrint sp;
-    internal::JsonSerializer::serialize(m, sp);
-    const auto& s = sp.str();
+        StringPrint sp;
+        internal::JsonSerializer::serialize(m, sp);
+        return sp.str();
+    };
 
-    CHECK(has(s, "\"a11_guidance_label\":\"You are in the danger zone"));
-    CHECK_FALSE(has(s, "a11_guidance_label_en"));
+    const char* const listA1 =
+        "You are in the danger zone, leave the area immediately. "
+        "Listen to radio or media for directions and information.";
+    const char* const listB1 =
+        "Check with the weather services and local authorities for additional information";
+
+    // a11=1 → List A=0 / List B=1。国際表のコード 0 は List A / List B とも
+    // 定義済みの空ラベル（null ではない）。
+    {
+        const std::string s = jsonFor(1);
+        CHECK(hasField(s, "\"a11_guidance_label\":\"\""));
+        CHECK(hasField(s, std::string("\"a11_guidance_list_b_label\":\"") + listB1 + "\""));
+        CHECK_FALSE(has(s, "a11_guidance_label_en"));
+        CHECK_FALSE(has(s, "a11_guidance_list_b_label_en"));
+    }
+    // a11=33 → List A=1 / List B=1。List B を List A として出していないことを
+    // 同一 JSON の 2 値で検出する。
+    {
+        const std::string s = jsonFor(33);
+        CHECK(hasField(s, std::string("\"a11_guidance_label\":\"") + listA1 + "\""));
+        CHECK(hasField(s, std::string("\"a11_guidance_list_b_label\":\"") + listB1 + "\""));
+    }
+    // a11=61 → List A=1 / List B=29（List B の 29/30 は欠落 = 定義なし）
+    {
+        const std::string s = jsonFor(61);
+        CHECK(hasField(s, std::string("\"a11_guidance_label\":\"") + listA1 + "\""));
+        CHECK(hasField(s, "\"a11_guidance_list_b_label\":null"));
+    }
 }
 
 TEST_CASE("JSON Serialization: A9=0 code 0 is an empty international label") {
@@ -1241,15 +1273,8 @@ TEST_CASE("JSON Serialization: A9=0 code 0 is an empty international label") {
     const auto& s = sp.str();
 
     CHECK(hasField(s, "\"a11_guidance_label\":\"\""));
+    CHECK(hasField(s, "\"a11_guidance_list_b_label\":\"\""));
     CHECK(s.find("\"a11_guidance_label\":null") == std::string::npos);
-
-    // A11 は 10bit。表の範囲（0–31）で判定せず uint8_t に切り詰めると、257 が 1 に
-    // 当たって国際表の 1 行目が出てしまう。範囲外なので v2 はラベル無し（null）。
-    mt44->camf.a11 = 257;
-    StringPrint sp2;
-    internal::JsonSerializer::serialize(m, sp2);
-    CHECK(hasField(sp2.str(), "\"a11_guidance_label\":null"));
-    CHECK_FALSE(has(sp2.str(), "You are in the danger zone"));
 }
 
 // A9=1 は国/地域 library だが、表を持っているのは日本のみ（A2=111）。
@@ -1281,6 +1306,7 @@ TEST_CASE("JSON Serialization: A9=1 outside Japan has no country library") {
 
     // 表が無い（A9=1 かつ A2≠111）ので v2 はラベル無し（null）
     CHECK(hasField(s, "\"a11_guidance_label\":null"));
+    CHECK(hasField(s, "\"a11_guidance_list_b_label\":null"));
     CHECK_FALSE(has(s, "You are in the danger zone"));
 }
 
@@ -1302,6 +1328,7 @@ TEST_CASE("JSON Serialization: real J-Alert resolves the A11 country library lab
     CHECK(hasLabel(s, "a11_guidance_label",
                    LBL("これは、Jアラートのテストです。",
                        "This is a test message for J-Alert.")));
+    CHECK(hasField(s, "\"a11_guidance_list_b_label\":null"));
 #if (AZARAC_LANG_JA) && (AZARAC_LANG_EN)
     CHECK(hasLabel(s, "a11_guidance_label_en", "This is a test message for J-Alert."));
 #endif
@@ -1685,10 +1712,13 @@ TEST_CASE("JSON v2: unknown label is null, empty label is a string") {
         const std::string s = labelJson(0, 111, 0);
         CHECK(hasField(s, std::string("\"a11_guidance_label\":\"") + LBL("", "") + "\""));
     }
-    // A9=0/A11=40: 国際表（0–31）の範囲外で定義なし
+    // A9=0/A11=61: List A=1（定義あり）/ List B=29（欠落 → null）
     {
-        const std::string s = labelJson(40, 111, 0);
-        CHECK(hasField(s, "\"a11_guidance_label\":null"));
+        const std::string s = labelJson(61, 111, 0);
+        CHECK(hasField(s, std::string("\"a11_guidance_label\":\"")
+            + "You are in the danger zone, leave the area immediately. "
+              "Listen to radio or media for directions and information." + "\""));
+        CHECK(hasField(s, "\"a11_guidance_list_b_label\":null"));
     }
     // A9=1/A2=71: 表そのものが無い
     {
