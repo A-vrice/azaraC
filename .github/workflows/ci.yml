@@ -68,6 +68,10 @@ jobs:
   # nankai_vectors.json は検査しない: azarashi が params に壁時計の timestamp を
   # 埋めるため、git diff は常に非空になりゲートとして機能しない。C++ が読むのは
   # ヘッダ（ページ本文のみで決定論的）なので、そちらだけを見る。
+  #
+  # ピンは検査対象のヘッダに合わせる: nankai_pages_generated.h は 0.17.0 と 0.17.1 で
+  # バイト単位で同一。一方 dcr/dcx/nankai_vectors.json は 0.17.1 で形（v2）が変わり、
+  # パリティテストが読む参照 JSON のまま使えなくなるため再生成しない（検査もしない）。
   fixture-drift:
     name: Generated fixture drift
     runs-on: ubuntu-latest
@@ -78,7 +82,7 @@ jobs:
           persist-credentials: false
 
       - name: Install azarashi
-        run: pip install azarashi==0.17.0
+        run: pip install azarashi==0.17.1
 
       - name: Regenerate fixtures
         run: python test/scripts/gen_all_vectors.py
