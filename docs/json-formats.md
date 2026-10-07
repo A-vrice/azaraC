@@ -99,7 +99,8 @@ A フィールド: `dcx_type`（`"NULL"` / `"L_ALERT"` / `"J_ALERT"` / `"LOCAL_G
 `a3_provider`(+`_label`), `a4_hazard` / `a4_hazard_category` / `a4_hazard_type` /
 `a4_hazard_definition`, `a5_severity`(+`_label`), `a6_onset_week`(+`_label`),
 `a7_onset_minute`, `a8_duration`(+`_label`), `onset_time`,
-`a9_type_of_library`(+`_label`), `a10_library_version`(+`_label`), `a11_guidance`(+`_label`),
+`a9_type_of_library`(+`_label`), `a10_library_version`(+`_label`),
+`a11_guidance`(+`_label`), `a11_guidance_list_b_label`,
 `a17_type_of_specific_settings`(+`_label`), `a18_specific_settings`。
 
 条件付きブロック（該当時のみ出現）:
@@ -136,7 +137,7 @@ B4（A17=11）の D1–D36 は **`"dX_name": 生値` と `"dX_name_label": 表�
 "detailed_info": {
   "d1_magnitude": 6,      "d1_magnitude_label": "7.0-7.9 - Major",
   "d2_seismic_coeff": 7,  "d2_seismic_coeff_label": "7",
-  "d3_azimuth": 5,        "d3_azimuth_label": "112.5",
+  "d3_azimuth": 5,        "d3_azimuth_label": "112.5°",
   "d4_vector_length": 9,  "d4_vector_length_label": "30",
   "d5_wave_height": 6,    "d5_wave_height_label": "5.0m < H ≤ 10.0m"
 }
@@ -159,7 +160,7 @@ a4 のハザード種別ごとに「どの D が意味を持つか」が決ま�
 | 表に該当し、ラベルが空文字列（例: A11 国際ライブラリ code 0） | `"x_label": ""` |
 | 表に該当し、ラベルがある | `"x_label": "…"` |
 | この構成にラベル表自体が無い（`AZARAC_LANG_JA=0` かつ `AZARAC_LANG_EN=0`） | `"x_label": null` |
-| `a11_guidance_label` のみ: A9=1 かつ A2≠111（国/地域ライブラリが日本以外に無い） | `"a11_guidance_label": null` |
+| `a11_guidance_label` のみ: A9=1 かつ A2≠111（国/地域ライブラリが日本以外に無い） | `"a11_guidance_label": null` / `"a11_guidance_list_b_label": null` |
 
 `AZARAC_LANG_JA=1` かつ `AZARAC_LANG_EN=1` の構成では、文字列リテラルのキーを持つ
 `_label` に `_label_en` が併記される。`_label_en` も同じ規則。`_label_en` を持たないのは
@@ -221,26 +222,34 @@ a4 のハザード種別ごとに「どの D が意味を持つか」が決ま�
 | 表そのものが無い | `recognized:false` | `"_label": null` |
 
 `a11_guidance_label` は元コード A11 と、A9/A2 で選ぶライブラリ（DCX-004 §4.2.3.9
-Table 4.2-12）で決まる:
+Table 4.2-12）で決まる。A11 は 10bit だが、国際ライブラリ（A9=0）では EWSS CAMF v1.1
+§3.5.3 / §11 のとおり **List A 5bit（`a11 >> 5`）と List B 5bit（`a11 & 0x1F`）の 2 コード**
+に分かれ、それぞれ別の表を引く。List B のラベルは常に出力する `a11_guidance_list_b_label`
+に出る:
 
-| A9 | A2 | 引く表 | 出力 |
+| A9 | A2 | `a11_guidance_label` が引く表 | `a11_guidance_list_b_label` |
 |---|---|---|---|
-| 0 | — | International library（コード 0–31） | `_label`（国際表は英語のみのため `_label_en` は出ない） |
-| 1 | 111 | Japanese library | `_label`（＋両言語ビルドでは `_label_en`） |
-| 1 | ≠111 | 無し | `_label: null` |
+| 0 | — | International library List A（`a11 >> 5`、0–31 を全定義） | International library List B（`a11 & 0x1F`）。29/30 は表に無く `null` |
+| 1 | 111 | Japanese library（A11 の 10bit をそのまま鍵にする結合表） | 対応する表が無いため `null` |
+| 1 | ≠111 | 無し → `null` | `null` |
 
-範囲外のコードは `null`。実データ 133 通（重複文を除く）の内訳は A9=1 / A2=111 が 125 通
-（A11=0 が 82、136 が 41、128 が 1、134 が 1）、A9=1 / A2=71 が 6 通、A9=0 / A2=111
-（Null Message）が 2 通。出力は 3 つに分かれる:
+国際表は英語のみなので `_label_en` は出ない。国際表 List A / List B の code 0 は定義済みの
+空文字列 `""`。A11 の 10bit すべてが表の定義域なので「範囲外で `null`」は起きない
+（List B は欠落コード 29/30 が `null`）。
 
-| 出力 | 通数 | 内訳 |
+実データ 133 通（重複文を除く）の内訳は A9=1 / A2=111 が 125 通（A11=0 が 82、136 が 41、
+128 が 1、134 が 1）、A9=1 / A2=71 が 6 通、A9=0 / A2=111（Null Message）が 2 通。出力は
+3 つに分かれる:
+
+| `a11_guidance_label` の出力 | 通数 | 内訳 |
 |---|---|---|
-| ラベルあり | 43 | 国内表 A11=136（41）・128（1）・134（1）。例: 136 =「これは、Jアラートのテストです。」 |
-| `""`（定義済みの空ラベル） | 84 | 国内表 A11=0（82）＋国際表 code 0（A9=0 / A2=111 の 2） |
+| ラベルあり | 125 | 国内表 A11=0（82、`指示なし` / `_label_en` は `No instruction`）・136（41）・128（1）・134（1）。例: 136 =「これは、Jアラートのテストです。」 |
+| `""`（定義済みの空ラベル） | 2 | 国際表 List A code 0（A9=0 / A2=111）。`a11_guidance_list_b_label` も List B 0 で `""` |
 | `null`（表が無い） | 6 | A9=1 / A2≠111（71）。表そのものが存在しない |
 
-43 + 84 + 6 = 133。英語表では国内表 code 0 が `No instruction` になるため、両言語ビルドの
-`_label` は日本語の `""`、`_label_en` は `"No instruction"` になる（国際表 code 0 は英語表も空）。
+125 + 2 + 6 = 133。国内表（A9=1 / A2=111）を通る 125 通の
+`a11_guidance_list_b_label` はすべて `null`（日本の表は List A / List B を 10bit の
+結合表で持つため）。
 
 ### 2.3 数量（数値＋単位）
 
