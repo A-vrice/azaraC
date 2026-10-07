@@ -427,7 +427,7 @@ azarashi の封筒（`scheme`/`labels`/`bounds`）をそのまま真似るとサ
 
 `schema_version` が無かった v1.0.x（リリース済みの最新は v1.0.3）から JSON を読む場合の
 差分。読み手は `schema_version` の有無で分岐できる。下表の「現在」列は
-`schema_version: 2` の出力（`CHANGELOG.md` の `[Unreleased]`）で、リリース済み v1.0.3 の
+`schema_version: 2` の出力（`CHANGELOG.md` の `[2.0.0]`）で、リリース済み v1.0.3 の
 出力ではない。
 
 | v1.0.x | 現在 |
