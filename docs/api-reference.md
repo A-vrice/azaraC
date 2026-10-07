@@ -96,7 +96,7 @@ const internal::NankaiPageBuffer* getNankaiBuffer(const internal::NankaiPageKey&
 
 | マクロ | デフォルト | 説明 |
 |--------|-----------|------|
-| `AZARAC_NANKAI_MAX_PAGES` | 63 | 1 電文あたりの最大ページ数（みちびきも仕様上の最大: 63） |
+| `AZARAC_NANKAI_MAX_PAGES` | 63 | 1 電文あたりの最大ページ数（仕様上の最大も 63） |
 | `AZARAC_NANKAI_BUFFERS` | 1 | 同時に追跡可能な南海トラフ地震の数 |
 
 #### メモリ使用量

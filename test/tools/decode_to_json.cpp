@@ -1,5 +1,5 @@
 // test/tools/decode_to_json.cpp
-// AzaraC NMEA decoder → JSON output CLI
+// azaraC NMEA decoder → JSON output CLI
 // Usage: echo "$QZQSM,57,..." | decode_to_json
 //        decode_to_json < nmea_lines.txt
 // Output: JSON array of decoded messages.

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""compare_with_azarashi.py — azarashi vs AzaraC 出力比較スクリプト
+"""compare_with_azarashi.py — azarashi vs azaraC 出力比較スクリプト
 
 realdata/ の実際のQZSSメッセージを入力とし、azarashi (リファレンス実装) と
-AzaraC のデコード結果を比較する。
+azaraC のデコード結果を比較する。
 
 比較は「_raw サフィックスの数値フィールド」を中心に行う。
 ラベル文字列は言語・フォーマット差異が多いため、数値の一致を主眼とする。
@@ -29,7 +29,7 @@ except ImportError:
     print("ERROR: azarashi package not found. Install with: pip install azarashi", file=sys.stderr)
     sys.exit(1)
 
-# ── 共通定数/ヘルパは _common に集約 ───────────────────
+# 共通定数/ヘルパは _common に集約
 from _common import (  # type: ignore[import-not-found]
     AZARAC_BIN,
     REALDATA,
@@ -112,7 +112,7 @@ def parse_l1s_archive(filepath: str) -> list[dict]:
     return results
 
 
-# ── azarashi でデコード ───────────────────────────────────────────────────
+# azarashi でデコード
 
 # json_serial は _common から import（重複削除）
 
@@ -126,9 +126,9 @@ def decode_with_azarashi(nmea: str) -> dict:
 
 
 def decode_with_azarac(nmeas: list[str], raw: bool = False) -> list[dict]:
-    """AzaraC CLI ツールを呼び出してデコード"""
+    """azaraC CLI ツールを呼び出してデコード"""
     if not os.path.exists(AZARAC_BIN):
-        print(f"ERROR: AzaraC binary not found: {AZARAC_BIN}", file=sys.stderr)
+        print(f"ERROR: azaraC binary not found: {AZARAC_BIN}", file=sys.stderr)
         print("Build it first with: cd test && make decode", file=sys.stderr)
         sys.exit(1)
 
@@ -148,7 +148,7 @@ def decode_with_azarac(nmeas: list[str], raw: bool = False) -> list[dict]:
             check=False,
         )
         if result.returncode != 0:
-            print(f"WARNING: AzaraC binary returned code {result.returncode}", file=sys.stderr)
+            print(f"WARNING: azaraC binary returned code {result.returncode}", file=sys.stderr)
             print(f"stderr: {result.stderr}", file=sys.stderr)
             return [{"_error": f"azarac_exit_{result.returncode}"} for _ in nmeas]
 
@@ -156,11 +156,11 @@ def decode_with_azarac(nmeas: list[str], raw: bool = False) -> list[dict]:
     except subprocess.TimeoutExpired:
         return [{"_error": "timeout"} for _ in nmeas]
     except json.JSONDecodeError as e:
-        print(f"ERROR: Failed to parse AzaraC JSON output: {e}", file=sys.stderr)
+        print(f"ERROR: Failed to parse azaraC JSON output: {e}", file=sys.stderr)
         return [{"_error": "json_parse_failed"} for _ in nmeas]
 
 
-# ── フラット化 & 正規化 ───────────────────────────────────────────────────
+# フラット化 & 正規化
 
 def flatten_dict(d: dict, prefix: str = "") -> dict:
     """ネストされたdictをフラット化 (キーは '.' 区切り)"""
@@ -203,13 +203,13 @@ def normalize_value(v):
     return v
 
 
-# ── キー対応表 (azarashi → AzaraC) ───────────────────────────────────────
+# キー対応表 (azarashi → azaraC)
 
-# azarashi のキー名 → AzaraC のキー名 (パス)
+# azarashi のキー名 → azaraC のキー名 (パス)
 KEY_MAPPING = {
     # 共通ヘッダ
     "satellite_id": "svid",
-    "satellite_prn": None,  # AzaraC の svid は PRN（128–191）そのもの
+    "satellite_prn": None,  # azaraC の svid は PRN（128–191）そのもの
     "message_type": None,  # "DCR"/"DCX" → 43/44
     "report_classification_no": "report_classification",
     "disaster_category_no": "disaster_category",
@@ -232,15 +232,15 @@ KEY_MAPPING = {
         "preamble", "version", "assumptive",
         "report_classification_en", "disaster_category_en", "information_type_en",
         "depth_of_hypocenter", "magnitude",
-        "dcx_message_type",  # AzaraC は service_kind 由来の dcx_type_label (NULL 等) を使用。命名規約差異のため比較しない
+        "dcx_message_type",  # azaraC は service_kind 由来の dcx_type_label (NULL 等) を使用。命名規約差異のため比較しない
     ]
 }
 
 
-# ── ラベル対応表 (azarashi ラベル → AzaraC _label フィールド) ────────────────
-# azarashi のラベル文字列キーを AzaraC の対応 _label キーと比較する。
+# ラベル対応表 (azarashi ラベル → azaraC _label フィールド)
+# azarashi のラベル文字列キーを azaraC の対応 _label キーと比較する。
 # 各値は候補パスのリスト。候補はスカラー (str) か リスト規則 (配列パス, フィールド名)。
-# メッセージ種別により AzaraC の配置が異なるため複数候補を持つ場合がある
+# メッセージ種別により azaraC の配置が異なるため複数候補を持つ場合がある
 # (例: local_governments は火山が data.local_govs[]、降灰が data.entries[].local_gov_label)。
 # いずれかの候補が存在し一致すれば OK。候補が全て不在の場合は比較をスキップする
 # (azarashi のみが持つ構造的フィールド。ラベルバグではない)。
@@ -271,18 +271,18 @@ LABEL_MAPPING = {
 
 
 def build_comparison(azarashi_flat: dict, azarac_flat: dict) -> list[dict]:
-    """azarashi と AzaraC のフラット化結果を比較し、差分リストを返す"""
+    """azarashi と azaraC のフラット化結果を比較し、差分リストを返す"""
     differences = []
 
     # 無視するキーセット
     ignore_keys = set(KEY_MAPPING["_ignore"])
 
-    # azarashi の _raw キーを探して AzaraC の対応キーと比較
+    # azarashi の _raw キーを探して azaraC の対応キーと比較
     for az_key, az_val in azarashi_flat.items():
         # 無視キーをスキップ
         if az_key in ignore_keys:
             continue
-        # _raw で終わるキーは対応する AzaraC キーと比較
+        # _raw で終わるキーは対応する azaraC キーと比較
         if az_key.endswith("_raw"):
             base_name = az_key[:-4]  # "_raw" を除去
             # マッピングを確認
@@ -300,7 +300,7 @@ def build_comparison(azarashi_flat: dict, azarac_flat: dict) -> list[dict]:
                     })
 
     # ラベル文字列の比較
-    # azarashi のラベル文字列キーを AzaraC の _label フィールドと突合する。
+    # azarashi のラベル文字列キーを azaraC の _label フィールドと突合する。
     for az_key, ac_rules in LABEL_MAPPING.items():
         # スカラーは裸キー、リストは az_key[i] 形式でフラット化される
         has_item = any(k.startswith(f"{az_key}[") for k in azarashi_flat)
@@ -348,7 +348,7 @@ def build_comparison(azarashi_flat: dict, azarac_flat: dict) -> list[dict]:
                 i += 1
             continue
 
-        # スカラーラベル: azarashi = "str", AzaraC = 候補パス
+        # スカラーラベル: azarashi = "str", azaraC = 候補パス
         matched = False
         for rule in ac_rules:
             if isinstance(rule, tuple):
@@ -372,10 +372,10 @@ def values_equal(az_val, ac_val, ac_flat: dict, ac_key: str) -> bool:
     if az_val is None and ac_val is None:
         return True
     if az_val is None or ac_val is None:
-        # azarashi の null は AzaraC の 0 と同等の場合がある
+        # azarashi の null は azaraC の 0 と同等の場合がある
         if az_val is None and ac_val == 0:
             return True
-        # azarashi の null は AzaraC の空文字ラベルと同等
+        # azarashi の null は azaraC の空文字ラベルと同等
         return bool(az_val is None and ac_val == "")  # noqa: SIM103
     # リスト比較
     if isinstance(az_val, list) and isinstance(ac_val, list):
@@ -399,10 +399,10 @@ def values_equal(az_val, ac_val, ac_flat: dict, ac_key: str) -> bool:
     return str(az_val) == str(ac_val)
 
 
-# ── メイン ────────────────────────────────────────────────────────────────
+# メイン
 
 def main():
-    parser = argparse.ArgumentParser(description="Compare azarashi vs AzaraC output")
+    parser = argparse.ArgumentParser(description="Compare azarashi vs azaraC output")
     parser.add_argument("--source", choices=["history", "noto", "data_txt", "l1s", "all"],
                         default="all", help="Which realdata source to test")
     parser.add_argument("--verbose", "-v", action="store_true", help="Show all differences")
@@ -422,13 +422,13 @@ def main():
 
     print(f"Testing {len(cases)} messages from realdata/ ...")
 
-    # AzaraC で一括デコード
+    # azaraC で一括デコード
     nmeas = [c['nmea'] for c in cases]
     # この比較は入力ごとに1件の出力を必要とするためParser処理を迂回する
     azarac_results = decode_with_azarac(nmeas, raw=True)
     if len(azarac_results) != len(cases):
         print(
-            f"ERROR: AzaraC returned {len(azarac_results)} results for {len(cases)} inputs",
+            f"ERROR: azaraC returned {len(azarac_results)} results for {len(cases)} inputs",
             file=sys.stderr,
         )
         sys.exit(1)
@@ -449,7 +449,7 @@ def main():
             print(f"  [{i}] SKIP (azarashi error: {azarashi_params['_error']})")
             continue
         if "_error" in azarac_msg:
-            print(f"  [{i}] SKIP (AzaraC error: {azarac_msg['_error']})")
+            print(f"  [{i}] SKIP (azaraC error: {azarac_msg['_error']})")
             failed_cases.append((i, nmea, "azarac_error", azarac_msg['_error']))
             continue
 

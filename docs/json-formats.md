@@ -53,7 +53,7 @@ MT43 はこれに加えて DCR の報告ヘッダをルートに持つ: `report_
 
 ### 1.2 MT43 の `data`（カテゴリ別）
 
-テスト電文で確認した形。`(+_label)` は `_label` が付くキー。
+テスト電文に現れる形。`(+_label)` は `_label` が付くキー。
 
 | cat | ラベル | `data` のキー |
 |---|---|---|
@@ -92,7 +92,7 @@ azaraC の `resolveArrivalTime()` は空を返すため `unrecognized_code` に�
 
 ### 1.3 MT44 の `data` のキー
 
-テスト電文 133 通（すべて A17=0）で確認した `data` 内のキー。
+テスト電文 133 通（すべて A17=0）の `data` 内のキー。
 
 A フィールド: `dcx_type`（`"NULL"` / `"L_ALERT"` / `"J_ALERT"` / `"LOCAL_GOV"` /
 `"OUTSIDE_JAPAN"` / `"UNKNOWN"`）、`a1_msg_type`, `a2_country`(+`_label`),
@@ -417,8 +417,9 @@ azarashi の封筒（`scheme`/`labels`/`bounds`）をそのまま真似るとサ
 ## 5. v1.0.x からの変更点
 
 `schema_version` が無かった v1.0.x（リリース済みの最新は v1.0.3）から JSON を読む場合の
-差分。読み手は `schema_version` の有無で分岐できる。下表の「現在」列は `[Unreleased]` の
-作業中の内容（`CHANGELOG.md` 参照）で、リリース済みライブラリの出力ではない。
+差分。読み手は `schema_version` の有無で分岐できる。下表の「現在」列は
+`schema_version: 2` の出力（`CHANGELOG.md` の `[Unreleased]`）で、リリース済み v1.0.3 の
+出力ではない。
 
 | v1.0.x | 現在 |
 |---|---|

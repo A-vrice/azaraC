@@ -109,7 +109,7 @@ inline bool sameId(const Identity& a, const Identity& b) {
 }
 
 // 生存ピーク: 各情報を自身の窓で失効させ、再受信で最終受信時刻を更新する。
-// ponytail: O(n·live) — 1 日分のオフライン計測専用。長期の実測に使うなら
+// 計算量は O(n·live)。1 日分のオフライン計測専用で、長期の実測に使うなら
 // 時刻順の優先度付きキューで失効させる。
 size_t peakLive(const std::vector<FrameRef>& frames, bool perCategoryWindow) {
     struct Live { Identity id; uint32_t last_ms; uint32_t window_ms; };
@@ -137,7 +137,7 @@ size_t peakLive(const std::vector<FrameRef>& frames, bool perCategoryWindow) {
 }
 
 // カテゴリごとの生存ピーク（その時点で窓内に生きている同一性の数）。容量が足りるかを
-// 判断する材料。ponytail: O(n·live) — オフライン計測専用。
+// 判断する材料。計算量は O(n·live) のオフライン計測専用。
 size_t peakLivePerCategory(const std::vector<FrameRef>& frames, uint8_t want_category) {
     struct Live { Identity id; uint32_t last_ms; uint32_t window_ms; };
     std::vector<Live> live;

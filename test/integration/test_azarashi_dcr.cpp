@@ -257,7 +257,7 @@ TEST_CASE("DCR: EEW Long Period Ground Motion - exhaustive") {
 
 #if (AZARAC_ENABLE_TSUNAMI)
 TEST_CASE("DCR: Tsunami arrival time boundary - arrived (hour=31, min=63)") {
-    // 津波が既に到達した場合: AzaraCではhour/minuteを0にクリアし、unix_timeも0にする
+    // 津波が既に到達した場合: azaraCではhour/minuteを0にクリアし、unix_timeも0にする
     // これは仕様書の「到達済み」フラグを正しく処理している
     uint8_t bits[32] = {};
     Message msg{};
@@ -300,7 +300,7 @@ TEST_CASE("DCR: Tsunami arrival time boundary - arrived (hour=31, min=63)") {
     const TsunamiData* tsunami = mt43->getTsunami();
     REQUIRE(tsunami != nullptr);
     CHECK(tsunami->count >= 1);
-    // 到達済みの場合、AzaraCではhour=0, minute=0, unix_time=0 にクリアする
+    // 到達済みの場合、azaraCではhour=0, minute=0, unix_time=0 にクリアする
     CHECK(tsunami->entries[0].arrival_time.hour == 0);
     CHECK(tsunami->entries[0].arrival_time.minute == 0);
     CHECK(tsunami->entries[0].arrival_time.unix_time == 0);

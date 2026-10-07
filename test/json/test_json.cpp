@@ -369,7 +369,7 @@ TEST_CASE("JSON Serialization: label_en is emitted when both languages are on") 
 }
 #endif // AZARAC_ENABLE_EEW && AZARAC_LANG_JA && AZARAC_LANG_EN
 
-// 数量コードの境界値とセンチネルがラベルとして可視化されること（本作業の目的）。
+// 数量コードの境界値とセンチネルがラベルとして可視化されること。
 // 501/101 は「境界超過」、511/127 は「不明」で、生コード値だけでは利用者が判別できない。
 #if (AZARAC_ENABLE_EEW)
 // 両言語とも無効な構成では LBL が "" を返し、hasLabel(..., "") が常に真になる

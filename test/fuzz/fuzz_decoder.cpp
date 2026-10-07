@@ -978,7 +978,7 @@ static void test_memory_stability(FuzzStats& stats, std::mt19937& rng, int itera
 }
 
 int main(int argc, char* argv[]) {
-    printf("=== AzaraC Fuzz Testing ===\n");
+    printf("=== azaraC Fuzz Testing ===\n");
     printf("Starting fuzz tests...\n\n");
 
     // 乱数シード

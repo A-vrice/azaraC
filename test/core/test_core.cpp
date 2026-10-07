@@ -897,5 +897,5 @@ TEST_CASE("Memory: sizeof guards for embedded targets") {
 #endif
 }
 
-// 実ファズは test/fuzz/fuzz_decoder.cpp（make fuzz）が担う。ここに置く CHECK 無しの
-// スモークは、クラッシュを検出できない（CI は sanitizer 無しでビルドする）ため削除した。
+// CHECK 無しのスモークはここには置かない。クラッシュを検出できないためで
+// （CI は sanitizer 無しでビルドする）、実ファズは test/fuzz/fuzz_decoder.cpp（make fuzz）。

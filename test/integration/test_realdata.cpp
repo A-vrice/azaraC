@@ -196,7 +196,7 @@ TEST_CASE("Realdata: History - decode and disaster_category") {
         CHECK(mt43->disaster_category == history_cases[i].expected_dc);
 
         // Field-level verification based on disaster category
-        // (expected values from AzaraC decode_to_json)
+        // (expected values from azaraC decode_to_json)
         switch (history_cases[i].expected_dc) {
             case 1: {
                 const EewData* eew = mt43->getEew();
@@ -625,7 +625,7 @@ TEST_CASE("Realdata: Noto 2024 - decode and metadata") {
 
 // data.txt: 64 件の DCX/DCR 混在生データ
 // デコード成功 + msg_type + disaster_category/service_kind 検証
-// (expected values from AzaraC decode_to_json)
+// (expected values from azaraC decode_to_json)
 
 namespace {
     struct DataTxtCase {

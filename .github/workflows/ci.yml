@@ -13,7 +13,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # ── バージョン整合性チェック ──────────────────────────────────────────────
+  # バージョン整合性チェック
   version-sync:
     name: Version sync check
     runs-on: ubuntu-latest
@@ -59,7 +59,7 @@ jobs:
       - name: AVR-style stub build (PROGMEM, 16-bit int)
         run: make -C test pgm-stub
 
-  # ── 生成フィクスチャのドリフト検査 ──────────────────────────────────────
+  # 生成フィクスチャのドリフト検査
   # nankai_pages_generated.h は azarashi から生成される。生成器を直したのに
   # 生成物を更新し忘れる（またはその逆）と、テストは古いフィクスチャのまま緑になる。
   # dcr/dcx はリポジトリ外ログ由来、test_realdata.cpp は gitignore 済み realdata/
@@ -86,7 +86,7 @@ jobs:
       - name: Verify committed fixtures match the generator
         run: git diff --exit-code -- test/data/nankai_pages_generated.h
 
-  # ── ファジングテスト ────────────────────────────────────────────────────
+  # ファジングテスト
   fuzz-test:
     name: Fuzz testing
     runs-on: ubuntu-latest
@@ -100,7 +100,7 @@ jobs:
       - name: Run fuzz test
         run: make -C test fuzz FUZZ_ITERATIONS=1000000
 
-  # ── Arduino Lint ─────────────────────────────────────────────────────────
+  # Arduino Lint
   arduino-lint:
     name: Arduino Lint
     runs-on: ubuntu-latest
@@ -116,7 +116,7 @@ jobs:
           library-manager: submit
           compliance: strict
 
-  # ── 必須コンパイルチェック（リリースゲート）──────────────────────────────
+  # 必須コンパイルチェック（リリースゲート）
   # アーキテクチャ代表 1 台ずつが必須: ARM Cortex-M (RP2040 Pico) /
   # Xtensa (ESP32-C3) / AVR (Arduino Uno)。失敗で CI が赤くなる。
   # その他のプラットフォームは compile-extended（ベストエフォート）。
@@ -215,7 +215,7 @@ jobs:
             arduino-cli compile --clean --fqbn "${{ matrix.fqbn }}" "$sketch" --build-property "compiler.cpp.extra_flags=$CPP_EXTRA_FLAGS"
           done
 
-  # ── 拡張コンパイルチェック（ベストエフォート）────────────────────────────
+  # 拡張コンパイルチェック（ベストエフォート）
   # required 以外の追加プラットフォーム。continue-on-error なので失敗して
   # も CI は赤くならない（警告扱い）。主要アーキテクチャの代表は
   # compile-required（リリースゲート）で検証される。
@@ -377,7 +377,7 @@ jobs:
           name: extended-outcome-${{ matrix.slug }}
           path: extended_outcome.txt
 
-  # ── PlatformIO コンパイルテスト ─────────────────────────────────────────
+  # PlatformIO コンパイルテスト
   # test/platformio の lib_deps = ../.. でリポジトリ作業ツリーを uno/esp32dev
   # でコンパイルすることを検証する（Registry の A-vrice/azaraC@^1.0.0 は
   # 解決しない。公開確認後に Registry 解決テストを別途追加）。
@@ -398,7 +398,7 @@ jobs:
       - name: Compile (uno, esp32dev)
         run: pio run -d test/platformio
 
-  # ── マクロサイズ計測 ─────────────────────────────────────────────────────
+  # マクロサイズ計測
   macro-size-check:
     name: Macro size check
     runs-on: ubuntu-latest
@@ -423,7 +423,7 @@ jobs:
           cat test/macro_sizes.txt >> $GITHUB_STEP_SUMMARY
           exit $status
 
-  # ── マクロ無効化ランタイムテスト ─────────────────────────────────────────────
+  # マクロ無効化ランタイムテスト
   macro-runtime-test:
     name: Macro disable runtime tests
     runs-on: ubuntu-latest
@@ -437,7 +437,7 @@ jobs:
       - name: Run all 13 individual macro-disabled runtime tests
         run: make -C test macro
 
-  # ── 静的解析 ──────────────────────────────────────────────────────────────
+  # 静的解析
   static-analysis:
     name: Static analysis (cppcheck)
     runs-on: ubuntu-latest
@@ -470,7 +470,7 @@ jobs:
           name: cppcheck-report
           path: test/cppcheck_report.xml
 
-  # ── カバレッジ測定 ────────────────────────────────────────────────────────
+  # カバレッジ測定
   coverage:
     name: Coverage (gcovr)
     runs-on: ubuntu-latest
@@ -515,7 +515,7 @@ jobs:
           coverage-reports: test/coverage.xml
           language: cpp
 
-  # ── 結果集約 ──────────────────────────────────────────────────────────────
+  # 結果集約
   summary:
     name: CI Summary
     runs-on: ubuntu-latest

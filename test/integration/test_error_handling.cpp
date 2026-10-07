@@ -1,4 +1,4 @@
-// test/integration/test_error_handling.cpp  Eエラーハンドリング詳細チE��チE
+// test/integration/test_error_handling.cpp — エラーハンドリング詳細テスト
 #include <string>
 #include "doctest.h"
 #include "../src/Parser.h"
@@ -175,8 +175,7 @@ TEST_CASE("Error: Version 1 accepted") {
 }
 #endif // AZARAC_ENABLE_EEW
 
-// ══════════════════════════════════════════════════════════════════════════════╁E// チE��ーダエチE��ケースチE��チE(decoder_edge_cases.md)
-// ══════════════════════════════════════════════════════════════════════════════╁E
+// 未割当・予約の災害カテゴリは拒否される
 // Helper: build a valid MT=43 frame with custom disaster_category
 static void buildMt43Frame(uint8_t category, uint8_t* bits) {
     memset(bits, 0, 32);

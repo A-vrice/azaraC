@@ -49,9 +49,7 @@ DISABLED_DC_MACROS = [
     (14, 'AZARAC_ENABLE_MARINE'),
 ]
 
-# ═══════════════════════════════════════════════════════════════════════════
 # decode_to_json CLI 統合
-# ═══════════════════════════════════════════════════════════════════════════
 
 def _entry0(fields: dict, nmea: str) -> dict:
     """entry[0] を返す。entry が無いフィクスチャは生成を失敗させる
@@ -90,8 +88,8 @@ def decode_batch(nmea_list: list, raw: bool = False) -> list:
     Returns:
         list of dicts: 各NMEA文のデコード結果 (JSONパース済み)
 
-    失敗時は SystemExit で落とす。以前は None を返してフィールド検査を
-    黙って削っていたため、デコードが壊れても生成物が「検査の少ない緑」になった。
+    失敗時は SystemExit で落とす。None を返してフィールド検査を黙って削ると、
+    デコードが壊れても生成物が「検査の少ない緑」になる。
     """
     if not os.path.exists(DECODE_BIN):
         raise SystemExit(f"decode_to_json not found: run `make -C test decode` first ({DECODE_BIN})")
@@ -127,9 +125,7 @@ def decode_batch(nmea_list: list, raw: bool = False) -> list:
     return results
 
 
-# ═══════════════════════════════════════════════════════════════════════════
 # 1. qzqsm_history.md のパース
-# ═══════════════════════════════════════════════════════════════════════════
 
 def parse_history(filepath: str) -> list:
     """qzqsm_history.md をパースしてテストベクタを抽出"""
@@ -165,9 +161,7 @@ def parse_history(filepath: str) -> list:
     return results
 
 
-# ═══════════════════════════════════════════════════════════════════════════
 # 2. qzqsm_20240101-0107_noto.csv のパース
-# ═══════════════════════════════════════════════════════════════════════════
 
 def parse_noto_csv(filepath: str) -> list:
     """能登半島地震 CSV をパースしてテストベクタを抽出"""
@@ -206,9 +200,7 @@ def parse_noto_csv(filepath: str) -> list:
     return results
 
 
-# ═══════════════════════════════════════════════════════════════════════════
 # 3. data.txt のパース
-# ═══════════════════════════════════════════════════════════════════════════
 
 def parse_data_txt(filepath: str) -> list:
     """data.txt をパースしてテストベクタを抽出"""
@@ -232,9 +224,7 @@ def parse_data_txt(filepath: str) -> list:
     return results
 
 
-# ═══════════════════════════════════════════════════════════════════════════
 # C++ フィールド値検証コード生成 (decode_to_json の結果から)
-# ═══════════════════════════════════════════════════════════════════════════
 
 def _collect_eew_fields(decoded: dict) -> dict:
     """EEW フィールドを収集"""
@@ -371,9 +361,7 @@ DC_INFO = {
 }
 
 
-# ═══════════════════════════════════════════════════════════════════════════
 # C++ テストファイル生成
-# ═══════════════════════════════════════════════════════════════════════════
 
 def generate_cpp(history: list, noto: list, data_txt: list,
                  history_decoded: list, noto_decoded: list,
@@ -393,7 +381,7 @@ def generate_cpp(history: list, noto: list, data_txt: list,
     w('using namespace azaraC;')
     w('')
 
-    # ── History テスト ────────────────────────────────────────────────────
+    # History テスト
     # 構造体定義と期待値配列をファイルスコープに配置（スタックオーバーフロー対策）
 
     # デコード結果から各dc typeごとの期待値配列を収集
@@ -574,7 +562,7 @@ def generate_cpp(history: list, noto: list, data_txt: list,
     w('        CHECK(mt43->disaster_category == history_cases[i].expected_dc);')
     w('')
     w('        // Field-level verification based on disaster category')
-    w('        // (expected values from AzaraC decode_to_json)')
+    w('        // (expected values from azaraC decode_to_json)')
     w('        switch (history_cases[i].expected_dc) {')
 
     for dc, entries in sorted(dc_entries.items()):
@@ -711,7 +699,7 @@ def generate_cpp(history: list, noto: list, data_txt: list,
     w('}')
     w('')
 
-    # ── Noto CSV テスト ───────────────────────────────────────────────────
+    # Noto CSV テスト
     w(f'// qzqsm_20240101-0107_noto.csv: {len(noto)} 件（能登半島地震）')
     w('// デコード成功 + disaster_category / information_type / report_classification 検証')
     w('')
@@ -754,10 +742,10 @@ def generate_cpp(history: list, noto: list, data_txt: list,
     w('}')
     w('')
 
-    # ── data.txt テスト ───────────────────────────────────────────────────
+    # data.txt テスト
     w(f'// data.txt: {len(data_txt)} 件の DCX/DCR 混在生データ')
     w('// デコード成功 + msg_type + disaster_category/service_kind 検証')
-    w('// (expected values from AzaraC decode_to_json)')
+    w('// (expected values from azaraC decode_to_json)')
     w('')
     w('namespace {')
     w('    struct DataTxtCase {')
