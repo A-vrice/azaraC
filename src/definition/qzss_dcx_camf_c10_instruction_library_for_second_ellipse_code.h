@@ -1,5 +1,5 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.17.0 with CI-CD
+// AUTO-GENERATED from azarashi 0.17.1 with CI-CD
 // Source module : azarashi.definitions.camf.c10_instruction_library_for_second_ellipse
 // Variable      : qzss_dcx_camf_c10_instruction_library_for_second_ellipse_code
 // Entries       : 19

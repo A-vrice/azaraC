@@ -58,6 +58,7 @@ GUARD_MAP = {
     "qzss_dcx_camf_a9_type_of_library": "AZARAC_ENABLE_DCX_CAMF",
     "qzss_dcx_camf_a10_library_version": "AZARAC_ENABLE_DCX_CAMF",
     "qzss_dcx_camf_a11_international_library": "AZARAC_ENABLE_DCX_CAMF",
+    "qzss_dcx_camf_a11_international_library_b": "AZARAC_ENABLE_DCX_CAMF",
     "qzss_dcx_camf_a11_japanese_library_en": "AZARAC_ENABLE_DCX_CAMF",
     "qzss_dcx_camf_a11_japanese_library_ja": "AZARAC_ENABLE_DCX_CAMF",
     "qzss_dcx_camf_a17_type_of_specific_settings": "AZARAC_ENABLE_DCX_CAMF",
@@ -141,6 +142,12 @@ SKIP_MODULES = {
     "qzss_dcr_satellite_prn",
     "qzss_dcr_preamble",
     "qzss_dcx_camf_a11_international_library_code",
+    # azarashi 0.17.1 が追加した表のうち azaraC に消費者が無いもの
+    "qzss_dcx_camf_a11_international_library_b_code",     # IC-B-nn のコード名（JSON はコード名を出さない）
+    "qzss_dcx_camf_c7_shift_of_second_ellipse_centre",    # azaraC は c7/c8/c9 を生値のみ出力
+    "qzss_dcx_camf_c8_homothetic_factor_of_second_ellipse",
+    "qzss_dcx_camf_c9_bearing_angle_of_second_ellipse",
+    "qzss_dcx_ex2_evacuate_direction_type",               # azaraC は EX2 を head_to_area(0/1) の生値のみ出力
 }
 
 BASE_MOD = "azarashi.definitions"
@@ -225,6 +232,8 @@ def tables_of(modname):
         if not isinstance(obj, dict):
             continue  # CodeTable is a dict; a dict of tables / a NamedTuple is not
         varname = NAME_OVERRIDE.get(attr, _prefix_for(modname) + attr)
+        if varname.endswith("_value"):
+            continue  # コード→物理量表。azaraC は生コード + ラベルしか出さない（消費者ゼロ）
         if varname in SKIP_MODULES:
             continue
         yield varname, obj

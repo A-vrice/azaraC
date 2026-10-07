@@ -1,5 +1,5 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.17.0 with CI-CD
+// AUTO-GENERATED from azarashi 0.17.1 with CI-CD
 // Source module : azarashi.definitions.qzss.dcx.ex1_target_area_code
 // Variable      : qzss_dcx_ex1_target_area_code_ja
 // Entries       : 1980

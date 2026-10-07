@@ -1,8 +1,8 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.17.0 with CI-CD
+// AUTO-GENERATED from azarashi 0.17.1 with CI-CD
 // Source module : azarashi.definitions.qzss.dcr.long_period_ground_motion_lower_limit
 // Variable      : qzss_dcr_jma_long_period_ground_motion_lower_limit_en
-// Entries       : 6
+// Entries       : 7
 // Strategy      : switch
 
 // NOTE: This function may return nullptr for unknown IDs.
@@ -28,6 +28,7 @@ namespace def {
 #if defined(__AVR__)
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_long_period_ground_motion_lower_limit_en_lookup(uint8_t id) noexcept {
     switch (id) {
+        case 0: { static const char AZARAC_PROGMEM s[] = "No data"; return azarac_pgm_view(s, 7); }
         case 1: { static const char AZARAC_PROGMEM s[] = "Less than Long-Period Ground Motion class of 1"; return azarac_pgm_view(s, 46); }
         case 2: { static const char AZARAC_PROGMEM s[] = "Long-Period Ground Motion class of 1"; return azarac_pgm_view(s, 36); }
         case 3: { static const char AZARAC_PROGMEM s[] = "Long-Period Ground Motion class of 2"; return azarac_pgm_view(s, 36); }
@@ -40,6 +41,7 @@ namespace def {
 #else
 [[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_long_period_ground_motion_lower_limit_en_lookup(uint8_t id) noexcept {
     switch (id) {
+        case 0: return std::string_view{"No data", 7};
         case 1: return std::string_view{"Less than Long-Period Ground Motion class of 1", 46};
         case 2: return std::string_view{"Long-Period Ground Motion class of 1", 36};
         case 3: return std::string_view{"Long-Period Ground Motion class of 2", 36};

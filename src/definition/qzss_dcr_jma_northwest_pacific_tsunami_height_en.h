@@ -1,5 +1,5 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.17.0 with CI-CD
+// AUTO-GENERATED from azarashi 0.17.1 with CI-CD
 // Source module : azarashi.definitions.qzss.dcr.northwest_pacific_tsunami_height
 // Variable      : qzss_dcr_jma_northwest_pacific_tsunami_height_en
 // Entries       : 8

@@ -1,5 +1,5 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.17.0 with CI-CD
+// AUTO-GENERATED from azarashi 0.17.1 with CI-CD
 // Source module : azarashi.definitions.qzss.dcr.typhoon_intensity_category
 // Variable      : qzss_dcr_jma_typhoon_intensity_category_en
 // Entries       : 5

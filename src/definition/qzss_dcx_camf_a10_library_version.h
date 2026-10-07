@@ -1,5 +1,5 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.17.0 with CI-CD
+// AUTO-GENERATED from azarashi 0.17.1 with CI-CD
 // Source module : azarashi.definitions.camf.a10_library_version
 // Variable      : qzss_dcx_camf_a10_library_version
 // Entries       : 1

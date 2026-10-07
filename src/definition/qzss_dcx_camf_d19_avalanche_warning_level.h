@@ -1,5 +1,5 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.17.0 with CI-CD
+// AUTO-GENERATED from azarashi 0.17.1 with CI-CD
 // Source module : azarashi.definitions.camf.d_fields
 // Variable      : qzss_dcx_camf_d19_avalanche_warning_level
 // Entries       : 5

@@ -1,5 +1,5 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.17.0 with CI-CD
+// AUTO-GENERATED from azarashi 0.17.1 with CI-CD
 // Source module : azarashi.definitions.qzss.dcr.long_period_ground_motion_upper_limit
 // Variable      : qzss_dcr_jma_long_period_ground_motion_upper_limit
 // Entries       : 8
@@ -28,6 +28,7 @@ namespace def {
 #if defined(__AVR__)
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_long_period_ground_motion_upper_limit_lookup(uint8_t id) noexcept {
     switch (id) {
+        case 0: { static const char AZARAC_PROGMEM s[] = "該当情報なし"; return azarac_pgm_view(s, 18); }
         case 1: { static const char AZARAC_PROGMEM s[] = "長周期地震動階級1未満"; return azarac_pgm_view(s, 31); }
         case 2: { static const char AZARAC_PROGMEM s[] = "長周期地震動階級1"; return azarac_pgm_view(s, 25); }
         case 3: { static const char AZARAC_PROGMEM s[] = "長周期地震動階級2"; return azarac_pgm_view(s, 25); }
@@ -41,6 +42,7 @@ namespace def {
 #else
 [[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_long_period_ground_motion_upper_limit_lookup(uint8_t id) noexcept {
     switch (id) {
+        case 0: return std::string_view{"該当情報なし", 18};
         case 1: return std::string_view{"長周期地震動階級1未満", 31};
         case 2: return std::string_view{"長周期地震動階級1", 25};
         case 3: return std::string_view{"長周期地震動階級2", 25};

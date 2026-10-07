@@ -1,5 +1,5 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.17.0 with CI-CD
+// AUTO-GENERATED from azarashi 0.17.1 with CI-CD
 // Source module : azarashi.definitions.camf.a8_hazard_duration
 // Variable      : qzss_dcx_camf_a8_hazard_duration
 // Entries       : 4

@@ -1,5 +1,5 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.17.0 with CI-CD
+// AUTO-GENERATED from azarashi 0.17.1 with CI-CD
 // Source module : azarashi.definitions.qzss.dcr.tsunami_forecast_region
 // Variable      : qzss_dcr_jma_tsunami_forecast_region_en
 // Entries       : 99

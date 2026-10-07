@@ -1,5 +1,5 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.17.0 with CI-CD
+// AUTO-GENERATED from azarashi 0.17.1 with CI-CD
 // Source module : azarashi.definitions.qzss.dcr.ambiguity_of_activity_time
 // Variable      : qzss_dcr_jma_ambiguity_of_activity_time_en
 // Entries       : 8

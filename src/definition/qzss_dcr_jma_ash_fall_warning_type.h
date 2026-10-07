@@ -1,5 +1,5 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.17.0 with CI-CD
+// AUTO-GENERATED from azarashi 0.17.1 with CI-CD
 // Source module : azarashi.definitions.qzss.dcr.ash_fall_warning_type
 // Variable      : qzss_dcr_jma_ash_fall_warning_type
 // Entries       : 2

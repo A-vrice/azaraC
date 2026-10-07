@@ -1,5 +1,5 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.17.0 with CI-CD
+// AUTO-GENERATED from azarashi 0.17.1 with CI-CD
 // Source module : azarashi.definitions.qzss.dcr.typhoon_maximum_gust_wind_speed
 // Variable      : qzss_dcr_jma_typhoon_maximum_gust_wind_speed
 // Entries       : 92
