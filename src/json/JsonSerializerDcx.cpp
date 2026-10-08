@@ -89,7 +89,7 @@ void serializeDcx(const Message& m, Print& out) {
              qzss_dcx_camf_a11_international_library_lookup(
                  static_cast<uint8_t>(d->camf.a11 >> 5)));
         a11_b = qzss_dcx_camf_a11_international_library_b_lookup(
-            static_cast<uint8_t>(d->camf.a11 & 0x1Fu));
+            static_cast<uint8_t>(d->camf.a11 & 0x1FU));
     } else if (d->camf.a2 == DCX_COUNTRY_CODE_JAPAN) {
         AZARAC_LABEL(out, "a11_guidance_label",
             qzss_dcx_camf_a11_japanese_library_ja_lookup,
