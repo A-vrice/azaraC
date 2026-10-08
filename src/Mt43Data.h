@@ -2,10 +2,7 @@
 // MT=43 (QZQSM/DCR) data structures and tagged union
 // Bit offsets derived from azarashi (IS-QZSS-DCR-017)
 //
-// CONTRACT: every payload type (EewData, …, MarineData) MUST stay trivially
-// copyable/destructible (scalars, fixed arrays, POD only, no owning
-// pointers), so copy/move/destroy reduce to memcpy / tag reset. A
-// non-trivial member (e.g. std::string) breaks this.
+// CONTRACT: every payload type (EewData, …, MarineData) MUST stay trivially copyable/destructible (scalars, fixed arrays, POD only, no owning pointers), so copy/move/destroy reduce to memcpy / tag reset. A non-trivial member (e.g. std::string) breaks this.
 
 #if defined(__AVR__)
 #include "internal/avr_std/cstdint"
@@ -106,20 +103,14 @@ struct SeismicData {
 
 #if AZARAC_ENABLE_NANKAI
 // Nankai Trough page aggregation.
-// LIFETIME: when is_aggregated, aggregated_text_ptr borrows the Parser's
-// statically-held NankaiPageBuffer::aggregated_text[] and is invalidated by
-// the next feed()/reset() or a Nankai aggregation reusing the slot; the
-// buffer may then hold a different event. Caller MUST copy/serialize
-// immediately. Zero-copy: avoids copying up to AZARAC_NANKAI_MAX_PAGES*18
-// bytes into each Message.
+// LIFETIME: when is_aggregated, aggregated_text_ptr borrows the Parser's statically-held NankaiPageBuffer::aggregated_text[] and is invalidated by the next feed()/reset() or a Nankai aggregation reusing the slot; the buffer may then hold a different event. Caller MUST copy/serialize immediately. Zero-copy: avoids copying up to AZARAC_NANKAI_MAX_PAGES*18 bytes into each Message.
 struct NankaiData {
     uint8_t info_code;
     uint8_t text[18];
     uint8_t page;
     uint8_t total_page;
     // MT=43 ペイロードの report_time（bit 21/25/30/35）を受信そのまま保持する。
-    // 集約キーの軸: event_time と違い Decoder::resolveTime の正規化を受けないため、
-    // 放送途中で report_unix が有効/無効になっても鍵がずれない。
+    // 集約キーの軸: event_time と違い Decoder::resolveTime の正規化を受けないため、放送途中で report_unix が有効/無効になっても鍵がずれない。
     uint8_t report_month;   // 1-12 (4b)
     uint8_t report_day;     // 1-31 (5b)
     uint8_t report_hour;    // 0-23 (5b)

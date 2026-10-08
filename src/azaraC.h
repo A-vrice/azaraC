@@ -4,8 +4,7 @@
 #error "This tool requires C++17 or later"
 #endif
 
-// Undefine Arduino-core `abs`/`min`/`max` macros that collide with std names
-// (mbed pinDefinitions.h defines abs; Arduino.h defines min/max).
+// Undefine Arduino-core `abs`/`min`/`max` macros that collide with std names (mbed pinDefinitions.h defines abs; Arduino.h defines min/max).
 #if defined(ARDUINO)
 #  if defined(abs)
 #    undef abs

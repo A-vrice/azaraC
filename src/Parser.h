@@ -13,13 +13,7 @@
 namespace azaraC {
 
 //
-// RAM: Parser obj ~5.4 KB (static, default: Nankai 1-buffer @63 pages = 1,168 B
-// manager + dedup table 4,096 B (512x8) + framers/decoder; host-measured
-// sizeof = 5,464 B); stack per feed() ~321 B (Message 288 B + Frame 33 B,
-// host-measured default config). ~5.8 KB recommended; min 712 B (AVR preset:
-// 4 pages / 1 buffer, dedup 64x8 = 512 B, Nankai/DCX off). For 2 KB targets keep
-// Nankai/DCX disabled; do not shrink AZARAC_DEDUP_SLOTS below the AVR preset's 64
-// without re-measuring (see azaraC_config.h for the measured error rates).
+// RAM: Parser obj ~5.4 KB (static, default: Nankai 1-buffer @63 pages = 1,168 B manager + dedup table 4,096 B (512x8) + framers/decoder; host-measured sizeof = 5,464 B); stack per feed() ~321 B (Message 288 B + Frame 33 B, host-measured default config). ~5.8 KB recommended; min 712 B (AVR preset: 4 pages / 1 buffer, dedup 64x8 = 512 B, Nankai/DCX off). For 2 KB targets keep Nankai/DCX disabled; do not shrink AZARAC_DEDUP_SLOTS below the AVR preset's 64 without re-measuring (see azaraC_config.h for the measured error rates).
 //
 class Parser {
 public:

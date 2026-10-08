@@ -336,8 +336,7 @@ TEST_CASE("Decoder: MT=44 EX8=1 (city code list mode)") {
     REQUIRE(mt44 != nullptr);
     CHECK(mt44->mt44_decoded.jalert_prefecture_mode == false);
     CHECK(mt44->mt44_decoded.city_code_count == 4);
-    // Verify all 4 codes are decoded in the exact ex9 bit layout order
-    // produced by decodeCityCodeList (ex9[0:15], ex9[16:31], ex9[32:47],
+    // Verify all 4 codes are decoded in the exact ex9 bit layout order produced by decodeCityCodeList (ex9[0:15], ex9[16:31], ex9[32:47],
     // ex9[48:63]). With the fixture below this yields [1101, 1100, 1103, 1102].
     CHECK(mt44->mt44_decoded.city_codes[0] == 1101);
     CHECK(mt44->mt44_decoded.city_codes[1] == 1100);
@@ -368,8 +367,7 @@ TEST_CASE("Decoder: MT=44 Outside Japan ex11_raw JSON output") {
     bool result = dec.decode(frame, msg, 0);
     REQUIRE(result);
 
-    // ex11_raw はビット 146..209 の 8 バイト + 210..213 の 4 ビットを hex 化した
-    // 17 文字。先頭バイトだけ 0xAB を入れてあるので、他の桁は 0 のままになる。
+    // ex11_raw はビット 146..209 の 8 バイト + 210..213 の 4 ビットを hex 化した 17 文字。先頭バイトだけ 0xAB を入れてあるので、他の桁は 0 のままになる。
     StringPrint sp;
     internal::JsonSerializer::serialize(msg, sp);
     const auto& s = sp.str();

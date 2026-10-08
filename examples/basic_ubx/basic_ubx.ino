@@ -12,14 +12,10 @@
 //   CFG-SIGNAL-QZSS_L1S_ENA        = 1
 //   CFG-UART1-BAUDRATE              = 9600
 
-// (AZARAC_DEDUP_SLOTS needs no override: the non-AVR default is 512 slots and
-//  the AVR preset already lowers it to 64 — see src/azaraC_config.h for the
-//  measured false-re-notification counts before shrinking it further.)
+// (AZARAC_DEDUP_SLOTS needs no override: the non-AVR default is 512 slots and the AVR preset already lowers it to 64 — see src/azaraC_config.h for the measured false-re-notification counts before shrinking it further.)
 
 // Arduino Uno (AVR) compatibility: the Uno has no Serial1 (single hardware
-// UART = Serial on pins 0/1), so the GNSS module connects to Serial and JSON
-// goes out the same port. Category reduction for the 32KB flash is applied
-// automatically by azaraC_config.h (AVR preset keeps SEISMIC/TSUNAMI only).
+// UART = Serial on pins 0/1), so the GNSS module connects to Serial and JSON goes out the same port. Category reduction for the 32KB flash is applied automatically by azaraC_config.h (AVR preset keeps SEISMIC/TSUNAMI only).
 #include <azaraC.h>
 
 
@@ -58,8 +54,7 @@ void loop() {
 
 
         // 第3引数now_unixにGNSSなどの時刻を渡すことで、DCR/DCX電文の「年」を正確に算出できます。
-        // 未同期時 (now_unix = 0) の場合、年は解決されませんが、
-        // 電文の生データ (月・日・時・分) は正しく取得・出力されます。
+        // 未同期時 (now_unix = 0) の場合、年は解決されませんが、電文の生データ (月・日・時・分) は正しく取得・出力されます。
         if (parser.feed(b, msg, cached_gnss_unix_time)) {
             azaraC::toJson(msg, Serial);
             Serial.println();

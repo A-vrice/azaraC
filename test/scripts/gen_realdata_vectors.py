@@ -31,9 +31,7 @@ from _common import (  # type: ignore[import-not-found]
 
 OUT_CPP = os.path.join(BASE, 'test', 'integration', 'test_realdata.cpp')
 
-# カテゴリ無効ビルド（make macro）では該当 dc の電文が DisabledAtCompileTime になり
-# デコードできない。生成物側にも #if ガードを出さないと、手で足したガードが
-# 再生成で消える。
+# カテゴリ無効ビルド（make macro）では該当 dc の電文が DisabledAtCompileTime になりデコードできない。生成物側にも #if ガードを出さないと、手で足したガードが再生成で消える。
 DISABLED_DC_MACROS = [
     (1, 'AZARAC_ENABLE_EEW'),
     (2, 'AZARAC_ENABLE_HYPOCENTER'),

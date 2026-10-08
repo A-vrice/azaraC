@@ -1,9 +1,7 @@
 #pragma once
 // 情報有効時間（手順④ 配信終了条件）: アプリケーションノートv2 原PDF p.26–27。
 //
-// Header-only so the Parser, the benchmark and test/tools/dedup_realday.cpp share
-// one table. A second copy would drift silently: the realday tool measures the
-// false re-notifications the Parser's windows produce.
+// Header-only so the Parser, the benchmark and test/tools/dedup_realday.cpp share one table. A second copy would drift silently: the realday tool measures the false re-notifications the Parser's windows produce.
 
 #include "../azaraC_config.h"
 #include "../Message.h"
@@ -11,15 +9,10 @@
 namespace azaraC {
 namespace internal {
 
-// 1 通に複数の副種別（気象の Ww、洪水の Lv、海上の Dw）が入る場合は「条件にて該当する
-// 情報の配信が終了する」ので、条件を満たす情報のうち最長の窓を採る: 窓を短くする誤りは
-// 「まだ生きている情報を新規として再通知する」側に倒れるため、長い側が安全。
+// 1 通に複数の副種別（気象の Ww、洪水の Lv、海上の Dw）が入る場合は「条件にて該当する情報の配信が終了する」ので、条件を満たす情報のうち最長の窓を採る: 窓を短くする誤りは「まだ生きている情報を新規として再通知する」側に倒れるため、長い側が安全。
 // fallback_ms は条件の無いカテゴリ（MT=44 CAMF、表に無い災害種別）に使う。
 //
-// 定数は必ず UL を付ける。AVR の unsigned int は 16 bit なので `60u*60u*1000u` は
-// 65536 で剰余を踏み（= 61056 ms）、`24u*60u*60u*1000u` も同様に（= 23552 ms）、
-// 全カテゴリの窓が 20〜61 秒に潰れる。ホストの pgm-stub は int が 32 bit なので
-// この欠陥を検出できない。
+// 定数は必ず UL を付ける。AVR の unsigned int は 16 bit なので `60u*60u*1000u` は 65536 で剰余を踏み（= 61056 ms）、`24u*60u*60u*1000u` も同様に（= 23552 ms）、全カテゴリの窓が 20〜61 秒に潰れる。ホストの pgm-stub は int が 32 bit なのでこの欠陥を検出できない。
 constexpr uint32_t kMinuteMs = 60UL * 1000UL;
 constexpr uint32_t kHourMs   = 60UL * kMinuteMs;
 constexpr uint32_t kDayMs    = 24UL * kHourMs;
@@ -44,8 +37,7 @@ constexpr uint32_t dedupWindowMs(uint32_t fallback_ms, uint8_t disaster_category
     case 8: return kDayMs;                                 // 火山 24 時間
     case 9: return kHourMs;                                // 降灰 最大 1 時間
     case 10: {                                             // 気象
-        // 24 時間は「発表状況 Ar=1（発表）」かつ「Ww が 1..6 or 23（特別警報系・
-        // 土砂災害警戒情報）」のときだけ。Ww=21/22（大雨・竜巻注意情報）や解除は 3 時間。
+        // 24 時間は「発表状況 Ar=1（発表）」かつ「Ww が 1..6 or 23（特別警報系・土砂災害警戒情報）」のときだけ。Ww=21/22（大雨・竜巻注意情報）や解除は 3 時間。
         const WeatherData* w = static_cast<const WeatherData*>(payload);
         bool special = false;
         for (uint8_t i = 0; w && i < w->count && i < 6; ++i) {
@@ -86,9 +78,7 @@ constexpr uint32_t dedupWindowMs(uint32_t fallback_ms, uint8_t disaster_category
     }
 }
 
-// 単位定数を固定する（AVR の 16 bit int での剰余を Arduino ジョブで落とす。pgm-stub は
-// int が 32 bit なので検出できない）。各 case はこの 3 定数と `NUL * 定数` だけで組み立てる
-// （関数自体は payload を cast するため定数式にはできず、static_assert から呼べない）。
+// 単位定数を固定する（AVR の 16 bit int での剰余を Arduino ジョブで落とす。pgm-stub は int が 32 bit なので検出できない）。各 case はこの 3 定数と `NUL * 定数` だけで組み立てる（関数自体は payload を cast するため定数式にはできず、static_assert から呼べない）。
 static_assert(kMinuteMs == 60000UL,    "1 minute must be exact on a 16-bit int");
 static_assert(kHourMs   == 3600000UL,   "1 hour must be exact on a 16-bit int");
 static_assert(kDayMs    == 86400000UL,  "1 day must be exact on a 16-bit int");

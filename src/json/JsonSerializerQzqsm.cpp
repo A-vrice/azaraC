@@ -19,8 +19,7 @@ namespace internal {
 
 #if (AZARAC_ENABLE_TSUNAMI) || (AZARAC_ENABLE_NW_PAC_TSUNAMI)
 // 12bit Ta から azarashi と同じ語彙の状態を返す。通常時刻なら nullptr。
-// 順序が本質: 範囲外チェックを先に置くと hour==30 の no_information が
-// 到達不能になる（30 > 23）。
+// 順序が本質: 範囲外チェックを先に置くと hour==30 の no_information が到達不能になる（30 > 23）。
 static const char* arrivalStatus(uint16_t raw, bool nwpac) {
     uint8_t day = (raw >> 11) & 1u, hour = (raw >> 6) & 0x1Fu, min = raw & 0x3Fu;
     if (hour == 31 && min == 63) return nwpac ? "arrived_or_unknown" : "arrival_estimated";

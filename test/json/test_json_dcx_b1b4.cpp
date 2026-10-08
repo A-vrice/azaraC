@@ -197,8 +197,7 @@ static std::string b4Json(uint8_t a4, uint16_t a18) {
 }
 
 TEST_CASE("JSON DCX B4: multi-field layouts emit the correct raw values") {
-    // Each A18 is assembled from the layout's (shift, width) so a wrong mapping
-    // (shift/width/field) changes the emitted raw value.
+    // Each A18 is assembled from the layout's (shift, width) so a wrong mapping (shift/width/field) changes the emitted raw value.
     // a4=64: D8(11,4) D9(8,3) D16(5,3) D11(2,3)
     {
         const std::string s = b4Json(64, (15u << 11) | (7u << 8) | (5u << 5) | (3u << 2));

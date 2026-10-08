@@ -337,9 +337,7 @@ TEST_CASE("Parser: stale NMEA partial data doesn't leak") {
     CHECK(mt43->disaster_category == 1);
 }
 
-// 手順③ の照合対象は MT～VN（フレーム bit 8..219 = 212 bit）で、付属フローチャートも
-// 「MT～Vnの212bitについて比較する」と明記する。プリアンブル（bit 0..7）は放送で
-// A(0x53)→B(0x9A)→C(0xC6) と巡回し、Reserved（bit 220..225）も 16 値が巡回する。
+// 手順③ の照合対象は MT～VN（フレーム bit 8..219 = 212 bit）で、付属フローチャートも「MT～Vnの212bitについて比較する」と明記する。プリアンブル（bit 0..7）は放送で A(0x53)→B(0x9A)→C(0xC6) と巡回し、Reserved（bit 220..225）も 16 値が巡回する。
 // どちらを含めても 1 情報が分裂するので、両方について 1 回通知を固定する。
 TEST_CASE("Parser: プリアンブル/Reserved が違っても同一 MT～VN は 1 回だけ通知される") {
     Parser parser;

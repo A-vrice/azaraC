@@ -240,10 +240,8 @@ KEY_MAPPING = {
 # ラベル対応表 (azarashi ラベル → azaraC _label フィールド)
 # azarashi のラベル文字列キーを azaraC の対応 _label キーと比較する。
 # 各値は候補パスのリスト。候補はスカラー (str) か リスト規則 (配列パス, フィールド名)。
-# メッセージ種別により azaraC の配置が異なるため複数候補を持つ場合がある
-# (例: local_governments は火山が data.local_govs[]、降灰が data.entries[].local_gov_label)。
-# いずれかの候補が存在し一致すれば OK。候補が全て不在の場合は比較をスキップする
-# (azarashi のみが持つ構造的フィールド。ラベルバグではない)。
+# メッセージ種別により azaraC の配置が異なるため複数候補を持つ場合がある (例: local_governments は火山が data.local_govs[]、降灰が data.entries[].local_gov_label)。
+# いずれかの候補が存在し一致すれば OK。候補が全て不在の場合は比較をスキップする (azarashi のみが持つ構造的フィールド。ラベルバグではない)。
 LABEL_MAPPING = {
     "report_classification": ["report_classification_label"],
     "disaster_category": ["disaster_category_label"],

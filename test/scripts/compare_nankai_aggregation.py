@@ -80,8 +80,7 @@ def main():
     print("=== azaraC decode_to_json aggregation verification ===")
     input_text = "\n".join(nmeas[n] for n in range(1, total + 1)) + "\n"
     try:
-        # check=False: 失敗時は returncode と stderr を自前で整形して報告する
-        # （CalledProcessError にスタックトレースを出させない）。
+        # check=False: 失敗時は returncode と stderr を自前で整形して報告する（CalledProcessError にスタックトレースを出させない）。
         result = subprocess.run(
             [AZARAC_BIN], input=input_text, capture_output=True, text=True,
             timeout=30, encoding='utf-8', errors='replace', check=False)

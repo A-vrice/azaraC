@@ -85,8 +85,7 @@ TEST_CASE("CRC-24Q: known-answer check value (72-bit)") {
 }
 
 TEST_CASE("CRC-24Q: known-answer 226-bit messages") {
-    // Values computed by independent bit-wise LFSR CRC-24Q (Python) and
-    // cross-verified against azarashi and crc24qRef byte-wise implementation.
+    // Values computed by independent bit-wise LFSR CRC-24Q (Python) and cross-verified against azarashi and crc24qRef byte-wise implementation.
     // Both implementations agree.
     {
         INFO("all-zero 226-bit");
@@ -696,8 +695,7 @@ TEST_CASE("DedupFilter: 異なるmsg_typeは別情報") {
 }
 
 TEST_CASE("DedupFilter: 事象トークンの鍵は電文の鍵と衝突しない") {
-    // 南海トラフの集約結果はイベント自身のトークンで識別する。同じ数値を持つ
-    // 電文鍵とは別の情報として扱われなければならない（タグで名前空間を分ける）。
+    // 南海トラフの集約結果はイベント自身のトークンで識別する。同じ数値を持つ電文鍵とは別の情報として扱われなければならない（タグで名前空間を分ける）。
     DedupFilter filter;
     const uint32_t token = 0x123456;
 
@@ -772,8 +770,7 @@ TEST_CASE("DedupFilter: ウィンドウ境界では重複のまま") {
 }
 
 TEST_CASE("DedupFilter: 再受信のたびに情報有効時間が更新される") {
-    // 「情報有効時間は、重複した場合にも更新され、最後に同情報を受信してから
-    //   一定時間有効とする」— 最後に受信した時刻を基準に判定する必要がある。
+    // 「情報有効時間は、重複した場合にも更新され、最後に同情報を受信してから一定時間有効とする」— 最後に受信した時刻を基準に判定する必要がある。
     DedupFilter filter;
     DedupKey key{43, 0xABCDEF};
 
@@ -788,8 +785,7 @@ TEST_CASE("DedupFilter: 再受信のたびに情報有効時間が更新され�
 
 TEST_CASE("DedupFilter: 直近に受信した情報は容量超過後も重複と判定される") {
     // 満杯時に捨てるのは最も古い情報であり、直近のものではない。
-    // （巡回リングで新着を捨てる実装や、古いエントリが固定される実装は
-    //   通知済みの情報を再通知することになる）
+    // （巡回リングで新着を捨てる実装や、古いエントリが固定される実装は通知済みの情報を再通知することになる）
     DedupFilter filter;
     const int recent = AZARAC_DEDUP_WAYS;
     const int churn  = 4 * AZARAC_DEDUP_SLOTS;
@@ -805,13 +801,10 @@ TEST_CASE("DedupFilter: 直近に受信した情報は容量超過後も重複�
 }
 
 TEST_CASE("DedupFilter: 32bit 時刻のラップをまたぐ victim 選択") {
-    // last_seen_ms は uint32 ミリ秒で 49.7 日周期。同一セット内の2エントリの
-    // 差が 2^31 ms（約 24.8 日）を超えると、生の時刻を int32 で引く実装は
-    // 新しい方を「古い」と誤認し、生きている情報を追い出して再通知させる。
+    // last_seen_ms は uint32 ミリ秒で 49.7 日周期。同一セット内の2エントリの差が 2^31 ms（約 24.8 日）を超えると、生の時刻を int32 で引く実装は新しい方を「古い」と誤認し、生きている情報を追い出して再通知させる。
     // unsigned 差で比較する現行実装は、24.8 日を超える差でも順序が保たれる。
     //
-    // 再現: 同一セットに「34.7 日前のエントリ」と「直近のエントリ」を置き、
-    // 新規鍵を入れる。誤実装は直近エントリを追い出す。
+    // 再現: 同一セットに「34.7 日前のエントリ」と「直近のエントリ」を置き、新規鍵を入れる。誤実装は直近エントリを追い出す。
     static_assert(DEDUP_SETS > 1, "need multiple sets to isolate a collision");
 
     // Dedup.cpp の setIndexOf と同じ折り畳み（同ファイルでは static なので再現）。
@@ -843,15 +836,13 @@ TEST_CASE("DedupFilter: 32bit 時刻のラップをまたぐ victim 選択") {
     // 直近のエントリを追加（空き way に入る）。
     CHECK_FALSE(filter.isDuplicate(keys[0], recent_ms, DEDUP_TEST_WINDOW));
 
-    // 新規鍵を入れる。セットが満杯なので最も古い1件だけが追い出されるべきで、
-    // 直近の keys[0] は残らねばならない。
+    // 新規鍵を入れる。セットが満杯なので最も古い1件だけが追い出されるべきで、直近の keys[0] は残らねばならない。
     CHECK_FALSE(filter.isDuplicate(keys[DEDUP_WAYS], recent_ms + 1000, DEDUP_TEST_WINDOW));
     CHECK(filter.isDuplicate(keys[0], recent_ms + 2000, DEDUP_TEST_WINDOW));
 }
 
 TEST_CASE("DedupFilter: msg_type が違っても内容が同じなら区別される") {
-    // 鍵は {msg_type, crc24} の両方。上位ビットに msg_type を埋める実装で
-    // 取り違えがないことを確認する。
+    // 鍵は {msg_type, crc24} の両方。上位ビットに msg_type を埋める実装で取り違えがないことを確認する。
     DedupFilter filter;
     const DedupKey legacy{28, 0x000003};   // 0x1C000003 相当
     const DedupKey wide{43, 0x000000};     // 0x2B000000 相当
@@ -897,5 +888,4 @@ TEST_CASE("Memory: sizeof guards for embedded targets") {
 #endif
 }
 
-// CHECK 無しのスモークはここには置かない。クラッシュを検出できないためで
-// （CI は sanitizer 無しでビルドする）、実ファズは test/fuzz/fuzz_decoder.cpp（make fuzz）。
+// CHECK 無しのスモークはここには置かない。クラッシュを検出できないためで（CI は sanitizer 無しでビルドする）、実ファズは test/fuzz/fuzz_decoder.cpp（make fuzz）。

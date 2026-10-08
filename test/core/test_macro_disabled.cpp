@@ -4,11 +4,9 @@
 // 各テストは #if !(AZARAC_ENABLE_XXX) ガードで囲まれている。
 // マクロ有効時は TEST_CASE 定義ごと消える（恒常 PASS する空テストを残さない）。
 //
-// このファイルを個別のマクロ無効化ビルドでコンパイルすることで、
-// 無効化されたデコーダが正しくエラーを返すことを検証する。
+// このファイルを個別のマクロ無効化ビルドでコンパイルすることで、無効化されたデコーダが正しくエラーを返すことを検証する。
 //
-// 全 13 マクロの一括テスト
-//   make macro
+// 全 13 マクロの一括テスト make macro
 
 #include "../test_helpers.h"
 #include "doctest.h"
@@ -17,8 +15,7 @@ using namespace azaraC;
 
 // ヘルパー: 無効マクロテスト共通パターン
 
-// DCR カテゴリメッセージを生成し、マクロ無効化時に拒否されることを検証
-// disaster_category: DCR の災害カテゴリ（1-14）
+// DCR カテゴリメッセージを生成し、マクロ無効化時に拒否されることを検証 disaster_category: DCR の災害カテゴリ（1-14）
 // [[maybe_unused]]: デフォルトビルド（全マクロ有効）では参照されないため
 [[maybe_unused]] static void testDisabledDcrCategory(uint8_t disaster_category) {
     uint8_t bits[32] = {};

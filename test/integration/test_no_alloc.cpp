@@ -1,19 +1,12 @@
 // test/integration/test_no_alloc.cpp — ライブラリが動的確保を行わないことの検証
 //
-// 公開 API（Parser::feed / toJson）が malloc/calloc/realloc/posix_memalign と
-// operator new/new[] を一切呼ばないことを、リンカの --wrap で計測した生カウンタで
-// 検証する。Valgrind Massif と違い「ライブラリ自身の確保が 0 か」を直接示す。
+// 公開 API（Parser::feed / toJson）が malloc/calloc/realloc/posix_memalign と operator new/new[] を一切呼ばないことを、リンカの --wrap で計測した生カウンタで検証する。Valgrind Massif と違い「ライブラリ自身の確保が 0 か」を直接示す。
 //
-// --wrap の制約: 未解決参照のみ差し替える。計測区間（snapshot〜delta）は
-// ライブラリ呼び出しの前後だけに置き、テスト基盤（doctest / std::string など）の
-// 確保を混ぜない。このファイル内の std::string 使用は計測区間外に限る。
+// --wrap の制約: 未解決参照のみ差し替える。計測区間（snapshot〜delta）はライブラリ呼び出しの前後だけに置き、テスト基盤（doctest / std::string など）の確保を混ぜない。このファイル内の std::string 使用は計測区間外に限る。
 //
-// 出力が空になる構成（該当カテゴリが AZARAC_ENABLE_*=0）でも計測が空回りしない
-// よう、「この構成で必ずデコードできる」電文を #if で選ぶ。全カテゴリが無効な
-// 構成では JSON 出力の確認をスキップする（確保ゼロの assert は常に生きる）。
+// 出力が空になる構成（該当カテゴリが AZARAC_ENABLE_*=0）でも計測が空回りしないよう、「この構成で必ずデコードできる」電文を #if で選ぶ。全カテゴリが無効な構成では JSON 出力の確認をスキップする（確保ゼロの assert は常に生きる）。
 //
-// ホストビルド専用（test/Makefile の test-no-alloc）。GNU ld の --wrap が必要で、
-// macOS の ld64 では利用できない。
+// ホストビルド専用（test/Makefile の test-no-alloc）。GNU ld の --wrap が必要で、 macOS の ld64 では利用できない。
 
 #include "../test_helpers.h"
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
@@ -46,9 +39,7 @@ int __wrap_posix_memalign(void** out, size_t align, size_t size) {
 }
 }
 
-// --- operator new / new[] も置換してカウントする。本体が std::malloc を明示的に
-// 呼ぶため、置換した new 経由の 1 回の確保は __wrap_malloc でも数えられ 2 回加算
-// される（テストは >= 1 しか要求しない）。---
+// --- operator new / new[] も置換してカウントする。本体が std::malloc を明示的に呼ぶため、置換した new 経由の 1 回の確保は __wrap_malloc でも数えられ 2 回加算される（テストは >= 1 しか要求しない）。---
 void* operator new(size_t size) {
     ++noalloc::g_allocs;
     void* p = std::malloc(size ? size : 1);

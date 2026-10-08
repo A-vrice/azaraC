@@ -1,7 +1,6 @@
 // azaraC — examples/wifi_client/wifi_client.ino
 //
-// Wi-FiクライアントとしてJSONメッセージをTCPサーバーに送信する例
-// MQTTブローカーやHTTPエンドポイントにメッセージを転送する用途に適する
+// Wi-FiクライアントとしてJSONメッセージをTCPサーバーに送信する例 MQTTブローカーやHTTPエンドポイントにメッセージを転送する用途に適する
 //
 // 必要な設定:
 //   - WIFI_SSID: Wi-Fiネットワーク名

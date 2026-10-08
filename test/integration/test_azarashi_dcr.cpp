@@ -22,8 +22,7 @@ static bool hasField(const std::string& s, const std::string& key_val) {
 
 // Vn（Version Number）— 6bit at [214..219]、仕様は 1 を要求
 //
-// decodeQzqsm は Vn != 1 を UnsupportedVersion として拒否する。保持された値は
-// 「フィールドが無い」ではなく「1 だった」ことを示すために出力する。
+// decodeQzqsm は Vn != 1 を UnsupportedVersion として拒否する。保持された値は「フィールドが無い」ではなく「1 だった」ことを示すために出力する。
 // 電文が EEW なので EEW 無効時は decode が通らない（＝検証対象外）。
 
 #if (AZARAC_ENABLE_EEW)
@@ -257,8 +256,7 @@ TEST_CASE("DCR: EEW Long Period Ground Motion - exhaustive") {
 
 #if (AZARAC_ENABLE_TSUNAMI)
 TEST_CASE("DCR: Tsunami arrival time boundary - arrived (hour=31, min=63)") {
-    // 津波が既に到達した場合: azaraCではhour/minuteを0にクリアし、unix_timeも0にする
-    // これは仕様書の「到達済み」フラグを正しく処理している
+    // 津波が既に到達した場合: azaraCではhour/minuteを0にクリアし、unix_timeも0にするこれは仕様書の「到達済み」フラグを正しく処理している
     uint8_t bits[32] = {};
     Message msg{};
 

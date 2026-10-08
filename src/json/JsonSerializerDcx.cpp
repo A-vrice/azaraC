@@ -81,8 +81,7 @@ void serializeDcx(const Message& m, Print& out) {
     // A11 Guidance to react library
     // IS-QZSS-DCX-004 §4.2.3.9 Table 4.2-12 / EWSS CAMF v1.1 §3.5.3, §11:
     // A11 は List A 5bit (a11 >> 5) と List B 5bit (a11 & 0x1F) の2コード。
-    // 国際表 (A9=0) は List A / List B を別々に引く。日本の表は 10bit を鍵に
-    // した結合表なので1本で足りる（List B は null）。
+    // 国際表 (A9=0) は List A / List B を別々に引く。日本の表は 10bit を鍵にした結合表なので1本で足りる（List B は null）。
     wf_u(out, "a11_guidance", d->camf.a11);
     std::optional<std::string_view> a11_b;
     if (d->camf.a9 == 0) {

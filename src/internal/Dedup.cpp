@@ -3,10 +3,7 @@
 namespace azaraC {
 namespace internal {
 
-// Set index from the packed content. DEDUP_SETS is a power of two, so the index is
-// the low log2(DEDUP_SETS) bits after folding the CRC down onto itself. Both shifts
-// stay below 24, so the fold is well defined for every legal AZARAC_DEDUP_SETS
-// (shifting by DEDUP_SETS/2, the previous form, is undefined once DEDUP_SETS >= 64).
+// Set index from the packed content. DEDUP_SETS is a power of two, so the index is the low log2(DEDUP_SETS) bits after folding the CRC down onto itself. Both shifts stay below 24, so the fold is well defined for every legal AZARAC_DEDUP_SETS (shifting by DEDUP_SETS/2, the previous form, is undefined once DEDUP_SETS >= 64).
 static inline uint16_t setIndexOf(uint32_t content) {
     uint32_t h = content & 0xFFFFFFu;
     h ^= h >> 8;
@@ -26,10 +23,7 @@ bool DedupFilter::isDuplicate(const DedupKey& key, uint32_t now_ms, uint32_t win
             if (!free_slot) free_slot = &e;
             continue;
         }
-        // Age from now, unsigned: correct across the 49.7-day rollover of
-        // millis() and for gaps beyond 2^31 ms. Comparing last_seen_ms values
-        // against each other wraps once the two entries are >24.8 days apart,
-        // and then picks the live entry as the victim.
+        // Age from now, unsigned: correct across the 49.7-day rollover of millis() and for gaps beyond 2^31 ms. Comparing last_seen_ms values against each other wraps once the two entries are >24.8 days apart, and then picks the live entry as the victim.
         if ((uint32_t)(now_ms - e.last_seen_ms) > (uint32_t)(now_ms - oldest->last_seen_ms)) oldest = &e;
         if (e.content != content) continue;
         if ((uint32_t)(now_ms - e.last_seen_ms) <= window_ms) {
@@ -41,9 +35,7 @@ bool DedupFilter::isDuplicate(const DedupKey& key, uint32_t now_ms, uint32_t win
         return false;
     }
 
-    // Not tracked: take a free way, or replace the least recently seen one
-    // (a uniform ring would drop the newest information instead, which
-    // re-announces a live alert and keeps a stale one).
+    // Not tracked: take a free way, or replace the least recently seen one (a uniform ring would drop the newest information instead, which re-announces a live alert and keeps a stale one).
     Entry& e = free_slot ? *free_slot : *oldest;
     e.content = content;
     e.last_seen_ms = now_ms;

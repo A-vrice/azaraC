@@ -17,8 +17,7 @@ namespace internal {
 //   [43..46]  reserved / sub-type start
 //   [214..219] version (6b) — must be 1
 // Sub-type layouts per IS-QZSS-DCR-017 §4.1.2.3.
-// Single authoritative category table: X(code, enable_macro, sub_decoder) drives
-// the support check, known-category classification, and dispatch in decodeQzqsm().
+// Single authoritative category table: X(code, enable_macro, sub_decoder) drives the support check, known-category classification, and dispatch in decodeQzqsm().
 // Change categories here only.
 #define AZARAC_DC_CATEGORIES(X) \
     X(1,  AZARAC_ENABLE_EEW,          decodeEEW)        \
@@ -40,8 +39,7 @@ bool Decoder::decodeQzqsm(const uint8_t* bits, Message& out, uint32_t report_uni
         return false;
     }
 
-    // Support check from AZARAC_DC_CATEGORIES; each guard is a constant (0/1),
-    // so a disabled category reads category_supported = false.
+    // Support check from AZARAC_DC_CATEGORIES; each guard is a constant (0/1), so a disabled category reads category_supported = false.
     uint8_t dc_probe = getBits(bits, 17, 4);
     bool category_supported = false;
     bool decoded = false;

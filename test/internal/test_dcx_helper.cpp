@@ -1,6 +1,4 @@
-// test/internal/test_dcx_helper.cpp — DcxHelper 境界値単体テスト
-// decodeLatitude16, decodeLongitude17, decodeRadiusCode, decodeAzimuth6/7 の
-// 境界値および既知値を検証する。
+// test/internal/test_dcx_helper.cpp — DcxHelper 境界値単体テスト decodeLatitude16, decodeLongitude17, decodeRadiusCode, decodeAzimuth6/7 の境界値および既知値を検証する。
 
 #define ARDUINO 0
 #include "../src/internal/DcxHelper.h"

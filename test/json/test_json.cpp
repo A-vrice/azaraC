@@ -19,9 +19,7 @@ static bool has(const std::string& s, const std::string& sub) {
     return s.find(sub) != std::string::npos;
 }
 
-// ラベルはビルド時に選んだ言語で出力される。これらのテストが検証するのは
-// コード→ラベルの対応（S1-lookup 回帰）なので、言語ごとの期待値を持たせて
-// どの構成でも意味を保つ。
+// ラベルはビルド時に選んだ言語で出力される。これらのテストが検証するのはコード→ラベルの対応（S1-lookup 回帰）なので、言語ごとの期待値を持たせてどの構成でも意味を保つ。
 #if AZARAC_LANG_JA
 #  define LBL(ja, en) ja
 #elif AZARAC_LANG_EN
@@ -157,8 +155,7 @@ TEST_CASE("JSON Serialization: MT=44 DCX J-Alert") {
     CHECK(s.find("prefecture_mode") == std::string::npos);
     CHECK(s.find("prefecture_positions") == std::string::npos);
     CHECK(s.find("prefecture_labels") == std::string::npos);
-    // Regression: ex_vn must be preceded by a comma after the array close
-    // (was "]\"ex_vn\"" — invalid JSON). See bugfix: JAlert JSON missing comma.
+    // Regression: ex_vn must be preceded by a comma after the array close (was "]\"ex_vn\"" — invalid JSON). See bugfix: JAlert JSON missing comma.
     CHECK(s.find("],\"ex_vn\"") != std::string::npos);
     CHECK(s.find("]\"ex_vn\"") == std::string::npos);
 }
@@ -291,8 +288,7 @@ TEST_CASE("JSON Serialization: MT=44 DCX main ellipse") {
 // MT=43 DCR JSON 出力テスト
 
 TEST_CASE("JSON v2: svid is the raw PRN, no svid_label") {
-    // フレーマは svid を PRN（128–191）に正規化して入れる。v2 はそれをそのまま
-    // 出し、ラベルは付けない（読み手は PRN から自分で引く）。
+    // フレーマは svid を PRN（128–191）に正規化して入れる。v2 はそれをそのまま出し、ラベルは付けない（読み手は PRN から自分で引く）。
     Message m{};
     initMt43As(m, 1);
 
@@ -344,8 +340,7 @@ TEST_CASE("JSON Serialization: MT=43 EEW") {
 #endif // AZARAC_ENABLE_EEW
 
 // _label_en は _label と別言語のラベルを併記する。両言語 ON のときだけ出る。
-// AZARAC_LANG_EN 単独でガードすると JA=0/EN=1 でも走り、その構成では
-// _label が EN になるため JA 前提の期待値が成立しない。
+// AZARAC_LANG_EN 単独でガードすると JA=0/EN=1 でも走り、その構成では _label が EN になるため JA 前提の期待値が成立しない。
 #if (AZARAC_ENABLE_EEW) && (AZARAC_LANG_JA) && (AZARAC_LANG_EN)
 TEST_CASE("JSON Serialization: label_en is emitted when both languages are on") {
     Message m{};
@@ -372,9 +367,7 @@ TEST_CASE("JSON Serialization: label_en is emitted when both languages are on") 
 // 数量コードの境界値とセンチネルがラベルとして可視化されること。
 // 501/101 は「境界超過」、511/127 は「不明」で、生コード値だけでは利用者が判別できない。
 #if (AZARAC_ENABLE_EEW)
-// 両言語とも無効な構成では LBL が "" を返し、hasLabel(..., "") が常に真になる
-// （空振り通過）。その構成ではラベル自体が出力されないため検証対象が無く、
-// テストごとコンパイルしない。
+// 両言語とも無効な構成では LBL が "" を返し、hasLabel(..., "") が常に真になる（空振り通過）。その構成ではラベル自体が出力されないため検証対象が無く、テストごとコンパイルしない。
 #if (AZARAC_LANG_JA) || (AZARAC_LANG_EN)
 TEST_CASE("JSON Serialization: quantity labels expose bounds and sentinels") {
     Message m{};
@@ -487,8 +480,7 @@ TEST_CASE("JSON Serialization: hypocenter quantity labels expose bounds and sent
     REQUIRE(hypo != nullptr);
     hypo->epicenter = 791;   // 既存テストと同じ値。epicenter_label を非空に保つ
 
-    // depth は EEW と同じ depth_of_hypocenter テーブル。実ガードは
-    // (EEW || HYPOCENTER || NW_PAC_TSUNAMI) なので、EEW=0 構成でも
+    // depth は EEW と同じ depth_of_hypocenter テーブル。実ガードは (EEW || HYPOCENTER || NW_PAC_TSUNAMI) なので、EEW=0 構成でも
     // Hypocenter 側で境界とセンチネルを検証できる。
     hypo->depth = 501;       // 500km より深い
     hypo->magnitude = 126;   // 不明(8.0より大きい) — Hypocenter 専用の境界マーカー
@@ -852,8 +844,7 @@ TEST_CASE("JSON Serialization: Balanced braces/brackets") {
             prev = c;
         }
         CHECK_MESSAGE((brace == 0 && bracket == 0), "json=", s.c_str());
-        // Missing-comma guard: a closing bracket/brace must not be immediately
-        // followed by a key's opening quote (would be "]\"key\"" / "}\"key\"").
+        // Missing-comma guard: a closing bracket/brace must not be immediately followed by a key's opening quote (would be "]\"key\"" / "}\"key\"").
         // Regression for the JAlert prefecture_labels/city_labels comma bug.
         for (size_t i = 1; i < s.size(); ++i) {
             if ((s[i-1] == ']' || s[i-1] == '}') && s[i] == '"') {
@@ -863,8 +854,7 @@ TEST_CASE("JSON Serialization: Balanced braces/brackets") {
             }
         }
         // Double-comma guard: a field separator must not be doubled (",,").
-        // Catches a field emitted with a trailing comma before a closing brace
-        // that is itself followed by another comma.
+        // Catches a field emitted with a trailing comma before a closing brace that is itself followed by another comma.
         for (size_t i = 1; i < s.size(); ++i) {
             if (s[i-1] == ',' && s[i] == ',') {
                 const std::string msg = "double comma at idx "
@@ -872,9 +862,7 @@ TEST_CASE("JSON Serialization: Balanced braces/brackets") {
                 FAIL(msg.c_str());
             }
         }
-        // Trailing-comma guard: a comma must not precede a closing brace/bracket
-        // (",}" / ",]"). JSON forbids trailing commas in objects/arrays. Catches
-        // a field emitted with last=false immediately before its closing brace.
+        // Trailing-comma guard: a comma must not precede a closing brace/bracket (",}" / ",]"). JSON forbids trailing commas in objects/arrays. Catches a field emitted with last=false immediately before its closing brace.
         for (size_t i = 1; i < s.size(); ++i) {
             if (s[i-1] == ',' && (s[i] == '}' || s[i] == ']')) {
                 const std::string msg = "trailing comma before closing at idx "
@@ -937,8 +925,7 @@ TEST_CASE("JSON Serialization: Balanced braces/brackets") {
 #endif // AZARAC_ENABLE_DCX_CAMF
 #if (AZARAC_ENABLE_DCX_CAMF)
     SUBCASE("MT=44 JAlert real vector (47 prefectures)") {
-        // 実データ: J-Alert Missile Attack, 全47都道府県 (test_azarashi_dcx.cpp と同一ベクタ)
-        // decodeNmea は DCX デコードを呼ぶため AZARAC_ENABLE_DCX_CAMF 依存。
+        // 実データ: J-Alert Missile Attack, 全47都道府県 (test_azarashi_dcx.cpp と同一ベクタ) decodeNmea は DCX デコードを呼ぶため AZARAC_ENABLE_DCX_CAMF 依存。
         // ガードしないと macro-off (DCX_CAMF=0) で decodeNmea が false になり CI が落ちる。
         Message msg{};
         REQUIRE(decodeNmea(
@@ -1153,11 +1140,8 @@ TEST_CASE("JSON Serialization: MT=44 zero-value fields output") {
     CHECK(hasField(s, "\"a11_guidance\":0"));
 }
 
-// a11=0 は「定義済みの空ラベル」であって欠落ではない。AVR と非AVRは同じ
-// 結果でなければならない: 空の JSON 文字列であって null ではない。
-// v2 の 3 値規則では `""` = 表に当たったがラベルが空、`null` = 表に無い /
-// 表が無い。区別するのは test/internal/test_definition_labels.cpp の lookup
-// レベルの検査。ここは JSON 出力での回帰ガード。
+// a11=0 は「定義済みの空ラベル」であって欠落ではない。AVR と非AVRは同じ結果でなければならない: 空の JSON 文字列であって null ではない。
+// v2 の 3 値規則では `""` = 表に当たったがラベルが空、`null` = 表に無い / 表が無い。区別するのは test/internal/test_definition_labels.cpp の lookup レベルの検査。ここは JSON 出力での回帰ガード。
 TEST_CASE("JSON Serialization: a11 empty label is present, not absent") {
     Message m{};
     m.svid = 193; m.crc24 = 0xABCDEF;
@@ -1190,8 +1174,7 @@ TEST_CASE("JSON Serialization: a11 empty label is present, not absent") {
 }
 
 // IS-QZSS-DCX-004 §4.2.3.9 Table 4.2-12 / EWSS CAMF v1.1 §3.5.3, §11: A9=0 は
-// International library。A11 は List A 5bit (a11 >> 5) と List B 5bit
-// (a11 & 0x1F) の2コードで、それぞれ別の表を引く。
+// International library。A11 は List A 5bit (a11 >> 5) と List B 5bit (a11 & 0x1F) の2コードで、それぞれ別の表を引く。
 TEST_CASE("JSON Serialization: A9=0 uses the international library") {
     auto jsonFor = [](uint16_t a11) {
         Message m{};
@@ -1224,8 +1207,7 @@ TEST_CASE("JSON Serialization: A9=0 uses the international library") {
     const char* const listB1 =
         "Check with the weather services and local authorities for additional information";
 
-    // a11=1 → List A=0 / List B=1。国際表のコード 0 は List A / List B とも
-    // 定義済みの空ラベル（null ではない）。
+    // a11=1 → List A=0 / List B=1。国際表のコード 0 は List A / List B とも定義済みの空ラベル（null ではない）。
     {
         const std::string s = jsonFor(1);
         CHECK(hasField(s, "\"a11_guidance_label\":\"\""));
@@ -1233,8 +1215,7 @@ TEST_CASE("JSON Serialization: A9=0 uses the international library") {
         CHECK_FALSE(has(s, "a11_guidance_label_en"));
         CHECK_FALSE(has(s, "a11_guidance_list_b_label_en"));
     }
-    // a11=33 → List A=1 / List B=1。List B を List A として出していないことを
-    // 同一 JSON の 2 値で検出する。
+    // a11=33 → List A=1 / List B=1。List B を List A として出していないことを同一 JSON の 2 値で検出する。
     {
         const std::string s = jsonFor(33);
         CHECK(hasField(s, std::string("\"a11_guidance_label\":\"") + listA1 + "\""));
@@ -1293,8 +1274,7 @@ TEST_CASE("JSON Serialization: A9=1 outside Japan has no country library") {
     mt44->camf.a6 = 1; mt44->camf.a7 = 1; mt44->camf.a8 = 1;
     mt44->camf.a9 = 1;   // Country/region library
     mt44->camf.a10 = 1;
-    // 1 は International library では「You are in the danger zone…」。A2≠111 で
-    // 表を引いていないこと（空になること）を区別できるよう、範囲内のコードを使う。
+    // 1 は International library では「You are in the danger zone…」。A2≠111 で表を引いていないこと（空になること）を区別できるよう、範囲内のコードを使う。
     mt44->camf.a11 = 1;
     mt44->ex_lalert_local.ex1 = 1100;
     mt44->ex_lalert_local.vn = 1;
@@ -1310,8 +1290,7 @@ TEST_CASE("JSON Serialization: A9=1 outside Japan has no country library") {
     CHECK_FALSE(has(s, "You are in the danger zone"));
 }
 
-// 実データ (J-Alert, a2=111 / a9=1 / a10=0 / a11=136) で国/地域 library の
-// 日本語ラベルが出る。
+// 実データ (J-Alert, a2=111 / a9=1 / a10=0 / a11=136) で国/地域 library の日本語ラベルが出る。
 TEST_CASE("JSON Serialization: real J-Alert resolves the A11 country library label") {
     Message msg{};
     REQUIRE(decodeNmea(

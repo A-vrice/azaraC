@@ -15,8 +15,7 @@ static std::vector<uint8_t> makeUbxSfrbxGnssId(uint8_t gnssId, uint8_t svId, con
     auto pkt = makeUbxSfrbx(static_cast<uint8_t>(svId + 182), nav_bits);
     // gnssId フィールドはペイロード先頭バイト（offset 6 from sync）
     // UBX header(6) + SFRBX payload hdr(8) の構造:
-    // [B5][62][02][13][len_lo][len_hi][gnssId][svId][sigId][freqId][numWords][chn][ver][reserved]
-    // gnssId は index 6 (=全体の7バイト目)
+    // [B5][62][02][13][len_lo][len_hi][gnssId][svId][sigId][freqId][numWords][chn][ver][reserved] gnssId は index 6 (=全体の7バイト目)
     pkt[6] = gnssId;
     // Checksum は変更されたバイトに対して再計算
     uint8_t cka = 0, ckb = 0;

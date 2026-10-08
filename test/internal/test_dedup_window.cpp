@@ -1,13 +1,9 @@
 // test/internal/test_dedup_window.cpp — 情報有効時間（手順④）のカテゴリ別窓
 //
-// DedupWindow.h の条件表は「その情報がまだ配信中か」を決める唯一の場所で、
-// 窓を短くする誤りは生きた警報の再通知（dedup の重複除去が効かない）に直結する。
-// 表の値をカテゴリ・副条件ごとに固定し、payload を渡さない経路（該当型が
-// 無効/未設定）でもクラッシュせず fallback に落ちることを確かめる。
+// DedupWindow.h の条件表は「その情報がまだ配信中か」を決める唯一の場所で、窓を短くする誤りは生きた警報の再通知（dedup の重複除去が効かない）に直結する。
+// 表の値をカテゴリ・副条件ごとに固定し、payload を渡さない経路（該当型が無効/未設定）でもクラッシュせず fallback に落ちることを確かめる。
 //
-// Parser::handleFrame も併せて検証する。custom framer 経路（feed が false）と
-// デコード失敗経路は、out に前回の有効メッセージが残ったままにならない契約
-// （decode 失敗時は空の Message を丸ごとコピーする）を負っている。
+// Parser::handleFrame も併せて検証する。custom framer 経路（feed が false）とデコード失敗経路は、out に前回の有効メッセージが残ったままにならない契約（decode 失敗時は空の Message を丸ごとコピーする）を負っている。
 
 #define ARDUINO 0
 #include "../src/Parser.h"
@@ -188,9 +184,7 @@ TEST_CASE("dedup window: Message overload routes MT43 payload and MT44 fallback"
 #endif
     // Mt43 でも payload 未設定の型は nullptr 経由（クラッシュせず 10 時間）
     CHECK(windowViaMessage(5, 0, Mt43Data::ActiveType::None) == 10UL * HR);
-    // Weather/Flood/Marine は payload を実際に埋めて条件分岐を通す（active_type だけ
-    // 設定した経路は payload が未設定＝nullptr で表の既定値が返るため、条件が壊れて
-    // いても検出できない）。
+    // Weather/Flood/Marine は payload を実際に埋めて条件分岐を通す（active_type だけ設定した経路は payload が未設定＝nullptr で表の既定値が返るため、条件が壊れていても検出できない）。
 #if AZARAC_ENABLE_WEATHER
     {   // Weather: payload を実際に埋め、条件成立で DAY に伸びることを確認
         Message m{};

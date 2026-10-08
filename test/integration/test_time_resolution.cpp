@@ -1,7 +1,6 @@
 // test/integration/test_time_resolution.cpp
 // report_unix 時刻解決の統合テスト
-// decodeNmea ヘルパーに report_unix を渡し、resolveTime が正しく
-// unix_time を解決することを検証する。
+// decodeNmea ヘルパーに report_unix を渡し、resolveTime が正しく unix_time を解決することを検証する。
 
 #include "../test_helpers.h"
 #include "doctest.h"
@@ -33,8 +32,7 @@ TEST_CASE("Time: resolveTime with year boundary crossing") {
 
 TEST_CASE("Time: resolveTime DHM month-end event (base Jan 31, day 15)") {
     // extractDHM は過去のイベント時刻専用。base = 2024-01-31。
-    // day=15 の最寄りは Feb 15（15日後）だが、マージン(3日)を超えるため stale →
-    // 過去の直近発生 Jan 15 にフォールバック。旧 ±15 は Feb 15 と誤判定していた。
+    // day=15 の最寄りは Feb 15（15日後）だが、マージン(3日)を超えるため stale → 過去の直近発生 Jan 15 にフォールバック。旧 ±15 は Feb 15 と誤判定していた。
     uint32_t now = daysFromCivil(2024, 1, 31) * 86400u;
     TimeFields t = TestDecoder::testResolveTime(0, 15, 0, 0, now);
     CHECK(t.month == 1);
@@ -51,8 +49,7 @@ TEST_CASE("Time: resolveTime DHM same-day event (base Jan 31, day 31)") {
 }
 
 TEST_CASE("Time: resolveTime DHM future-in-month steps back (base Mar 1, day 15)") {
-    // base = 2024-03-01。day=15 の最寄りは Mar 15（14日後）だがマージン(3日)を超える →
-    // stale → 過去の直近 February 15 にフォールバック。
+    // base = 2024-03-01。day=15 の最寄りは Mar 15（14日後）だがマージン(3日)を超える → stale → 過去の直近 February 15 にフォールバック。
     uint32_t now = daysFromCivil(2024, 3, 1) * 86400u;
     TimeFields t = TestDecoder::testResolveTime(0, 15, 0, 0, now);
     CHECK(t.month == 2);
@@ -69,8 +66,7 @@ TEST_CASE("Time: resolveTime DHM mid-month (base Mar 15, day 15)") {
 }
 
 TEST_CASE("Time: resolveTime DHM day/month boundary (report 1/31 23:00, day 1 02:00)") {
-    // イベントが翌月1日02:00、報告が1/31 23:00（3時間後）。closest は Feb 1 02:00
-    // （3時間差）でマージン内 → 正しく February に解決。pure past-bias は Jan 1 と誤る。
+    // イベントが翌月1日02:00、報告が1/31 23:00（3時間後）。closest は Feb 1 02:00 （3時間差）でマージン内 → 正しく February に解決。pure past-bias は Jan 1 と誤る。
     uint32_t now = daysFromCivil(2024, 1, 31) * 86400u + 23 * 3600u;
     TimeFields t = TestDecoder::testResolveTime(0, 1, 2, 0, now);
     CHECK(t.month == 2);
@@ -208,9 +204,7 @@ TEST_CASE("Time: DCX onset_time resolved with valid report_unix") {
     frame.svid = 193;
     Decoder dec;
     Message msg{};
-    // 2024-05-20 00:00:00 UTC (Monday) — Monday-based week starts same day
-    // a6=0 (current week) かつ report_unix が週の開始 (Monday 00:00) のため
-    // onset_time = report_unix + 60 = Monday 00:01 UTC となる
+    // 2024-05-20 00:00:00 UTC (Monday) — Monday-based week starts same day a6=0 (current week) かつ report_unix が週の開始 (Monday 00:00) のため onset_time = report_unix + 60 = Monday 00:01 UTC となる
     uint32_t report_unix = static_cast<uint32_t>(daysFromCivil(2024, 5, 20) * 86400u);
     bool ok = dec.decode(frame, msg, report_unix);
     REQUIRE(ok);

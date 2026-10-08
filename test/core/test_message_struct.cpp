@@ -221,8 +221,7 @@ TEST_CASE("Mt43Data: コピー代入演算子") {
 }
 
 TEST_CASE("Mt43Data: コピーコンストラクタ - 全12型") {
-    // 各 ActiveType に対してコピーコンストラクタが正しく動作することを検証
-    // コピー先の型が正しく、nullptr が適切に返ることを確認（型安全性）
+    // 各 ActiveType に対してコピーコンストラクタが正しく動作することを検証コピー先の型が正しく、nullptr が適切に返ることを確認（型安全性）
     struct TypeInfo { Mt43Data::ActiveType type; const char* name; };
     TypeInfo types[] = {
         {Mt43Data::ActiveType::Eew,          "Eew"},

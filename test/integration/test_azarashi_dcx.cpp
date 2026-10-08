@@ -46,8 +46,7 @@ TEST_CASE("DCX: Outside Japan - Fiji Tsunami") {
 }
 
 // DCX L-Alert — test_dcx
-// azarashi: a2=111(Japan), a3=1(Foundation for MultiMedia Communications),
-//           a4=1(CBRNE/Air strike), a5=0(Unknown), ex1=1101(札幌市中央区), vn=1
+// azarashi: a2=111(Japan), a3=1(Foundation for MultiMedia Communications), a4=1(CBRNE/Air strike), a5=0(Unknown), ex1=1101(札幌市中央区), vn=1
 
 TEST_CASE("DCX: L-Alert - CBRNE Air Strike") {
     Message msg{};
@@ -66,8 +65,7 @@ TEST_CASE("DCX: L-Alert - CBRNE Air Strike") {
 }
 
 // DCX J-Alert — test_dcx
-// azarashi: a2=111(Japan), a3=3(Related Ministries),
-//           a4=8(CBRNE/Missile attack), a5=3(Extreme), vn=1
+// azarashi: a2=111(Japan), a3=3(Related Ministries), a4=8(CBRNE/Missile attack), a5=3(Extreme), vn=1
 //           ex9: 全47都道府県
 
 TEST_CASE("DCX: J-Alert - Missile Attack") {
@@ -162,8 +160,7 @@ TEST_CASE("DCX: Local Government a3=31 (boundary max)") {
 
 // DCX J-Alert a3 ∈ {0,2,3} — Non-null message
 // a2=111(Japan), a4=8(Missile attack)で非NullのJ-Alertを確認
-// a3=0(FDMA), a3=2(Cabinet Office), a3=3(FDMA) はいずれも JAlert に分岐
-//   (IS-QZSS-DCX-003 §4.2.1.2, DecoderDcx.cpp:196)
+// a3=0(FDMA), a3=2(Cabinet Office), a3=3(FDMA) はいずれも JAlert に分岐 (IS-QZSS-DCX-003 §4.2.1.2, DecoderDcx.cpp:196)
 // NullMessage チェック（全フィールドゼロ）に引っかからないよう a4 を設定
 
 TEST_CASE("DCX: J-Alert a3={0,2,3} (FDMA/Cabinet Office) - Non-null message") {
@@ -199,8 +196,7 @@ TEST_CASE("DCX: J-Alert a3={0,2,3} (FDMA/Cabinet Office) - Non-null message") {
 // Satellite ID 53/54 の E2E — 実データ（test/data/dcx_vectors.json）に存在する
 //
 // 仕様は Satellite ID を「PRN を表す 8bit の下位 6bit」と定め、azarashi も
-// `satellite_id | 0x80` で PRN 化する。5 通 (53) / 56 通 (54) が該当し、
-// 旧実装は 55-63 しか変換せず生 ID のまま通していた。
+// `satellite_id | 0x80` で PRN 化する。5 通 (53) / 56 通 (54) が該当し、旧実装は 55-63 しか変換せず生 ID のまま通していた。
 // azarashi の期待値は satellite_prn = 181 / 182。
 
 TEST_CASE("DCX E2E: Satellite ID 53/54 は PRN181/182 に正規化される") {

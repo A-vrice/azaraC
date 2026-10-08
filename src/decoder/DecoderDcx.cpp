@@ -81,8 +81,7 @@ bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix)
     // Resolve onset time from week (current/next) + time-of-week
     // IS-QZSS-DCX-004 §4.2.3.6, Table 4.2-9: A6 = 0 (current week), 1 (next week)
     // EWSS CAMF v1.1 §3.3: A week starts Monday 00:00 UTC, ends Sunday 23:59 UTC
-    // The hazard onset is encoded by 15 bits (1-bit A6 + 14-bit A7),
-    // with 1-minute resolution, allowing identification up to 2 weeks in advance.
+    // The hazard onset is encoded by 15 bits (1-bit A6 + 14-bit A7), with 1-minute resolution, allowing identification up to 2 weeks in advance.
     if (d->camf.a7 > 0 && d->camf.a7 <= 10080 && report_unix >= 946684800u) {
         // Find Monday 00:00 UTC of the week containing report_unix
         // 1970-01-01 was Thursday: (days_since_epoch + 3) % 7 → 0=Mon, 3=Thu, 6=Sun

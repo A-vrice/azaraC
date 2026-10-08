@@ -20,15 +20,10 @@
 namespace azaraC {
 namespace internal {
 
-// Event key. svid deliberately excluded: multiple QZSS satellites relay the same
-// message, so including svid would create duplicate buffers for one event.
+// Event key. svid deliberately excluded: multiple QZSS satellites relay the same message, so including svid would create duplicate buffers for one event.
 //
-// Identity is {info_code, report_time month/day/hour/minute} and the DHM values
-// are the RAW protocol bits (NankaiData::report_*), not the normalized
-// Mt43Data::event_time: resolveTime() rewrites out-of-calendar dates (2/30 → 3/1)
-// and picks a month when the field is 0, so a page arriving with a report_unix
-// baseline would hash differently from one arriving without — splitting one event
-// across buffers. Raw bits keep the identity stable across resolution changes.
+// Identity is {info_code, report_time month/day/hour/minute} and the DHM values are the RAW protocol bits (NankaiData::report_*), not the normalized
+// Mt43Data::event_time: resolveTime() rewrites out-of-calendar dates (2/30 → 3/1) and picks a month when the field is 0, so a page arriving with a report_unix baseline would hash differently from one arriving without — splitting one event across buffers. Raw bits keep the identity stable across resolution changes.
 struct NankaiPageKey {
     uint8_t  info_code = 0;        // 1B
     uint8_t  report_month  = 0;    // 1B — raw report_time month (4b)
@@ -58,10 +53,8 @@ struct NankaiPageKey {
     }
 };
 
-// Page aggregation buffer for a single event. Pages written directly at
-// (page_num-1)*TEXT_PER_PAGE; bitmap tracks received pages.
-// Truncation: if total_pages > MAX_PAGES, keep pages 1..MAX_PAGES and set
-// truncated; the rest are silently dropped.
+// Page aggregation buffer for a single event. Pages written directly at (page_num-1)*TEXT_PER_PAGE; bitmap tracks received pages.
+// Truncation: if total_pages > MAX_PAGES, keep pages 1..MAX_PAGES and set truncated; the rest are silently dropped.
 // ページ数上限・バッファ数は azaraC_config.h の
 // AZARAC_NANKAI_MAX_PAGES / AZARAC_NANKAI_BUFFERS が唯一の定義元。
 // MAX_PAGES の範囲は spec の Pn/Pm（1-63, 6bit）に従う。
@@ -166,10 +159,8 @@ struct NankaiPageBuffer {
     }
 
     // Compact received pages into a contiguous C string (call only when complete).
-    // Non-final pages may be short (NUL hole); getTextLength sums per-page lengths
-    // but serialize emits [ptr, ptr+len) contiguously, so holes would leak NULs.
-    // In-place is safe: w <= p*TEXT_PER_PAGE always, earlier writes end at or
-    // before the next source page.
+    // Non-final pages may be short (NUL hole); getTextLength sums per-page lengths but serialize emits [ptr, ptr+len) contiguously, so holes would leak NULs.
+    // In-place is safe: w <= p*TEXT_PER_PAGE always, earlier writes end at or before the next source page.
     uint16_t compactText() {
         uint16_t w = 0;
         for (uint8_t p = 0; p < total_pages; ++p) {
@@ -203,9 +194,7 @@ struct NankaiPageBuffer {
         return total_pages == 0;
     }
 
-    // Empty buffers hold an all-zero key, which would otherwise equal a zero-key
-    // event and bind incoming pages to a free slot instead of the buffer already
-    // tracking the event. Never match an empty buffer.
+    // Empty buffers hold an all-zero key, which would otherwise equal a zero-key event and bind incoming pages to a free slot instead of the buffer already tracking the event. Never match an empty buffer.
     bool matchesKey(const NankaiPageKey& k) const {
         return !isEmpty() && key == k;
     }

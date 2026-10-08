@@ -1,7 +1,6 @@
 // test/integration/test_dcx_edge_cases.cpp
 // DCX (MT=44) デコーダ異常系・境界値テスト
-// 「テストは通すためのものではなく誤った実装を落とすもの」に基づき、
-// 誤った実装が混入した場合に確実に失敗するテストケースを網羅する。
+// 「テストは通すためのものではなく誤った実装を落とすもの」に基づき、誤った実装が混入した場合に確実に失敗するテストケースを網羅する。
 
 #include "../test_helpers.h"
 #include "../src/internal/DcxHelper.h"
@@ -273,8 +272,7 @@ TEST_CASE("DCX Edge: B4 (A17=3) without main ellipse") {
     // main_ellipse は存在しない
     CHECK(mt44->mt44_decoded.main_ellipse_present == false);
     // B4 は A17=3 なので independent check が必要
-    // 実際には A17=3 の B4 処理は has_main_ellipse ブロックの外にある（259-267行）
-    // そのため has_main_ellipse=false でも b4_present=true になる
+    // 実際には A17=3 の B4 処理は has_main_ellipse ブロックの外にある（259-267行）そのため has_main_ellipse=false でも b4_present=true になる
     // → このテストでバグがないことを確認
     CHECK(mt44->camf.b4_present == true);
 }
