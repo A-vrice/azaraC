@@ -141,14 +141,15 @@ python scripts/gen/gen_definitions.py --out-dir src/definition
 
 ### テストベクタの生成
 
-`test/data/*.json`はテスト用ベクタです。南海トラフ用の`test/data/nankai_pages_generated.h`も`nankai_vectors.json`と共に生成されるため、直接編集せず再生成してください。
+`test/data/*_vectors.json` は azarashi の出力を参照ベクタとして固定したもので、南海トラフ用の`test/data/nankai_pages_generated.h`も`gen_all_vectors.py` の `gen_nankai()` が同じ `nankai_vectors.json` から生成します。いずれも直接編集せず再生成してください。
 
 ```bash
-python test/scripts/gen_all_vectors.py    # 全ベクタ + nankai_pages_generated.h を再生成
+python test/scripts/gen_all_vectors.py
+# JSON は参照ベクタとして固定するため元に戻し、ヘッダだけを更新する
+git checkout -- test/data/dcr_vectors.json test/data/dcx_vectors.json test/data/nankai_vectors.json
 ```
 
-再生成の差分は `params.timestamp`（`datetime.now()`）だけに留まります。読み手は
-`timestamp` を使わないため、この差分は page データの変更ではありません。
+`*_vectors.json` は azarashi 0.17.1 で `params` の形が変わり（`type` の改名、`satellite_svid` の追加、`report_time` のタイムゾーン付与など）、さらに `timestamp` と暦年の解決が `datetime.now()` に依存するため、再生成のたびに内容が変わります。`*_vectors.json` は `make -C test bench`（`test/bench/bench_dedup.cpp`）や `compare_nankai_aggregation.py` が読む参照データとしてリポジトリに残すため、**再生成後にコミットするのは `nankai_pages_generated.h` のみ**とし、JSON は上のコマンドで元に戻します（同ヘッダは azarashi 0.17.0 と 0.17.1 で同一。`.github/workflows/ci.yml` の fixture-drift も JSON は検査せずヘッダだけを見ます）。
 
 ## AVR 開発
 
