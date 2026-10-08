@@ -79,9 +79,12 @@ def decode_batch(nmea_list: list, raw: bool = False) -> list:
     """decode_to_json CLI を使って NMEA 文をデコード
 
     Args:
-        raw: True で --raw（dedup 無効）。data.txt は同一情報の重複を含むため、
-             既定の Parser 経路だと出力件数が入力件数より減り、インデックスが
-             ずれる（重複除去は「同じ情報を 2 度通知しない」機能なので当然）。
+        raw: True で --raw（Parser 経路の重複除去を使わず NmeaFramer + Decoder で
+             1 文ずつ独立にデコード）。生成側はテスト本体の `decodeNmea` と同じ
+             挙動に揃えるため常に True を渡す。既定の Parser 経路は重複除去
+             （と南海トラフ集約）を行うため出力件数が入力件数より減り得て、
+             電文と期待値のインデックスがずれる（重複除去は「同じ情報を 2 度
+             通知しない」機能なので当然）。
 
     Returns:
         list of dicts: 各NMEA文のデコード結果 (JSONパース済み)
@@ -812,7 +815,7 @@ def main():
     # decode_to_json で期待値を取得
     print("\nDecoding history entries...")
     history_nmeas = [h['nmea'] for h in history]
-    history_decoded = decode_batch(history_nmeas)
+    history_decoded = decode_batch(history_nmeas, raw=True)
     for i, (h, d) in enumerate(zip(history, history_decoded)):
         print(f"  [{i}] dc={h['expected_dc']} {h['dc_name']}: decoded OK")
 
