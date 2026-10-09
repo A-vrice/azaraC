@@ -180,6 +180,28 @@ AVRツールチェーン（avr-gcc）はC++の標準ライブラリを一切含�
 - **定義テーブルの格納形式について**: AVRは文字列プール + `{offset,len}`（16bit×2）、非AVRは `const char*` 配列（4B/エントリ、32bit機）。非AVRのルックアップ戻り値は両者で `std::optional<std::string_view>` に統一し、`nullptr`＝欠落・`""`＝定義済み空文字列を区別すること（`opt`系エミッタと手書きの `qzss_dcx_camf_a3_provider_identifier.h` が対象）。文字列実体は各ヘッダにリテラルとして現れるが、リンカの重複統合により同一文字列は1コピーに落ちる。
 - **AVRでの標準ライブラリ**： 基本azaraCで実装したシム(`src/internal/avr_std/`)のみ利用するため、`std::`の新規関数の仕様はシムへの追加が必要
 
+## Issue / PR のラベル
+
+ラベルは `.github/workflows/labeler.yml` が自動付与します（付与のみで削除はしません）。
+
+| ラベル | 付与条件 | 定義 |
+|-------|---------|------|
+| `dependencies` | PR のブランチ名が `renovate/` で始まる、または `renovate.json` を変更 | `.github/labeler.yml` |
+| `ci` | `.github/**`、`platformio.ini.example`、`library.json`、`library.properties`、`keywords.txt` を変更 | 同上 |
+| `test` | `test/**` を変更 | 同上 |
+| `definition` | `src/definition/**` を変更（azarashi 生成物） | 同上 |
+| `documentation` | `docs/**`、`README.md`、`CHANGELOG.md` を変更 | 同上 |
+| `dependencies` / `bug` / `documentation` / `enhancement` / `question` | Issue のタイトル・本文のキーワード（日本語・英語） | `.github/issue-labeler.yml` |
+
+- 条件を変えるときは上記の設定ファイルだけを直す（ワークフロー本体は触らない）。
+- 追加するラベルは先にリポジトリへ作成しておくこと（未作成の場合、そのラベルは無警告でスキップされる）。
+- `issues` イベントのワークフローはデフォルトブランチ（`main`）の内容で動くため、Issue の自動ラベルは `main` にマージされてから有効になる。PR 側は PR 時点の内容で動く。
+- 付与のみで削除はしない（`sync-labels` は無効）。手で直したラベルが自動で消えることはない。
+
+```bash
+gh label create <name> --color <hex> --description "<説明>"
+```
+
 ## 関連ドキュメント
 
 - [API リファレンス](api-reference.md)

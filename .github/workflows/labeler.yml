@@ -1,0 +1,40 @@
+name: Labeler
+
+on:
+  pull_request:
+  issues:
+    types: [opened, edited]
+
+permissions:
+  contents: read
+
+jobs:
+  # PR: 変更ファイルとブランチ名からラベル付与（.github/labeler.yml）
+  pr-label:
+    name: Label PR
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      # fork からの PR はトークンが読み取り専用になり失敗するため、失敗させない
+      # ponytail: fork PR にはラベルが付かない。必要になったら pull_request_target へ切替（PR のコードを checkout しないこと）
+      - uses: actions/labeler@bf12e9b00b37c5c0ca2b87b79b2daf7891dbda13 # v7
+        continue-on-error: true
+
+  # Issue: タイトル・本文のキーワードからラベル付与（.github/issue-labeler.yml）
+  issue-label:
+    name: Label issue
+    if: github.event_name == 'issues'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: github/issue-labeler@ccca1e16fcb66762200e616fc29b57b940c1cb67 # v3.5
+        with:
+          repo-token: ${{ github.token }}
+          configuration-path: .github/issue-labeler.yml
+          enable-versioned-regex: 0
+          include-title: 1

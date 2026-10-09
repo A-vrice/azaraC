@@ -1,0 +1,38 @@
+# PR のラベル自動付与（actions/labeler）
+# 付与のみで、条件から外れたラベルは削除しない（sync-labels 既定 false）。
+# ここに書くラベル名は事前にリポジトリへ作成しておくこと（未作成だと警告してスキップされる）。
+
+# Renovate の依存更新 PR、および Renovate 設定の変更
+dependencies:
+  - any:
+      - head-branch: ['^renovate/']
+      - changed-files:
+          - any-glob-to-any-file: ['renovate.json']
+
+# CI・ビルド・ライブラリメタデータ
+ci:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '.github/**'
+          - 'platformio.ini.example'
+          - 'library.json'
+          - 'library.properties'
+          - 'keywords.txt'
+
+# テストコードとテストデータ
+test:
+  - changed-files:
+      - any-glob-to-any-file: 'test/**'
+
+# azarashi 由来の自動生成テーブル（手編集禁止）
+definition:
+  - changed-files:
+      - any-glob-to-any-file: 'src/definition/**'
+
+# ドキュメント
+documentation:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'docs/**'
+          - 'README.md'
+          - 'CHANGELOG.md'
