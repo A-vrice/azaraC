@@ -45,7 +45,6 @@ TEST_CASE("decodeEEW: 基本的なEEWメッセージのデコード") {
     setBits(bits, 226, 24, crc);
 
     uint32_t now_unix = 1704067200u;
-    msg.payload_type = MsgPayloadType::Mt43;
     msg.initPayload<Mt43Data>();
     Mt43Data* mt43 = msg.getMt43();
     if (mt43) mt43->disaster_category = 1;

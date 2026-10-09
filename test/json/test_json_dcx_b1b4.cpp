@@ -39,7 +39,6 @@ static bool hasField(const std::string& s, const std::string& key_val) {
 
 static void initMt44(Message& m) {
     m.msg_type = 44;
-    m.payload_type = MsgPayloadType::Mt44;
     m.initPayload<Mt44Data>();
 }
 

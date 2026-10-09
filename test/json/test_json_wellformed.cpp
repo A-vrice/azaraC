@@ -179,7 +179,6 @@ std::vector<uint8_t> allCategories() {
 
 void initMt43As(Message& m, uint8_t dc) {
     m.msg_type = 43;
-    m.payload_type = MsgPayloadType::Mt43;
     m.initPayload<Mt43Data>();
     Mt43Data* mt43 = m.getMt43();
     if (!mt43) return;
@@ -274,7 +273,6 @@ TEST_CASE("JSON well-formedness: MT44 DCX") {
     m.svid = 193;
     m.crc24 = 0xABCDEF;
     m.msg_type = 44;
-    m.payload_type = MsgPayloadType::Mt44;
     m.initPayload<Mt44Data>();
     Mt44Data* mt44 = m.getMt44();
     REQUIRE(mt44 != nullptr);

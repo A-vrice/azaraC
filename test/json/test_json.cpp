@@ -44,7 +44,6 @@ static bool hasField(const std::string& s, const std::string& key_val) {
 
 static void initMt43(Message& m, uint8_t disaster_category) {
     m.msg_type = 43;
-    m.payload_type = MsgPayloadType::Mt43;
     m.initPayload<Mt43Data>();
     Mt43Data* mt43 = m.getMt43();
     if (mt43) {
@@ -55,7 +54,6 @@ static void initMt43(Message& m, uint8_t disaster_category) {
 #if (AZARAC_ENABLE_DCX_CAMF)
 static void initMt44(Message& m) {
     m.msg_type = 44;
-    m.payload_type = MsgPayloadType::Mt44;
     m.initPayload<Mt44Data>();
 }
 #endif // AZARAC_ENABLE_DCX_CAMF
@@ -1010,7 +1008,6 @@ TEST_CASE("JSON Serialization: Escape characters in writeStr") {
 TEST_CASE("JSON Serialization: MT=43 report_time output") {
     Message m{};
     m.msg_type = 43;
-    m.payload_type = MsgPayloadType::Mt43;
     m.initPayload<Mt43Data>();
     Mt43Data* mt43 = m.getMt43();
     REQUIRE(mt43 != nullptr);
@@ -1320,7 +1317,6 @@ TEST_CASE("JSON Serialization: real J-Alert resolves the A11 country library lab
 TEST_CASE("JSON Serialization: MT=43 unix_time=0 output") {
     Message m{};
     m.msg_type = 43;
-    m.payload_type = MsgPayloadType::Mt43;
     m.initPayload<Mt43Data>();
     Mt43Data* mt43 = m.getMt43();
     REQUIRE(mt43 != nullptr);
