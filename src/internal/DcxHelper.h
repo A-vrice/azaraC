@@ -7,6 +7,9 @@
 namespace azaraC {
 namespace internal {
 
+// Country code for Japan in A2 field (9-bit: 001101111 = 111)
+static constexpr uint16_t DCX_COUNTRY_CODE_JAPAN = 111;
+
 // A12: Latitude = -90 + (180/(2^16-1)) * code, microdegrees
 int32_t decodeLatitude16(uint16_t code);
 

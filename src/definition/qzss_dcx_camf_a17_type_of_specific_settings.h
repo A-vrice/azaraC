@@ -1,6 +1,6 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.16.4 with CI-CD
-// Source module : qzss_dcx_camf_a17_type_of_specific_settings
+// AUTO-GENERATED from azarashi 0.17.1 with CI-CD
+// Source module : azarashi.definitions.camf.a17_type_of_specific_settings
 // Variable      : qzss_dcx_camf_a17_type_of_specific_settings
 // Entries       : 4
 // Strategy      : switch

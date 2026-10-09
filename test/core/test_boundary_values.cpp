@@ -7,9 +7,7 @@
 
 using namespace azaraC;
 
-// =============================================================================
 // 緯度経度境界値テスト
-// =============================================================================
 
 TEST_CASE("Boundary: Latitude 90°N") {
     uint8_t buf[32] = {};
@@ -71,18 +69,10 @@ TEST_CASE("Boundary: Longitude 180°W") {
     CHECK(ll.lon_sec == 59);
 }
 
-// =============================================================================
 // 日付境界値テスト
-// =============================================================================
 
 TEST_CASE("Boundary: Hour=23, Minute=59") {
     uint32_t now = 1704067200u; // 2024-01-01 00:00:00 UTC
-    uint8_t bits[32] = {};
-
-    // day=15, hour=23, minute=59
-    setBits(bits, 0, 5, 15);     // day = 15
-    setBits(bits, 5, 5, 23);     // hour = 23
-    setBits(bits, 10, 6, 59);    // minute = 59
 
     TimeFields t = TestDecoder::testResolveTime(0, 15, 23, 59, now);
     CHECK(t.day == 15);
@@ -120,9 +110,7 @@ TEST_CASE("Boundary: Minute=60 (invalid)") {
     CHECK(t.unix_time == 0);
 }
 
-// =============================================================================
 // 深度・大きさ境界値テスト (Hypocenter: dc=2)
-// =============================================================================
 
 #if (AZARAC_ENABLE_HYPOCENTER)
 TEST_CASE("Boundary: Depth 501+ (special value)") {
@@ -226,9 +214,7 @@ TEST_CASE("Boundary: Magnitude 127 (unknown)") {
 }
 #endif // AZARAC_ENABLE_HYPOCENTER
 
-// =============================================================================
 // EEW 長周期地震動階級境界値テスト
-// =============================================================================
 
 #if (AZARAC_ENABLE_EEW)
 TEST_CASE("Boundary: Long period ground motion lower=3, upper=3") {
@@ -258,9 +244,7 @@ TEST_CASE("Boundary: Long period ground motion lower=3, upper=3") {
     CHECK(eew->long_period_upper == 3);
 }
 
-// =============================================================================
 // 通知コード境界値テスト
-// =============================================================================
 
 TEST_CASE("Boundary: EEW notification count=3") {
     uint8_t bits[32] = {};
@@ -293,9 +277,7 @@ TEST_CASE("Boundary: EEW notification count=3") {
     CHECK(eew->notification[2] == 300);
 }
 
-// =============================================================================
 // 閏年テスト
-// =============================================================================
 
 TEST_CASE("Boundary: Leap year Feb 29") {
     uint32_t now = 1709164800u; // 2024-03-01 00:00:00 UTC (2024 is leap year)
@@ -322,9 +304,7 @@ TEST_CASE("Boundary: Leap year Feb 29") {
     CHECK(mt43->event_time.day == 29);
 }
 
-// =============================================================================
 // 年末テスト
-// =============================================================================
 
 TEST_CASE("Boundary: Year end Dec 31") {
     uint32_t now = 1735686000u; // 2024-12-31 00:00:00 UTC

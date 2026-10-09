@@ -1,6 +1,6 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.16.4 with CI-CD
-// Source module : qzss_dcr_jma_marine_forecast_region
+// AUTO-GENERATED from azarashi 0.17.1 with CI-CD
+// Source module : azarashi.definitions.qzss.dcr.marine_forecast_region
 // Variable      : qzss_dcr_jma_marine_forecast_region
 // Entries       : 49
 // Strategy      : binary_search
@@ -23,7 +23,7 @@
 namespace azaraC {
 namespace def {
 
-#if (AZARAC_ENABLE_MARINE)
+#if (AZARAC_ENABLE_MARINE) && (AZARAC_LANG_JA)
 
 #if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_MARINE_FORECAST_REGION_POOL[] = "日本海北部及びオホーツク海南部\000サハリン東方海上\000サハリン西方海上\000網走沖\000宗谷海峡\000北海道西方海上\000北海道南方及び東方海上\000北海道東方海上\000釧路沖\000日高沖\000津軽海峡\000檜山津軽沖\000三陸沖\000三陸沖東部\000三陸沖西部\000関東海域\000関東海域北部\000関東海域南部\000日本海中部\000沿海州南部沖\000秋田沖\000佐渡沖\000能登沖\000東海海域\000東海海域東部\000東海海域西部\000東海海域南部\000四国沖及び瀬戸内海\000瀬戸内海\000四国沖北部\000四国沖南部\000日本海西部\000日本海北西部\000山陰沖東部及び若狭湾付近\000山陰沖西部\000対馬海峡\000九州西方海上\000済州島西海上\000長崎西海上\000女島南西海上\000九州南方海上及び日向灘\000日向灘\000鹿児島海域\000奄美海域\000沖縄海域\000東シナ海南部\000沖縄東方海上\000沖縄南方海上\000その他の地方海上予報区\000";

@@ -1,0 +1,21 @@
+# Issue のタイトル・本文のキーワードによるラベル自動付与（github/issue-labeler）
+# 1 ラベル = 1 正規表現。同じラベルに複数書くと AND 条件になるので注意。
+# 付与のみで、編集で条件から外れてもラベルは削除しない（sync-labels 既定 0）。
+# 日本語と英語の両方を拾う。判別できない Issue はラベル無しのままにする。
+
+# Renovate が作る Dependency Dashboard
+dependencies:
+  - '/(Dependency Dashboard|renovate)/i'
+
+bug:
+  - '/(バグ|不具合|誤り|誤動作|クラッシュ|落ちる|動かない|動きません|失敗|再現|壊れ|おかしい|ずれ|合わない|一致しない|できない|\bbug\b|\bcrash|broken|\bfail|\berror\b|regression)/i'
+
+documentation:
+  - '/(ドキュメント|説明|マニュアル|README|見ずらい|見づらい|誤植|タイポ|\bdocumentation\b|\btypo)/i'
+# 注: 一般的な "docs" は URL や Bot の定型文にも当たるため入れない
+
+enhancement:
+  - '/(要望|提案|追加して|対応してほしい|実装して|ほしい|改善|サポート|\bfeature\b|\benhancement\b|\bsupport\b)/i'
+
+question:
+  - '/(質問|教えて|使い方|分からない|わからない|どうすれば|\bquestion\b|how\s+to)/i'

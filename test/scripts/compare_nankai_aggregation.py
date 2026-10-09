@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""compare_nankai_aggregation.py — azarashi 出力と AzaraC 集約結果を比較する
+"""compare_nankai_aggregation.py — azarashi 出力と azaraC 集約結果を比較する
 
 test/data/nankai_vectors.json（azarashi 出力）を唯一の情報源とする。
 C++ 側のページフィクスチャ test/data/nankai_pages_generated.h は
@@ -73,15 +73,14 @@ def main():
           f"(page payload total {raw_total}; final page NUL-padded)")
 
     if not os.path.exists(AZARAC_BIN):
-        print(f"  AzaraC binary not found: {AZARAC_BIN}")
+        print(f"  azaraC binary not found: {AZARAC_BIN}")
         print("  Build with: make -C test decode")
         return 0
 
-    print("=== AzaraC decode_to_json aggregation verification ===")
+    print("=== azaraC decode_to_json aggregation verification ===")
     input_text = "\n".join(nmeas[n] for n in range(1, total + 1)) + "\n"
     try:
-        # check=False: 失敗時は returncode と stderr を自前で整形して報告する
-        # （CalledProcessError にスタックトレースを出させない）。
+        # check=False: 失敗時は returncode と stderr を自前で整形して報告する（CalledProcessError にスタックトレースを出させない）。
         result = subprocess.run(
             [AZARAC_BIN], input=input_text, capture_output=True, text=True,
             timeout=30, encoding='utf-8', errors='replace', check=False)
@@ -90,19 +89,19 @@ def main():
         return 1
 
     if result.returncode != 0:
-        print(f"  AzaraC returned code {result.returncode}")
+        print(f"  azaraC returned code {result.returncode}")
         if result.stderr:
             print(f"  stderr: {result.stderr[:500]}")
         return 1
 
     results = json.loads(result.stdout)
-    print(f"  AzaraC decoded {len(results)} message(s)")
+    print(f"  azaraC decoded {len(results)} message(s)")
 
     aggregated = None
     for r in results:
-        detail = r.get('detail', {})
-        if 'text_utf8' in detail:
-            aggregated = detail['text_utf8'].encode('utf-8')
+        data_body = r.get('data', {})
+        if 'text_utf8' in data_body:
+            aggregated = data_body['text_utf8'].encode('utf-8')
             break
 
     if aggregated is None:
@@ -118,7 +117,7 @@ def main():
     for i in range(n):
         if aggregated[i] != expected[i]:
             print(f"    first diff at byte {i}")
-            print(f"      AzaraC:   {aggregated[max(0, i - 5):i + 20].hex()}")
+            print(f"      azaraC:   {aggregated[max(0, i - 5):i + 20].hex()}")
             print(f"      Expected: {expected[max(0, i - 5):i + 20].hex()}")
             break
     return 1

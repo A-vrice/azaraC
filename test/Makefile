@@ -60,8 +60,10 @@ TEST_SRCS = \
 	internal/test_dcx_helper.cpp \
 	internal/test_avr_std_shim.cpp \
 	internal/test_definition_labels.cpp \
+	internal/test_dedup_window.cpp \
 	json/test_json.cpp \
 	json/test_json_dcx_b1b4.cpp \
+	json/test_json_wellformed.cpp \
 	integration/test_parser.cpp \
 	integration/test_parser_integration.cpp \
 	integration/test_nankai.cpp \
@@ -96,7 +98,7 @@ OBJS = $(TEST_OBJS) $(LIB_OBJS)
 # VPATH for library sources
 VPATH = ../src:../src/decoder:../src/framer:../src/json:../src/internal
 
-.PHONY: all clean run run-small-pages fuzz decode compare-realdata check check-xml check-strict-compile coverage memprof pgm-stub
+.PHONY: all clean run run-small-pages run-lang-defaults fuzz decode dedup-realday bench compare-realdata check check-xml check-strict-compile coverage test-no-alloc pgm-stub
 
 all: $(TEST_BIN)
 
@@ -118,6 +120,15 @@ run: all
 # check-strict-compile 後に混在リンクして落ちる。必ず clean する。
 run-small-pages:
 	$(MAKE) -B CXXFLAGS_EXTRA="-DAZARAC_NANKAI_MAX_PAGES=8" run; status=$$?; $(MAKE) clean; exit $$status
+
+# 言語構成の検証。ライブラリ既定は JA=1 / EN=0 で、テスト既定（JA=1 / EN=1）とは
+# 出力が変わる: 日本語版を持たない英語専用表が EN=0 で消える回帰は、テスト既定では
+# 一切現れない（テスト既定では EN 表が生きているため）。両方を回して初めて
+# 「既定構成でラベルが消える」型のバグを検出できる。
+run-lang-defaults:
+	$(MAKE) -B CXXFLAGS_EXTRA="-DAZARAC_LANG_JA=0 -DAZARAC_LANG_EN=1" run; s1=$$?; \
+	$(MAKE) -B CXXFLAGS_EXTRA="-DAZARAC_LANG_JA=1 -DAZARAC_LANG_EN=0" run; s2=$$?; \
+	$(MAKE) clean; [ $$s1 -eq 0 ] && [ $$s2 -eq 0 ]
 
 # Fuzz target — FUZZ_ITERATIONS をargv[1]として渡す (argv[1] > getenv > default)
 FUZZ_BIN = fuzz_decoder
@@ -146,6 +157,27 @@ PYTHON ?= python
 COMPARE_ARGS ?=
 compare-realdata: $(DECODE_BIN)
 	$(PYTHON) scripts/compare_with_azarashi.py $(COMPARE_ARGS)
+
+# Real-day reproduction of the duplicate filter's error rate (default capacity).
+# realdata/ is .gitignore'd and absent from CI, so the input is optional.
+DEDUP_REALDAY_BIN  = dedup_realday
+DEDUP_REALDAY_SRCS = tools/dedup_realday.cpp
+DEDUP_REALDAY_OBJS = $(DEDUP_REALDAY_SRCS:.cpp=.o)
+REALDAY_INPUT ?= ../realdata/Q002_20240101.l1s
+
+dedup-realday: $(DEDUP_REALDAY_BIN)
+ifeq ($(wildcard $(REALDAY_INPUT)),)
+	@echo "dedup-realday: SKIP - $(REALDAY_INPUT) not found"
+else
+	$(RUN_PREFIX)$(DEDUP_REALDAY_BIN) $(REALDAY_INPUT)
+endif
+
+$(DEDUP_REALDAY_BIN): $(DEDUP_REALDAY_OBJS) $(LIB_OBJS)
+	$(CXX) $(CXXFLAGS) $(CXXFLAGS_EXTRA) $^ -o $@ $(LDFLAGS)
+
+# dedup ベンチ（autoresearch.sh）。入力は test/data/*.json のみで realdata は不要。
+bench:
+	@bash ../autoresearch.sh
 
 # --- Static Analysis ---
 # 静的解析 (時間をかけた厳格なチェック)
@@ -179,18 +211,45 @@ coverage:
 	@echo "----------------------------------------"
 	gcovr . --filter=../src/ --exclude='.*test_.*\.cpp' --exclude='.*definition.*' --txt
 
-# --- Memory Profiling ---
-# メモリプロファイリング (Valgrind Massifによるヒープ検証)
-# Windows では Valgrind が無いためスキップを明示する。
-ifeq ($(OS),Windows_NT)
-memprof:
-	@echo "memprof: SKIP — Valgrind is not available on Windows. Run on Linux or WSL."
+# --- 動的確保ゼロ検証 (test-no-alloc) ---
+# GNU ld の --wrap は未解決参照しか差し替えないため、ライブラリとテストを 1 つの
+# 実行ファイルにリンクする。--wrap はリンク時にしか効かないので、通常の
+# run_tests とは別バイナリ・別オブジェクトディレクトリ (.noalloc/) を使う
+# （既定の .o と混在させると __real_* 未定義でリンクが落ちる）。
+# CXXFLAGS_EXTRA は依存関係に載らないため、実行後は clean する（残った
+# .noalloc/*.o が縮小構成のまま再利用されるのを避ける）。
+# macOS の ld64 は --wrap を持たないためスキップする（uname -s は MinGW で
+# MSYS_NT-* を返すので Darwin 判定で問題ない）。
+NOALLOC_BIN = no_alloc_tests$(suffix $(TEST_BIN))
+NOALLOC_TMP = .noalloc
+NOALLOC_WRAP = -Wl,--wrap=malloc -Wl,--wrap=calloc -Wl,--wrap=realloc -Wl,--wrap=posix_memalign
+NOALLOC_OBJS = $(addprefix $(NOALLOC_TMP)/,$(notdir $(LIB_SRCS:.cpp=.o))) $(NOALLOC_TMP)/test_no_alloc.o
+
+ifeq ($(shell uname -s),Darwin)
+test-no-alloc:
+	@echo "test-no-alloc: SKIP — GNU ld (--wrap) is required; macOS ld64 cannot provide it."
 else
-memprof:
-	@command -v valgrind >/dev/null 2>&1 || { echo "memprof: SKIP — valgrind not found. Install with: sudo apt install valgrind"; exit 0; } ; \
-	$(MAKE) $(TEST_BIN) && \
-	valgrind --tool=massif --pages-as-heap=yes --massif-out-file=massif.out $(RUN_PREFIX)$(TEST_BIN) && \
-	ms_print massif.out > massif_report.txt && head -n 30 massif_report.txt
+test-no-alloc:
+	$(MAKE) $(NOALLOC_BIN); b=$$?; if [ $$b -ne 0 ]; then $(MAKE) clean; exit $$b; fi; \
+	./$(NOALLOC_BIN); t=$$?; $(MAKE) clean; exit $$t
+
+$(NOALLOC_TMP):
+	@mkdir -p $@
+
+# ディレクトリは order-only にする（通常の prerequisite にすると mtime 変化で
+# 全 .o が毎回再ビルドされる）。
+$(NOALLOC_BIN): $(NOALLOC_OBJS) | $(NOALLOC_TMP)
+	$(CXX) $(CXXFLAGS) $(CXXFLAGS_EXTRA) $^ -o $@ $(LDFLAGS) $(NOALLOC_WRAP)
+
+$(NOALLOC_OBJS): | $(NOALLOC_TMP)
+
+# テスト本体はサブディレクトリにあり VPATH（../src 配下）に無いためパターン
+# ルールでは解決できない。明示ルールを置く。
+$(NOALLOC_TMP)/test_no_alloc.o: integration/test_no_alloc.cpp
+	$(CXX) $(CXXFLAGS) $(CXXFLAGS_EXTRA) -c $< -o $@
+
+$(NOALLOC_TMP)/%.o: %.cpp
+	$(CXX) $(CXXFLAGS) $(CXXFLAGS_EXTRA) -c $< -o $@
 endif
 # --- AZARAC_ENABLE_* Macro Tests ---
 # 全マクロ無効化でもコンパイルが通ることを検証する
@@ -208,7 +267,7 @@ MACRO_OFF_FLAGS = \
 test-macro-compile:
 	@echo "=== Compiling with ALL AZARAC_ENABLE_* macros disabled ==="
 	@mkdir -p $(MACRO_TMP)
-	@for f in $(LIB_SRCS); do bn=$$(basename $$f); $(CXX) $(CXXFLAGS) $(MACRO_OFF_FLAGS) -c $$f -o $(MACRO_TMP)/$$bn.o; done
+	@set -e; for f in $(LIB_SRCS); do bn=$$(basename $$f); $(CXX) $(CXXFLAGS) $(MACRO_OFF_FLAGS) -c $$f -o $(MACRO_TMP)/$$bn.o; done
 	@rm -rf $(MACRO_TMP)
 	@echo "===== SUCCESS: all macros disabled compilation passed ====="
 
@@ -313,6 +372,7 @@ macro:
 	@$(MAKE) _macro-test-one M=TYPHOON
 	@$(MAKE) _macro-test-one M=MARINE
 	@$(MAKE) _macro-test-one M=DCX_CAMF
+	@$(MAKE) clean 2>$(DEVNULL)
 	@echo ===== All macro runtime tests passed =====
 
 .PHONY: _macro-test-one
@@ -331,14 +391,17 @@ macro:
 		$(MAKE) clean 2>$(DEVNULL); \
 		$(MAKE) CXXFLAGS="$(CXXFLAGS) -DAZARAC_ENABLE_$${m}=0" run || exit 1; \
 	done
+	@$(MAKE) clean 2>$(DEVNULL)
 	@echo "===== All macro runtime tests passed ====="
 endif
 
 # Include dependency files
--include $(TEST_OBJS:.o=.d) $(LIB_OBJS:.o=.d) $(FUZZ_OBJS:.o=.d) $(DECODE_OBJS:.o=.d)
+-include $(TEST_OBJS:.o=.d) $(LIB_OBJS:.o=.d) $(FUZZ_OBJS:.o=.d) $(DECODE_OBJS:.o=.d) $(DEDUP_REALDAY_OBJS:.o=.d)
 
 clean:
-	-@$(RM) *.o *.exe *.d *.gcno *.gcda massif.out massif_report.txt cppcheck_report.xml cppcheck_stderr.log coverage.xml coverage_report.json macro_sizes.txt memprof_output.txt
+	-@$(RM) *.o *.exe *.d *.gcno *.gcda cppcheck_report.xml cppcheck_stderr.log coverage.xml coverage_report.json macro_sizes.txt
+	-@$(RM) $(NOALLOC_BIN)
+	-@rm -rf $(NOALLOC_TMP)
 	-@$(RM) core/*.o core/*.d core/*.gcno core/*.gcda
 	-@$(RM) decoder/*.o decoder/*.d decoder/*.gcno decoder/*.gcda
 	-@$(RM) framer/*.o framer/*.d framer/*.gcno framer/*.gcda
@@ -352,8 +415,11 @@ clean:
 # ---- PROGMEM stub (AVR branch semantics test on host) ----
 # Compiles all tests with __AVR__ defined and a stub avr/pgmspace.h so the
 # PROGMEM code paths (memcpy_P / pgm_read_dword) exercise on the host.
-# AVR presets that conflict with test assumptions (BUFFERS=1, DEDUP_SLOTS=4)
-# are neutralized. 実行後は clean する（-D 群が依存関係に載らず、残った .o が
+# AVR presets that conflict with test assumptions (BUFFERS=1) are neutralized:
+# SLOTS/WAYS are pinned to values the capacity tests can read. These must match
+# the AVR preset (64 x 8): the previous SLOTS=8 combined with the AVR WAYS=8
+# produced SETS=1, so the tests exercised no associativity and no eviction at all.
+# 実行後は clean する（-D 群が依存関係に載らず、残った .o が
 # 既定構成の .o と混在して次の `make run` が再ビルドされない／混在リンクで
 # 落ちるため）。実行行は `;` を含むため必ずシェル経由になり、シェルは cwd を
 # 探索しないので `./` を明示する（RUN_PREFIX は空か `./` のため使わない）。
@@ -362,4 +428,4 @@ clean:
 # 成功時はテストの終了コードを返す。
 pgm-stub:
 	$(MAKE) clean
-	$(MAKE) CXXFLAGS="-std=c++17 -Wall -Wextra -Istub -I../src -I. -DARDUINO=0 -D__AVR__ -DAZARAC_AVR_STUB -DAZARAC_LANG_JA=1 -DAZARAC_LANG_EN=1 -DAZARAC_NANKAI_MAX_PAGES=63 -DAZARAC_NANKAI_BUFFERS=4 -DAZARAC_DEDUP_SLOTS=8 -DAZARAC_ENABLE_EEW=1 -DAZARAC_ENABLE_HYPOCENTER=1 -DAZARAC_ENABLE_SEISMIC=1 -DAZARAC_ENABLE_NANKAI=1 -DAZARAC_ENABLE_TSUNAMI=1 -DAZARAC_ENABLE_NW_PAC_TSUNAMI=1 -DAZARAC_ENABLE_VOLCANO=1 -DAZARAC_ENABLE_ASH_FALL=1 -DAZARAC_ENABLE_WEATHER=1 -DAZARAC_ENABLE_FLOOD=1 -DAZARAC_ENABLE_TYPHOON=1 -DAZARAC_ENABLE_MARINE=1 -DAZARAC_ENABLE_DCX_CAMF=1 -MMD -MP -g" $(TEST_BIN); b=$$?; if [ $$b -ne 0 ]; then $(MAKE) clean; exit $$b; fi; ./$(TEST_BIN); t=$$?; $(MAKE) clean; exit $$t
+	$(MAKE) CXXFLAGS="-std=c++17 -Wall -Wextra -Istub -I../src -I. -DARDUINO=0 -D__AVR__ -DAZARAC_AVR_STUB -DAZARAC_LANG_JA=1 -DAZARAC_LANG_EN=1 -DAZARAC_NANKAI_MAX_PAGES=63 -DAZARAC_NANKAI_BUFFERS=4 -DAZARAC_DEDUP_SLOTS=64 -DAZARAC_ENABLE_EEW=1 -DAZARAC_ENABLE_HYPOCENTER=1 -DAZARAC_ENABLE_SEISMIC=1 -DAZARAC_ENABLE_NANKAI=1 -DAZARAC_ENABLE_TSUNAMI=1 -DAZARAC_ENABLE_NW_PAC_TSUNAMI=1 -DAZARAC_ENABLE_VOLCANO=1 -DAZARAC_ENABLE_ASH_FALL=1 -DAZARAC_ENABLE_WEATHER=1 -DAZARAC_ENABLE_FLOOD=1 -DAZARAC_ENABLE_TYPHOON=1 -DAZARAC_ENABLE_MARINE=1 -DAZARAC_ENABLE_DCX_CAMF=1 -MMD -MP -g" $(TEST_BIN); b=$$?; if [ $$b -ne 0 ]; then $(MAKE) clean; exit $$b; fi; ./$(TEST_BIN); t=$$?; $(MAKE) clean; exit $$t

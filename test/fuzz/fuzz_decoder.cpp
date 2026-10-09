@@ -10,6 +10,8 @@
 #include <cstring>
 #include <cstdio>
 #include <ctime>
+#include <cerrno>
+#include <climits>
 #include <random>
 #include <vector>
 #include <string>
@@ -792,8 +794,7 @@ static void test_decode_failure_state(FuzzStats& stats, std::mt19937& rng, int i
             bool result = decoder.decode(frame, msg, 0);
 
             // デコードは失敗するはず（CRC不一致）
-            // 注意: CRC失敗時はsvidが設定されずにfalseが返される（正常動作）
-            // ここではvalidがfalseであることのみを検証
+            // 注意: CRC失敗時はsvidが設定されずにfalseが返される（正常動作）ここではvalidがfalseであることのみを検証
             if (!result && msg.valid) {
                 printf("  WARNING: valid should be false on decode failure at iteration %d\n", i);
             }
@@ -976,23 +977,32 @@ static void test_memory_stability(FuzzStats& stats, std::mt19937& rng, int itera
 }
 
 int main(int argc, char* argv[]) {
-    printf("=== AzaraC Fuzz Testing ===\n");
+    printf("=== azaraC Fuzz Testing ===\n");
     printf("Starting fuzz tests...\n\n");
 
     // 乱数シード
     std::random_device rd;
     std::mt19937 rng(rd());
 
-    // イテレーション数（環境変数 > コマンドライン引数 > デフォルト）
-    int iterations = 10000;
+    // イテレーション数（環境変数 > コマンドライン引数 > デフォルト） atoi は不正入力で 0 を返し、0 回の「無検査 PASS」になる。値域を検証して落とす。
+    long long iterations = 10000;
     const char* env_iter = std::getenv("FUZZ_ITERATIONS");
+    const char* source = "default";
+    if (env_iter) { source = "FUZZ_ITERATIONS"; }
+    if (argc > 1) { env_iter = argv[1]; source = "argv[1]"; }
     if (env_iter) {
-        iterations = std::atoi(env_iter);
+        char* end = nullptr;
+        errno = 0;
+        const long long v = std::strtoll(env_iter, &end, 10);
+        // test_long_running / test_memory_stability に `iterations * 5` を渡すため、上限は INT_MAX / 5。INT_MAX まで許すと int 引数への縮小で負値になり、ループが 1 回も回らず「無検査 PASS」に戻る。
+        if (errno != 0 || end == env_iter || *end != '\0' || v <= 0 || v > INT_MAX / 5) {
+            fprintf(stderr, "FUZZ: invalid %s: '%s' (expected integer in 1..%d)\n",
+                    source, env_iter, INT_MAX / 5);
+            return 2;
+        }
+        iterations = v;
     }
-    if (argc > 1) {
-        iterations = std::atoi(argv[1]);
-    }
-    printf("Iterations per test: %d\n\n", iterations);
+    printf("Iterations per test: %lld\n\n", iterations);
 
     FuzzStats stats;
 

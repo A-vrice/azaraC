@@ -20,12 +20,13 @@ static uint32_t currentMillis() {
 
 #if (AZARAC_ENABLE_NANKAI)
 TEST_CASE("NankaiPageKey equality") {
-    // Identity = info_code + report_time DHM (month/day/hour/minute).
+    // Identity = info_code + information_type + report_time DHM (month/day/hour/minute).
     NankaiPageKey key1 = {1, 4, 10, 30, 15};
     NankaiPageKey key2 = {1, 4, 10, 30, 15};
     NankaiPageKey key3 = {2, 4, 10, 30, 15};  // different info_code
     NankaiPageKey key4 = {1, 4, 10, 30, 16};  // different minute
     NankaiPageKey key5 = {1, 5, 10, 30, 15};  // different month
+    NankaiPageKey key6 = {1, 4, 10, 30, 15, 2};  // different information_type (取消)
 
     SUBCASE("Same keys are equal") {
         CHECK(key1 == key2);
@@ -40,9 +41,13 @@ TEST_CASE("NankaiPageKey equality") {
         CHECK(!(key1 == key5));
     }
 
+    SUBCASE("Different information_type") {
+        // 発表(0) と取消(2) は同一 info_code + 同一報告時刻でも別の情報。
+        CHECK(!(key1 == key6));
+    }
+
     SUBCASE("Identity depends only on report_time, not resolution") {
-        // The key carries no resolved UNIX time, so the same message yields the
-        // same key whether or not report_unix is available.
+        // The key carries no resolved UNIX time, so the same message yields the same key whether or not report_unix is available.
         NankaiPageKey from_unresolved = {1, 4, 10, 30, 15};
         NankaiPageKey from_resolved   = {1, 4, 10, 30, 15};
         CHECK(from_resolved == from_unresolved);
@@ -125,8 +130,7 @@ TEST_CASE("NankaiPageBuffer truncation") {
     // When total_pages > MAX_PAGES, the buffer caps to MAX_PAGES
     // and sets the truncated flag.
     // MAX_PAGES = NankaiPageBuffer::MAX_PAGES (library default, overridable).
-    // Since SPEC_MAX_PAGES=63, total_pages values above 63 are the only way to
-    // exceed a MAX_PAGES=63 build; page_num must stay <= SPEC_MAX_PAGES.
+    // Since SPEC_MAX_PAGES=63, total_pages values above 63 are the only way to exceed a MAX_PAGES=63 build; page_num must stay <= SPEC_MAX_PAGES.
     NankaiPageBuffer buffer;
     uint32_t now = currentMillis();
     
@@ -331,8 +335,7 @@ TEST_CASE("NankaiPageBufferManager expiry is not LRU eviction") {
     uint8_t text[18] = {'P', 0};
     manager.addPage(k1, 1, 2, text, 1000);
     manager.addPage(k2, 1, 2, text, 1000);
-    // Both buffers are equally old: past the timeout both must expire, whereas a
-    // single LRU eviction would drop only one.
+    // Both buffers are equally old: past the timeout both must expire, whereas a single LRU eviction would drop only one.
     manager.addPage({3, 4, 10, 30, 15}, 1, 1, text,
                     1000 + NankaiPageBuffer::TIMEOUT_MS + 1);
     CHECK(manager.getBuffer(k1) == nullptr);
@@ -348,8 +351,7 @@ TEST_CASE("NankaiPageBufferManager: zero key follows its buffer across slot reus
     CHECK(manager.addPage(nonzero, 1, 2, text, 0) == nullptr);        // slot 0 (stale later)
     CHECK(manager.addPage(zero, 1, 2, text, 30000) == nullptr);       // slot 1
 
-    // At t=70000 slot 0 expires; a zero-key page must continue in its own buffer
-    // (slot 1), not bind to the freshly emptied slot 0.
+    // At t=70000 slot 0 expires; a zero-key page must continue in its own buffer (slot 1), not bind to the freshly emptied slot 0.
     NankaiPageBuffer* done = manager.addPage(zero, 2, 2, text, 70000);
     CHECK(done != nullptr);
 }

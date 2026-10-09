@@ -13,11 +13,7 @@
 namespace azaraC {
 
 //
-// RAM: Parser obj ~1.4 KB (static, default Nankai 1-buffer @63 pages: 1168 B
-// manager + 261 B framers/decoder/dedup; host-measured sizeof = 1432 B); stack per
-// feed() ~330 B (Message 296B + Frame 33B, host-measured default config). ~1.7 KB
-// recommended; min 232 B (AVR preset: Nankai/DCX off). For 2 KB targets keep
-// Nankai/DCX disabled.
+// RAM: Parser obj ~5.4 KB (static, default: Nankai 1-buffer @63 pages = 1,168 B manager + dedup table 4,096 B (512x8) + framers/decoder; host-measured sizeof = 5,464 B); stack per feed() ~321 B (Message 288 B + Frame 33 B, host-measured default config). ~5.8 KB recommended; min 712 B (AVR preset: 4 pages / 1 buffer, dedup 64x8 = 512 B, Nankai/DCX off). For 2 KB targets keep Nankai/DCX disabled; do not shrink AZARAC_DEDUP_SLOTS below the AVR preset's 64 without re-measuring (see azaraC_config.h for the measured error rates).
 //
 class Parser {
 public:
@@ -50,7 +46,8 @@ private:
     // Common post-decode handler: Nankai aggregation → dedup → copy to out.
     // Extracted to eliminate duplication between custom framer and AUTO mode paths.
     // Returns true if message should be output (valid, non-duplicate, aggregation handled).
-    bool postDecode(const Message& decoded, Message& out);
+    // identity: 手順③ の照合対象（MT～VN = フレーム bit 8..219）の digest。
+    bool postDecode(const Message& decoded, Message& out, uint32_t identity);
 
     // Shared decode → postDecode path; on decode failure copies the cleared
     // Decoder state into `out` so a reused Message never retains stale payload.

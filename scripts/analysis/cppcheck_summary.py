@@ -24,7 +24,7 @@ import xml.etree.ElementTree as ET
 from collections import OrderedDict
 from pathlib import Path
 
-# ── 設定 ──────────────────────────────────────────────────────────────────────
+# 設定
 
 # 重要度 → ラベル / 絵文字 マッピング（表示順を制御するため OrderedDict を使用）
 SEVERITY_ORDER = OrderedDict([
@@ -55,7 +55,7 @@ CPPCHECK_BASE_ARGS = [
 REPO_ROOT = Path(__file__).resolve().parent.parent  # リポジトリルート
 
 
-# ── メイン処理 ────────────────────────────────────────────────────────────────
+# メイン処理
 
 def run_cppcheck(check_level: str = "exhaustive") -> str:
     """cppcheck を XML モードで実行し、標準出力を文字列として返す。"""
@@ -145,7 +145,7 @@ def generate_markdown(issues: dict) -> str:
         if key not in display_order:
             display_order.append(key)
 
-    # ── 件数テーブル ──
+    # 件数テーブル
     lines.append("| Severity | Count |")
     lines.append("|----------|-------|")
     for sev_key in display_order:
@@ -158,7 +158,7 @@ def generate_markdown(issues: dict) -> str:
     lines.append(f"| **Total** | **{total_count}** |")
     lines.append("")
 
-    # ── 詳細 (件数 > 0 の重要度のみ折りたたみ表示) ──
+    # 詳細 (件数 > 0 の重要度のみ折りたたみ表示)
     if total_count == 0:
         lines.append("✅ No issues detected.")
         lines.append("")

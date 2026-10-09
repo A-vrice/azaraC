@@ -102,8 +102,7 @@ int32_t decodeAzimuth7(uint8_t code) {
 uint8_t decodePrefectureBitmask(uint64_t ex9, uint8_t* out_positions) {
     uint8_t count = 0;
 
-    // EX8=0: EX9 = [47-bit prefecture][17-bit reserved]; prefecture = ex9[63:17]
-    // (stream bits 147..193); reserved = ex9[16:0] (bits 194..210).
+    // EX8=0: EX9 = [47-bit prefecture][17-bit reserved]; prefecture = ex9[63:17] (stream bits 147..193); reserved = ex9[16:0] (bits 194..210).
     // Bit 0 (LSB) = Hokkaido (JIS 1), bit 46 (MSB) = Okinawa (JIS 47).
 
     uint64_t pref = ex9 >> 17;  // Extract 47-bit prefecture field
@@ -179,10 +178,7 @@ B2HazardCenter decodeB2HazardCenter(uint8_t c5, uint8_t c6) {
     B2HazardCenter r{};
     r.c5 = c5;
     r.c6 = c6;
-    // delta = -10 + 20 * code / 128 → microdegrees; code 64..127 rounds up (+1)
-    // gives exact +10,000,000 at code=127
-    // Matches EWSS-CAMF v1.1 §3.7.2 C5/C6 table exactly for all visible entries
-    // (e.g. code 0 → -10°, 43 → -3.28125°, 86 → +3.59375°, 107 → +6.875°, 127 → +10°).
+    // delta = -10 + 20 * code / 128 → microdegrees; code 64..127 rounds up (+1) gives exact +10,000,000 at code=127 Matches EWSS-CAMF v1.1 §3.7.2 C5/C6 table exactly for all visible entries (e.g. code 0 → -10°, 43 → -3.28125°, 86 → +3.59375°, 107 → +6.875°, 127 → +10°).
     if (c5 <= 63) r.delta_lat_microdeg = -10000000 + 156250 * c5;
     else          r.delta_lat_microdeg = -10000000 + 156250 * (c5 + 1);
     if (c6 <= 63) r.delta_lon_microdeg = -10000000 + 156250 * c6;

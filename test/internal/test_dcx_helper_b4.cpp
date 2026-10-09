@@ -1,5 +1,4 @@
-// test/internal/test_dcx_helper_b4.cpp — DcxHelper B4 全ハザードタイプテスト
-// decodeB4DetailedInfo の各 a4_code 分岐を網羅し、正しいビット展開を検証する
+// test/internal/test_dcx_helper_b4.cpp — DcxHelper B4 全ハザードタイプテスト decodeB4DetailedInfo の各 a4_code 分岐を網羅し、正しいビット展開を検証する
 
 #define ARDUINO 0
 #include "../src/internal/DcxHelper.h"

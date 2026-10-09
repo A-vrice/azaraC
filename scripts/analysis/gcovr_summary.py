@@ -20,7 +20,7 @@ import sys
 from pathlib import Path
 
 
-# ── メイン処理 ────────────────────────────────────────────────────────────────
+# メイン処理
 
 def parse_gcovr_json(json_path: Path) -> dict:
     """gcovr JSON を読み込み、ファイル別のカバレッジ情報を返す。"""
@@ -124,7 +124,7 @@ def generate_markdown(stats: dict) -> str:
         lines.append("")
         return "\n".join(lines)
 
-    # ── ファイル別カバレッジテーブル ──
+    # ファイル別カバレッジテーブル
     lines.append("| File | Lines | Executed | Coverage |")
     lines.append("|------|-------|----------|----------|")
     for entry in per_file:
@@ -137,7 +137,7 @@ def generate_markdown(stats: dict) -> str:
             f"| {emoji} {entry['coverage']:.1f}% |"
         )
 
-    # ── 全体サマリー ──
+    # 全体サマリー
     emoji_total = _coverage_emoji(total_coverage)
     lines.append(
         f"| **Total** "
@@ -147,7 +147,7 @@ def generate_markdown(stats: dict) -> str:
     )
     lines.append("")
 
-    # ── コメント ──
+    # コメント
     if total_coverage >= 80:
         lines.append(f"{emoji_total} Overall coverage: **{total_coverage:.1f}%** — Excellent!")
     elif total_coverage >= 50:

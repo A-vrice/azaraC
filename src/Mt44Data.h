@@ -111,13 +111,6 @@ struct DecodedAdditionalArea {
     DecodedEllipse ellipse;
 };
 
-struct Mt44AlertIdentity {
-    uint16_t a2;
-    uint8_t  a3;
-    uint8_t  a4;
-    uint16_t ex1;
-};
-
 struct Mt44Decoded {
     Mt44ServiceKind service_kind;
     bool is_null_message;
@@ -134,7 +127,6 @@ struct Mt44Decoded {
     uint16_t city_codes[4];
     uint8_t city_code_count;
     DecodedAdditionalArea additional_area;
-    Mt44AlertIdentity alert_identity;
 };
 
 // MT=44 Data (DCX / CAMF)

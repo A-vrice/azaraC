@@ -1,9 +1,8 @@
 // azaraC — examples/with_sntp/with_sntp.ino
 //
-// Wi-Fi + SNTP で UNIX 時刻を取得し、DCR/DCX の発生時刻を解決する例
-// disaster_category == 1 (EEW) および MT=44 DCX メッセージ のみ Serial に警告ログを出力するフィルタ付き
+// Wi-Fi + SNTP で UNIX 時刻を取得し、DCR/DCX の発生時刻を解決する例 disaster_category == 1 (EEW) および MT=44 DCX メッセージ のみ Serial に警告ログを出力するフィルタ付き
 
-// #define AZARAC_DEDUP_SLOTS 16
+// (AZARAC_DEDUP_SLOTS is not overridden here: the default is sized from 30 QZSS archive days — see src/azaraC_config.h.)
 #include <azaraC.h>
 #include <WiFi.h>
 #include <time.h>
@@ -19,11 +18,11 @@
 #endif
 
 
-// ── グローバル ───────────────────────────────────────────────────────────────
+// グローバル
 azaraC::Parser  parser;
 azaraC::Message msg;
 
-// ── setup ───────────────────────────────────────────────────────────────────
+// setup
 void setup() {
     Serial.begin(115200);
     uint32_t start = millis();
@@ -57,20 +56,17 @@ void setup() {
     Serial.println(F("[azaraC] ready"));
 }
 
-// ── loop ────────────────────────────────────────────────────────────────────
+// loop
 void loop() {
     while (Serial1.available()) {
         // SNTPで取得した現在時刻を UNIX タイムスタンプとして渡す。
-        // ※ 万一 SNTP 未同期で 2000 年以前の古い時刻が返る場合でも、
-        //   azaraC 内部で未同期と判定され、年の解決がスキップされるため
-        //   電文の生データ (月・日・時・分) 自体は安全に取得できます。
-        // time_t は 64-bit 環境 (ESP-IDF newlib) で long long の可能性があるため、
-        // 負値 (エラー) をガードしてから uint32_t にキャストする。
+        // ※ 万一 SNTP 未同期で 2000 年以前の古い時刻が返る場合でも、 azaraC 内部で未同期と判定され、年の解決がスキップされるため電文の生データ (月・日・時・分) 自体は安全に取得できます。
+        // time_t は 64-bit 環境 (ESP-IDF newlib) で long long の可能性があるため、負値 (エラー) をガードしてから uint32_t にキャストする。
         time_t now_t = time(nullptr);
         uint32_t now = (now_t > 0) ? static_cast<uint32_t>(now_t) : 0;
 
         if (parser.feed(static_cast<uint8_t>(Serial1.read()), msg, now)) {
-            // ── EEW および DCX 災害警報のみ警告出力（他は通常 JSON）──────────
+            // EEW および DCX 災害警報のみ警告出力（他は通常 JSON）
             // 安全なアクセサを使用してunionメンバーにアクセス
             if (msg.msg_type == 43) {
                 const azaraC::Mt43Data* mt43 = msg.getMt43();

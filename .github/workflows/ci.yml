@@ -13,7 +13,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # ── バージョン整合性チェック ──────────────────────────────────────────────
+  # バージョン整合性チェック
   version-sync:
     name: Version sync check
     runs-on: ubuntu-latest
@@ -47,7 +47,50 @@ jobs:
       - name: Build & run (reduced page budget, AZARAC_NANKAI_MAX_PAGES=8)
         run: make -C test run-small-pages
 
-  # ── ファジングテスト ────────────────────────────────────────────────────
+      - name: Build & run (JA-only and EN-only language configs)
+        run: make -C test run-lang-defaults
+
+      - name: Build & run (no dynamic allocation check)
+        run: make -C test test-no-alloc
+
+      - name: Dedup benchmark (gates)
+        run: make -C test bench
+
+      - name: AVR-style stub build (PROGMEM, 16-bit int)
+        run: make -C test pgm-stub
+
+  # 生成フィクスチャのドリフト検査
+  # nankai_pages_generated.h は azarashi から生成される。生成器を直したのに
+  # 生成物を更新し忘れる（またはその逆）と、テストは古いフィクスチャのまま緑になる。
+  # dcr/dcx はリポジトリ外ログ由来、test_realdata.cpp は gitignore 済み realdata/
+  # 由来なので CI では再現できない。
+  #
+  # nankai_vectors.json は検査しない: azarashi が params に壁時計の timestamp を
+  # 埋めるため、git diff は常に非空になりゲートとして機能しない。C++ が読むのは
+  # ヘッダ（ページ本文のみで決定論的）なので、そちらだけを見る。
+  #
+  # ピンは検査対象のヘッダに合わせる: nankai_pages_generated.h は 0.17.0 と 0.17.1 で
+  # バイト単位で同一。一方 dcr/dcx/nankai_vectors.json は 0.17.1 で形（v2）が変わり、
+  # パリティテストが読む参照 JSON のまま使えなくなるため再生成しない（検査もしない）。
+  fixture-drift:
+    name: Generated fixture drift
+    runs-on: ubuntu-latest
+    needs: [host-test]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Install azarashi
+        run: pip install azarashi==0.17.1
+
+      - name: Regenerate fixtures
+        run: python test/scripts/gen_all_vectors.py
+
+      - name: Verify committed fixtures match the generator
+        run: git diff --exit-code -- test/data/nankai_pages_generated.h
+
+  # ファジングテスト
   fuzz-test:
     name: Fuzz testing
     runs-on: ubuntu-latest
@@ -61,7 +104,7 @@ jobs:
       - name: Run fuzz test
         run: make -C test fuzz FUZZ_ITERATIONS=1000000
 
-  # ── Arduino Lint ─────────────────────────────────────────────────────────
+  # Arduino Lint
   arduino-lint:
     name: Arduino Lint
     runs-on: ubuntu-latest
@@ -77,7 +120,7 @@ jobs:
           library-manager: submit
           compliance: strict
 
-  # ── 必須コンパイルチェック（リリースゲート）──────────────────────────────
+  # 必須コンパイルチェック（リリースゲート）
   # アーキテクチャ代表 1 台ずつが必須: ARM Cortex-M (RP2040 Pico) /
   # Xtensa (ESP32-C3) / AVR (Arduino Uno)。失敗で CI が赤くなる。
   # その他のプラットフォームは compile-extended（ベストエフォート）。
@@ -176,7 +219,7 @@ jobs:
             arduino-cli compile --clean --fqbn "${{ matrix.fqbn }}" "$sketch" --build-property "compiler.cpp.extra_flags=$CPP_EXTRA_FLAGS"
           done
 
-  # ── 拡張コンパイルチェック（ベストエフォート）────────────────────────────
+  # 拡張コンパイルチェック（ベストエフォート）
   # required 以外の追加プラットフォーム。continue-on-error なので失敗して
   # も CI は赤くならない（警告扱い）。主要アーキテクチャの代表は
   # compile-required（リリースゲート）で検証される。
@@ -338,7 +381,7 @@ jobs:
           name: extended-outcome-${{ matrix.slug }}
           path: extended_outcome.txt
 
-  # ── PlatformIO コンパイルテスト ─────────────────────────────────────────
+  # PlatformIO コンパイルテスト
   # test/platformio の lib_deps = ../.. でリポジトリ作業ツリーを uno/esp32dev
   # でコンパイルすることを検証する（Registry の A-vrice/azaraC@^1.0.0 は
   # 解決しない。公開確認後に Registry 解決テストを別途追加）。
@@ -359,7 +402,7 @@ jobs:
       - name: Compile (uno, esp32dev)
         run: pio run -d test/platformio
 
-  # ── マクロサイズ計測 ─────────────────────────────────────────────────────
+  # マクロサイズ計測
   macro-size-check:
     name: Macro size check
     runs-on: ubuntu-latest
@@ -374,14 +417,17 @@ jobs:
 
       - name: Measure macro size impact
         run: |
-          make -C test test-macro-sizes 2>&1 | tee test/macro_sizes.txt
+          set -o pipefail
+          status=0
+          make -C test test-macro-sizes 2>&1 | tee test/macro_sizes.txt || status=$?
           echo "### 📐 AZARAC_ENABLE_* Macro Size Impact" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Host g++ (-O0) .text bytes — relative comparison only; optimized builds are much smaller." >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           cat test/macro_sizes.txt >> $GITHUB_STEP_SUMMARY
+          exit $status
 
-  # ── マクロ無効化ランタイムテスト ─────────────────────────────────────────────
+  # マクロ無効化ランタイムテスト
   macro-runtime-test:
     name: Macro disable runtime tests
     runs-on: ubuntu-latest
@@ -395,7 +441,7 @@ jobs:
       - name: Run all 13 individual macro-disabled runtime tests
         run: make -C test macro
 
-  # ── 静的解析 ──────────────────────────────────────────────────────────────
+  # 静的解析
   static-analysis:
     name: Static analysis (cppcheck)
     runs-on: ubuntu-latest
@@ -428,7 +474,7 @@ jobs:
           name: cppcheck-report
           path: test/cppcheck_report.xml
 
-  # ── カバレッジ測定 ────────────────────────────────────────────────────────
+  # カバレッジ測定
   coverage:
     name: Coverage (gcovr)
     runs-on: ubuntu-latest
@@ -473,50 +519,13 @@ jobs:
           coverage-reports: test/coverage.xml
           language: cpp
 
-  # ── メモリプロファイリング ────────────────────────────────────────────────
-  memprof:
-    name: Memory profiling (Valgrind)
-    runs-on: ubuntu-latest
-    needs: host-test
-    timeout-minutes: 15
-    permissions:
-      contents: read
-      actions: read
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          persist-credentials: false
-
-      - name: Install valgrind
-        run: sudo apt-get update && sudo apt-get install -y valgrind
-
-      - name: Memory profiling (Heap usage verification)
-        run: |
-          set -o pipefail
-          make -C test memprof 2>&1 | tee test/memprof_output.txt
-      - name: Generate memprof step summary
-        if: always()
-        run: |
-          echo "### 💾 Memory Profile (Valgrind Massif)" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          head -20 test/memprof_output.txt >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-
-      - name: Upload memprof report artifact
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        with:
-          name: memprof-report
-          path: test/memprof_output.txt
-
-  # ── 結果集約 ──────────────────────────────────────────────────────────────
+  # 結果集約
   summary:
     name: CI Summary
     runs-on: ubuntu-latest
     needs:
       - host-test
+      - fixture-drift
       - fuzz-test
       - arduino-lint
       - arduino-compile-required
@@ -525,7 +534,6 @@ jobs:
       - macro-runtime-test
       - static-analysis
       - coverage
-      - memprof
       - platformio-compile
     if: always()
     permissions:
@@ -550,13 +558,6 @@ jobs:
           name: coverage-report
           path: artifacts/coverage
 
-      - name: Download memprof report
-        continue-on-error: true
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
-        with:
-          name: memprof-report
-          path: artifacts/memprof
-
       - name: Download extended outcomes
         continue-on-error: true
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
@@ -573,6 +574,7 @@ jobs:
           |-----|--------|
           EOF
           echo "| host-test | ${{ needs.host-test.result }} |" >> comment.md
+          echo "| fixture-drift | ${{ needs.fixture-drift.result }} |" >> comment.md
           echo "| fuzz-test | ${{ needs.fuzz-test.result }} |" >> comment.md
           echo "| arduino-lint | ${{ needs.arduino-lint.result }} |" >> comment.md
           echo "| arduino-compile-required | ${{ needs.arduino-compile-required.result }} |" >> comment.md
@@ -598,7 +600,6 @@ jobs:
           echo "| macro-runtime-test | ${{ needs.macro-runtime-test.result }} |" >> comment.md
           echo "| static-analysis | ${{ needs.static-analysis.result }} |" >> comment.md
           echo "| coverage | ${{ needs.coverage.result }} |" >> comment.md
-          echo "| memprof | ${{ needs.memprof.result }} |" >> comment.md
           echo "| platformio-compile | ${{ needs.platformio-compile.result }} |" >> comment.md
           echo "" >> comment.md
           echo "---" >> comment.md
@@ -625,25 +626,6 @@ jobs:
             echo "### 🔍 Cppcheck Static Analysis Results" >> comment.md
             echo "" >> comment.md
             echo "⚠️ Cppcheck report not available (static-analysis job was skipped or failed)." >> comment.md
-            echo "" >> comment.md
-          fi
-
-          echo "" >> comment.md
-          echo "---" >> comment.md
-          echo "" >> comment.md
-
-          # Memory profile summary
-          if [ -f artifacts/memprof/memprof_output.txt ]; then
-            echo "### 💾 Memory Profile (Valgrind Massif)" >> comment.md
-            echo "" >> comment.md
-            echo '```' >> comment.md
-            tail -25 artifacts/memprof/memprof_output.txt >> comment.md
-            echo '```' >> comment.md
-            echo "" >> comment.md
-          else
-            echo "### 💾 Memory Profile (Valgrind Massif)" >> comment.md
-            echo "" >> comment.md
-            echo "⚠️ Memory profile not available (memprof job was skipped or failed or is on Windows)." >> comment.md
             echo "" >> comment.md
           fi
 

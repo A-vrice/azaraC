@@ -31,26 +31,75 @@ from _common import (  # type: ignore[import-not-found]
 
 OUT_CPP = os.path.join(BASE, 'test', 'integration', 'test_realdata.cpp')
 
-# ═══════════════════════════════════════════════════════════════════════════
-# decode_to_json CLI 統合
-# ═══════════════════════════════════════════════════════════════════════════
+# カテゴリ無効ビルド（make macro）では該当 dc の電文が DisabledAtCompileTime になりデコードできない。生成物側にも #if ガードを出さないと、手で足したガードが再生成で消える。
+DISABLED_DC_MACROS = [
+    (1, 'AZARAC_ENABLE_EEW'),
+    (2, 'AZARAC_ENABLE_HYPOCENTER'),
+    (3, 'AZARAC_ENABLE_SEISMIC'),
+    (4, 'AZARAC_ENABLE_NANKAI'),
+    (5, 'AZARAC_ENABLE_TSUNAMI'),
+    (6, 'AZARAC_ENABLE_NW_PAC_TSUNAMI'),
+    (8, 'AZARAC_ENABLE_VOLCANO'),
+    (9, 'AZARAC_ENABLE_ASH_FALL'),
+    (10, 'AZARAC_ENABLE_WEATHER'),
+    (11, 'AZARAC_ENABLE_FLOOD'),
+    (12, 'AZARAC_ENABLE_TYPHOON'),
+    (14, 'AZARAC_ENABLE_MARINE'),
+]
 
-def decode_batch(nmea_list: list) -> list:
+# decode_to_json CLI 統合
+
+def _entry0(fields: dict, nmea: str) -> dict:
+    """entry[0] を返す。entry が無いフィクスチャは生成を失敗させる
+    （entries[0] を assert する側が範囲外を読む前に気付けるようにする）。"""
+    entries = fields.get('entries') or []
+    if not entries:
+        raise SystemExit(f"collector returned no entries for {nmea}")
+    return entries[0]
+
+
+def _emit_disabled_guard(w, cases_var: str) -> None:
+    """カテゴリ無効ビルドで該当 dc を skip するガードを生成する。
+
+    make macro は各 AZARAC_ENABLE_* を個別に 0 にして run する。無効カテゴリの
+    電文は Decoder が DisabledAtCompileTime で拒否するため、ガードが無いと
+    フルスイート以外（make macro）が落ちる。
+    """
+    w('        // Skip disabled-category cases (preprocessor-guarded, eliminated at compile time when enabled)')
+    w(f'        {{ uint8_t _dc = {cases_var}[i].expected_dc;')
+    for dc, macro in DISABLED_DC_MACROS:
+        w('#if !' + macro)
+        w(f'          if (_dc == {dc}) continue;')
+        w('#endif')
+    w('        (void)_dc;')
+    w('        }')
+
+
+def decode_batch(nmea_list: list, raw: bool = False) -> list:
     """decode_to_json CLI を使って NMEA 文をデコード
+
+    Args:
+        raw: True で --raw（Parser 経路の重複除去を使わず NmeaFramer + Decoder で
+             1 文ずつ独立にデコード）。生成側はテスト本体の `decodeNmea` と同じ
+             挙動に揃えるため常に True を渡す。既定の Parser 経路は重複除去
+             （と南海トラフ集約）を行うため出力件数が入力件数より減り得て、
+             電文と期待値のインデックスがずれる（重複除去は「同じ情報を 2 度
+             通知しない」機能なので当然）。
 
     Returns:
         list of dicts: 各NMEA文のデコード結果 (JSONパース済み)
-        デコード失敗時は None を返す
+
+    失敗時は SystemExit で落とす。None を返してフィールド検査を黙って削ると、
+    デコードが壊れても生成物が「検査の少ない緑」になる。
     """
     if not os.path.exists(DECODE_BIN):
-        print(f"WARNING: decode_to_json not found at {DECODE_BIN}", file=sys.stderr)
-        print("         Field-level checks will be skipped.", file=sys.stderr)
-        return [None] * len(nmea_list)
+        raise SystemExit(f"decode_to_json not found: run `make -C test decode` first ({DECODE_BIN})")
 
     input_text = '\n'.join(nmea_list) + '\n'
+    cmd = [DECODE_BIN] + (['--raw'] if raw else [])
     try:
         proc = subprocess.run(
-            [DECODE_BIN],
+            cmd,
             input=input_text,
             capture_output=True,
             text=True,
@@ -59,30 +108,26 @@ def decode_batch(nmea_list: list) -> list:
             timeout=120,
             check=False,
         )
-        if proc.returncode != 0:
-            print(f"WARNING: decode_to_json failed (rc={proc.returncode}): {proc.stderr[:200]}", file=sys.stderr)
-            return [None] * len(nmea_list)
-
-        results = json.loads(proc.stdout)
-        if len(results) != len(nmea_list):
-            print(f"WARNING: decode_to_json returned {len(results)} results for {len(nmea_list)} inputs", file=sys.stderr)
-            while len(results) < len(nmea_list):
-                results.append(None)
-        return results
     except subprocess.TimeoutExpired as e:
-        print(f"WARNING: decode_to_json timeout: {e}", file=sys.stderr)
-        return [None] * len(nmea_list)
+        raise SystemExit(f"decode_to_json timeout: {e}")
+    if proc.returncode != 0:
+        raise SystemExit(f"decode_to_json failed (rc={proc.returncode}): {proc.stderr[:500]}")
+    try:
+        results = json.loads(proc.stdout)
     except json.JSONDecodeError as e:
-        print(f"WARNING: decode_to_json JSON error: {e}", file=sys.stderr)
-        return [None] * len(nmea_list)
-    except Exception as e:  # noqa: BLE001 — decode_batch のフォールバック
-        print(f"WARNING: decode_to_json unexpected error: {e}", file=sys.stderr)
-        return [None] * len(nmea_list)
+        raise SystemExit(f"decode_to_json returned invalid JSON: {e}")
+    if len(results) != len(nmea_list):
+        raise SystemExit(
+            f"decode_to_json returned {len(results)} results for {len(nmea_list)} inputs")
+
+    for nmea, r in zip(nmea_list, results):
+        # raw モードの解析・復号失敗は {"_error": ...} として返る（None ではない）。見逃すと collector が欠損 data を既定のゼロ値で埋め、生成が成功したように見えて誤った期待値を持つテストを作る。
+        if r is None or (isinstance(r, dict) and "_error" in r):
+            raise SystemExit(f"decode failed for: {nmea}: {r}")
+    return results
 
 
-# ═══════════════════════════════════════════════════════════════════════════
 # 1. qzqsm_history.md のパース
-# ═══════════════════════════════════════════════════════════════════════════
 
 def parse_history(filepath: str) -> list:
     """qzqsm_history.md をパースしてテストベクタを抽出"""
@@ -118,9 +163,7 @@ def parse_history(filepath: str) -> list:
     return results
 
 
-# ═══════════════════════════════════════════════════════════════════════════
 # 2. qzqsm_20240101-0107_noto.csv のパース
-# ═══════════════════════════════════════════════════════════════════════════
 
 def parse_noto_csv(filepath: str) -> list:
     """能登半島地震 CSV をパースしてテストベクタを抽出"""
@@ -159,9 +202,7 @@ def parse_noto_csv(filepath: str) -> list:
     return results
 
 
-# ═══════════════════════════════════════════════════════════════════════════
 # 3. data.txt のパース
-# ═══════════════════════════════════════════════════════════════════════════
 
 def parse_data_txt(filepath: str) -> list:
     """data.txt をパースしてテストベクタを抽出"""
@@ -185,13 +226,11 @@ def parse_data_txt(filepath: str) -> list:
     return results
 
 
-# ═══════════════════════════════════════════════════════════════════════════
 # C++ フィールド値検証コード生成 (decode_to_json の結果から)
-# ═══════════════════════════════════════════════════════════════════════════
 
 def _collect_eew_fields(decoded: dict) -> dict:
     """EEW フィールドを収集"""
-    d = decoded.get('detail', {}) if decoded else {}
+    d = decoded.get('data', {}) if decoded else {}
     return {
         'depth': d.get('depth', 0),
         'magnitude': d.get('magnitude', 0),
@@ -205,7 +244,7 @@ def _collect_eew_fields(decoded: dict) -> dict:
 
 def _collect_hypo_fields(decoded: dict) -> dict:
     """Hypocenter フィールドを収集"""
-    d = decoded.get('detail', {}) if decoded else {}
+    d = decoded.get('data', {}) if decoded else {}
     return {
         'depth': d.get('depth', 0),
         'magnitude': d.get('magnitude', 0),
@@ -215,7 +254,7 @@ def _collect_hypo_fields(decoded: dict) -> dict:
 
 def _collect_seismic_fields(decoded: dict) -> dict:
     """Seismic フィールドを収集"""
-    d = decoded.get('detail', {}) if decoded else {}
+    d = decoded.get('data', {}) if decoded else {}
     entries = d.get('entries', [])
     return {
         'count': len(entries),
@@ -227,7 +266,7 @@ def _collect_seismic_fields(decoded: dict) -> dict:
 
 def _collect_tsunami_fields(decoded: dict) -> dict:
     """Tsunami フィールドを収集"""
-    d = decoded.get('detail', {}) if decoded else {}
+    d = decoded.get('data', {}) if decoded else {}
     entries = d.get('entries', [])
     return {
         'warning_code': d.get('warning_code', 0),
@@ -240,7 +279,7 @@ def _collect_tsunami_fields(decoded: dict) -> dict:
 
 def _collect_nwpac_fields(decoded: dict) -> dict:
     """NW Pacific Tsunami フィールドを収集"""
-    d = decoded.get('detail', {}) if decoded else {}
+    d = decoded.get('data', {}) if decoded else {}
     return {
         'potential': d.get('potential', 0),
         'count': len(d.get('entries', [])),
@@ -249,7 +288,7 @@ def _collect_nwpac_fields(decoded: dict) -> dict:
 
 def _collect_volcano_fields(decoded: dict) -> dict:
     """Volcano フィールドを収集"""
-    d = decoded.get('detail', {}) if decoded else {}
+    d = decoded.get('data', {}) if decoded else {}
     return {
         'volcano_name': d.get('volcano_name', 0),
         'warning_code': d.get('warning_code', 0),
@@ -258,7 +297,7 @@ def _collect_volcano_fields(decoded: dict) -> dict:
 
 def _collect_ashfall_fields(decoded: dict) -> dict:
     """Ash Fall フィールドを収集"""
-    d = decoded.get('detail', {}) if decoded else {}
+    d = decoded.get('data', {}) if decoded else {}
     return {
         'volcano_name': d.get('volcano_name', 0),
         'warning_type': d.get('warning_type', 0),
@@ -267,16 +306,20 @@ def _collect_ashfall_fields(decoded: dict) -> dict:
 
 def _collect_weather_fields(decoded: dict) -> dict:
     """Weather フィールドを収集"""
-    d = decoded.get('detail', {}) if decoded else {}
+    d = decoded.get('data', {}) if decoded else {}
+    entries = d.get('entries', [])
     return {
         'warning_state': d.get('warning_state', 0),
-        'count': len(d.get('entries', [])),
+        'count': len(entries),
+        'entries': [{'sub_category': e.get('sub_category', 0),
+                      'region_code': e.get('region', 0)}
+                     for e in entries[:1]],
     }
 
 
 def _collect_flood_fields(decoded: dict) -> dict:
     """Flood フィールドを収集"""
-    d = decoded.get('detail', {}) if decoded else {}
+    d = decoded.get('data', {}) if decoded else {}
     return {
         'count': len(d.get('entries', [])),
     }
@@ -284,7 +327,7 @@ def _collect_flood_fields(decoded: dict) -> dict:
 
 def _collect_typhoon_fields(decoded: dict) -> dict:
     """Typhoon フィールドを収集"""
-    d = decoded.get('detail', {}) if decoded else {}
+    d = decoded.get('data', {}) if decoded else {}
     return {
         'pressure': d.get('pressure', 0),
         'max_wind': d.get('max_wind', 0),
@@ -294,7 +337,7 @@ def _collect_typhoon_fields(decoded: dict) -> dict:
 
 def _collect_marine_fields(decoded: dict) -> dict:
     """Marine フィールドを収集"""
-    d = decoded.get('detail', {}) if decoded else {}
+    d = decoded.get('data', {}) if decoded else {}
     entries = d.get('entries', [])
     return {
         'count': len(entries),
@@ -320,9 +363,7 @@ DC_INFO = {
 }
 
 
-# ═══════════════════════════════════════════════════════════════════════════
 # C++ テストファイル生成
-# ═══════════════════════════════════════════════════════════════════════════
 
 def generate_cpp(history: list, noto: list, data_txt: list,
                  history_decoded: list, noto_decoded: list,
@@ -342,29 +383,16 @@ def generate_cpp(history: list, noto: list, data_txt: list,
     w('using namespace azaraC;')
     w('')
 
-    # ── History テスト ────────────────────────────────────────────────────
+    # History テスト
     # 構造体定義と期待値配列をファイルスコープに配置（スタックオーバーフロー対策）
 
     # デコード結果から各dc typeごとの期待値配列を収集
-    # 1件でも decode 失敗した dc タイプは field-level check 全体を無効化し、
-    # *_expected[] 配列サイズと switch-case ヒット数の不一致による範囲外参照を防止する
-    dc_failed = set()       # decodeが1件でも失敗したdc
+    dc_entries = {}  # dc_code -> list of (history_index, collected_fields)
     for i, h in enumerate(history):
         dc = h['expected_dc']
-        if DC_INFO.get(dc) is None:
-            continue
-        decoded = history_decoded[i] if i < len(history_decoded) else None
-        if decoded is None:
-            dc_failed.add(dc)
-
-    dc_entries = {}  # dc_code -> list of (entry_index, collected_fields)
-    for i, h in enumerate(history):
-        dc = h['expected_dc']
-        decoded = history_decoded[i] if i < len(history_decoded) else None
+        decoded = history_decoded[i]
         info = DC_INFO.get(dc)
-        if info is None or decoded is None:
-            continue
-        if dc in dc_failed:
+        if info is None:
             continue
         _, _, _, collector = info
         fields = collector(decoded)
@@ -373,10 +401,8 @@ def generate_cpp(history: list, noto: list, data_txt: list,
         dc_entries[dc].append((i, fields))
 
     # ファイルスコープの構造体定義と期待値配列を生成
-    w('// ═══════════════════════════════════════════════════════════════════════════════')
     w(f'// qzqsm_history.md: {len(history)} 件の過去配信データ')
     w('// デコード成功 + disaster_category 一致 + フィールド値検証')
-    w('// ═══════════════════════════════════════════════════════════════════════════════')
     w('')
 
     # History Case struct and data at file scope
@@ -423,19 +449,21 @@ def generate_cpp(history: list, noto: list, data_txt: list,
 
         elif dc == 3:  # Seismic
             w(f'    // dc={dc} {dc_name_label}: {len(entries)} entries')
-            w('    struct SeismicExpected { uint8_t count; };')
+            w('    struct SeismicExpected { uint8_t intensity; uint8_t prefecture; uint8_t count; };')
             w('    static const SeismicExpected seismic_expected[] = {')
-            for _, f in entries:
-                w(f'        {{{f["count"]}}},')
+            for ei, f in entries:
+                e0 = _entry0(f, history[ei]['nmea'])
+                w(f'        {{{e0.get("intensity_code", 0)}, {e0.get("prefecture_code", 0)}, {f["count"]}}},')
             w('    };')
             w('')
 
         elif dc == 5:  # Tsunami
             w(f'    // dc={dc} {dc_name_label}: {len(entries)} entries')
-            w('    struct TsunamiExpected { uint8_t warning_code; uint8_t count; };')
+            w('    struct TsunamiExpected { uint8_t warning_code; uint8_t height; uint16_t region; uint8_t count; };')
             w('    static const TsunamiExpected tsunami_expected[] = {')
-            for _, f in entries:
-                w(f'        {{{f["warning_code"]}, {f["count"]}}},')
+            for ei, f in entries:
+                e0 = _entry0(f, history[ei]['nmea'])
+                w(f'        {{{f["warning_code"]}, {e0.get("height_code", 0)}, {e0.get("region_code", 0)}, {f["count"]}}},')
             w('    };')
             w('')
 
@@ -468,10 +496,11 @@ def generate_cpp(history: list, noto: list, data_txt: list,
 
         elif dc == 10:  # Weather
             w(f'    // dc={dc} {dc_name_label}: {len(entries)} entries')
-            w('    struct WeatherExpected { uint8_t warning_state; uint8_t count; };')
+            w('    struct WeatherExpected { uint8_t warning_state; uint8_t sub_category; uint32_t region; uint8_t count; };')
             w('    static const WeatherExpected weather_expected[] = {')
-            for _, f in entries:
-                w(f'        {{{f["warning_state"]}, {f["count"]}}},')
+            for ei, f in entries:
+                e0 = _entry0(f, history[ei]['nmea'])
+                w(f'        {{{f["warning_state"]}, {e0.get("sub_category", 0)}, {e0.get("region_code", 0)}, {f["count"]}}},')
             w('    };')
             w('')
 
@@ -495,10 +524,11 @@ def generate_cpp(history: list, noto: list, data_txt: list,
 
         elif dc == 14:  # Marine
             w(f'    // dc={dc} {dc_name_label}: {len(entries)} entries')
-            w('    struct MarineExpected { uint8_t count; };')
+            w('    struct MarineExpected { uint8_t warning_code; uint16_t region; uint8_t count; };')
             w('    static const MarineExpected marine_expected[] = {')
-            for _, f in entries:
-                w(f'        {{{f["count"]}}},')
+            for ei, f in entries:
+                e0 = _entry0(f, history[ei]['nmea'])
+                w(f'        {{{e0.get("warning_code", 0)}, {e0.get("region_code", 0)}, {f["count"]}}},')
             w('    };')
             w('')
 
@@ -525,6 +555,7 @@ def generate_cpp(history: list, noto: list, data_txt: list,
     w('        CAPTURE(i);')
     w('        CAPTURE(history_cases[i].label);')
     w('        CAPTURE(history_cases[i].nmea);')
+    _emit_disabled_guard(w, 'history_cases')
     w('        REQUIRE(decodeNmea(history_cases[i].nmea, msg));')
     w('        CHECK(msg.msg_type == 43);')
     w('        CHECK(msg.payload_type == MsgPayloadType::Mt43);')
@@ -533,7 +564,7 @@ def generate_cpp(history: list, noto: list, data_txt: list,
     w('        CHECK(mt43->disaster_category == history_cases[i].expected_dc);')
     w('')
     w('        // Field-level verification based on disaster category')
-    w('        // (expected values from AzaraC decode_to_json)')
+    w('        // (expected values from azaraC decode_to_json)')
     w('        switch (history_cases[i].expected_dc) {')
 
     for dc, entries in sorted(dc_entries.items()):
@@ -572,6 +603,8 @@ def generate_cpp(history: list, noto: list, data_txt: list,
             w(f'            case {dc}: {{')
             w(f'                const {type_name}* {varname} = mt43->{getter}();')
             w(f'                REQUIRE({varname} != nullptr);')
+            w(f'                CHECK({varname}->entries[0].intensity_code == seismic_expected[{idx_var}].intensity);')
+            w(f'                CHECK({varname}->entries[0].prefecture_code == seismic_expected[{idx_var}].prefecture);')
             w(f'                CHECK({varname}->count == seismic_expected[{idx_var}].count);')
             w(f'                {idx_var}++;')
             w('                break;')
@@ -582,6 +615,8 @@ def generate_cpp(history: list, noto: list, data_txt: list,
             w(f'                const {type_name}* {varname} = mt43->{getter}();')
             w(f'                REQUIRE({varname} != nullptr);')
             w(f'                CHECK({varname}->warning_code == tsunami_expected[{idx_var}].warning_code);')
+            w(f'                CHECK({varname}->entries[0].height_code == tsunami_expected[{idx_var}].height);')
+            w(f'                CHECK({varname}->entries[0].region_code == tsunami_expected[{idx_var}].region);')
             w(f'                CHECK({varname}->count == tsunami_expected[{idx_var}].count);')
             w(f'                {idx_var}++;')
             w('                break;')
@@ -622,6 +657,8 @@ def generate_cpp(history: list, noto: list, data_txt: list,
             w(f'                const {type_name}* {varname} = mt43->{getter}();')
             w(f'                REQUIRE({varname} != nullptr);')
             w(f'                CHECK({varname}->warning_state == weather_expected[{idx_var}].warning_state);')
+            w(f'                CHECK({varname}->entries[0].sub_category == weather_expected[{idx_var}].sub_category);')
+            w(f'                CHECK({varname}->entries[0].region_code == weather_expected[{idx_var}].region);')
             w(f'                CHECK({varname}->count == weather_expected[{idx_var}].count);')
             w(f'                {idx_var}++;')
             w('                break;')
@@ -651,6 +688,8 @@ def generate_cpp(history: list, noto: list, data_txt: list,
             w(f'            case {dc}: {{')
             w(f'                const {type_name}* {varname} = mt43->{getter}();')
             w(f'                REQUIRE({varname} != nullptr);')
+            w(f'                CHECK({varname}->entries[0].warning_code == marine_expected[{idx_var}].warning_code);')
+            w(f'                CHECK({varname}->entries[0].region_code == marine_expected[{idx_var}].region);')
             w(f'                CHECK({varname}->count == marine_expected[{idx_var}].count);')
             w(f'                {idx_var}++;')
             w('                break;')
@@ -662,11 +701,9 @@ def generate_cpp(history: list, noto: list, data_txt: list,
     w('}')
     w('')
 
-    # ── Noto CSV テスト ───────────────────────────────────────────────────
-    w('// ═══════════════════════════════════════════════════════════════════════════════')
+    # Noto CSV テスト
     w(f'// qzqsm_20240101-0107_noto.csv: {len(noto)} 件（能登半島地震）')
     w('// デコード成功 + disaster_category / information_type / report_classification 検証')
-    w('// ═══════════════════════════════════════════════════════════════════════════════')
     w('')
     w('namespace {')
     w('    struct NotoCase {')
@@ -694,6 +731,7 @@ def generate_cpp(history: list, noto: list, data_txt: list,
     w('        CAPTURE(i);')
     w('        CAPTURE(noto_cases[i].label);')
     w('        CAPTURE(noto_cases[i].nmea);')
+    _emit_disabled_guard(w, 'noto_cases')
     w('        REQUIRE(decodeNmea(noto_cases[i].nmea, msg));')
     w('        CHECK(msg.msg_type == 43);')
     w('        CHECK(msg.payload_type == MsgPayloadType::Mt43);')
@@ -706,12 +744,10 @@ def generate_cpp(history: list, noto: list, data_txt: list,
     w('}')
     w('')
 
-    # ── data.txt テスト ───────────────────────────────────────────────────
-    w('// ═══════════════════════════════════════════════════════════════════════════════')
+    # data.txt テスト
     w(f'// data.txt: {len(data_txt)} 件の DCX/DCR 混在生データ')
     w('// デコード成功 + msg_type + disaster_category/service_kind 検証')
-    w('// (expected values from AzaraC decode_to_json)')
-    w('// ═══════════════════════════════════════════════════════════════════════════════')
+    w('// (expected values from azaraC decode_to_json)')
     w('')
     w('namespace {')
     w('    struct DataTxtCase {')
@@ -742,7 +778,11 @@ def generate_cpp(history: list, noto: list, data_txt: list,
     w('        CAPTURE(i);')
     w('        CAPTURE(data_txt_cases[i].line);')
     w('        CAPTURE(data_txt_cases[i].nmea);')
-    w('        REQUIRE(decodeNmea(data_txt_cases[i].nmea, msg));')
+    w('        if (!decodeNmea(data_txt_cases[i].nmea, msg)) {')
+    w('            // Skip cases where the category is disabled at compile time')
+    w('            if (msg.unsupported_reason == UnsupportedReason::DisabledAtCompileTime) continue;')
+    w('            REQUIRE(false);')
+    w('        }')
     w('        CHECK(msg.valid);')
     w('        CHECK(msg.msg_type == data_txt_cases[i].expected_msg_type);')
     w('        CHECK((msg.payload_type == MsgPayloadType::Mt43 || msg.payload_type == MsgPayloadType::Mt44));')
@@ -776,26 +816,19 @@ def main():
     # decode_to_json で期待値を取得
     print("\nDecoding history entries...")
     history_nmeas = [h['nmea'] for h in history]
-    history_decoded = decode_batch(history_nmeas)
+    history_decoded = decode_batch(history_nmeas, raw=True)
     for i, (h, d) in enumerate(zip(history, history_decoded)):
-        dc = h['expected_dc']
-        if d:
-            print(f"  [{i}] dc={dc} {h['dc_name']}: decoded OK")
-        else:
-            print(f"  [{i}] dc={dc} {h['dc_name']}: decode FAILED")
+        print(f"  [{i}] dc={h['expected_dc']} {h['dc_name']}: decoded OK")
 
     print("\nDecoding data.txt entries...")
     data_txt_nmeas = [d['nmea'] for d in data_txt]
-    data_txt_decoded = decode_batch(data_txt_nmeas)
+    data_txt_decoded = decode_batch(data_txt_nmeas, raw=True)
     mt_counts = {}
     for i, (d, dec) in enumerate(zip(data_txt, data_txt_decoded)):
-        if dec:
-            mt = dec.get('msg_type', '?')
-            mt_counts[mt] = mt_counts.get(mt, 0) + 1
-            if i < 5 or i >= len(data_txt) - 2:
-                print(f"  [{i}] line={d['line']}: MT={mt}")
-        else:
-            print(f"  [{i}] line={d['line']}: decode FAILED")
+        mt = dec.get('msg_type', '?')
+        mt_counts[mt] = mt_counts.get(mt, 0) + 1
+        if i < 5 or i >= len(data_txt) - 2:
+            print(f"  [{i}] line={d['line']}: MT={mt}")
     print(f"  MT distribution: {mt_counts}")
 
     # Noto CSV は大量なのでデコードをスキップ（メタデータのみで十分）
@@ -806,7 +839,7 @@ def main():
                        history_decoded, noto_decoded, data_txt_decoded)
 
     os.makedirs(os.path.dirname(OUT_CPP), exist_ok=True)
-    with open(OUT_CPP, 'w', encoding='utf-8') as f:
+    with open(OUT_CPP, 'w', encoding='utf-8', newline='\n') as f:
         f.write(cpp)
     print(f"\nGenerated: {OUT_CPP} ({len(cpp)} bytes)")
 

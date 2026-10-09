@@ -11,10 +11,11 @@ class Decoder {
 public:
     bool decode(const Frame& frame, Message& out, uint32_t report_unix = 0);
 
-protected:
-    // CRC-24Q (IS-QZSS-L1S §3.2.8)
+    // CRC-24Q (IS-QZSS-L1S §3.2.8)。Parser がフレームの部分区間（手順③ の照合対象 MT～VN = bit 8..219）の digest を作るためにも使う。ハッシュ実装を二重に持たない。
+    // data[0] の MSB から bit_len ビットを処理する。
     static uint32_t crc24q(const uint8_t* data, uint16_t bit_len);
 
+protected:
     // Date conversion helpers (civil date <-> days since 1970-01-01)
     static void civil_from_days(uint32_t days_since_1970, uint32_t& y, uint32_t& m, uint32_t& d);
     static uint32_t days_from_civil(uint32_t y, uint32_t m, uint32_t d);
@@ -46,13 +47,10 @@ protected:
 
     bool decodeQzqsm(const uint8_t* bits, Message& out, uint32_t report_unix);
 
-    // OOB flag: set by getBits/getBits64 on reads beyond the 256-bit frame
-    // boundary. decode() clears it per session and fails if OOB is detected.
+    // OOB flag: set by getBits/getBits64 on reads beyond the 256-bit frame boundary. decode() clears it per session and fails if OOB is detected.
     bool oob_ = false;
 
-    // MT=43 JMA sub-decoders. Declarations unconditional: guards on the
-    // definitions control code size; decodeQzqsm() dispatches via the shared
-    // AZARAC_DC_CATEGORIES table (constant-folded guards, disabled never called).
+    // MT=43 JMA sub-decoders. Declarations unconditional: guards on the definitions control code size; decodeQzqsm() dispatches via the shared AZARAC_DC_CATEGORIES table (constant-folded guards, disabled never called).
     void decodeEEW(const uint8_t* b, Message& out, uint32_t report_unix);
     void decodeHypocenter(const uint8_t* b, Message& out, uint32_t report_unix);
     void decodeSeismic(const uint8_t* b, Message& out, uint32_t report_unix);

@@ -99,8 +99,7 @@ bool NmeaFramer::parse(Frame& out) {
         }
     }
     // QZSS L1S = 252 bits (250 data + 2-bit padding, spec Table 4.3.1-1) = 63 hex chars;
-    // some receivers output 64, so accept both. Anything after the hex payload
-    // (before '*', already NUL-terminated by feed) is garbage -> reject.
+    // some receivers output 64, so accept both. Anything after the hex payload (before '*', already NUL-terminated by feed) is garbage -> reject.
     if (hex_count != 63 && hex_count != 64) return false;
     if (*p != '\0') return false;
 
@@ -113,13 +112,11 @@ bool NmeaFramer::parse(Frame& out) {
         out.bits[31] &= 0xC0;  // 250 data bits MSB-first, byte31 bits 5..0 are padding
     }
 
-    // QZQSM NMEA SVID is L1S PRN - 128 (e.g. 56 -> 184)
-    if (svid >= 55 && svid <= 63) {
-        out.svid = svid + 128;
-    } else {
-        out.svid = svid;
-    }
-    
+    // QZQSM の Satellite ID は「PRN を表す 8bit の下位 6bit」(DCR-017 §4.3.1 /
+    // DCX-004 §4.3.1)。Frame::svid の契約は PRN（api-reference.md の 181-191）なので、生 ID に上位ビットを立てて PRN に正規化する。
+    // 既に PRN（>=128）が入っている場合は | 0x80 が恒等なので二重変換しない。
+    out.svid = static_cast<uint8_t>(svid | 0x80);
+
     return true;
 }
 

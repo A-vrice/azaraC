@@ -1,6 +1,6 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.16.4 with CI-CD
-// Source module : qzss_dcr_jma_seismic_intensity
+// AUTO-GENERATED from azarashi 0.17.1 with CI-CD
+// Source module : azarashi.definitions.qzss.dcr.seismic_intensity
 // Variable      : qzss_dcr_jma_seismic_intensity
 // Entries       : 7
 // Strategy      : switch
@@ -23,7 +23,7 @@
 namespace azaraC {
 namespace def {
 
-#if (AZARAC_ENABLE_SEISMIC)
+#if (AZARAC_ENABLE_SEISMIC) && (AZARAC_LANG_JA)
 
 #if defined(__AVR__)
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_seismic_intensity_lookup(uint8_t id) noexcept {

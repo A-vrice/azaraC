@@ -20,29 +20,31 @@
 namespace azaraC {
 namespace internal {
 
-// Event key. svid deliberately excluded: multiple QZSS satellites relay the same
-// message, so including svid would create duplicate buffers for one event.
+// Event key. svid deliberately excluded: multiple QZSS satellites relay the same message, so including svid would create duplicate buffers for one event.
 //
-// Identity is {info_code, report_time month/day/hour/minute} and the DHM values
-// are the RAW protocol bits (NankaiData::report_*), not the normalized
-// Mt43Data::event_time: resolveTime() rewrites out-of-calendar dates (2/30 → 3/1)
-// and picks a month when the field is 0, so a page arriving with a report_unix
-// baseline would hash differently from one arriving without — splitting one event
-// across buffers. Raw bits keep the identity stable across resolution changes.
+// Identity is {info_code, information_type, report_time month/day/hour/minute} and the DHM values are the RAW protocol bits (NankaiData::report_*), not the normalized
+// Mt43Data::event_time: resolveTime() rewrites out-of-calendar dates (2/30 → 3/1) and picks a month when the field is 0, so a page arriving with a report_unix baseline would hash differently from one arriving without — splitting one event across buffers. Raw bits keep the identity stable across resolution changes.
+//
+// information_type（It: 0=発表 / 2=取消）は鍵に含める。含めないと同一 info_code + 同一報告時刻の発表と取消が1つのバッファに載り、同じ Pn のページが先着優先で捨てられて2つの文面が混ざる（集約テキストの破損）。dedup 側の事象トークンも同じ 6 フィールドを使う（internal/Dedup.h の dedupEventToken）。
 struct NankaiPageKey {
-    uint8_t  info_code = 0;        // 1B
+    uint8_t  info_code = 0;        // 1B — Is (Information Serial Code, 4b)
+    uint8_t  information_type = 0; // 1B — It (2b: 0=発表, 2=取消)
     uint8_t  report_month  = 0;    // 1B — raw report_time month (4b)
     uint8_t  report_day    = 0;    // 1B — raw report_time day (5b)
     uint8_t  report_hour   = 0;    // 1B — raw report_time hour (5b)
     uint8_t  report_minute = 0;    // 1B — raw report_time minute (6b)
-    // 合計 5B（パディングなし）
+    // 合計 6B（パディングなし）
 
     constexpr NankaiPageKey() = default;
-    constexpr NankaiPageKey(uint8_t ic, uint8_t mo = 0, uint8_t d = 0, uint8_t h = 0, uint8_t m = 0)
-        : info_code(ic), report_month(mo), report_day(d), report_hour(h), report_minute(m) {}
+    // it は末尾の既定引数: 既存の呼び出し {ic, mo, d, h, m} の意味を変えない。
+    constexpr NankaiPageKey(uint8_t ic, uint8_t mo = 0, uint8_t d = 0, uint8_t h = 0, uint8_t m = 0,
+                            uint8_t it = 0)
+        : info_code(ic), information_type(it), report_month(mo), report_day(d), report_hour(h),
+          report_minute(m) {}
 
     bool operator==(const NankaiPageKey& o) const {
         return info_code == o.info_code &&
+               information_type == o.information_type &&
                report_month  == o.report_month &&
                report_day    == o.report_day &&
                report_hour   == o.report_hour &&
@@ -51,6 +53,7 @@ struct NankaiPageKey {
 
     void clear() {
         info_code = 0;
+        information_type = 0;
         report_month = 0;
         report_day = 0;
         report_hour = 0;
@@ -58,10 +61,8 @@ struct NankaiPageKey {
     }
 };
 
-// Page aggregation buffer for a single event. Pages written directly at
-// (page_num-1)*TEXT_PER_PAGE; bitmap tracks received pages.
-// Truncation: if total_pages > MAX_PAGES, keep pages 1..MAX_PAGES and set
-// truncated; the rest are silently dropped.
+// Page aggregation buffer for a single event. Pages written directly at (page_num-1)*TEXT_PER_PAGE; bitmap tracks received pages.
+// Truncation: if total_pages > MAX_PAGES, keep pages 1..MAX_PAGES and set truncated; the rest are silently dropped.
 // ページ数上限・バッファ数は azaraC_config.h の
 // AZARAC_NANKAI_MAX_PAGES / AZARAC_NANKAI_BUFFERS が唯一の定義元。
 // MAX_PAGES の範囲は spec の Pn/Pm（1-63, 6bit）に従う。
@@ -76,7 +77,7 @@ struct NankaiPageBuffer {
     static constexpr uint8_t TEXT_PER_PAGE = 18;
     static constexpr uint32_t TIMEOUT_MS = 60000;  // 60 seconds timeout
 
-    NankaiPageKey key;                  // 5B
+    NankaiPageKey key;                  // 6B
     uint64_t received_bitmap = 0;       // 8B — bitmap: bit (page_num-1) set when received
     uint64_t last_update_ms = 0;        // 8B
     uint8_t total_pages = 0;            // 1B — Effective total (capped at MAX_PAGES)
@@ -166,10 +167,8 @@ struct NankaiPageBuffer {
     }
 
     // Compact received pages into a contiguous C string (call only when complete).
-    // Non-final pages may be short (NUL hole); getTextLength sums per-page lengths
-    // but serialize emits [ptr, ptr+len) contiguously, so holes would leak NULs.
-    // In-place is safe: w <= p*TEXT_PER_PAGE always, earlier writes end at or
-    // before the next source page.
+    // Non-final pages may be short (NUL hole); getTextLength sums per-page lengths but serialize emits [ptr, ptr+len) contiguously, so holes would leak NULs.
+    // In-place is safe: w <= p*TEXT_PER_PAGE always, earlier writes end at or before the next source page.
     uint16_t compactText() {
         uint16_t w = 0;
         for (uint8_t p = 0; p < total_pages; ++p) {
@@ -203,9 +202,7 @@ struct NankaiPageBuffer {
         return total_pages == 0;
     }
 
-    // Empty buffers hold an all-zero key, which would otherwise equal a zero-key
-    // event and bind incoming pages to a free slot instead of the buffer already
-    // tracking the event. Never match an empty buffer.
+    // Empty buffers hold an all-zero key, which would otherwise equal a zero-key event and bind incoming pages to a free slot instead of the buffer already tracking the event. Never match an empty buffer.
     bool matchesKey(const NankaiPageKey& k) const {
         return !isEmpty() && key == k;
     }

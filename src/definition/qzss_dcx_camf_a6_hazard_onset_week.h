@@ -1,6 +1,6 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.16.4 with CI-CD
-// Source module : qzss_dcx_camf_a6_hazard_onset_week
+// AUTO-GENERATED from azarashi 0.17.1 with CI-CD
+// Source module : azarashi.definitions.camf.a6_hazard_onset_week
 // Variable      : qzss_dcx_camf_a6_hazard_onset_week
 // Entries       : 2
 // Strategy      : switch

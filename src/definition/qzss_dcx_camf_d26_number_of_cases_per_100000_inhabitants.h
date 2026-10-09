@@ -1,6 +1,6 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.16.4 with CI-CD
-// Source module : qzss_dcx_camf_b4_lower_level_fields_tables
+// AUTO-GENERATED from azarashi 0.17.1 with CI-CD
+// Source module : azarashi.definitions.camf.d_fields
 // Variable      : qzss_dcx_camf_d26_number_of_cases_per_100000_inhabitants
 // Entries       : 21
 // Strategy      : array

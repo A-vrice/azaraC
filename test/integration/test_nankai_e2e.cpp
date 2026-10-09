@@ -275,7 +275,8 @@ TEST_CASE("Nankai E2E: Page tracking with single page") {
 static void buildNankaiPage(uint8_t page_num, uint8_t total_pages, uint8_t info_code,
                             const uint8_t* text, uint8_t text_len, uint8_t* bits,
                             uint8_t rt_month = 0, uint8_t rt_day = 0,
-                            uint8_t rt_hour = 0, uint8_t rt_minute = 0) {
+                            uint8_t rt_hour = 0, uint8_t rt_minute = 0,
+                            uint8_t information_type = 0) {
     memset(bits, 0, 32);
     setBits(bits, 0, 8, 0x53);       // Preamble
     setBits(bits, 8, 6, 43);         // msg_type
@@ -286,7 +287,7 @@ static void buildNankaiPage(uint8_t page_num, uint8_t total_pages, uint8_t info_
     setBits(bits, 25, 5, rt_day);
     setBits(bits, 30, 5, rt_hour);
     setBits(bits, 35, 6, rt_minute);
-    setBits(bits, 41, 2, 0);         // information_type
+    setBits(bits, 41, 2, information_type);  // It (0=発表 / 2=取消)
     setBits(bits, 53, 4, info_code);  // info_code
     // Text: 18 bytes at bits 57..200
     for (uint8_t i = 0; i < text_len && i < 18; ++i) {
@@ -305,8 +306,7 @@ static void buildNankaiPage(uint8_t page_num, uint8_t total_pages, uint8_t info_
 #include "../data/nankai_pages_generated.h"
 
 // Per-page text length up to the first NUL, mirroring NankaiPageBuffer::compactText().
-// The final page of the real message is NUL-padded on the wire, so the aggregated
-// body is shorter than pages * TEXT_PER_PAGE.
+// The final page of the real message is NUL-padded on the wire, so the aggregated body is shorter than pages * TEXT_PER_PAGE.
 [[maybe_unused]] static uint16_t pageUsedLength(const uint8_t* page) {
     uint16_t n = 0;
     while (n < NankaiPageBuffer::TEXT_PER_PAGE && page[n] != 0) ++n;
@@ -333,16 +333,13 @@ TEST_CASE("Nankai E2E: 27-page full aggregation with real text data") {
     azaraC::Message msg;
     uint8_t bits[32];
 
-    // Build the expected body exactly like NankaiPageBuffer::compactText(): per-page
-    // text up to the first NUL. The real final page is NUL-padded, so the body is
-    // shorter than 27*18 bytes.
+    // Build the expected body exactly like NankaiPageBuffer::compactText(): per-page text up to the first NUL. The real final page is NUL-padded, so the body is shorter than 27*18 bytes.
     uint8_t expected_body[27 * NankaiPageBuffer::TEXT_PER_PAGE];
     const uint16_t EXPECTED_AGG_LEN = compactPages(nankai_page_data, 27, expected_body);
     CHECK(EXPECTED_AGG_LEN < 27 * NankaiPageBuffer::TEXT_PER_PAGE);  // final page is short
 
     // Feed all 27 pages in order
-    // Pages 1..26 won't produce output (aggregation in progress),
-    // only page 27 completes the aggregation and produces output.
+    // Pages 1..26 won't produce output (aggregation in progress), only page 27 completes the aggregation and produces output.
     for (uint8_t page = 1; page <= 27; ++page) {
         buildNankaiPage(page, 27, 5,
                         nankai_page_data[page - 1], NankaiPageBuffer::TEXT_PER_PAGE, bits);
@@ -388,8 +385,7 @@ TEST_CASE("Nankai E2E: 27-page full aggregation with real text data") {
     CHECK(nankai->is_aggregated == true);
     CHECK(nankai->aggregated_len == EXPECTED_AGG_LEN);
 
-    // Full exact match of the aggregated body — catches reordering, truncation,
-    // or partial overwrites that flag/length-only checks would miss.
+    // Full exact match of the aggregated body — catches reordering, truncation, or partial overwrites that flag/length-only checks would miss.
     CHECK(memcmp(nankai->aggregated_text_ptr, expected_body, EXPECTED_AGG_LEN) == 0);
 
     // Stable portion checks: prefix (page 1) and suffix (final page's used bytes)
@@ -410,9 +406,67 @@ TEST_CASE("Nankai E2E: 27-page full aggregation with real text data") {
 }
 #endif // AZARAC_NANKAI_MAX_PAGES >= 27
 
+// 同じ事象を別のページ順で再受信しても再通知しない。集約メッセージの同一性はページ集合を完成させた電文ではなく事象そのもの（info_code + 報告時刻）。
+// 既定の AZARAC_NANKAI_BUFFERS=1 では事象BがAのページバッファを追い出すため、 3手目は集約が再完了して dedup の判定に到達する（バッファ数が2以上でもページ重複で再完了しないだけで、期待値は同じ0）。
+#if AZARAC_NANKAI_MAX_PAGES >= 27
+TEST_CASE("Nankai E2E: 同一事象の再放送は再通知しない") {
+    azaraC::Parser parser;
+    azaraC::Message msg;
+    uint8_t bits[32];
+
+    auto feedEvent = [&](uint8_t rt_minute, bool reversed) -> int {
+        int emitted = 0;
+        for (uint8_t i = 0; i < 27; ++i) {
+            const uint8_t page = reversed ? static_cast<uint8_t>(27 - i)
+                                          : static_cast<uint8_t>(i + 1);
+            buildNankaiPage(page, 27, /*info_code=*/5,
+                            nankai_page_data[page - 1], NankaiPageBuffer::TEXT_PER_PAGE, bits,
+                            /*rt_month=*/6, /*rt_day=*/15, /*rt_hour=*/12, rt_minute);
+            std::string nmea = makeNmeaQzqsm(58, bits);
+            for (size_t k = 0; k < nmea.length(); ++k) {
+                if (parser.feed(nmea[k], msg, 0)) ++emitted;
+            }
+        }
+        return emitted;
+    };
+
+    CHECK(feedEvent(30, false) == 1);   // 事象A
+    CHECK(feedEvent(31, false) == 1);   // 事象B（報告時刻が違う＝別の情報）
+    CHECK(feedEvent(30, true) == 0);    // 事象Aの再放送（完成ページが入れ替わる）
+}
+#endif
+
+// 同一 info_code + 同一報告時刻でも情報種別（発表/取消）が違えば別の情報として通知する。
+// 事象鍵が It を含まないと、後から完成した取消が発表の dedup 履歴に潰されて落ちる（集約バッファでも両者が1つに混ざる）。
+#if AZARAC_NANKAI_MAX_PAGES >= 27
+TEST_CASE("Nankai E2E: 同一 info_code + 報告時刻でも発表と取消は別に通知する") {
+    azaraC::Parser parser;
+    azaraC::Message msg;
+    uint8_t bits[32];
+
+    auto feedEvent = [&](uint8_t information_type) -> int {
+        int emitted = 0;
+        for (uint8_t page = 1; page <= 27; ++page) {
+            buildNankaiPage(page, 27, /*info_code=*/5,
+                            nankai_page_data[page - 1], NankaiPageBuffer::TEXT_PER_PAGE, bits,
+                            /*rt_month=*/6, /*rt_day=*/15, /*rt_hour=*/12, /*rt_minute=*/30,
+                            /*information_type=*/information_type);
+            std::string nmea = makeNmeaQzqsm(58, bits);
+            for (size_t k = 0; k < nmea.length(); ++k) {
+                if (parser.feed(nmea[k], msg, 0)) ++emitted;
+            }
+        }
+        return emitted;
+    };
+
+    CHECK(feedEvent(0) == 1);   // 発表
+    CHECK(feedEvent(2) == 1);   // 取消（It だけ違う＝別の情報）
+    CHECK(feedEvent(0) == 0);   // 発表の再放送は抑制される
+}
+#endif
+
 // Nankai NUL バイト打ち切り リグレッションテスト
-// ページ内に 0x00 が埋め込まれた場合、NUL 以降のデータが aggregated_text に
-// 含まれず aggregated_len が短縮されることを検証する。
+// ページ内に 0x00 が埋め込まれた場合、NUL 以降のデータが aggregated_text に含まれず aggregated_len が短縮されることを検証する。
 
 TEST_CASE("Nankai E2E: NUL byte mid-page stops aggregation at null") {
     // 3 ページ構成。page 2 の 9 バイト目に 0x00 を埋め込む。
@@ -437,8 +491,7 @@ TEST_CASE("Nankai E2E: NUL byte mid-page stops aggregation at null") {
 
     const uint8_t* page_texts[TOTAL] = { p1, p2, p3 };
 
-    // compactText() により完成時は NUL ホールが詰められ、[ptr, ptr+len) は
-    // 連続したテキストになる。aggregated_len は論理的な結合長 (NUL 打ち切り後)。
+    // compactText() により完成時は NUL ホールが詰められ、[ptr, ptr+len) は連続したテキストになる。aggregated_len は論理的な結合長 (NUL 打ち切り後)。
     static constexpr uint16_t EXPECTED_LEN = 18 + 9 + 18; // 45
 
     // Compact 後の期待レイアウト (連続): A*18 + A*9 + C*18
@@ -583,8 +636,7 @@ TEST_CASE("Nankai E2E: Page missing prevents aggregation") {
 }
 #endif // AZARAC_NANKAI_MAX_PAGES >= 27
 
-// 鍵正規化リグレッション: report_unix が途中で解決されても 1 バッファに集約される
-// report_time は固定なので、解決済み/未解決で鍵の identity は変わらない。
+// 鍵正規化リグレッション: report_unix が途中で解決されても 1 バッファに集約される report_time は固定なので、解決済み/未解決で鍵の identity は変わらない。
 
 TEST_CASE("Nankai E2E: report_unix becoming valid mid-broadcast keeps one buffer") {
     azaraC::Parser parser;
@@ -620,8 +672,7 @@ TEST_CASE("Nankai E2E: report_unix becoming valid mid-broadcast keeps one buffer
     CHECK(nankai->truncated == false);
 }
 
-// 鍵の生ビット正規化リグレッション: report_time が暦上正規化される値でも
-// 解決状況に依存せず 1 バッファに集約される（report_* は resolveTime を通さない）。
+// 鍵の生ビット正規化リグレッション: report_time が暦上正規化される値でも解決状況に依存せず 1 バッファに集約される（report_* は resolveTime を通さない）。
 
 TEST_CASE("Nankai E2E: key uses raw report_time, not the normalized date") {
     constexpr uint8_t TOTAL = 3;
@@ -668,8 +719,7 @@ TEST_CASE("Nankai E2E: key uses raw report_time, not the normalized date") {
 
 // 打ち切り（total_pages > MAX_PAGES）E2E テスト
 // 既定値非依存: MAX_PAGES は NankaiPageBuffer から取得する。
-// 6bit フィールドに収まる範囲（MAX_PAGES+2 <= 63）でのみ成立するため、
-// MAX_PAGES=63（仕様最大）では電文上打ち切りが発生せずガードで除外される。
+// 6bit フィールドに収まる範囲（MAX_PAGES+2 <= 63）でのみ成立するため、 MAX_PAGES=63（仕様最大）では電文上打ち切りが発生せずガードで除外される。
 
 #if AZARAC_NANKAI_MAX_PAGES + 2 <= 63
 TEST_CASE("Nankai E2E: pages beyond MAX_PAGES are dropped and flagged truncated") {
@@ -722,8 +772,7 @@ TEST_CASE("Nankai E2E: pages beyond MAX_PAGES are dropped and flagged truncated"
 #endif // AZARAC_NANKAI_MAX_PAGES + 2 <= 63
 
 // Nankai 63ページ最大集約 E2E テスト
-// total_page は6ビットフィールド（最大値63）。63ページ×18バイト=1134バイトは
-// aggregated_text[1135] の上限（1134バイト+ヌル終端）にちょうど収まる。
+// total_page は6ビットフィールド（最大値63）。63ページ×18バイト=1134バイトは aggregated_text[1135] の上限（1134バイト+ヌル終端）にちょうど収まる。
 // ページ1-27はazarashi検証済みデータ、ページ28-63は合成データを使用。
 
 #if AZARAC_NANKAI_MAX_PAGES >= 63
@@ -747,8 +796,7 @@ TEST_CASE("Nankai E2E: 63-page maximum aggregation (protocol limit)") {
         memcpy(pages63[p], src, NankaiPageBuffer::TEXT_PER_PAGE);
     }
 
-    // Same compaction as compactText(): the real page 27 is NUL-padded, so the
-    // aggregated body is shorter than 63*18 bytes.
+    // Same compaction as compactText(): the real page 27 is NUL-padded, so the aggregated body is shorter than 63*18 bytes.
     uint8_t expected_body_63[TOTAL * NankaiPageBuffer::TEXT_PER_PAGE];
     const uint16_t EXPECTED_AGG_LEN_63 = compactPages(pages63, TOTAL, expected_body_63);
 

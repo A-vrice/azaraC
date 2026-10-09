@@ -1,11 +1,8 @@
 #pragma once
 // MT=43 (QZQSM/DCR) data structures and tagged union
-// Bit offsets derived from azarashi (IS-QZSS-DCR-016)
+// Bit offsets derived from azarashi (IS-QZSS-DCR-017)
 //
-// CONTRACT: every payload type (EewData, …, MarineData) MUST stay trivially
-// copyable/destructible (scalars, fixed arrays, POD only, no owning
-// pointers), so copy/move/destroy reduce to memcpy / tag reset. A
-// non-trivial member (e.g. std::string) breaks this.
+// CONTRACT: every payload type (EewData, …, MarineData) MUST stay trivially copyable/destructible (scalars, fixed arrays, POD only, no owning pointers), so copy/move/destroy reduce to memcpy / tag reset. A non-trivial member (e.g. std::string) breaks this.
 
 #if defined(__AVR__)
 #include "internal/avr_std/cstdint"
@@ -106,20 +103,14 @@ struct SeismicData {
 
 #if AZARAC_ENABLE_NANKAI
 // Nankai Trough page aggregation.
-// LIFETIME: when is_aggregated, aggregated_text_ptr borrows the Parser's
-// statically-held NankaiPageBuffer::aggregated_text[] and is invalidated by
-// the next feed()/reset() or a Nankai aggregation reusing the slot; the
-// buffer may then hold a different event. Caller MUST copy/serialize
-// immediately. Zero-copy: avoids copying up to AZARAC_NANKAI_MAX_PAGES*18
-// bytes into each Message.
+// LIFETIME: when is_aggregated, aggregated_text_ptr borrows the Parser's statically-held NankaiPageBuffer::aggregated_text[] and is invalidated by the next feed()/reset() or a Nankai aggregation reusing the slot; the buffer may then hold a different event. Caller MUST copy/serialize immediately. Zero-copy: avoids copying up to AZARAC_NANKAI_MAX_PAGES*18 bytes into each Message.
 struct NankaiData {
     uint8_t info_code;
     uint8_t text[18];
     uint8_t page;
     uint8_t total_page;
     // MT=43 ペイロードの report_time（bit 21/25/30/35）を受信そのまま保持する。
-    // 集約キーの軸: event_time と違い Decoder::resolveTime の正規化を受けないため、
-    // 放送途中で report_unix が有効/無効になっても鍵がずれない。
+    // 集約キーの軸: event_time と違い Decoder::resolveTime の正規化を受けないため、放送途中で report_unix が有効/無効になっても鍵がずれない。
     uint8_t report_month;   // 1-12 (4b)
     uint8_t report_day;     // 1-31 (5b)
     uint8_t report_hour;    // 0-23 (5b)
@@ -197,6 +188,7 @@ struct Mt43Data {
     uint8_t  report_classification;
     uint8_t  disaster_category;
     uint8_t  information_type;
+    uint8_t  version;        // Vn, 6 bits at [214..219]; spec requires 1
     TimeFields event_time;
 
     enum class ActiveType : uint8_t {
@@ -237,6 +229,7 @@ struct Mt43Data {
         : report_classification(0)
         , disaster_category(0)
         , information_type(0)
+        , version(0)
         , event_time{}
         , active_type(ActiveType::None)
     {
@@ -247,6 +240,7 @@ struct Mt43Data {
         : report_classification(other.report_classification)
         , disaster_category(other.disaster_category)
         , information_type(other.information_type)
+        , version(other.version)
         , event_time(other.event_time)
         , active_type(other.active_type)
     {
@@ -259,6 +253,7 @@ struct Mt43Data {
             report_classification = other.report_classification;
             disaster_category = other.disaster_category;
             information_type = other.information_type;
+            version = other.version;
             event_time = other.event_time;
             active_type = other.active_type;
             copyFrom(other);
@@ -270,6 +265,7 @@ struct Mt43Data {
         : report_classification(other.report_classification)
         , disaster_category(other.disaster_category)
         , information_type(other.information_type)
+        , version(other.version)
         , event_time(other.event_time)
         , active_type(other.active_type)
     {
@@ -282,6 +278,7 @@ struct Mt43Data {
             report_classification = other.report_classification;
             disaster_category = other.disaster_category;
             information_type = other.information_type;
+            version = other.version;
             event_time = other.event_time;
             active_type = other.active_type;
             moveFrom(other);

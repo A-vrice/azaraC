@@ -1,6 +1,6 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.16.4 with CI-CD
-// Source module : qzss_dcr_jma_typhoon_intensity_category
+// AUTO-GENERATED from azarashi 0.17.1 with CI-CD
+// Source module : azarashi.definitions.qzss.dcr.typhoon_intensity_category
 // Variable      : qzss_dcr_jma_typhoon_intensity_category
 // Entries       : 5
 // Strategy      : switch
@@ -23,7 +23,7 @@
 namespace azaraC {
 namespace def {
 
-#if (AZARAC_ENABLE_TYPHOON)
+#if (AZARAC_ENABLE_TYPHOON) && (AZARAC_LANG_JA)
 
 #if defined(__AVR__)
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_typhoon_intensity_category_lookup(uint8_t id) noexcept {

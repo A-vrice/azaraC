@@ -16,7 +16,7 @@ azaraC::Parser  parser;
 azaraC::Message msg;
 
 // 定数定義
-static constexpr uint8_t  QZSS_SVID_MIN  = 183;
+static constexpr uint8_t  QZSS_SVID_MIN  = 181;  // PRN181–191（実データには ID 53/54 = PRN181/182 もある）
 static constexpr uint8_t  QZSS_SVID_MAX  = 191;
 static constexpr uint8_t  MSG_TYPE_MT43  = 43;
 static constexpr uint8_t  MSG_TYPE_MT44  = 44;
@@ -24,12 +24,9 @@ static constexpr uint32_t HEARTBEAT_MS   = 5000;
 static constexpr uint32_t STATS_INTERVAL = 10;  // メッセージ数
 
 //
-// この変数は parser.feed() の第3引数として渡され、DCR/DCX電文の「年」を正確に
-// 算出するために使用されます。値が0の場合、年は解決されませんが月・日・時・分は
-// 正しく取得できます。
+// この変数は parser.feed() の第3引数として渡され、DCR/DCX電文の「年」を正確に算出するために使用されます。値が0の場合、年は解決されませんが月・日・時・分は正しく取得できます。
 //
-// ライブラリはUBX-NAV-PVT (0x01 0x07) をパースしないため、ユーザーは別途
-// 実装する必要があります。以下は実装例です：
+// ライブラリはUBX-NAV-PVT (0x01 0x07) をパースしないため、ユーザーは別途実装する必要があります。以下は実装例です：
 //
 //   【方法1: SNTPを使用】
 //   // with_sntp.ino の例: time(nullptr) で現在時刻を取得
@@ -54,11 +51,9 @@ static constexpr uint32_t STATS_INTERVAL = 10;  // メッセージ数
 //
 // 詳細は with_sntp.ino の「SNTP時刻解決付きパターン」を参照してください。
 
-// ============================================================
 // to_unix_time ヘルパー関数
 // UTCの年月日時分秒からUNIX時刻（秒）を計算します。
 // 整数演算のみ（Decoder::days_from_civil と同等、AVRで軽量）。
-// ============================================================
 static uint32_t to_unix_time(uint16_t year, uint8_t month, uint8_t day,
                              uint8_t hour, uint8_t minute, uint8_t sec) {
     // Howard Hinnant days_from_civil — 整数のみ、浮動小数点不使用
@@ -80,10 +75,8 @@ static uint32_t to_unix_time(uint16_t year, uint8_t month, uint8_t day,
 static uint32_t cached_gnss_unix_time = 0;
 
 // 統計カウンタ
-// Parser::feed() が true を返した時点で msg.valid は保証されるため、
-// total_messages は feed() が true を返した回数をカウントする。
-// 将来 CRC/フレームエラーを Parser から取得できるようになったら、
-// errors カウンタを追加して error rate を算出する設計にできる。
+// Parser::feed() が true を返した時点で msg.valid は保証されるため、 total_messages は feed() が true を返した回数をカウントする。
+// 将来 CRC/フレームエラーを Parser から取得できるようになったら、 errors カウンタを追加して error rate を算出する設計にできる。
 struct Statistics {
     uint32_t total_messages = 0;      // feed() が true を返した回数
     uint32_t mt43_count = 0;          // MT=43 メッセージ数
@@ -112,7 +105,7 @@ void printStatistics() {
 // この関数は feed() 呼出し前に呼ばれることはないため、msg.valid チェックはデッドコード。
 // 将来、invalid なメッセージも取得できる API が追加された時点で復活させる。
 bool validateMessage(const azaraC::Message& msg) {
-    // SVIDの範囲チェック (QZSS L1S: 183-191)
+    // SVIDの範囲チェック (QZSS L1S PRN: 181-191)
     if (msg.svid < QZSS_SVID_MIN || msg.svid > QZSS_SVID_MAX) {
         Serial.print(F("[WARN] Unexpected SVID: "));
         Serial.println(msg.svid);

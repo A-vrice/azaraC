@@ -94,7 +94,8 @@ void writeStr(Print& out, std::string_view s) {
 }
 
 void writeOptStr(Print& out, std::optional<std::string_view> s) {
-    writeStr(out, s.value_or(std::string_view{"", 0}));
+    if (!s) { out.print("null"); return; }
+    writeStr(out, *s);
 }
 
 void writeHex(Print& out, uint8_t v) {
@@ -148,6 +149,14 @@ void wf_s(Print& out, std::string_view k, const char* v, bool last) {
     if (!last) writeChar(out, ',');
 }
 
+void wf_v(Print& out, std::string_view field, uint32_t value,
+          std::optional<std::string_view> label, bool last) {
+    wk(out, field); writeUint32(out, value); writeChar(out, ',');
+    out.print('"'); writeEscaped(out, field); out.print("_label\":");
+    writeOptStr(out, label);
+    if (!last) writeChar(out, ',');
+}
+
 // Helpers for repeated structures
 
 void writeDHM(Print& out, std::string_view key, const TimeFields& t, bool last) {
@@ -157,7 +166,8 @@ void writeDHM(Print& out, std::string_view key, const TimeFields& t, bool last) 
     wf_u(out, "day",   t.day);
     wf_u(out, "hour",  t.hour);
     wf_u(out, "min",   t.minute);
-    wf_u(out, "unix",  t.unix_time, /*last=*/true);
+    if (t.unix_time == 0) { wk(out, "unix"); out.print("null"); }
+    else                  { wf_u(out, "unix", t.unix_time, /*last=*/true); }
     out.print('}');
     if (!last) writeChar(out, ',');
 }
@@ -175,13 +185,6 @@ void writeLatLon(Print& out, std::string_view key, const LatLon& ll, bool last) 
     wf_u(out, "lon_sec", ll.lon_sec, /*last=*/true);
     out.print('}');
     if (!last) writeChar(out, ',');
-}
-
-// Write the 12-bit packed arrival time (day_offset:1, hour:5, min:6)
-void writeArrivalTimeFields(Print& out, uint16_t raw) {
-    wf_u(out, "arrival_day_offset", (raw >> 11) & 1u);
-    wf_u(out, "arrival_hour",       (raw >>  6) & 0x1Fu);
-    wf_u(out, "arrival_min",        raw & 0x3Fu);
 }
 
 } // namespace internal

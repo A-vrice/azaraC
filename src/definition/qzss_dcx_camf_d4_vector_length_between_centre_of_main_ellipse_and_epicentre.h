@@ -1,6 +1,6 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.16.4 with CI-CD
-// Source module : qzss_dcx_camf_b4_lower_level_fields_tables
+// AUTO-GENERATED from azarashi 0.17.1 with CI-CD
+// Source module : azarashi.definitions.camf.d_fields
 // Variable      : qzss_dcx_camf_d4_vector_length_between_centre_of_main_ellipse_and_epicentre
 // Entries       : 16
 // Strategy      : array
@@ -48,11 +48,12 @@ static const QZSS_DCX_CAMF_D4_VECTOR_LENGTH_BETWEEN_CENTRE_OF_MAIN_ELLIPSE_AND_E
     {44u, 3u},
     {48u, 3u}
 };
-[[nodiscard]] inline const char* qzss_dcx_camf_d4_vector_length_between_centre_of_main_ellipse_and_epicentre_lookup(uint8_t id) noexcept {
-    if (id < QZSS_DCX_CAMF_D4_VECTOR_LENGTH_BETWEEN_CENTRE_OF_MAIN_ELLIPSE_AND_EPICENTRE_BASE || id >= QZSS_DCX_CAMF_D4_VECTOR_LENGTH_BETWEEN_CENTRE_OF_MAIN_ELLIPSE_AND_EPICENTRE_BASE + QZSS_DCX_CAMF_D4_VECTOR_LENGTH_BETWEEN_CENTRE_OF_MAIN_ELLIPSE_AND_EPICENTRE_SIZE) return nullptr;
+[[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_d4_vector_length_between_centre_of_main_ellipse_and_epicentre_lookup(uint8_t id) noexcept {
+    if (id < QZSS_DCX_CAMF_D4_VECTOR_LENGTH_BETWEEN_CENTRE_OF_MAIN_ELLIPSE_AND_EPICENTRE_BASE || id >= QZSS_DCX_CAMF_D4_VECTOR_LENGTH_BETWEEN_CENTRE_OF_MAIN_ELLIPSE_AND_EPICENTRE_BASE + QZSS_DCX_CAMF_D4_VECTOR_LENGTH_BETWEEN_CENTRE_OF_MAIN_ELLIPSE_AND_EPICENTRE_SIZE) return std::nullopt;
     const char* AZARAC_PROGMEM p = reinterpret_cast<const char*>(&QZSS_DCX_CAMF_D4_VECTOR_LENGTH_BETWEEN_CENTRE_OF_MAIN_ELLIPSE_AND_EPICENTRE_TABLE[id - 0u]);
     uint16_t off = pgm_read_word(p + offsetof(QZSS_DCX_CAMF_D4_VECTOR_LENGTH_BETWEEN_CENTRE_OF_MAIN_ELLIPSE_AND_EPICENTRE_Entry, offset));
-    return azarac_pgm_copy(QZSS_DCX_CAMF_D4_VECTOR_LENGTH_BETWEEN_CENTRE_OF_MAIN_ELLIPSE_AND_EPICENTRE_POOL + off);
+    uint16_t n = pgm_read_word(p + offsetof(QZSS_DCX_CAMF_D4_VECTOR_LENGTH_BETWEEN_CENTRE_OF_MAIN_ELLIPSE_AND_EPICENTRE_Entry, len));
+    return azarac_pgm_view(QZSS_DCX_CAMF_D4_VECTOR_LENGTH_BETWEEN_CENTRE_OF_MAIN_ELLIPSE_AND_EPICENTRE_POOL + off, n);
 }
 #else
 inline constexpr const char* QZSS_DCX_CAMF_D4_VECTOR_LENGTH_BETWEEN_CENTRE_OF_MAIN_ELLIPSE_AND_EPICENTRE_TABLE[] = {
@@ -73,18 +74,26 @@ inline constexpr const char* QZSS_DCX_CAMF_D4_VECTOR_LENGTH_BETWEEN_CENTRE_OF_MA
     "150",
     "200"
 };
-[[nodiscard]] inline constexpr const char* qzss_dcx_camf_d4_vector_length_between_centre_of_main_ellipse_and_epicentre_lookup(uint8_t id) noexcept {
-    if (id < QZSS_DCX_CAMF_D4_VECTOR_LENGTH_BETWEEN_CENTRE_OF_MAIN_ELLIPSE_AND_EPICENTRE_BASE || id >= QZSS_DCX_CAMF_D4_VECTOR_LENGTH_BETWEEN_CENTRE_OF_MAIN_ELLIPSE_AND_EPICENTRE_BASE + QZSS_DCX_CAMF_D4_VECTOR_LENGTH_BETWEEN_CENTRE_OF_MAIN_ELLIPSE_AND_EPICENTRE_SIZE) return nullptr;
-    return QZSS_DCX_CAMF_D4_VECTOR_LENGTH_BETWEEN_CENTRE_OF_MAIN_ELLIPSE_AND_EPICENTRE_TABLE[id - QZSS_DCX_CAMF_D4_VECTOR_LENGTH_BETWEEN_CENTRE_OF_MAIN_ELLIPSE_AND_EPICENTRE_BASE];
+[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_d4_vector_length_between_centre_of_main_ellipse_and_epicentre_lookup(uint8_t id) noexcept {
+    if (id < QZSS_DCX_CAMF_D4_VECTOR_LENGTH_BETWEEN_CENTRE_OF_MAIN_ELLIPSE_AND_EPICENTRE_BASE || id >= QZSS_DCX_CAMF_D4_VECTOR_LENGTH_BETWEEN_CENTRE_OF_MAIN_ELLIPSE_AND_EPICENTRE_BASE + QZSS_DCX_CAMF_D4_VECTOR_LENGTH_BETWEEN_CENTRE_OF_MAIN_ELLIPSE_AND_EPICENTRE_SIZE) return std::nullopt;
+    const char* s = QZSS_DCX_CAMF_D4_VECTOR_LENGTH_BETWEEN_CENTRE_OF_MAIN_ELLIPSE_AND_EPICENTRE_TABLE[id - QZSS_DCX_CAMF_D4_VECTOR_LENGTH_BETWEEN_CENTRE_OF_MAIN_ELLIPSE_AND_EPICENTRE_BASE];
+    return s ? std::optional<std::string_view>(std::string_view{s}) : std::nullopt;
 }
 #endif
 
 #else
 
-[[nodiscard]] inline constexpr const char* qzss_dcx_camf_d4_vector_length_between_centre_of_main_ellipse_and_epicentre_lookup(uint8_t id) noexcept {
+#if defined(__AVR__)
+[[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_d4_vector_length_between_centre_of_main_ellipse_and_epicentre_lookup(uint8_t id) noexcept {
     (void)id;
-    return nullptr;
+    return std::nullopt;
 }
+#else
+[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_d4_vector_length_between_centre_of_main_ellipse_and_epicentre_lookup(uint8_t id) noexcept {
+    (void)id;
+    return std::nullopt;
+}
+#endif
 
 #endif
 

@@ -1,6 +1,6 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.16.4 with CI-CD
-// Source module : qzss_dcr_jma_coastal_region
+// AUTO-GENERATED from azarashi 0.17.1 with CI-CD
+// Source module : azarashi.definitions.qzss.dcr.coastal_region
 // Variable      : qzss_dcr_jma_coastal_region_en
 // Entries       : 63
 // Strategy      : binary_search
@@ -23,7 +23,7 @@
 namespace azaraC {
 namespace def {
 
-#if (AZARAC_ENABLE_NW_PAC_TSUNAMI) && (AZARAC_LANG_EN)
+#if (AZARAC_ENABLE_NW_PAC_TSUNAMI)
 
 #if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_COASTAL_REGION_EN_POOL[] = "Ust-Kamchatsk (East Coasts of Kamchatka Peninsula)\000Petropavlovsk-K (East Coasts of Kamchatka Peninsula)\000Severo Kurilsk (Kuril Islands)\000Urup Islands (Kuril Islands)\000Busan (South Coasts of Korean Peninsula)\000Nohwa (South Coasts of Korean Peninsula)\000Seogwipo (South Coasts of Korean Peninsula)\000Hualien (Taiwan)\000Basco (East Coasts of Philippines)\000Palanan (East Coasts of Philippines)\000Legaspi (East Coasts of Philippines)\000Laoang (East Coasts of Philippines)\000Madrid (East Coasts of Philippines)\000Davao (East Coasts of Philippines)\000Berebere (North Coasts of Irian Jaya)\000Patani (North Coasts of Irian Jaya)\000Sorong (North Coasts of Irian Jaya)\000Manokwari (North Coasts of Irian Jaya)\000Warsa (North Coasts of Irian Jaya)\000Jayapura (North Coasts of Irian Jaya)\000Vanimo (North Coasts of Papua New Guinea)\000Wewak (North Coasts of Papua New Guinea)\000Madang (North Coasts of Papua New Guinea)\000Manus Islands (North Coasts of Papua New Guinea)\000Rabaul (North Coasts of Papua New Guinea)\000Kavieng (North Coasts of Papua New Guinea)\000Kimbe (North Coasts of Papua New Guinea)\000Kieta (North Coasts of Papua New Guinea)\000Guam (Mariana Islands)\000Saipan (Mariana Islands)\000Malakal (Palau)\000Yap Island (Micronesia)\000Chuuk Island (Micronesia)\000Pohnpei Island (Micronesia)\000Kosrae Island (Micronesia)\000Eniwetok Island (Marshall Islands)\000Panggoe (North Coasts of Solomon Islands)\000Auki (North Coasts of Solomon Islands)\000Kirakira (North Coasts of Solomon Islands)\000Munda (Solomon Sea)\000Honiara (Solomon Sea)\000Ostrov-Karaginskiy (East Coasts of Kamchatka Peninsula)\000Nikolskoya (East Coasts of Kamchatka Peninsula)\000Tongyeong (South Coasts of Korean Peninsula)\000Heuksando (South Coasts of Korean Peninsula)\000Cheju-Island (South Coasts of Korean Peninsula)\000Chilung (Taiwan)\000Taitung (Taiwan)\000Homel (Taiwan)\000Geme (North Coasts of Irian Jaya)\000Ulamona (North Coasts of Papua New Guinea)\000Ghatere (North Coasts of Solomon Islands)\000Amun (Solomon Sea)\000Falamae (Solomon Sea)\000Misima (Solomon Sea)\000Alotau (Solomon Sea)\000Lae (Solomon Sea)\000Port-Moresby (Coral Sea)\000Shanghai (Coasts of East China Sea)\000Zhoushan (Coasts of East China Sea)\000Wenzhou (Coasts of East China Sea)\000Unknown\000Other region\000";

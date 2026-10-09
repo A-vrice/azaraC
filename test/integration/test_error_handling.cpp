@@ -1,4 +1,4 @@
-// test/integration/test_error_handling.cpp  Eエラーハンドリング詳細チE��チE
+// test/integration/test_error_handling.cpp — エラーハンドリング詳細テスト
 #include <string>
 #include "doctest.h"
 #include "../src/Parser.h"
@@ -175,8 +175,7 @@ TEST_CASE("Error: Version 1 accepted") {
 }
 #endif // AZARAC_ENABLE_EEW
 
-// ══════════════════════════════════════════════════════════════════════════════╁E// チE��ーダエチE��ケースチE��チE(decoder_edge_cases.md)
-// ══════════════════════════════════════════════════════════════════════════════╁E
+// 未割当・予約の災害カテゴリは拒否される
 // Helper: build a valid MT=43 frame with custom disaster_category
 static void buildMt43Frame(uint8_t category, uint8_t* bits) {
     memset(bits, 0, 32);
@@ -337,8 +336,7 @@ TEST_CASE("Decoder: MT=44 EX8=1 (city code list mode)") {
     REQUIRE(mt44 != nullptr);
     CHECK(mt44->mt44_decoded.jalert_prefecture_mode == false);
     CHECK(mt44->mt44_decoded.city_code_count == 4);
-    // Verify all 4 codes are decoded in the exact ex9 bit layout order
-    // produced by decodeCityCodeList (ex9[0:15], ex9[16:31], ex9[32:47],
+    // Verify all 4 codes are decoded in the exact ex9 bit layout order produced by decodeCityCodeList (ex9[0:15], ex9[16:31], ex9[32:47],
     // ex9[48:63]). With the fixture below this yields [1101, 1100, 1103, 1102].
     CHECK(mt44->mt44_decoded.city_codes[0] == 1101);
     CHECK(mt44->mt44_decoded.city_codes[1] == 1100);
@@ -356,6 +354,7 @@ TEST_CASE("Decoder: MT=44 Outside Japan ex11_raw JSON output") {
     setBits(bits, 35, 5, 2);         // a3=2 (Fiji Meteorological Service)
     setBits(bits, 40, 7, 5);         // a4=5 - 7 bits
     setBits(bits, 47, 2, 3);         // a5=3 - 2 bits
+    setBits(bits, 146, 8, 0xAB);     // ex11_raw[0] = 0xAB
     setBits(bits, 214, 6, 1);
     uint32_t crc = crc24qRef(bits, 226);
     setBits(bits, 226, 24, crc);
@@ -368,11 +367,11 @@ TEST_CASE("Decoder: MT=44 Outside Japan ex11_raw JSON output") {
     bool result = dec.decode(frame, msg, 0);
     REQUIRE(result);
 
-    // Verify JSON output contains ex11_raw
+    // ex11_raw はビット 146..209 の 8 バイト + 210..213 の 4 ビットを hex 化した 17 文字。先頭バイトだけ 0xAB を入れてあるので、他の桁は 0 のままになる。
     StringPrint sp;
     internal::JsonSerializer::serialize(msg, sp);
     const auto& s = sp.str();
-    CHECK(s.find("\"ex11_raw\":") != std::string::npos);
+    CHECK(s.find("\"ex11_raw\":\"AB000000000000000\",") != std::string::npos);
 }
 
 TEST_CASE("Decoder: MT=44 A17/A18 specific settings output") {
@@ -404,8 +403,8 @@ TEST_CASE("Decoder: MT=44 A17/A18 specific settings output") {
     StringPrint sp;
     internal::JsonSerializer::serialize(msg, sp);
     const auto& s = sp.str();
-    CHECK(s.find("\"a17_type_of_specific_settings\":") != std::string::npos);
-    CHECK(s.find("\"a18_specific_settings\":") != std::string::npos);
+    CHECK(s.find("\"a17_type_of_specific_settings\":2,") != std::string::npos);
+    CHECK(s.find("\"a18_specific_settings\":4660,") != std::string::npos);
 }
 
 TEST_CASE("Decoder: MT=44 D36 typhoon category output") {
@@ -444,18 +443,12 @@ TEST_CASE("Decoder: MT=44 D36 typhoon category output") {
         const Mt44Data* mt44 = msg.getMt44();
         REQUIRE(mt44 != nullptr);
 
-        // Verify JSON output contains d36_typhoon_cat field (with embedded label)
+        // Verify JSON output carries the decoded d36 value and its flattened label
         StringPrint sp;
         internal::JsonSerializer::serialize(msg, sp);
         const auto& s = sp.str();
-        auto pos = s.find("\"d36_typhoon_cat\":");
-        CHECK(pos != std::string::npos);
-        // Find closing '}' of the d36_typhoon_cat nested object to bound search
-        auto close_brace = s.find('}', pos);
-        CHECK(close_brace != std::string::npos);
-        auto label_pos = s.find("\"label\":", pos);
-        CHECK(label_pos != std::string::npos);
-        CHECK(label_pos <= close_brace);
+        CHECK(s.find("\"d36_typhoon_cat\":" + std::to_string(d36_val)) != std::string::npos);
+        CHECK(s.find("\"d36_typhoon_cat_label\":") != std::string::npos);
     }
 }
 #endif

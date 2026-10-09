@@ -1,8 +1,6 @@
 #pragma once
 // Main message struct.
-// Safe tagged union: payload held in raw aligned storage; copy/destroy use
-// placement-new + explicit destructor. Payload sub-objects must stay
-// trivially copyable (Mt43Data::copyFrom uses memcpy).
+// Safe tagged union: payload held in raw aligned storage; copy/destroy use placement-new + explicit destructor. Payload sub-objects must stay trivially copyable (Mt43Data::copyFrom uses memcpy).
 
 #if defined(__AVR__)
 #include "internal/avr_std/cstdint"
@@ -48,8 +46,7 @@ struct Message {
     MsgPayloadType payload_type = MsgPayloadType::Empty;
 
     // Max of enabled payloads for safe placement-new.
-    // DCX off: Mt44 is never decoded, so drop its storage to save SRAM
-    // (Uno has 2 KB; Mt44Data alone is ~280 B per Message).
+    // DCX off: Mt44 is never decoded, so drop its storage to save SRAM (Uno has 2 KB; Mt44Data alone is ~280 B per Message).
     // Ternary instead of std::max: Arduino.h defines `max` as a macro.
 #if AZARAC_ENABLE_DCX_CAMF
     static constexpr size_t payload_size_ =
@@ -92,8 +89,7 @@ struct Message {
         destroyPayload();
     }
 
-    // Reset scalars and destroy payload without zeroing payload_storage_
-    // (avoids a redundant memset before initPayload()).
+    // Reset scalars and destroy payload without zeroing payload_storage_ (avoids a redundant memset before initPayload()).
     void clear() {
         destroyPayload();
         svid = 0;
@@ -106,8 +102,7 @@ struct Message {
 
     template<typename T>
     void initPayload() {
-        // Compile-time guard: instantiating a disabled payload (e.g. Mt44
-        // with AZARAC_ENABLE_DCX_CAMF=0) fails here instead of overflowing.
+        // Compile-time guard: instantiating a disabled payload (e.g. Mt44 with AZARAC_ENABLE_DCX_CAMF=0) fails here instead of overflowing.
         static_assert(sizeof(T) <= payload_size_,
                       "Payload type exceeds Message storage (disabled at compile time?)");
         // Payload triviality is guarded by Mt43Data::initAs<T>().
