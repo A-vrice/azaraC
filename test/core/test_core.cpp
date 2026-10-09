@@ -706,9 +706,21 @@ TEST_CASE("DedupFilter: 事象トークンの鍵は電文の鍵と衝突しな�
 }
 
 TEST_CASE("DedupFilter: 事象トークンは事象ごとに決まる") {
-    CHECK(dedupEventToken(5, 6, 15, 12, 30) == dedupEventToken(5, 6, 15, 12, 30));
-    CHECK(dedupEventToken(5, 6, 15, 12, 30) != dedupEventToken(5, 6, 15, 12, 31));
-    CHECK(dedupEventToken(5, 6, 15, 12, 30) != dedupEventToken(4, 6, 15, 12, 30));
+    CHECK(dedupEventToken(5, 0, 6, 15, 12, 30) == dedupEventToken(5, 0, 6, 15, 12, 30));
+    CHECK(dedupEventToken(5, 0, 6, 15, 12, 30) != dedupEventToken(5, 0, 6, 15, 12, 31));
+    CHECK(dedupEventToken(5, 0, 6, 15, 12, 30) != dedupEventToken(4, 0, 6, 15, 12, 30));
+    // 情報種別が違えば別の事象: 同一 info_code + 同一報告時刻の発表(0)と取消(2)を潰さない。
+    CHECK(dedupEventToken(5, 0, 6, 15, 12, 30) != dedupEventToken(5, 2, 6, 15, 12, 30));
+}
+
+TEST_CASE("DedupKey: 26 bit の事象トークンは電文の鍵と衝突しない") {
+    // 合成鍵の payload は bits 0..29（26 bit のトークンは丸ごと入る）。bit 30 の判別子が効いているかを最大値で固定する。
+    const uint32_t token = kSyntheticPayloadMask;
+    CHECK((dedupEventKey(token).packed() & kSyntheticPayloadMask) == token);
+    CHECK(dedupEventKey(token).packed() != DedupKey{0, token}.packed());
+    // 最上位に載る情報種別（bit 24-25）だけが違っても、鍵は別。
+    CHECK(dedupEventKey(dedupEventToken(5, 2, 6, 15, 12, 30)).packed() !=
+          dedupEventKey(dedupEventToken(5, 0, 6, 15, 12, 30)).packed());
 }
 
 TEST_CASE("DedupFilter: 異なるcrc24は別情報") {

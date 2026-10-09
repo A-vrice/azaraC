@@ -23,6 +23,9 @@ namespace azaraC {
 namespace internal {
 
 // Identity of one information: msg_type (6 bit) and the digest of MT～VN (24 bit) — exactly one word. Receiving satellite and reception time are not part of it. 8 B per slot (identity 4 B + last-seen 4 B).
+// 合成鍵の payload は bits 0..29。bit 30 が合成判別子、bit 31 は VALID なので、実鍵（bits 24..29 が msg_type、bit 30 は常に 0）とは値が一致しても衝突しない。
+constexpr uint32_t kSyntheticPayloadMask = 0x3FFFFFFFu;
+
 struct DedupKey {
     uint8_t  msg_type;
     uint32_t identity;   // MT～VN (bit 8..219) の CRC-24Q。プリアンブルを含まない。
@@ -32,7 +35,7 @@ struct DedupKey {
 
     constexpr uint32_t packed() const {
         return synthetic
-            ? (SYNTHETIC | (identity & 0xFFFFFFu))
+            ? (SYNTHETIC | (identity & kSyntheticPayloadMask))
             : (((uint32_t)msg_type << 24) | (identity & 0xFFFFFFu));
     }
 
@@ -40,15 +43,17 @@ private:
     static constexpr uint32_t SYNTHETIC = 0x40000000u;  // bit 30（msg_type は bits 24-29）
 };
 
-// 電文の CRC ではなく情報自身のトークンで識別する情報の DedupKey — 南海トラフ地震（identity = {info_code, report time}、NankaiPageKey 参照）。
+// 電文の CRC ではなく情報自身のトークンで識別する情報の DedupKey — 南海トラフ地震（identity = {info_code, information_type, report time}、NankaiPageKey 参照）。
 constexpr inline DedupKey dedupEventKey(uint32_t token) {
-    return DedupKey{0, token & 0xFFFFFFu, true};
+    return DedupKey{0, token & kSyntheticPayloadMask, true};
 }
 
-// 事象（NankaiPageKey）の 24 ビットをそのまま鍵にする: info_code 4 + month 4 + day 5 + hour 5 + minute 6 = 24。幅は電文のフィールド幅と同じなので衝突しない。
-constexpr inline uint32_t dedupEventToken(uint8_t info_code, uint8_t month, uint8_t day,
-                                          uint8_t hour, uint8_t minute) {
-    return ((uint32_t)(info_code & 0x0Fu) << 20)
+// 事象（NankaiPageKey）の 26 ビットをそのまま鍵にする: Is 4 + It 2 + month 4 + day 5 + hour 5 + minute 6 = 26。各フィールド幅は電文のビット幅と同じなので、6 フィールドが揃えば衝突しない。
+// It を含めるのは NankaiPageKey と同じ理由（発表と取消を同一事象に潰さない）。
+constexpr inline uint32_t dedupEventToken(uint8_t info_code, uint8_t information_type, uint8_t month,
+                                          uint8_t day, uint8_t hour, uint8_t minute) {
+    return ((uint32_t)(information_type & 0x3u) << 24)
+         | ((uint32_t)(info_code & 0x0Fu) << 20)
          | ((uint32_t)(month & 0x0Fu) << 16)
          | ((uint32_t)(day   & 0x1Fu) << 11)
          | ((uint32_t)(hour  & 0x1Fu) << 6)

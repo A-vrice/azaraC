@@ -54,9 +54,9 @@ bool Parser::postDecode(const Message& decoded, Message& out, uint32_t identity)
                 out.clear();
                 return false;
             }
-            // 同一性は事象そのもの（info_code + 報告時刻）。ページ集合を完成させた電文は到着順で変わるため、その crc24 を鍵にすると同じ事象が再送のたびに別情報として通知される。
+            // 同一性は事象そのもの（info_code + 情報種別 + 報告時刻）。ページ集合を完成させた電文は到着順で変わるため、その crc24 を鍵にすると同じ事象が再送のたびに別情報として通知される。情報種別を含めるのは同一 info_code + 同一報告時刻の発表と取消を別情報として扱うため（NankaiPageKey 参照）。
             const internal::DedupKey key = internal::dedupEventKey(internal::dedupEventToken(
-                nankai->info_code, nankai->report_month, nankai->report_day,
+                nankai->info_code, mt43->information_type, nankai->report_month, nankai->report_day,
                 nankai->report_hour, nankai->report_minute));
             if (_dedup.isDuplicate(key, now_ms, window_ms)) {
                 out.clear();
@@ -80,9 +80,10 @@ bool Parser::processNankaiAggregation(const Message& decoded, Message& out, cons
     const NankaiData* nankai = d->getNankai();
     if (!nankai) return false;
 
-    // 事象の identity = info_code + report_time month/day/hour/minute。値は電文の生ビット (NankaiData::report_*) から取り、正規化済みの Mt43Data::event_time は使わない: resolveTime() は暦外の日付を書き換えたり（2/30 → 3/1）月=0 に近い月を割り当てるため、放送途中で report_unix が現れると1つの事象が複数バッファに分裂する。NankaiPageKey 参照。
+    // 事象の identity = info_code + information_type + report_time month/day/hour/minute。値は電文の生ビット (NankaiData::report_*) から取り、正規化済みの Mt43Data::event_time は使わない: resolveTime() は暦外の日付を書き換えたり（2/30 → 3/1）月=0 に近い月を割り当てるため、放送途中で report_unix が現れると1つの事象が複数バッファに分裂する。NankaiPageKey 参照。
     internal::NankaiPageKey key;
     key.info_code       = nankai->info_code;
+    key.information_type = d->information_type;
     key.report_month    = nankai->report_month;
     key.report_day      = nankai->report_day;
     key.report_hour     = nankai->report_hour;

@@ -84,7 +84,7 @@ void reset();
 const internal::NankaiPageBuffer* getNankaiBuffer(const internal::NankaiPageKey& key) const;
 ```
 
-`NankaiPageKey`の識別子は`{info_code, report_timeのmonth/day/hour/minute}`です。呼び出しキーは`NankaiPageKey{info_code, month, day, hour, minute}`で生成が可能です。引数は`report_time`をそのまま渡すこと（`resolveTime`の正規化で鍵が変わらないようにするため）。
+`NankaiPageKey`の識別子は`{info_code, information_type, report_timeのmonth/day/hour/minute}`です（`information_type`は発表=0/取消=2で、同一`info_code`+報告時刻の発表と取消を別情報として扱うために含めます）。呼び出しキーは`NankaiPageKey{info_code, month, day, hour, minute, information_type}`で生成が可能です（`information_type`は末尾の既定引数で省略可）。`report_time`はそのまま渡すこと（`resolveTime`の正規化で鍵が変わらないようにするため）。
 
 ---
 

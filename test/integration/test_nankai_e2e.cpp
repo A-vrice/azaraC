@@ -275,7 +275,8 @@ TEST_CASE("Nankai E2E: Page tracking with single page") {
 static void buildNankaiPage(uint8_t page_num, uint8_t total_pages, uint8_t info_code,
                             const uint8_t* text, uint8_t text_len, uint8_t* bits,
                             uint8_t rt_month = 0, uint8_t rt_day = 0,
-                            uint8_t rt_hour = 0, uint8_t rt_minute = 0) {
+                            uint8_t rt_hour = 0, uint8_t rt_minute = 0,
+                            uint8_t information_type = 0) {
     memset(bits, 0, 32);
     setBits(bits, 0, 8, 0x53);       // Preamble
     setBits(bits, 8, 6, 43);         // msg_type
@@ -286,7 +287,7 @@ static void buildNankaiPage(uint8_t page_num, uint8_t total_pages, uint8_t info_
     setBits(bits, 25, 5, rt_day);
     setBits(bits, 30, 5, rt_hour);
     setBits(bits, 35, 6, rt_minute);
-    setBits(bits, 41, 2, 0);         // information_type
+    setBits(bits, 41, 2, information_type);  // It (0=発表 / 2=取消)
     setBits(bits, 53, 4, info_code);  // info_code
     // Text: 18 bytes at bits 57..200
     for (uint8_t i = 0; i < text_len && i < 18; ++i) {
@@ -432,6 +433,35 @@ TEST_CASE("Nankai E2E: 同一事象の再放送は再通知しない") {
     CHECK(feedEvent(30, false) == 1);   // 事象A
     CHECK(feedEvent(31, false) == 1);   // 事象B（報告時刻が違う＝別の情報）
     CHECK(feedEvent(30, true) == 0);    // 事象Aの再放送（完成ページが入れ替わる）
+}
+#endif
+
+// 同一 info_code + 同一報告時刻でも情報種別（発表/取消）が違えば別の情報として通知する。
+// 事象鍵が It を含まないと、後から完成した取消が発表の dedup 履歴に潰されて落ちる（集約バッファでも両者が1つに混ざる）。
+#if AZARAC_NANKAI_MAX_PAGES >= 27
+TEST_CASE("Nankai E2E: 同一 info_code + 報告時刻でも発表と取消は別に通知する") {
+    azaraC::Parser parser;
+    azaraC::Message msg;
+    uint8_t bits[32];
+
+    auto feedEvent = [&](uint8_t information_type) -> int {
+        int emitted = 0;
+        for (uint8_t page = 1; page <= 27; ++page) {
+            buildNankaiPage(page, 27, /*info_code=*/5,
+                            nankai_page_data[page - 1], NankaiPageBuffer::TEXT_PER_PAGE, bits,
+                            /*rt_month=*/6, /*rt_day=*/15, /*rt_hour=*/12, /*rt_minute=*/30,
+                            /*information_type=*/information_type);
+            std::string nmea = makeNmeaQzqsm(58, bits);
+            for (size_t k = 0; k < nmea.length(); ++k) {
+                if (parser.feed(nmea[k], msg, 0)) ++emitted;
+            }
+        }
+        return emitted;
+    };
+
+    CHECK(feedEvent(0) == 1);   // 発表
+    CHECK(feedEvent(2) == 1);   // 取消（It だけ違う＝別の情報）
+    CHECK(feedEvent(0) == 0);   // 発表の再放送は抑制される
 }
 #endif
 

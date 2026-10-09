@@ -20,12 +20,13 @@ static uint32_t currentMillis() {
 
 #if (AZARAC_ENABLE_NANKAI)
 TEST_CASE("NankaiPageKey equality") {
-    // Identity = info_code + report_time DHM (month/day/hour/minute).
+    // Identity = info_code + information_type + report_time DHM (month/day/hour/minute).
     NankaiPageKey key1 = {1, 4, 10, 30, 15};
     NankaiPageKey key2 = {1, 4, 10, 30, 15};
     NankaiPageKey key3 = {2, 4, 10, 30, 15};  // different info_code
     NankaiPageKey key4 = {1, 4, 10, 30, 16};  // different minute
     NankaiPageKey key5 = {1, 5, 10, 30, 15};  // different month
+    NankaiPageKey key6 = {1, 4, 10, 30, 15, 2};  // different information_type (取消)
 
     SUBCASE("Same keys are equal") {
         CHECK(key1 == key2);
@@ -38,6 +39,11 @@ TEST_CASE("NankaiPageKey equality") {
     SUBCASE("Different report_time") {
         CHECK(!(key1 == key4));
         CHECK(!(key1 == key5));
+    }
+
+    SUBCASE("Different information_type") {
+        // 発表(0) と取消(2) は同一 info_code + 同一報告時刻でも別の情報。
+        CHECK(!(key1 == key6));
     }
 
     SUBCASE("Identity depends only on report_time, not resolution") {
