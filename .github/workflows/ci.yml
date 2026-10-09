@@ -355,7 +355,7 @@ jobs:
               fi
             fi
             # Skip RTOS example on non-ESP32 boards (requires FreeRTOS)
-            if [[ "$sketch_name" == "rtos_freertos" ]]; then
+            if [[ "$sketch_name" == "rtos_freertos" && "${{ matrix.name }}" != "ESP32-C3" && "${{ matrix.name }}" != "ESP32-S3" ]]; then
               echo "skip $sketch_name on ${{ matrix.name }} (requires ESP32 FreeRTOS)"
               continue
             fi
