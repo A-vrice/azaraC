@@ -141,11 +141,15 @@ python scripts/gen/gen_definitions.py --out-dir src/definition
 
 ### テストベクタの生成
 
-`test/data/*_vectors.json` は azarashi の出力を参照ベクタとして固定したもので、南海トラフ用の`test/data/nankai_pages_generated.h`も`gen_all_vectors.py` の `gen_nankai()` が同じ `nankai_vectors.json` から生成します。いずれも直接編集せず再生成してください。
+`test/data/*_vectors.json` は azarashi の出力を参照ベクタとして固定したものです。南海トラフ用の`test/data/nankai_pages_generated.h`は`gen_all_vectors.py` の `gen_nankai()` が同じ `nankai_vectors.json` から生成する派生物で、いずれも直接編集せず再生成してください。参照ベクタ（JSON）は azarashi のバージョンで形式が変わるため書き換えません。
 
 ```bash
+# nankai_pages_generated.h だけを既存の JSON から再生成する（azarashi 不要・JSON は書き換えない）
+python test/scripts/gen_all_vectors.py --nankai-header-only
+
+# JSON ベクタごと作り直す場合（azarashi が必要。JSON は参照ベクタなので、固定を保つなら元に戻す）
+pip install azarashi==0.17.1
 python test/scripts/gen_all_vectors.py
-# JSON は参照ベクタとして固定するため元に戻し、ヘッダだけを更新する
 git checkout -- test/data/dcr_vectors.json test/data/dcx_vectors.json test/data/nankai_vectors.json
 ```
 

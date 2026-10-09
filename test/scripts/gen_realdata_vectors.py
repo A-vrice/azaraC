@@ -121,8 +121,9 @@ def decode_batch(nmea_list: list, raw: bool = False) -> list:
             f"decode_to_json returned {len(results)} results for {len(nmea_list)} inputs")
 
     for nmea, r in zip(nmea_list, results):
-        if r is None:
-            raise SystemExit(f"decode failed for: {nmea}")
+        # raw モードの解析・復号失敗は {"_error": ...} として返る（None ではない）。見逃すと collector が欠損 data を既定のゼロ値で埋め、生成が成功したように見えて誤った期待値を持つテストを作る。
+        if r is None or (isinstance(r, dict) and "_error" in r):
+            raise SystemExit(f"decode failed for: {nmea}: {r}")
     return results
 
 
