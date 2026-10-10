@@ -121,6 +121,8 @@ static void scanFile(const char* path, Corpus& out) {
             fbuf[i] = (uint8_t)((hexVal(buf[h0 + i * 2]) << 4) | hexVal(buf[h0 + i * 2 + 1]));
         }
         fbuf[31] = (uint8_t)(hexVal(buf[h0 + 62]) << 4);
+        // MT=44 は SD（frame bit 14..23）を除外する（Parser と同じ照合範囲）。
+        if (e.key.msg_type == 44) { fbuf[1] &= 0xFCu; fbuf[2] = 0x00u; }
         e.key.identity = crc24qRef(fbuf + 1, 212);
         ++out.tokens;
 

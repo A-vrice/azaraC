@@ -393,7 +393,7 @@ if (client.connect(server, port)) {
 |-------|-----------|------|
 | `AZARAC_DEDUP_SLOTS` | 512 | 重複判定表のエントリ数（`AZARAC_DEDUP_WAYS`の倍数、商は2の冪）。1エントリ8B |
 | `AZARAC_DEDUP_WAYS` | 8 | 表の連想度（1セットあたりのエントリ数）。大きいほどハッシュ衝突に強い |
-| `AZARAC_DEDUP_WINDOW_MS` | 86400000 | 情報有効時間(ms)のフォールバック。災害種別ごとの配信終了条件（`internal/DedupWindow.h`）に無いカテゴリ（MT=44など）だけがこれを使う |
+| `AZARAC_DEDUP_WINDOW_MS` | 86400000 | 情報有効時間(ms)のフォールバック。災害種別ごとの配信終了条件（MT=43）と MT=44 の A8 由来の窓（`internal/DedupWindow.h`）に無いカテゴリだけがこれを使う |
 
 ### 言語選択
 

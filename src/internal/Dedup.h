@@ -4,6 +4,7 @@
 // 同一性は MT～VN（フレーム bit 8..219 = 212 bit）の CRC-24Q。付属フローチャートも「MT～Vnの212bitについて比較する」と明記する。鍵に含めないもの:
 //   - プリアンブル（bit 0..7）と Reserved（bit 220..225）。放送で巡回する（A→B→C、Reserved は 16 値）ため、含めると 1 情報が分裂する。
 //   - svid。250 bit のフレームに衛星 ID は無く（NMEA/UBX ヘッダ由来の別レイヤ）、含めると中継衛星ごとに同じ情報を再通知する。
+//   - MT=44 の SD（SDMT bit 14 + SDM bit 15..23）。QZS 事務局回答の照合範囲は「MT および CAMF〜EM」で SD を含まないため、ゼロにしてから digest を取る（Decoder::messageIdentity）。
 // Callers pass the digest of MT～VN as `identity` — see Parser::handleFrame.
 //
 // 履歴は手順④' のとおり有効時間で失効する。窓は災害種別ごと（原PDF p.26–27、 internal/DedupWindow.h）で、表に無いカテゴリは AZARAC_DEDUP_WINDOW_MS。

@@ -2,6 +2,12 @@
 
 #include "Decoder.h"
 
+#if defined(__AVR__)
+#include "../internal/avr_std/cstring"
+#else
+#include <cstring>
+#endif
+
 namespace azaraC {
 namespace internal {
 
@@ -25,6 +31,16 @@ uint32_t Decoder::crc24q(const uint8_t* data, uint16_t bit_len) {
         }
     }
     return crc & 0xFFFFFFu;
+}
+
+uint32_t Decoder::messageIdentity(const uint8_t* bits) {
+    const uint8_t mt = (uint8_t)((bits[1] >> 2) & 0x3Fu);   // MT = frame bit 8..13（byte 1 の上位 6 bit）
+    if (mt != 44) return crc24q(bits + 1, 212);
+    uint8_t masked[32];
+    memcpy(masked, bits, sizeof(masked));
+    masked[1] &= 0xFCu;   // frame bit 14..15（SDMT bit 14 + SDM 上位 2 bit）をクリア
+    masked[2]  = 0x00u;   // frame bit 16..23（SDM 下位 8 bit）をクリア
+    return crc24q(masked + 1, 212);
 }
 
 // Bit extraction (MSB-first, 0-indexed)

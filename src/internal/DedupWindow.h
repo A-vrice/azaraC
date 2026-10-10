@@ -1,5 +1,6 @@
 #pragma once
 // 情報有効時間（手順④ 配信終了条件）: アプリケーションノートv2 原PDF p.26–27。
+// MT=44 (DCX/CAMF) は同表を持たないため、A8-Hazard Duration のカテゴリ上限を窓にする（DCX §4.2.3.8 Table 4.2-11 / EWSS-CAMF §3.3.2、A8=00 の 1 週間は DCX §5.4。QZS 事務局回答）。
 //
 // Header-only so the Parser, the benchmark and test/tools/dedup_realday.cpp share one table. A second copy would drift silently: the realday tool measures the false re-notifications the Parser's windows produce.
 
@@ -10,7 +11,7 @@ namespace azaraC {
 namespace internal {
 
 // 1 通に複数の副種別（気象の Ww、洪水の Lv、海上の Dw）が入る場合は「条件にて該当する情報の配信が終了する」ので、条件を満たす情報のうち最長の窓を採る: 窓を短くする誤りは「まだ生きている情報を新規として再通知する」側に倒れるため、長い側が安全。
-// fallback_ms は条件の無いカテゴリ（MT=44 CAMF、表に無い災害種別）に使う。
+// fallback_ms は表に無い災害種別（未割当・予約など）に使う。
 //
 // 定数は必ず UL を付ける。AVR の unsigned int は 16 bit なので `60u*60u*1000u` は 65536 で剰余を踏み（= 61056 ms）、`24u*60u*60u*1000u` も同様に（= 23552 ms）、全カテゴリの窓が 20〜61 秒に潰れる。ホストの pgm-stub は int が 32 bit なのでこの欠陥を検出できない。
 constexpr uint32_t kMinuteMs = 60UL * 1000UL;
@@ -83,8 +84,20 @@ static_assert(kMinuteMs == 60000UL,    "1 minute must be exact on a 16-bit int")
 static_assert(kHourMs   == 3600000UL,   "1 hour must be exact on a 16-bit int");
 static_assert(kDayMs    == 86400000UL,  "1 day must be exact on a 16-bit int");
 
-// Message 版: MT=43 のときだけ有効な payload を渡す（MT=44 は条件が無い）。
+// Message 版: MT=43 はカテゴリ条件の表、MT=44 は A8-Hazard Duration の上限を使う。
 inline uint32_t dedupWindowMs(const Message& m) {
+    // MT=44 (DCX/CAMF) は配信終了条件の代わりに A8-Hazard Duration の上限を使う（QZS 事務局回答）。
+    // A8=00 (Unknown) は DCX §5.4「All Clear 未受信かつ A8=00 のときは 1 週間前以前に受信した警報を消去する」に従い 7 日。
+    if (m.payload_type == MsgPayloadType::Mt44) {
+        const Mt44Data* c = m.getMt44();
+        if (!c) return AZARAC_DEDUP_WINDOW_MS;   // DCX 無効時は payload_type が 44 にならないため通常は到達しない
+        switch (c->camf.a8) {
+        case 0: return 7UL * kDayMs;            // Unknown（DCX §5.4）
+        case 1: return 6UL * kHourMs;           // Duration < 6H
+        case 2: return 12UL * kHourMs;          // 6H <= Duration < 12H
+        default: return kDayMs;                 // case 3: 12H <= Duration < 24H
+        }
+    }
     const Mt43Data* d = (m.payload_type == MsgPayloadType::Mt43) ? m.getMt43() : nullptr;
     if (!d) return AZARAC_DEDUP_WINDOW_MS;
     const void* payload = nullptr;

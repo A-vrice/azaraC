@@ -15,6 +15,10 @@ public:
     // data[0] の MSB から bit_len ビットを処理する。
     static uint32_t crc24q(const uint8_t* data, uint16_t bit_len);
 
+    // 手順③ の照合対象（MT～VN = frame bit 8..219）の digest。MT=44 は SD（SDMT 1 bit + SDM 9 bit = frame bit 14..23）をゼロにしてから取る。
+    // QZS 事務局回答: 照合範囲「MT および CAMF〜EM」に SDMT・SDM・Reserved を含めない。プリアンブル（bit 0..7）と Reserved（bit 220..225）は範囲外。
+    static uint32_t messageIdentity(const uint8_t* bits);
+
 protected:
     // Date conversion helpers (civil date <-> days since 1970-01-01)
     static void civil_from_days(uint32_t days_since_1970, uint32_t& y, uint32_t& m, uint32_t& d);

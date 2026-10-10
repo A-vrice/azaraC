@@ -59,7 +59,7 @@ if (parser.feed(byte, msg, now)) { ... }
 | ------ | ---------- | ---- |
 | `AZARAC_DEDUP_SLOTS` | 512 | 重複判定表のエントリ数（1エントリ8B。AVRプリセットは64） |
 | `AZARAC_DEDUP_WAYS` | 8 | 重複判定表の連想度 |
-| `AZARAC_DEDUP_WINDOW_MS` | 86400000 | 情報有効時間(ms)のフォールバック。災害種別ごとの配信終了条件に無いカテゴリだけが使う |
+| `AZARAC_DEDUP_WINDOW_MS` | 86400000 | 情報有効時間(ms)のフォールバック。災害種別ごとの配信終了条件と MT=44 の A8 由来の窓に無いカテゴリだけが使う |
 | `AZARAC_NANKAI_MAX_PAGES` / `AZARAC_NANKAI_BUFFERS` | 63 / 1 | 防災気象情報(南海トラフ地震)の最大収集ページ数(1-63)と最大同時追跡数(1-32) |
 | `AZARAC_LANG_JA` / `AZARAC_LANG_EN` | 1 / 0 | 定義テーブルの言語選択 |
 | `AZARAC_ENABLE_*`（13個） | 1 | 災害カテゴリ別のデコード有効化/無効化|

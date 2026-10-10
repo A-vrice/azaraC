@@ -84,7 +84,7 @@ std::vector<FrameRef> extractFrames(const std::vector<uint8_t>& data, Decoder& d
         FrameRef f;
         f.slot = (unsigned)((off - 40) / 288);
         f.id.mt = msg.msg_type;
-        f.id.digest = Decoder::crc24q(frame.bits + 1, 212);   // MT～VN = bit 8..219
+        f.id.digest = Decoder::messageIdentity(frame.bits);   // MT～VN = bit 8..219（MT=44 は SD を除外）
         f.window_ms = azaraC::internal::dedupWindowMs(msg);
         f.category = d ? d->disaster_category : 0;
         if ((off - 40) % 288 != 0) { ++unaligned; continue; }  // 受信秒が定まらない

@@ -165,7 +165,7 @@ TEST_CASE("dedup window: marine (dc=14) needs a warning code") {
 #endif
 }
 
-TEST_CASE("dedup window: Message overload routes MT43 payload and MT44 fallback") {
+TEST_CASE("dedup window: Message overload routes MT43 payload and MT44 A8 window") {
     // Mt43: active_type に応じた payload が渡る（津波は code 依存）
     CHECK(windowViaMessage(5, 0, Mt43Data::ActiveType::Tsunami) == 10UL * HR);
 #if AZARAC_ENABLE_TSUNAMI
@@ -237,12 +237,21 @@ TEST_CASE("dedup window: Message overload routes MT43 payload and MT44 fallback"
         CHECK(dedupWindowMs(m) == 3UL * HR);
     }
 #endif
-    // Mt44 はカテゴリ条件を持たない → 一律 fallback を使う
+    // Mt44 の窓は A8（Hazard Duration）の上限。DCX 無効時は payload_type が Mt44 にならず getMt44() が nullptr を返すので fallback。
     {
         Message m{};
         m.svid = 186;
         m.payload_type = MsgPayloadType::Mt44;
+#if AZARAC_ENABLE_DCX_CAMF
+        Mt44Data* c = m.getMt44();
+        REQUIRE(c != nullptr);
+        c->camf.a8 = 0; CHECK(dedupWindowMs(m) == 7UL * DAY);    // Unknown（DCX §5.4: 1 週間）
+        c->camf.a8 = 1; CHECK(dedupWindowMs(m) == 6UL * HR);     // Duration < 6H
+        c->camf.a8 = 2; CHECK(dedupWindowMs(m) == 12UL * HR);    // 6H <= Duration < 12H
+        c->camf.a8 = 3; CHECK(dedupWindowMs(m) == DAY);          // 12H <= Duration < 24H
+#else
         CHECK(dedupWindowMs(m) == AZARAC_DEDUP_WINDOW_MS);
+#endif
     }
     // payload 無し（Empty）も fallback
     {

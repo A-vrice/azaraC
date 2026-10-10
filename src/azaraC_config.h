@@ -142,7 +142,7 @@
 #define AZARAC_DEDUP_SLOTS 512
 #endif
 
-// Fallback validity window of one information, in milliseconds: an information not received again within its window stops counting as a duplicate (アプリケーションノートv2 原PDF p.25 手順④'). The per-category table of 配信終了条件 (p.26-27: 緊急地震速報 5分 / 震源・震度 2時間 / 津波 最大24時間 / 降灰 最大1時間 / 台風 3時間 …) lives in internal/DedupWindow.h; this value is used for MT=44 (CAMF has no 配信終了条件 in the spec) and for any category missing from that table. 24 h is the longest window in the spec, so an unlisted category is never re-announced while it is still live.
+// Fallback validity window of one information, in milliseconds: an information not received again within its window stops counting as a duplicate (アプリケーションノートv2 原PDF p.25 手順④'). The per-category table of 配信終了条件 (p.26-27: 緊急地震速報 5分 / 震源・震度 2時間 / 津波 最大24時間 / 降灰 最大1時間 / 台風 3時間 …) and MT=44 の A8 由来の窓 live in internal/DedupWindow.h; this value is used only for categories missing from that table (未割当・予約の災害種別、payload 未設定). 24 h is the longest window in the spec, so an unlisted category is never re-announced while it is still live.
 #ifndef AZARAC_DEDUP_WINDOW_MS
 #define AZARAC_DEDUP_WINDOW_MS 86400000UL  // 24 h
 #endif

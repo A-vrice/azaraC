@@ -371,3 +371,37 @@ TEST_CASE("Parser: プリアンブル/Reserved が違っても同一 MT～VN は
     CHECK(feedFrame(0x53, 1, 0) == 1);   // MT～VN が変われば別情報
 }
 #endif // AZARAC_ENABLE_EEW
+
+#if (AZARAC_ENABLE_DCX_CAMF)
+// QZS 事務局回答: 照合範囲「MT および CAMF〜EM」に SDMT（bit 14）・SDM（bit 15..23）を含めない。
+// SD だけが違う同一内容は同一情報として 1 回だけ通知する。
+TEST_CASE("Parser: MT44 は SDMT/SDM が違っても同一内容を 1 回だけ通知する") {
+    Parser parser;
+    Message msg;
+
+    // MT=44 の L-Alert（A2=Japan, A3=FMMC）。SDMT/SDM と A8 以外は固定。
+    auto feed = [&](uint8_t sdmt, uint16_t sdm, uint8_t a8) -> int {
+        uint8_t bits[32] = {};
+        setBits(bits, 0, 8, 0x53);
+        setBits(bits, 8, 6, 44);
+        setBits(bits, 14, 1, sdmt);
+        setBits(bits, 15, 9, sdm);
+        setBits(bits, 24, 2, 1);       // A1=Alert
+        setBits(bits, 26, 9, 111);     // A2=Japan
+        setBits(bits, 35, 5, 1);       // A3=FMMC (L-Alert)
+        setBits(bits, 40, 7, 1);       // A4=Rainfall（NullMessage 判定を避ける）
+        setBits(bits, 64, 2, a8);      // A8=Hazard Duration
+        setBits(bits, 226, 24, crc24qRef(bits, 226));
+        const std::string nmea = makeNmeaQzqsm(58, bits);
+        int emitted = 0;
+        for (size_t i = 0; i < nmea.size(); ++i) {
+            if (parser.feed(static_cast<uint8_t>(nmea[i]), msg, 0)) ++emitted;
+        }
+        return emitted;
+    };
+
+    CHECK(feed(0, 0x000, 1) == 1);   // 新規情報
+    CHECK(feed(1, 0x1FF, 1) == 0);   // SD だけ違う → 重複（Step 1 前は 1 になる）
+    CHECK(feed(0, 0x1FF, 2) == 1);   // A8 が違う → 別情報
+}
+#endif // AZARAC_ENABLE_DCX_CAMF

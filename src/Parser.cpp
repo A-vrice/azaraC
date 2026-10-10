@@ -29,8 +29,8 @@ bool Parser::handleFrame(const internal::Frame& frame, Message& out, uint32_t re
         return false;
     }
     // 手順③ の照合対象は MT～VN（フレーム bit 8..219 = 212 bit。bit 220..225 は Reserved）。プリアンブル（bit 0..7）と Reserved は放送で巡回するため鍵に含めない。
-    // 受信衛星も含めない（Satellite ID はフレームに無く、NMEA/UBX ヘッダ由来）。
-    const uint32_t identity = internal::Decoder::crc24q(frame.bits + 1, 212);
+    // 受信衛星も含めない（Satellite ID はフレームに無く、NMEA/UBX ヘッダ由来）。MT=44 の SD は QZS 事務局回答の照合範囲（MT および CAMF〜EM）に無いため Decoder::messageIdentity がゼロにしてから digest を取る。
+    const uint32_t identity = internal::Decoder::messageIdentity(frame.bits);
     return postDecode(decoded, out, identity);
 }
 
