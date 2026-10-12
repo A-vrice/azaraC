@@ -19,7 +19,6 @@ import json
 import sys
 from pathlib import Path
 
-
 # メイン処理
 
 def parse_gcovr_json(json_path: Path) -> dict:
@@ -151,9 +150,13 @@ def generate_markdown(stats: dict) -> str:
     if total_coverage >= 80:
         lines.append(f"{emoji_total} Overall coverage: **{total_coverage:.1f}%** — Excellent!")
     elif total_coverage >= 50:
-        lines.append(f"{emoji_total} Overall coverage: **{total_coverage:.1f}%** — Good, but there is room for improvement.")
+        lines.append(
+            f"{emoji_total} Overall coverage: **{total_coverage:.1f}%** — "
+            "Good, but there is room for improvement.")
     else:
-        lines.append(f"{emoji_total} Overall coverage: **{total_coverage:.1f}%** — Needs improvement. Consider adding more tests.")
+        lines.append(
+            f"{emoji_total} Overall coverage: **{total_coverage:.1f}%** — "
+            "Needs improvement. Consider adding more tests.")
     lines.append("")
 
     return "\n".join(lines)

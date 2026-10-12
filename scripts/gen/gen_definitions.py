@@ -6,7 +6,12 @@
 #   pip install azarashi==<version>
 #   python scripts/gen_definitions.py [--out-dir src/definition]
 
-import argparse, importlib, os, pkgutil, sys
+import argparse
+import importlib
+import os
+import pkgutil
+import sys
+
 sys.path.insert(0, os.path.dirname(__file__))
 from strategy import choose, key_type
 
@@ -110,7 +115,8 @@ GUARD_MAP = {
     # no JA sibling are listed here.
     "qzss_dcr_jma_ambiguity_of_activity_time_en": "(AZARAC_ENABLE_VOLCANO || AZARAC_ENABLE_ASH_FALL)",
     "qzss_dcr_jma_ash_fall_warning_type": "AZARAC_ENABLE_ASH_FALL",
-    "qzss_dcr_jma_depth_of_hypocenter": "(AZARAC_ENABLE_EEW || AZARAC_ENABLE_HYPOCENTER || AZARAC_ENABLE_NW_PAC_TSUNAMI)",
+    "qzss_dcr_jma_depth_of_hypocenter": (
+        "(AZARAC_ENABLE_EEW || AZARAC_ENABLE_HYPOCENTER || AZARAC_ENABLE_NW_PAC_TSUNAMI)"),
     "qzss_dcr_jma_eew_magnitude": "AZARAC_ENABLE_EEW",
     "qzss_dcr_jma_expected_ash_fall_time": "AZARAC_ENABLE_ASH_FALL",
     "qzss_dcr_jma_hypocenter_magnitude": "(AZARAC_ENABLE_HYPOCENTER || AZARAC_ENABLE_NW_PAC_TSUNAMI)",
@@ -279,7 +285,9 @@ def emit_switch_optional(varname, entries, guard, kt):
     for k, v in sorted(entries.items()):
         if v is not None:
             byte_len = len(v.encode('utf-8'))
-            avr_cases.append(f'        case {k}: {{ static const char AZARAC_PROGMEM s[] = {c_str_literal(v)}; return azarac_pgm_view(s, {byte_len}); }}')
+            avr_cases.append(
+                f'        case {k}: {{ static const char AZARAC_PROGMEM s[] = {c_str_literal(v)}; '
+                f'return azarac_pgm_view(s, {byte_len}); }}')
         else:
             avr_cases.append(f'        case {k}: return std::nullopt;')
     avr_body = "\n".join([
@@ -432,7 +440,9 @@ def emit_bsearch(varname, entries, guard, kt):
     elif kt == "uint16_t":
         read_id = f"pgm_read_word(ep + offsetof({guard}_Entry, id))"
     elif kt == "uint64_t":
-        read_id = f"(static_cast<uint64_t>(pgm_read_dword(ep + offsetof({guard}_Entry, id) + 4)) << 32) | pgm_read_dword(ep + offsetof({guard}_Entry, id))"
+        read_id = (
+            f"(static_cast<uint64_t>(pgm_read_dword(ep + offsetof({guard}_Entry, id) + 4)) << 32)"
+            f" | pgm_read_dword(ep + offsetof({guard}_Entry, id))")
     else:
         read_id = f"pgm_read_dword(ep + offsetof({guard}_Entry, id))"
     pool_parts = []
@@ -497,7 +507,9 @@ def emit_bsearch_optional(varname, entries, guard, kt):
     elif kt == "uint16_t":
         read_id = f"pgm_read_word(ep + offsetof({guard}_Entry, id))"
     elif kt == "uint64_t":
-        read_id = f"(static_cast<uint64_t>(pgm_read_dword(ep + offsetof({guard}_Entry, id) + 4)) << 32) | pgm_read_dword(ep + offsetof({guard}_Entry, id))"
+        read_id = (
+            f"(static_cast<uint64_t>(pgm_read_dword(ep + offsetof({guard}_Entry, id) + 4)) << 32)"
+            f" | pgm_read_dword(ep + offsetof({guard}_Entry, id))")
     else:
         read_id = f"pgm_read_dword(ep + offsetof({guard}_Entry, id))"
     pool_parts = []
@@ -618,10 +630,14 @@ def build_header(modname, varname, entries, ver, all_varnames, obj=None, use_opt
             # The AVR stdlib shim optional has a non-trivial destructor and is
             # not a literal type, so the stub cannot be constexpr on AVR.
             wrapped_body += "#if defined(__AVR__)\n"
-            wrapped_body += f"[[nodiscard]] inline std::optional<std::string_view> {varname}_lookup({kt} id) noexcept {{\n"
+            wrapped_body += (
+                f"[[nodiscard]] inline std::optional<std::string_view> {varname}_lookup({kt} id)"
+                f" noexcept {{\n")
             wrapped_body += "    (void)id;\n    return std::nullopt;\n}\n"
             wrapped_body += "#else\n"
-            wrapped_body += f"[[nodiscard]] inline constexpr std::optional<std::string_view> {varname}_lookup({kt} id) noexcept {{\n"
+            wrapped_body += (
+                f"[[nodiscard]] inline constexpr std::optional<std::string_view> {varname}_lookup({kt} id)"
+                f" noexcept {{\n")
             wrapped_body += "    (void)id;\n    return std::nullopt;\n}\n"
             wrapped_body += "#endif\n\n#endif\n"
         else:

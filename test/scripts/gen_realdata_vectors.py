@@ -31,7 +31,8 @@ from _common import (  # type: ignore[import-not-found]
 
 OUT_CPP = os.path.join(BASE, 'test', 'integration', 'test_realdata.cpp')
 
-# カテゴリ無効ビルド（make macro）では該当 dc の電文が DisabledAtCompileTime になりデコードできない。生成物側にも #if ガードを出さないと、手で足したガードが再生成で消える。
+# カテゴリ無効ビルド（make macro）では該当 dc の電文が DisabledAtCompileTime になりデコードできない。
+# 生成物側にも #if ガードを出さないと、手で足したガードが再生成で消える。
 DISABLED_DC_MACROS = [
     (1, 'AZARAC_ENABLE_EEW'),
     (2, 'AZARAC_ENABLE_HYPOCENTER'),
@@ -121,7 +122,9 @@ def decode_batch(nmea_list: list, raw: bool = False) -> list:
             f"decode_to_json returned {len(results)} results for {len(nmea_list)} inputs")
 
     for nmea, r in zip(nmea_list, results):
-        # raw モードの解析・復号失敗は {"_error": ...} として返る（None ではない）。見逃すと collector が欠損 data を既定のゼロ値で埋め、生成が成功したように見えて誤った期待値を持つテストを作る。
+        # raw モードの解析・復号失敗は {"_error": ...} として返る（None ではない）。
+        # 見逃すと collector が欠損 data を既定のゼロ値で埋め、生成が成功したように見えて
+        # 誤った期待値を持つテストを作る。
         if r is None or (isinstance(r, dict) and "_error" in r):
             raise SystemExit(f"decode failed for: {nmea}: {r}")
     return results
@@ -431,10 +434,13 @@ def generate_cpp(history: list, noto: list, data_txt: list,
 
         if dc == 1:  # EEW
             w(f'    // dc={dc} {dc_name_label}: {len(entries)} entries')
-            w('    struct EewExpected { uint16_t depth; uint8_t magnitude; uint16_t epicenter; uint8_t intensity_lower; uint8_t intensity_upper; uint8_t long_period_lower; uint8_t long_period_upper; };')
+            w('    struct EewExpected { uint16_t depth; uint8_t magnitude; uint16_t epicenter;'
+              ' uint8_t intensity_lower; uint8_t intensity_upper; uint8_t long_period_lower;'
+              ' uint8_t long_period_upper; };')
             w('    static const EewExpected eew_expected[] = {')
             for _, f in entries:
-                w(f'        {{{f["depth"]}, {f["magnitude"]}, {f["epicenter"]}, {f["intensity_lower"]}, {f["intensity_upper"]}, {f["long_period_lower"]}, {f["long_period_upper"]}}},')
+                w(f'        {{{f["depth"]}, {f["magnitude"]}, {f["epicenter"]}, {f["intensity_lower"]},'
+                  f' {f["intensity_upper"]}, {f["long_period_lower"]}, {f["long_period_upper"]}}},')
             w('    };')
             w('')
 
@@ -463,7 +469,8 @@ def generate_cpp(history: list, noto: list, data_txt: list,
             w('    static const TsunamiExpected tsunami_expected[] = {')
             for ei, f in entries:
                 e0 = _entry0(f, history[ei]['nmea'])
-                w(f'        {{{f["warning_code"]}, {e0.get("height_code", 0)}, {e0.get("region_code", 0)}, {f["count"]}}},')
+                w(f'        {{{f["warning_code"]}, {e0.get("height_code", 0)},'
+                  f' {e0.get("region_code", 0)}, {f["count"]}}},')
             w('    };')
             w('')
 
@@ -496,11 +503,13 @@ def generate_cpp(history: list, noto: list, data_txt: list,
 
         elif dc == 10:  # Weather
             w(f'    // dc={dc} {dc_name_label}: {len(entries)} entries')
-            w('    struct WeatherExpected { uint8_t warning_state; uint8_t sub_category; uint32_t region; uint8_t count; };')
+            w('    struct WeatherExpected { uint8_t warning_state; uint8_t sub_category;'
+              ' uint32_t region; uint8_t count; };')
             w('    static const WeatherExpected weather_expected[] = {')
             for ei, f in entries:
                 e0 = _entry0(f, history[ei]['nmea'])
-                w(f'        {{{f["warning_state"]}, {e0.get("sub_category", 0)}, {e0.get("region_code", 0)}, {f["count"]}}},')
+                w(f'        {{{f["warning_state"]}, {e0.get("sub_category", 0)},'
+                  f' {e0.get("region_code", 0)}, {f["count"]}}},')
             w('    };')
             w('')
 
@@ -604,7 +613,8 @@ def generate_cpp(history: list, noto: list, data_txt: list,
             w(f'                const {type_name}* {varname} = mt43->{getter}();')
             w(f'                REQUIRE({varname} != nullptr);')
             w(f'                CHECK({varname}->entries[0].intensity_code == seismic_expected[{idx_var}].intensity);')
-            w(f'                CHECK({varname}->entries[0].prefecture_code == seismic_expected[{idx_var}].prefecture);')
+            w(f'                CHECK({varname}->entries[0].prefecture_code =='
+              f' seismic_expected[{idx_var}].prefecture);')
             w(f'                CHECK({varname}->count == seismic_expected[{idx_var}].count);')
             w(f'                {idx_var}++;')
             w('                break;')

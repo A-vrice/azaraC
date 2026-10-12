@@ -187,7 +187,9 @@ def generate_markdown(issues: dict) -> str:
             lines.append("")
 
         if total_count > 0:
-            lines.append(f"**{total_count} issue(s)** found across {sum(1 for v in issues.values() if v)} severity level(s).")
+            lines.append(
+                f"**{total_count} issue(s)** found across "
+                f"{sum(1 for v in issues.values() if v)} severity level(s).")
             lines.append("")
 
     return "\n".join(lines)

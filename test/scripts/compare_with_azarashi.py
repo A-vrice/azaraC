@@ -23,6 +23,7 @@ import re
 import subprocess
 import sys
 import urllib.request
+
 try:
     import azarashi
 except ImportError:
@@ -232,7 +233,8 @@ KEY_MAPPING = {
         "preamble", "version", "assumptive",
         "report_classification_en", "disaster_category_en", "information_type_en",
         "depth_of_hypocenter", "magnitude",
-        "dcx_message_type",  # azaraC は service_kind 由来の dcx_type_label (NULL 等) を使用。命名規約差異のため比較しない
+        # azaraC は service_kind 由来の dcx_type_label (NULL 等) を使用。命名規約差異のため比較しない
+        "dcx_message_type",
     ]
 }
 
@@ -240,8 +242,10 @@ KEY_MAPPING = {
 # ラベル対応表 (azarashi ラベル → azaraC _label フィールド)
 # azarashi のラベル文字列キーを azaraC の対応 _label キーと比較する。
 # 各値は候補パスのリスト。候補はスカラー (str) か リスト規則 (配列パス, フィールド名)。
-# メッセージ種別により azaraC の配置が異なるため複数候補を持つ場合がある (例: local_governments は火山が data.local_govs[]、降灰が data.entries[].local_gov_label)。
-# いずれかの候補が存在し一致すれば OK。候補が全て不在の場合は比較をスキップする (azarashi のみが持つ構造的フィールド。ラベルバグではない)。
+# メッセージ種別により azaraC の配置が異なるため複数候補を持つ場合がある
+# (例: local_governments は火山が data.local_govs[]、降灰が data.entries[].local_gov_label)。
+# いずれかの候補が存在し一致すれば OK。候補が全て不在の場合は比較をスキップする
+# (azarashi のみが持つ構造的フィールド。ラベルバグではない)。
 LABEL_MAPPING = {
     "report_classification": ["report_classification_label"],
     "disaster_category": ["disaster_category_label"],
@@ -374,7 +378,13 @@ def values_equal(az_val, ac_val, ac_flat: dict, ac_key: str) -> bool:
         if az_val is None and ac_val == 0:
             return True
         # azarashi の null は azaraC の空文字ラベルと同等
-        return bool(az_val is None and ac_val == "")  # noqa: SIM103
+        if az_val is None and ac_val == "":
+            return True
+        # azarashi 0.17.1: 長周期地震動階級の code 0 は属性が None のまま、JSON は
+        # 該当情報なし / No data と名付ける。azaraC は JSON 側（定義表のラベル）を出すため、
+        # 「情報なし」を意味するこの 2 語を None と同値として扱う。
+        # ponytail: 語で同値判定するので、同じ語を別の意味で使う表が増えたらキー単位に絞る。
+        return az_val is None and ac_val in ("該当情報なし", "No data")
     # リスト比較
     if isinstance(az_val, list) and isinstance(ac_val, list):
         if len(az_val) != len(ac_val):

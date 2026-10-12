@@ -6,6 +6,7 @@ import sys
 
 from _common import json_serial  # type: ignore[import-not-found]
 
+
 def decode_nmea(nmea_str):
     import azarashi  # type: ignore[import-not-found]  # 遅延 import: --nankai-header-only は azarashi 無しでも動く
     try:

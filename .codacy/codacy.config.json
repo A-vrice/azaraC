@@ -73,7 +73,10 @@
           "patternId": "markdownlint_MD023"
         },
         {
-          "patternId": "markdownlint_MD024"
+          "patternId": "markdownlint_MD024",
+          "parameters": {
+            "siblings_only": "true"
+          }
         },
         {
           "patternId": "markdownlint_MD025"
@@ -153,9 +156,6 @@
         {
           "patternId": "markdownlint_MD056"
         }
-      ],
-      "exclude": [
-        "CHANGELOG.md"
       ]
     },
     {
@@ -285,6 +285,12 @@
           "patternId": "Ruff_E402_module-import-not-at-top-of-file"
         },
         {
+          "patternId": "Ruff_E501_line-too-long",
+          "parameters": {
+            "max-line-length": "120"
+          }
+        },
+        {
           "patternId": "Ruff_E702_multiple-statements-on-one-line-semicolon"
         },
         {
@@ -321,10 +327,16 @@
           "patternId": "Ruff_E902_io-error"
         },
         {
+          "patternId": "Ruff_EXE001_shebang-not-executable"
+        },
+        {
           "patternId": "Ruff_FA100_future-rewritable-type-annotation"
         },
         {
           "patternId": "Ruff_FA102_future-required-type-annotation"
+        },
+        {
+          "patternId": "Ruff_I001_unsorted-imports"
         },
         {
           "patternId": "Ruff_PLE2502_bidirectional-unicode"
@@ -2849,7 +2861,8 @@
     {
       "toolId": "Lizard",
       "exclude": [
-        "src/definition/**"
+        "src/definition/**",
+        "test/**"
       ],
       "patterns": [
         {
@@ -2861,7 +2874,7 @@
         {
           "patternId": "Lizard_nloc-medium",
           "parameters": {
-            "threshold": "80"
+            "threshold": "50"
           }
         },
         {
@@ -2882,7 +2895,7 @@
         {
           "patternId": "Lizard_ccn-medium",
           "parameters": {
-            "threshold": "25"
+            "threshold": "15"
           }
         },
         {

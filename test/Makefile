@@ -4,11 +4,14 @@ CXX      = g++
 CXXFLAGS = -std=c++17 -Wall -Wextra -I../src -I. -DARDUINO=0 -DAZARAC_LANG_JA=1 -DAZARAC_LANG_EN=1 -MMD -MP
 
 # --- Static Analysis and Coverage ---
-# 過剰に厳格な警告オプション（-Wshadow, -Wconversion, -Wsign-conversion）は、
-# ビット演算を多用する組み込み向けコードにおいて修正コストが高すぎるため削除する。
-ANALYSIS_CXXFLAGS = $(CXXFLAGS) -Wpedantic -Wnull-dereference -Wdouble-promotion -Wformat=2 -Werror
+# -Wconversion / -Wsign-conversion はビット演算を多用する組み込み向けコードでは修正コストが
+# 見合わないため使わない。-Wshadow は有効（実害のあるシャドウイングを検出するため）。
+ANALYSIS_CXXFLAGS = $(CXXFLAGS) -Wpedantic -Wshadow -Wnull-dereference -Wdouble-promotion -Wformat=2 -Werror
 COVERAGE_FLAGS    = -O0 -fprofile-arcs -ftest-coverage
-# check / check-xml で共有する cppcheck オプション（ドリフト防止）
+# check / check-xml で共有する cppcheck オプション（ドリフト防止）。
+# uninitMemberVarNoCtor は POD 集約体を memset + placement new で扱う設計
+# （Mt43Data/Mt44Data の payload 共用体、Dedup.h のキー構造体）で常に誤検知になるため抑制する
+# （実測 24 件はすべて手書き集約体と test/ のベンチ・ファズ構造体。生成定義テーブルには出ない）。
 CPPCHECK_OPTS = --enable=warning,performance,portability --check-level=exhaustive --inline-suppr --suppress=missingIncludeSystem --suppress=*:doctest.h --suppress=uninitMemberVarNoCtor --error-exitcode=1 --std=c++17 -I../src -I. -DAZARAC_NANKAI_MAX_PAGES=63 ../src .
 
 # MinGW-w64 bin path (opt-in; set on the command line if g++ is not on PATH,

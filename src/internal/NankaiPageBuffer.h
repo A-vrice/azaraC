@@ -91,17 +91,17 @@ struct NankaiPageBuffer {
         clearAll();
     }
 
-    // Add a page (page_num 1-based, total_pages from Pm, text_data 18 bytes).
+    // Add a page (page_num 1-based, total_pages_in from Pm, text_data 18 bytes).
     // Returns true if added.
-    bool addPage(uint8_t page_num, uint8_t total_pages, const uint8_t* text_data, uint64_t current_ms) {
+    bool addPage(uint8_t page_num, uint8_t total_pages_in, const uint8_t* text_data, uint64_t current_ms) {
         // Page number range check (1-63 per spec)
         if (page_num == 0 || page_num > SPEC_MAX_PAGES) {
             return false;
         }
 
-        // total_pages exceeds capacity → cap to MAX_PAGES
-        uint8_t effective_total = total_pages;
-        if (total_pages > MAX_PAGES) {
+        // total_pages_in exceeds capacity → cap to MAX_PAGES
+        uint8_t effective_total = total_pages_in;
+        if (total_pages_in > MAX_PAGES) {
             effective_total = MAX_PAGES;
             // truncated flag set once (first call)
             if (this->total_pages == 0) {
@@ -117,11 +117,11 @@ struct NankaiPageBuffer {
         // Set total_pages on first call
         if (this->total_pages == 0) {
             this->total_pages = effective_total;
-            this->original_total_pages = total_pages;
+            this->original_total_pages = total_pages_in;
         }
 
-        // total_pages must match (original value for consistency check)
-        if (this->original_total_pages != total_pages) {
+        // total_pages_in must match (original value for consistency check)
+        if (this->original_total_pages != total_pages_in) {
             return false;
         }
 
