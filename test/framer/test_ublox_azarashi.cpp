@@ -1,6 +1,6 @@
 // test/framer/test_ublox_azarashi.cpp
 // UBX SFRBX の azarashi 比較テスト
-// azarashi v0.16.1 のデコード結果と照合
+// azarashi のデコード結果と照合（定義テーブルは azarashi 0.17.1）
 
 #define ARDUINO 0
 #include "../test_helpers.h"

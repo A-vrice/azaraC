@@ -1,6 +1,6 @@
 // test/integration/test_azarashi_dcx.cpp
 // MT=44 DCX の azarashi 比較テスト（データ駆動）
-// azarashi v0.16.1 のデコード結果と照合
+// azarashi のデコード結果と照合（定義テーブルは azarashi 0.17.1）
 
 #include "../test_helpers.h"
 #include "doctest.h"
@@ -40,7 +40,7 @@ TEST_CASE("DCX: Outside Japan - Fiji Tsunami") {
     REQUIRE(mt44 != nullptr);
     CHECK(mt44->service_kind == Mt44ServiceKind::OutsideJapan);
     CHECK(mt44->camf.a2 == 71);   // Fiji
-    CHECK(mt44->camf.a3 == 0);    // Undefined Provider
+    CHECK(mt44->camf.a3 == 0);    // Not used (code 0)
     CHECK(mt44->camf.a5 == 3);    // Extreme severity
     CHECK(mt44->ex_outside.vn == 16); // version 16
 }

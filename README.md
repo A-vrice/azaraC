@@ -19,6 +19,8 @@
 
 定義テーブル生成に使用したazarashiのバージョンは[`.azarashi-version`](.azarashi-version)に記載しています。
 
+MT=44 の B フィールド（B1–B4）と C10 は [EWSS CAMF Issue 1.2](https://www.gsc-europa.eu/electronic-library/programme-reference-documents/galileo-in-force/ewss) に基づきます。
+
 ## インストール
 
 git clone で直接導入できます:

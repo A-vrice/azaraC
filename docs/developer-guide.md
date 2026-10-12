@@ -14,6 +14,8 @@ azaraCライブラリの開発に貢献する開発者向けのガイドです�
 | Python | 3.9+ | 定義ファイル生成 |
 | make | - | ビルド自動化 |
 
+なおmakeはmingwなどのものでも問題ありません。
+
 ### リポジトリのクローン
 
 ```bash
@@ -157,7 +159,7 @@ git checkout -- test/data/dcr_vectors.json test/data/dcx_vectors.json test/data/
 
 ## AVR 開発
 
-AVRツールチェーン（avr-gcc）はC++の標準ライブラリを一切含まないため、それらへの依存は`src/internal/avr_std/`にあるシム（`optional` / `string_view` / `std::move` 等）が自動で適用されます。シムの検証は`test/internal/test_avr_std_shim.cpp`で行います。
+AVRツールチェーン（avr-gcc）はC++の標準ライブラリを一切含まないため、それらへの依存は`src/internal/avr_std/`にあるシム（`optional` / `string_view` / `std::move` 等）が自動で適用されます。シムは`test/internal/test_avr_std_shim.cpp`で検証します。
 
 - **PROGMEM 分岐のホスト検証**: `make -C test pgm-stub`が`__AVR__`とスタブ`test/stub/avr/pgmspace.h`で全テストをコンパイルし、PROGMEMコードパスをホストで検証します。
 - **定義ヘッダの再生成**: `scripts/gen/gen_definitions.py --out-dir src/definition`で再生成できます。
@@ -181,10 +183,10 @@ AVRツールチェーン（avr-gcc）はC++の標準ライブラリを一切含�
 - **ヒープアロケーションをしないこと**: `new`, `malloc`等の動的メモリ管理はしないこと。
 - **静的バッファを基本とすること**: 固定サイズの配列を使用すること。
 - **静的な定義テーブルを使用すること**: RAM容量節約のためAVRでは`AZARAC_PROGMEM`経由でFlash(PROGMEM)を使用、非AVRではno-opを使用すること。
-- **定義テーブルの格納形式について**: AVRは文字列プール + `{offset,len}`（16bit×2）、非AVRは `const char*` 配列（4B/エントリ、32bit機）。非AVRのルックアップ戻り値は両者で `std::optional<std::string_view>` に統一し、`nullptr`＝欠落・`""`＝定義済み空文字列を区別すること（`opt`系エミッタと手書きの `qzss_dcx_camf_a3_provider_identifier.h` が対象）。文字列実体は各ヘッダにリテラルとして現れるが、リンカの重複統合により同一文字列は1コピーに落ちる。
+- **定義テーブルの格納は効率よく**: AVRは文字列プール + `{offset,len}`（16bit×2）、非AVRは `const char*` 配列（4B/エントリ、32bit機）。非AVRのルックアップ戻り値は両者で `std::optional<std::string_view>` に統一し、`nullptr`＝欠落・`""`＝定義済み空文字列を区別すること（`opt`系エミッタと手書きの `qzss_dcx_camf_a3_provider_identifier.h` が対象）。文字列実体は各ヘッダにリテラルとして現れるが、リンカの重複統合により同一文字列は1コピーに落ちる。
 - **AVRでの標準ライブラリ**： 基本azaraCで実装したシム(`src/internal/avr_std/`)のみ利用するため、`std::`の新規関数の仕様はシムへの追加が必要
 
-## Issue / PR のラベル
+## Issue / PR へのラベル付け
 
 ラベルは `.github/workflows/labeler.yml` が自動付与します（付与のみで削除はしません）。
 
@@ -197,10 +199,10 @@ AVRツールチェーン（avr-gcc）はC++の標準ライブラリを一切含�
 | `documentation` | `docs/**`、`README.md`、`CHANGELOG.md` を変更 | 同上 |
 | `dependencies` / `bug` / `documentation` / `enhancement` / `question` | Issue のタイトル・本文のキーワード（日本語・英語） | `.github/issue-labeler.yml` |
 
-- 条件を変えるときは上記の設定ファイルだけを直す（ワークフロー本体は触らない）。
+- 条件を変えるときは上記の設定ファイルだけを変更すること（ワークフロー本体は触らない）。
 - 追加するラベルは先にリポジトリへ作成しておくこと（未作成の場合、そのラベルは無警告でスキップされる）。
 - `issues` イベントのワークフローはデフォルトブランチ（`main`）の内容で動くため、Issue の自動ラベルは `main` にマージされてから有効になる。PR 側は PR 時点の内容で動く。
-- 付与のみで削除はしない（`sync-labels` は無効）。手で直したラベルが自動で消えることはない。
+- 付与のみで削除はしない（`sync-labels` は無効）。よって手動で付与したラベルが自動で消えることはない。
 
 ```bash
 gh label create <name> --color <hex> --description "<説明>"
@@ -210,4 +212,4 @@ gh label create <name> --color <hex> --description "<説明>"
 
 - [API リファレンス](api-reference.md)
 - [アーキテクチャドキュメント](architecture.md)
-- [JSON 出力仕様](json-formats.md) — azaraCのスキーマ、azarashiとの比較
+- [JSON 出力仕様](json-formats.md)

@@ -79,7 +79,7 @@ void serializeDcx(const Message& m, Print& out) {
         qzss_dcx_camf_a10_library_version_lookup(d->camf.a10));
 
     // A11 Guidance to react library
-    // IS-QZSS-DCX-004 §4.2.3.9 Table 4.2-12 / EWSS CAMF v1.1 §3.5.3, §11:
+    // IS-QZSS-DCX-004 §4.2.3.9 Table 4.2-12 / EWSS CAMF v1.2 §3.5.3, §11:
     // A11 は List A 5bit (a11 >> 5) と List B 5bit (a11 & 0x1F) の2コード。
     // 国際表 (A9=0) は List A / List B を別々に引く。日本の表は 10bit を鍵にした結合表なので1本で足りる（List B は null）。
     wf_u(out, "a11_guidance", d->camf.a11);
@@ -116,7 +116,7 @@ void serializeDcx(const Message& m, Print& out) {
         wf_d(out, "semi_minor_km", dec.main_ellipse.semi_minor_m / 1000.0);
         wf_d(out, "azimuth_deg", dec.main_ellipse.azimuth_decideg / 100000.0, /*last=*/!d->camf.b1_present, 6);
 
-        // B1 refinement (EWSS CAMF v1.1 §3.7.1)
+        // B1 refinement (EWSS CAMF v1.2 §3.7.1)
         if (d->camf.b1_present) {
             wk(out, "b1_refinement");
             out.print('{');
@@ -131,7 +131,7 @@ void serializeDcx(const Message& m, Print& out) {
         writeChar(out, ',');
     }
 
-    // B2 (A17=01) - Hazard center offset (EWSS CAMF v1.1 §3.7.2)
+    // B2 (A17=01) - Hazard center offset (EWSS CAMF v1.2 §3.7.2)
     if (d->camf.b2_present) {
         wk(out, "hazard_center");
         out.print('{');
@@ -146,7 +146,7 @@ void serializeDcx(const Message& m, Print& out) {
         writeChar(out, ',');
     }
 
-    // B3 (A17=10) - Secondary ellipse definition (EWSS CAMF v1.1 §3.7.3)
+    // B3 (A17=10) - Secondary ellipse definition (EWSS CAMF v1.2 §3.7.3)
     if (d->camf.b3_present) {
         wk(out, "secondary_ellipse");
         out.print('{');
@@ -162,7 +162,7 @@ void serializeDcx(const Message& m, Print& out) {
         writeChar(out, ',');
     }
 
-    // B4 (A17=11) - Detailed hazard information (EWSS CAMF v1.1 §3.7.4)
+    // B4 (A17=11) - Detailed hazard information (EWSS CAMF v1.2 §3.7.4)
     if (d->camf.b4_present) {
         B4DetailedInfo b4;
         decodeB4DetailedInfo(d->camf.a18, d->camf.a4, b4);

@@ -1,6 +1,6 @@
 // test/integration/test_azarashi_dcr.cpp
 // MT=43 DCR の azarashi 比較テスト（データ駆動）
-// azarashi v0.16.1 のデコード結果と照合
+// azarashi のデコード結果と照合（定義テーブルは azarashi 0.17.1）
 
 #include "../test_helpers.h"
 #include "../src/json/JsonSerializer.h"

@@ -1,5 +1,5 @@
 // MT=44 DCX / CAMF decoder (IS-QZSS-DCX-004)
-// EWSS CAMF v1.1 (B1-B3), v1.2 (§3.7.4 B4)
+// EWSS CAMF v1.2 (B1-B4)
 
 #include "Decoder.h"
 #include "internal/DcxHelper.h"
@@ -80,7 +80,7 @@ bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix)
 
     // Resolve onset time from week (current/next) + time-of-week
     // IS-QZSS-DCX-004 §4.2.3.6, Table 4.2-9: A6 = 0 (current week), 1 (next week)
-    // EWSS CAMF v1.1 §3.3: A week starts Monday 00:00 UTC, ends Sunday 23:59 UTC
+    // EWSS CAMF v1.2 §3.3: A week starts Monday 00:00 UTC, ends Sunday 23:59 UTC
     // The hazard onset is encoded by 15 bits (1-bit A6 + 14-bit A7), with 1-minute resolution, allowing identification up to 2 weeks in advance.
     if (d->camf.a7 > 0 && d->camf.a7 <= 10080 && report_unix >= 946684800u) {
         // Find Monday 00:00 UTC of the week containing report_unix
@@ -179,13 +179,13 @@ bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix)
         dec.main_ellipse.semi_minor_m = decodeRadiusCode(d->camf.a15);
         dec.main_ellipse.azimuth_decideg = decodeAzimuth6(d->camf.a16);
 
-        // B1 (A17=00) - Improved Resolution of Main Ellipse (EWSS CAMF v1.1 §3.7.1)
+        // B1 (A17=00) - Improved Resolution of Main Ellipse (EWSS CAMF v1.2 §3.7.1)
         // A18 (15bit) = C1(3bit)[12:14] + C2(3bit)[9:11] + C3(3bit)[6:8] + C4(3bit)[3:5] + Reserved(3bit)[0:2]
         if (d->camf.a17 == 0) {
             B1Refinement b1 = decodeB1Refinement(d->camf.a18);
             d->camf.b1_present = (b1.c1 != 0 || b1.c2 != 0 || b1.c3 != 0 || b1.c4 != 0);
 
-            // Store refinement values in decoded ellipse (EWSS CAMF v1.1 §3.7.1.3/4)
+            // Store refinement values in decoded ellipse (EWSS CAMF v1.2 §3.7.1.3/4)
             dec.main_ellipse.b1_lat_offset_microdeg = b1RefinedLatitudeOffset(b1.c1);
             dec.main_ellipse.b1_lon_offset_microdeg = b1RefinedLongitudeOffset(b1.c2);
             // B1 refinement: C3 → semi-major (uses A14), C4 → semi-minor (uses A15)
@@ -194,7 +194,7 @@ bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix)
             dec.main_ellipse.b1_refined_semi_minor_m = b1RefinedRadiusM(
                 b1.c4, dec.main_ellipse.semi_minor_m, d->camf.a15);
         }
-        // B2 (A17=01) - Position of the Centre of the Hazard (EWSS CAMF v1.1 §3.7.2)
+        // B2 (A17=01) - Position of the Centre of the Hazard (EWSS CAMF v1.2 §3.7.2)
         // C5: spec bits 131-137; C6: spec bits 138-144; Reserved: a18[0]
         else if (d->camf.a17 == 1) {
             uint8_t c5 = (d->camf.a18 >> 8) & 0x7F;  // spec bits[131:137] → a18[14:8]
@@ -208,7 +208,7 @@ bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix)
             dec.b2_hazard_lon_microdeg = dec.main_ellipse.lon_microdeg + b2.delta_lon_microdeg;
             // dec.main_ellipse is unchanged (keeps original ellipse center)
         }
-        // B3 (A17=10) - Secondary Ellipse Definition (EWSS CAMF v1.1 §3.7.3)
+        // B3 (A17=10) - Secondary Ellipse Definition (EWSS CAMF v1.2 §3.7.3)
         // C7: spec bits 131-132; C8: 133-135; C9: 136-140; C10: 141-145
         else if (d->camf.a17 == 2) {
             uint8_t c7  = (d->camf.a18 >> 13) & 0x03;  // spec bits[131:132] → a18[14:13]
@@ -222,7 +222,7 @@ bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix)
             d->camf.b3_c10 = c10;
         }
     }
-    // B4 (A17=11) - Quantitative and Detailed Information (EWSS CAMF v1.1 §3.7.4)
+    // B4 (A17=11) - Quantitative and Detailed Information (EWSS CAMF v1.2 §3.7.4)
     // For B4, the detailed D1–D36 fields are decoded later in JsonSerializerDcx.cpp
     if (d->camf.a17 == 3) {
         d->camf.b4_present = true;

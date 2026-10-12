@@ -70,7 +70,7 @@ AVR（Arduino Uno等）では専用プリセットにより有効カテゴリが
 ## Examples
 
 | Example | 説明 |
-| ------- | ---- |
+|-------|----|
 | [basic_nmea](../examples/basic_nmea/) | NMEA $QZQSM の基本的な使用例 |
 | [basic_ubx](../examples/basic_ubx/) | UBX-RXM-SFRBX の基本的な使用例 |
 | [basic_uno](../examples/basic_uno/) | Arduino Uno (AVR) 用最小例 |
@@ -89,7 +89,7 @@ make -C test run
 ## ドキュメント
 
 | ドキュメント | 内容 |
-| ------------ | ---- |
+|------------|----|
 | [API リファレンス](api-reference.md) | 詳細な API 仕様・データ構造 |
 | [アーキテクチャ](architecture.md) | 内部設計とデータフロー |
 | [開発者ガイド](developer-guide.md) | ビルド方法、テスト、コーディング規約 |

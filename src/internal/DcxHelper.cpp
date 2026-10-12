@@ -178,7 +178,7 @@ B2HazardCenter decodeB2HazardCenter(uint8_t c5, uint8_t c6) {
     B2HazardCenter r{};
     r.c5 = c5;
     r.c6 = c6;
-    // delta = -10 + 20 * code / 128 → microdegrees; code 64..127 rounds up (+1) gives exact +10,000,000 at code=127 Matches EWSS-CAMF v1.1 §3.7.2 C5/C6 table exactly for all visible entries (e.g. code 0 → -10°, 43 → -3.28125°, 86 → +3.59375°, 107 → +6.875°, 127 → +10°).
+    // delta = -10 + 20 * code / 128 → microdegrees; code 64..127 rounds up (+1) gives exact +10,000,000 at code=127 Matches EWSS-CAMF v1.2 §3.7.2 C5/C6 table exactly for all visible entries (e.g. code 0 → -10°, 43 → -3.28125°, 86 → +3.59375°, 107 → +6.875°, 127 → +10°).
     if (c5 <= 63) r.delta_lat_microdeg = -10000000 + 156250 * c5;
     else          r.delta_lat_microdeg = -10000000 + 156250 * (c5 + 1);
     if (c6 <= 63) r.delta_lon_microdeg = -10000000 + 156250 * c6;

@@ -126,6 +126,71 @@ def decode_with_azarashi(nmea: str) -> dict:
         return {"_error": str(e)}
 
 
+def decode_with_azarashi_json(nmea: str) -> dict | None:
+    """azarashi の JSON v2 レコード（`to_json_dict`）。
+
+    `get_params()` には津波の高さの境界が無く、境界は v2 レコードの
+    `data.forecasts[i].height.range{lower,upper}` にしか出ないためこちらを使う。
+    失敗時は None（呼び出し側で SKIP として扱う）。
+    """
+    try:
+        return azarashi.json.to_json_dict(azarashi.decode(nmea.strip()))
+    except Exception:  # noqa: BLE001 — azarashi が多様な例外
+        return None
+
+
+def _num_eq(a, b) -> bool:
+    """境界値の比較。None 同士は一致、片方だけ None は不一致。
+
+    `values_equal` は None を 0/"" に正規化してしまうため使わない。
+    """
+    if a is None or b is None:
+        return a is None and b is None
+    try:
+        return abs(float(a) - float(b)) <= 1e-9
+    except (TypeError, ValueError):
+        return False
+
+
+def bounds_diffs(record: dict | None, azarac_msg: dict) -> list[dict]:
+    """津波の高さの境界（m）を azarashi と突き合わせる。
+
+    azarashi: `data.forecasts[i].height.range{lower,upper}`。境界を持たない区分は
+              `range` キーを出さない = 境界なし。
+    azaraC:   同索引の `data.entries[i].height_lower` / `height_upper`（境界なしは null）。
+    戻り値は既存 `build_comparison()` と同じ `{"field","azarashi","azarac"}` の差分リスト。
+    """
+    if record is None:
+        return []
+    forecasts = (record.get('data') or {}).get('forecasts') or []
+    entries = (azarac_msg.get('data') or {}).get('entries') or []
+    if not forecasts and not any(isinstance(e, dict) and 'height_lower' in e for e in entries):
+        return []  # 津波以外（MT44・他カテゴリ）は照合しない
+    diffs: list[dict] = []
+    if len(forecasts) != len(entries):
+        diffs.append({
+            'field': 'azarashi.data.forecasts 件数 vs azarac.data.entries 件数',
+            'azarashi': len(forecasts),
+            'azarac': len(entries),
+        })
+    for i, e in enumerate(entries):
+        if i >= len(forecasts):
+            break
+        height = forecasts[i].get('height') or {}
+        rng = height.get('range') or {}
+        exp = [rng.get('lower') if 'range' in height else None,
+               rng.get('upper') if 'range' in height else None]
+        got = [e.get('height_lower'), e.get('height_upper')]
+        if not _num_eq(exp[0], got[0]) or not _num_eq(exp[1], got[1]):
+            diffs.append({
+                'field': (f'azarashi.data.forecasts[{i}].height.range'
+                          f' vs azarac.data.entries[{i}].height_lower/height_upper'),
+                'azarashi': exp,
+                'azarac': got,
+            })
+    return diffs
+
+
 def decode_with_azarac(nmeas: list[str], raw: bool = False) -> list[dict]:
     """azaraC CLI ツールを呼び出してデコード"""
     if not os.path.exists(AZARAC_BIN):
@@ -445,6 +510,8 @@ def main():
     total = 0
     passed = 0
     failed_cases = []
+    bounds_compared = 0
+    bounds_mismatch = 0
 
     for i, (case, azarac_msg) in enumerate(zip(cases, azarac_results)):
         nmea = case['nmea']
@@ -470,6 +537,17 @@ def main():
         # 比較
         diffs = build_comparison(azarashi_flat, azarac_flat)
 
+        # 津波の高さの境界。azarashi の get_params には無いので v2 レコードを使う。
+        if azarac_msg.get('msg_type') == 43 and azarac_msg.get('disaster_category') in (5, 6):
+            record = decode_with_azarashi_json(nmea)
+            if record is None:
+                print(f"  [{i}] SKIP (azarashi json: to_json_dict failed)")
+            else:
+                bounds_compared += len((azarac_msg.get('data') or {}).get('entries') or [])
+                bd = bounds_diffs(record, azarac_msg)
+                bounds_mismatch += len(bd)
+                diffs.extend(bd)
+
         if not diffs:
             passed += 1
         else:
@@ -482,6 +560,7 @@ def main():
     # レポート
     print(f"\n{'='*60}")
     print(f"Results: {passed}/{total} passed, {len(failed_cases)} with differences")
+    print(f"津波の高さ境界（height_lower/height_upper）: {bounds_compared} entry を照合、不一致 {bounds_mismatch} entry")
     print(f"{'='*60}")
 
     if failed_cases:
