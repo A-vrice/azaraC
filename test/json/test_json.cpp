@@ -512,11 +512,15 @@ TEST_CASE("JSON Serialization: MT=43 Tsunami") {
     REQUIRE(tsunami != nullptr);
 
     tsunami->warning_code = 3;
-    tsunami->count = 2;
+    tsunami->count = 4;
     tsunami->entries[0].region_code = 65;
-    tsunami->entries[0].height_code = 4;
+    tsunami->entries[0].height_code = 4;   // 3 < h ≤ 5
     tsunami->entries[1].region_code = 66;
-    tsunami->entries[1].height_code = 2;
+    tsunami->entries[1].height_code = 2;   // 0.2 < h ≤ 1
+    tsunami->entries[2].region_code = 67;
+    tsunami->entries[2].height_code = 1;   // h < 0.2（下端なし）
+    tsunami->entries[3].region_code = 68;
+    tsunami->entries[3].height_code = 13;  // 該当情報なし（境界なし）
 
     StringPrint sp;
     internal::JsonSerializer::serialize(m, sp);
@@ -531,6 +535,12 @@ TEST_CASE("JSON Serialization: MT=43 Tsunami") {
     CHECK(hasField(s, "\"region\":65"));
     CHECK(hasField(s, "\"height\":4"));
     CHECK(hasLabel(s, "height_label", LBL("5m", "5 m")));
+    // 高さコードは範囲（下端は開・上端は閉）。境界は azarashi の PROFILES と同じ m 単位。
+    CHECK(hasField(s, "\"height_lower\":3.0,\"height_upper\":5.0"));
+    CHECK(hasField(s, "\"height_lower\":0.2,\"height_upper\":1.0"));
+    // 片側だけ無い区分と、境界を持たないセンチネル
+    CHECK(hasField(s, "\"height_lower\":null,\"height_upper\":0.2"));
+    CHECK(hasField(s, "\"height_lower\":null,\"height_upper\":null"));
 }
 #endif // AZARAC_ENABLE_TSUNAMI
 
@@ -577,9 +587,11 @@ TEST_CASE("JSON Serialization: MT=43 NW Pacific Tsunami") {
     REQUIRE(nw_pac != nullptr);
 
     nw_pac->potential = 2;
-    nw_pac->count = 1;
+    nw_pac->count = 2;
     nw_pac->entries[0].region_code = 1;
-    nw_pac->entries[0].height_code = 3;
+    nw_pac->entries[0].height_code = 3;   // 3m~5m
+    nw_pac->entries[1].region_code = 2;
+    nw_pac->entries[1].height_code = 508; // More than 10m（上端なし）
 
     StringPrint sp;
     internal::JsonSerializer::serialize(m, sp);
@@ -592,6 +604,9 @@ TEST_CASE("JSON Serialization: MT=43 NW Pacific Tsunami") {
     CHECK(hasField(s, "\"potential_label\":\"There is a Possibility of a Destructive Regional Tsunami\""));
     CHECK(has(s, "\"entries\":["));
     CHECK(hasField(s, "\"height_label\":\"3m~5m\""));
+    // 北西太平洋も同じキー・同じ m 単位で境界を出す（508 は上端なし）
+    CHECK(hasField(s, "\"height_lower\":3.0,\"height_upper\":5.0"));
+    CHECK(hasField(s, "\"height_lower\":10.0,\"height_upper\":null"));
     // S1-lookup regression: coastal_region_en の疎キーテーブル (code 1 → Ust-Kamchatsk)
     CHECK(hasField(s, "\"region\":1,\"region_label\":\"Ust-Kamchatsk (East Coasts of Kamchatka Peninsula)\""));
 }

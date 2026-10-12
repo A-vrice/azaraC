@@ -27,6 +27,37 @@ static const char* arrivalStatus(uint16_t raw, bool nwpac) {
     if (raw == 0 || hour > 23 || min > 59) return "unrecognized_code";
     return nullptr;
 }
+// 津波の高さコード → 境界（m）。下端は開、上端は閉。azarashi の PROFILES と同じ区分。
+// 境界を持たないコード（センチネル・「その他」）は null で出す。「0.2m未満」の下側のように
+// 片側だけ無い区分も null になる。負値は「境界なし」の印（実際の境界は 0.2 以上）。
+static void writeHeightBounds(Print& out, uint16_t code, bool nwpac) {
+    double lower = -1.0, upper = -1.0;
+    if (nwpac) {
+        switch (code) {
+            case 1:   lower = 0.3; upper = 1;  break;
+            case 2:   lower = 1;   upper = 3;  break;
+            case 3:   lower = 3;   upper = 5;  break;
+            case 4:   lower = 5;   upper = 10; break;
+            case 508: lower = 10;              break;
+            default: break;
+        }
+    } else {
+        switch (code) {
+            case 1: upper = 0.2; break;  // h < 0.2
+            case 2: lower = 0.2; upper = 1;  break;
+            case 3: lower = 1;   upper = 3;  break;
+            case 4: lower = 3;   upper = 5;  break;
+            case 5: lower = 5;   upper = 10; break;
+            case 6: lower = 10;              break;
+            default: break;
+        }
+    }
+    // どちらの呼び出し元でも後ろに region が続くので、常にカンマを打つ（last=false）。
+    if (lower > 0) wf_d(out, "height_lower", lower, /*last=*/false, 1);
+    else           { wk(out, "height_lower"); out.print("null"); writeChar(out, ','); }
+    if (upper > 0) wf_d(out, "height_upper", upper, /*last=*/false, 1);
+    else           { wk(out, "height_upper"); out.print("null"); writeChar(out, ','); }
+}
 #endif  // AZARAC_ENABLE_TSUNAMI || AZARAC_ENABLE_NW_PAC_TSUNAMI
 
 // MT=43 sub-type serializers
@@ -216,6 +247,7 @@ bool serializeTsunami(const Mt43Data* d, Print& out) {
         AZARAC_LABEL(out, "height_label",
             qzss_dcr_jma_tsunami_height_lookup,
             qzss_dcr_jma_tsunami_height_en_lookup, e.height_code, false);
+        writeHeightBounds(out, e.height_code, /*nwpac=*/false);
         wf_u(out, keys::region,           e.region_code);
         wf_s(out, keys::region_label,
             AZARAC_LOOKUP_LANG(qzss_dcr_jma_tsunami_forecast_region_lookup, qzss_dcr_jma_tsunami_forecast_region_en_lookup, e.region_code), /*last=*/true);
@@ -253,6 +285,7 @@ bool serializeNwPacTsu(const Mt43Data* d, Print& out) {
         wf_u(out, "height",           e.height_code);
         wf_s(out, "height_label",
             qzss_dcr_jma_northwest_pacific_tsunami_height_en_lookup(e.height_code));
+        writeHeightBounds(out, e.height_code, /*nwpac=*/true);
         wf_u(out, keys::region,           e.region_code);
         wf_s(out, keys::region_label,
             qzss_dcr_jma_coastal_region_en_lookup(e.region_code), /*last=*/true);
