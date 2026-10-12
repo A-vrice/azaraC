@@ -51,7 +51,8 @@ private:
 
     // Shared decode → postDecode path; on decode failure copies the cleared
     // Decoder state into `out` so a reused Message never retains stale payload.
-    bool handleFrame(const internal::Frame& frame, Message& out, uint32_t report_unix);
+    // frame は非 const: messageIdentity が MT=44 の SD を一時的にゼロにする（呼び出しの前後で内容は不変）。
+    bool handleFrame(internal::Frame& frame, Message& out, uint32_t report_unix);
 
 #if AZARAC_ENABLE_NANKAI
     // Process Nankai Trough page aggregation

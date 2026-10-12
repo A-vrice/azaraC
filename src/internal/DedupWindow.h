@@ -1,6 +1,6 @@
 #pragma once
 // 情報有効時間（手順④ 配信終了条件）: アプリケーションノートv2 原PDF p.26–27。
-// MT=44 (DCX/CAMF) は同表を持たないため、A8-Hazard Duration のカテゴリ上限を窓にする（DCX §4.2.3.8 Table 4.2-11 / EWSS-CAMF §3.3.2、A8=00 の 1 週間は DCX §5.4。QZS 事務局回答）。
+// MT=44 (DCX/CAMF) は同表を持たないため、A8-Hazard Duration のカテゴリ上限を窓にする（DCX §4.2.3.8 Table 4.2-11 / EWSS-CAMF §3.3.2、A8=00 の 1 週間は DCX §5.4。QZS 事務局回答）。AVR はスロットが 64 と少ないので `AZARAC_DEDUP_MT44_MAX_WINDOW_MS` で頭打ちにする。
 //
 // Header-only so the Parser, the benchmark and test/tools/dedup_realday.cpp share one table. A second copy would drift silently: the realday tool measures the false re-notifications the Parser's windows produce.
 
@@ -91,12 +91,18 @@ inline uint32_t dedupWindowMs(const Message& m) {
     if (m.payload_type == MsgPayloadType::Mt44) {
         const Mt44Data* c = m.getMt44();
         if (!c) return AZARAC_DEDUP_WINDOW_MS;   // DCX 無効時は payload_type が 44 にならないため通常は到達しない
+#if defined(__AVR__)
+        // AVR は 7 日の窓を保持する余裕がないので上限を設ける（azaraC_config.h、issue #34 の実測: 再送間隔は最大 16 秒）。A8 の窓は最短でも 6 時間なので上限が常に効く。
+        (void)c;
+        return AZARAC_DEDUP_MT44_MAX_WINDOW_MS;
+#else
         switch (c->camf.a8) {
         case 0: return 7UL * kDayMs;            // Unknown（DCX §5.4）
         case 1: return 6UL * kHourMs;           // Duration < 6H
         case 2: return 12UL * kHourMs;          // 6H <= Duration < 12H
         default: return kDayMs;                 // case 3: 12H <= Duration < 24H
         }
+#endif
     }
     const Mt43Data* d = (m.payload_type == MsgPayloadType::Mt43) ? m.getMt43() : nullptr;
     if (!d) return AZARAC_DEDUP_WINDOW_MS;

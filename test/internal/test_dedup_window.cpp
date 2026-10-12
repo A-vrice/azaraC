@@ -245,10 +245,16 @@ TEST_CASE("dedup window: Message overload routes MT43 payload and MT44 A8 window
 #if AZARAC_ENABLE_DCX_CAMF
         Mt44Data* c = m.getMt44();
         REQUIRE(c != nullptr);
+#if defined(__AVR__)
+        // AVR は A8 に関わらず上限を返す（64 スロットで 7 日窓は押し出しを招く。再送間隔は最大 16 秒）。
+        c->camf.a8 = 0; CHECK(dedupWindowMs(m) == AZARAC_DEDUP_MT44_MAX_WINDOW_MS);   // 最長の A8=00（7 日）でも上限
+        c->camf.a8 = 3; CHECK(dedupWindowMs(m) == AZARAC_DEDUP_MT44_MAX_WINDOW_MS);   // 最短の A8=11（24 時間）でも上限
+#else
         c->camf.a8 = 0; CHECK(dedupWindowMs(m) == 7UL * DAY);    // Unknown（DCX §5.4: 1 週間）
         c->camf.a8 = 1; CHECK(dedupWindowMs(m) == 6UL * HR);     // Duration < 6H
         c->camf.a8 = 2; CHECK(dedupWindowMs(m) == 12UL * HR);    // 6H <= Duration < 12H
         c->camf.a8 = 3; CHECK(dedupWindowMs(m) == DAY);          // 12H <= Duration < 24H
+#endif
 #else
         CHECK(dedupWindowMs(m) == AZARAC_DEDUP_WINDOW_MS);
 #endif

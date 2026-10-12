@@ -21,7 +21,7 @@ bool Parser::feed(uint8_t byte, Message& out, uint32_t report_unix) {
     return handleFrame(frame, out, report_unix);
 }
 
-bool Parser::handleFrame(const internal::Frame& frame, Message& out, uint32_t report_unix) {
+bool Parser::handleFrame(internal::Frame& frame, Message& out, uint32_t report_unix) {
     Message decoded;
     if (!_decoder.decode(frame, decoded, report_unix)) {
         // decoded is already cleared by decode(); copy it whole so a reused out holding a previous valid message cannot leak stale payload.

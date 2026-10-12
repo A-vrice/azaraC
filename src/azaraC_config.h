@@ -30,6 +30,10 @@
 #ifndef AZARAC_DEDUP_WAYS
 #define AZARAC_DEDUP_WAYS 8
 #endif
+#ifndef AZARAC_DEDUP_MT44_MAX_WINDOW_MS
+// MT=44 (DCX/CAMF) の窓の上限。ホストは A8-Hazard Duration の上限（6 時間〜7 日、internal/DedupWindow.h）を使うが、AVR の 64 スロットで 7 日の窓は「まだ生きている情報」の枠を長く占め、押し出しによる再通知を招く。MT44 の再送は同じ電文が 2 回（まれに 3〜4 回）で間隔は最大 16 秒（issue #34 の実測）なので、5 分で十分に重複を捕まえられる。A8 の窓は最短でも 6 時間なので、この上限が常に効く。
+#define AZARAC_DEDUP_MT44_MAX_WINDOW_MS 300000UL  // 5 min
+#endif
 #ifndef AZARAC_FLASH_BUF_SIZE
 // Shared definition-lookup buffer (see internal/FlashString.h).
 // AVR default (SEISMIC/TSUNAMI) longest label 30 B → 64 leaves headroom;
