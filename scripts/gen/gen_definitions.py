@@ -213,10 +213,11 @@ def _prefix_for(modname):
     raise ValueError(f"no variable-name prefix rule for module: {modname}")
 
 def get_azarashi_version():
+    from importlib.metadata import PackageNotFoundError, version
+
     try:
-        from importlib.metadata import version
         return version("azarashi")
-    except Exception:
+    except PackageNotFoundError:
         return "unknown"
 
 def find_def_path():
@@ -277,7 +278,7 @@ def emit_switch(varname, entries, guard, kt):
         "    }",
         "}",
     ])
-    return "\n".join(["#if defined(__AVR__)", avr_body, "#else", non_avr_body, "#endif"])
+    return f"#if defined(__AVR__)\n{avr_body}\n#else\n{non_avr_body}\n#endif"
 
 
 def emit_switch_optional(varname, entries, guard, kt):
@@ -313,7 +314,7 @@ def emit_switch_optional(varname, entries, guard, kt):
         "    }",
         "}",
     ])
-    return "\n".join(["#if defined(__AVR__)", avr_body, "#else", non_avr_body, "#endif"])
+    return f"#if defined(__AVR__)\n{avr_body}\n#else\n{non_avr_body}\n#endif"
 
 
 def emit_array(varname, entries, guard, kt):
@@ -493,7 +494,7 @@ def emit_bsearch(varname, entries, guard, kt):
         "    }",
         "    return nullptr;", "}",
     ])
-    return "\n".join(["#if defined(__AVR__)", avr_body, "#else", non_avr_body, "#endif"])
+    return f"#if defined(__AVR__)\n{avr_body}\n#else\n{non_avr_body}\n#endif"
 
 
 def emit_bsearch_optional(varname, entries, guard, kt):
@@ -566,10 +567,10 @@ def emit_bsearch_optional(varname, entries, guard, kt):
         "    }",
         "    return std::nullopt;", "}",
     ])
-    return "\n".join(["#if defined(__AVR__)", avr_body, "#else", non_avr_body, "#endif"])
+    return f"#if defined(__AVR__)\n{avr_body}\n#else\n{non_avr_body}\n#endif"
 
 def build_header(modname, varname, entries, ver, all_varnames, obj=None, use_optional_override=None):
-    keys = [k for k in entries.keys() if isinstance(k, int)]
+    keys = [k for k in entries if isinstance(k, int)]
     if not keys: return None
     # Filter entries to include string, int, and float values for lookup
     int_entries = {k: str(entries[k]) for k in keys if isinstance(entries[k], (str, int, float))}
@@ -606,9 +607,7 @@ def build_header(modname, varname, entries, ver, all_varnames, obj=None, use_opt
         # and erases the label entirely.
         if varname[:-3] in all_varnames or f"{varname[:-3]}_ja" in all_varnames:
             lang_guard = "AZARAC_LANG_EN"
-    elif varname.endswith("_ja"):
-        lang_guard = "AZARAC_LANG_JA"
-    elif f"{varname}_en" in all_varnames:
+    elif varname.endswith("_ja") or f"{varname}_en" in all_varnames:
         lang_guard = "AZARAC_LANG_JA"
 
     def wrap_guard(expr):
@@ -684,7 +683,9 @@ def run(out_dir):
     for modname in modules:
         try:
             tables.extend((modname, varname, obj) for varname, obj in tables_of(modname))
-        except Exception as e:
+        # azarashi 側モジュールが import 時に投げる例外は種類を問わないため、
+        # 1 モジュールの失敗で生成全体を止めずに警告で続行する。
+        except Exception as e:  # noqa: BLE001
             print(f"[WARN] skip {modname}: {e}", file=sys.stderr)
     all_varnames = {varname for _, varname, _ in tables}
 

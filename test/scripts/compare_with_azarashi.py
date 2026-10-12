@@ -560,7 +560,8 @@ def main():
     # レポート
     print(f"\n{'='*60}")
     print(f"Results: {passed}/{total} passed, {len(failed_cases)} with differences")
-    print(f"津波の高さ境界（height_lower/height_upper）: {bounds_compared} entry を照合、不一致 {bounds_mismatch} entry")
+    print(f"津波の高さ境界（height_lower/height_upper）: {bounds_compared} entry を照合、"
+          f"不一致 {bounds_mismatch} entry")
     print(f"{'='*60}")
 
     if failed_cases:

@@ -276,6 +276,9 @@
           "patternId": "Ruff_B911_batched-without-explicit-strict"
         },
         {
+          "patternId": "Ruff_BLE001_blind-except"
+        },
+        {
           "patternId": "Ruff_C901_complex-structure"
         },
         {
@@ -336,6 +339,9 @@
           "patternId": "Ruff_FA102_future-required-type-annotation"
         },
         {
+          "patternId": "Ruff_FLY002_static-join-to-f-string"
+        },
+        {
           "patternId": "Ruff_I001_unsorted-imports"
         },
         {
@@ -343,6 +349,9 @@
         },
         {
           "patternId": "Ruff_PLW1509_subprocess-popen-preexec-fn"
+        },
+        {
+          "patternId": "Ruff_PLW1510_subprocess-run-without-check"
         },
         {
           "patternId": "Ruff_RUF001_ambiguous-unicode-character-string"
@@ -517,6 +526,12 @@
         },
         {
           "patternId": "Ruff_S704_unsafe-markup-use"
+        },
+        {
+          "patternId": "Ruff_SIM114_if-with-same-arms"
+        },
+        {
+          "patternId": "Ruff_SIM118_in-dict-keys"
         },
         {
           "patternId": "Ruff_TID251_banned-api"

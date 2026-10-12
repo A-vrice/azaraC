@@ -68,6 +68,7 @@ def run_cppcheck(check_level: str = "exhaustive") -> str:
         capture_output=True,
         text=True,
         cwd=REPO_ROOT,
+        check=False,  # 終了コード 1 は所見ありの正常系（XML は stdout に出る）
     )
     # cppcheck は issue があると exit code 1 になるが、XML は stdout に出力される
     xml_output = result.stdout.strip()
