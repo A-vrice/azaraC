@@ -93,7 +93,6 @@ inline uint32_t dedupWindowMs(const Message& m) {
         if (!c) return AZARAC_DEDUP_WINDOW_MS;   // DCX 無効時は payload_type が 44 にならないため通常は到達しない
 #if defined(__AVR__)
         // AVR は 7 日の窓を保持する余裕がないので上限を設ける（azaraC_config.h、issue #34 の実測: 再送間隔は最大 16 秒）。A8 の窓は最短でも 6 時間なので上限が常に効く。
-        (void)c;
         return AZARAC_DEDUP_MT44_MAX_WINDOW_MS;
 #else
         switch (c->camf.a8) {
