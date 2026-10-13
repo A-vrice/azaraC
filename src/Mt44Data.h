@@ -49,22 +49,22 @@ struct Mt44CamfRaw {
     uint8_t  a17 = 0;    // 2
     uint16_t a18 = 0;    // 15
 
-    // B1 (A17=00) - Improved Resolution of Main Ellipse (EWSS CAMF v1.1 §3.7.1)
+    // B1 (A17=00) - Improved Resolution of Main Ellipse (EWSS CAMF v1.2 §3.7.1)
     bool     b1_present = false;
 
-    // B2 (A17=01) - Position of the Centre of the Hazard (EWSS CAMF v1.1 §3.7.2)
+    // B2 (A17=01) - Position of the Centre of the Hazard (EWSS CAMF v1.2 §3.7.2)
     bool     b2_present = false;
     uint8_t  b2_c5 = 0;
     uint8_t  b2_c6 = 0;
 
-    // B3 (A17=10) - Secondary Ellipse Definition (EWSS CAMF v1.1 §3.7.3)
+    // B3 (A17=10) - Secondary Ellipse Definition (EWSS CAMF v1.2 §3.7.3)
     bool     b3_present = false;
     uint8_t  b3_c7 = 0;
     uint8_t  b3_c8 = 0;
     uint8_t  b3_c9 = 0;
     uint8_t  b3_c10 = 0;
 
-    // B4 (A17=11) - Quantitative and Detailed Information (EWSS CAMF v1.1 §3.7.4)
+    // B4 (A17=11) - Quantitative and Detailed Information (EWSS CAMF v1.2 §3.7.4)
     bool     b4_present = false;
 };
 
@@ -111,13 +111,6 @@ struct DecodedAdditionalArea {
     DecodedEllipse ellipse;
 };
 
-struct Mt44AlertIdentity {
-    uint16_t a2;
-    uint8_t  a3;
-    uint8_t  a4;
-    uint16_t ex1;
-};
-
 struct Mt44Decoded {
     Mt44ServiceKind service_kind;
     bool is_null_message;
@@ -134,7 +127,6 @@ struct Mt44Decoded {
     uint16_t city_codes[4];
     uint8_t city_code_count;
     DecodedAdditionalArea additional_area;
-    Mt44AlertIdentity alert_identity;
 };
 
 // MT=44 Data (DCX / CAMF)

@@ -7,6 +7,9 @@
 namespace azaraC {
 namespace internal {
 
+// Country code for Japan in A2 field (9-bit: 001101111 = 111)
+static constexpr uint16_t DCX_COUNTRY_CODE_JAPAN = 111;
+
 // A12: Latitude = -90 + (180/(2^16-1)) * code, microdegrees
 int32_t decodeLatitude16(uint16_t code);
 
@@ -38,7 +41,7 @@ uint8_t decodePrefectureBitmask(uint64_t ex9, uint8_t* out_positions);
 // EX8=1: four 16-bit codes; fills out_codes (≥4 elements); returns count written.
 uint8_t decodeCityCodeList(uint64_t ex9, uint16_t* out_codes);
 
-// B1 (A17=00) - Improved Resolution of Main Ellipse (EWSS CAMF v1.1 §3.7.1)
+// B1 (A17=00) - Improved Resolution of Main Ellipse (EWSS CAMF v1.2 §3.7.1)
 
 // Decode B1 refinement from A18 (15-bit field)
 // C1 = a18[14:12] (3b), C2 = a18[11:9] (3b), C3 = a18[8:6] (3b),
@@ -62,7 +65,7 @@ int32_t b1RefinedLongitudeOffset(uint8_t c2);
 // delta_m = radius(code) - radius(code-1); original_radius_code: A14 (semi-major) / A15 (semi-minor)
 int32_t b1RefinedRadiusM(uint8_t code, int32_t base_radius_m, uint8_t original_radius_code);
 
-// B2 (A17=01) - Position of the Centre of the Hazard (EWSS CAMF v1.1 §3.7.2)
+// B2 (A17=01) - Position of the Centre of the Hazard (EWSS CAMF v1.2 §3.7.2)
 
 struct B2HazardCenter {
     uint8_t c5;              // 7 bits - delta latitude raw
@@ -74,7 +77,7 @@ struct B2HazardCenter {
 B2HazardCenter decodeB2HazardCenter(uint8_t c5, uint8_t c6);
 
 
-// B4 (A17=11) - Quantitative and Detailed Information (EWSS CAMF v1.1 §3.7.4)
+// B4 (A17=11) - Quantitative and Detailed Information (EWSS CAMF v1.2 §3.7.4)
 
 struct B4DetailedInfo {
     bool     present = false;

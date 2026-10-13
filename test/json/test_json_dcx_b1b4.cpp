@@ -16,9 +16,29 @@ static bool has(const std::string& s, const char* sub) {
     return s.find(sub) != std::string::npos;
 }
 
+static bool has(const std::string& s, const std::string& sub) {
+    return s.find(sub) != std::string::npos;
+}
+
+// ラベルはビルド時に選んだ言語で出力される（test_json.cpp と同じ規則）。
+#if AZARAC_LANG_JA
+#  define LBL(ja, en) ja
+#elif AZARAC_LANG_EN
+#  define LBL(ja, en) en
+#else
+#  define LBL(ja, en) ""
+#endif
+
+// "key":value の直後が JSON の区切りであることを確認（部分一致の誤検出を防ぐ）
+static bool hasField(const std::string& s, const std::string& key_val) {
+    auto pos = s.find(key_val);
+    if (pos == std::string::npos) return false;
+    size_t end = pos + key_val.size();
+    return end >= s.size() || s[end] == ',' || s[end] == '}' || s[end] == ']' || s[end] == '\n' || s[end] == ' ';
+}
+
 static void initMt44(Message& m) {
     m.msg_type = 44;
-    m.payload_type = MsgPayloadType::Mt44;
     m.initPayload<Mt44Data>();
 }
 
@@ -50,10 +70,10 @@ TEST_CASE("JSON DCX B1: refinement fields") {
     const auto& s = sp.str();
 
     CHECK(has(s, "\"b1_refinement\":{"));
-    CHECK(has(s, "\"c1_lat_offset_deg\":"));
-    CHECK(has(s, "\"c2_lon_offset_deg\":"));
-    CHECK(has(s, "\"c3_refined_semi_major_km\":"));
-    CHECK(has(s, "\"c4_refined_semi_minor_km\":"));
+    CHECK(hasField(s, "\"c1_lat_offset_deg\":0.002400"));
+    CHECK(hasField(s, "\"c2_lon_offset_deg\":0.002400"));
+    CHECK(hasField(s, "\"c3_refined_semi_major_km\":215.125"));
+    CHECK(hasField(s, "\"c4_refined_semi_minor_km\":215.125"));
 }
 
 TEST_CASE("JSON DCX B2: hazard center fields") {
@@ -146,11 +166,12 @@ TEST_CASE("JSON DCX B4: detailed info fields") {
     const auto& s = sp.str();
 
     CHECK(has(s, "\"detailed_info\":{"));
-    CHECK(has(s, "\"a4_code\":36"));
-    CHECK(has(s, "\"d1_magnitude\":{\"raw\":15"));
-    CHECK(has(s, "\"d2_seismic_coeff\":{\"raw\":7"));
-    CHECK(has(s, "\"d3_azimuth\":{\"raw\":5,\"label\":\"112.5\"}"));
-    CHECK(has(s, "\"d4_vector_length\":{\"raw\":9,\"label\":\"30\"}"));
+    CHECK(has(s, "\"a4_hazard\":36"));
+    CHECK_FALSE(has(s, "a4_code"));
+    CHECK(has(s, "\"d1_magnitude\":15"));
+    CHECK(has(s, "\"d2_seismic_coeff\":7"));
+    CHECK(has(s, "\"d3_azimuth\":5,\"d3_azimuth_label\":\"112.5°\""));
+    CHECK(has(s, "\"d4_vector_length\":9,\"d4_vector_length_label\":\"30\""));
 }
 
 // Build a B4 message with the given hazard code and A18 bit-field, return its JSON.
@@ -175,15 +196,14 @@ static std::string b4Json(uint8_t a4, uint16_t a18) {
 }
 
 TEST_CASE("JSON DCX B4: multi-field layouts emit the correct raw values") {
-    // Each A18 is assembled from the layout's (shift, width) so a wrong mapping
-    // (shift/width/field) changes the emitted raw value.
+    // Each A18 is assembled from the layout's (shift, width) so a wrong mapping (shift/width/field) changes the emitted raw value.
     // a4=64: D8(11,4) D9(8,3) D16(5,3) D11(2,3)
     {
         const std::string s = b4Json(64, (15u << 11) | (7u << 8) | (5u << 5) | (3u << 2));
-        CHECK(has(s, "\"d8_wind_speed\":{\"raw\":15"));
-        CHECK(has(s, "\"d9_rainfall\":{\"raw\":7"));
-        CHECK(has(s, "\"d16_lightning\":{\"raw\":5"));
-        CHECK(has(s, "\"d11_tornado_prob\":{\"raw\":3"));
+        CHECK(has(s, "\"d8_wind_speed\":15"));
+        CHECK(has(s, "\"d9_rainfall\":7"));
+        CHECK(has(s, "\"d16_lightning\":5"));
+        CHECK(has(s, "\"d11_tornado_prob\":3"));
         // Fields outside this layout must not be emitted (no cross-layout bleed).
         CHECK_FALSE(has(s, "\"d1_magnitude\""));
         CHECK_FALSE(has(s, "\"d26_cases_per_100k\""));
@@ -191,42 +211,44 @@ TEST_CASE("JSON DCX B4: multi-field layouts emit the correct raw values") {
     // a4=77: D8(11,4) D9(8,3) D10(5,3) D16(2,3)
     {
         const std::string s = b4Json(77, (9u << 11) | (4u << 8) | (2u << 5) | (1u << 2));
-        CHECK(has(s, "\"d8_wind_speed\":{\"raw\":9"));
-        CHECK(has(s, "\"d9_rainfall\":{\"raw\":4"));
-        CHECK(has(s, "\"d10_damage\":{\"raw\":2"));
-        CHECK(has(s, "\"d16_lightning\":{\"raw\":1"));
+        CHECK(has(s, "\"d8_wind_speed\":9"));
+        CHECK(has(s, "\"d9_rainfall\":4"));
+        CHECK(has(s, "\"d10_damage\":2"));
+        CHECK(has(s, "\"d16_lightning\":1"));
     }
     // a4=80: D7(12,3) D8(8,4) D9(5,3)
     {
         const std::string s = b4Json(80, (7u << 12) | (15u << 8) | (6u << 5));
-        CHECK(has(s, "\"d7_hurricane_cat\":{\"raw\":7"));
-        CHECK(has(s, "\"d8_wind_speed\":{\"raw\":15"));
-        CHECK(has(s, "\"d9_rainfall\":{\"raw\":6"));
+        CHECK(has(s, "\"d7_hurricane_cat\":7"));
+        CHECK(has(s, "\"d8_wind_speed\":15"));
+        CHECK(has(s, "\"d9_rainfall\":6"));
     }
     // a4=82: D36(12,3) D8(8,4) D9(5,3) — verifies D36 value, not just its presence.
     {
         const std::string s = b4Json(82, (5u << 12) | (10u << 8) | (3u << 5));
-        CHECK(has(s, "\"d36_typhoon_cat\":{\"raw\":5"));
-        CHECK(has(s, "\"d8_wind_speed\":{\"raw\":10"));
-        CHECK(has(s, "\"d9_rainfall\":{\"raw\":3"));
+        CHECK(has(s, "\"d36_typhoon_cat\":5"));
+        CHECK(has(s, "\"d8_wind_speed\":10"));
+        CHECK(has(s, "\"d9_rainfall\":3"));
     }
     // a4=51: D26(10,5) D35(4,6) — 6-bit width field
     {
         const std::string s = b4Json(51, (20u << 10) | (33u << 4));
-        CHECK(has(s, "\"d26_cases_per_100k\":{\"raw\":20"));
-        CHECK(has(s, "\"d35_infection_type\":{\"raw\":33"));
+        CHECK(has(s, "\"d26_cases_per_100k\":20"));
+        CHECK(has(s, "\"d35_infection_type\":33"));
     }
     // a4=47: D8(11,4) D5(8,3)
     {
         const std::string s = b4Json(47, (12u << 11) | (6u << 8));
-        CHECK(has(s, "\"d8_wind_speed\":{\"raw\":12"));
-        CHECK(has(s, "\"d5_wave_height\":{\"raw\":6"));
+        CHECK(has(s, "\"d8_wind_speed\":12"));
+        CHECK(has(s, "\"d5_wave_height\":6"));
     }
 }
 
-TEST_CASE("JSON DCX B4: unknown a4_code emits only a4_code") {
+TEST_CASE("JSON DCX B4: unknown a4 has no D-field layout") {
     const std::string s = b4Json(1, 0x7FFF);  // a4=1 has no D-field layout
-    CHECK(has(s, "\"a4_code\":1"));
+    CHECK(has(s, "\"a4_hazard\":1"));
+    CHECK(has(s, "\"detailed_info\":{}"));
+    CHECK_FALSE(has(s, "a4_code"));
     CHECK_FALSE(has(s, "\"d1_magnitude\""));
     CHECK_FALSE(has(s, "\"d8_wind_speed\""));
 }
@@ -322,13 +344,12 @@ TEST_CASE("JSON DCX EX1 city codes with labels") {
     internal::JsonSerializer::serialize(m, sp);
     const auto& s = sp.str();
 
-    // Check city codes output
-    CHECK(has(s, "\"city_codes\":[1101]"));
-    // Check that city label is resolved (JA/EN depending on build)
-    CHECK(has(s, "\"city_labels\":[\""));
-    // The label should contain "Sapporo" (EN) or "札幌" (JA)
+    // Check city objects output (label is resolved, not null)
+    CHECK(has(s, "\"cities\":[{\"code\":1101,\"label\":\""));
     // At minimum we should NOT see null labels for known codes
-    CHECK(s.find("\"city_labels\":[null]") == std::string::npos);
+    CHECK(s.find("\"cities\":[{\"code\":1101,\"label\":null}]") == std::string::npos);
+    CHECK(s.find("city_codes") == std::string::npos);
+    CHECK(s.find("city_labels") == std::string::npos);
     // Regression: ex_vn must be preceded by a comma (was "]\"ex_vn\"" — invalid JSON)
     CHECK(s.find("],\"ex_vn\"") != std::string::npos);
     CHECK(s.find("]\"ex_vn\"") == std::string::npos);
@@ -358,7 +379,7 @@ TEST_CASE("JSON DCX EX1 city codes multiple entries") {
     mt44->mt44_decoded.city_code_count = 3;
     mt44->mt44_decoded.city_codes[0] = 1101;  // Chuo-ku, Sapporo
     mt44->mt44_decoded.city_codes[1] = 1102;  // Kita-ku, Sapporo
-    mt44->mt44_decoded.city_codes[2] = 47101; // Naha-shi, Okinawa
+    mt44->mt44_decoded.city_codes[2] = 47201; // Naha-shi, Okinawa
     mt44->sd.sdmt = 0;
     mt44->sd.sdm = 0x1FF;
 
@@ -366,14 +387,14 @@ TEST_CASE("JSON DCX EX1 city codes multiple entries") {
     internal::JsonSerializer::serialize(m, sp);
     const auto& s = sp.str();
 
-    // All three codes appear in city_codes array
-    CHECK(has(s, "\"city_codes\":[1101,1102,47101]"));
-    // city_labels has three entries, all non-null
-    CHECK(has(s, "\"city_labels\":[\""));
-    // Check no null values at any position within the array
+    // All three codes appear in the cities array
+    CHECK(has(s, "\"cities\":[{\"code\":1101,"));
+    CHECK(hasField(s, "\"code\":1102"));
+    CHECK(hasField(s, "\"code\":47201"));
+    // Check no null labels at any position within the cities array
     {
-        const auto p = s.find("\"city_labels\":[");
-        const auto q = s.find(']', p + 14);
+        const auto p = s.find("\"cities\":[");
+        const auto q = s.find(']', p + 10);
         const auto arr = s.substr(p, q - p + 1);
         CHECK(arr.find("null") == std::string::npos);
     }

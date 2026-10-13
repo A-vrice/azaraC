@@ -1,6 +1,6 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.16.4 with CI-CD
-// Source module : qzss_dcr_jma_tsunamigenic_potential
+// AUTO-GENERATED from azarashi 0.17.1 with CI-CD
+// Source module : azarashi.definitions.qzss.dcr.tsunamigenic_potential
 // Variable      : qzss_dcr_jma_tsunamigenic_potential_en
 // Entries       : 6
 // Strategy      : switch
@@ -23,7 +23,7 @@
 namespace azaraC {
 namespace def {
 
-#if (AZARAC_ENABLE_NW_PAC_TSUNAMI) && (AZARAC_LANG_EN)
+#if (AZARAC_ENABLE_NW_PAC_TSUNAMI)
 
 #if defined(__AVR__)
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_tsunamigenic_potential_en_lookup(uint8_t id) noexcept {
@@ -33,7 +33,7 @@ namespace def {
         case 2: { static const char AZARAC_PROGMEM s[] = "There is a Possibility of a Destructive Regional Tsunami"; return azarac_pgm_view(s, 56); }
         case 3: { static const char AZARAC_PROGMEM s[] = "There is a Possibility of a Destructive Local Tsunami Near the Epicenter"; return azarac_pgm_view(s, 72); }
         case 4: { static const char AZARAC_PROGMEM s[] = "There is a Very Small Possibility of a Destructive Local Tsunami"; return azarac_pgm_view(s, 64); }
-        case 7: { static const char AZARAC_PROGMEM s[] = "There is a Possibility of a Tsunami"; return azarac_pgm_view(s, 35); }
+        case 7: { static const char AZARAC_PROGMEM s[] = "Other Tsunamigenic Potential"; return azarac_pgm_view(s, 28); }
         default: return std::nullopt;
     }
 }
@@ -45,7 +45,7 @@ namespace def {
         case 2: return std::string_view{"There is a Possibility of a Destructive Regional Tsunami", 56};
         case 3: return std::string_view{"There is a Possibility of a Destructive Local Tsunami Near the Epicenter", 72};
         case 4: return std::string_view{"There is a Very Small Possibility of a Destructive Local Tsunami", 64};
-        case 7: return std::string_view{"There is a Possibility of a Tsunami", 35};
+        case 7: return std::string_view{"Other Tsunamigenic Potential", 28};
         default: return std::nullopt;
     }
 }

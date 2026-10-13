@@ -1,6 +1,6 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.16.4 with CI-CD
-// Source module : qzss_dcr_jma_weather_forecast_region
+// AUTO-GENERATED from azarashi 0.17.1 with CI-CD
+// Source module : azarashi.definitions.qzss.dcr.weather_forecast_region
 // Variable      : qzss_dcr_jma_weather_forecast_region
 // Entries       : 75
 // Strategy      : binary_search
@@ -23,7 +23,7 @@
 namespace azaraC {
 namespace def {
 
-#if (AZARAC_ENABLE_WEATHER)
+#if (AZARAC_ENABLE_WEATHER) && (AZARAC_LANG_JA)
 
 #if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_WEATHER_FORECAST_REGION_POOL[] = "宗谷地方\000上川・留萌地方\000上川地方\000留萌地方\000網走・北見・紋別地方\000根室地方\000釧路地方\000十勝地方\000釧路・根室地方\000胆振・日高地方\000胆振地方\000日高地方\000石狩・空知・後志地方\000石狩地方\000空知地方\000後志地方\000石狩・空知地方\000渡島・檜山地方\000渡島地方\000檜山地方\000青森県\000岩手県\000宮城県\000秋田県\000山形県\000福島県\000茨城県\000栃木県\000群馬県\000埼玉県\000千葉県\000東京都\000東京地方\000伊豆諸島北部\000伊豆諸島南部\000神奈川県\000新潟県\000富山県\000石川県\000福井県\000山梨県\000長野県\000岐阜県\000静岡県\000愛知県\000三重県\000滋賀県\000京都府\000大阪府\000兵庫県\000奈良県\000和歌山県\000鳥取県\000島根県\000岡山県\000広島県\000山口県\000徳島県\000香川県\000愛媛県\000高知県\000福岡県\000佐賀県\000長崎県\000熊本県\000大分県\000宮崎県\000鹿児島県\000奄美地方\000鹿児島県(奄美地方除く)\000沖縄本島地方\000大東島地方\000宮古島地方\000八重山地方\000その他の府県予報区\000";

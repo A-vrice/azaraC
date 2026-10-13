@@ -1,6 +1,6 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.16.4 with CI-CD
-// Source module : qzss_dcr_jma_weather_related_disaster_sub_category
+// AUTO-GENERATED from azarashi 0.17.1 with CI-CD
+// Source module : azarashi.definitions.qzss.dcr.weather_related_disaster_sub_category
 // Variable      : qzss_dcr_jma_weather_related_disaster_sub_category
 // Entries       : 11
 // Strategy      : binary_search
@@ -23,7 +23,7 @@
 namespace azaraC {
 namespace def {
 
-#if (AZARAC_ENABLE_WEATHER)
+#if (AZARAC_ENABLE_WEATHER) && (AZARAC_LANG_JA)
 
 #if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_WEATHER_RELATED_DISASTER_SUB_CATEGORY_POOL[] = "暴風雪特別警報\000大雨特別警報\000暴風特別警報\000大雪特別警報\000波浪特別警報\000高潮特別警報\000全ての気象特別警報\000記録的短時間大雨情報\000竜巻注意情報\000土砂災害警戒情報\000その他の警報等情報要素\000";

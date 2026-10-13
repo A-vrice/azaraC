@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""compare_with_azarashi.py — azarashi vs AzaraC 出力比較スクリプト
+"""compare_with_azarashi.py — azarashi vs azaraC 出力比較スクリプト
 
 realdata/ の実際のQZSSメッセージを入力とし、azarashi (リファレンス実装) と
-AzaraC のデコード結果を比較する。
+azaraC のデコード結果を比較する。
 
 比較は「_raw サフィックスの数値フィールド」を中心に行う。
 ラベル文字列は言語・フォーマット差異が多いため、数値の一致を主眼とする。
@@ -23,13 +23,14 @@ import re
 import subprocess
 import sys
 import urllib.request
+
 try:
     import azarashi
 except ImportError:
     print("ERROR: azarashi package not found. Install with: pip install azarashi", file=sys.stderr)
     sys.exit(1)
 
-# ── 共通定数/ヘルパは _common に集約 ───────────────────
+# 共通定数/ヘルパは _common に集約
 from _common import (  # type: ignore[import-not-found]
     AZARAC_BIN,
     REALDATA,
@@ -112,7 +113,7 @@ def parse_l1s_archive(filepath: str) -> list[dict]:
     return results
 
 
-# ── azarashi でデコード ───────────────────────────────────────────────────
+# azarashi でデコード
 
 # json_serial は _common から import（重複削除）
 
@@ -125,10 +126,75 @@ def decode_with_azarashi(nmea: str) -> dict:
         return {"_error": str(e)}
 
 
+def decode_with_azarashi_json(nmea: str) -> dict | None:
+    """azarashi の JSON v2 レコード（`to_json_dict`）。
+
+    `get_params()` には津波の高さの境界が無く、境界は v2 レコードの
+    `data.forecasts[i].height.range{lower,upper}` にしか出ないためこちらを使う。
+    失敗時は None（呼び出し側で SKIP として扱う）。
+    """
+    try:
+        return azarashi.json.to_json_dict(azarashi.decode(nmea.strip()))
+    except Exception:  # noqa: BLE001 — azarashi が多様な例外
+        return None
+
+
+def _num_eq(a, b) -> bool:
+    """境界値の比較。None 同士は一致、片方だけ None は不一致。
+
+    `values_equal` は None を 0/"" に正規化してしまうため使わない。
+    """
+    if a is None or b is None:
+        return a is None and b is None
+    try:
+        return abs(float(a) - float(b)) <= 1e-9
+    except (TypeError, ValueError):
+        return False
+
+
+def bounds_diffs(record: dict | None, azarac_msg: dict) -> list[dict]:
+    """津波の高さの境界（m）を azarashi と突き合わせる。
+
+    azarashi: `data.forecasts[i].height.range{lower,upper}`。境界を持たない区分は
+              `range` キーを出さない = 境界なし。
+    azaraC:   同索引の `data.entries[i].height_lower` / `height_upper`（境界なしは null）。
+    戻り値は既存 `build_comparison()` と同じ `{"field","azarashi","azarac"}` の差分リスト。
+    """
+    if record is None:
+        return []
+    forecasts = (record.get('data') or {}).get('forecasts') or []
+    entries = (azarac_msg.get('data') or {}).get('entries') or []
+    if not forecasts and not any(isinstance(e, dict) and 'height_lower' in e for e in entries):
+        return []  # 津波以外（MT44・他カテゴリ）は照合しない
+    diffs: list[dict] = []
+    if len(forecasts) != len(entries):
+        diffs.append({
+            'field': 'azarashi.data.forecasts 件数 vs azarac.data.entries 件数',
+            'azarashi': len(forecasts),
+            'azarac': len(entries),
+        })
+    for i, e in enumerate(entries):
+        if i >= len(forecasts):
+            break
+        height = forecasts[i].get('height') or {}
+        rng = height.get('range') or {}
+        exp = [rng.get('lower') if 'range' in height else None,
+               rng.get('upper') if 'range' in height else None]
+        got = [e.get('height_lower'), e.get('height_upper')]
+        if not _num_eq(exp[0], got[0]) or not _num_eq(exp[1], got[1]):
+            diffs.append({
+                'field': (f'azarashi.data.forecasts[{i}].height.range'
+                          f' vs azarac.data.entries[{i}].height_lower/height_upper'),
+                'azarashi': exp,
+                'azarac': got,
+            })
+    return diffs
+
+
 def decode_with_azarac(nmeas: list[str], raw: bool = False) -> list[dict]:
-    """AzaraC CLI ツールを呼び出してデコード"""
+    """azaraC CLI ツールを呼び出してデコード"""
     if not os.path.exists(AZARAC_BIN):
-        print(f"ERROR: AzaraC binary not found: {AZARAC_BIN}", file=sys.stderr)
+        print(f"ERROR: azaraC binary not found: {AZARAC_BIN}", file=sys.stderr)
         print("Build it first with: cd test && make decode", file=sys.stderr)
         sys.exit(1)
 
@@ -148,7 +214,7 @@ def decode_with_azarac(nmeas: list[str], raw: bool = False) -> list[dict]:
             check=False,
         )
         if result.returncode != 0:
-            print(f"WARNING: AzaraC binary returned code {result.returncode}", file=sys.stderr)
+            print(f"WARNING: azaraC binary returned code {result.returncode}", file=sys.stderr)
             print(f"stderr: {result.stderr}", file=sys.stderr)
             return [{"_error": f"azarac_exit_{result.returncode}"} for _ in nmeas]
 
@@ -156,11 +222,11 @@ def decode_with_azarac(nmeas: list[str], raw: bool = False) -> list[dict]:
     except subprocess.TimeoutExpired:
         return [{"_error": "timeout"} for _ in nmeas]
     except json.JSONDecodeError as e:
-        print(f"ERROR: Failed to parse AzaraC JSON output: {e}", file=sys.stderr)
+        print(f"ERROR: Failed to parse azaraC JSON output: {e}", file=sys.stderr)
         return [{"_error": "json_parse_failed"} for _ in nmeas]
 
 
-# ── フラット化 & 正規化 ───────────────────────────────────────────────────
+# フラット化 & 正規化
 
 def flatten_dict(d: dict, prefix: str = "") -> dict:
     """ネストされたdictをフラット化 (キーは '.' 区切り)"""
@@ -203,13 +269,13 @@ def normalize_value(v):
     return v
 
 
-# ── キー対応表 (azarashi → AzaraC) ───────────────────────────────────────
+# キー対応表 (azarashi → azaraC)
 
-# azarashi のキー名 → AzaraC のキー名 (パス)
+# azarashi のキー名 → azaraC のキー名 (パス)
 KEY_MAPPING = {
     # 共通ヘッダ
     "satellite_id": "svid",
-    "satellite_prn": None,  # AzaraC は svid_label に含む
+    "satellite_prn": None,  # azaraC の svid は PRN（128–191）そのもの
     "message_type": None,  # "DCR"/"DCX" → 43/44
     "report_classification_no": "report_classification",
     "disaster_category_no": "disaster_category",
@@ -217,14 +283,14 @@ KEY_MAPPING = {
     "report_time": "report_time",  # フォーマット差異あり
 
     # EEW
-    "depth_of_hypocenter_raw": "detail.depth",
-    "magnitude_raw": "detail.magnitude",
-    "seismic_epicenter_raw": "detail.epicenter",
-    "seismic_intensity_lower_limit_raw": "detail.intensity_lower",
-    "seismic_intensity_upper_limit_raw": "detail.intensity_upper",
-    "notifications_on_disaster_prevention_raw": "detail.notifications",
-    "eew_forecast_regions_raw": "detail.regions",
-    "occurrence_time_of_earthquake": "detail.quake_time",
+    "depth_of_hypocenter_raw": "data.depth",
+    "magnitude_raw": "data.magnitude",
+    "seismic_epicenter_raw": "data.epicenter",
+    "seismic_intensity_lower_limit_raw": "data.intensity_lower",
+    "seismic_intensity_upper_limit_raw": "data.intensity_upper",
+    "notifications_on_disaster_prevention_raw": "data.notifications",
+    "eew_forecast_regions_raw": "data.regions",
+    "occurrence_time_of_earthquake": "data.quake_time",
 
     # 無視するキー (メタデータ・デバッグ用)
     "_ignore": [
@@ -232,57 +298,58 @@ KEY_MAPPING = {
         "preamble", "version", "assumptive",
         "report_classification_en", "disaster_category_en", "information_type_en",
         "depth_of_hypocenter", "magnitude",
-        "dcx_message_type",  # AzaraC は service_kind 由来の dcx_type_label (NULL 等) を使用。命名規約差異のため比較しない
+        # azaraC は service_kind 由来の dcx_type_label (NULL 等) を使用。命名規約差異のため比較しない
+        "dcx_message_type",
     ]
 }
 
 
-# ── ラベル対応表 (azarashi ラベル → AzaraC _label フィールド) ────────────────
-# azarashi のラベル文字列キーを AzaraC の対応 _label キーと比較する。
+# ラベル対応表 (azarashi ラベル → azaraC _label フィールド)
+# azarashi のラベル文字列キーを azaraC の対応 _label キーと比較する。
 # 各値は候補パスのリスト。候補はスカラー (str) か リスト規則 (配列パス, フィールド名)。
-# メッセージ種別により AzaraC の配置が異なるため複数候補を持つ場合がある
-# (例: local_governments は火山が detail.local_govs[]、降灰が detail.entries[].local_gov_label)。
+# メッセージ種別により azaraC の配置が異なるため複数候補を持つ場合がある
+# (例: local_governments は火山が data.local_govs[]、降灰が data.entries[].local_gov_label)。
 # いずれかの候補が存在し一致すれば OK。候補が全て不在の場合は比較をスキップする
 # (azarashi のみが持つ構造的フィールド。ラベルバグではない)。
 LABEL_MAPPING = {
     "report_classification": ["report_classification_label"],
     "disaster_category": ["disaster_category_label"],
     "information_type": ["information_type_label"],
-    "seismic_intensity_lower_limit": ["detail.intensity_lower_label"],
-    "seismic_intensity_upper_limit": ["detail.intensity_upper_label"],
-    "seismic_epicenter": ["detail.epicenter_label"],
-    "long_period_ground_motion_lower_limit": ["detail.long_period_lower_label"],
-    "long_period_ground_motion_upper_limit": ["detail.long_period_upper_label"],
-    "eew_forecast_regions": [("detail.regions", "label")],
-    "notifications_on_disaster_prevention": [("detail.notifications", "label")],
-    "tsunami_heights": [("detail.entries", "height_label")],
-    "tsunami_forecast_regions": [("detail.entries", "region_label")],
-    "seismic_intensities": [("detail.entries", "intensity_label")],
-    "prefectures": [("detail.entries", "prefecture_label")],
-    "marine_warning_codes": [("detail.entries", "warning_code_label")],
-    "marine_forecast_regions": [("detail.entries", "region_label")],
-    "local_governments": [("detail.local_govs", "label"), ("detail.entries", "local_gov_label")],
-    "ash_fall_warning_codes": [("detail.entries", "warning_code_label")],
-    "tsunami_warning_code": ["detail.warning_code_label"],
-    "volcano_name": ["detail.volcano_name_label"],
-    "ash_fall_warning_type": ["detail.warning_type_label"],
-    "weather_warning_state": ["detail.warning_state_label"],
+    "seismic_intensity_lower_limit": ["data.intensity_lower_label"],
+    "seismic_intensity_upper_limit": ["data.intensity_upper_label"],
+    "seismic_epicenter": ["data.epicenter_label"],
+    "long_period_ground_motion_lower_limit": ["data.long_period_lower_label"],
+    "long_period_ground_motion_upper_limit": ["data.long_period_upper_label"],
+    "eew_forecast_regions": [("data.regions", "label")],
+    "notifications_on_disaster_prevention": [("data.notifications", "label")],
+    "tsunami_heights": [("data.entries", "height_label")],
+    "tsunami_forecast_regions": [("data.entries", "region_label")],
+    "seismic_intensities": [("data.entries", "intensity_label")],
+    "prefectures": [("data.entries", "prefecture_label")],
+    "marine_warning_codes": [("data.entries", "warning_code_label")],
+    "marine_forecast_regions": [("data.entries", "region_label")],
+    "local_governments": [("data.local_govs", "label"), ("data.entries", "local_gov_label")],
+    "ash_fall_warning_codes": [("data.entries", "warning_code_label")],
+    "tsunami_warning_code": ["data.warning_code_label"],
+    "volcano_name": ["data.volcano_name_label"],
+    "ash_fall_warning_type": ["data.warning_type_label"],
+    "weather_warning_state": ["data.warning_state_label"],
 }
 
 
 def build_comparison(azarashi_flat: dict, azarac_flat: dict) -> list[dict]:
-    """azarashi と AzaraC のフラット化結果を比較し、差分リストを返す"""
+    """azarashi と azaraC のフラット化結果を比較し、差分リストを返す"""
     differences = []
 
     # 無視するキーセット
     ignore_keys = set(KEY_MAPPING["_ignore"])
 
-    # azarashi の _raw キーを探して AzaraC の対応キーと比較
+    # azarashi の _raw キーを探して azaraC の対応キーと比較
     for az_key, az_val in azarashi_flat.items():
         # 無視キーをスキップ
         if az_key in ignore_keys:
             continue
-        # _raw で終わるキーは対応する AzaraC キーと比較
+        # _raw で終わるキーは対応する azaraC キーと比較
         if az_key.endswith("_raw"):
             base_name = az_key[:-4]  # "_raw" を除去
             # マッピングを確認
@@ -300,7 +367,7 @@ def build_comparison(azarashi_flat: dict, azarac_flat: dict) -> list[dict]:
                     })
 
     # ラベル文字列の比較
-    # azarashi のラベル文字列キーを AzaraC の _label フィールドと突合する。
+    # azarashi のラベル文字列キーを azaraC の _label フィールドと突合する。
     for az_key, ac_rules in LABEL_MAPPING.items():
         # スカラーは裸キー、リストは az_key[i] 形式でフラット化される
         has_item = any(k.startswith(f"{az_key}[") for k in azarashi_flat)
@@ -348,7 +415,7 @@ def build_comparison(azarashi_flat: dict, azarac_flat: dict) -> list[dict]:
                 i += 1
             continue
 
-        # スカラーラベル: azarashi = "str", AzaraC = 候補パス
+        # スカラーラベル: azarashi = "str", azaraC = 候補パス
         matched = False
         for rule in ac_rules:
             if isinstance(rule, tuple):
@@ -372,11 +439,17 @@ def values_equal(az_val, ac_val, ac_flat: dict, ac_key: str) -> bool:
     if az_val is None and ac_val is None:
         return True
     if az_val is None or ac_val is None:
-        # azarashi の null は AzaraC の 0 と同等の場合がある
+        # azarashi の null は azaraC の 0 と同等の場合がある
         if az_val is None and ac_val == 0:
             return True
-        # azarashi の null は AzaraC の空文字ラベルと同等
-        return bool(az_val is None and ac_val == "")  # noqa: SIM103
+        # azarashi の null は azaraC の空文字ラベルと同等
+        if az_val is None and ac_val == "":
+            return True
+        # azarashi 0.17.1: 長周期地震動階級の code 0 は属性が None のまま、JSON は
+        # 該当情報なし / No data と名付ける。azaraC は JSON 側（定義表のラベル）を出すため、
+        # 「情報なし」を意味するこの 2 語を None と同値として扱う。
+        # ponytail: 語で同値判定するので、同じ語を別の意味で使う表が増えたらキー単位に絞る。
+        return az_val is None and ac_val in ("該当情報なし", "No data")
     # リスト比較
     if isinstance(az_val, list) and isinstance(ac_val, list):
         if len(az_val) != len(ac_val):
@@ -399,10 +472,10 @@ def values_equal(az_val, ac_val, ac_flat: dict, ac_key: str) -> bool:
     return str(az_val) == str(ac_val)
 
 
-# ── メイン ────────────────────────────────────────────────────────────────
+# メイン
 
 def main():
-    parser = argparse.ArgumentParser(description="Compare azarashi vs AzaraC output")
+    parser = argparse.ArgumentParser(description="Compare azarashi vs azaraC output")
     parser.add_argument("--source", choices=["history", "noto", "data_txt", "l1s", "all"],
                         default="all", help="Which realdata source to test")
     parser.add_argument("--verbose", "-v", action="store_true", help="Show all differences")
@@ -422,13 +495,13 @@ def main():
 
     print(f"Testing {len(cases)} messages from realdata/ ...")
 
-    # AzaraC で一括デコード
+    # azaraC で一括デコード
     nmeas = [c['nmea'] for c in cases]
     # この比較は入力ごとに1件の出力を必要とするためParser処理を迂回する
     azarac_results = decode_with_azarac(nmeas, raw=True)
     if len(azarac_results) != len(cases):
         print(
-            f"ERROR: AzaraC returned {len(azarac_results)} results for {len(cases)} inputs",
+            f"ERROR: azaraC returned {len(azarac_results)} results for {len(cases)} inputs",
             file=sys.stderr,
         )
         sys.exit(1)
@@ -437,6 +510,8 @@ def main():
     total = 0
     passed = 0
     failed_cases = []
+    bounds_compared = 0
+    bounds_mismatch = 0
 
     for i, (case, azarac_msg) in enumerate(zip(cases, azarac_results)):
         nmea = case['nmea']
@@ -449,7 +524,7 @@ def main():
             print(f"  [{i}] SKIP (azarashi error: {azarashi_params['_error']})")
             continue
         if "_error" in azarac_msg:
-            print(f"  [{i}] SKIP (AzaraC error: {azarac_msg['_error']})")
+            print(f"  [{i}] SKIP (azaraC error: {azarac_msg['_error']})")
             failed_cases.append((i, nmea, "azarac_error", azarac_msg['_error']))
             continue
 
@@ -461,6 +536,17 @@ def main():
 
         # 比較
         diffs = build_comparison(azarashi_flat, azarac_flat)
+
+        # 津波の高さの境界。azarashi の get_params には無いので v2 レコードを使う。
+        if azarac_msg.get('msg_type') == 43 and azarac_msg.get('disaster_category') in (5, 6):
+            record = decode_with_azarashi_json(nmea)
+            if record is None:
+                print(f"  [{i}] SKIP (azarashi json: to_json_dict failed)")
+            else:
+                bounds_compared += len((azarac_msg.get('data') or {}).get('entries') or [])
+                bd = bounds_diffs(record, azarac_msg)
+                bounds_mismatch += len(bd)
+                diffs.extend(bd)
 
         if not diffs:
             passed += 1
@@ -474,6 +560,8 @@ def main():
     # レポート
     print(f"\n{'='*60}")
     print(f"Results: {passed}/{total} passed, {len(failed_cases)} with differences")
+    print(f"津波の高さ境界（height_lower/height_upper）: {bounds_compared} entry を照合、"
+          f"不一致 {bounds_mismatch} entry")
     print(f"{'='*60}")
 
     if failed_cases:

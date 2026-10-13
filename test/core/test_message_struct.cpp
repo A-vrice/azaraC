@@ -9,7 +9,7 @@
 
 using namespace azaraC;
 
-// ── Message構造体のテスト ──────────────────────────────────────────────────
+// Message構造体のテスト
 
 TEST_CASE("Message: デフォルトコンストラクタ") {
     Message msg;
@@ -106,7 +106,7 @@ TEST_CASE("Message: コピー代入演算子") {
 #endif
 }
 
-// ── Mt43Dataの安全なタグ付き共用体のテスト ──────────────────────────────────
+// Mt43Dataの安全なタグ付き共用体のテスト
 
 TEST_CASE("Mt43Data: デフォルトコンストラクタ") {
     Mt43Data data;
@@ -221,8 +221,7 @@ TEST_CASE("Mt43Data: コピー代入演算子") {
 }
 
 TEST_CASE("Mt43Data: コピーコンストラクタ - 全12型") {
-    // 各 ActiveType に対してコピーコンストラクタが正しく動作することを検証
-    // コピー先の型が正しく、nullptr が適切に返ることを確認（型安全性）
+    // 各 ActiveType に対してコピーコンストラクタが正しく動作することを検証コピー先の型が正しく、nullptr が適切に返ることを確認（型安全性）
     struct TypeInfo { Mt43Data::ActiveType type; const char* name; };
     TypeInfo types[] = {
         {Mt43Data::ActiveType::Eew,          "Eew"},
@@ -466,7 +465,7 @@ TEST_CASE("Mt43Data: None のコピー/ムーブは安全") {
     CHECK(moved.active_type == Mt43Data::ActiveType::None);
 }
 
-// ── getMillis()のオーバーフロー対策テスト ────────────────────────────────────
+// getMillis()のオーバーフロー対策テスト
 
 TEST_CASE("getMillis: uint64_tを返す") {
     uint64_t ms = internal::getMillis();

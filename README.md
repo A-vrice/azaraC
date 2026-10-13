@@ -14,10 +14,12 @@
 
 | msg_type | 規格            | 名称            |
 | -------- | --------------- | --------------- |
-| 43       | [IS-QZSS-DCR-016](https://qzss.go.jp/technical/download/is_qzss_dcr_016_agree.html) | DCR 12種類（QZQSM） |
+| 43       | [IS-QZSS-DCR-017](https://qzss.go.jp/technical/download/is_qzss_dcr_017_agree.html) | DCR 12種類（QZQSM） |
 | 44       | [IS-QZSS-DCX-004](https://qzss.go.jp/technical/download/is_qzss_dcx_004_agree.html) | DCX / CAMF（L-Alert, J-Alert など） |
 
 定義テーブル生成に使用したazarashiのバージョンは[`.azarashi-version`](.azarashi-version)に記載しています。
+
+MT=44 の B フィールド（B1–B4）と C10 は [EWSS CAMF Issue 1.2](https://www.gsc-europa.eu/electronic-library/programme-reference-documents/galileo-in-force/ewss) に基づきます。
 
 ## インストール
 

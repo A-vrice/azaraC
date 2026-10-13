@@ -26,8 +26,7 @@ bool UbxFramer::feed(uint8_t b, Frame& out) {
         // else: keep SYNC2 (this 0xB5 may start a frame)
         break;
     case St::CLASS:
-        // SFRBX header is fixed 02 13 28 00: 0xB5 here cannot belong to SFRBX,
-        // so treat it as a fresh sync candidate instead of losing the frame.
+        // SFRBX header is fixed 02 13 28 00: 0xB5 here cannot belong to SFRBX, so treat it as a fresh sync candidate instead of losing the frame.
         if (b == 0xB5) { _st = St::SYNC2; break; }
         _class = b; _ck_a = _ck_b = 0;
         _ck_a += b; _ck_b += _ck_a;
@@ -84,8 +83,7 @@ bool UbxFramer::parse(Frame& out) {
     if (numWords < 8) return false;  // L1S subframe = 8 words × 32 bits = 256 bits (250 data bits)
     if (_len != 8u + static_cast<uint16_t>(numWords) * 4u) return false;
 
-    // Pack 250 nav bits MSB-first into out.bits[32]: 8 words × 32 bits (256 total),
-    // first 250 are data, last 6 of word 8 are zero-filled padding.
+    // Pack 250 nav bits MSB-first into out.bits[32]: 8 words × 32 bits (256 total), first 250 are data, last 6 of word 8 are zero-filled padding.
     memset(out.bits, 0, sizeof(out.bits));
     uint16_t bit_pos = 0;
     for (uint8_t w = 0; w < numWords && bit_pos < 250; ++w) {

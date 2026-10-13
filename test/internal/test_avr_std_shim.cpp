@@ -1,15 +1,10 @@
 // azaraC - test/internal/test_avr_std_shim.cpp
-// Host validation of the minimal AVR C++ standard library shims
-// (src/internal/avr_std/) WITHOUT AZARAC_AVR_STUB, i.e. the real minimal
-// implementations that the Arduino AVR toolchain uses.
+// Host validation of the minimal AVR C++ standard library shims (src/internal/avr_std/) WITHOUT AZARAC_AVR_STUB, i.e. the real minimal implementations that the Arduino AVR toolchain uses.
 //
-// Only optional / string_view / placement-new are exercised here. The
-// utility/algorithm/iterator shims are trivial (std::move / std::max /
-// std::size) and are excluded to avoid redefinition conflicts if doctest
-// or its dependencies pull the real <utility>/<algorithm>.
+// Only optional / string_view / placement-new are exercised here. The utility/algorithm/iterator shims are trivial (std::move / std::max /
+// std::size) and are excluded to avoid redefinition conflicts if doctest or its dependencies pull the real <utility>/<algorithm>.
 //
-// NOTE: this TU must not include the azaraC library — the shim defines the
-// same std::optional/std::string_view names as the real standard library.
+// NOTE: this TU must not include the azaraC library — the shim defines the same std::optional/std::string_view names as the real standard library.
 
 #define DOCTEST_CONFIG_IMPLEMENT_WITHOUT_MAIN
 #include "../doctest.h"

@@ -1,17 +1,12 @@
 // azaraC — examples/basic_uno/basic_uno.ino
 //
 // Minimal Arduino Uno (AVR) example: feeds bytes into the Parser and prints
-// JSON on Serial. Unlike the other examples it uses Serial (pins 0/1) for
-// the GNSS module, because the Uno has no Serial1.
+// JSON on Serial. Unlike the other examples it uses Serial (pins 0/1) for the GNSS module, because the Uno has no Serial1.
 //
-// Also serves as the CI compile/link check for the AVR board: instantiating
-// the Parser and calling feed()/toJson() keeps the whole library (framers,
-// decoders, JSON serializers, definition tables in PROGMEM) in the link;
-// a bare `#include <azaraC.h>` would let the linker dead-strip the .cpp
-// files and only prove the headers parse.
+// Also serves as the CI compile/link check for the AVR board: instantiating the Parser and calling feed()/toJson() keeps the whole library (framers, decoders, JSON serializers, definition tables in PROGMEM) in the link;
+// a bare `#include <azaraC.h>` would let the linker dead-strip the .cpp files and only prove the headers parse.
 //
-// Category reduction for the 32KB flash is applied automatically by
-// azaraC_config.h (AVR preset keeps SEISMIC/TSUNAMI only).
+// Category reduction for the 32KB flash is applied automatically by azaraC_config.h (AVR preset keeps SEISMIC/TSUNAMI only).
 
 #include <azaraC.h>
 

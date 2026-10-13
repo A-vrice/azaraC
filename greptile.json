@@ -1,0 +1,10 @@
+{
+  "strictness": 2,
+  "effort": "base",
+  "commentTypes": ["logic", "syntax"],
+  "includeBranches": ["main"],
+  "ignorePatterns": "src/definition/**",
+  "shouldUpdateDescription": false,
+  "statusCheck": true,
+  "instructions": "azaraC は準天頂衛星みちびき (QZSS) L1S の災害通報メッセージをデコードする Arduino 向け C++17 ライブラリ（azarashi の Python 実装の移植）。MT=43 (DCR/QZQSM) と MT=44 (DCX/CAMF) を扱う。レビューは次の前提で行う。\n\n- 出力・指摘は日本語で書く。\n- 組込み制約: ヒープ確保は禁止。new / delete / malloc と、確保を伴う標準ライブラリ (std::string, std::vector, std::function, std::map など) の導入を指摘する。出力は Print& 経由で行い、例外を送出しない。動的確保が無いことは make -C test test-no-alloc（--wrap によるカウンタ）で検証している。\n- C++17 未満の記法や、Arduino 互換を壊す機能の追加を指摘する。外部依存はゼロを保つ。\n- デコード結果の JSON は互換性が重要。フィールドの追加・改名・削除は docs/json-formats.md と CHANGELOG の schema_version に従う破壊的変更として扱い、根拠を示す。\n- 「表に該当なし」と「定義済みの空ラベル」、未解決時刻の null など、センチネル値の区別を潰す変更を指摘する。\n- テストは make -C test（CppUTest）で実行する。テストを通すために期待値を緩める・不要に書き換える変更を指摘する。テストは誤った実装を落とすためのもの。\n- 仕様書 (qzss-specs/) はリポジトリに含めていないので、その引用を求めない。判断材料は src/definition/ の定義テーブル・docs/・既存実装とする。\n- src/definition/**.h は scripts/gen/gen_definitions.py が azarashi から生成する自動生成物。手編集を求めない（生成器側の問題として指摘する）。\n- コードとコメントは日本語、識別子は英語。"
+}

@@ -129,7 +129,7 @@ filter.weather = false;    // 気象警報を出力しない
 **機能**:
 
 - メッセージ妥当性チェック (`msg.valid`)
-- SVID範囲チェック (QZSS L1S: 183-191)
+- SVID範囲チェック (QZSS L1S PRN: 181-191)
 - `disaster_category` 範囲チェック (MT=43)
 - `service_kind` チェック (MT=44)
 - 日付・時刻の妥当性チェック
@@ -145,8 +145,8 @@ bool validateMessage(const azaraC::Message& msg) {
         Serial.println(F("[WARN] Invalid message flag"));
         return false;
     }
-    // SVIDの範囲チェック (QZSS L1S: 183-191)
-    if (msg.svid < 183 || msg.svid > 191) {
+    // SVIDの範囲チェック (QZSS L1S PRN: 181-191)
+    if (msg.svid < 181 || msg.svid > 191) {
         Serial.print(F("[WARN] Unexpected SVID: "));
         Serial.println(msg.svid);
     }

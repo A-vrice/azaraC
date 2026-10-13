@@ -1,6 +1,6 @@
 // test/framer/test_ublox_azarashi.cpp
 // UBX SFRBX の azarashi 比較テスト
-// azarashi v0.16.1 のデコード結果と照合
+// azarashi のデコード結果と照合（定義テーブルは azarashi 0.17.1）
 
 #define ARDUINO 0
 #include "../test_helpers.h"
@@ -10,10 +10,8 @@
 
 using namespace azaraC;
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // UBX SFRBX 5パターン — test_ublox (azarashi)
 // azarashi でデコードした結果: NMEA ラウンドトリップ + フィールド検証
-// ═══════════════════════════════════════════════════════════════════════════════
 
 // UBX SFRBXパケットを作成し、フレーマーでデコードするヘルパー
 static bool feedUbxPacket(UbxFramer& framer, Frame& frame, uint8_t svId, const uint8_t* nav_bits) {

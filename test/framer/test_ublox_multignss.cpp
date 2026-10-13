@@ -9,14 +9,13 @@
 
 using namespace azaraC;
 
-// ── ヘルパー: 任意の gnssId で SFRBX パケットを生成 ─────────────────────────
+// ヘルパー: 任意の gnssId で SFRBX パケットを生成
 
 static std::vector<uint8_t> makeUbxSfrbxGnssId(uint8_t gnssId, uint8_t svId, const uint8_t* nav_bits) {
     auto pkt = makeUbxSfrbx(static_cast<uint8_t>(svId + 182), nav_bits);
     // gnssId フィールドはペイロード先頭バイト（offset 6 from sync）
     // UBX header(6) + SFRBX payload hdr(8) の構造:
-    // [B5][62][02][13][len_lo][len_hi][gnssId][svId][sigId][freqId][numWords][chn][ver][reserved]
-    // gnssId は index 6 (=全体の7バイト目)
+    // [B5][62][02][13][len_lo][len_hi][gnssId][svId][sigId][freqId][numWords][chn][ver][reserved] gnssId は index 6 (=全体の7バイト目)
     pkt[6] = gnssId;
     // Checksum は変更されたバイトに対して再計算
     uint8_t cka = 0, ckb = 0;
@@ -29,7 +28,7 @@ static std::vector<uint8_t> makeUbxSfrbxGnssId(uint8_t gnssId, uint8_t svId, con
     return pkt;
 }
 
-// ── テストケース ──────────────────────────────────────────────────────────────
+// テストケース
 
 TEST_CASE("UBX: GPS (gnssId=0) ignored") {
     uint8_t bits[32] = {0x53};

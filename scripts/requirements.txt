@@ -1,2 +1,2 @@
-azarashi>=0.16.0
+azarashi>=0.17.1
 platformio==6.2.0

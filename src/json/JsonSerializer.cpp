@@ -63,12 +63,9 @@ bool serializeMarine(const Mt43Data* d, Print& out);
 void JsonSerializer::serialize(const Message& msg, Print& out) {
     using namespace azaraC::def;
     out.print('{');
+    wf_u(out, "schema_version", 2);
     wf_u(out, "svid",     msg.svid);
-    wf_s(out, "svid_label",
-        qzss_dcr_satellite_prn_lookup(msg.svid));
     wf_u(out, "msg_type", msg.msg_type);
-    wf_s(out, "msg_type_label",
-        qzss_dcr_message_type_lookup(msg.msg_type));
     wf_x(out, "crc24",    msg.crc24);
 
 #if (AZARAC_ENABLE_DCX_CAMF)
@@ -85,16 +82,22 @@ void JsonSerializer::serialize(const Message& msg, Print& out) {
         }
         
         wf_u(out, "report_classification", d->report_classification);
-        wf_s(out, "report_classification_label",
-            AZARAC_LOOKUP_LANG(qzss_dcr_jma_report_classification_lookup, qzss_dcr_jma_report_classification_en_lookup, d->report_classification));
+        AZARAC_LABEL(out, "report_classification_label",
+            qzss_dcr_jma_report_classification_lookup,
+            qzss_dcr_jma_report_classification_en_lookup, d->report_classification, false);
         wf_u(out, "disaster_category", d->disaster_category);
-        wf_s(out, "disaster_category_label",
-            AZARAC_LOOKUP_LANG(qzss_dcr_jma_disaster_category_lookup, qzss_dcr_jma_disaster_category_en_lookup, d->disaster_category));
+        AZARAC_LABEL(out, "disaster_category_label",
+            qzss_dcr_jma_disaster_category_lookup,
+            qzss_dcr_jma_disaster_category_en_lookup, d->disaster_category, false);
         wf_u(out, "information_type", d->information_type);
-        wf_s(out, "information_type_label",
-            AZARAC_LOOKUP_LANG(qzss_dcr_jma_information_type_lookup, qzss_dcr_jma_information_type_en_lookup, d->information_type));
+        AZARAC_LABEL(out, "information_type_label",
+            qzss_dcr_jma_information_type_lookup,
+            qzss_dcr_jma_information_type_en_lookup, d->information_type, false);
+        // Vn は仕様上 1 以外を decodeQzqsm が拒否するため、ここでは常に 1。
+        // 「値が無い」と「1 だった」を区別できるよう明示する。
+        wf_u(out, "version", d->version);
         writeDHM(out, "report_time", d->event_time);
-        wk(out, "detail"); out.print('{');
+        wk(out, "data"); out.print('{');
 
         // Dispatch by disaster_category (categories 7/13 undefined in spec)
         bool serialized = false;

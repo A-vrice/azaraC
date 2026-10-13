@@ -18,7 +18,7 @@
 using namespace azaraC;
 using namespace azaraC::internal;
 
-// ── ビット操作ヘルパー ────────────────────────────────────────────────────────
+// ビット操作ヘルパー
 
 inline void setBits(uint8_t* buf, uint16_t start, uint8_t len, uint32_t value) {
     if (len == 0) return;
@@ -29,7 +29,7 @@ inline void setBits(uint8_t* buf, uint16_t start, uint8_t len, uint32_t value) {
     }
 }
 
-// ── UBX SFRBX パケット生成 ────────────────────────────────────────────────────
+// UBX SFRBX パケット生成
 
 inline std::vector<uint8_t> makeUbxSfrbx(uint8_t svId, const uint8_t* nav_bits) {
     std::vector<uint8_t> out;
@@ -79,7 +79,7 @@ inline std::vector<uint8_t> makeUbxSfrbx(uint8_t svId, const uint8_t* nav_bits) 
     return out;
 }
 
-// ── NMEA QZQSM 文生成 ─────────────────────────────────────────────────────────
+// NMEA QZQSM 文生成
 
 inline std::string makeNmeaQzqsm(uint8_t svid, const uint8_t* nav_bits) {
     char buf[256];
@@ -108,7 +108,7 @@ inline std::string makeNmeaQzqsm(uint8_t svid, const uint8_t* nav_bits) {
     return s;
 }
 
-// ── CRC-24Q リファレンス実装 ──────────────────────────────────────────────────
+// CRC-24Q リファレンス実装
 
 inline uint32_t crc24qRef(const uint8_t* d, int total_bits) {
     uint32_t crc = 0;
@@ -129,7 +129,7 @@ inline uint32_t crc24qRef(const uint8_t* d, int total_bits) {
     return crc & 0xFFFFFF;
 }
 
-// ── NMEAデコードヘルパー ─────────────────────────────────────────────────────
+// NMEAデコードヘルパー
 
 inline bool decodeNmea(const char* nmea, Message& msg, uint32_t report_unix = 0) {
     NmeaFramer framer;
@@ -146,7 +146,7 @@ inline bool decodeNmea(const char* nmea, Message& msg, uint32_t report_unix = 0)
     return dec.decode(frame, msg, report_unix);
 }
 
-// ── NMEAフレーマー専用ヘルパー（Decoder を経由しない）─────────────────────────
+// NMEAフレーマー専用ヘルパー（Decoder を経由しない）
 // NmeaFramer のパーサー動作のみをテストする。チェックサム検証を含む。
 
 inline bool feedNmeaRaw(const char* nmea, Frame& out) {
@@ -177,7 +177,7 @@ inline std::string makeNmeaQzqsmHex(int num_hex_chars) {
     return s;
 }
 
-// ── テスト用デコーダー（protected関数を公開） ─────────────────────────────────
+// テスト用デコーダー（protected関数を公開）
 
 struct TestDecoder : Decoder {
     // Shared instance — ensures OOB flag, getBits, getBits64 share one Decoder
@@ -257,7 +257,7 @@ struct TestDecoder : Decoder {
 };
 
 
-// ── ファジーテストヘルパー ──────────────────────────────────────────────────
+// ファジーテストヘルパー
 
 inline void generate_random_nav_bits(uint8_t* bits, size_t size, std::mt19937& rng) {
     std::uniform_int_distribution<int> dist(0, 255);
@@ -266,7 +266,7 @@ inline void generate_random_nav_bits(uint8_t* bits, size_t size, std::mt19937& r
     }
 }
 
-// ── 日付計算ヘルパー ─────────────────────────────────────────────────────────
+// 日付計算ヘルパー
 
 inline void civilFromDays(uint32_t days_since_1970, uint32_t& y, uint32_t& m, uint32_t& d) {
     TestDecoder::testCivilFromDays(days_since_1970, y, m, d);

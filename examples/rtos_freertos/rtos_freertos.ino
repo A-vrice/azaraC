@@ -17,7 +17,7 @@
 //
 // config (u-blox):
 //   CFG-MSGOUT-NMEA_ID_GGA_UART1 = 1 //NMEAの場合
-//   CFG-MSGOUT-UBX_RXM_SFRBX_UART1 = 1 //UBXの場合 
+//   CFG-MSGOUT-UBX_RXM_SFRBX_UART1 = 1 //UBXの場合
 //   CFG-SIGNAL-QZSS_L1S_ENA      = 1
 //   CFG-UART1-BAUDRATE            = 9600
 //
@@ -70,8 +70,7 @@ static uint32_t g_cachedGnssUnixTime = 0;
 
 // 統計カウンタ
 // std::atomic を使用して複数タスクからのアクセスを安全にする
-// brace-initialization は Arduino 環境 (ESP32 コア 2.x) でコンパイルエラーの
-// 可能性があるため、明示的なデフォルトコンストラクタで初期化する。
+// brace-initialization は Arduino 環境 (ESP32 コア 2.x) でコンパイルエラーの可能性があるため、明示的なデフォルトコンストラクタで初期化する。
 static struct Stats {
     std::atomic<uint32_t> Messages;
     std::atomic<uint32_t> queueFullErrors;
@@ -85,11 +84,7 @@ static void outputTask(void* pvParameters);
 static void processByte(uint8_t b, azaraC::Parser& parser);
 
 // バイト処理
-// Note: Nankai aggregated_text_ptr は Parser 内部バッファへの借用ポインタ
-// （次の feed()/reset() や別イベントの集約で無効化される）。queue 経由で
-// 別タスクへ渡す前にコピー/シリアライズしないと dangling になるため、
-// is_aggregated の場合はここで JSON にシリアライズしてから送信するか、
-// 下記のように aggregated テキストをコピーしてから enqueue すること。
+// Note: Nankai aggregated_text_ptr は Parser 内部バッファへの借用ポインタ（次の feed()/reset() や別イベントの集約で無効化される）。queue 経由で別タスクへ渡す前にコピー/シリアライズしないと dangling になるため、 is_aggregated の場合はここで JSON にシリアライズしてから送信するか、下記のように aggregated テキストをコピーしてから enqueue すること。
 static void processByte(uint8_t b, azaraC::Parser& parser) {
     azaraC::Message msg;
     if (parser.feed(b, msg, g_cachedGnssUnixTime)) {
@@ -242,8 +237,7 @@ void setup() {
 
 // loop()
 // RTOS タスクで全ての処理を行うため、loop() は使用しません。
-// vTaskSuspend(nullptr) で setup タスクが停止されるため、
-// この関数は実際には呼ばれません。
+// vTaskSuspend(nullptr) で setup タスクが停止されるため、この関数は実際には呼ばれません。
 
 void loop() {
     // ここには到達しない

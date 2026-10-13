@@ -2,6 +2,9 @@
 exclude_paths:
   - "src/definition/**"
 engines:
-  markdownlint:
+  flawfinder:
     exclude_paths:
-      - "CHANGELOG.md"
+      - "test/**"
+  lizard:
+    exclude_paths:
+      - "test/**"

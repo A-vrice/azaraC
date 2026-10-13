@@ -1,6 +1,6 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.16.4 with CI-CD
-// Source module : qzss_dcr_jma_seismic_intensity_lower_limit
+// AUTO-GENERATED from azarashi 0.17.1 with CI-CD
+// Source module : azarashi.definitions.qzss.dcr.seismic_intensity_lower_limit
 // Variable      : qzss_dcr_jma_seismic_intensity_lower_limit
 // Entries       : 12
 // Strategy      : binary_search
@@ -23,7 +23,7 @@
 namespace azaraC {
 namespace def {
 
-#if (AZARAC_ENABLE_EEW)
+#if (AZARAC_ENABLE_EEW) && (AZARAC_LANG_JA)
 
 #if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_SEISMIC_INTENSITY_LOWER_LIMIT_POOL[] = "震度0\000震度1\000震度2\000震度3\000震度4\000震度5弱\000震度5強\000震度6弱\000震度6強\000震度7\000なし\000不明\000";

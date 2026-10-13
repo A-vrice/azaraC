@@ -33,6 +33,7 @@ coverage.xml
 .agents/
 plans/
 .plans
+.pl/
 .omp/
 realdata/
 qzss-specs/
@@ -51,7 +52,9 @@ test/NUL
 test/cppcheck_report.xml
 test/cppcheck_stderr.log
 test/coverage_report.json
-test/massif.out
-test/massif_report.txt
 test/macro_sizes.txt
-test/memprof_output.txt
+test/no_alloc_tests
+
+# bench のビルド生成物（autoresearch.sh / bench_dedup.cpp は追跡する）
+test/bench/bench_dedup
+test/bench/*.cc

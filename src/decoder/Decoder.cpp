@@ -27,6 +27,21 @@ uint32_t Decoder::crc24q(const uint8_t* data, uint16_t bit_len) {
     return crc & 0xFFFFFFu;
 }
 
+uint32_t Decoder::messageIdentity(uint8_t* bits) {
+    const uint8_t mt = (uint8_t)((bits[1] >> 2) & 0x3Fu);   // MT = frame bit 8..13（byte 1 の上位 6 bit）
+    if (mt != 44) return crc24q(bits + 1, 212);
+    // SD（SDMT bit 14 + SDM bit 15..23 = byte 1 の下位 2 bit と byte 2）だけをゼロにして digest を取る。
+    // 32 B のフレームをコピーしないよう、対象 2 バイトを外して取ったあと戻す（呼び出し側から見てフレームは不変）。
+    const uint8_t sd_hi = bits[1];
+    const uint8_t sd_lo = bits[2];
+    bits[1] &= 0xFCu;
+    bits[2]  = 0x00u;
+    const uint32_t identity = crc24q(bits + 1, 212);
+    bits[1] = sd_hi;
+    bits[2] = sd_lo;
+    return identity;
+}
+
 // Bit extraction (MSB-first, 0-indexed)
 uint32_t Decoder::getBits(const uint8_t* buf, uint16_t start, uint8_t len) {
     // OOB: return 0 + set oob_ so decode() rejects (embedded safety, no assert).
@@ -120,9 +135,7 @@ TimeFields Decoder::resolveTime(uint8_t month, uint8_t day, uint8_t hour, uint8_
     civil_from_days(base_days, y, m, d);
 
     if (month == 0) {
-        // Month not provided (DHM only): pick the (day,hour,minute) occurrence
-        // closest to report_unix within a few days' margin (covers clock drift /
-        // day-month boundary, e.g. 01/31 23:00 report + 02/01 02:00 event → Feb).
+        // Month not provided (DHM only): pick the (day,hour,minute) occurrence closest to report_unix within a few days' margin (covers clock drift / day-month boundary, e.g. 01/31 23:00 report + 02/01 02:00 event → Feb).
         // Beyond the margin the message is stale → fall back to most recent PAST occurrence.
         static constexpr uint32_t MARGIN_SEC = 3u * 86400u; // a few days
         uint32_t best_y = y, best_m = m;

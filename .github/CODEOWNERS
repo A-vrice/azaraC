@@ -1,0 +1,3 @@
+# 全ファイルのコードオーナー。
+# ruleset 'main' の require_code_owner_review を満たすために置いている。単独開発のため自分の PR に自分で承認は付けられないので、マージは bypass（requirements を待たずにマージ）で行う。
+* @A-vrice

@@ -1,6 +1,6 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.16.4 with CI-CD
-// Source module : qzss_dcx_camf_a1_message_type
+// AUTO-GENERATED from azarashi 0.17.1 with CI-CD
+// Source module : azarashi.definitions.camf.a1_message_type
 // Variable      : qzss_dcx_camf_a1_message_type
 // Entries       : 4
 // Strategy      : switch
