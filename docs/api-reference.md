@@ -464,8 +464,9 @@ if (client.connect(server, port)) {
 | マクロ | デフォルト | 説明 |
 |-------|-----------|------|
 | `AZARAC_FLASH_BUF_SIZE` | 800 | PROGMEMルックアップ用の共有RAMバッファサイズ (バイト)。AVRでは有効カテゴリに応じて 64（SEISMIC/TSUNAMI のみ）/ 80（＋北西太平洋津波）/ 540（＋南海トラフ）/ 800（＋DCX/CAMF）に自動縮小 |
+| `AZARAC_DEDUP_MT44_MAX_WINDOW_MS` | 300000 | MT=44 の情報有効時間(ms)の上限。`__AVR__`のみ定義され、常に A8 由来の窓（最短6時間）を置き換える。ホストは上限を設けず A8 の窓をそのまま使う |
 
-**AVRプリセット**: `__AVR__`では`azaraC_config.h`のプリセットがデフォルトを変更します。有効カテゴリはSEISMIC/TSUNAMIのみ（他11カテゴリは無効）、`AZARAC_DEDUP_SLOTS=64`（`AZARAC_DEDUP_WAYS=8`、512B）、`AZARAC_NANKAI_BUFFERS=1`、`AZARAC_NANKAI_MAX_PAGES=4`となります。`-D`または`#define`（`azaraC.h`インクルード前）で明示することで上書き可能です。
+**AVRプリセット**: `__AVR__`では`azaraC_config.h`のプリセットがデフォルトを変更します。有効カテゴリはSEISMIC/TSUNAMIのみ（他11カテゴリは無効）、`AZARAC_DEDUP_SLOTS=64`（`AZARAC_DEDUP_WAYS=8`、512B）、`AZARAC_DEDUP_MT44_MAX_WINDOW_MS=300000`、`AZARAC_NANKAI_BUFFERS=1`、`AZARAC_NANKAI_MAX_PAGES=4`となります。`-D`または`#define`（`azaraC.h`インクルード前）で明示することで上書き可能です。
 
 **AVR 標準ライブラリシム**: AVRツールチェーンはlibstdc++を含まないため、`#if defined(__AVR__)`で`src/internal/avr_std/`の最小シム（`optional`/`string_view`/`std::move`等）が自動適用されます。ライブラリの利用方法/API自体は非AVRと同一です。
 

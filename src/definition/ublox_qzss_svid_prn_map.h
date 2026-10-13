@@ -1,8 +1,12 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.16.1 with CI-CD
+// HAND-MAINTAINED — NOT auto-generated. scripts/gen/gen_definitions.py lists this
+// table in SKIP_MODULES (extra_headers) and never overwrites it, so nothing here
+// tracks azarashi automatically. Keep in sync by hand with azarashi's
+// azarashi.definitions.qzss.ubx.svid_to_prn (verified equal to azarashi 0.17.1:
+// {1: 183, 2: 184, 3: 185, 4: 186, 7: 189}).
 // Source module : ublox_qzss_svid_prn_map
 // Variable      : ublox_qzss_svid_prn_map
-// Entries       : 4
+// Entries       : 5
 // Strategy      : switch
 
 #if defined(__AVR__)
