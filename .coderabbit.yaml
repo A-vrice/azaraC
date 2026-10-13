@@ -12,6 +12,8 @@ reviews:
   collapse_walkthrough: false
   path_filters:
     - "!src/definition/**"
+    - "!test/doctest.h"
+    - "!test/data/**"
     - "!test/cppcheck_report.xml"
     - "!test/coverage_report.json"
   auto_review:
