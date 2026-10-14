@@ -17,8 +17,9 @@
 #                  sizes, which is what keeps the struct-layout term honest.
 # Reported         AVR_STRING_BYTES (the issue's "63 KB pool" number),
 #                  AVR_ENTRY_BYTES/ROWS/ROW_BYTES, AVR_LARGEST_LITERAL, the four
-#                  large pools, UNO_FLASH_BYTES (a real linked image),
-#                  AVR_COMPILE_OK, AVR_TABLE_CROSSCHECK.
+#                  large pools, UNO_FLASH_BYTES and UNO_RAM_BYTES (a real linked
+#                  image), AVR_TABLES_IN_RAM, AVR_COMPILE_OK,
+#                  AVR_TABLE_CROSSCHECK.
 #
 # Gates (non-zero exit)
 #   labels    both label dumps (AVR branch + host branch) must match the golden
@@ -32,6 +33,11 @@
 #   crosscheck the primary metric must equal what avr-gcc reports for the
 #             symbols it actually placed.
 #   uno       the default AVR configuration must still compile and link.
+#   ram       SRAM must not grow: UNO_RAM_BYTES (data+bss of the linked image)
+#             never exceeds the baseline, and no definition table may live in
+#             RAM instead of Flash. Shrinking Flash by spending SRAM is a loss —
+#             the AVR path can only join labels in the shared 800 B buffer it
+#             already owns.
 #
 # Deterministic: fixed toolchain flags, locked inputs, no network, no clock.
 # Requires avr-gcc/avr-size/avr-nm and g++ on PATH.
@@ -72,6 +78,12 @@ CATS=(-DAZARAC_LANG_JA=1 -DAZARAC_LANG_EN=1
 
 # avr-gcc per-object ceiling. Nothing to tune: 2**15 is the compiler's limit.
 MAX_OBJECT_BYTES=32768
+
+# The AVR path trades Flash for RAM only where the SRAM it already owns allows
+# it (the shared 800 B label buffer in internal/FlashString.h). Growing SRAM
+# while shrinking Flash is a loss, so the linked Uno image's RAM is gated:
+# measured 702 B (data 626 + bss 76) at the pre-compression baseline.
+MAX_UNO_RAM_BYTES=702
 
 mkdir -p "$OUT"
 
@@ -196,9 +208,16 @@ done
 if [[ ${#uno_objs[@]} -gt 0 ]] && "$AVR_CC" "${uno_build[@]}" "${uno_objs[@]}" -o "$OUT/uno.elf"; then
     uno_ok=1
     uno_flash="$("$AVR_SIZE" "$OUT/uno.elf" | awk 'NR == 2 { print $1 + $2 }')"
+    uno_ram="$("$AVR_SIZE" "$OUT/uno.elf" | awk 'NR == 2 { print $2 + $3 }')"
+    # A definition table that landed in .data/.bss is a table that is no longer
+    # in Flash: every one of them must be PROGMEM.
+    tables_in_ram="$("$AVR_NM" -C "$OUT/uno.elf" 2>/dev/null \
+        | awk '$2 ~ /^[dDbB]$/ && $3 ~ /(_POOL|_TABLE)$/ { n++ } END { print n + 0 }')"
 fi
 echo "METRIC UNO_COMPILE_OK=$uno_ok"
 [[ -n "$uno_flash" ]] && echo "METRIC UNO_FLASH_BYTES=$uno_flash"
+[[ -n "$uno_ram" ]] && echo "METRIC UNO_RAM_BYTES=$uno_ram"
+[[ -n "${tables_in_ram:-}" ]] && echo "METRIC AVR_TABLES_IN_RAM=$tables_in_ram"
 
 # ---------------------------------------------------------------- gates -----
 status=0
@@ -220,6 +239,16 @@ fi
 if (( uno_ok == 0 )); then
     echo "autoresearch: the default AVR configuration no longer builds" >&2
     status=8
+fi
+
+if [[ -n "${uno_ram:-}" ]] && (( uno_ram > MAX_UNO_RAM_BYTES )); then
+    echo "autoresearch: SRAM grew to $uno_ram B (baseline $MAX_UNO_RAM_BYTES) — smaller Flash does not buy back RAM" >&2
+    status=10
+fi
+
+if [[ -n "${tables_in_ram:-}" ]] && (( tables_in_ram != 0 )); then
+    echo "autoresearch: $tables_in_ram definition table(s) landed in RAM instead of Flash" >&2
+    status=11
 fi
 
 if (( label_status != 0 )); then
