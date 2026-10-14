@@ -38,6 +38,19 @@ inline std::string_view azarac_pgm_view(const char* src, size_t n) {
     buf[n] = '\0';
     return std::string_view(buf, n);
 }
+// Two-part labels: a generated table may store a shared region name once and
+// join it to the child at lookup time (see scripts/gen/strategy.py,
+// factor_parents). Both halves live in Flash, so the join lands in the same
+// shared RAM buffer — the two-copy form costs no extra SRAM.
+inline std::string_view azarac_pgm_join(const char* a, size_t a_n, const char* b, size_t b_n) {
+    char* buf = azarac_flash_buf();
+    if (a_n > AZARAC_FLASH_BUF_SIZE - 1) a_n = AZARAC_FLASH_BUF_SIZE - 1;
+    if (b_n > AZARAC_FLASH_BUF_SIZE - 1 - a_n) b_n = AZARAC_FLASH_BUF_SIZE - 1 - a_n;
+    memcpy_P(buf, a, a_n);
+    memcpy_P(buf + a_n, b, b_n);
+    buf[a_n + b_n] = '\0';
+    return std::string_view(buf, a_n + b_n);
+}
 inline const char* azarac_pgm_copy(const char* src) {
     char* buf = azarac_flash_buf();
     strncpy_P(buf, src, AZARAC_FLASH_BUF_SIZE - 1);

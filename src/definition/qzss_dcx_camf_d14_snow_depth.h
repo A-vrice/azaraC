@@ -29,7 +29,7 @@ inline constexpr uint8_t QZSS_DCX_CAMF_D14_SNOW_DEPTH_BASE = 0;
 inline constexpr uint8_t QZSS_DCX_CAMF_D14_SNOW_DEPTH_SIZE = 31;
 #if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D14_SNOW_DEPTH_POOL[] = "0cm < daily snow depth ≤ 20cm\00020cm < daily snow depth ≤ 40cm\00040cm < daily snow depth ≤ 60cm\00060cm < daily snow depth ≤ 80cm\00080cm < daily snow depth ≤ 100cm\000100cm < daily snow depth ≤ 120cm\000120cm < daily snow depth ≤ 140cm\000140cm < daily snow depth ≤ 160cm\000160cm < daily snow depth ≤ 180cm\000180cm < daily snow depth ≤ 200cm\000200cm < daily snow depth ≤ 220cm\000220cm < daily snow depth ≤ 240cm\000240cm < daily snow depth ≤ 260cm\000260cm < daily snow depth ≤ 280cm\000280cm < daily snow depth ≤ 300cm\000300cm < daily snow depth ≤ 320cm\000320cm < daily snow depth ≤ 340cm\000340cm < daily snow depth ≤ 360cm\000360cm < daily snow depth ≤ 380cm\000380cm < daily snow depth ≤ 400cm\000400cm < daily snow depth ≤ 420cm\000420cm < daily snow depth ≤ 440cm\000440cm < daily snow depth ≤ 460cm\000460cm < daily snow depth ≤ 480cm\000480cm < daily snow depth ≤ 500cm\000500cm < daily snow depth ≤ 520cm\000520cm < daily snow depth ≤ 540cm\000540cm < daily snow depth ≤ 560cm\000560cm < daily snow depth ≤ 580cm\000580cm < daily snow depth ≤ 600cm\000daily snow depth > 600cm\000";
-struct QZSS_DCX_CAMF_D14_SNOW_DEPTH_Entry { uint16_t offset; uint16_t len; };
+struct QZSS_DCX_CAMF_D14_SNOW_DEPTH_Entry { uint16_t offset; uint8_t len; };
 static const QZSS_DCX_CAMF_D14_SNOW_DEPTH_Entry QZSS_DCX_CAMF_D14_SNOW_DEPTH_TABLE[] AZARAC_PROGMEM = {
     {0u, 31u},
     {32u, 32u},
@@ -67,7 +67,7 @@ static const QZSS_DCX_CAMF_D14_SNOW_DEPTH_Entry QZSS_DCX_CAMF_D14_SNOW_DEPTH_TAB
     if (id < QZSS_DCX_CAMF_D14_SNOW_DEPTH_BASE || id >= QZSS_DCX_CAMF_D14_SNOW_DEPTH_BASE + QZSS_DCX_CAMF_D14_SNOW_DEPTH_SIZE) return std::nullopt;
     const char* AZARAC_PROGMEM p = reinterpret_cast<const char*>(&QZSS_DCX_CAMF_D14_SNOW_DEPTH_TABLE[id - 0u]);
     uint16_t off = pgm_read_word(p + offsetof(QZSS_DCX_CAMF_D14_SNOW_DEPTH_Entry, offset));
-    uint16_t n = pgm_read_word(p + offsetof(QZSS_DCX_CAMF_D14_SNOW_DEPTH_Entry, len));
+    uint8_t n = pgm_read_byte(p + offsetof(QZSS_DCX_CAMF_D14_SNOW_DEPTH_Entry, len));
     return azarac_pgm_view(QZSS_DCX_CAMF_D14_SNOW_DEPTH_POOL + off, n);
 }
 #else

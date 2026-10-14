@@ -26,58 +26,66 @@ namespace def {
 #if (AZARAC_ENABLE_MARINE) && (AZARAC_LANG_JA)
 
 #if defined(__AVR__)
-static const char AZARAC_PROGMEM QZSS_DCR_JMA_MARINE_FORECAST_REGION_POOL[] = "日本海北部及びオホーツク海南部\000サハリン東方海上\000サハリン西方海上\000網走沖\000宗谷海峡\000北海道西方海上\000北海道南方及び東方海上\000北海道東方海上\000釧路沖\000日高沖\000津軽海峡\000檜山津軽沖\000三陸沖\000三陸沖東部\000三陸沖西部\000関東海域\000関東海域北部\000関東海域南部\000日本海中部\000沿海州南部沖\000秋田沖\000佐渡沖\000能登沖\000東海海域\000東海海域東部\000東海海域西部\000東海海域南部\000四国沖及び瀬戸内海\000瀬戸内海\000四国沖北部\000四国沖南部\000日本海西部\000日本海北西部\000山陰沖東部及び若狭湾付近\000山陰沖西部\000対馬海峡\000九州西方海上\000済州島西海上\000長崎西海上\000女島南西海上\000九州南方海上及び日向灘\000日向灘\000鹿児島海域\000奄美海域\000沖縄海域\000東シナ海南部\000沖縄東方海上\000沖縄南方海上\000その他の地方海上予報区\000";
-struct QZSS_DCR_JMA_MARINE_FORECAST_REGION_Entry { uint16_t id; uint16_t offset; uint16_t len; };
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_MARINE_FORECAST_REGION_POOL[] = "日本海北部及びオホーツク海南\000サハリン東\000サハリン西\000網走\000宗谷海峡\000北海道西\000北海道南方及び東\000北海道東\000釧路\000日高\000津軽海峡\000檜山津軽\000三陸\000三陸沖東\000三陸沖西\000関東海域\000関東海域北\000関東海域南\000日本海中\000沿海州南部\000秋田\000佐渡\000能登\000東海海域\000東海海域東\000東海海域西\000東海海域南\000四国沖及び瀬戸内海\000瀬戸内海\000四国沖北\000四国沖南\000日本海西\000日本海北西\000山陰沖東部及び若狭湾付近\000山陰沖西\000対馬海峡\000九州西\000済州島西\000長崎西\000女島南西\000九州南方海上及び日向灘\000日向灘\000鹿児島海域\000奄美海域\000沖縄海域\000東シナ海南\000沖縄東\000沖縄南\000その他の地方海上予報区\000";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_MARINE_FORECAST_REGION_PARENT_POOL[] = "方海上\000沖\000海上\000部\000";
+struct QZSS_DCR_JMA_MARINE_FORECAST_REGION_PARENT_Entry { uint16_t offset; uint8_t len; };
+static const QZSS_DCR_JMA_MARINE_FORECAST_REGION_PARENT_Entry QZSS_DCR_JMA_MARINE_FORECAST_REGION_PARENT_TABLE[] AZARAC_PROGMEM = {
+    {0u, 9u},
+    {10u, 3u},
+    {14u, 6u},
+    {21u, 3u},
+};
+struct QZSS_DCR_JMA_MARINE_FORECAST_REGION_Entry { uint16_t id; uint8_t parent; uint16_t offset; uint8_t len; };
 static const QZSS_DCR_JMA_MARINE_FORECAST_REGION_Entry QZSS_DCR_JMA_MARINE_FORECAST_REGION_TABLE[] AZARAC_PROGMEM = {
-    {1000u, 0u, 45u},
-    {1010u, 46u, 24u},
-    {1020u, 71u, 24u},
-    {1030u, 96u, 9u},
-    {1040u, 106u, 12u},
-    {1050u, 119u, 21u},
-    {1100u, 141u, 33u},
-    {1110u, 175u, 21u},
-    {1120u, 197u, 9u},
-    {1130u, 207u, 9u},
-    {1140u, 217u, 12u},
-    {1150u, 230u, 15u},
-    {2000u, 246u, 9u},
-    {2010u, 256u, 15u},
-    {2020u, 272u, 15u},
-    {3000u, 288u, 12u},
-    {3010u, 301u, 18u},
-    {3020u, 320u, 18u},
-    {3100u, 339u, 15u},
-    {3110u, 355u, 18u},
-    {3120u, 374u, 9u},
-    {3130u, 384u, 9u},
-    {3140u, 394u, 9u},
-    {3200u, 404u, 12u},
-    {3210u, 417u, 18u},
-    {3220u, 436u, 18u},
-    {3230u, 455u, 18u},
-    {4000u, 474u, 27u},
-    {4010u, 502u, 12u},
-    {4020u, 515u, 15u},
-    {4030u, 531u, 15u},
-    {4100u, 547u, 15u},
-    {4110u, 563u, 18u},
-    {4120u, 582u, 36u},
-    {4130u, 619u, 15u},
-    {5000u, 635u, 12u},
-    {5100u, 648u, 18u},
-    {5110u, 667u, 18u},
-    {5120u, 686u, 15u},
-    {5130u, 702u, 18u},
-    {5200u, 721u, 33u},
-    {5210u, 755u, 9u},
-    {5220u, 765u, 15u},
-    {5230u, 781u, 12u},
-    {6000u, 794u, 12u},
-    {6010u, 807u, 18u},
-    {6020u, 826u, 18u},
-    {6030u, 845u, 18u},
-    {10000u, 864u, 33u},
+    {1000u, 3u, 0u, 42u},
+    {1010u, 0u, 43u, 15u},
+    {1020u, 0u, 59u, 15u},
+    {1030u, 1u, 75u, 6u},
+    {1040u, 255u, 82u, 12u},
+    {1050u, 0u, 95u, 12u},
+    {1100u, 0u, 108u, 24u},
+    {1110u, 0u, 133u, 12u},
+    {1120u, 1u, 146u, 6u},
+    {1130u, 1u, 153u, 6u},
+    {1140u, 255u, 160u, 12u},
+    {1150u, 1u, 173u, 12u},
+    {2000u, 1u, 186u, 6u},
+    {2010u, 3u, 193u, 12u},
+    {2020u, 3u, 206u, 12u},
+    {3000u, 255u, 219u, 12u},
+    {3010u, 3u, 232u, 15u},
+    {3020u, 3u, 248u, 15u},
+    {3100u, 3u, 264u, 12u},
+    {3110u, 1u, 277u, 15u},
+    {3120u, 1u, 293u, 6u},
+    {3130u, 1u, 300u, 6u},
+    {3140u, 1u, 307u, 6u},
+    {3200u, 255u, 314u, 12u},
+    {3210u, 3u, 327u, 15u},
+    {3220u, 3u, 343u, 15u},
+    {3230u, 3u, 359u, 15u},
+    {4000u, 255u, 375u, 27u},
+    {4010u, 255u, 403u, 12u},
+    {4020u, 3u, 416u, 12u},
+    {4030u, 3u, 429u, 12u},
+    {4100u, 3u, 442u, 12u},
+    {4110u, 3u, 455u, 15u},
+    {4120u, 255u, 471u, 36u},
+    {4130u, 3u, 508u, 12u},
+    {5000u, 255u, 521u, 12u},
+    {5100u, 0u, 534u, 9u},
+    {5110u, 2u, 544u, 12u},
+    {5120u, 2u, 557u, 9u},
+    {5130u, 2u, 567u, 12u},
+    {5200u, 255u, 580u, 33u},
+    {5210u, 255u, 614u, 9u},
+    {5220u, 255u, 624u, 15u},
+    {5230u, 255u, 640u, 12u},
+    {6000u, 255u, 653u, 12u},
+    {6010u, 3u, 666u, 15u},
+    {6020u, 0u, 682u, 9u},
+    {6030u, 0u, 692u, 9u},
+    {10000u, 255u, 702u, 33u},
 };
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_marine_forecast_region_lookup(uint16_t id) noexcept {
     uint8_t lo = 0, hi = 49;
@@ -87,8 +95,13 @@ static const QZSS_DCR_JMA_MARINE_FORECAST_REGION_Entry QZSS_DCR_JMA_MARINE_FOREC
         uint16_t eid = pgm_read_word(ep + offsetof(QZSS_DCR_JMA_MARINE_FORECAST_REGION_Entry, id));
         if (eid == id) {
             uint16_t off = pgm_read_word(ep + offsetof(QZSS_DCR_JMA_MARINE_FORECAST_REGION_Entry, offset));
-            uint16_t n = pgm_read_word(ep + offsetof(QZSS_DCR_JMA_MARINE_FORECAST_REGION_Entry, len));
-            return azarac_pgm_view(QZSS_DCR_JMA_MARINE_FORECAST_REGION_POOL + off, n);
+            uint8_t n = pgm_read_byte(ep + offsetof(QZSS_DCR_JMA_MARINE_FORECAST_REGION_Entry, len));
+            uint8_t pi = pgm_read_byte(ep + offsetof(QZSS_DCR_JMA_MARINE_FORECAST_REGION_Entry, parent));
+            if (pi == 255u) return azarac_pgm_view(QZSS_DCR_JMA_MARINE_FORECAST_REGION_POOL + off, n);
+            const char* AZARAC_PROGMEM pp = reinterpret_cast<const char*>(&QZSS_DCR_JMA_MARINE_FORECAST_REGION_PARENT_TABLE[pi]);
+            uint16_t poff = pgm_read_word(pp + offsetof(QZSS_DCR_JMA_MARINE_FORECAST_REGION_PARENT_Entry, offset));
+            uint8_t pn = pgm_read_byte(pp + offsetof(QZSS_DCR_JMA_MARINE_FORECAST_REGION_PARENT_Entry, len));
+            return azarac_pgm_join(QZSS_DCR_JMA_MARINE_FORECAST_REGION_POOL + off, n, QZSS_DCR_JMA_MARINE_FORECAST_REGION_PARENT_POOL + poff, pn);
         }
         if (eid < id) lo = static_cast<uint8_t>(mid + 1); else hi = mid;
     }

@@ -26,28 +26,35 @@ namespace def {
 #if (AZARAC_ENABLE_DCX_CAMF)
 
 #if defined(__AVR__)
-static const char AZARAC_PROGMEM QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_POOL[] = "IC-C-01\000IC-C-02\000IC-C-03\000IC-C-04\000IC-C-05\000IC-C-06\000IC-C-07\000IC-C-08\000IC-C-09\000IC-C-10\000IC-C-11\000IC-C-12\000IC-C-13\000IC-C-14\000IC-C-15\000IC-C-16\000IC-C-17\000IC-C-31\000IC-C-32\000";
-struct QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_Entry { uint8_t id; uint16_t offset; uint16_t len; };
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_POOL[] = "1\0002\0003\0004\0005\0006\0007\0008\0009\0000\0001\0002\0003\0004\0005\0006\0007\00031\00032\000";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_PARENT_POOL[] = "IC-C-\000IC-C-0\000IC-C-1\000";
+struct QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_PARENT_Entry { uint16_t offset; uint8_t len; };
+static const QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_PARENT_Entry QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_PARENT_TABLE[] AZARAC_PROGMEM = {
+    {0u, 5u},
+    {6u, 6u},
+    {13u, 6u},
+};
+struct QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_Entry { uint8_t id; uint8_t parent; uint16_t offset; uint8_t len; };
 static const QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_Entry QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_TABLE[] AZARAC_PROGMEM = {
-    {0u, 0u, 7u},
-    {1u, 8u, 7u},
-    {2u, 16u, 7u},
-    {3u, 24u, 7u},
-    {4u, 32u, 7u},
-    {5u, 40u, 7u},
-    {6u, 48u, 7u},
-    {7u, 56u, 7u},
-    {8u, 64u, 7u},
-    {9u, 72u, 7u},
-    {10u, 80u, 7u},
-    {11u, 88u, 7u},
-    {12u, 96u, 7u},
-    {13u, 104u, 7u},
-    {14u, 112u, 7u},
-    {15u, 120u, 7u},
-    {16u, 128u, 7u},
-    {30u, 136u, 7u},
-    {31u, 144u, 7u},
+    {0u, 1u, 0u, 1u},
+    {1u, 1u, 2u, 1u},
+    {2u, 1u, 4u, 1u},
+    {3u, 1u, 6u, 1u},
+    {4u, 1u, 8u, 1u},
+    {5u, 1u, 10u, 1u},
+    {6u, 1u, 12u, 1u},
+    {7u, 1u, 14u, 1u},
+    {8u, 1u, 16u, 1u},
+    {9u, 2u, 18u, 1u},
+    {10u, 2u, 20u, 1u},
+    {11u, 2u, 22u, 1u},
+    {12u, 2u, 24u, 1u},
+    {13u, 2u, 26u, 1u},
+    {14u, 2u, 28u, 1u},
+    {15u, 2u, 30u, 1u},
+    {16u, 2u, 32u, 1u},
+    {30u, 0u, 34u, 2u},
+    {31u, 0u, 37u, 2u},
 };
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_c10_instruction_library_for_second_ellipse_code_lookup(uint8_t id) noexcept {
     uint8_t lo = 0, hi = 19;
@@ -57,8 +64,13 @@ static const QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_Entry
         uint8_t eid = static_cast<uint8_t>(pgm_read_byte(ep + offsetof(QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_Entry, id)));
         if (eid == id) {
             uint16_t off = pgm_read_word(ep + offsetof(QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_Entry, offset));
-            uint16_t n = pgm_read_word(ep + offsetof(QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_Entry, len));
-            return azarac_pgm_view(QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_POOL + off, n);
+            uint8_t n = pgm_read_byte(ep + offsetof(QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_Entry, len));
+            uint8_t pi = pgm_read_byte(ep + offsetof(QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_Entry, parent));
+            if (pi == 255u) return azarac_pgm_view(QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_POOL + off, n);
+            const char* AZARAC_PROGMEM pp = reinterpret_cast<const char*>(&QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_PARENT_TABLE[pi]);
+            uint16_t poff = pgm_read_word(pp + offsetof(QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_PARENT_Entry, offset));
+            uint8_t pn = pgm_read_byte(pp + offsetof(QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_PARENT_Entry, len));
+            return azarac_pgm_join(QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_PARENT_POOL + poff, pn, QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_POOL + off, n);
         }
         if (eid < id) lo = static_cast<uint8_t>(mid + 1); else hi = mid;
     }

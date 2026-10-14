@@ -29,7 +29,7 @@ inline constexpr uint8_t QZSS_DCX_CAMF_D6_TEMPERATURE_RANGE_BASE = 0;
 inline constexpr uint8_t QZSS_DCX_CAMF_D6_TEMPERATURE_RANGE_SIZE = 16;
 #if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D6_TEMPERATURE_RANGE_POOL[] = "T ≤ -30°C\000-30°C < T ≤ -25°C\000-25°C < T ≤ -20°C\000-20°C < T ≤ -15°C\000-15°C < T ≤ -10°C\000-10°C < T ≤ -5°C\000-5°C < T ≤ 0°C\0000°C < T ≤ 5°C\0005°C < T ≤ 10°C\00010°C < T ≤ 15°C\00015°C < T ≤ 20°C\00020°C < T ≤ 25°C\00025°C < T ≤ 30°C\00030°C < T ≤ 35°C\00035°C < T ≤ 45°C\000T > 45°C\000";
-struct QZSS_DCX_CAMF_D6_TEMPERATURE_RANGE_Entry { uint16_t offset; uint16_t len; };
+struct QZSS_DCX_CAMF_D6_TEMPERATURE_RANGE_Entry { uint16_t offset; uint8_t len; };
 static const QZSS_DCX_CAMF_D6_TEMPERATURE_RANGE_Entry QZSS_DCX_CAMF_D6_TEMPERATURE_RANGE_TABLE[] AZARAC_PROGMEM = {
     {0u, 12u},
     {13u, 21u},
@@ -52,7 +52,7 @@ static const QZSS_DCX_CAMF_D6_TEMPERATURE_RANGE_Entry QZSS_DCX_CAMF_D6_TEMPERATU
     if (id < QZSS_DCX_CAMF_D6_TEMPERATURE_RANGE_BASE || id >= QZSS_DCX_CAMF_D6_TEMPERATURE_RANGE_BASE + QZSS_DCX_CAMF_D6_TEMPERATURE_RANGE_SIZE) return std::nullopt;
     const char* AZARAC_PROGMEM p = reinterpret_cast<const char*>(&QZSS_DCX_CAMF_D6_TEMPERATURE_RANGE_TABLE[id - 0u]);
     uint16_t off = pgm_read_word(p + offsetof(QZSS_DCX_CAMF_D6_TEMPERATURE_RANGE_Entry, offset));
-    uint16_t n = pgm_read_word(p + offsetof(QZSS_DCX_CAMF_D6_TEMPERATURE_RANGE_Entry, len));
+    uint8_t n = pgm_read_byte(p + offsetof(QZSS_DCX_CAMF_D6_TEMPERATURE_RANGE_Entry, len));
     return azarac_pgm_view(QZSS_DCX_CAMF_D6_TEMPERATURE_RANGE_POOL + off, n);
 }
 #else

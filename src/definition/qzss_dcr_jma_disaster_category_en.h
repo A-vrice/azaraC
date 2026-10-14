@@ -27,7 +27,7 @@ namespace def {
 
 #if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_DISASTER_CATEGORY_EN_POOL[] = "Earthquake Early Warning\000Hypocenter\000Seismic Intensity\000Nankai Trough Earthquake\000Tsunami\000Northwest Pacific Tsunami\000Volcano\000Ash Fall\000Weather\000Flood\000Typhoon\000Marine\000";
-struct QZSS_DCR_JMA_DISASTER_CATEGORY_EN_Entry { uint8_t id; uint16_t offset; uint16_t len; };
+struct QZSS_DCR_JMA_DISASTER_CATEGORY_EN_Entry { uint8_t id; uint16_t offset; uint8_t len; };
 static const QZSS_DCR_JMA_DISASTER_CATEGORY_EN_Entry QZSS_DCR_JMA_DISASTER_CATEGORY_EN_TABLE[] AZARAC_PROGMEM = {
     {1u, 0u, 24u},
     {2u, 25u, 10u},
@@ -50,7 +50,8 @@ static const QZSS_DCR_JMA_DISASTER_CATEGORY_EN_Entry QZSS_DCR_JMA_DISASTER_CATEG
         uint8_t eid = static_cast<uint8_t>(pgm_read_byte(ep + offsetof(QZSS_DCR_JMA_DISASTER_CATEGORY_EN_Entry, id)));
         if (eid == id) {
             uint16_t off = pgm_read_word(ep + offsetof(QZSS_DCR_JMA_DISASTER_CATEGORY_EN_Entry, offset));
-            return azarac_pgm_copy(QZSS_DCR_JMA_DISASTER_CATEGORY_EN_POOL + off);
+            uint8_t n = pgm_read_byte(ep + offsetof(QZSS_DCR_JMA_DISASTER_CATEGORY_EN_Entry, len));
+            return azarac_pgm_view(QZSS_DCR_JMA_DISASTER_CATEGORY_EN_POOL + off, n).data();
         }
         if (eid < id) lo = static_cast<uint8_t>(mid + 1); else hi = mid;
     }

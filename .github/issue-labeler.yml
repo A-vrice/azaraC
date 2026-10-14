@@ -8,14 +8,14 @@ dependencies:
   - '/(Dependency Dashboard|renovate|update)/i'
 
 bug:
-  - '/(バグ|不具合|誤り|誤動作|クラッシュ|落ちる|動かない|動きません|失敗|再現|壊れ|おかしい|ずれ|合わない|一致しない|できない|エラー|不可|\bbug\b|\bcrash|broken|\bfail|\berror\b|regression)/i'
+  - '/(バグ|不具合|誤り|誤動作|誤作動|発火|クラッシュ|落ちる|動かない|動きません|失敗|再現|破壊|壊れ|おかしい|ずれ|合わない|一致しない|できない|エラー|不可|\bbug\b|\bcrash|broken|\bfail|\berror\b|regression)/i'
 
 documentation:
-  - '/(ドキュメント|インストラクション|説明|マニュアル|README|見ずらい|見づらい||誤変換|誤植|タイポ|\bdocumentation\b|\btypo)/i'
+  - '/(ドキュメント|インストラクション|説明|マニュアル|README|見ずらい|見づらい|誤記|誤変換|誤植|タイポ|\bdocumentation\b|\btypo)/i'
 # 注: 一般的な "docs" は URL や Bot の定型文にも当たるため入れない
 
 enhancement:
-  - '/(要望|提案|追加して|対応してほしい|実装して|ほしい|改善|サポート|\bfeature\b|\benhancement\b|\bsupport\b)/i'
+  - '/(要望|提案|追加|対応|実装|ほしい|改善|サポート|\bfeature\b|\benhancement\b|\bsupport\b)/i'
 
 question:
-  - '/(質問|教えて|使い方|分からない|わからない|どうすれば|\bquestion\b|how\s+to)/i'
+  - '/(質問|教示|教授|教えて|使い方|分からない|わからない|どうすれば|\bquestion\b|how\s+to)/i'

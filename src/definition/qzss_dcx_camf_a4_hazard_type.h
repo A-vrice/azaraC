@@ -29,7 +29,7 @@ inline constexpr uint8_t QZSS_DCX_CAMF_A4_HAZARD_TYPE_BASE = 0;
 inline constexpr uint8_t QZSS_DCX_CAMF_A4_HAZARD_TYPE_SIZE = 114;
 #if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCX_CAMF_A4_HAZARD_TYPE_POOL[] = "Not used\000Air strike\000Attack on IT systems\000Attack with nuclear weapons\000Biological hazard\000Chemical hazard\000Explosive hazard\000Meteorite impact\000Missile attack\000Nuclear hazard\000Nuclear power station accident\000Radiological hazard\000Satellite/space re-entry debris\000Siren test\000Acid rain\000Air pollution\000Contaminated drinking water\000Gas leak\000Marine pollution\000Noise pollution\000Plague of insects\000River pollution\000Suspended dust\000UV radiation\000Conflagration\000Fire brigade deployment\000Fire gases\000Forest fire\000Fumes\000Odour nuisance\000Risk of fire\000Structure fire / Industrial fire\000Ash fall\000Avalanche risk\000Crack in the ground / sinkhole\000Debris flow\000Earthquake\000Geomagnetic or solar storm\000Glacial ice avalanche\000Landslide\000Lava flow\000Pyroclastic flow\000Snowdrifts\000Tidal wave\000Tsunami\000Volcanic mud flow\000Volcano eruption\000Wind / wave / storm surge\000Epizootic\000Food safety alert\000Health hazard\000Pandemic\000Pest infestation\000Risk of infection\000Building collapse\000Emergency number outage\000Gas supply outage\000Outage of IT systems\000Power outage\000Raw sewage\000Telephone line outage\000Black Ice\000Coastal flooding\000Cold wave\000Derecho\000Drought\000Dust storm\000Floating ice / icebergs\000Flood\000Fog\000Hail\000Heat wave\000Lightning\000Pollens\000Rainfall\000Snow storm / blizzard\000Snowfall\000Storm or thunderstorm\000Thawing\000Tornado\000Tropical cyclone (hurricane)\000Wind chill / frost\000Tropical cyclone (typhoon)\000Dam failure or bursting of a dam\000Dike failure or bursting of a dike\000Explosive ordnance disposal\000Factory accident\000Mine hazard\000Bomb / ammunition discovery\000Demonstration\000Hazardous material accident\000Life Threatening situation\000Major event\000Missing person / abduction\000Risk of explosion\000Safety warning\000Undefined flying object\000Unidentified animal\000Chemical attack\000Guerrilla attack\000Hijack\000Shooting or danger due to weapons\000Special forces attack\000Terrorism\000Aircraft crash\000Bridge collapse\000Dangerous goods accident\000Inland waterway transport accident\000Nautical disaster / Maritime / Marine Security\000Oil spill\000Road traffic incident\000Train/rail accident\000Tunnel accident\000Test alert\000";
-struct QZSS_DCX_CAMF_A4_HAZARD_TYPE_Entry { uint16_t offset; uint16_t len; };
+struct QZSS_DCX_CAMF_A4_HAZARD_TYPE_Entry { uint16_t offset; uint8_t len; };
 static const QZSS_DCX_CAMF_A4_HAZARD_TYPE_Entry QZSS_DCX_CAMF_A4_HAZARD_TYPE_TABLE[] AZARAC_PROGMEM = {
     {0u, 8u},
     {9u, 10u},
@@ -150,7 +150,7 @@ static const QZSS_DCX_CAMF_A4_HAZARD_TYPE_Entry QZSS_DCX_CAMF_A4_HAZARD_TYPE_TAB
     if (id < QZSS_DCX_CAMF_A4_HAZARD_TYPE_BASE || id >= QZSS_DCX_CAMF_A4_HAZARD_TYPE_BASE + QZSS_DCX_CAMF_A4_HAZARD_TYPE_SIZE) return std::nullopt;
     const char* AZARAC_PROGMEM p = reinterpret_cast<const char*>(&QZSS_DCX_CAMF_A4_HAZARD_TYPE_TABLE[id - 0u]);
     uint16_t off = pgm_read_word(p + offsetof(QZSS_DCX_CAMF_A4_HAZARD_TYPE_Entry, offset));
-    uint16_t n = pgm_read_word(p + offsetof(QZSS_DCX_CAMF_A4_HAZARD_TYPE_Entry, len));
+    uint8_t n = pgm_read_byte(p + offsetof(QZSS_DCX_CAMF_A4_HAZARD_TYPE_Entry, len));
     return azarac_pgm_view(QZSS_DCX_CAMF_A4_HAZARD_TYPE_POOL + off, n);
 }
 #else

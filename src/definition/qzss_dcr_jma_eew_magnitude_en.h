@@ -27,7 +27,7 @@ namespace def {
 
 #if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_EEW_MAGNITUDE_EN_POOL[] = "0.1\0000.2\0000.3\0000.4\0000.5\0000.6\0000.7\0000.8\0000.9\0001.0\0001.1\0001.2\0001.3\0001.4\0001.5\0001.6\0001.7\0001.8\0001.9\0002.0\0002.1\0002.2\0002.3\0002.4\0002.5\0002.6\0002.7\0002.8\0002.9\0003.0\0003.1\0003.2\0003.3\0003.4\0003.5\0003.6\0003.7\0003.8\0003.9\0004.0\0004.1\0004.2\0004.3\0004.4\0004.5\0004.6\0004.7\0004.8\0004.9\0005.0\0005.1\0005.2\0005.3\0005.4\0005.5\0005.6\0005.7\0005.8\0005.9\0006.0\0006.1\0006.2\0006.3\0006.4\0006.5\0006.6\0006.7\0006.8\0006.9\0007.0\0007.1\0007.2\0007.3\0007.4\0007.5\0007.6\0007.7\0007.8\0007.9\0008.0\0008.1\0008.2\0008.3\0008.4\0008.5\0008.6\0008.7\0008.8\0008.9\0009.0\0009.1\0009.2\0009.3\0009.4\0009.5\0009.6\0009.7\0009.8\0009.9\00010.0\000Over 10.0\000Unknown\000";
-struct QZSS_DCR_JMA_EEW_MAGNITUDE_EN_Entry { uint8_t id; uint16_t offset; uint16_t len; };
+struct QZSS_DCR_JMA_EEW_MAGNITUDE_EN_Entry { uint8_t id; uint16_t offset; uint8_t len; };
 static const QZSS_DCR_JMA_EEW_MAGNITUDE_EN_Entry QZSS_DCR_JMA_EEW_MAGNITUDE_EN_TABLE[] AZARAC_PROGMEM = {
     {1u, 0u, 3u},
     {2u, 4u, 3u},
@@ -140,7 +140,7 @@ static const QZSS_DCR_JMA_EEW_MAGNITUDE_EN_Entry QZSS_DCR_JMA_EEW_MAGNITUDE_EN_T
         uint8_t eid = static_cast<uint8_t>(pgm_read_byte(ep + offsetof(QZSS_DCR_JMA_EEW_MAGNITUDE_EN_Entry, id)));
         if (eid == id) {
             uint16_t off = pgm_read_word(ep + offsetof(QZSS_DCR_JMA_EEW_MAGNITUDE_EN_Entry, offset));
-            uint16_t n = pgm_read_word(ep + offsetof(QZSS_DCR_JMA_EEW_MAGNITUDE_EN_Entry, len));
+            uint8_t n = pgm_read_byte(ep + offsetof(QZSS_DCR_JMA_EEW_MAGNITUDE_EN_Entry, len));
             return azarac_pgm_view(QZSS_DCR_JMA_EEW_MAGNITUDE_EN_POOL + off, n);
         }
         if (eid < id) lo = static_cast<uint8_t>(mid + 1); else hi = mid;

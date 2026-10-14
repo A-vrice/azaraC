@@ -29,7 +29,7 @@ inline constexpr uint8_t QZSS_DCR_JMA_PREFECTURE_EN_BASE = 1;
 inline constexpr uint8_t QZSS_DCR_JMA_PREFECTURE_EN_SIZE = 47;
 #if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_PREFECTURE_EN_POOL[] = "Hokkaido Prefecture\000Aomori Prefecture\000Iwate Prefecture\000Miyagi Prefecture\000Akita Prefecture\000Yamagata Prefecture\000Fukushima Prefecture\000Ibaraki Prefecture\000Tochigi Prefecture\000Gunma Prefecture\000Saitama Prefecture\000Chiba Prefecture\000Tokyo Metropolis\000Kanagawa Prefecture\000Niigata Prefecture\000Toyama Prefecture\000Ishikawa Prefecture\000Fukui Prefecture\000Yamanashi Prefecture\000Nagano Prefecture\000Gifu Prefecture\000Shizuoka Prefecture\000Aichi Prefecture\000Mie Prefecture\000Shiga Prefecture\000Kyoto Prefecture\000Osaka Prefecture\000Hyogo Prefecture\000Nara Prefecture\000Wakayama Prefecture\000Tottori Prefecture\000Shimane Prefecture\000Okayama Prefecture\000Hiroshima Prefecture\000Yamaguchi Prefecture\000Tokushima Prefecture\000Kagawa Prefecture\000Ehime Prefecture\000Kochi Prefecture\000Fukuoka Prefecture\000Saga Prefecture\000Nagasaki Prefecture\000Kumamoto Prefecture\000Oita Prefecture\000Miyazaki Prefecture\000Kagoshima Prefecture\000Okinawa Prefecture\000";
-struct QZSS_DCR_JMA_PREFECTURE_EN_Entry { uint16_t offset; uint16_t len; };
+struct QZSS_DCR_JMA_PREFECTURE_EN_Entry { uint16_t offset; uint8_t len; };
 static const QZSS_DCR_JMA_PREFECTURE_EN_Entry QZSS_DCR_JMA_PREFECTURE_EN_TABLE[] AZARAC_PROGMEM = {
     {0u, 19u},
     {20u, 17u},
@@ -83,7 +83,7 @@ static const QZSS_DCR_JMA_PREFECTURE_EN_Entry QZSS_DCR_JMA_PREFECTURE_EN_TABLE[]
     if (id < QZSS_DCR_JMA_PREFECTURE_EN_BASE || id >= QZSS_DCR_JMA_PREFECTURE_EN_BASE + QZSS_DCR_JMA_PREFECTURE_EN_SIZE) return std::nullopt;
     const char* AZARAC_PROGMEM p = reinterpret_cast<const char*>(&QZSS_DCR_JMA_PREFECTURE_EN_TABLE[id - 1u]);
     uint16_t off = pgm_read_word(p + offsetof(QZSS_DCR_JMA_PREFECTURE_EN_Entry, offset));
-    uint16_t n = pgm_read_word(p + offsetof(QZSS_DCR_JMA_PREFECTURE_EN_Entry, len));
+    uint8_t n = pgm_read_byte(p + offsetof(QZSS_DCR_JMA_PREFECTURE_EN_Entry, len));
     return azarac_pgm_view(QZSS_DCR_JMA_PREFECTURE_EN_POOL + off, n);
 }
 #else

@@ -29,7 +29,7 @@ inline constexpr uint8_t QZSS_DCX_CAMF_D35_INFECTION_TYPE_BASE = 0;
 inline constexpr uint8_t QZSS_DCX_CAMF_D35_INFECTION_TYPE_SIZE = 63;
 #if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D35_INFECTION_TYPE_POOL[] = "Anthrax\000Avian influenza in humans\000Botulism\000Brucellosis\000Campylobacteriosis\000Chikungunya virus disease\000Chlamydia infections\000Cholera\000COVID - 19\000Creutzfeldt - Jakob Disease - variant(vCJD)\000Cryptosporidiosis\000Dengue\000Diphtheria\000Echinococcosis\000Giardiasis\000Gonorrhoea\000Hepatitis A\000Hepatitis B\000Hepatitis C\000HIV infection and AIDS\000Infections with haemophilus influenza group B\000Influenza including Influenza A(H1N1)\000Invasive meningococcal disease\000Invasive pneumococcal disease\000Legionnaires' disease\000Leptospirosis\000Listeriosis\000Lyme neuroborreliosis\000Malaria\000Measles\000Meningococcal disease, invasive\000Mumps\000Pertussis\000Plague\000Pneumococcal invasive diseases\000Poliomyelitis\000Q fever\000Rabies\000Rubella\000Rubella, congenital\000Salmonellosis\000Severe Acute Respiratory Syndrome (SARS)\000Shiga toxin /verocytotoxin -producing Escherichia coli (STEC/VTEC)\000Shigellosis\000Smallpox\000Syphilis\000Syphilis, congenital\000Tetanus\000Tick-borne encephalitis\000Toxoplasmosis, congenital\000Trichinellosis\000Tuberculosis\000Tularaemia\000Typhoid and paratyphoid fevers\000Viral haemorrhagic fevers\000West Nile virus infection\000Yellow fever\000Yersinosis\000Zika virus disease\000Zika virus disease, congenital\000Nosocomial infections\000Antimicrobial resistance\000unidentified infection\000";
-struct QZSS_DCX_CAMF_D35_INFECTION_TYPE_Entry { uint16_t offset; uint16_t len; };
+struct QZSS_DCX_CAMF_D35_INFECTION_TYPE_Entry { uint16_t offset; uint8_t len; };
 static const QZSS_DCX_CAMF_D35_INFECTION_TYPE_Entry QZSS_DCX_CAMF_D35_INFECTION_TYPE_TABLE[] AZARAC_PROGMEM = {
     {0u, 7u},
     {8u, 25u},
@@ -99,7 +99,7 @@ static const QZSS_DCX_CAMF_D35_INFECTION_TYPE_Entry QZSS_DCX_CAMF_D35_INFECTION_
     if (id < QZSS_DCX_CAMF_D35_INFECTION_TYPE_BASE || id >= QZSS_DCX_CAMF_D35_INFECTION_TYPE_BASE + QZSS_DCX_CAMF_D35_INFECTION_TYPE_SIZE) return std::nullopt;
     const char* AZARAC_PROGMEM p = reinterpret_cast<const char*>(&QZSS_DCX_CAMF_D35_INFECTION_TYPE_TABLE[id - 0u]);
     uint16_t off = pgm_read_word(p + offsetof(QZSS_DCX_CAMF_D35_INFECTION_TYPE_Entry, offset));
-    uint16_t n = pgm_read_word(p + offsetof(QZSS_DCX_CAMF_D35_INFECTION_TYPE_Entry, len));
+    uint8_t n = pgm_read_byte(p + offsetof(QZSS_DCX_CAMF_D35_INFECTION_TYPE_Entry, len));
     return azarac_pgm_view(QZSS_DCX_CAMF_D35_INFECTION_TYPE_POOL + off, n);
 }
 #else

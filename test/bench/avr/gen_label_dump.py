@@ -27,6 +27,10 @@ LOOKUP = re.compile(r'(\w+_lookup)\s*\(([^)]*)\)')
 TABLE = re.compile(r'(\w+_TABLE)\[\]\s*(?:AZARAC_PROGMEM\s*)?=\s*\{(.*?)\n\s*\};', re.S)
 TABLE_FIRST_FIELD = re.compile(r'\{\s*(\d+)[uUlL]*\s*[,}]')
 
+# Tables the generator emits next to the id-indexed one: *_PARENT_TABLE holds
+# pool offsets, so its first field is a byte offset, not a key.
+NOT_ID_TABLES = re.compile(r'_PARENT_TABLE$')
+
 # id domains probed per signature. `uint32_t`/`uint64_t` keys are not
 # enumerable, so those probe the ids the header declares (plus 0..max when that
 # range is small enough to be worth walking densely).
@@ -52,6 +56,8 @@ def params_of(raw: str):
 def table_ids(text: str):
     ids = set()
     for m in TABLE.finditer(text):
+        if NOT_ID_TABLES.search(m.group(1)):
+            continue
         ids.update(int(v) for v in TABLE_FIRST_FIELD.findall(m.group(2)))
     return sorted(ids)
 
