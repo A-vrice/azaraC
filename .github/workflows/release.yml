@@ -15,40 +15,54 @@ jobs:
     outputs:
       artifact-name: ${{ steps.archive.outputs.name }}
       subjects: ${{ steps.hash.outputs.subjects }}
+      sorce-sha: ${{ steps.source.outputs.sha}}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
+          ref: ${{ github.sha }}
+
+      - name: Record source commit
+        id: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          SORCE_SHA="$(git rev-parse HEAD)"
+          echo "sha=${SOURCE_SHA}" >> "$GITHUB_OUTPUT"
 
       - name: Create source archive
         id: archive
+        shell: bash
         env:
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
-          # タグは semver (vX.Y.Z) のみ許可。github.ref_name はシェル注入
-          # ベクタのため、アーカイブ名に使う前に形式を検証する。
+          # タグは semver の vX.Y.Z 形式のみ許可。
+          # シェルで直接展開せず環境変数として参照。
           if [[ ! "$RELEASE_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
             echo "Rejecting invalid release tag: $RELEASE_TAG" >&2
             exit 1
           fi
           NAME="azaraC-${RELEASE_TAG#v}"
           mkdir "$NAME"
-          # 配布に必要なファイルのみ含める（.github, test, scripts は除外）
+          # 本体及びその付属物
           cp -r src examples docs "$NAME/"
-          cp README.md LICENSE library.properties keywords.txt "$NAME/" 2>/dev/null || true
+          # ライブラリとして配布すべきもの
+          cp README.md LICENSE library.properties
+          # なくたっていい
+          cp keywords.txt "$NAME/" 2>/dev/null || true
+
           tar czf "${NAME}.tar.gz" "$NAME"
           zip -r "${NAME}.zip" "$NAME"
-          echo "name=${NAME}" >> $GITHUB_OUTPUT
+          echo "name=${NAME}" >> "$GITHUB_OUTPUT"
 
       - name: Compute subjects (base64)
         id: hash
         env:
           ARCHIVE_NAME: ${{ steps.archive.outputs.name }}
         run: |
-          # slsa-generator の base64-subjects は sha256sum 出力形式（bare hex、
-          # 接頭辞なし）を要求。sha256sum をそのまま使うのがこの形式と一致。
+          # slsa-generator の base64-subjects は sha256sum 出力形式（bare hex、接頭辞なし）を要求。sha256sum をそのまま使うのがこの形式と一致。
           sha256sum "${ARCHIVE_NAME}.tar.gz" "${ARCHIVE_NAME}.zip" > subjects.txt
-          echo "subjects=$(base64 -w0 subjects.txt)" >> $GITHUB_OUTPUT
+          echo "subjects=$(base64 -w0 subjects.txt)" >> "$GITHUB_OUTPUT"
 
       - name: Upload archive as artifact
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
@@ -65,18 +79,13 @@ jobs:
       actions: read
       id-token: write
       contents: write
-    # 注意: slsa-github-generator の generic generator は SHA 参照をサポート
-    # しない。公式 README により「@vX.Y.Z 形式のタグ参照が MUST。SHA 参照だと
-    # ビルドが失敗する」。更新は Renovate が担う。
+    # 注意: slsa-github-generator の generic generator は SHA 参照をサポートしない。
+    # 仕様上SHA参照だとビルドが失敗するため@X.Y.Z形式。更新は Renovate が担う。(ただしこのアクションの保守/更新は限定的なため、今後置き換え等も要検討)
     uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0
     with:
       base64-subjects: "${{ needs.build.outputs.subjects }}"
-      # upload-assets は意図的に false（既定）のまま: generator に空リリースを
-      # 作らせない。リリース作成は検証成功後に release ジョブが単独で担う。
-      # private-repository: この generator (v2.1.0) は public リポジトリを
-      # private と誤判定して停止することがある。public なので公開透明性ログ
-      # へのリポジトリ名露出は問題なし。オーバーライドで誤判定ガードを外す。
-      private-repository: true
+      # upload-assets は意図的に false（既定）のまま: generator に空リリースを作らせない。リリース作成は検証成功後に release ジョブが単独で担う。
+      upload-assets: false
 
   # GitHub Release 作成 + アセットアップロード
   release:
@@ -105,10 +114,9 @@ jobs:
         env:
           RELEASE_TAG: ${{ github.ref_name }}
           ARCHIVE_NAME: ${{ needs.build.outputs.artifact-name }}
-        # provenance が本物で、tar.gz と zip の各 digest が subject と一致し、
-        # ソースリポジトリ・タグが一致することを検証する。失敗すればこの
-        # ジョブが止まり、成果物はアップロードされない。
-        # （SLSA Level 3 の実証はここで確立される）
+        # provenance の署名、各ファイルの digest と subjectの一致、ソースリポジトリとタグの一致をそれぞれ検証する。
+        # 失敗すればこのジョブで止まり、成果物はアップロードされない。
+        # Builderとそこで生成されたprovenanceが侵害されない限り信頼できる
         run: |
           slsa-verifier verify-artifact \
             "${ARCHIVE_NAME}.tar.gz" \
@@ -124,21 +132,35 @@ jobs:
             ${{ needs.build.outputs.artifact-name }}.tar.gz
             ${{ needs.build.outputs.artifact-name }}.zip
 
-      - name: Create release and upload assets
+      - name: Create draft, upload assets, and publish
+        shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # release ジョブは checkout しないため、gh は git remote から
-          # リポジトリを解決できない。GH_REPO で明示する（CodeRabbit 対応）。
+          # リポジトリを解決できない。GH_REPO で明示する。
           GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ github.ref_name }}
           ARCHIVE_NAME: ${{ needs.build.outputs.artifact-name }}
           PROVENANCE: ${{ needs.provenance.outputs.provenance-name }}
+          EXPECTED_SHA: ${{ needs.build.outputs.source-sha }}
         run: |
+          set -euo pipefail
+          
+          RELEASE_ID=""
+          RELEASE_API="repos/${GH_REPO}"
+
+          failed() {
+          
+          }
+          
           # このステップに到達 = 上流の Verify SLSA provenance が検証成功。
           # リリース作成はここが単一の所有者。provenance 失敗時はこのジョブが
           # そもそも skipped になるため、空のリリースは残らない。
-          # --verify-tag: タグが無い場合に gh がデフォルトブランチから自動作成
-          # して別コミットへ公開するのを防ぐ（CodeRabbit 対応）。
+          # --verify-tag: タグが無い場合に gh がデフォルトブランチから自動作成して別コミットへ公開するのを防ぐ。
+          # 
+          # Actionsは不具合多いのでそれを踏まえた作りにしたい。
+          # これだと公開に失敗しても空のリリースが残る可能性がある。
+          # idea: draft->upload->releaseの順にする
           gh release create "$RELEASE_TAG" \
             "${ARCHIVE_NAME}.tar.gz" \
             "${ARCHIVE_NAME}.zip" \

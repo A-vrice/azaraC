@@ -178,7 +178,8 @@ endif
 $(DEDUP_REALDAY_BIN): $(DEDUP_REALDAY_OBJS) $(LIB_OBJS)
 	$(CXX) $(CXXFLAGS) $(CXXFLAGS_EXTRA) $^ -o $@ $(LDFLAGS)
 
-# dedup ベンチ（autoresearch.sh）。入力は test/data/*.json のみで realdata は不要。
+# 定義テーブルの AVR フットプリント計測（autoresearch.sh）。avr-gcc / avr-libc と
+# ホストの g++ / python が必要。入力は追跡済みの src/definition/*.h のみ。
 bench:
 	@bash ../autoresearch.sh
 

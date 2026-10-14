@@ -53,7 +53,12 @@ jobs:
       - name: Build & run (no dynamic allocation check)
         run: make -C test test-no-alloc
 
-      - name: Dedup benchmark (gates)
+      # 定義テーブルの AVR フットプリント計測（autoresearch.sh）。ハーネスは
+      # avr-gcc / avr-size / avr-nm を使うが、ランナーイメージには入っていない。
+      - name: Install AVR toolchain
+        run: sudo apt-get update && sudo apt-get install -y gcc-avr binutils-avr avr-libc
+
+      - name: Definition-table footprint benchmark (gates)
         run: make -C test bench
 
       - name: AVR-style stub build (PROGMEM, 16-bit int)
