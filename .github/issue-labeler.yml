@@ -11,7 +11,7 @@ bug:
   - '/(バグ|不具合|誤り|誤動作|クラッシュ|落ちる|動かない|動きません|失敗|再現|壊れ|おかしい|ずれ|合わない|一致しない|できない|エラー|不可|\bbug\b|\bcrash|broken|\bfail|\berror\b|regression)/i'
 
 documentation:
-  - '/(ドキュメント||説明|マニュアル|README|見ずらい|見づらい|誤植|タイポ|\bdocumentation\b|\btypo)/i'
+  - '/(ドキュメント|インストラクション|説明|マニュアル|README|見ずらい|見づらい||誤変換|誤植|タイポ|\bdocumentation\b|\btypo)/i'
 # 注: 一般的な "docs" は URL や Bot の定型文にも当たるため入れない
 
 enhancement:
