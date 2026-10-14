@@ -28,32 +28,42 @@ namespace def {
 inline constexpr uint8_t QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_BASE = 0;
 inline constexpr uint8_t QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_SIZE = 16;
 #if defined(__AVR__)
-static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_POOL[] = "Explosives\000Flammable gases\000Flammable aerosols and aerosols\000Oxidizing gases\000Gases under pressure\000Flammable liquids\000Flammable solids\000Self-reactive substance/mixture\000Pyrophoric liquids. Pyrophoric materials are often water-reactive as well and will ignite when they contact water or humid air.\000Pyrophoric solids. Pyrophoric materials are often water-reactive as well and will ignite when they contact water or humid air.\000Self-heating substance/mixture\000Water-reactive - emits flammable gases\000Oxidising liquids\000Oxidising solids\000Organic peroxides\000Corrosive to metals\000";
-struct QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_Entry { uint16_t offset; uint8_t len; };
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_POOL[] = "Explosive\000Flammable gase\000Flammable aerosols and aerosol\000Oxidizing gase\000Gases under pressure\000Flammable liquid\000Flammable solid\000Self-reactive substance/mixture\000Pyrophoric liquids. Pyrophoric materials are often water-reactive as well and will ignite when they contact water or humid air.\000Pyrophoric solids. Pyrophoric materials are often water-reactive as well and will ignite when they contact water or humid air.\000Self-heating substance/mixture\000Water-reactive - emits flammable gase\000Oxidising liquid\000Oxidising solid\000Organic peroxide\000Corrosive to metal\000";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_PARENT_POOL[] = "s\000";
+struct QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_PARENT_Entry { uint16_t offset; uint8_t len; };
+static const QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_PARENT_Entry QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_PARENT_TABLE[] AZARAC_PROGMEM = {
+    {0u, 1u},
+};
+struct QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_Entry { uint16_t offset; uint8_t len; uint8_t parent; };
 static const QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_Entry QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_TABLE[] AZARAC_PROGMEM = {
-    {0u, 10u},
-    {11u, 15u},
-    {27u, 31u},
-    {59u, 15u},
-    {75u, 20u},
-    {96u, 17u},
-    {114u, 16u},
-    {131u, 31u},
-    {163u, 127u},
-    {291u, 126u},
-    {418u, 30u},
-    {449u, 38u},
-    {488u, 17u},
-    {506u, 16u},
-    {523u, 17u},
-    {541u, 19u}
+    {0u, 9u, 0u},
+    {10u, 14u, 0u},
+    {25u, 30u, 0u},
+    {56u, 14u, 0u},
+    {71u, 20u, 255u},
+    {92u, 16u, 0u},
+    {109u, 15u, 0u},
+    {125u, 31u, 255u},
+    {157u, 127u, 255u},
+    {285u, 126u, 255u},
+    {412u, 30u, 255u},
+    {443u, 37u, 0u},
+    {481u, 16u, 0u},
+    {498u, 15u, 0u},
+    {514u, 16u, 0u},
+    {531u, 18u, 0u}
 };
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_d31_chemical_hazard_type_lookup(uint8_t id) noexcept {
     if (id < QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_BASE || id >= QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_BASE + QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_SIZE) return std::nullopt;
     const char* AZARAC_PROGMEM p = reinterpret_cast<const char*>(&QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_TABLE[id - 0u]);
     uint16_t off = pgm_read_word(p + offsetof(QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_Entry, offset));
     uint8_t n = pgm_read_byte(p + offsetof(QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_Entry, len));
-    return azarac_pgm_view(QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_POOL + off, n);
+    uint8_t pi = pgm_read_byte(p + offsetof(QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_Entry, parent));
+    if (pi == 255u) return azarac_pgm_view(QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_POOL + off, n);
+    const char* AZARAC_PROGMEM pp = reinterpret_cast<const char*>(&QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_PARENT_TABLE[pi]);
+    uint16_t poff = pgm_read_word(pp + offsetof(QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_PARENT_Entry, offset));
+    uint8_t pn = pgm_read_byte(pp + offsetof(QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_PARENT_Entry, len));
+    return azarac_pgm_join(QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_POOL + off, n, QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_PARENT_POOL + poff, pn);
 }
 #else
 inline constexpr const char* QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_TABLE[] = {

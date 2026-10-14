@@ -28,63 +28,73 @@ namespace def {
 inline constexpr uint8_t QZSS_DCR_JMA_PREFECTURE_BASE = 1;
 inline constexpr uint8_t QZSS_DCR_JMA_PREFECTURE_SIZE = 47;
 #if defined(__AVR__)
-static const char AZARAC_PROGMEM QZSS_DCR_JMA_PREFECTURE_POOL[] = "北海道\000青森県\000岩手県\000宮城県\000秋田県\000山形県\000福島県\000茨城県\000栃木県\000群馬県\000埼玉県\000千葉県\000東京都\000神奈川県\000新潟県\000富山県\000石川県\000福井県\000山梨県\000長野県\000岐阜県\000静岡県\000愛知県\000三重県\000滋賀県\000京都府\000大阪府\000兵庫県\000奈良県\000和歌山県\000鳥取県\000島根県\000岡山県\000広島県\000山口県\000徳島県\000香川県\000愛媛県\000高知県\000福岡県\000佐賀県\000長崎県\000熊本県\000大分県\000宮崎県\000鹿児島県\000沖縄県\000";
-struct QZSS_DCR_JMA_PREFECTURE_Entry { uint16_t offset; uint8_t len; };
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_PREFECTURE_POOL[] = "北海道\000青森\000岩手\000宮城\000秋田\000山形\000福島\000茨城\000栃木\000群馬\000埼玉\000千葉\000東京都\000神奈川\000新潟\000富山\000石川\000福井\000山梨\000長野\000岐阜\000静岡\000愛知\000三重\000滋賀\000京都府\000大阪府\000兵庫\000奈良\000和歌山\000鳥取\000島根\000岡山\000広島\000山口\000徳島\000香川\000愛媛\000高知\000福岡\000佐賀\000長崎\000熊本\000大分\000宮崎\000鹿児島\000沖縄\000";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_PREFECTURE_PARENT_POOL[] = "県\000";
+struct QZSS_DCR_JMA_PREFECTURE_PARENT_Entry { uint16_t offset; uint8_t len; };
+static const QZSS_DCR_JMA_PREFECTURE_PARENT_Entry QZSS_DCR_JMA_PREFECTURE_PARENT_TABLE[] AZARAC_PROGMEM = {
+    {0u, 3u},
+};
+struct QZSS_DCR_JMA_PREFECTURE_Entry { uint16_t offset; uint8_t len; uint8_t parent; };
 static const QZSS_DCR_JMA_PREFECTURE_Entry QZSS_DCR_JMA_PREFECTURE_TABLE[] AZARAC_PROGMEM = {
-    {0u, 9u},
-    {10u, 9u},
-    {20u, 9u},
-    {30u, 9u},
-    {40u, 9u},
-    {50u, 9u},
-    {60u, 9u},
-    {70u, 9u},
-    {80u, 9u},
-    {90u, 9u},
-    {100u, 9u},
-    {110u, 9u},
-    {120u, 9u},
-    {130u, 12u},
-    {143u, 9u},
-    {153u, 9u},
-    {163u, 9u},
-    {173u, 9u},
-    {183u, 9u},
-    {193u, 9u},
-    {203u, 9u},
-    {213u, 9u},
-    {223u, 9u},
-    {233u, 9u},
-    {243u, 9u},
-    {253u, 9u},
-    {263u, 9u},
-    {273u, 9u},
-    {283u, 9u},
-    {293u, 12u},
-    {306u, 9u},
-    {316u, 9u},
-    {326u, 9u},
-    {336u, 9u},
-    {346u, 9u},
-    {356u, 9u},
-    {366u, 9u},
-    {376u, 9u},
-    {386u, 9u},
-    {396u, 9u},
-    {406u, 9u},
-    {416u, 9u},
-    {426u, 9u},
-    {436u, 9u},
-    {446u, 9u},
-    {456u, 12u},
-    {469u, 9u}
+    {0u, 9u, 255u},
+    {10u, 6u, 0u},
+    {17u, 6u, 0u},
+    {24u, 6u, 0u},
+    {31u, 6u, 0u},
+    {38u, 6u, 0u},
+    {45u, 6u, 0u},
+    {52u, 6u, 0u},
+    {59u, 6u, 0u},
+    {66u, 6u, 0u},
+    {73u, 6u, 0u},
+    {80u, 6u, 0u},
+    {87u, 9u, 255u},
+    {97u, 9u, 0u},
+    {107u, 6u, 0u},
+    {114u, 6u, 0u},
+    {121u, 6u, 0u},
+    {128u, 6u, 0u},
+    {135u, 6u, 0u},
+    {142u, 6u, 0u},
+    {149u, 6u, 0u},
+    {156u, 6u, 0u},
+    {163u, 6u, 0u},
+    {170u, 6u, 0u},
+    {177u, 6u, 0u},
+    {184u, 9u, 255u},
+    {194u, 9u, 255u},
+    {204u, 6u, 0u},
+    {211u, 6u, 0u},
+    {218u, 9u, 0u},
+    {228u, 6u, 0u},
+    {235u, 6u, 0u},
+    {242u, 6u, 0u},
+    {249u, 6u, 0u},
+    {256u, 6u, 0u},
+    {263u, 6u, 0u},
+    {270u, 6u, 0u},
+    {277u, 6u, 0u},
+    {284u, 6u, 0u},
+    {291u, 6u, 0u},
+    {298u, 6u, 0u},
+    {305u, 6u, 0u},
+    {312u, 6u, 0u},
+    {319u, 6u, 0u},
+    {326u, 6u, 0u},
+    {333u, 9u, 0u},
+    {343u, 6u, 0u}
 };
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_prefecture_lookup(uint8_t id) noexcept {
     if (id < QZSS_DCR_JMA_PREFECTURE_BASE || id >= QZSS_DCR_JMA_PREFECTURE_BASE + QZSS_DCR_JMA_PREFECTURE_SIZE) return std::nullopt;
     const char* AZARAC_PROGMEM p = reinterpret_cast<const char*>(&QZSS_DCR_JMA_PREFECTURE_TABLE[id - 1u]);
     uint16_t off = pgm_read_word(p + offsetof(QZSS_DCR_JMA_PREFECTURE_Entry, offset));
     uint8_t n = pgm_read_byte(p + offsetof(QZSS_DCR_JMA_PREFECTURE_Entry, len));
-    return azarac_pgm_view(QZSS_DCR_JMA_PREFECTURE_POOL + off, n);
+    uint8_t pi = pgm_read_byte(p + offsetof(QZSS_DCR_JMA_PREFECTURE_Entry, parent));
+    if (pi == 255u) return azarac_pgm_view(QZSS_DCR_JMA_PREFECTURE_POOL + off, n);
+    const char* AZARAC_PROGMEM pp = reinterpret_cast<const char*>(&QZSS_DCR_JMA_PREFECTURE_PARENT_TABLE[pi]);
+    uint16_t poff = pgm_read_word(pp + offsetof(QZSS_DCR_JMA_PREFECTURE_PARENT_Entry, offset));
+    uint8_t pn = pgm_read_byte(pp + offsetof(QZSS_DCR_JMA_PREFECTURE_PARENT_Entry, len));
+    return azarac_pgm_join(QZSS_DCR_JMA_PREFECTURE_POOL + off, n, QZSS_DCR_JMA_PREFECTURE_PARENT_POOL + poff, pn);
 }
 #else
 inline constexpr const char* QZSS_DCR_JMA_PREFECTURE_TABLE[] = {
