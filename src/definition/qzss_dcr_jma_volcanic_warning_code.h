@@ -28,27 +28,27 @@ namespace def {
 #if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_VOLCANIC_WARNING_CODE_POOL[] = "1(活火山であることに留意)\0002(火口周辺規制)\0003(入山規制)\0004(高齢者等避難)\0005(避難)\000活火山であることに留意\000火口周辺危険\000入山危険\000山麓厳重警戒\000居住地域厳重警戒\000活火山であることに留意(海底火山)\000周辺海域警戒\000噴火\000噴火したもよう\000その他の防災気象情報要素\000";
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_VOLCANIC_WARNING_CODE_PARENT_POOL[] = "レベル\000";
-struct QZSS_DCR_JMA_VOLCANIC_WARNING_CODE_PARENT_Entry { uint16_t offset; uint8_t len; };
+struct QZSS_DCR_JMA_VOLCANIC_WARNING_CODE_PARENT_Entry { uint16_t offset; };
 static const QZSS_DCR_JMA_VOLCANIC_WARNING_CODE_PARENT_Entry QZSS_DCR_JMA_VOLCANIC_WARNING_CODE_PARENT_TABLE[] AZARAC_PROGMEM = {
-    {0u, 9u},
+    {0u},
 };
-struct QZSS_DCR_JMA_VOLCANIC_WARNING_CODE_Entry { uint8_t id; uint8_t parent; uint16_t offset; uint8_t len; };
+struct QZSS_DCR_JMA_VOLCANIC_WARNING_CODE_Entry { uint8_t id; uint8_t parent; uint16_t offset; };
 static const QZSS_DCR_JMA_VOLCANIC_WARNING_CODE_Entry QZSS_DCR_JMA_VOLCANIC_WARNING_CODE_TABLE[] AZARAC_PROGMEM = {
-    {11u, 0u, 0u, 36u},
-    {12u, 0u, 37u, 21u},
-    {13u, 0u, 59u, 15u},
-    {14u, 0u, 75u, 21u},
-    {15u, 0u, 97u, 9u},
-    {21u, 255u, 107u, 33u},
-    {22u, 255u, 141u, 18u},
-    {23u, 255u, 160u, 12u},
-    {24u, 255u, 173u, 18u},
-    {25u, 255u, 192u, 24u},
-    {35u, 255u, 217u, 47u},
-    {36u, 255u, 265u, 18u},
-    {52u, 255u, 284u, 6u},
-    {62u, 255u, 291u, 21u},
-    {127u, 255u, 313u, 36u},
+    {11u, 0u, 0u},
+    {12u, 0u, 37u},
+    {13u, 0u, 59u},
+    {14u, 0u, 75u},
+    {15u, 0u, 97u},
+    {21u, 255u, 107u},
+    {22u, 255u, 141u},
+    {23u, 255u, 160u},
+    {24u, 255u, 173u},
+    {25u, 255u, 192u},
+    {35u, 255u, 217u},
+    {36u, 255u, 265u},
+    {52u, 255u, 284u},
+    {62u, 255u, 291u},
+    {127u, 255u, 313u},
 };
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_volcanic_warning_code_lookup(uint8_t id) noexcept {
     uint8_t lo = 0, hi = 15;
@@ -58,13 +58,11 @@ static const QZSS_DCR_JMA_VOLCANIC_WARNING_CODE_Entry QZSS_DCR_JMA_VOLCANIC_WARN
         uint8_t eid = static_cast<uint8_t>(pgm_read_byte(ep + offsetof(QZSS_DCR_JMA_VOLCANIC_WARNING_CODE_Entry, id)));
         if (eid == id) {
             uint16_t off = pgm_read_word(ep + offsetof(QZSS_DCR_JMA_VOLCANIC_WARNING_CODE_Entry, offset));
-            uint8_t n = pgm_read_byte(ep + offsetof(QZSS_DCR_JMA_VOLCANIC_WARNING_CODE_Entry, len));
             uint8_t pi = pgm_read_byte(ep + offsetof(QZSS_DCR_JMA_VOLCANIC_WARNING_CODE_Entry, parent));
-            if (pi == 255u) return azarac_pgm_view(QZSS_DCR_JMA_VOLCANIC_WARNING_CODE_POOL + off, n);
+            if (pi == 255u) return azarac_pgm_view_z(QZSS_DCR_JMA_VOLCANIC_WARNING_CODE_POOL + off);
             const char* AZARAC_PROGMEM pp = reinterpret_cast<const char*>(&QZSS_DCR_JMA_VOLCANIC_WARNING_CODE_PARENT_TABLE[pi]);
             uint16_t poff = pgm_read_word(pp + offsetof(QZSS_DCR_JMA_VOLCANIC_WARNING_CODE_PARENT_Entry, offset));
-            uint8_t pn = pgm_read_byte(pp + offsetof(QZSS_DCR_JMA_VOLCANIC_WARNING_CODE_PARENT_Entry, len));
-            return azarac_pgm_join(QZSS_DCR_JMA_VOLCANIC_WARNING_CODE_PARENT_POOL + poff, pn, QZSS_DCR_JMA_VOLCANIC_WARNING_CODE_POOL + off, n);
+            return azarac_pgm_join_z(QZSS_DCR_JMA_VOLCANIC_WARNING_CODE_PARENT_POOL + poff, QZSS_DCR_JMA_VOLCANIC_WARNING_CODE_POOL + off);
         }
         if (eid < id) lo = static_cast<uint8_t>(mid + 1); else hi = mid;
     }

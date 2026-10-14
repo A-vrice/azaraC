@@ -27,20 +27,20 @@ namespace def {
 
 #if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_DISASTER_CATEGORY_POOL[] = "緊急地震速報\000震源\000震度\000南海トラフ地震\000津波\000北西太平洋津波\000火山\000降灰\000気象\000洪水\000台風\000海上\000";
-struct QZSS_DCR_JMA_DISASTER_CATEGORY_Entry { uint8_t id; uint16_t offset; uint8_t len; };
+struct QZSS_DCR_JMA_DISASTER_CATEGORY_Entry { uint8_t id; uint16_t offset; };
 static const QZSS_DCR_JMA_DISASTER_CATEGORY_Entry QZSS_DCR_JMA_DISASTER_CATEGORY_TABLE[] AZARAC_PROGMEM = {
-    {1u, 0u, 18u},
-    {2u, 19u, 6u},
-    {3u, 26u, 6u},
-    {4u, 33u, 21u},
-    {5u, 55u, 6u},
-    {6u, 62u, 21u},
-    {8u, 84u, 6u},
-    {9u, 91u, 6u},
-    {10u, 98u, 6u},
-    {11u, 105u, 6u},
-    {12u, 112u, 6u},
-    {14u, 119u, 6u},
+    {1u, 0u},
+    {2u, 19u},
+    {3u, 26u},
+    {4u, 33u},
+    {5u, 55u},
+    {6u, 62u},
+    {8u, 84u},
+    {9u, 91u},
+    {10u, 98u},
+    {11u, 105u},
+    {12u, 112u},
+    {14u, 119u},
 };
 [[nodiscard]] inline const char* qzss_dcr_jma_disaster_category_lookup(uint8_t id) noexcept {
     uint8_t lo = 0, hi = 12;
@@ -50,8 +50,7 @@ static const QZSS_DCR_JMA_DISASTER_CATEGORY_Entry QZSS_DCR_JMA_DISASTER_CATEGORY
         uint8_t eid = static_cast<uint8_t>(pgm_read_byte(ep + offsetof(QZSS_DCR_JMA_DISASTER_CATEGORY_Entry, id)));
         if (eid == id) {
             uint16_t off = pgm_read_word(ep + offsetof(QZSS_DCR_JMA_DISASTER_CATEGORY_Entry, offset));
-            uint8_t n = pgm_read_byte(ep + offsetof(QZSS_DCR_JMA_DISASTER_CATEGORY_Entry, len));
-            return azarac_pgm_view(QZSS_DCR_JMA_DISASTER_CATEGORY_POOL + off, n).data();
+            return azarac_pgm_copy(QZSS_DCR_JMA_DISASTER_CATEGORY_POOL + off);
         }
         if (eid < id) lo = static_cast<uint8_t>(mid + 1); else hi = mid;
     }

@@ -28,24 +28,24 @@ namespace def {
 #if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_SEISMIC_INTENSITY_LOWER_LIMIT_EN_POOL[] = "0\0001\0002\0003\0004\0005-lower\0005-upper\0006-lower\0006-upper\0007\000None\000Unknown\000";
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_SEISMIC_INTENSITY_LOWER_LIMIT_EN_PARENT_POOL[] = "Seismic intensity of \000";
-struct QZSS_DCR_JMA_SEISMIC_INTENSITY_LOWER_LIMIT_EN_PARENT_Entry { uint16_t offset; uint8_t len; };
+struct QZSS_DCR_JMA_SEISMIC_INTENSITY_LOWER_LIMIT_EN_PARENT_Entry { uint16_t offset; };
 static const QZSS_DCR_JMA_SEISMIC_INTENSITY_LOWER_LIMIT_EN_PARENT_Entry QZSS_DCR_JMA_SEISMIC_INTENSITY_LOWER_LIMIT_EN_PARENT_TABLE[] AZARAC_PROGMEM = {
-    {0u, 21u},
+    {0u},
 };
-struct QZSS_DCR_JMA_SEISMIC_INTENSITY_LOWER_LIMIT_EN_Entry { uint8_t id; uint8_t parent; uint16_t offset; uint8_t len; };
+struct QZSS_DCR_JMA_SEISMIC_INTENSITY_LOWER_LIMIT_EN_Entry { uint8_t id; uint8_t parent; uint16_t offset; };
 static const QZSS_DCR_JMA_SEISMIC_INTENSITY_LOWER_LIMIT_EN_Entry QZSS_DCR_JMA_SEISMIC_INTENSITY_LOWER_LIMIT_EN_TABLE[] AZARAC_PROGMEM = {
-    {1u, 0u, 0u, 1u},
-    {2u, 0u, 2u, 1u},
-    {3u, 0u, 4u, 1u},
-    {4u, 0u, 6u, 1u},
-    {5u, 0u, 8u, 1u},
-    {6u, 0u, 10u, 7u},
-    {7u, 0u, 18u, 7u},
-    {8u, 0u, 26u, 7u},
-    {9u, 0u, 34u, 7u},
-    {10u, 0u, 42u, 1u},
-    {14u, 255u, 44u, 4u},
-    {15u, 255u, 49u, 7u},
+    {1u, 0u, 0u},
+    {2u, 0u, 2u},
+    {3u, 0u, 4u},
+    {4u, 0u, 6u},
+    {5u, 0u, 8u},
+    {6u, 0u, 10u},
+    {7u, 0u, 18u},
+    {8u, 0u, 26u},
+    {9u, 0u, 34u},
+    {10u, 0u, 42u},
+    {14u, 255u, 44u},
+    {15u, 255u, 49u},
 };
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_seismic_intensity_lower_limit_en_lookup(uint8_t id) noexcept {
     uint8_t lo = 0, hi = 12;
@@ -55,13 +55,11 @@ static const QZSS_DCR_JMA_SEISMIC_INTENSITY_LOWER_LIMIT_EN_Entry QZSS_DCR_JMA_SE
         uint8_t eid = static_cast<uint8_t>(pgm_read_byte(ep + offsetof(QZSS_DCR_JMA_SEISMIC_INTENSITY_LOWER_LIMIT_EN_Entry, id)));
         if (eid == id) {
             uint16_t off = pgm_read_word(ep + offsetof(QZSS_DCR_JMA_SEISMIC_INTENSITY_LOWER_LIMIT_EN_Entry, offset));
-            uint8_t n = pgm_read_byte(ep + offsetof(QZSS_DCR_JMA_SEISMIC_INTENSITY_LOWER_LIMIT_EN_Entry, len));
             uint8_t pi = pgm_read_byte(ep + offsetof(QZSS_DCR_JMA_SEISMIC_INTENSITY_LOWER_LIMIT_EN_Entry, parent));
-            if (pi == 255u) return azarac_pgm_view(QZSS_DCR_JMA_SEISMIC_INTENSITY_LOWER_LIMIT_EN_POOL + off, n);
+            if (pi == 255u) return azarac_pgm_view_z(QZSS_DCR_JMA_SEISMIC_INTENSITY_LOWER_LIMIT_EN_POOL + off);
             const char* AZARAC_PROGMEM pp = reinterpret_cast<const char*>(&QZSS_DCR_JMA_SEISMIC_INTENSITY_LOWER_LIMIT_EN_PARENT_TABLE[pi]);
             uint16_t poff = pgm_read_word(pp + offsetof(QZSS_DCR_JMA_SEISMIC_INTENSITY_LOWER_LIMIT_EN_PARENT_Entry, offset));
-            uint8_t pn = pgm_read_byte(pp + offsetof(QZSS_DCR_JMA_SEISMIC_INTENSITY_LOWER_LIMIT_EN_PARENT_Entry, len));
-            return azarac_pgm_join(QZSS_DCR_JMA_SEISMIC_INTENSITY_LOWER_LIMIT_EN_PARENT_POOL + poff, pn, QZSS_DCR_JMA_SEISMIC_INTENSITY_LOWER_LIMIT_EN_POOL + off, n);
+            return azarac_pgm_join_z(QZSS_DCR_JMA_SEISMIC_INTENSITY_LOWER_LIMIT_EN_PARENT_POOL + poff, QZSS_DCR_JMA_SEISMIC_INTENSITY_LOWER_LIMIT_EN_POOL + off);
         }
         if (eid < id) lo = static_cast<uint8_t>(mid + 1); else hi = mid;
     }

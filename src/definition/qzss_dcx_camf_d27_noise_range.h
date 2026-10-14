@@ -28,40 +28,37 @@ namespace def {
 inline constexpr uint8_t QZSS_DCX_CAMF_D27_NOISE_RANGE_BASE = 0;
 inline constexpr uint8_t QZSS_DCX_CAMF_D27_NOISE_RANGE_SIZE = 12;
 #if defined(__AVR__)
-static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D27_NOISE_RANGE_POOL[] = "40 < dB ≤ 45\00045 < dB ≤ 50\00050 < dB ≤ 60\00060 < dB ≤ 70\00070 < dB ≤ 80 (\00080 < dB ≤ 90 (ver\00090 < dB ≤ 100 (ver\000100 < dB ≤ 110 (ver\000110 < dB ≤ 120 (extremel\000120 < dB ≤ 130 (extremel\000130 < dB ≤ 140 (threshold of pain\000dB > 140 (pain\000";
-static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D27_NOISE_RANGE_PARENT_POOL[] = ")\000loud)\000y loud)\000";
-struct QZSS_DCX_CAMF_D27_NOISE_RANGE_PARENT_Entry { uint16_t offset; uint8_t len; };
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D27_NOISE_RANGE_POOL[] = "40 < dB ≤ 45\00045 < dB ≤ 50\00050 < dB ≤ 60\00060 < dB ≤ 70\00070 < dB ≤ 80 (\00080 < dB ≤ 90 (ver\00090 < dB ≤ 100 (ver\000100 < dB ≤ 110 (ver\000110 < dB ≤ 120 (extremel\000120 < dB ≤ 130 (extremel\000130 < dB ≤ 140 (threshold of pain)\000dB > 140 (pain)\000";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D27_NOISE_RANGE_PARENT_POOL[] = "loud)\000y loud)\000";
+struct QZSS_DCX_CAMF_D27_NOISE_RANGE_PARENT_Entry { uint16_t offset; };
 static const QZSS_DCX_CAMF_D27_NOISE_RANGE_PARENT_Entry QZSS_DCX_CAMF_D27_NOISE_RANGE_PARENT_TABLE[] AZARAC_PROGMEM = {
-    {0u, 1u},
-    {2u, 5u},
-    {8u, 7u},
+    {0u},
+    {6u},
 };
-struct QZSS_DCX_CAMF_D27_NOISE_RANGE_Entry { uint16_t offset; uint8_t len; uint8_t parent; };
+struct QZSS_DCX_CAMF_D27_NOISE_RANGE_Entry { uint16_t offset; uint8_t parent; };
 static const QZSS_DCX_CAMF_D27_NOISE_RANGE_Entry QZSS_DCX_CAMF_D27_NOISE_RANGE_TABLE[] AZARAC_PROGMEM = {
-    {0u, 14u, 255u},
-    {15u, 14u, 255u},
-    {30u, 14u, 255u},
-    {45u, 14u, 255u},
-    {60u, 16u, 1u},
-    {77u, 19u, 2u},
-    {97u, 20u, 2u},
-    {118u, 21u, 2u},
-    {140u, 26u, 2u},
-    {167u, 26u, 2u},
-    {194u, 35u, 0u},
-    {230u, 14u, 0u}
+    {0u, 255u},
+    {15u, 255u},
+    {30u, 255u},
+    {45u, 255u},
+    {60u, 0u},
+    {77u, 1u},
+    {97u, 1u},
+    {118u, 1u},
+    {140u, 1u},
+    {167u, 1u},
+    {194u, 255u},
+    {231u, 255u}
 };
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_d27_noise_range_lookup(uint8_t id) noexcept {
     if (id < QZSS_DCX_CAMF_D27_NOISE_RANGE_BASE || id >= QZSS_DCX_CAMF_D27_NOISE_RANGE_BASE + QZSS_DCX_CAMF_D27_NOISE_RANGE_SIZE) return std::nullopt;
     const char* AZARAC_PROGMEM p = reinterpret_cast<const char*>(&QZSS_DCX_CAMF_D27_NOISE_RANGE_TABLE[id - 0u]);
     uint16_t off = pgm_read_word(p + offsetof(QZSS_DCX_CAMF_D27_NOISE_RANGE_Entry, offset));
-    uint8_t n = pgm_read_byte(p + offsetof(QZSS_DCX_CAMF_D27_NOISE_RANGE_Entry, len));
     uint8_t pi = pgm_read_byte(p + offsetof(QZSS_DCX_CAMF_D27_NOISE_RANGE_Entry, parent));
-    if (pi == 255u) return azarac_pgm_view(QZSS_DCX_CAMF_D27_NOISE_RANGE_POOL + off, n);
+    if (pi == 255u) return azarac_pgm_view_z(QZSS_DCX_CAMF_D27_NOISE_RANGE_POOL + off);
     const char* AZARAC_PROGMEM pp = reinterpret_cast<const char*>(&QZSS_DCX_CAMF_D27_NOISE_RANGE_PARENT_TABLE[pi]);
     uint16_t poff = pgm_read_word(pp + offsetof(QZSS_DCX_CAMF_D27_NOISE_RANGE_PARENT_Entry, offset));
-    uint8_t pn = pgm_read_byte(pp + offsetof(QZSS_DCX_CAMF_D27_NOISE_RANGE_PARENT_Entry, len));
-    return azarac_pgm_join(QZSS_DCX_CAMF_D27_NOISE_RANGE_POOL + off, n, QZSS_DCX_CAMF_D27_NOISE_RANGE_PARENT_POOL + poff, pn);
+    return azarac_pgm_join_z(QZSS_DCX_CAMF_D27_NOISE_RANGE_POOL + off, QZSS_DCX_CAMF_D27_NOISE_RANGE_PARENT_POOL + poff);
 }
 #else
 inline constexpr const char* QZSS_DCX_CAMF_D27_NOISE_RANGE_TABLE[] = {

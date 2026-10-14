@@ -35,9 +35,9 @@ def uint_type(limit: int) -> str:
 # Index of the "no parent" row: a table may use 0..254 as parent indices.
 PARENT_NONE = 0xFF
 
-def _split_offsets(text: bytes, min_len: int) -> list:
+def _split_offsets(text: bytes) -> list:
     """Split points that keep both halves valid UTF-8 (never inside a char)."""
-    return [k for k in range(min_len, len(text)) if text[k] & 0xC0 != 0x80]
+    return [k for k in range(1, len(text)) if text[k] & 0xC0 != 0x80]
 
 def factor_parents(labels: dict, min_len: int = 4,
                    min_uses = (4, 8, 16, 32, 64), max_parents: int = 0xFF):
@@ -48,11 +48,13 @@ def factor_parents(labels: dict, min_len: int = 4,
     "Hokkaido Prefecture" once per city. Storing each repeated part once and
     joining it at lookup time is what this returns.
 
-    A parent is any prefix or suffix shared by at least `min_uses` labels of the
-    table; each label takes the longest such part. `min_uses` is swept because
-    the two costs pull in opposite directions: a long part is worth more per
-    label but is shared by fewer of them, so the parent table's own bytes are
-    amortised over less. The cheapest candidate wins.
+    A parent is any prefix or suffix of at least `min_len` bytes shared by at
+    least `min_uses` labels of the table; each label takes the longest such part
+    (the child may be as short as one byte — "0 hPa" splits into "0" + " hPa").
+    `min_uses` is swept because the two costs pull in opposite directions: a
+    long part is worth more per label but is shared by fewer of them, so the
+    parent table's own bytes are amortised over less. The cheapest candidate
+    wins.
 
     One direction is kept per table (majority wins): the join is then a
     compile-time constant, and the entry needs a parent index but no order bit.
@@ -72,14 +74,16 @@ def factor_parents(labels: dict, min_len: int = 4,
     for uses_min in min_uses:
         head, tail = {}, {}
         for t in texts:
-            for k in _split_offsets(t, min_len):
+            for k in _split_offsets(t):
                 head[t[:k]] = head.get(t[:k], 0) + 1
                 tail[t[k:]] = tail.get(t[k:], 0) + 1
         cand_of = {}
         for i, t in enumerate(texts):
             best_i = None
-            for k in _split_offsets(t, min_len):
+            for k in _split_offsets(t):
                 for kind, part, child in (('pre', t[:k], t[k:]), ('post', t[k:], t[:k])):
+                    if len(part) < min_len:
+                        continue
                     uses = (head if kind == 'pre' else tail).get(part, 0)
                     if uses < uses_min:
                         continue

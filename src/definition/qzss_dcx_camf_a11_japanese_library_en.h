@@ -28,56 +28,56 @@ namespace def {
 #if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCX_CAMF_A11_JAPANESE_LIBRARY_EN_POOL[] = "No instruction\000the best immediate action to save your life.\000This is a test message for DCX.\000the best immediate action to save your life.\000Missile launched, missile launched. It is believed that a missile was launched. Please take shelter inside buildings or underground.\000Missile passed, missile passed. It is believed that the previous missile has passed over the area. The call for evacuation will be canceled. If you find any suspicious object, please stay away from it and inform the police or the fire department immediately.\000It is believed that the previous missile has dropped in the sea. The call for evacuation will be canceled. If you find any suspicious object, please stay away from it and inform the police or the fire department immediately.\000It is believed that the previous missile will not come to Japan. The call for evacuation will be canceled.\000shelter immediately, take shelter immediately. Please take shelter inside buildings or underground. It is believed that a missile will drop around this area. Please take shelter immediately.\000The previous missile has been intercepted and destroyed. There is a possibility of pieces of the destroyed missile dropping. We will keep you informed. Please stay indoors for shelter.\000Missile dropped, missile dropped. It is believed that a missile has dropped around this area. We will keep you informed. Please stay indoors for shelter.\000It is believed that the previous missile will not drop in Japan. The call for evacuation will be canceled.\000This is a test message for J-Alert.\000immediate action to save your life.\000.\000Under/inside a solid structure.\0003rd floor or higher.\000Stay. Underground.\000Mountain.\000Water area.\000Building where chemicals are handled, such as a factory.\000Cliffs and areas at risk of collapse.\000d\000Under/inside a solid structure.\0003rd floor or higher.\000Underground.\000Mountain.\000Water area.\000Building where chemicals are handled, such as a factory.\000Cliffs and areas at risk of collapse.\000m\000Under/inside a solid structure.\0003rd floor or higher.\000Underground.\000Mountain.\000Water area.\000Building where chemicals are handled, such as a factory.\000Cliffs and areas at risk of collapse.\000";
 static const char AZARAC_PROGMEM QZSS_DCX_CAMF_A11_JAPANESE_LIBRARY_EN_PARENT_POOL[] = "Keep away fro\000Keep away from \000Move to/towar\000Move to/toward \000Stay\000Stay. \000Take \000";
-struct QZSS_DCX_CAMF_A11_JAPANESE_LIBRARY_EN_PARENT_Entry { uint16_t offset; uint8_t len; };
+struct QZSS_DCX_CAMF_A11_JAPANESE_LIBRARY_EN_PARENT_Entry { uint16_t offset; };
 static const QZSS_DCX_CAMF_A11_JAPANESE_LIBRARY_EN_PARENT_Entry QZSS_DCX_CAMF_A11_JAPANESE_LIBRARY_EN_PARENT_TABLE[] AZARAC_PROGMEM = {
-    {0u, 13u},
-    {14u, 15u},
-    {30u, 13u},
-    {44u, 15u},
-    {60u, 4u},
-    {65u, 6u},
-    {72u, 5u},
+    {0u},
+    {14u},
+    {30u},
+    {44u},
+    {60u},
+    {65u},
+    {72u},
 };
-struct QZSS_DCX_CAMF_A11_JAPANESE_LIBRARY_EN_Entry { uint16_t id; uint8_t parent; uint16_t offset; uint16_t len; };
+struct QZSS_DCX_CAMF_A11_JAPANESE_LIBRARY_EN_Entry { uint16_t id; uint8_t parent; uint16_t offset; };
 static const QZSS_DCX_CAMF_A11_JAPANESE_LIBRARY_EN_Entry QZSS_DCX_CAMF_A11_JAPANESE_LIBRARY_EN_TABLE[] AZARAC_PROGMEM = {
-    {0u, 255u, 0u, 14u},
-    {1u, 6u, 15u, 44u},
-    {126u, 255u, 60u, 31u},
-    {127u, 6u, 92u, 44u},
-    {128u, 255u, 137u, 132u},
-    {129u, 255u, 270u, 258u},
-    {130u, 255u, 529u, 224u},
-    {131u, 255u, 754u, 106u},
-    {132u, 6u, 861u, 190u},
-    {133u, 255u, 1052u, 184u},
-    {134u, 255u, 1237u, 153u},
-    {135u, 255u, 1391u, 106u},
-    {136u, 255u, 1498u, 35u},
-    {255u, 6u, 1534u, 35u},
-    {256u, 4u, 1570u, 1u},
-    {257u, 5u, 1572u, 31u},
-    {258u, 5u, 1604u, 20u},
-    {259u, 255u, 1625u, 18u},
-    {260u, 5u, 1644u, 9u},
-    {261u, 5u, 1654u, 11u},
-    {262u, 5u, 1666u, 56u},
-    {263u, 5u, 1723u, 37u},
-    {512u, 2u, 1761u, 1u},
-    {513u, 3u, 1763u, 31u},
-    {514u, 3u, 1795u, 20u},
-    {515u, 3u, 1816u, 12u},
-    {516u, 3u, 1829u, 9u},
-    {517u, 3u, 1839u, 11u},
-    {518u, 3u, 1851u, 56u},
-    {519u, 3u, 1908u, 37u},
-    {768u, 0u, 1946u, 1u},
-    {769u, 1u, 1948u, 31u},
-    {770u, 1u, 1980u, 20u},
-    {771u, 1u, 2001u, 12u},
-    {772u, 1u, 2014u, 9u},
-    {773u, 1u, 2024u, 11u},
-    {774u, 1u, 2036u, 56u},
-    {775u, 1u, 2093u, 37u},
+    {0u, 255u, 0u},
+    {1u, 6u, 15u},
+    {126u, 255u, 60u},
+    {127u, 6u, 92u},
+    {128u, 255u, 137u},
+    {129u, 255u, 270u},
+    {130u, 255u, 529u},
+    {131u, 255u, 754u},
+    {132u, 6u, 861u},
+    {133u, 255u, 1052u},
+    {134u, 255u, 1237u},
+    {135u, 255u, 1391u},
+    {136u, 255u, 1498u},
+    {255u, 6u, 1534u},
+    {256u, 4u, 1570u},
+    {257u, 5u, 1572u},
+    {258u, 5u, 1604u},
+    {259u, 255u, 1625u},
+    {260u, 5u, 1644u},
+    {261u, 5u, 1654u},
+    {262u, 5u, 1666u},
+    {263u, 5u, 1723u},
+    {512u, 2u, 1761u},
+    {513u, 3u, 1763u},
+    {514u, 3u, 1795u},
+    {515u, 3u, 1816u},
+    {516u, 3u, 1829u},
+    {517u, 3u, 1839u},
+    {518u, 3u, 1851u},
+    {519u, 3u, 1908u},
+    {768u, 0u, 1946u},
+    {769u, 1u, 1948u},
+    {770u, 1u, 1980u},
+    {771u, 1u, 2001u},
+    {772u, 1u, 2014u},
+    {773u, 1u, 2024u},
+    {774u, 1u, 2036u},
+    {775u, 1u, 2093u},
 };
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_a11_japanese_library_en_lookup(uint16_t id) noexcept {
     uint8_t lo = 0, hi = 38;
@@ -87,13 +87,11 @@ static const QZSS_DCX_CAMF_A11_JAPANESE_LIBRARY_EN_Entry QZSS_DCX_CAMF_A11_JAPAN
         uint16_t eid = pgm_read_word(ep + offsetof(QZSS_DCX_CAMF_A11_JAPANESE_LIBRARY_EN_Entry, id));
         if (eid == id) {
             uint16_t off = pgm_read_word(ep + offsetof(QZSS_DCX_CAMF_A11_JAPANESE_LIBRARY_EN_Entry, offset));
-            uint16_t n = pgm_read_word(ep + offsetof(QZSS_DCX_CAMF_A11_JAPANESE_LIBRARY_EN_Entry, len));
             uint8_t pi = pgm_read_byte(ep + offsetof(QZSS_DCX_CAMF_A11_JAPANESE_LIBRARY_EN_Entry, parent));
-            if (pi == 255u) return azarac_pgm_view(QZSS_DCX_CAMF_A11_JAPANESE_LIBRARY_EN_POOL + off, n);
+            if (pi == 255u) return azarac_pgm_view_z(QZSS_DCX_CAMF_A11_JAPANESE_LIBRARY_EN_POOL + off);
             const char* AZARAC_PROGMEM pp = reinterpret_cast<const char*>(&QZSS_DCX_CAMF_A11_JAPANESE_LIBRARY_EN_PARENT_TABLE[pi]);
             uint16_t poff = pgm_read_word(pp + offsetof(QZSS_DCX_CAMF_A11_JAPANESE_LIBRARY_EN_PARENT_Entry, offset));
-            uint8_t pn = pgm_read_byte(pp + offsetof(QZSS_DCX_CAMF_A11_JAPANESE_LIBRARY_EN_PARENT_Entry, len));
-            return azarac_pgm_join(QZSS_DCX_CAMF_A11_JAPANESE_LIBRARY_EN_PARENT_POOL + poff, pn, QZSS_DCX_CAMF_A11_JAPANESE_LIBRARY_EN_POOL + off, n);
+            return azarac_pgm_join_z(QZSS_DCX_CAMF_A11_JAPANESE_LIBRARY_EN_PARENT_POOL + poff, QZSS_DCX_CAMF_A11_JAPANESE_LIBRARY_EN_POOL + off);
         }
         if (eid < id) lo = static_cast<uint8_t>(mid + 1); else hi = mid;
     }

@@ -30,37 +30,35 @@ inline constexpr uint8_t QZSS_DCX_CAMF_D8_WIND_SPEED_SIZE = 13;
 #if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D8_WIND_SPEED_POOL[] = "0 - 0km/h < v < 1km/h - Calm\0001 - 1km/h < v < 5km/h - Light Air\0002 - 6km/h < v < 11km/h - Light Breeze\0003 - 12km/h < v < 19km/h - Gentle Breeze\0004 - 20km/h < v < 30km/h - Moderate Breeze\0005 - 31km/h < v < 39km/h - Fresh Breeze\0006 - 40km/h < v < 50km/h - Strong Breeze\0007 - 51km/h < v < 61km/h - Near Gale\0008 - 62km/h < v < 74km/h - Gale\0009 - 75km/h < v < 88km/h - Strong Gale\00010 - 89km/h < v < 102km/h - Storm\00011 - 103km/h < v < 117km/h - Violent Storm\00012 - v > 118km/h - Hurricane\000";
 static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D8_WIND_SPEED_PARENT_POOL[] = "Beaufort \000";
-struct QZSS_DCX_CAMF_D8_WIND_SPEED_PARENT_Entry { uint16_t offset; uint8_t len; };
+struct QZSS_DCX_CAMF_D8_WIND_SPEED_PARENT_Entry { uint16_t offset; };
 static const QZSS_DCX_CAMF_D8_WIND_SPEED_PARENT_Entry QZSS_DCX_CAMF_D8_WIND_SPEED_PARENT_TABLE[] AZARAC_PROGMEM = {
-    {0u, 9u},
+    {0u},
 };
-struct QZSS_DCX_CAMF_D8_WIND_SPEED_Entry { uint16_t offset; uint8_t len; uint8_t parent; };
+struct QZSS_DCX_CAMF_D8_WIND_SPEED_Entry { uint16_t offset; uint8_t parent; };
 static const QZSS_DCX_CAMF_D8_WIND_SPEED_Entry QZSS_DCX_CAMF_D8_WIND_SPEED_TABLE[] AZARAC_PROGMEM = {
-    {0u, 28u, 0u},
-    {29u, 33u, 0u},
-    {63u, 37u, 0u},
-    {101u, 39u, 0u},
-    {141u, 41u, 0u},
-    {183u, 38u, 0u},
-    {222u, 39u, 0u},
-    {262u, 35u, 0u},
-    {298u, 30u, 0u},
-    {329u, 37u, 0u},
-    {367u, 33u, 0u},
-    {401u, 42u, 0u},
-    {444u, 28u, 0u}
+    {0u, 0u},
+    {29u, 0u},
+    {63u, 0u},
+    {101u, 0u},
+    {141u, 0u},
+    {183u, 0u},
+    {222u, 0u},
+    {262u, 0u},
+    {298u, 0u},
+    {329u, 0u},
+    {367u, 0u},
+    {401u, 0u},
+    {444u, 0u}
 };
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_d8_wind_speed_lookup(uint8_t id) noexcept {
     if (id < QZSS_DCX_CAMF_D8_WIND_SPEED_BASE || id >= QZSS_DCX_CAMF_D8_WIND_SPEED_BASE + QZSS_DCX_CAMF_D8_WIND_SPEED_SIZE) return std::nullopt;
     const char* AZARAC_PROGMEM p = reinterpret_cast<const char*>(&QZSS_DCX_CAMF_D8_WIND_SPEED_TABLE[id - 0u]);
     uint16_t off = pgm_read_word(p + offsetof(QZSS_DCX_CAMF_D8_WIND_SPEED_Entry, offset));
-    uint8_t n = pgm_read_byte(p + offsetof(QZSS_DCX_CAMF_D8_WIND_SPEED_Entry, len));
     uint8_t pi = pgm_read_byte(p + offsetof(QZSS_DCX_CAMF_D8_WIND_SPEED_Entry, parent));
-    if (pi == 255u) return azarac_pgm_view(QZSS_DCX_CAMF_D8_WIND_SPEED_POOL + off, n);
+    if (pi == 255u) return azarac_pgm_view_z(QZSS_DCX_CAMF_D8_WIND_SPEED_POOL + off);
     const char* AZARAC_PROGMEM pp = reinterpret_cast<const char*>(&QZSS_DCX_CAMF_D8_WIND_SPEED_PARENT_TABLE[pi]);
     uint16_t poff = pgm_read_word(pp + offsetof(QZSS_DCX_CAMF_D8_WIND_SPEED_PARENT_Entry, offset));
-    uint8_t pn = pgm_read_byte(pp + offsetof(QZSS_DCX_CAMF_D8_WIND_SPEED_PARENT_Entry, len));
-    return azarac_pgm_join(QZSS_DCX_CAMF_D8_WIND_SPEED_PARENT_POOL + poff, pn, QZSS_DCX_CAMF_D8_WIND_SPEED_POOL + off, n);
+    return azarac_pgm_join_z(QZSS_DCX_CAMF_D8_WIND_SPEED_PARENT_POOL + poff, QZSS_DCX_CAMF_D8_WIND_SPEED_POOL + off);
 }
 #else
 inline constexpr const char* QZSS_DCX_CAMF_D8_WIND_SPEED_TABLE[] = {

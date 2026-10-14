@@ -27,27 +27,27 @@ namespace def {
 
 #if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_POOL[] = "No instruction\000Prepare for evacuation. Take only the essentials with you, especially ID cards, passport, credit cards and cash. Evacuate only after the instruction of the emergency authorities.\000Prepare emergency food and relief material: Check and restock your equipment and supplies of water, food, medicine, cash and batteries.\000Be prepared to protect yourself and your property. Flooding of properties and transport networks is expected. Disruption to power, communications and water supplies are possible. Evacuation may be required. Dangerous driving conditions due to reduced visibility and aquaplaning.\000Have iodine tablets ready. DO NOT take the iodine tablets now. If this becomes necessary, we will inform you in good time.\000Keep your smartphone charged to be able to receive further instructions and information.\000Avoid using lifts.\000Avoid the danger area.\000Avoid driving.\000Rescue operation under process by security forces and emergency services. Avoid moving to facilitate security and emergency actions.\000Check with the weather services and local authorities for additional information.\000Find out the location of the information points set up by the authorities on official channels (radio, internet, TV, social networks...).\000Sensitive or vulnerable people should not go out unless they must.\000Protect the most vulnerable and hear from your loved ones. Be aware of their special needs and support, as required. If you notice distressed or vulnerable persons, contact the emergency services. Provide first aid if necessary but do not put yourself in any danger.\000Pay attention to announcements made by the police, fire brigade and by officials.\000Stay aware, keep listening to official instructions broadcast on the radio, television, websites and social networks pages.\000Only make phone calls in serious emergencies to avoid overloading the mobile network.\000This is only a test. You do not have to take any action or to adopt any particular sheltering behaviour.\000Conditions have improved and are no longer expected to meet alert criteria.\000";
-struct QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_Entry { uint8_t id; uint16_t offset; uint16_t len; };
+struct QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_Entry { uint8_t id; uint16_t offset; };
 static const QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_Entry QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_TABLE[] AZARAC_PROGMEM = {
-    {0u, 0u, 14u},
-    {1u, 15u, 178u},
-    {2u, 194u, 135u},
-    {3u, 330u, 278u},
-    {4u, 609u, 122u},
-    {5u, 732u, 88u},
-    {6u, 821u, 18u},
-    {7u, 840u, 22u},
-    {8u, 863u, 14u},
-    {9u, 878u, 132u},
-    {10u, 1011u, 81u},
-    {11u, 1093u, 137u},
-    {12u, 1231u, 66u},
-    {13u, 1298u, 266u},
-    {14u, 1565u, 81u},
-    {15u, 1647u, 123u},
-    {16u, 1771u, 85u},
-    {30u, 1857u, 104u},
-    {31u, 1962u, 75u},
+    {0u, 0u},
+    {1u, 15u},
+    {2u, 194u},
+    {3u, 330u},
+    {4u, 609u},
+    {5u, 732u},
+    {6u, 821u},
+    {7u, 840u},
+    {8u, 863u},
+    {9u, 878u},
+    {10u, 1011u},
+    {11u, 1093u},
+    {12u, 1231u},
+    {13u, 1298u},
+    {14u, 1565u},
+    {15u, 1647u},
+    {16u, 1771u},
+    {30u, 1857u},
+    {31u, 1962u},
 };
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_c10_instruction_library_for_second_ellipse_lookup(uint8_t id) noexcept {
     uint8_t lo = 0, hi = 19;
@@ -57,8 +57,7 @@ static const QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_Entry QZSS
         uint8_t eid = static_cast<uint8_t>(pgm_read_byte(ep + offsetof(QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_Entry, id)));
         if (eid == id) {
             uint16_t off = pgm_read_word(ep + offsetof(QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_Entry, offset));
-            uint16_t n = pgm_read_word(ep + offsetof(QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_Entry, len));
-            return azarac_pgm_view(QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_POOL + off, n);
+            return azarac_pgm_view_z(QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_POOL + off);
         }
         if (eid < id) lo = static_cast<uint8_t>(mid + 1); else hi = mid;
     }

@@ -30,59 +30,57 @@ inline constexpr uint8_t QZSS_DCX_CAMF_D14_SNOW_DEPTH_SIZE = 31;
 #if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D14_SNOW_DEPTH_POOL[] = "0cm < daily snow depth ≤ \00020cm < daily snow depth ≤ \00040cm < daily snow depth ≤ \00060cm < daily snow depth ≤ \00080cm < daily snow depth ≤ 1\000100cm < daily snow depth ≤ 1\000120cm < daily snow depth ≤ 1\000140cm < daily snow depth ≤ 1\000160cm < daily snow depth ≤ 1\000180cm < daily snow depth ≤ 2\000200cm < daily snow depth ≤ 2\000220cm < daily snow depth ≤ 2\000240cm < daily snow depth ≤ 2\000260cm < daily snow depth ≤ 2\000280cm < daily snow depth ≤ 3\000300cm < daily snow depth ≤ 3\000320cm < daily snow depth ≤ 3\000340cm < daily snow depth ≤ 3\000360cm < daily snow depth ≤ 3\000380cm < daily snow depth ≤ 4\000400cm < daily snow depth ≤ 4\000420cm < daily snow depth ≤ 4\000440cm < daily snow depth ≤ 4\000460cm < daily snow depth ≤ 4\000480cm < daily snow depth ≤ 5\000500cm < daily snow depth ≤ 5\000520cm < daily snow depth ≤ 5\000540cm < daily snow depth ≤ 5\000560cm < daily snow depth ≤ 5\000580cm < daily snow depth ≤ 6\000daily snow depth > 6\000";
 static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D14_SNOW_DEPTH_PARENT_POOL[] = "00cm\00020cm\00040cm\00060cm\00080cm\000";
-struct QZSS_DCX_CAMF_D14_SNOW_DEPTH_PARENT_Entry { uint16_t offset; uint8_t len; };
+struct QZSS_DCX_CAMF_D14_SNOW_DEPTH_PARENT_Entry { uint16_t offset; };
 static const QZSS_DCX_CAMF_D14_SNOW_DEPTH_PARENT_Entry QZSS_DCX_CAMF_D14_SNOW_DEPTH_PARENT_TABLE[] AZARAC_PROGMEM = {
-    {0u, 4u},
-    {5u, 4u},
-    {10u, 4u},
-    {15u, 4u},
-    {20u, 4u},
+    {0u},
+    {5u},
+    {10u},
+    {15u},
+    {20u},
 };
-struct QZSS_DCX_CAMF_D14_SNOW_DEPTH_Entry { uint16_t offset; uint8_t len; uint8_t parent; };
+struct QZSS_DCX_CAMF_D14_SNOW_DEPTH_Entry { uint16_t offset; uint8_t parent; };
 static const QZSS_DCX_CAMF_D14_SNOW_DEPTH_Entry QZSS_DCX_CAMF_D14_SNOW_DEPTH_TABLE[] AZARAC_PROGMEM = {
-    {0u, 27u, 1u},
-    {28u, 28u, 2u},
-    {57u, 28u, 3u},
-    {86u, 28u, 4u},
-    {115u, 29u, 0u},
-    {145u, 30u, 1u},
-    {176u, 30u, 2u},
-    {207u, 30u, 3u},
-    {238u, 30u, 4u},
-    {269u, 30u, 0u},
-    {300u, 30u, 1u},
-    {331u, 30u, 2u},
-    {362u, 30u, 3u},
-    {393u, 30u, 4u},
-    {424u, 30u, 0u},
-    {455u, 30u, 1u},
-    {486u, 30u, 2u},
-    {517u, 30u, 3u},
-    {548u, 30u, 4u},
-    {579u, 30u, 0u},
-    {610u, 30u, 1u},
-    {641u, 30u, 2u},
-    {672u, 30u, 3u},
-    {703u, 30u, 4u},
-    {734u, 30u, 0u},
-    {765u, 30u, 1u},
-    {796u, 30u, 2u},
-    {827u, 30u, 3u},
-    {858u, 30u, 4u},
-    {889u, 30u, 0u},
-    {920u, 20u, 0u}
+    {0u, 1u},
+    {28u, 2u},
+    {57u, 3u},
+    {86u, 4u},
+    {115u, 0u},
+    {145u, 1u},
+    {176u, 2u},
+    {207u, 3u},
+    {238u, 4u},
+    {269u, 0u},
+    {300u, 1u},
+    {331u, 2u},
+    {362u, 3u},
+    {393u, 4u},
+    {424u, 0u},
+    {455u, 1u},
+    {486u, 2u},
+    {517u, 3u},
+    {548u, 4u},
+    {579u, 0u},
+    {610u, 1u},
+    {641u, 2u},
+    {672u, 3u},
+    {703u, 4u},
+    {734u, 0u},
+    {765u, 1u},
+    {796u, 2u},
+    {827u, 3u},
+    {858u, 4u},
+    {889u, 0u},
+    {920u, 0u}
 };
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_d14_snow_depth_lookup(uint8_t id) noexcept {
     if (id < QZSS_DCX_CAMF_D14_SNOW_DEPTH_BASE || id >= QZSS_DCX_CAMF_D14_SNOW_DEPTH_BASE + QZSS_DCX_CAMF_D14_SNOW_DEPTH_SIZE) return std::nullopt;
     const char* AZARAC_PROGMEM p = reinterpret_cast<const char*>(&QZSS_DCX_CAMF_D14_SNOW_DEPTH_TABLE[id - 0u]);
     uint16_t off = pgm_read_word(p + offsetof(QZSS_DCX_CAMF_D14_SNOW_DEPTH_Entry, offset));
-    uint8_t n = pgm_read_byte(p + offsetof(QZSS_DCX_CAMF_D14_SNOW_DEPTH_Entry, len));
     uint8_t pi = pgm_read_byte(p + offsetof(QZSS_DCX_CAMF_D14_SNOW_DEPTH_Entry, parent));
-    if (pi == 255u) return azarac_pgm_view(QZSS_DCX_CAMF_D14_SNOW_DEPTH_POOL + off, n);
+    if (pi == 255u) return azarac_pgm_view_z(QZSS_DCX_CAMF_D14_SNOW_DEPTH_POOL + off);
     const char* AZARAC_PROGMEM pp = reinterpret_cast<const char*>(&QZSS_DCX_CAMF_D14_SNOW_DEPTH_PARENT_TABLE[pi]);
     uint16_t poff = pgm_read_word(pp + offsetof(QZSS_DCX_CAMF_D14_SNOW_DEPTH_PARENT_Entry, offset));
-    uint8_t pn = pgm_read_byte(pp + offsetof(QZSS_DCX_CAMF_D14_SNOW_DEPTH_PARENT_Entry, len));
-    return azarac_pgm_join(QZSS_DCX_CAMF_D14_SNOW_DEPTH_POOL + off, n, QZSS_DCX_CAMF_D14_SNOW_DEPTH_PARENT_POOL + poff, pn);
+    return azarac_pgm_join_z(QZSS_DCX_CAMF_D14_SNOW_DEPTH_POOL + off, QZSS_DCX_CAMF_D14_SNOW_DEPTH_PARENT_POOL + poff);
 }
 #else
 inline constexpr const char* QZSS_DCX_CAMF_D14_SNOW_DEPTH_TABLE[] = {

@@ -11,6 +11,7 @@ import importlib
 import os
 import pkgutil
 import sys
+import time
 
 sys.path.insert(0, os.path.dirname(__file__))
 from strategy import choose, key_type, uint_type, factor_parents, PARENT_NONE
@@ -258,17 +259,15 @@ def c_str_literal(s):
 
 # --- AVR label storage ------------------------------------------------------
 # A pool-backed AVR table stores its labels as one NUL-separated literal plus
-# rows of {key, offset, len}. Two families (target_area_code, local_government)
-# repeat the region a label belongs to on every row — "Sapporo City, Hokkaido
+# rows of {key, offset} — the pool already delimits each entry, so the lookup
+# takes the length from the pool itself (azarac_pgm_len) instead of paying a
+# byte per row for it. Two families (target_area_code, local_government) repeat
+# the region a label belongs to on every row — "Sapporo City, Hokkaido
 # Prefecture", "北海道札幌市" — so factor_parents (strategy.py) can split those
 # labels into a child and a shared parent name; the row then carries a parent
 # index and the lookup joins the halves in FlashString's shared RAM buffer, so
 # SRAM does not grow. The plain layout stays the default: it is preferred
 # whenever factoring does not actually save bytes.
-
-def _len_type(labels) -> str:
-    """Narrowest type that holds the longest label (AVR entry `len` field)."""
-    return uint_type(max((len(v.encode('utf-8')) for v in labels), default=0))
 
 def _pool_decl(guard, name, strings):
     """The NUL-separated pool literal, plus the {offset, len} of each label."""
@@ -297,42 +296,39 @@ def avr_label_storage(guard, kt, keys, entries, ptr, as_cstr=False):
     plan = factor_parents(entries)
     children = plan["children"] if plan else entries
     entry = f"{guard}_Entry"
-    ltype = _len_type(children.values())
+    plain = f"azarac_pgm_copy({guard}_POOL + off)" if as_cstr else f"azarac_pgm_view_z({guard}_POOL + off)"
+    ret = ".data()" if as_cstr else ""
     pool, offs = _pool_decl(guard, "POOL", [(k, children[k]) for k in keys])
     decls = [pool]
-    fetch = [f"uint16_t off = {_read(entry, 'offset', ptr, 'uint16_t')};",
-             f"{ltype} n = {_read(entry, 'len', ptr, ltype)};"]
-    ret = ".data()" if as_cstr else ""
+    fetch = [f"uint16_t off = {_read(entry, 'offset', ptr, 'uint16_t')};"]
     if plan:
         parent = f"{guard}_PARENT_Entry"
-        pltype = _len_type(plan["parents"])
         ppool, poffs = _pool_decl(guard, "PARENT_POOL", list(enumerate(plan["parents"])))
         decls += [
             ppool,
-            f"struct {parent} {{ uint16_t offset; {pltype} len; }};",
+            f"struct {parent} {{ uint16_t offset; }};",
             f"static const {parent} {guard}_PARENT_TABLE[] AZARAC_PROGMEM = {{",
-            "\n".join(f'    {{{poffs[i][0]}u, {poffs[i][1]}u}},' for i in range(len(plan["parents"]))),
+            "\n".join(f'    {{{poffs[i][0]}u}},' for i in range(len(plan["parents"]))),
             "};",
-            f"struct {entry} {{ {kt} id; uint8_t parent; uint16_t offset; {ltype} len; }};",
+            f"struct {entry} {{ {kt} id; uint8_t parent; uint16_t offset; }};",
         ]
-        rows = [f'    {{{k}u, {sel}u, {offs[k][0]}u, {offs[k][1]}u}},'
+        rows = [f'    {{{k}u, {sel}u, {offs[k][0]}u}},'
                 for k, sel in ((k, plan["sel"][k] if plan["sel"][k] is not None else PARENT_NONE)
                                for k in keys)]
         fetch += [
             f"uint8_t pi = {_read(entry, 'parent', ptr, 'uint8_t')};",
-            f"if (pi == {PARENT_NONE}u) return azarac_pgm_view({guard}_POOL + off, n){ret};",
+            f"if (pi == {PARENT_NONE}u) return {plain};",
             f"const char* AZARAC_PROGMEM pp = reinterpret_cast<const char*>(&{guard}_PARENT_TABLE[pi]);",
             f"uint16_t poff = {_read(parent, 'offset', 'pp', 'uint16_t')};",
-            f"{pltype} pn = {_read(parent, 'len', 'pp', pltype)};",
             # 'pre': "北海道" + "札幌市"; 'post': "Sapporo City" + ", Hokkaido Prefecture".
-            f"return azarac_pgm_join({guard}_PARENT_POOL + poff, pn, {guard}_POOL + off, n){ret};"
+            f"return azarac_pgm_join_z({guard}_PARENT_POOL + poff, {guard}_POOL + off){ret};"
             if plan["order"] == "pre" else
-            f"return azarac_pgm_join({guard}_POOL + off, n, {guard}_PARENT_POOL + poff, pn){ret};",
+            f"return azarac_pgm_join_z({guard}_POOL + off, {guard}_PARENT_POOL + poff){ret};",
         ]
     else:
-        rows = [f'    {{{k}u, {offs[k][0]}u, {offs[k][1]}u}},' for k in keys]
-        decls += [f"struct {entry} {{ {kt} id; uint16_t offset; {ltype} len; }};"]
-        fetch += [f"return azarac_pgm_view({guard}_POOL + off, n){ret};"]
+        rows = [f'    {{{k}u, {offs[k][0]}u}},' for k in keys]
+        decls += [f"struct {entry} {{ {kt} id; uint16_t offset; }};"]
+        fetch += [f"return {plain};"]
     decls += [f"static const {entry} {guard}_TABLE[] AZARAC_PROGMEM = {{",
               "\n".join(rows),
               "};"]
@@ -348,41 +344,37 @@ def avr_positional_label_storage(guard, table, ptr):
     plan = factor_parents(labels)
     children = plan["children"] if plan else labels
     entry = f"{guard}_Entry"
-    ltype = _len_type(children.values())
     pool, offs = _pool_decl(guard, "POOL", [(i, children.get(i, "")) for i in range(len(table))])
     decls = [pool]
-    fetch = [f"uint16_t off = {_read(entry, 'offset', ptr, 'uint16_t')};",
-             f"{ltype} n = {_read(entry, 'len', ptr, ltype)};"]
+    fetch = [f"uint16_t off = {_read(entry, 'offset', ptr, 'uint16_t')};"]
     if plan:
         parent = f"{guard}_PARENT_Entry"
-        pltype = _len_type(plan["parents"])
         ppool, poffs = _pool_decl(guard, "PARENT_POOL", list(enumerate(plan["parents"])))
         decls += [
             ppool,
-            f"struct {parent} {{ uint16_t offset; {pltype} len; }};",
+            f"struct {parent} {{ uint16_t offset; }};",
             f"static const {parent} {guard}_PARENT_TABLE[] AZARAC_PROGMEM = {{",
-            "\n".join(f'    {{{poffs[i][0]}u, {poffs[i][1]}u}},' for i in range(len(plan["parents"]))),
+            "\n".join(f'    {{{poffs[i][0]}u}},' for i in range(len(plan["parents"]))),
             "};",
-            f"struct {entry} {{ uint16_t offset; {ltype} len; uint8_t parent; }};",
+            f"struct {entry} {{ uint16_t offset; uint8_t parent; }};",
         ]
-        rows = [f'    {{{offs[i][0]}u, {offs[i][1]}u, {sel}u}}'
+        rows = [f'    {{{offs[i][0]}u, {sel}u}}'
                 for i, sel in ((i, plan["sel"][i] if i in plan["sel"] and plan["sel"][i] is not None
                                 else PARENT_NONE)
                                for i in range(len(table)))]
         fetch += [
             f"uint8_t pi = {_read(entry, 'parent', ptr, 'uint8_t')};",
-            f"if (pi == {PARENT_NONE}u) return azarac_pgm_view({guard}_POOL + off, n);",
+            f"if (pi == {PARENT_NONE}u) return azarac_pgm_view_z({guard}_POOL + off);",
             f"const char* AZARAC_PROGMEM pp = reinterpret_cast<const char*>(&{guard}_PARENT_TABLE[pi]);",
             f"uint16_t poff = {_read(parent, 'offset', 'pp', 'uint16_t')};",
-            f"{pltype} pn = {_read(parent, 'len', 'pp', pltype)};",
-            f"return azarac_pgm_join({guard}_PARENT_POOL + poff, pn, {guard}_POOL + off, n);"
+            f"return azarac_pgm_join_z({guard}_PARENT_POOL + poff, {guard}_POOL + off);"
             if plan["order"] == "pre" else
-            f"return azarac_pgm_join({guard}_POOL + off, n, {guard}_PARENT_POOL + poff, pn);",
+            f"return azarac_pgm_join_z({guard}_POOL + off, {guard}_PARENT_POOL + poff);",
         ]
     else:
-        rows = [f'    {{{offs[i][0]}u, {offs[i][1]}u}}' for i in range(len(table))]
-        decls += [f"struct {entry} {{ uint16_t offset; {ltype} len; }};"]
-        fetch += [f"return azarac_pgm_view({guard}_POOL + off, n);"]
+        rows = [f'    {{{offs[i][0]}u}}' for i in range(len(table))]
+        decls += [f"struct {entry} {{ uint16_t offset; }};"]
+        fetch += [f"return azarac_pgm_view_z({guard}_POOL + off);"]
     decls += [f"static const {entry} {guard}_TABLE[] AZARAC_PROGMEM = {{",
               ",\n".join(rows),
               "};"]
@@ -752,6 +744,26 @@ def build_header(modname, varname, entries, ver, all_varnames, obj=None, use_opt
         f"}} // namespace def\n}} // namespace azaraC\n"
     )
 
+def write_file(path, text):
+    """Write `text` to `path`, tolerating a transient Windows sharing error.
+
+    A file scanner (Defender, an indexer) can hold a freshly written header open
+    for a moment; on Windows that surfaces as OSError(EINVAL) rather than a
+    sharing violation, which aborts the whole generation and leaves the tree
+    half-updated. CI is Linux and never sees it, but a half-generated tree is
+    indistinguishable from a real drift failure, so retry briefly before giving
+    up.
+    """
+    for attempt in range(5):
+        try:
+            with open(path, "w", encoding="utf-8", newline="\n") as f:
+                f.write(text)
+            return
+        except OSError:
+            if attempt == 4:
+                raise
+            time.sleep(0.2 * (attempt + 1))
+
 def run(out_dir):
     os.makedirs(out_dir, exist_ok=True)
     base_path = find_def_path()
@@ -776,8 +788,7 @@ def run(out_dir):
         if hdr is None:
             print(f"[SKIP] {varname}: no integer keys", file=sys.stderr)
             continue
-        with open(os.path.join(out_dir, f"{varname}.h"), "w", encoding="utf-8", newline="\n") as f:
-            f.write(hdr)
+        write_file(os.path.join(out_dir, f"{varname}.h"), hdr)
         generated.append(varname)
 
     # _index.h — the hand-written headers are included last, so that a reader
@@ -810,12 +821,10 @@ def run(out_dir):
         + "\n"
         + extra_includes
     )
-    with open(os.path.join(out_dir, "_index.h"), "w", encoding="utf-8", newline="\n") as f:
-        f.write(idx)
+    write_file(os.path.join(out_dir, "_index.h"), idx)
     # version marker (write to repo root, relative to script location)
     repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    with open(os.path.join(repo_root, ".azarashi-version"), "w", newline="\n") as f:
-        f.write(ver + "\n")
+    write_file(os.path.join(repo_root, ".azarashi-version"), ver + "\n")
     print(f"Generated {len(generated)} headers + _index.h  (azarashi {ver})")
 
 if __name__ == "__main__":
