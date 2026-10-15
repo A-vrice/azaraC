@@ -215,8 +215,8 @@ if [[ -f "$OUT/pools.txt" ]]; then
     cross="$("$AVR_NM" --print-size --radix=d -C "$OUT"/obj/*.o 2>/dev/null | tr -d '\r' \
         | "$PYTHON" "$BENCH/crosscheck_tables.py" "$OUT/pools.txt")"
     echo "$cross"
-    cross_checked="$(printf '%s\n' "$cross" | sed -n 's/.*CROSSCHECK=\([0-9]*\)\/.*/\1/p')"
-    cross_matched="$(printf '%s\n' "$cross" | sed -n 's/.*CROSSCHECK=[0-9]*\/\([0-9]*\).*/\1/p')"
+    cross_checked="$(printf '%s\n' "$cross" | sed -n 's/.*CROSSCHECK=[0-9]*\/\([0-9]*\).*/\1/p')"
+    cross_matched="$(printf '%s\n' "$cross" | sed -n 's/.*CROSSCHECK=\([0-9]*\)\/.*/\1/p')"
 fi
 
 # ---------------------------------------------------------------- stage 4 ---
