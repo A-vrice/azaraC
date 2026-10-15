@@ -64,7 +64,7 @@ if (parser.feed(byte, msg, now)) { ... }
 | `AZARAC_NANKAI_MAX_PAGES` / `AZARAC_NANKAI_BUFFERS` | 63 / 1 | 防災気象情報(南海トラフ地震)の最大収集ページ数(1-63)と最大同時追跡数(1-32) |
 | `AZARAC_LANG_JA` / `AZARAC_LANG_EN` | 1 / 0 | 定義テーブルの言語選択 |
 | `AZARAC_ENABLE_*`（13個） | 1 | 災害カテゴリ別のデコード有効化/無効化|
-| `AZARAC_FLASH_BUF_SIZE` | 800 | PROGMEM参照用RAMバッファのサイズ。AVRでは有効カテゴリに応じて 64 / 80 / 540 / 800 に自動縮小 |
+| `AZARAC_FLASH_BUF_SIZE` | 800 | PROGMEM参照用RAMバッファのサイズ。AVRでは有効カテゴリに応じて 64 / 80 / 96 / 540 / 640 / 800 に自動縮小（有効なカテゴリの最長ラベルを収める） |
 
 AVR（Arduino Uno等）では専用プリセットにより有効カテゴリが絞られ、バッファサイズも縮小されます。プリセット値とメモリ要件の詳細は [アーキテクチャ](architecture.md#メモリ設計) を参照してください。
 
@@ -72,14 +72,14 @@ AVR（Arduino Uno等）では専用プリセットにより有効カテゴリが
 
 | Example | 説明 |
 |-------|----|
-| [basic_nmea](../examples/basic_nmea/) | NMEA $QZQSM の基本的な使用例 |
-| [basic_ubx](../examples/basic_ubx/) | UBX-RXM-SFRBX の基本的な使用例 |
-| [basic_uno](../examples/basic_uno/) | Arduino Uno (AVR) 用最小例 |
-| [with_sntp](../examples/with_sntp/) | SNTP 時刻解決 + EEW フィルタ |
-| [filter_by_category](../examples/filter_by_category/) | 災害カテゴリ別フィルタリング |
-| [error_handling](../examples/error_handling/) | エラーハンドリングと統計 |
-| [wifi_client](../examples/wifi_client/) | Wi-Fi クライアント出力 |
-| [rtos_freertos](../examples/rtos_freertos/) | FreeRTOS タスクベース処理 |
+| [basic_nmea](https://github.com/A-vrice/azaraC/tree/main/examples/basic_nmea/) | NMEA $QZQSM の基本的な使用例 |
+| [basic_ubx](https://github.com/A-vrice/azaraC/tree/main/examples/basic_ubx/) | UBX-RXM-SFRBX の基本的な使用例 |
+| [basic_uno](https://github.com/A-vrice/azaraC/tree/main/examples/basic_uno/) | Arduino Uno (AVR) 用最小例 |
+| [with_sntp](https://github.com/A-vrice/azaraC/tree/main/examples/with_sntp/) | SNTP 時刻解決 + EEW フィルタ |
+| [filter_by_category](https://github.com/A-vrice/azaraC/tree/main/examples/filter_by_category/) | 災害カテゴリ別フィルタリング |
+| [error_handling](https://github.com/A-vrice/azaraC/tree/main/examples/error_handling/) | エラーハンドリングと統計 |
+| [wifi_client](https://github.com/A-vrice/azaraC/tree/main/examples/wifi_client/) | Wi-Fi クライアント出力 |
+| [rtos_freertos](https://github.com/A-vrice/azaraC/tree/main/examples/rtos_freertos/) | FreeRTOS タスクベース処理 |
 
 ## テスト
 

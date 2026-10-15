@@ -116,7 +116,8 @@ make -C test fuzz FUZZ_ITERATIONS=100000
 | `make -C test run-small-pages` | `AZARAC_NANKAI_MAX_PAGES=8` で全体を再ビルドし、ページ打ち切り経路を検証（既定 63 では打ち切りが発生せず該当テストが `#if` で除外されるため） |
 | `make -C test decode` | decode_to_jsonのCLIビルド（azarashi 比較用） |
 | `make -C test dedup-realday` | 実日の `.l1s`（`realdata/`）に対する重複判定の再現計測。フレーム数・distinct・生存ピーク・再通知/取りこぼしを METRIC 行で出す。`REALDAY_CAT<n>_*` はカテゴリ別の内訳（`MISSED`=取りこぼし、`FALSE_RE`=再通知）、`REALDAY_UNALIGNED` は非整列フレーム数。`REALDAY_INPUT` で入力、`CXXFLAGS_EXTRA="-DAZARAC_DEDUP_SLOTS=…"` + `-B` で容量を変えて反復（**`CXXFLAGS_EXTRA` は依存関係に載らないため、スイープ後は `make -C test clean`** で残った `.o` を消す） |
-| `make -C test bench` | dedup フィルタのベンチ（`autoresearch.sh`）。`NEW_RECALL` / `DUP_SUPPRESS` / `*_KEY_STABLE` をゲート。CI の host-test でも実行 |
+| `make -C test bench` | 定義テーブルの AVR フットプリント計測（`autoresearch.sh` + `test/bench/avr/`）。avr-gcc / avr-libc と g++ / python が必要。ラベル一致（AVR far / AVR 16bit / ホスト）、ATmega2560 での全カテゴリのコンパイル、Uno と Mega の実リンク、SRAM 非増加、そして**コアの PROGMEM が16bit窓（64KiB）内に残る**ことをゲートする。CI の host-test でも実行 |
+| `make -C test bench-dedup` | dedup フィルタのベンチ（`test/bench/bench_dedup.cpp`、`test/bench/run_dedup_bench.sh`）。`NEW_RECALL` / `DUP_SUPPRESS` / `*_KEY_STABLE` をゲート。host の g++ だけで動く。CI の host-test でも実行 |
 | `make -C test compare-realdata` | azarashiとの処理比較（`pip install azarashi`が必要）。CI 外（手動。azarashi パッケージが必要） |
 | `make -C test check` / `check-xml` | 静的解析（cppcheck）と厳格コンパイルチェック |
 | `make -C test coverage` | カバレッジ測定 |
@@ -155,7 +156,7 @@ python test/scripts/gen_all_vectors.py
 git checkout -- test/data/dcr_vectors.json test/data/dcx_vectors.json test/data/nankai_vectors.json
 ```
 
-`*_vectors.json` は azarashi 0.17.1 で `params` の形が変わり（`type` の改名、`satellite_svid` の追加、`report_time` のタイムゾーン付与など）、さらに `timestamp` と暦年の解決が `datetime.now()` に依存するため、再生成のたびに内容が変わります。`*_vectors.json` は `make -C test bench`（`test/bench/bench_dedup.cpp`）や `compare_nankai_aggregation.py` が読む参照データとしてリポジトリに残すため、**再生成後にコミットするのは `nankai_pages_generated.h` のみ**とし、JSON は上のコマンドで元に戻します（同ヘッダは azarashi 0.17.0 と 0.17.1 で同一。`.github/workflows/ci.yml` の fixture-drift も JSON は検査せずヘッダだけを見ます）。
+`*_vectors.json` は azarashi 0.17.1 で `params` の形が変わり（`type` の改名、`satellite_svid` の追加、`report_time` のタイムゾーン付与など）、さらに `timestamp` と暦年の解決が `datetime.now()` に依存するため、再生成のたびに内容が変わります。`*_vectors.json` は `make -C test bench-dedup`（`test/bench/bench_dedup.cpp`）や `compare_nankai_aggregation.py` が読む参照データとしてリポジトリに残すため、**再生成後にコミットするのは `nankai_pages_generated.h` のみ**とし、JSON は上のコマンドで元に戻します（同ヘッダは azarashi 0.17.0 と 0.17.1 で同一。`.github/workflows/ci.yml` の fixture-drift も JSON は検査せずヘッダだけを見ます）。
 
 ## AVR 開発
 
@@ -182,7 +183,7 @@ AVRツールチェーン（avr-gcc）はC++の標準ライブラリを一切含�
 
 - **ヒープアロケーションをしないこと**: `new`, `malloc`等の動的メモリ管理はしないこと。
 - **静的バッファを基本とすること**: 固定サイズの配列を使用すること。
-- **静的な定義テーブルを使用すること**: RAM容量節約のためAVRでは`AZARAC_PROGMEM`経由でFlash(PROGMEM)を使用、非AVRではno-opを使用すること。
+- **静的な定義テーブルを使用すること**: RAM容量節約のためAVRでは`AZARAC_PROGMEM`経由でFlash(PROGMEM)を使用、非AVRではno-opを使用すること。**Flashが64KiBを超えるデバイスでは配置先が変わる**: avr-libcのリンカスクリプトは `*(.progmem.*)` を `.text` の先頭に、リンク順（Arduinoは `core.a` が最後）に並べるため、ここに116KiBの表を置くとコア自身のPROGMEM（`digital_pin_to_port_PGM` など）が16bit窓の外へ押し出され、`pinMode`/`digitalWrite` が誤ったポートを読む。そこで `FLASHEND > 0xFFFF` では `AZARAC_PROGMEM` が `.progmemx.*`（同じスクリプトがコードの後ろに置くクラスタ）を指す。関数内の静的リテラル（switch戦略の `s[]`）は one-only（weak）なので、`AZARAC_PROGMEM` は宣言ごとに `__COUNTER__` で別の節名（`.progmemx.azaraC.<N>`）を付ける（`-fdata-sections` と同じ粒度。1つの節にまとめると、そのTUの1表が参照されただけで節全体が `--gc-sections` に残り、weakと通常配列の同居もできない）。`autoresearch.sh` はコア側PROGMEMを模したオブジェクトを最後にリンクし、そのアドレスが64KiB以内に収まることをゲートする（`test/bench/avr/core_progmem.c`）。
 - **定義テーブルの格納は効率よく**: AVRは文字列プール + `{offset}`（長さはプールのNUL区切りから `azarac_pgm_len` が取るので行に持たない）＋ 共有断片を使う表は親の添字（`0xFF`＝親なし、`<GUARD>_PARENT_POOL` の1件を参照）、非AVRは `const char*` 配列（4B/エントリ、32bit機）。同じ表の中で4件以上に共通する接頭辞／接尾辞（「北海道札幌市」の`北海道`、「Sapporo City, Hokkaido Prefecture」の` City, Hokkaido Prefecture`）は `strategy.py` の `factor_parents` が切り出し、参照時に `azarac_pgm_join_z` が既存の共有バッファ内で連結する（表ごとに1方向）。切り出した親も同じ規則で再帰的に切り出せ（2段目、`_GRAND_POOL` ＋ `azarac_pgm_join3`）、採用するのは削減量が追加コード（1呼び出しあたり60〜130B）を上回る表だけ（`GRAND_MIN_GAIN`）。switch戦略は行を持たないので共有断片のオフセットをcase本体に定数として埋め込む。非AVRのルックアップ戻り値は両者で `std::optional<std::string_view>` に統一し、`nullptr`＝欠落・`""`＝定義済み空文字列を区別すること（`opt`系エミッタと手書きの `qzss_dcx_camf_a3_provider_identifier.h` が対象）。文字列実体は各ヘッダにリテラルとして現れるが、リンカの重複統合により同一文字列は1コピーに落ちる。
 - **共有断片はRAMを増やさないこと**: AVRの結合は `internal/FlashString.h` の共有バッファ（`AZARAC_FLASH_BUF_SIZE`）内で行う。Flashを削るためにSRAMを増やす変更は不可（`autoresearch.sh` が `UNO_RAM_BYTES` と `AVR_TABLES_IN_RAM` でゲートする）。
 - **Flashが64KiBを超えるAVRではfar参照を使うこと**: 定義テーブルはリンク時に64KiBを超えて配置されるため、16bitのPROGMEMポインタでは届かない。配列のアドレスは `AZARAC_PGM_PTR(array)`（`FLASHEND > 0xFFFF` のデバイスでは `pgm_get_far_address`、それ以外は通常のポインタ）、行・プールの読み出しは `azarac_read_byte/word/dword` / `azarac_read_block` を経由する（`pgm_read_*_far` / `memcpy_PF`）。プール内のオフセットは16bitのままでよい（1プールは64KiB未満）。`make -C test pgm-stub` は「64KiB超のデバイス」を装ったホストビルドなので、far経路はそこで実行検証される。

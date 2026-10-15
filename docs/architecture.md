@@ -45,7 +45,7 @@ graph TD
 
 ### 1. Parser (パーサー)
 
-[`Parser`](../src/Parser.h)はライブラリのメインエントリーポイントです。
+[`Parser`](https://github.com/A-vrice/azaraC/tree/main/src/Parser.h)はライブラリのメインエントリーポイントです。
 
 - **フレーマー自動判別**: 入力バイトストリームからUBX/NMEAを自動判別（UBX同期文字`0xB5 0x62`、NMEA`$`文字で判定）
 - **メッセージデコード**: フレームの復号とCRC検証
@@ -63,19 +63,19 @@ graph LR
 
 ### 2. Framer (フレーマー)
 
-[`IFramer`](../src/framer/IFramer.h)インターフェースを実装:
+[`IFramer`](https://github.com/A-vrice/azaraC/tree/main/src/framer/IFramer.h)インターフェースを実装:
 
 | フレーマー | プロトコル | 対応デバイス |
 |-----------|-----------|-------------|
-| [`UbxFramer`](../src/framer/UbxFramer.h) | UBX-RXM-SFRBX | u-blox M10, ZED-F9P |
-| [`NmeaFramer`](../src/framer/NmeaFramer.h) | NMEA $QZQSM | Furuno GT-87, 汎用GNSS |
+| [`UbxFramer`](https://github.com/A-vrice/azaraC/tree/main/src/framer/UbxFramer.h) | UBX-RXM-SFRBX | u-blox M10, ZED-F9P |
+| [`NmeaFramer`](https://github.com/A-vrice/azaraC/tree/main/src/framer/NmeaFramer.h) | NMEA $QZQSM | Furuno GT-87, 汎用GNSS |
 | Custom (IFramer) | 任意 | Sony, その他 |
 
 `Frame::svid` は QZSS L1S PRN を入れる契約です。Satellite ID は「PRN を表す 8bit の下位 6bit」（IS-QZSS-DCR-017 §4.3.1）なので、`NmeaFramer` は受け取った値を常に `svid | 0x80` して PRN に直します（仕様上有効な Satellite ID 53–63 → PRN 181–191）。`UbxFramer` は `ublox_qzss_svid_prn_map` に該当する場合だけ PRN へ変換し、181–191 はこの変換後の QZSS PRN に限ります。表に無い `svId` は範囲外の値を含めて入力値のまま通します。`JsonSerializer` は `svid` を数値のまま出力し、ラベルは付けません。
 
 ### 3. Decoder (デコーダー)
 
-[`Decoder`](../src/decoder/Decoder.h)はビット列からメッセージフィールドを抽出します。
+[`Decoder`](https://github.com/A-vrice/azaraC/tree/main/src/decoder/Decoder.h)はビット列からメッセージフィールドを抽出します。
 
 **共通処理**: CRC-24Q検証（IS-QZSS-L1S §3.2.8準拠）、MSB-firstビット抽出、UNIX時刻ベースの年月補正。
 
@@ -85,7 +85,7 @@ graph LR
 
 ### 4. DedupFilter (重複除去)
 
-[`DedupFilter`](../src/internal/Dedup.h)はアプリケーションノートv2の実装にのっとって実装されています。
+[`DedupFilter`](https://github.com/A-vrice/azaraC/tree/main/src/internal/Dedup.h)はアプリケーションノートv2の実装にのっとって実装されています。
 
 - **MT～VNで判定**: 発信元衛星によらず重複処理をするため、メッセージ本文のみを判定に使用します。具体的にはMT～VNフィールド（フレーム内bit 8..219、計212bit）のCRC-24Qを保存します。ただしMT=44（DCX/CAMF）のSD（SDMT bit 14・SDM bit 15..23）は照合範囲に含めないため、ゼロにしてからCRCを取ります（QZS事務局回答の照合範囲は「MTおよびCAMF〜EM」）。衝突の可能性は残りますが、メモリ効率を優先してこの方式を採用しています。
 - **メッセージの保存期間**: 一定時間受信しなかった情報は履歴から削除するため種別ごとの`window_ms`以内に再受信したものを重複として扱います。なお再受信のたびに有効時間は更新されます。1通に複数種類のメッセージが入る場合は条件を満たすうち最長のものを採用します。MT=43はアプリケーションノートの配信終了条件（p.26-27）、MT=44（CAMF）はA8-Hazard Durationの上限（UnknownはDCX §5.4により1週間）を有効期限とし、AVRではその上限を`AZARAC_DEDUP_MT44_MAX_WINDOW_MS`（既定5分）で頭打ちにします（スロットが64と少なく、7日の窓は生きた情報の枠を占め続けて押し出しを招くため。MT44の再送間隔は実測で最大16秒）。それ以外の表に無いカテゴリは`AZARAC_DEDUP_WINDOW_MS`を使います。
@@ -136,11 +136,11 @@ graph LR
 
 ### 5. NankaiPageBuffer (南海トラフページ集約)
 
-[`NankaiPageBuffer`](../src/internal/NankaiPageBuffer.h)は最大63ページに分割される南海トラフ地震メッセージを集約。`MAX_PAGES×18+1`バイトのメモリを確保し、受信したページをビットマップで管理しながら直接書き込む（ソート不要）。バッファが全て使用中の場合はLRUエビクションで最も古いバッファから解放。
+[`NankaiPageBuffer`](https://github.com/A-vrice/azaraC/tree/main/src/internal/NankaiPageBuffer.h)は最大63ページに分割される南海トラフ地震メッセージを集約。`MAX_PAGES×18+1`バイトのメモリを確保し、受信したページをビットマップで管理しながら直接書き込む（ソート不要）。バッファが全て使用中の場合はLRUエビクションで最も古いバッファから解放。
 
 ### 6. JsonSerializer (JSONシリアライザ)
 
-[`JsonSerializer`](../src/json/JsonSerializer.h)はMessageをJSON形式にシリアライズ。ヒープ割り当てはせず固定バッファで処理。`Print&`経由で出力（Serial, WiFiClient等）。日本語/英語ラベルの選択的コンパイルに対応。
+[`JsonSerializer`](https://github.com/A-vrice/azaraC/tree/main/src/json/JsonSerializer.h)はMessageをJSON形式にシリアライズ。ヒープ割り当てはせず固定バッファで処理。`Print&`経由で出力（Serial, WiFiClient等）。日本語/英語ラベルの選択的コンパイルに対応。
 
 ## データフロー
 
@@ -164,7 +164,7 @@ graph TD
 |---------------|-------------|------|
 | DedupFilter | `AZARAC_DEDUP_SLOTS × 8` B | 既定 4,096B（512スロット。AVRプリセットは512B）。1エントリ = CRC-24Q 4B + 受信時刻 4B |
 | NankaiPageBuffer | 28B（メタデータ）+ `MAX_PAGES × 18 + 1` B | 既定 63 ページで構造体 1,168B。LRUエビクション |
-| 定義テーブル | 表エントリ39本で約122KiB、定義文字列を含むライブラリ全体の読み取り専用セクションは約344KiB。計測条件: 全カテゴリ + 日英ラベル有効、64bit ホスト `g++ 15.2 -std=c++17 -O2 -fdata-sections`（生成対象外の4表を含む計測） | Flash(AVRではPROGMEM)に配置。同一TU内の同一リテラルは定数プールで同じコピーに統合されるが、TUを跨ぐ統合はツールチェーン依存。非AVRはエントリを `const char*`（32bit機で4B）で保持し、上記は非AVRの値。AVR（`-D__AVR__ -DAZARAC_AVR_STUB`）では表ごとに文字列プール＋共有断片プールを持ち、行は `{id, 親, offset}` の3フィールド（長さはプールのNUL区切りから取る）。AVRプリセット（`-mmcu=atmega328p -Os`、SEISMIC/TSUNAMI のみ、JA）では表 + プール計 3,044B（2026-10 実測。`test/bench/avr/measure_tables.py`）。Flashが64KiBを超えるデバイス（ATmega2560 等）ではプールが64KiB超に配置されるため、アドレスは32bitのFlashアドレスで扱う（`AZARAC_PGM_PTR` + `pgm_read_*_far` / `memcpy_PF`） |
+| 定義テーブル | 表エントリ39本で約122KiB、定義文字列を含むライブラリ全体の読み取り専用セクションは約344KiB。計測条件: 全カテゴリ + 日英ラベル有効、64bit ホスト `g++ 15.2 -std=c++17 -O2 -fdata-sections`（生成対象外の4表を含む計測） | Flash(AVRではPROGMEM)に配置。同一TU内の同一リテラルは定数プールで同じコピーに統合されるが、TUを跨ぐ統合はツールチェーン依存。非AVRはエントリを `const char*`（32bit機で4B）で保持し、上記は非AVRの値。AVR（`-D__AVR__ -DAZARAC_AVR_STUB`）では表ごとに文字列プール＋共有断片プールを持ち、行は `{id, 親, offset}` の3フィールド（長さはプールのNUL区切りから取る）。AVRプリセット（`-mmcu=atmega328p -Os`、SEISMIC/TSUNAMI のみ、JA）では表 + プール計 3,044B（2026-10 実測。`test/bench/avr/measure_tables.py`）。Flashが64KiBを超えるデバイス（ATmega2560 等）では、表・プールを `*(.progmem.*)`（`.text` 先頭のリンク順クラスタ）ではなく `.progmemx.*`（コードの後ろ）に置く（`AZARAC_PROGMEM`）。Arduino は `core.a` を最後にリンクするため、先頭クラスタに116KiBの表があるとコア自身のPROGMEM（`digital_pin_to_port_PGM` 等）が16bit窓の外へ出て `pinMode`/`digitalWrite` が誤動作する（`autoresearch.sh` のコア模擬オブジェクトがアドレスをゲートする）。アドレスは32bitのFlashアドレスで扱う（`AZARAC_PGM_PTR` + `pgm_read_*_far` / `memcpy_PF`） |
 
 ## 関連ドキュメント
 
