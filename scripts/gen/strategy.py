@@ -68,6 +68,8 @@ def factor_parents(labels: dict, min_len: int = 4,
                  'post' -> label == child + parent
     """
     keys = sorted(labels)
+    labels = {k: labels[k] for k in keys}   # canonical order: the tie-breaking in
+                                            # the sweep below is order-sensitive
     texts = [labels[k].encode('utf-8') for k in keys]
     baseline = sum(len(t) + 1 for t in texts)
     best = None
@@ -107,9 +109,12 @@ def factor_parents(labels: dict, min_len: int = 4,
         children = {k: (plan[i][2] if i in plan else texts[i]) for i, k in enumerate(keys)}
         children_bytes = sum(len(c) + 1 for c in children.values())
         parent_bytes = sum(len(p) + 1 for p in parents)
-        # Adding the parent index grows every row by a byte unless the length
-        # field can shrink to match (AVR row layout, see azaraC_config.h).
-        rows_extra = 0 if max(len(c) for c in children.values()) <= 0xFF else len(keys)
+        # Adding the parent index always costs one byte per row: every emitted
+        # AVR row shape ({kt} id + parent + offset / offset + parent /
+        # offset + grand) has no length field to shrink instead, and AVR-GCC
+        # gives the entry structs byte alignment (verified in
+        # test/bench/avr/measure_tables.py SCALARS note).
+        rows_extra = len(keys)
         cost = children_bytes + parent_bytes + rows_extra
         if cost >= baseline:
             continue
