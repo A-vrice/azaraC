@@ -7,6 +7,8 @@
 // addresses (and reads) go through the far accessors there; on smaller devices
 // they are plain progmem pointers. Offsets stay 16-bit relative to a pool — each
 // pool is far smaller than 64 KiB — so a row is still {id, parent, offset}.
+// Those parts also keep the tables out of the low-Flash progmem cluster, which
+// the Arduino core's own tables share: see AZARAC_PROGMEM in azaraC_config.h.
 
 #include "../azaraC_config.h"
 #if defined(__AVR__)

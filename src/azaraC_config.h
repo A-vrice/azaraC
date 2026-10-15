@@ -90,20 +90,41 @@
 #endif
 
 // Shared definition-lookup buffer (see internal/FlashString.h). Must come after
-// the categories above so a preset (not only a user -D) selects the size:
-// SEISMIC/TSUNAMI longest label is 30 B → 64 leaves headroom; DCX/CAMF adds far
-// longer labels (a4_hazard_definition: 683 B) → 800 B. Ordered by longest label.
+// the categories above so a preset (not only a user -D) selects the size, and it
+// must cover the longest label of every category the *labels* can come from —
+// the tables are enabled by their own guards, not by this chain, so a category
+// missing here silently truncates its labels (azarac_pgm_view clamps at
+// AZARAC_FLASH_BUF_SIZE - 1, mid-UTF-8). `test/bench/avr/check_flash_buf.py`
+// sweeps every category combination against this chain and fails on a short
+// buffer (run by `make -C test bench`); add a branch whenever it complains.
+// Ordered by longest label.
 #ifndef AZARAC_FLASH_BUF_SIZE
 #if AZARAC_ENABLE_DCX_CAMF
+// DCX/CAMF adds far longer labels (a4_hazard_definition: 683 B) → 800 B.
 #define AZARAC_FLASH_BUF_SIZE 800
+#elif AZARAC_ENABLE_EEW || AZARAC_ENABLE_HYPOCENTER
+// longest is 596 B (notification_on_disaster_prevention, JA) / 515 B (EN).
+#define AZARAC_FLASH_BUF_SIZE 640
 #elif AZARAC_ENABLE_NANKAI
 // NANKAI info-code longest label is 509 B ("調査中B"); 540 leaves headroom.
 #define AZARAC_FLASH_BUF_SIZE 540
+#elif AZARAC_ENABLE_VOLCANO || AZARAC_ENABLE_FLOOD
+// 88 B (volcanic_warning_code, EN) and 78 B (flood_forecast_region, EN).
+#define AZARAC_FLASH_BUF_SIZE 96
 #elif AZARAC_ENABLE_NW_PAC_TSUNAMI
 // NW-PAC longest label is 72 B (English tsunamigenic potential); 80 leaves headroom.
 #define AZARAC_FLASH_BUF_SIZE 80
 #else
+// SEISMIC/TSUNAMI longest label is 45 B; WEATHER/TYPHOON/MARINE and the
+// VOLCANO|ASH_FALL region table stay under 63 B, so 64 fits them too.
 #define AZARAC_FLASH_BUF_SIZE 64
+#endif
+// The preset keeps an Uno at 64 B, so this only fires when categories with long
+// labels were enabled on top of it — the buffer has to grow for the labels to be
+// correct, and 2 KB of SRAM is what it eats into. The user's call, hence a
+// warning rather than a hard error.
+#if AZARAC_FLASH_BUF_SIZE > 256 && defined(ARDUINO_AVR_UNO)
+#warning "AZARAC_FLASH_BUF_SIZE is large for the Uno's 2 KB SRAM — enable fewer categories, or shrink it knowing labels then truncate"
 #endif
 #endif
 #endif // __AVR__
@@ -189,7 +210,31 @@
 // FLASHEND > 0xFFFF (see internal/FlashString.h).
 #ifdef __AVR__
 #include <avr/pgmspace.h>
+// Where the definition tables live. avr-libc's linker script puts every
+// `*(.progmem.*)` at the *start* of .text, in input order — and the Arduino
+// recipe links the core (core.a) last. So ~116 KiB of tables there (the
+// large-flash preset) would push the core's own PROGMEM into Flash above
+// 0xFFFF, where the core's 16-bit `pgm_read_byte(&digital_pin_to_port_PGM[pin])`
+// cannot reach: pinMode/digitalWrite would read the wrong port. `.progmemx.*` is
+// the cluster the same script places *after* the code ("for code that needs not
+// to reside in the lower progmem"), which leaves the core's tables where they
+// were. Only parts that read Flash far need it (see internal/FlashString.h);
+// <= 64 KiB parts keep plain PROGMEM — their 16-bit pointers are enough and the
+// tables fit. Far addresses do not care where the section lands.
+//
+// The counter suffix keeps one section per declaration, like -fdata-sections
+// does for `__progmem__` data: a single shared section would be kept whole by
+// --gc-sections as soon as one table in the translation unit is referenced, and
+// a function-local static in an inline function is emitted one-only (weak), which
+// cannot share a section with an ordinary array at all ("section type conflict").
+#if FLASHEND > 0xFFFF && !defined(AZARAC_AVR_STUB)
+#define AZARAC_PGM_STR_(x) #x
+#define AZARAC_PGM_STR(x) AZARAC_PGM_STR_(x)
+#define AZARAC_PROGMEM \
+    __attribute__((__section__(".progmemx.azaraC." AZARAC_PGM_STR(__COUNTER__))))
+#else
 #define AZARAC_PROGMEM PROGMEM
+#endif
 #define AZARAC_PGM_READ_BYTE(addr)    pgm_read_byte(addr)
 #define AZARAC_PGM_READ_WORD(addr)    pgm_read_word(addr)
 #define AZARAC_PGM_READ_DWORD(addr)   pgm_read_dword(addr)

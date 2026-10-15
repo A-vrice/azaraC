@@ -19,7 +19,7 @@
 #                  AVR_ENTRY_BYTES/ROWS/ROW_BYTES, AVR_LARGEST_LITERAL, the four
 #                  large pools, UNO_*/MEGA_* sizes of two real linked images,
 #                  AVR_TABLES_IN_RAM, MEGA_DCX_TABLES, MEGA_FAR_OPS, AVR_COMPILE_OK,
-#                  AVR_TABLE_CROSSCHECK.
+#                  AVR_TABLE_CROSSCHECK, FLASH_BUF_OK.
 #
 # Gates (non-zero exit)
 #   labels    every label dump must match the golden hashes in
@@ -27,6 +27,11 @@
 #             the AVR branch with 16-bit progmem pointers (both modes of
 #             internal/FlashString.h), and the host branch — every id of every
 #             table must render byte-identical labels on all three.
+#   buffer    AZARAC_FLASH_BUF_SIZE (src/azaraC_config.h) must hold the longest
+#             label of every enabled category: internal/FlashString.h clamps the
+#             copy at size - 1, so a category missing from the size chain would
+#             truncate its labels silently (test/bench/avr/check_flash_buf.py
+#             sweeps every category combination, both languages, both presets).
 #   build     every TU must compile for ATmega2560 with all categories enabled
 #             *once* no single pool is over the per-object limit. While a pool
 #             is still oversized the build is expected to fail (the baseline
@@ -111,6 +116,17 @@ entry_rows="$(metric AVR_ENTRY_ROWS)"
 largest="$(metric AVR_LARGEST_LITERAL)"
 [[ -n "$table_bytes" && -n "$string_bytes" && -n "$entry_bytes" && -n "$largest" ]] \
     || { echo "autoresearch: metrics missing" >&2; exit 3; }
+
+# ------------------------------------------------------------- stage 1b ---
+# The shared label buffer must hold the longest label of every enabled category:
+# internal/FlashString.h clamps the copy at AZARAC_FLASH_BUF_SIZE - 1, so a
+# category the size chain does not know about would truncate its labels silently
+# (and mid-UTF-8). Swept over every category combination, both languages and both
+# shipped presets; the size chain is read from azaraC_config.h and cross-checked
+# against the AVR preprocessor.
+buf_status=0
+"$PYTHON" "$BENCH/check_flash_buf.py" --avr-gcc "$AVR_CC" || buf_status=$?
+echo "METRIC FLASH_BUF_OK=$(( buf_status == 0 ? 1 : 0 ))"
 
 # ---------------------------------------------------------------- stage 2 ---
 # Label equivalence: the AVR branch (PROGMEM string views) and the host branch
@@ -270,12 +286,29 @@ if [[ ${#mega_objs[@]} -gt 0 ]] && "$AVR_CC" "${mega_build[@]}" "${mega_objs[@]}
     # 64 KB (138 of 195 symbols in the all-category build) would be unreadable.
     mega_far_ops="$("$AVR_OBJDUMP" -d "$OUT/mega.elf" 2>/dev/null \
         | grep -c -e 'elpm' -e 'out.*0x3b')"
+
+    # What the core pays for our tables. core.a is linked last, so its own
+    # PROGMEM (digital_pin_to_port_PGM …) lands after every `*(.progmem.*)` input
+    # section — after ours. Above 0xFFFF the core's 16-bit
+    # `pgm_read_byte(&digital_pin_to_port_PGM[pin])` cannot reach it and
+    # pinMode/digitalWrite read the wrong port, which is why AZARAC_PROGMEM moves
+    # the tables to the .progmemx.* cluster (placed after the code) on parts with
+    # more than 64 KiB of Flash. See test/bench/avr/core_progmem.c.
+    core_build=(-mmcu="$MCU" -Os -std=gnu11 -fno-exceptions
+                -ffunction-sections -fdata-sections)
+    if "$AVR_CC" "${core_build[@]}" -c "$BENCH/core_progmem.c" -o "$OUT/obj_mega_core.o" \
+       && "$AVR_CC" "${mega_build[@]}" "${mega_objs[@]}" "$OUT/obj_mega_core.o" \
+            -Wl,--undefined=core_probe_read_pin -o "$OUT/mega_core.elf"; then
+        mega_core_pgm="$("$AVR_NM" "$OUT/mega_core.elf" 2>/dev/null \
+            | awk '$3 == "core_probe_pin_to_port_PGM" { print $1 }')"
+    fi
 fi
 echo "METRIC MEGA_COMPILE_OK=$mega_ok"
 [[ -n "${mega_flash:-}" ]] && echo "METRIC MEGA_FLASH_BYTES=$mega_flash"
 [[ -n "${mega_ram:-}" ]] && echo "METRIC MEGA_RAM_BYTES=$mega_ram"
 [[ -n "${mega_tables:-}" ]] && echo "METRIC MEGA_DCX_TABLES=$mega_tables"
 [[ -n "${mega_far_ops:-}" ]] && echo "METRIC MEGA_FAR_OPS=$mega_far_ops"
+[[ -n "${mega_core_pgm:-}" ]] && echo "METRIC MEGA_CORE_PGM_ADDR=0x$mega_core_pgm"
 
 # ---------------------------------------------------------------- gates -----
 status=0
@@ -325,10 +358,23 @@ else
         echo "autoresearch: the Mega image uses no far Flash reads (elpm/RAMPZ) — tables above 64 KB would garble" >&2
         status=12
     }
+    # The tables must not sit in the low-progmem cluster: they would push the
+    # core's own PROGMEM past the 16-bit window the core reads it through.
+    if [[ -z "${mega_core_pgm:-}" ]]; then
+        echo "autoresearch: the core PROGMEM stand-in did not link — placement is unverified" >&2
+        status=13
+    elif (( 0x$mega_core_pgm > 0xFFFF )); then
+        echo "autoresearch: the core's PROGMEM landed at 0x$mega_core_pgm, past the 16-bit progmem window — pinMode/digitalWrite would read the wrong port" >&2
+        status=13
+    fi
 fi
 
 if (( label_status != 0 )); then
     status=9
+fi
+
+if (( buf_status != 0 )); then
+    status=14
 fi
 
 if (( status != 0 )); then

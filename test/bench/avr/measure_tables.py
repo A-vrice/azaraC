@@ -29,10 +29,14 @@ import sys
 
 # Preprocessed output splits declarations across `# 12 "file.h"` markers and
 # hoists __attribute__((__progmem__)) onto its own line; the parser only needs
-# the declaration bodies, so both are stripped first (this text is parsed, not
-# compiled, so removing an attribute cannot change the measurement).
+# the declaration bodies, so it is stripped first. On a part with more than
+# 64 KiB of Flash AZARAC_PROGMEM expands to an inline
+# `__attribute__((__section__(".progmemx.azaraC.<n>")))` instead — same attribute,
+# one level of parentheses around a quoted name — so the pattern accepts both
+# (this text is parsed, not compiled, so removing an attribute cannot change the
+# measurement).
 MARKER = re.compile(r'^# \d+ "[^"]*"(?: \d+)*$', re.M)
-ATTR = re.compile(r'__attribute__\s*\(\(\s*\w+\s*\)\)')
+ATTR = re.compile(r'__attribute__\s*\(\((?:[^()]|\([^()]*\))*\)\)')
 LITERAL_START = re.compile(r'\[\]\s*=\s*"')
 ENTRY_STRUCT = re.compile(r'struct\s+(\w+_Entry)\s*\{([^}]*)\}\s*;')
 TABLE = re.compile(r'(\w+_TABLE)\[\]\s*=\s*\{(.*?)\n\s*\};', re.S)
