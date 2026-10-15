@@ -26,16 +26,17 @@ namespace def {
 #if (AZARAC_ENABLE_VOLCANO || AZARAC_ENABLE_ASH_FALL)
 
 #if defined(__AVR__)
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_AMBIGUITY_OF_ACTIVITY_TIME_EN_PARENT_POOL[] = "Approximate time (\000";
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_ambiguity_of_activity_time_en_lookup(uint8_t id) noexcept {
     switch (id) {
         case 0: { static const char AZARAC_PROGMEM s[] = "No ambiguity"; return azarac_pgm_view(s, 12); }
-        case 1: { static const char AZARAC_PROGMEM s[] = "Approximate time (equivalent to Approximate time (minute))"; return azarac_pgm_view(s, 58); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "Approximate time (second)"; return azarac_pgm_view(s, 25); }
-        case 3: { static const char AZARAC_PROGMEM s[] = "Approximate time (minute)"; return azarac_pgm_view(s, 25); }
-        case 4: { static const char AZARAC_PROGMEM s[] = "Approximate time (hour)"; return azarac_pgm_view(s, 23); }
-        case 5: { static const char AZARAC_PROGMEM s[] = "Approximate time (day)"; return azarac_pgm_view(s, 22); }
-        case 6: { static const char AZARAC_PROGMEM s[] = "Approximate time (month)"; return azarac_pgm_view(s, 24); }
-        case 7: { static const char AZARAC_PROGMEM s[] = "Approximate time (year)"; return azarac_pgm_view(s, 23); }
+        case 1: { static const char AZARAC_PROGMEM s[] = "equivalent to Approximate time (minute))"; return azarac_pgm_join_z(QZSS_DCR_JMA_AMBIGUITY_OF_ACTIVITY_TIME_EN_PARENT_POOL + 0u, s); }
+        case 2: { static const char AZARAC_PROGMEM s[] = "second)"; return azarac_pgm_join_z(QZSS_DCR_JMA_AMBIGUITY_OF_ACTIVITY_TIME_EN_PARENT_POOL + 0u, s); }
+        case 3: { static const char AZARAC_PROGMEM s[] = "minute)"; return azarac_pgm_join_z(QZSS_DCR_JMA_AMBIGUITY_OF_ACTIVITY_TIME_EN_PARENT_POOL + 0u, s); }
+        case 4: { static const char AZARAC_PROGMEM s[] = "hour)"; return azarac_pgm_join_z(QZSS_DCR_JMA_AMBIGUITY_OF_ACTIVITY_TIME_EN_PARENT_POOL + 0u, s); }
+        case 5: { static const char AZARAC_PROGMEM s[] = "day)"; return azarac_pgm_join_z(QZSS_DCR_JMA_AMBIGUITY_OF_ACTIVITY_TIME_EN_PARENT_POOL + 0u, s); }
+        case 6: { static const char AZARAC_PROGMEM s[] = "month)"; return azarac_pgm_join_z(QZSS_DCR_JMA_AMBIGUITY_OF_ACTIVITY_TIME_EN_PARENT_POOL + 0u, s); }
+        case 7: { static const char AZARAC_PROGMEM s[] = "year)"; return azarac_pgm_join_z(QZSS_DCR_JMA_AMBIGUITY_OF_ACTIVITY_TIME_EN_PARENT_POOL + 0u, s); }
         default: return std::nullopt;
     }
 }

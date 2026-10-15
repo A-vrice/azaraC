@@ -26,12 +26,13 @@ namespace def {
 #if (AZARAC_ENABLE_DCX_CAMF)
 
 #if defined(__AVR__)
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D24_WATER_QUALITY_PARENT_POOL[] = " water quality\000";
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_d24_water_quality_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 0: { static const char AZARAC_PROGMEM s[] = "Excellent water quality"; return azarac_pgm_view(s, 23); }
-        case 1: { static const char AZARAC_PROGMEM s[] = "Good water quality"; return azarac_pgm_view(s, 18); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "Poor water quality"; return azarac_pgm_view(s, 18); }
-        case 3: { static const char AZARAC_PROGMEM s[] = "Very poor water quality"; return azarac_pgm_view(s, 23); }
+        case 0: { static const char AZARAC_PROGMEM s[] = "Excellent"; return azarac_pgm_join_z(s, QZSS_DCX_CAMF_D24_WATER_QUALITY_PARENT_POOL + 0u); }
+        case 1: { static const char AZARAC_PROGMEM s[] = "Good"; return azarac_pgm_join_z(s, QZSS_DCX_CAMF_D24_WATER_QUALITY_PARENT_POOL + 0u); }
+        case 2: { static const char AZARAC_PROGMEM s[] = "Poor"; return azarac_pgm_join_z(s, QZSS_DCX_CAMF_D24_WATER_QUALITY_PARENT_POOL + 0u); }
+        case 3: { static const char AZARAC_PROGMEM s[] = "Very poor"; return azarac_pgm_join_z(s, QZSS_DCX_CAMF_D24_WATER_QUALITY_PARENT_POOL + 0u); }
         case 4: { static const char AZARAC_PROGMEM s[] = "Suitable for drinking purposes"; return azarac_pgm_view(s, 30); }
         case 5: { static const char AZARAC_PROGMEM s[] = "Unsuitable for drinking purposes"; return azarac_pgm_view(s, 32); }
         default: return std::nullopt;

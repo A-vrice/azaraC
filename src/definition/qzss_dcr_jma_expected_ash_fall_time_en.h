@@ -26,14 +26,15 @@ namespace def {
 #if (AZARAC_ENABLE_ASH_FALL) && (AZARAC_LANG_EN)
 
 #if defined(__AVR__)
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_EXPECTED_ASH_FALL_TIME_EN_PARENT_POOL[] = " hours\000";
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_expected_ash_fall_time_en_lookup(uint8_t id) noexcept {
     switch (id) {
         case 1: { static const char AZARAC_PROGMEM s[] = "1 hour"; return azarac_pgm_view(s, 6); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "2 hours"; return azarac_pgm_view(s, 7); }
-        case 3: { static const char AZARAC_PROGMEM s[] = "3 hours"; return azarac_pgm_view(s, 7); }
-        case 4: { static const char AZARAC_PROGMEM s[] = "4 hours"; return azarac_pgm_view(s, 7); }
-        case 5: { static const char AZARAC_PROGMEM s[] = "5 hours"; return azarac_pgm_view(s, 7); }
-        case 6: { static const char AZARAC_PROGMEM s[] = "6 hours"; return azarac_pgm_view(s, 7); }
+        case 2: { static const char AZARAC_PROGMEM s[] = "2"; return azarac_pgm_join_z(s, QZSS_DCR_JMA_EXPECTED_ASH_FALL_TIME_EN_PARENT_POOL + 0u); }
+        case 3: { static const char AZARAC_PROGMEM s[] = "3"; return azarac_pgm_join_z(s, QZSS_DCR_JMA_EXPECTED_ASH_FALL_TIME_EN_PARENT_POOL + 0u); }
+        case 4: { static const char AZARAC_PROGMEM s[] = "4"; return azarac_pgm_join_z(s, QZSS_DCR_JMA_EXPECTED_ASH_FALL_TIME_EN_PARENT_POOL + 0u); }
+        case 5: { static const char AZARAC_PROGMEM s[] = "5"; return azarac_pgm_join_z(s, QZSS_DCR_JMA_EXPECTED_ASH_FALL_TIME_EN_PARENT_POOL + 0u); }
+        case 6: { static const char AZARAC_PROGMEM s[] = "6"; return azarac_pgm_join_z(s, QZSS_DCR_JMA_EXPECTED_ASH_FALL_TIME_EN_PARENT_POOL + 0u); }
         default: return std::nullopt;
     }
 }

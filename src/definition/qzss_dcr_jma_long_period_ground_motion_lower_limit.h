@@ -26,14 +26,15 @@ namespace def {
 #if (AZARAC_ENABLE_EEW) && (AZARAC_LANG_JA)
 
 #if defined(__AVR__)
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_LONG_PERIOD_GROUND_MOTION_LOWER_LIMIT_PARENT_POOL[] = "長周期地震動階級\000";
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_long_period_ground_motion_lower_limit_lookup(uint8_t id) noexcept {
     switch (id) {
         case 0: { static const char AZARAC_PROGMEM s[] = "該当情報なし"; return azarac_pgm_view(s, 18); }
-        case 1: { static const char AZARAC_PROGMEM s[] = "長周期地震動階級1未満"; return azarac_pgm_view(s, 31); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "長周期地震動階級1"; return azarac_pgm_view(s, 25); }
-        case 3: { static const char AZARAC_PROGMEM s[] = "長周期地震動階級2"; return azarac_pgm_view(s, 25); }
-        case 4: { static const char AZARAC_PROGMEM s[] = "長周期地震動階級3"; return azarac_pgm_view(s, 25); }
-        case 5: { static const char AZARAC_PROGMEM s[] = "長周期地震動階級4"; return azarac_pgm_view(s, 25); }
+        case 1: { static const char AZARAC_PROGMEM s[] = "1未満"; return azarac_pgm_join_z(QZSS_DCR_JMA_LONG_PERIOD_GROUND_MOTION_LOWER_LIMIT_PARENT_POOL + 0u, s); }
+        case 2: { static const char AZARAC_PROGMEM s[] = "1"; return azarac_pgm_join_z(QZSS_DCR_JMA_LONG_PERIOD_GROUND_MOTION_LOWER_LIMIT_PARENT_POOL + 0u, s); }
+        case 3: { static const char AZARAC_PROGMEM s[] = "2"; return azarac_pgm_join_z(QZSS_DCR_JMA_LONG_PERIOD_GROUND_MOTION_LOWER_LIMIT_PARENT_POOL + 0u, s); }
+        case 4: { static const char AZARAC_PROGMEM s[] = "3"; return azarac_pgm_join_z(QZSS_DCR_JMA_LONG_PERIOD_GROUND_MOTION_LOWER_LIMIT_PARENT_POOL + 0u, s); }
+        case 5: { static const char AZARAC_PROGMEM s[] = "4"; return azarac_pgm_join_z(QZSS_DCR_JMA_LONG_PERIOD_GROUND_MOTION_LOWER_LIMIT_PARENT_POOL + 0u, s); }
         case 7: { static const char AZARAC_PROGMEM s[] = "不明"; return azarac_pgm_view(s, 6); }
         default: return std::nullopt;
     }

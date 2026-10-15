@@ -380,14 +380,47 @@ def avr_positional_label_storage(guard, table, ptr):
               "};"]
     return decls, fetch
 
+def switch_labels(guard, entries, as_cstr, missing=None):
+    """Per-case label storage for a `switch` table (AVR branch only).
+
+    A switch table emits one literal per case, so a shared fragment costs no row,
+    no parent index and no length: the fragment's pool offset is a compile-time
+    constant inside that case's body (and, unlike the pooled tables, each case
+    may join in either direction). Returns (pool_decl, cases) — the pool is None
+    when nothing is shared, and `missing` is the expression a None entry emits.
+    """
+    plan = factor_parents(entries)
+    decl, offsets = (None, {})
+    if plan:
+        decl, offsets = _pool_decl(guard, "PARENT_POOL", list(enumerate(plan["parents"])))
+    cases = []
+    for key in sorted(entries):
+        value = entries[key]
+        if value is None:
+            cases.append(f"        case {key}: return {missing};")
+            continue
+        child = plan["children"][key] if plan else value
+        sel = plan["sel"][key] if plan else None
+        lit = c_str_literal(child)
+        if sel is None:
+            expr = ("azarac_pgm_copy(s)" if as_cstr
+                    else f"azarac_pgm_view(s, {len(child.encode('utf-8'))})")
+        else:
+            arg = f"{guard}_PARENT_POOL + {offsets[sel][0]}u"
+            expr = (f"azarac_pgm_join_z({arg}, s)" if plan["order"] == "pre"
+                    else f"azarac_pgm_join_z(s, {arg})")
+            if as_cstr:
+                expr += ".data()"
+        cases.append(f"        case {key}: {{ static const char AZARAC_PROGMEM s[] = {lit}; "
+                     f"return {expr}; }}")
+    return decl, cases
+
 def emit_switch(varname, entries, guard, kt):
-    avr_cases = "\n".join(
-        f'        case {k}: {{ static const char AZARAC_PROGMEM s[] = {c_str_literal(v)}; return azarac_pgm_copy(s); }}'
-        for k, v in sorted(entries.items()))
-    avr_body = "\n".join([
+    pool, avr_cases = switch_labels(guard, entries, as_cstr=True)
+    avr_body = "\n".join(([pool] if pool else []) + [
         f"[[nodiscard]] inline const char* {varname}_lookup({kt} id) noexcept {{",
         "    switch (id) {",
-        avr_cases,
+        *avr_cases,
         "        default: return nullptr;",
         "    }",
         "}",
@@ -406,16 +439,8 @@ def emit_switch(varname, entries, guard, kt):
 
 
 def emit_switch_optional(varname, entries, guard, kt):
-    avr_cases = []
-    for k, v in sorted(entries.items()):
-        if v is not None:
-            byte_len = len(v.encode('utf-8'))
-            avr_cases.append(
-                f'        case {k}: {{ static const char AZARAC_PROGMEM s[] = {c_str_literal(v)}; '
-                f'return azarac_pgm_view(s, {byte_len}); }}')
-        else:
-            avr_cases.append(f'        case {k}: return std::nullopt;')
-    avr_body = "\n".join([
+    pool, avr_cases = switch_labels(guard, entries, as_cstr=False, missing="std::nullopt")
+    avr_body = "\n".join(([pool] if pool else []) + [
         f"[[nodiscard]] inline std::optional<std::string_view> {varname}_lookup({kt} id) noexcept {{",
         "    switch (id) {",
         *avr_cases,
