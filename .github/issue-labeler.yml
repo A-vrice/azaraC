@@ -6,7 +6,7 @@
 # Renovate が作る Dependency Dashboard など。裸の "update" は README や文書の
 # 更新にも当たるので、依存を示す語を伴うときだけ拾う。
 dependencies:
-  - '/(Dependency Dashboard|renovate|dependabot|依存関係|依存パッケージ|(ライブラリ|package|dependency|deps?)[^。\n]{0,20}(update|更新|bump|アップデート))/i'
+  - '/(Dependency Dashboard|renovate|dependabot|依存関係|依存パッケージ|(ライブラリ|\bpackages?\b|\bdependenc(y|ies)\b|\bdeps?\b)[^。\n]{0,20}(update|更新|bump|アップデート))/i'
 
 # 注: 「不可」「エラー」は要望・質問の文にも現れる（「部分一致は不可ですか」「エラー処理を
 # 改善してほしい」）。裸の1語では拾わず、複合語と不具合の文脈に限定する。
