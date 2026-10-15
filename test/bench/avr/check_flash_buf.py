@@ -69,7 +69,12 @@ def parse_condition(expr):
 
 
 def scan_tables():
-    """Longest label per guard condition: {(categories, language): (bytes, file)}.
+    """Longest label per guard condition: {(frames, languages): (bytes, file)}.
+
+    `frames` holds one frozenset of categories per open `#if`. A guard groups
+    categories with OR inside a frame (`(A || B) && (LANG_JA)`) and ANDs the
+    frames, so the groups stay separate: merging them would demand every
+    category of an OR group and skip the tables a one-of-them build selects.
 
     One entry per label would be re-scanned for every configuration; only the
     longest per condition can matter, and the conditions are few, so they are
@@ -79,7 +84,7 @@ def scan_tables():
     for name in sorted(os.listdir(DEFS)):
         if not name.endswith(".h"):
             continue
-        stack = []  # [(categories, language)] - conjunction of the open frames
+        stack = []  # [(categories, language)], one entry per open #if
         for line in open(os.path.join(DEFS, name), encoding="utf-8"):
             stripped = line.lstrip()
             if stripped.startswith("#if"):
@@ -93,18 +98,15 @@ def scan_tables():
                 continue  # #include "..." is not a label
             if '"' not in line:
                 continue
-            cats = set()
-            lang = None
-            for frame_cats, frame_lang in stack:
-                cats |= frame_cats
-                lang = lang or frame_lang
+            frames = tuple(frozenset(c) for c, _ in stack)
+            langs = tuple(l for _, l in stack if l)
             for body in LITERAL.findall(line):
                 if "\\0" in body:
                     continue  # a NUL-separated pool, not one label
                 data = unescape(body)
                 if not data:
                     continue
-                key = (frozenset(cats), lang)
+                key = (frames, langs)
                 if len(data) > out.get(key, (0, ""))[0]:
                     out[key] = (len(data), name)
     return out
@@ -148,10 +150,10 @@ def picks(chain, flags):
 def needed(tables, flags):
     """(bytes, file) of the longest label the configuration can return."""
     worst = (0, "")
-    for (cats, lang), (size, name) in tables.items():
-        if lang is not None and not flags.get("LANG_" + lang, True):
+    for (frames, langs), (size, name) in tables.items():
+        if any(l and not flags.get("LANG_" + l, True) for l in langs):
             continue
-        if cats and not all(flags.get(c, 0) for c in cats):
+        if any(frame and not any(flags.get(c, 0) for c in frame) for frame in frames):
             continue
         if size > worst[0]:
             worst = (size, name)
