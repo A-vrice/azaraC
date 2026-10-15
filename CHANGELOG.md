@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **AVR向けに定義テーブルのフラッシュ消費を削減（issue #35）**: 生成表は地域名の親（都道府県・市区町村）を1件ごとに繰り返していた（英語の地域コード表だけで63,064B）。`strategy.py` の `factor_parents` が、同じ表の中で4件以上に共通する最長の接頭辞／接尾辞（`北海道札幌市` の `北海道`、`Sapporo City, Hokkaido Prefecture` の ` City, Hokkaido Prefecture`）を「親」として切り出し、`<GUARD>_PARENT_POOL` に1回だけ置いて、行には親の添字（`0xFF`＝親なし）を持たせ、参照時に `azarac_pgm_join_z` が既存の共有RAMバッファ内で連結する。binary_search / array 戦略の全表が対象。switch 戦略は行を持たないため、共有断片のオフセットを case 本体に定数として埋め込む。あわせて行から `len` を削除した（プールはNUL区切りなので長さは `azarac_pgm_len` が取る）。
+  - **非AVR（ホスト）側の出力は従来どおり非圧縮**（issue #35 の方針）。ラベルは全1,409,708照会でAVR経路・ホスト経路ともバイト単位一致（`test/bench/avr/labels.golden`）。
+  - 実測（全カテゴリ + 日英、`test/bench/avr/measure_tables.py`）: 474,484B → 307,055B（−35.3%）。最大の単一リテラルが 63,064B → 20,944B になり、avr-gcc の1オブジェクト上限 32,767B を下回ったため、**ATmega2560 で DCX/CAMF・火山・降灰の各カテゴリがビルド可能になった**（従来は `size of variable is too large` でコンパイル不可）。定義テーブルは各プールが64KiB未満に収まるため、16bitのFlashオフセットで扱える範囲も広がった。
+  - **SRAMは不変**: Uno実リンクで data+bss = 702B（変更前と同じ）、表がRAMに落ちていないことを `AVR_TABLES_IN_RAM=0` で確認。結合は `internal/FlashString.h` の共有バッファ（800B、既存）内で行う。
+
+### Added
+
+- **定義テーブルのAVRフットプリント計測ハーネス**（`make -C test bench`、`autoresearch.sh` + `test/bench/avr/`）: `avr-gcc -E` の出力からプールと行のバイト数を数え（`AVR_TABLE_BYTES`）、avr-gcc 自身のオブジェクトサイズと突合する（`AVR_TABLE_CROSSCHECK`）。ゲートは4つ——全1,409,708照会のラベル一致（AVR経路とホスト経路の両方）、ATMega2560での全カテゴリのコンパイル（プールが上限を下回っているときのみ）、既定AVR構成的リンク、そしてSRAM非増加（`UNO_RAM_BYTES` ≤ 702B、`AVR_TABLES_IN_RAM` = 0）。`bash autoresearch.sh --bless-labels` はラベル基準値の再記録用。
+
+### Fixed
+
+- **`gen_definitions.py` の書き込みが一過性のOSErrorで落ちると、生成が途中で止まったまま古いヘッダが残る**: ファイルスキャナが新規ファイルを一時的に掴むWindowsで `OSError(EINVAL)` が出るため、5回まで再試行する（`write_file`）。CI（Linux）では発生しない。
+
 ## [2.0.0] - 2026-10-13
 
 ### Changed (破壊的変更 — JSON v2)
