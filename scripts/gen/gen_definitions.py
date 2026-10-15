@@ -284,11 +284,124 @@ def _read(struct, field, ptr, ltype):
     return (f"pgm_read_byte({ptr} + offsetof({struct}, {field}))" if ltype == "uint8_t"
             else f"pgm_read_word({ptr} + offsetof({struct}, {field}))")
 
+# A second factoring level also puts a branch and a three-part join into every
+# call site of the table, so it must save more than that code costs (~60-130 B of
+# AVR code per site, measured on the shipped preset). Tables that only save a few
+# bytes keep the single level.
+GRAND_MIN_GAIN = 128
+
+def _grand_fragments(guard, parents):
+    """Second-level fragments for a table's parent pool (or None).
+
+    A parent name may itself repeat a part — " City, Aichi Prefecture" over and
+    over — so the parent list is factored again. That costs a byte per parent row
+    (the grand index) and a small grand table, so it is only returned when it
+    pays for both. Returns (decls, plan, pool_name).
+    """
+    plan = factor_parents({i: s for i, s in enumerate(parents)})
+    if not plan:
+        return None
+    saved = (sum(len(s.encode('utf-8')) + 1 for s in parents)
+             - sum(len(v.encode('utf-8')) + 1 for v in plan["children"].values())
+             - sum(len(g.encode('utf-8')) + 1 for g in plan["parents"]))
+    # The extra level also adds a branch and a three-part join to every call site
+    # of the table, so only take it when the tables clearly pay for that code too.
+    if saved <= len(parents) + 2 * len(plan["parents"]) + GRAND_MIN_GAIN:
+        return None
+    ppool, poffs = _pool_decl(guard, "GRAND_POOL", list(enumerate(plan["parents"])))
+    decls = [ppool,
+             f"struct {guard}_GRAND_Entry {{ uint16_t offset; }};",
+             f"static const {guard}_GRAND_Entry {guard}_GRAND_TABLE[] AZARAC_PROGMEM = {{",
+             "\n".join(f'    {{{poffs[i][0]}u}},' for i in range(len(plan["parents"]))),
+             "};"]
+    return decls, plan, f"{guard}_GRAND_POOL"
+
+def _fragment_section(guard, plan, positional, kt, ptr):
+    """Parent/grand pools, their row structs and rows, plus the code that resolves
+    a row's parent index into the label's remaining fragments.
+
+    Both levels are single-direction, so the fragment order is fixed per table:
+    ("parent", "literal") or ("literal", "parent"), and with a grand either
+    grand+parent+literal, parent+grand+literal, literal+grand+parent or
+    literal+parent+grand.
+
+    Returns (decls, setup, fragments, order2, order3). `setup` is emitted after
+    the "no parent" guard: it reads pp/poff and then, when there is a grand
+    level, gi and goff — the caller puts the "no grand" guard in between.
+    """
+    entry = f"{guard}_Entry"
+    parent = f"{guard}_PARENT_Entry"
+    grand = _grand_fragments(guard, plan["parents"])
+    order2 = {"pre": ("parent", "literal"), "post": ("literal", "parent")}[plan["order"]]
+    if grand:
+        gdecls, gplan, gpool = grand
+        # With a grand level the parent pool holds the fragments' own children
+        # (" City, ") and the grand pool the rest ("Hokkaido Prefecture").
+        middle = [gplan["children"][i] for i in range(len(plan["parents"]))]
+        gsel = [(gplan["sel"][i] if gplan["sel"][i] is not None else PARENT_NONE)
+                for i in range(len(plan["parents"]))]
+        order3 = _shift(order2, gplan["order"])
+    else:
+        gdecls, gpool, gsel, middle, order3 = [], None, None, plan["parents"], None
+    ppool, poffs = _pool_decl(guard, "PARENT_POOL", list(enumerate(middle)))
+    if grand:
+        decls = [ppool, *gdecls,
+                 f"struct {parent} {{ uint16_t offset; uint8_t grand; }};",
+                 f"static const {parent} {guard}_PARENT_TABLE[] AZARAC_PROGMEM = {{",
+                 "\n".join(f'    {{{poffs[i][0]}u, {gsel[i]}u}},'
+                            for i in range(len(plan["parents"]))),
+                 "};"]
+    else:
+        decls = [ppool,
+                 f"struct {parent} {{ uint16_t offset; }};",
+                 f"static const {parent} {guard}_PARENT_TABLE[] AZARAC_PROGMEM = {{",
+                 "\n".join(f'    {{{poffs[i][0]}u}},' for i in range(len(plan["parents"]))),
+                 "};"]
+    columns = ("uint16_t offset; uint8_t parent;" if positional
+               else f"{kt} id; uint8_t parent; uint16_t offset;")
+    decls.append(f"struct {entry} {{ {columns} }};")
+
+    setup = [f"const char* AZARAC_PROGMEM pp = reinterpret_cast<const char*>(&{guard}_PARENT_TABLE[pi]);",
+             f"uint16_t poff = {_read(parent, 'offset', 'pp', 'uint16_t')};"]
+    fragments = {"literal": f"{guard}_POOL + off", "parent": f"{guard}_PARENT_POOL + poff"}
+    if grand:
+        fragments["grand"] = f"{gpool} + goff"
+        setup += [f"uint8_t gi = {_read(parent, 'grand', 'pp', 'uint8_t')};",
+                  f"const char* AZARAC_PROGMEM gp2 = reinterpret_cast<const char*>(&{guard}_GRAND_TABLE[gi]);",
+                  f"uint16_t goff = {_read(f'{guard}_GRAND_Entry', 'offset', 'gp2', 'uint16_t')};"]
+    return decls, setup, fragments, order2, order3
+
+def _shift(order2, outer):
+    """Where the grand fragment joins a two-fragment order."""
+    if order2 == ("parent", "literal"):
+        return (("grand", "parent", "literal") if outer == "pre"
+                else ("parent", "grand", "literal"))
+    return (("literal", "grand", "parent") if outer == "pre" else ("literal", "parent", "grand"))
+
+def _join(fragments, order, ret):
+    """The concatenation expression for a fragment order."""
+    if len(order) == 3:
+        return f"azarac_pgm_join3({', '.join(fragments[t] for t in order)}){ret}"
+    return f"azarac_pgm_join_z({', '.join(fragments[t] for t in order)}){ret}"
+
+def _fragment_fetch(setup, fragments, order2, order3, plain, ret):
+    """The label-producing fetch lines: guards, then 2- or 3-part join."""
+    lines = [f"if (pi == {PARENT_NONE}u) return {plain};", setup[0], setup[1]]
+    if order3:
+        # gi is read from the parent row, so its guard comes after that read.
+        lines += [setup[2],
+                  f"if (gi == {PARENT_NONE}u) return {_join(fragments, order2, ret)};",
+                  setup[3], setup[4],
+                  f"return {_join(fragments, order3, ret)};"]
+    else:
+        lines += [f"return {_join(fragments, order2, ret)};"]
+    return lines
+
 def avr_label_storage(guard, kt, keys, entries, ptr, as_cstr=False):
     """AVR storage for a key-indexed label table.
 
-    Returns (decls, fetch). `decls` holds the pool, the shared-parent pool when
-    one pays off, the row structs and the row arrays, in dependency order.
+    Returns (decls, fetch). `decls` holds the pool, the shared-fragment pools
+    when they pay off, the row structs and the row arrays, in dependency order.
     `fetch` turns the row at pointer `ptr` into a label (and returns it): a
     std::string_view, or the same buffer as a NUL-terminated const char* when
     `as_cstr`.
@@ -302,29 +415,13 @@ def avr_label_storage(guard, kt, keys, entries, ptr, as_cstr=False):
     decls = [pool]
     fetch = [f"uint16_t off = {_read(entry, 'offset', ptr, 'uint16_t')};"]
     if plan:
-        parent = f"{guard}_PARENT_Entry"
-        ppool, poffs = _pool_decl(guard, "PARENT_POOL", list(enumerate(plan["parents"])))
-        decls += [
-            ppool,
-            f"struct {parent} {{ uint16_t offset; }};",
-            f"static const {parent} {guard}_PARENT_TABLE[] AZARAC_PROGMEM = {{",
-            "\n".join(f'    {{{poffs[i][0]}u}},' for i in range(len(plan["parents"]))),
-            "};",
-            f"struct {entry} {{ {kt} id; uint8_t parent; uint16_t offset; }};",
-        ]
+        sdecls, setup, fragments, order2, order3 = _fragment_section(guard, plan, False, kt, ptr)
+        decls += sdecls
         rows = [f'    {{{k}u, {sel}u, {offs[k][0]}u}},'
                 for k, sel in ((k, plan["sel"][k] if plan["sel"][k] is not None else PARENT_NONE)
                                for k in keys)]
-        fetch += [
-            f"uint8_t pi = {_read(entry, 'parent', ptr, 'uint8_t')};",
-            f"if (pi == {PARENT_NONE}u) return {plain};",
-            f"const char* AZARAC_PROGMEM pp = reinterpret_cast<const char*>(&{guard}_PARENT_TABLE[pi]);",
-            f"uint16_t poff = {_read(parent, 'offset', 'pp', 'uint16_t')};",
-            # 'pre': "北海道" + "札幌市"; 'post': "Sapporo City" + ", Hokkaido Prefecture".
-            f"return azarac_pgm_join_z({guard}_PARENT_POOL + poff, {guard}_POOL + off){ret};"
-            if plan["order"] == "pre" else
-            f"return azarac_pgm_join_z({guard}_POOL + off, {guard}_PARENT_POOL + poff){ret};",
-        ]
+        fetch += [f"uint8_t pi = {_read(entry, 'parent', ptr, 'uint8_t')};",
+                  *_fragment_fetch(setup, fragments, order2, order3, plain, ret)]
     else:
         rows = [f'    {{{k}u, {offs[k][0]}u}},' for k in keys]
         decls += [f"struct {entry} {{ {kt} id; uint16_t offset; }};"]
@@ -335,10 +432,9 @@ def avr_label_storage(guard, kt, keys, entries, ptr, as_cstr=False):
     return decls, fetch
 
 def avr_positional_label_storage(guard, table, ptr):
-    """AVR storage for an array-strategy table: rows are addressed by
-    `id - BASE`, so they carry no id column. `table[i]` is the label at that id
-    (None = the id is not defined). Returns (decls, fetch) like
-    avr_label_storage; `fetch` leaves the label's length in `n`.
+    """AVR storage for an array-strategy table: rows are addressed by `id - BASE`,
+    so they carry no id column. `table[i]` is the label at that id (None = the id
+    is not defined). Returns (decls, fetch) like avr_label_storage.
     """
     labels = {i: v for i, v in enumerate(table) if v is not None}
     plan = factor_parents(labels)
@@ -348,29 +444,14 @@ def avr_positional_label_storage(guard, table, ptr):
     decls = [pool]
     fetch = [f"uint16_t off = {_read(entry, 'offset', ptr, 'uint16_t')};"]
     if plan:
-        parent = f"{guard}_PARENT_Entry"
-        ppool, poffs = _pool_decl(guard, "PARENT_POOL", list(enumerate(plan["parents"])))
-        decls += [
-            ppool,
-            f"struct {parent} {{ uint16_t offset; }};",
-            f"static const {parent} {guard}_PARENT_TABLE[] AZARAC_PROGMEM = {{",
-            "\n".join(f'    {{{poffs[i][0]}u}},' for i in range(len(plan["parents"]))),
-            "};",
-            f"struct {entry} {{ uint16_t offset; uint8_t parent; }};",
-        ]
+        sdecls, setup, fragments, order2, order3 = _fragment_section(guard, plan, True, None, ptr)
+        decls += sdecls
         rows = [f'    {{{offs[i][0]}u, {sel}u}}'
-                for i, sel in ((i, plan["sel"][i] if i in plan["sel"] and plan["sel"][i] is not None
-                                else PARENT_NONE)
+                for i, sel in ((i, plan["sel"][i] if plan["sel"][i] is not None else PARENT_NONE)
                                for i in range(len(table)))]
-        fetch += [
-            f"uint8_t pi = {_read(entry, 'parent', ptr, 'uint8_t')};",
-            f"if (pi == {PARENT_NONE}u) return azarac_pgm_view_z({guard}_POOL + off);",
-            f"const char* AZARAC_PROGMEM pp = reinterpret_cast<const char*>(&{guard}_PARENT_TABLE[pi]);",
-            f"uint16_t poff = {_read(parent, 'offset', 'pp', 'uint16_t')};",
-            f"return azarac_pgm_join_z({guard}_PARENT_POOL + poff, {guard}_POOL + off);"
-            if plan["order"] == "pre" else
-            f"return azarac_pgm_join_z({guard}_POOL + off, {guard}_PARENT_POOL + poff);",
-        ]
+        fetch += [f"uint8_t pi = {_read(entry, 'parent', ptr, 'uint8_t')};",
+                  *_fragment_fetch(setup, fragments, order2, order3,
+                                   f"azarac_pgm_view_z({guard}_POOL + off)", "")]
     else:
         rows = [f'    {{{offs[i][0]}u}}' for i in range(len(table))]
         decls += [f"struct {entry} {{ uint16_t offset; }};"]

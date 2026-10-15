@@ -53,16 +53,29 @@ inline std::string_view azarac_pgm_view_z(const char* src) {
 // join it to the child at lookup time (see scripts/gen/strategy.py,
 // factor_parents). Both halves live in Flash, so the join lands in the same
 // shared RAM buffer — the two-copy form costs no extra SRAM.
+inline size_t azarac_pgm_append(char* buf, size_t at, const char* src) {
+    size_t n = azarac_pgm_len(src);
+    if (n > AZARAC_FLASH_BUF_SIZE - 1 - at) n = AZARAC_FLASH_BUF_SIZE - 1 - at;
+    memcpy_P(buf + at, src, n);
+    return at + n;
+}
 inline std::string_view azarac_pgm_join_z(const char* a, const char* b) {
     char* buf = azarac_flash_buf();
-    size_t a_n = azarac_pgm_len(a);
-    if (a_n > AZARAC_FLASH_BUF_SIZE - 1) a_n = AZARAC_FLASH_BUF_SIZE - 1;
-    size_t b_n = azarac_pgm_len(b);
-    if (b_n > AZARAC_FLASH_BUF_SIZE - 1 - a_n) b_n = AZARAC_FLASH_BUF_SIZE - 1 - a_n;
-    memcpy_P(buf, a, a_n);
-    memcpy_P(buf + a_n, b, b_n);
-    buf[a_n + b_n] = '\0';
-    return std::string_view(buf, a_n + b_n);
+    size_t n = azarac_pgm_append(buf, 0, a);
+    n = azarac_pgm_append(buf, n, b);
+    buf[n] = '\0';
+    return std::string_view(buf, n);
+}
+// Three-part labels: the same idea one level deeper — a shared fragment may
+// itself repeat (" City, Aichi Prefecture" over " City, " + "Aichi
+// Prefecture"). Still one copy into the same buffer.
+inline std::string_view azarac_pgm_join3(const char* a, const char* b, const char* c) {
+    char* buf = azarac_flash_buf();
+    size_t n = azarac_pgm_append(buf, 0, a);
+    n = azarac_pgm_append(buf, n, b);
+    n = azarac_pgm_append(buf, n, c);
+    buf[n] = '\0';
+    return std::string_view(buf, n);
 }
 inline const char* azarac_pgm_copy(const char* src) {
     char* buf = azarac_flash_buf();
