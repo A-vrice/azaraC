@@ -297,15 +297,15 @@ static const QZSS_DCX_CAMF_A2_COUNTRY_REGION_NAME_Entry QZSS_DCX_CAMF_A2_COUNTRY
     uint8_t lo = 0, hi = 252;
     while (lo < hi) {
         uint8_t mid = static_cast<uint8_t>(lo + (hi - lo) / 2);
-        const char* AZARAC_PROGMEM ep = reinterpret_cast<const char*>(&QZSS_DCX_CAMF_A2_COUNTRY_REGION_NAME_TABLE[mid]);
-        uint16_t eid = pgm_read_word(ep + offsetof(QZSS_DCX_CAMF_A2_COUNTRY_REGION_NAME_Entry, id));
+        azarac_pgm_ptr ep = AZARAC_PGM_PTR(QZSS_DCX_CAMF_A2_COUNTRY_REGION_NAME_TABLE) + static_cast<size_t>(mid) * sizeof(QZSS_DCX_CAMF_A2_COUNTRY_REGION_NAME_Entry);
+        uint16_t eid = azarac_read_word(ep, offsetof(QZSS_DCX_CAMF_A2_COUNTRY_REGION_NAME_Entry, id));
         if (eid == id) {
-            uint16_t off = pgm_read_word(ep + offsetof(QZSS_DCX_CAMF_A2_COUNTRY_REGION_NAME_Entry, offset));
-            uint8_t pi = pgm_read_byte(ep + offsetof(QZSS_DCX_CAMF_A2_COUNTRY_REGION_NAME_Entry, parent));
-            if (pi == 255u) return azarac_pgm_view_z(QZSS_DCX_CAMF_A2_COUNTRY_REGION_NAME_POOL + off);
-            const char* AZARAC_PROGMEM pp = reinterpret_cast<const char*>(&QZSS_DCX_CAMF_A2_COUNTRY_REGION_NAME_PARENT_TABLE[pi]);
-            uint16_t poff = pgm_read_word(pp + offsetof(QZSS_DCX_CAMF_A2_COUNTRY_REGION_NAME_PARENT_Entry, offset));
-            return azarac_pgm_join_z(QZSS_DCX_CAMF_A2_COUNTRY_REGION_NAME_POOL + off, QZSS_DCX_CAMF_A2_COUNTRY_REGION_NAME_PARENT_POOL + poff);
+            uint16_t off = azarac_read_word(ep, offsetof(QZSS_DCX_CAMF_A2_COUNTRY_REGION_NAME_Entry, offset));
+            uint8_t pi = azarac_read_byte(ep, offsetof(QZSS_DCX_CAMF_A2_COUNTRY_REGION_NAME_Entry, parent));
+            if (pi == 255u) return azarac_pgm_view_z(AZARAC_PGM_PTR(QZSS_DCX_CAMF_A2_COUNTRY_REGION_NAME_POOL) + off);
+            azarac_pgm_ptr pp = AZARAC_PGM_PTR(QZSS_DCX_CAMF_A2_COUNTRY_REGION_NAME_PARENT_TABLE) + static_cast<size_t>(pi) * sizeof(QZSS_DCX_CAMF_A2_COUNTRY_REGION_NAME_PARENT_Entry);
+            uint16_t poff = azarac_read_word(pp, offsetof(QZSS_DCX_CAMF_A2_COUNTRY_REGION_NAME_PARENT_Entry, offset));
+            return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCX_CAMF_A2_COUNTRY_REGION_NAME_POOL) + off, AZARAC_PGM_PTR(QZSS_DCX_CAMF_A2_COUNTRY_REGION_NAME_PARENT_POOL) + poff);
         }
         if (eid < id) lo = static_cast<uint8_t>(mid + 1); else hi = mid;
     }

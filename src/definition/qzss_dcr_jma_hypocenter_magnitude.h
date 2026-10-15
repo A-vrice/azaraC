@@ -137,11 +137,11 @@ static const QZSS_DCR_JMA_HYPOCENTER_MAGNITUDE_Entry QZSS_DCR_JMA_HYPOCENTER_MAG
     uint8_t lo = 0, hi = 103;
     while (lo < hi) {
         uint8_t mid = static_cast<uint8_t>(lo + (hi - lo) / 2);
-        const char* AZARAC_PROGMEM ep = reinterpret_cast<const char*>(&QZSS_DCR_JMA_HYPOCENTER_MAGNITUDE_TABLE[mid]);
-        uint8_t eid = static_cast<uint8_t>(pgm_read_byte(ep + offsetof(QZSS_DCR_JMA_HYPOCENTER_MAGNITUDE_Entry, id)));
+        azarac_pgm_ptr ep = AZARAC_PGM_PTR(QZSS_DCR_JMA_HYPOCENTER_MAGNITUDE_TABLE) + static_cast<size_t>(mid) * sizeof(QZSS_DCR_JMA_HYPOCENTER_MAGNITUDE_Entry);
+        uint8_t eid = static_cast<uint8_t>(azarac_read_byte(ep, offsetof(QZSS_DCR_JMA_HYPOCENTER_MAGNITUDE_Entry, id)));
         if (eid == id) {
-            uint16_t off = pgm_read_word(ep + offsetof(QZSS_DCR_JMA_HYPOCENTER_MAGNITUDE_Entry, offset));
-            return azarac_pgm_view_z(QZSS_DCR_JMA_HYPOCENTER_MAGNITUDE_POOL + off);
+            uint16_t off = azarac_read_word(ep, offsetof(QZSS_DCR_JMA_HYPOCENTER_MAGNITUDE_Entry, offset));
+            return azarac_pgm_view_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_HYPOCENTER_MAGNITUDE_POOL) + off);
         }
         if (eid < id) lo = static_cast<uint8_t>(mid + 1); else hi = mid;
     }

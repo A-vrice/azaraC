@@ -64,11 +64,11 @@ static const QZSS_DCX_CAMF_A11_INTERNATIONAL_LIBRARY_B_Entry QZSS_DCX_CAMF_A11_I
     uint8_t lo = 0, hi = 30;
     while (lo < hi) {
         uint8_t mid = static_cast<uint8_t>(lo + (hi - lo) / 2);
-        const char* AZARAC_PROGMEM ep = reinterpret_cast<const char*>(&QZSS_DCX_CAMF_A11_INTERNATIONAL_LIBRARY_B_TABLE[mid]);
-        uint8_t eid = static_cast<uint8_t>(pgm_read_byte(ep + offsetof(QZSS_DCX_CAMF_A11_INTERNATIONAL_LIBRARY_B_Entry, id)));
+        azarac_pgm_ptr ep = AZARAC_PGM_PTR(QZSS_DCX_CAMF_A11_INTERNATIONAL_LIBRARY_B_TABLE) + static_cast<size_t>(mid) * sizeof(QZSS_DCX_CAMF_A11_INTERNATIONAL_LIBRARY_B_Entry);
+        uint8_t eid = static_cast<uint8_t>(azarac_read_byte(ep, offsetof(QZSS_DCX_CAMF_A11_INTERNATIONAL_LIBRARY_B_Entry, id)));
         if (eid == id) {
-            uint16_t off = pgm_read_word(ep + offsetof(QZSS_DCX_CAMF_A11_INTERNATIONAL_LIBRARY_B_Entry, offset));
-            return azarac_pgm_view_z(QZSS_DCX_CAMF_A11_INTERNATIONAL_LIBRARY_B_POOL + off);
+            uint16_t off = azarac_read_word(ep, offsetof(QZSS_DCX_CAMF_A11_INTERNATIONAL_LIBRARY_B_Entry, offset));
+            return azarac_pgm_view_z(AZARAC_PGM_PTR(QZSS_DCX_CAMF_A11_INTERNATIONAL_LIBRARY_B_POOL) + off);
         }
         if (eid < id) lo = static_cast<uint8_t>(mid + 1); else hi = mid;
     }

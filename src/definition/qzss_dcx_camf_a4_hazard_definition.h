@@ -180,17 +180,17 @@ static const QZSS_DCX_CAMF_A4_HAZARD_DEFINITION_Entry QZSS_DCX_CAMF_A4_HAZARD_DE
 };
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_a4_hazard_definition_lookup(uint8_t id) noexcept {
     if (id < QZSS_DCX_CAMF_A4_HAZARD_DEFINITION_BASE || id >= QZSS_DCX_CAMF_A4_HAZARD_DEFINITION_BASE + QZSS_DCX_CAMF_A4_HAZARD_DEFINITION_SIZE) return std::nullopt;
-    const char* AZARAC_PROGMEM p = reinterpret_cast<const char*>(&QZSS_DCX_CAMF_A4_HAZARD_DEFINITION_TABLE[id - 0u]);
-    uint16_t off = pgm_read_word(p + offsetof(QZSS_DCX_CAMF_A4_HAZARD_DEFINITION_Entry, offset));
-    uint8_t pi = pgm_read_byte(p + offsetof(QZSS_DCX_CAMF_A4_HAZARD_DEFINITION_Entry, parent));
-    if (pi == 255u) return azarac_pgm_view_z(QZSS_DCX_CAMF_A4_HAZARD_DEFINITION_POOL + off);
-    const char* AZARAC_PROGMEM pp = reinterpret_cast<const char*>(&QZSS_DCX_CAMF_A4_HAZARD_DEFINITION_PARENT_TABLE[pi]);
-    uint16_t poff = pgm_read_word(pp + offsetof(QZSS_DCX_CAMF_A4_HAZARD_DEFINITION_PARENT_Entry, offset));
-    uint8_t gi = pgm_read_byte(pp + offsetof(QZSS_DCX_CAMF_A4_HAZARD_DEFINITION_PARENT_Entry, grand));
-    if (gi == 255u) return azarac_pgm_join_z(QZSS_DCX_CAMF_A4_HAZARD_DEFINITION_POOL + off, QZSS_DCX_CAMF_A4_HAZARD_DEFINITION_PARENT_POOL + poff);
-    const char* AZARAC_PROGMEM gp2 = reinterpret_cast<const char*>(&QZSS_DCX_CAMF_A4_HAZARD_DEFINITION_GRAND_TABLE[gi]);
-    uint16_t goff = pgm_read_word(gp2 + offsetof(QZSS_DCX_CAMF_A4_HAZARD_DEFINITION_GRAND_Entry, offset));
-    return azarac_pgm_join3(QZSS_DCX_CAMF_A4_HAZARD_DEFINITION_POOL + off, QZSS_DCX_CAMF_A4_HAZARD_DEFINITION_PARENT_POOL + poff, QZSS_DCX_CAMF_A4_HAZARD_DEFINITION_GRAND_POOL + goff);
+    azarac_pgm_ptr p = AZARAC_PGM_PTR(QZSS_DCX_CAMF_A4_HAZARD_DEFINITION_TABLE) + static_cast<size_t>(id - 0u) * sizeof(QZSS_DCX_CAMF_A4_HAZARD_DEFINITION_Entry);
+    uint16_t off = azarac_read_word(p, offsetof(QZSS_DCX_CAMF_A4_HAZARD_DEFINITION_Entry, offset));
+    uint8_t pi = azarac_read_byte(p, offsetof(QZSS_DCX_CAMF_A4_HAZARD_DEFINITION_Entry, parent));
+    if (pi == 255u) return azarac_pgm_view_z(AZARAC_PGM_PTR(QZSS_DCX_CAMF_A4_HAZARD_DEFINITION_POOL) + off);
+    azarac_pgm_ptr pp = AZARAC_PGM_PTR(QZSS_DCX_CAMF_A4_HAZARD_DEFINITION_PARENT_TABLE) + static_cast<size_t>(pi) * sizeof(QZSS_DCX_CAMF_A4_HAZARD_DEFINITION_PARENT_Entry);
+    uint16_t poff = azarac_read_word(pp, offsetof(QZSS_DCX_CAMF_A4_HAZARD_DEFINITION_PARENT_Entry, offset));
+    uint8_t gi = azarac_read_byte(pp, offsetof(QZSS_DCX_CAMF_A4_HAZARD_DEFINITION_PARENT_Entry, grand));
+    if (gi == 255u) return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCX_CAMF_A4_HAZARD_DEFINITION_POOL) + off, AZARAC_PGM_PTR(QZSS_DCX_CAMF_A4_HAZARD_DEFINITION_PARENT_POOL) + poff);
+    azarac_pgm_ptr gp2 = AZARAC_PGM_PTR(QZSS_DCX_CAMF_A4_HAZARD_DEFINITION_GRAND_TABLE) + static_cast<size_t>(gi) * sizeof(QZSS_DCX_CAMF_A4_HAZARD_DEFINITION_GRAND_Entry);
+    uint16_t goff = azarac_read_word(gp2, offsetof(QZSS_DCX_CAMF_A4_HAZARD_DEFINITION_GRAND_Entry, offset));
+    return azarac_pgm_join3(AZARAC_PGM_PTR(QZSS_DCX_CAMF_A4_HAZARD_DEFINITION_POOL) + off, AZARAC_PGM_PTR(QZSS_DCX_CAMF_A4_HAZARD_DEFINITION_PARENT_POOL) + poff, AZARAC_PGM_PTR(QZSS_DCX_CAMF_A4_HAZARD_DEFINITION_GRAND_POOL) + goff);
 }
 #else
 inline constexpr const char* QZSS_DCX_CAMF_A4_HAZARD_DEFINITION_TABLE[] = {

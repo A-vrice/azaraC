@@ -28,10 +28,10 @@ namespace def {
 #if defined(__AVR__)
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_a5_severity_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 0: { static const char AZARAC_PROGMEM s[] = "Unknown"; return azarac_pgm_view(s, 7); }
-        case 1: { static const char AZARAC_PROGMEM s[] = "Moderate - Possible threat to life or property"; return azarac_pgm_view(s, 46); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "Severe - Significant threat to life or property"; return azarac_pgm_view(s, 47); }
-        case 3: { static const char AZARAC_PROGMEM s[] = "Extreme - Extraordinary threat to life or property"; return azarac_pgm_view(s, 50); }
+        case 0: { static const char AZARAC_PROGMEM s[] = "Unknown"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 7); }
+        case 1: { static const char AZARAC_PROGMEM s[] = "Moderate - Possible threat to life or property"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 46); }
+        case 2: { static const char AZARAC_PROGMEM s[] = "Severe - Significant threat to life or property"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 47); }
+        case 3: { static const char AZARAC_PROGMEM s[] = "Extreme - Extraordinary threat to life or property"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 50); }
         default: return std::nullopt;
     }
 }

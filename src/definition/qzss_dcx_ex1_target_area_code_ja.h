@@ -2145,15 +2145,15 @@ static const QZSS_DCX_EX1_TARGET_AREA_CODE_JA_Entry QZSS_DCX_EX1_TARGET_AREA_COD
     uint16_t lo = 0, hi = 1980;
     while (lo < hi) {
         uint16_t mid = static_cast<uint16_t>(lo + (hi - lo) / 2);
-        const char* AZARAC_PROGMEM ep = reinterpret_cast<const char*>(&QZSS_DCX_EX1_TARGET_AREA_CODE_JA_TABLE[mid]);
-        uint16_t eid = pgm_read_word(ep + offsetof(QZSS_DCX_EX1_TARGET_AREA_CODE_JA_Entry, id));
+        azarac_pgm_ptr ep = AZARAC_PGM_PTR(QZSS_DCX_EX1_TARGET_AREA_CODE_JA_TABLE) + static_cast<size_t>(mid) * sizeof(QZSS_DCX_EX1_TARGET_AREA_CODE_JA_Entry);
+        uint16_t eid = azarac_read_word(ep, offsetof(QZSS_DCX_EX1_TARGET_AREA_CODE_JA_Entry, id));
         if (eid == id) {
-            uint16_t off = pgm_read_word(ep + offsetof(QZSS_DCX_EX1_TARGET_AREA_CODE_JA_Entry, offset));
-            uint8_t pi = pgm_read_byte(ep + offsetof(QZSS_DCX_EX1_TARGET_AREA_CODE_JA_Entry, parent));
-            if (pi == 255u) return azarac_pgm_view_z(QZSS_DCX_EX1_TARGET_AREA_CODE_JA_POOL + off);
-            const char* AZARAC_PROGMEM pp = reinterpret_cast<const char*>(&QZSS_DCX_EX1_TARGET_AREA_CODE_JA_PARENT_TABLE[pi]);
-            uint16_t poff = pgm_read_word(pp + offsetof(QZSS_DCX_EX1_TARGET_AREA_CODE_JA_PARENT_Entry, offset));
-            return azarac_pgm_join_z(QZSS_DCX_EX1_TARGET_AREA_CODE_JA_PARENT_POOL + poff, QZSS_DCX_EX1_TARGET_AREA_CODE_JA_POOL + off);
+            uint16_t off = azarac_read_word(ep, offsetof(QZSS_DCX_EX1_TARGET_AREA_CODE_JA_Entry, offset));
+            uint8_t pi = azarac_read_byte(ep, offsetof(QZSS_DCX_EX1_TARGET_AREA_CODE_JA_Entry, parent));
+            if (pi == 255u) return azarac_pgm_view_z(AZARAC_PGM_PTR(QZSS_DCX_EX1_TARGET_AREA_CODE_JA_POOL) + off);
+            azarac_pgm_ptr pp = AZARAC_PGM_PTR(QZSS_DCX_EX1_TARGET_AREA_CODE_JA_PARENT_TABLE) + static_cast<size_t>(pi) * sizeof(QZSS_DCX_EX1_TARGET_AREA_CODE_JA_PARENT_Entry);
+            uint16_t poff = azarac_read_word(pp, offsetof(QZSS_DCX_EX1_TARGET_AREA_CODE_JA_PARENT_Entry, offset));
+            return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCX_EX1_TARGET_AREA_CODE_JA_PARENT_POOL) + poff, AZARAC_PGM_PTR(QZSS_DCX_EX1_TARGET_AREA_CODE_JA_POOL) + off);
         }
         if (eid < id) lo = static_cast<uint16_t>(mid + 1); else hi = mid;
     }

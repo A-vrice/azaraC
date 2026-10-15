@@ -436,15 +436,15 @@ static const QZSS_DCR_JMA_FLOOD_FORECAST_REGION_EN_Entry QZSS_DCR_JMA_FLOOD_FORE
     uint16_t lo = 0, hi = 395;
     while (lo < hi) {
         uint16_t mid = static_cast<uint16_t>(lo + (hi - lo) / 2);
-        const char* AZARAC_PROGMEM ep = reinterpret_cast<const char*>(&QZSS_DCR_JMA_FLOOD_FORECAST_REGION_EN_TABLE[mid]);
-        uint64_t eid = (static_cast<uint64_t>(pgm_read_dword(ep + offsetof(QZSS_DCR_JMA_FLOOD_FORECAST_REGION_EN_Entry, id) + 4)) << 32) | pgm_read_dword(ep + offsetof(QZSS_DCR_JMA_FLOOD_FORECAST_REGION_EN_Entry, id));
+        azarac_pgm_ptr ep = AZARAC_PGM_PTR(QZSS_DCR_JMA_FLOOD_FORECAST_REGION_EN_TABLE) + static_cast<size_t>(mid) * sizeof(QZSS_DCR_JMA_FLOOD_FORECAST_REGION_EN_Entry);
+        uint64_t eid = (static_cast<uint64_t>(azarac_read_dword(ep, offsetof(QZSS_DCR_JMA_FLOOD_FORECAST_REGION_EN_Entry, id) + 4)) << 32) | azarac_read_dword(ep, offsetof(QZSS_DCR_JMA_FLOOD_FORECAST_REGION_EN_Entry, id));
         if (eid == id) {
-            uint16_t off = pgm_read_word(ep + offsetof(QZSS_DCR_JMA_FLOOD_FORECAST_REGION_EN_Entry, offset));
-            uint8_t pi = pgm_read_byte(ep + offsetof(QZSS_DCR_JMA_FLOOD_FORECAST_REGION_EN_Entry, parent));
-            if (pi == 255u) return azarac_pgm_view_z(QZSS_DCR_JMA_FLOOD_FORECAST_REGION_EN_POOL + off);
-            const char* AZARAC_PROGMEM pp = reinterpret_cast<const char*>(&QZSS_DCR_JMA_FLOOD_FORECAST_REGION_EN_PARENT_TABLE[pi]);
-            uint16_t poff = pgm_read_word(pp + offsetof(QZSS_DCR_JMA_FLOOD_FORECAST_REGION_EN_PARENT_Entry, offset));
-            return azarac_pgm_join_z(QZSS_DCR_JMA_FLOOD_FORECAST_REGION_EN_POOL + off, QZSS_DCR_JMA_FLOOD_FORECAST_REGION_EN_PARENT_POOL + poff);
+            uint16_t off = azarac_read_word(ep, offsetof(QZSS_DCR_JMA_FLOOD_FORECAST_REGION_EN_Entry, offset));
+            uint8_t pi = azarac_read_byte(ep, offsetof(QZSS_DCR_JMA_FLOOD_FORECAST_REGION_EN_Entry, parent));
+            if (pi == 255u) return azarac_pgm_view_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_FLOOD_FORECAST_REGION_EN_POOL) + off);
+            azarac_pgm_ptr pp = AZARAC_PGM_PTR(QZSS_DCR_JMA_FLOOD_FORECAST_REGION_EN_PARENT_TABLE) + static_cast<size_t>(pi) * sizeof(QZSS_DCR_JMA_FLOOD_FORECAST_REGION_EN_PARENT_Entry);
+            uint16_t poff = azarac_read_word(pp, offsetof(QZSS_DCR_JMA_FLOOD_FORECAST_REGION_EN_PARENT_Entry, offset));
+            return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_FLOOD_FORECAST_REGION_EN_POOL) + off, AZARAC_PGM_PTR(QZSS_DCR_JMA_FLOOD_FORECAST_REGION_EN_PARENT_POOL) + poff);
         }
         if (eid < id) lo = static_cast<uint16_t>(mid + 1); else hi = mid;
     }

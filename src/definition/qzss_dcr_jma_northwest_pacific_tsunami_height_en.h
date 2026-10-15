@@ -28,14 +28,14 @@ namespace def {
 #if defined(__AVR__)
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_northwest_pacific_tsunami_height_en_lookup(uint16_t id) noexcept {
     switch (id) {
-        case 1: { static const char AZARAC_PROGMEM s[] = "0.3m~1m"; return azarac_pgm_view(s, 7); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "1m~3m"; return azarac_pgm_view(s, 5); }
-        case 3: { static const char AZARAC_PROGMEM s[] = "3m~5m"; return azarac_pgm_view(s, 5); }
-        case 4: { static const char AZARAC_PROGMEM s[] = "5m~10m"; return azarac_pgm_view(s, 6); }
-        case 508: { static const char AZARAC_PROGMEM s[] = "More than 10m"; return azarac_pgm_view(s, 13); }
-        case 509: { static const char AZARAC_PROGMEM s[] = "Huge"; return azarac_pgm_view(s, 4); }
-        case 510: { static const char AZARAC_PROGMEM s[] = "High"; return azarac_pgm_view(s, 4); }
-        case 511: { static const char AZARAC_PROGMEM s[] = "Unknown"; return azarac_pgm_view(s, 7); }
+        case 1: { static const char AZARAC_PROGMEM s[] = "0.3m~1m"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 7); }
+        case 2: { static const char AZARAC_PROGMEM s[] = "1m~3m"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 5); }
+        case 3: { static const char AZARAC_PROGMEM s[] = "3m~5m"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 5); }
+        case 4: { static const char AZARAC_PROGMEM s[] = "5m~10m"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 6); }
+        case 508: { static const char AZARAC_PROGMEM s[] = "More than 10m"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 13); }
+        case 509: { static const char AZARAC_PROGMEM s[] = "Huge"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 4); }
+        case 510: { static const char AZARAC_PROGMEM s[] = "High"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 4); }
+        case 511: { static const char AZARAC_PROGMEM s[] = "Unknown"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 7); }
         default: return std::nullopt;
     }
 }

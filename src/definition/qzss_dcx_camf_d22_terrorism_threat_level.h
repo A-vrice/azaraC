@@ -29,11 +29,11 @@ namespace def {
 static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D22_TERRORISM_THREAT_LEVEL_PARENT_POOL[] = "easures are in place to keep the population safe.\000";
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_d22_terrorism_threat_level_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 0: { static const char AZARAC_PROGMEM s[] = "Very low threat level. A violent act of terrorism is highly unlikely. M"; return azarac_pgm_join_z(s, QZSS_DCX_CAMF_D22_TERRORISM_THREAT_LEVEL_PARENT_POOL + 0u); }
-        case 1: { static const char AZARAC_PROGMEM s[] = "Low threat level. A violent act of terrorism is possible but unlikely. M"; return azarac_pgm_join_z(s, QZSS_DCX_CAMF_D22_TERRORISM_THREAT_LEVEL_PARENT_POOL + 0u); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "Medium threat level. A violent act of terrorism could occur. Additional m"; return azarac_pgm_join_z(s, QZSS_DCX_CAMF_D22_TERRORISM_THREAT_LEVEL_PARENT_POOL + 0u); }
-        case 3: { static const char AZARAC_PROGMEM s[] = "High threat level. A violent act of terrorism is likely. Heightened m"; return azarac_pgm_join_z(s, QZSS_DCX_CAMF_D22_TERRORISM_THREAT_LEVEL_PARENT_POOL + 0u); }
-        case 4: { static const char AZARAC_PROGMEM s[] = "Critical threat level. A violent act of terrorism is highly likely and could occur imminently. Exceptional m"; return azarac_pgm_join_z(s, QZSS_DCX_CAMF_D22_TERRORISM_THREAT_LEVEL_PARENT_POOL + 0u); }
+        case 0: { static const char AZARAC_PROGMEM s[] = "Very low threat level. A violent act of terrorism is highly unlikely. M"; return azarac_pgm_join_z(AZARAC_PGM_PTR(s), AZARAC_PGM_PTR(QZSS_DCX_CAMF_D22_TERRORISM_THREAT_LEVEL_PARENT_POOL) + 0u); }
+        case 1: { static const char AZARAC_PROGMEM s[] = "Low threat level. A violent act of terrorism is possible but unlikely. M"; return azarac_pgm_join_z(AZARAC_PGM_PTR(s), AZARAC_PGM_PTR(QZSS_DCX_CAMF_D22_TERRORISM_THREAT_LEVEL_PARENT_POOL) + 0u); }
+        case 2: { static const char AZARAC_PROGMEM s[] = "Medium threat level. A violent act of terrorism could occur. Additional m"; return azarac_pgm_join_z(AZARAC_PGM_PTR(s), AZARAC_PGM_PTR(QZSS_DCX_CAMF_D22_TERRORISM_THREAT_LEVEL_PARENT_POOL) + 0u); }
+        case 3: { static const char AZARAC_PROGMEM s[] = "High threat level. A violent act of terrorism is likely. Heightened m"; return azarac_pgm_join_z(AZARAC_PGM_PTR(s), AZARAC_PGM_PTR(QZSS_DCX_CAMF_D22_TERRORISM_THREAT_LEVEL_PARENT_POOL) + 0u); }
+        case 4: { static const char AZARAC_PROGMEM s[] = "Critical threat level. A violent act of terrorism is highly likely and could occur imminently. Exceptional m"; return azarac_pgm_join_z(AZARAC_PGM_PTR(s), AZARAC_PGM_PTR(QZSS_DCX_CAMF_D22_TERRORISM_THREAT_LEVEL_PARENT_POOL) + 0u); }
         default: return std::nullopt;
     }
 }

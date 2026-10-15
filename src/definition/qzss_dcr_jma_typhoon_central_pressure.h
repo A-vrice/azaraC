@@ -1263,17 +1263,17 @@ static const QZSS_DCR_JMA_TYPHOON_CENTRAL_PRESSURE_Entry QZSS_DCR_JMA_TYPHOON_CE
 };
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_typhoon_central_pressure_lookup(uint16_t id) noexcept {
     if (id < QZSS_DCR_JMA_TYPHOON_CENTRAL_PRESSURE_BASE || id >= QZSS_DCR_JMA_TYPHOON_CENTRAL_PRESSURE_BASE + QZSS_DCR_JMA_TYPHOON_CENTRAL_PRESSURE_SIZE) return std::nullopt;
-    const char* AZARAC_PROGMEM p = reinterpret_cast<const char*>(&QZSS_DCR_JMA_TYPHOON_CENTRAL_PRESSURE_TABLE[id - 0u]);
-    uint16_t off = pgm_read_word(p + offsetof(QZSS_DCR_JMA_TYPHOON_CENTRAL_PRESSURE_Entry, offset));
-    uint8_t pi = pgm_read_byte(p + offsetof(QZSS_DCR_JMA_TYPHOON_CENTRAL_PRESSURE_Entry, parent));
-    if (pi == 255u) return azarac_pgm_view_z(QZSS_DCR_JMA_TYPHOON_CENTRAL_PRESSURE_POOL + off);
-    const char* AZARAC_PROGMEM pp = reinterpret_cast<const char*>(&QZSS_DCR_JMA_TYPHOON_CENTRAL_PRESSURE_PARENT_TABLE[pi]);
-    uint16_t poff = pgm_read_word(pp + offsetof(QZSS_DCR_JMA_TYPHOON_CENTRAL_PRESSURE_PARENT_Entry, offset));
-    uint8_t gi = pgm_read_byte(pp + offsetof(QZSS_DCR_JMA_TYPHOON_CENTRAL_PRESSURE_PARENT_Entry, grand));
-    if (gi == 255u) return azarac_pgm_join_z(QZSS_DCR_JMA_TYPHOON_CENTRAL_PRESSURE_POOL + off, QZSS_DCR_JMA_TYPHOON_CENTRAL_PRESSURE_PARENT_POOL + poff);
-    const char* AZARAC_PROGMEM gp2 = reinterpret_cast<const char*>(&QZSS_DCR_JMA_TYPHOON_CENTRAL_PRESSURE_GRAND_TABLE[gi]);
-    uint16_t goff = pgm_read_word(gp2 + offsetof(QZSS_DCR_JMA_TYPHOON_CENTRAL_PRESSURE_GRAND_Entry, offset));
-    return azarac_pgm_join3(QZSS_DCR_JMA_TYPHOON_CENTRAL_PRESSURE_POOL + off, QZSS_DCR_JMA_TYPHOON_CENTRAL_PRESSURE_PARENT_POOL + poff, QZSS_DCR_JMA_TYPHOON_CENTRAL_PRESSURE_GRAND_POOL + goff);
+    azarac_pgm_ptr p = AZARAC_PGM_PTR(QZSS_DCR_JMA_TYPHOON_CENTRAL_PRESSURE_TABLE) + static_cast<size_t>(id - 0u) * sizeof(QZSS_DCR_JMA_TYPHOON_CENTRAL_PRESSURE_Entry);
+    uint16_t off = azarac_read_word(p, offsetof(QZSS_DCR_JMA_TYPHOON_CENTRAL_PRESSURE_Entry, offset));
+    uint8_t pi = azarac_read_byte(p, offsetof(QZSS_DCR_JMA_TYPHOON_CENTRAL_PRESSURE_Entry, parent));
+    if (pi == 255u) return azarac_pgm_view_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_TYPHOON_CENTRAL_PRESSURE_POOL) + off);
+    azarac_pgm_ptr pp = AZARAC_PGM_PTR(QZSS_DCR_JMA_TYPHOON_CENTRAL_PRESSURE_PARENT_TABLE) + static_cast<size_t>(pi) * sizeof(QZSS_DCR_JMA_TYPHOON_CENTRAL_PRESSURE_PARENT_Entry);
+    uint16_t poff = azarac_read_word(pp, offsetof(QZSS_DCR_JMA_TYPHOON_CENTRAL_PRESSURE_PARENT_Entry, offset));
+    uint8_t gi = azarac_read_byte(pp, offsetof(QZSS_DCR_JMA_TYPHOON_CENTRAL_PRESSURE_PARENT_Entry, grand));
+    if (gi == 255u) return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_TYPHOON_CENTRAL_PRESSURE_POOL) + off, AZARAC_PGM_PTR(QZSS_DCR_JMA_TYPHOON_CENTRAL_PRESSURE_PARENT_POOL) + poff);
+    azarac_pgm_ptr gp2 = AZARAC_PGM_PTR(QZSS_DCR_JMA_TYPHOON_CENTRAL_PRESSURE_GRAND_TABLE) + static_cast<size_t>(gi) * sizeof(QZSS_DCR_JMA_TYPHOON_CENTRAL_PRESSURE_GRAND_Entry);
+    uint16_t goff = azarac_read_word(gp2, offsetof(QZSS_DCR_JMA_TYPHOON_CENTRAL_PRESSURE_GRAND_Entry, offset));
+    return azarac_pgm_join3(AZARAC_PGM_PTR(QZSS_DCR_JMA_TYPHOON_CENTRAL_PRESSURE_POOL) + off, AZARAC_PGM_PTR(QZSS_DCR_JMA_TYPHOON_CENTRAL_PRESSURE_PARENT_POOL) + poff, AZARAC_PGM_PTR(QZSS_DCR_JMA_TYPHOON_CENTRAL_PRESSURE_GRAND_POOL) + goff);
 }
 #else
 inline constexpr const char* QZSS_DCR_JMA_TYPHOON_CENTRAL_PRESSURE_TABLE[] = {

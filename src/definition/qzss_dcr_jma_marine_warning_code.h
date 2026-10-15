@@ -29,15 +29,15 @@ namespace def {
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_MARINE_WARNING_CODE_PARENT_POOL[] = "海上\000";
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_marine_warning_code_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 0: { static const char AZARAC_PROGMEM s[] = "警報解除"; return azarac_pgm_join_z(QZSS_DCR_JMA_MARINE_WARNING_CODE_PARENT_POOL + 0u, s); }
-        case 10: { static const char AZARAC_PROGMEM s[] = "着氷警報"; return azarac_pgm_join_z(QZSS_DCR_JMA_MARINE_WARNING_CODE_PARENT_POOL + 0u, s); }
-        case 11: { static const char AZARAC_PROGMEM s[] = "濃霧警報"; return azarac_pgm_join_z(QZSS_DCR_JMA_MARINE_WARNING_CODE_PARENT_POOL + 0u, s); }
-        case 12: { static const char AZARAC_PROGMEM s[] = "うねり警報"; return azarac_pgm_join_z(QZSS_DCR_JMA_MARINE_WARNING_CODE_PARENT_POOL + 0u, s); }
-        case 20: { static const char AZARAC_PROGMEM s[] = "風警報"; return azarac_pgm_join_z(QZSS_DCR_JMA_MARINE_WARNING_CODE_PARENT_POOL + 0u, s); }
-        case 21: { static const char AZARAC_PROGMEM s[] = "強風警報"; return azarac_pgm_join_z(QZSS_DCR_JMA_MARINE_WARNING_CODE_PARENT_POOL + 0u, s); }
-        case 22: { static const char AZARAC_PROGMEM s[] = "暴風警報"; return azarac_pgm_join_z(QZSS_DCR_JMA_MARINE_WARNING_CODE_PARENT_POOL + 0u, s); }
-        case 23: { static const char AZARAC_PROGMEM s[] = "台風警報"; return azarac_pgm_join_z(QZSS_DCR_JMA_MARINE_WARNING_CODE_PARENT_POOL + 0u, s); }
-        case 31: { static const char AZARAC_PROGMEM s[] = "その他の警報等情報要素_海上警報"; return azarac_pgm_view(s, 46); }
+        case 0: { static const char AZARAC_PROGMEM s[] = "警報解除"; return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_WARNING_CODE_PARENT_POOL) + 0u, AZARAC_PGM_PTR(s)); }
+        case 10: { static const char AZARAC_PROGMEM s[] = "着氷警報"; return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_WARNING_CODE_PARENT_POOL) + 0u, AZARAC_PGM_PTR(s)); }
+        case 11: { static const char AZARAC_PROGMEM s[] = "濃霧警報"; return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_WARNING_CODE_PARENT_POOL) + 0u, AZARAC_PGM_PTR(s)); }
+        case 12: { static const char AZARAC_PROGMEM s[] = "うねり警報"; return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_WARNING_CODE_PARENT_POOL) + 0u, AZARAC_PGM_PTR(s)); }
+        case 20: { static const char AZARAC_PROGMEM s[] = "風警報"; return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_WARNING_CODE_PARENT_POOL) + 0u, AZARAC_PGM_PTR(s)); }
+        case 21: { static const char AZARAC_PROGMEM s[] = "強風警報"; return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_WARNING_CODE_PARENT_POOL) + 0u, AZARAC_PGM_PTR(s)); }
+        case 22: { static const char AZARAC_PROGMEM s[] = "暴風警報"; return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_WARNING_CODE_PARENT_POOL) + 0u, AZARAC_PGM_PTR(s)); }
+        case 23: { static const char AZARAC_PROGMEM s[] = "台風警報"; return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_WARNING_CODE_PARENT_POOL) + 0u, AZARAC_PGM_PTR(s)); }
+        case 31: { static const char AZARAC_PROGMEM s[] = "その他の警報等情報要素_海上警報"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 46); }
         default: return std::nullopt;
     }
 }

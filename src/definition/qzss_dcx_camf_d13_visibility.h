@@ -28,16 +28,16 @@ namespace def {
 #if defined(__AVR__)
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_d13_visibility_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 0: { static const char AZARAC_PROGMEM s[] = "Dense fog: visibility < 20m"; return azarac_pgm_view(s, 27); }
-        case 1: { static const char AZARAC_PROGMEM s[] = "Thick fog: 20m < visibility < 200m"; return azarac_pgm_view(s, 34); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "Moderate fog: 200m < visibility < 500m"; return azarac_pgm_view(s, 38); }
-        case 3: { static const char AZARAC_PROGMEM s[] = "Light fog: 500m < visibility < 1000m"; return azarac_pgm_view(s, 36); }
-        case 4: { static const char AZARAC_PROGMEM s[] = "Thin fog: 1km < visibility < 2km"; return azarac_pgm_view(s, 32); }
-        case 5: { static const char AZARAC_PROGMEM s[] = "Haze: 2km < visibility < 4km"; return azarac_pgm_view(s, 28); }
-        case 6: { static const char AZARAC_PROGMEM s[] = "Light haze: 4km < visibility < 10km"; return azarac_pgm_view(s, 35); }
-        case 7: { static const char AZARAC_PROGMEM s[] = "Clear: 10km < visibility < 20km"; return azarac_pgm_view(s, 31); }
-        case 8: { static const char AZARAC_PROGMEM s[] = "Very clear: 20km < visibility < 50km"; return azarac_pgm_view(s, 36); }
-        case 9: { static const char AZARAC_PROGMEM s[] = "Exceptionally clear: visibility > 50km"; return azarac_pgm_view(s, 38); }
+        case 0: { static const char AZARAC_PROGMEM s[] = "Dense fog: visibility < 20m"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 27); }
+        case 1: { static const char AZARAC_PROGMEM s[] = "Thick fog: 20m < visibility < 200m"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 34); }
+        case 2: { static const char AZARAC_PROGMEM s[] = "Moderate fog: 200m < visibility < 500m"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 38); }
+        case 3: { static const char AZARAC_PROGMEM s[] = "Light fog: 500m < visibility < 1000m"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 36); }
+        case 4: { static const char AZARAC_PROGMEM s[] = "Thin fog: 1km < visibility < 2km"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 32); }
+        case 5: { static const char AZARAC_PROGMEM s[] = "Haze: 2km < visibility < 4km"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 28); }
+        case 6: { static const char AZARAC_PROGMEM s[] = "Light haze: 4km < visibility < 10km"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 35); }
+        case 7: { static const char AZARAC_PROGMEM s[] = "Clear: 10km < visibility < 20km"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 31); }
+        case 8: { static const char AZARAC_PROGMEM s[] = "Very clear: 20km < visibility < 50km"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 36); }
+        case 9: { static const char AZARAC_PROGMEM s[] = "Exceptionally clear: visibility > 50km"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 38); }
         default: return std::nullopt;
     }
 }

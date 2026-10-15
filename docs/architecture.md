@@ -164,7 +164,7 @@ graph TD
 |---------------|-------------|------|
 | DedupFilter | `AZARAC_DEDUP_SLOTS × 8` B | 既定 4,096B（512スロット。AVRプリセットは512B）。1エントリ = CRC-24Q 4B + 受信時刻 4B |
 | NankaiPageBuffer | 28B（メタデータ）+ `MAX_PAGES × 18 + 1` B | 既定 63 ページで構造体 1,168B。LRUエビクション |
-| 定義テーブル | 表エントリ39本で約122KiB、定義文字列を含むライブラリ全体の読み取り専用セクションは約344KiB。計測条件: 全カテゴリ + 日英ラベル有効、64bit ホスト `g++ 15.2 -std=c++17 -O2 -fdata-sections`（生成対象外の4表を含む計測） | Flash(AVRではPROGMEM)に配置。同一TU内の同一リテラルは定数プールで同じコピーに統合されるが、TUを跨ぐ統合はツールチェーン依存。非AVRはエントリを `const char*`（32bit機で4B）で保持し、上記は非AVRの値。AVR（`-D__AVR__ -DAZARAC_AVR_STUB`）では表ごとに文字列プール＋共有断片プールを持ち、行は `{id, 親, offset}` の3フィールド（長さはプールのNUL区切りから取る）。AVRプリセット（`-mmcu=atmega328p -Os`、SEISMIC/TSUNAMI のみ、JA）では表 + プール計 3,044B（2026-10 実測。`test/bench/avr/measure_tables.py`） |
+| 定義テーブル | 表エントリ39本で約122KiB、定義文字列を含むライブラリ全体の読み取り専用セクションは約344KiB。計測条件: 全カテゴリ + 日英ラベル有効、64bit ホスト `g++ 15.2 -std=c++17 -O2 -fdata-sections`（生成対象外の4表を含む計測） | Flash(AVRではPROGMEM)に配置。同一TU内の同一リテラルは定数プールで同じコピーに統合されるが、TUを跨ぐ統合はツールチェーン依存。非AVRはエントリを `const char*`（32bit機で4B）で保持し、上記は非AVRの値。AVR（`-D__AVR__ -DAZARAC_AVR_STUB`）では表ごとに文字列プール＋共有断片プールを持ち、行は `{id, 親, offset}` の3フィールド（長さはプールのNUL区切りから取る）。AVRプリセット（`-mmcu=atmega328p -Os`、SEISMIC/TSUNAMI のみ、JA）では表 + プール計 3,044B（2026-10 実測。`test/bench/avr/measure_tables.py`）。Flashが64KiBを超えるデバイス（ATmega2560 等）ではプールが64KiB超に配置されるため、アドレスは32bitのFlashアドレスで扱う（`AZARAC_PGM_PTR` + `pgm_read_*_far` / `memcpy_PF`） |
 
 ## 関連ドキュメント
 

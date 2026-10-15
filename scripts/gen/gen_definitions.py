@@ -280,9 +280,9 @@ def _pool_decl(guard, name, strings):
     return f'static const char AZARAC_PROGMEM {guard}_{name}[] = "{"".join(parts)}";', offsets
 
 def _read(struct, field, ptr, ltype):
-    """pgm_read_* for a struct field of the given width."""
-    return (f"pgm_read_byte({ptr} + offsetof({struct}, {field}))" if ltype == "uint8_t"
-            else f"pgm_read_word({ptr} + offsetof({struct}, {field}))")
+    """Read a struct field from the row at Flash address `ptr`."""
+    fn = "azarac_read_byte" if ltype == "uint8_t" else "azarac_read_word"
+    return f"{fn}({ptr}, offsetof({struct}, {field}))"
 
 # A second factoring level also puts a branch and a three-part join into every
 # call site of the table, so it must save more than that code costs (~60-130 B of
@@ -361,13 +361,14 @@ def _fragment_section(guard, plan, positional, kt, ptr):
                else f"{kt} id; uint8_t parent; uint16_t offset;")
     decls.append(f"struct {entry} {{ {columns} }};")
 
-    setup = [f"const char* AZARAC_PROGMEM pp = reinterpret_cast<const char*>(&{guard}_PARENT_TABLE[pi]);",
+    setup = [f"azarac_pgm_ptr pp = AZARAC_PGM_PTR({guard}_PARENT_TABLE) + static_cast<size_t>(pi) * sizeof({parent});",
              f"uint16_t poff = {_read(parent, 'offset', 'pp', 'uint16_t')};"]
-    fragments = {"literal": f"{guard}_POOL + off", "parent": f"{guard}_PARENT_POOL + poff"}
+    fragments = {"literal": f"AZARAC_PGM_PTR({guard}_POOL) + off",
+                 "parent": f"AZARAC_PGM_PTR({guard}_PARENT_POOL) + poff"}
     if grand:
-        fragments["grand"] = f"{gpool} + goff"
+        fragments["grand"] = f"AZARAC_PGM_PTR({gpool}) + goff"
         setup += [f"uint8_t gi = {_read(parent, 'grand', 'pp', 'uint8_t')};",
-                  f"const char* AZARAC_PROGMEM gp2 = reinterpret_cast<const char*>(&{guard}_GRAND_TABLE[gi]);",
+                  f"azarac_pgm_ptr gp2 = AZARAC_PGM_PTR({guard}_GRAND_TABLE) + static_cast<size_t>(gi) * sizeof({guard}_GRAND_Entry);",
                   f"uint16_t goff = {_read(f'{guard}_GRAND_Entry', 'offset', 'gp2', 'uint16_t')};"]
     return decls, setup, fragments, order2, order3
 
@@ -409,7 +410,8 @@ def avr_label_storage(guard, kt, keys, entries, ptr, as_cstr=False):
     plan = factor_parents(entries)
     children = plan["children"] if plan else entries
     entry = f"{guard}_Entry"
-    plain = f"azarac_pgm_copy({guard}_POOL + off)" if as_cstr else f"azarac_pgm_view_z({guard}_POOL + off)"
+    plain = (f"azarac_pgm_copy(AZARAC_PGM_PTR({guard}_POOL) + off)" if as_cstr
+             else f"azarac_pgm_view_z(AZARAC_PGM_PTR({guard}_POOL) + off)")
     ret = ".data()" if as_cstr else ""
     pool, offs = _pool_decl(guard, "POOL", [(k, children[k]) for k in keys])
     decls = [pool]
@@ -451,11 +453,11 @@ def avr_positional_label_storage(guard, table, ptr):
                                for i in range(len(table)))]
         fetch += [f"uint8_t pi = {_read(entry, 'parent', ptr, 'uint8_t')};",
                   *_fragment_fetch(setup, fragments, order2, order3,
-                                   f"azarac_pgm_view_z({guard}_POOL + off)", "")]
+                                   f"azarac_pgm_view_z(AZARAC_PGM_PTR({guard}_POOL) + off)", "")]
     else:
         rows = [f'    {{{offs[i][0]}u}}' for i in range(len(table))]
         decls += [f"struct {entry} {{ uint16_t offset; }};"]
-        fetch += [f"return azarac_pgm_view_z({guard}_POOL + off);"]
+        fetch += [f"return azarac_pgm_view_z(AZARAC_PGM_PTR({guard}_POOL) + off);"]
     decls += [f"static const {entry} {guard}_TABLE[] AZARAC_PROGMEM = {{",
               ",\n".join(rows),
               "};"]
@@ -484,12 +486,12 @@ def switch_labels(guard, entries, as_cstr, missing=None):
         sel = plan["sel"][key] if plan else None
         lit = c_str_literal(child)
         if sel is None:
-            expr = ("azarac_pgm_copy(s)" if as_cstr
-                    else f"azarac_pgm_view(s, {len(child.encode('utf-8'))})")
+            expr = ("azarac_pgm_copy(AZARAC_PGM_PTR(s))" if as_cstr
+                    else f"azarac_pgm_view(AZARAC_PGM_PTR(s), {len(child.encode('utf-8'))})")
         else:
-            arg = f"{guard}_PARENT_POOL + {offsets[sel][0]}u"
-            expr = (f"azarac_pgm_join_z({arg}, s)" if plan["order"] == "pre"
-                    else f"azarac_pgm_join_z(s, {arg})")
+            arg = f"AZARAC_PGM_PTR({guard}_PARENT_POOL) + {offsets[sel][0]}u"
+            expr = (f"azarac_pgm_join_z({arg}, AZARAC_PGM_PTR(s))" if plan["order"] == "pre"
+                    else f"azarac_pgm_join_z(AZARAC_PGM_PTR(s), {arg})")
             if as_cstr:
                 expr += ".data()"
         cases.append(f"        case {key}: {{ static const char AZARAC_PROGMEM s[] = {lit}; "
@@ -578,9 +580,9 @@ def emit_array(varname, entries, guard, kt):
         "};",
         f"[[nodiscard]] inline const char* {varname}_lookup({kt} id) noexcept {{",
         f"    if (id < {guard}_BASE || id >= {guard}_BASE + {guard}_SIZE) return nullptr;",
-        f"    const char* AZARAC_PROGMEM p = reinterpret_cast<const char*>(&{guard}_TABLE[id - {base}u]);",
-        f"    uint16_t off = pgm_read_word(p + offsetof({guard}_Entry, offset));",
-        f"    return azarac_pgm_copy({guard}_POOL + off);",
+        f"    azarac_pgm_ptr p = AZARAC_PGM_PTR({guard}_TABLE) + static_cast<size_t>(id - {base}u) * sizeof({guard}_Entry);",
+        f"    uint16_t off = azarac_read_word(p, offsetof({guard}_Entry, offset));",
+        f"    return azarac_pgm_copy(AZARAC_PGM_PTR({guard}_POOL) + off);",
         "}",
     ])
     # Non-AVR (unchanged constexpr logic)
@@ -613,7 +615,7 @@ def emit_array_optional(varname, entries, guard, kt):
     avr_body = "\n".join(decls + [
         f"[[nodiscard]] inline std::optional<std::string_view> {varname}_lookup({kt} id) noexcept {{",
         f"    if (id < {guard}_BASE || id >= {guard}_BASE + {guard}_SIZE) return std::nullopt;",
-        f"    const char* AZARAC_PROGMEM p = reinterpret_cast<const char*>(&{guard}_TABLE[id - {base}u]);",
+        f"    azarac_pgm_ptr p = AZARAC_PGM_PTR({guard}_TABLE) + static_cast<size_t>(id - {base}u) * sizeof({guard}_Entry);",
         *[f"    {line}" for line in fetch],
         "}",
     ])
@@ -649,22 +651,22 @@ def emit_bsearch(varname, entries, guard, kt):
     # AVR: string pool + id/offset/len entries + manual bsearch.
     # The id field uses the same type as the key (kt) to avoid narrowing.
     if kt == "uint8_t":
-        read_id = f"static_cast<{kt}>(pgm_read_byte(ep + offsetof({guard}_Entry, id)))"
+        read_id = f"static_cast<{kt}>(azarac_read_byte(ep, offsetof({guard}_Entry, id)))"
     elif kt == "uint16_t":
-        read_id = f"pgm_read_word(ep + offsetof({guard}_Entry, id))"
+        read_id = f"azarac_read_word(ep, offsetof({guard}_Entry, id))"
     elif kt == "uint64_t":
         read_id = (
-            f"(static_cast<uint64_t>(pgm_read_dword(ep + offsetof({guard}_Entry, id) + 4)) << 32)"
-            f" | pgm_read_dword(ep + offsetof({guard}_Entry, id))")
+            f"(static_cast<uint64_t>(azarac_read_dword(ep, offsetof({guard}_Entry, id) + 4)) << 32)"
+            f" | azarac_read_dword(ep, offsetof({guard}_Entry, id))")
     else:
-        read_id = f"pgm_read_dword(ep + offsetof({guard}_Entry, id))"
+        read_id = f"azarac_read_dword(ep, offsetof({guard}_Entry, id))"
     decls, fetch = avr_label_storage(guard, kt, keys, entries, "ep", as_cstr=True)
     avr_body = "\n".join(decls + [
         f"[[nodiscard]] inline const char* {varname}_lookup({kt} id) noexcept {{",
         f"    {idx_type} lo = 0, hi = {n};",
         "    while (lo < hi) {",
         f"        {idx_type} mid = static_cast<{idx_type}>(lo + (hi - lo) / 2);",
-        f"        const char* AZARAC_PROGMEM ep = reinterpret_cast<const char*>(&{guard}_TABLE[mid]);",
+        f"        azarac_pgm_ptr ep = AZARAC_PGM_PTR({guard}_TABLE) + static_cast<size_t>(mid) * sizeof({guard}_Entry);",
         f"        {kt} eid = {read_id};",
         "        if (eid == id) {",
         *[f"            {line}" for line in fetch],
@@ -700,22 +702,22 @@ def emit_bsearch_optional(varname, entries, guard, kt):
     # AVR: string pool + id/offset/len entries + manual bsearch.
     # The id field uses the same type as the key (kt) to avoid narrowing.
     if kt == "uint8_t":
-        read_id = f"static_cast<{kt}>(pgm_read_byte(ep + offsetof({guard}_Entry, id)))"
+        read_id = f"static_cast<{kt}>(azarac_read_byte(ep, offsetof({guard}_Entry, id)))"
     elif kt == "uint16_t":
-        read_id = f"pgm_read_word(ep + offsetof({guard}_Entry, id))"
+        read_id = f"azarac_read_word(ep, offsetof({guard}_Entry, id))"
     elif kt == "uint64_t":
         read_id = (
-            f"(static_cast<uint64_t>(pgm_read_dword(ep + offsetof({guard}_Entry, id) + 4)) << 32)"
-            f" | pgm_read_dword(ep + offsetof({guard}_Entry, id))")
+            f"(static_cast<uint64_t>(azarac_read_dword(ep, offsetof({guard}_Entry, id) + 4)) << 32)"
+            f" | azarac_read_dword(ep, offsetof({guard}_Entry, id))")
     else:
-        read_id = f"pgm_read_dword(ep + offsetof({guard}_Entry, id))"
+        read_id = f"azarac_read_dword(ep, offsetof({guard}_Entry, id))"
     decls, fetch = avr_label_storage(guard, kt, keys, entries, "ep")
     avr_body = "\n".join(decls + [
         f"[[nodiscard]] inline std::optional<std::string_view> {varname}_lookup({kt} id) noexcept {{",
         f"    {idx_type} lo = 0, hi = {n};",
         "    while (lo < hi) {",
         f"        {idx_type} mid = static_cast<{idx_type}>(lo + (hi - lo) / 2);",
-        f"        const char* AZARAC_PROGMEM ep = reinterpret_cast<const char*>(&{guard}_TABLE[mid]);",
+        f"        azarac_pgm_ptr ep = AZARAC_PGM_PTR({guard}_TABLE) + static_cast<size_t>(mid) * sizeof({guard}_Entry);",
         f"        {kt} eid = {read_id};",
         "        if (eid == id) {",
         *[f"            {line}" for line in fetch],

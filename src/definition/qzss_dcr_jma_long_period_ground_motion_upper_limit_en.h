@@ -29,14 +29,14 @@ namespace def {
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_LONG_PERIOD_GROUND_MOTION_UPPER_LIMIT_EN_PARENT_POOL[] = "Long-Period Ground Motion class of \000";
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_long_period_ground_motion_upper_limit_en_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 0: { static const char AZARAC_PROGMEM s[] = "No data"; return azarac_pgm_view(s, 7); }
-        case 1: { static const char AZARAC_PROGMEM s[] = "Less than Long-Period Ground Motion class of 1"; return azarac_pgm_view(s, 46); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "1"; return azarac_pgm_join_z(QZSS_DCR_JMA_LONG_PERIOD_GROUND_MOTION_UPPER_LIMIT_EN_PARENT_POOL + 0u, s); }
-        case 3: { static const char AZARAC_PROGMEM s[] = "2"; return azarac_pgm_join_z(QZSS_DCR_JMA_LONG_PERIOD_GROUND_MOTION_UPPER_LIMIT_EN_PARENT_POOL + 0u, s); }
-        case 4: { static const char AZARAC_PROGMEM s[] = "3"; return azarac_pgm_join_z(QZSS_DCR_JMA_LONG_PERIOD_GROUND_MOTION_UPPER_LIMIT_EN_PARENT_POOL + 0u, s); }
-        case 5: { static const char AZARAC_PROGMEM s[] = "4"; return azarac_pgm_join_z(QZSS_DCR_JMA_LONG_PERIOD_GROUND_MOTION_UPPER_LIMIT_EN_PARENT_POOL + 0u, s); }
-        case 6: { static const char AZARAC_PROGMEM s[] = "or greater"; return azarac_pgm_view(s, 10); }
-        case 7: { static const char AZARAC_PROGMEM s[] = "Unknown"; return azarac_pgm_view(s, 7); }
+        case 0: { static const char AZARAC_PROGMEM s[] = "No data"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 7); }
+        case 1: { static const char AZARAC_PROGMEM s[] = "Less than Long-Period Ground Motion class of 1"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 46); }
+        case 2: { static const char AZARAC_PROGMEM s[] = "1"; return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_LONG_PERIOD_GROUND_MOTION_UPPER_LIMIT_EN_PARENT_POOL) + 0u, AZARAC_PGM_PTR(s)); }
+        case 3: { static const char AZARAC_PROGMEM s[] = "2"; return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_LONG_PERIOD_GROUND_MOTION_UPPER_LIMIT_EN_PARENT_POOL) + 0u, AZARAC_PGM_PTR(s)); }
+        case 4: { static const char AZARAC_PROGMEM s[] = "3"; return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_LONG_PERIOD_GROUND_MOTION_UPPER_LIMIT_EN_PARENT_POOL) + 0u, AZARAC_PGM_PTR(s)); }
+        case 5: { static const char AZARAC_PROGMEM s[] = "4"; return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_LONG_PERIOD_GROUND_MOTION_UPPER_LIMIT_EN_PARENT_POOL) + 0u, AZARAC_PGM_PTR(s)); }
+        case 6: { static const char AZARAC_PROGMEM s[] = "or greater"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 10); }
+        case 7: { static const char AZARAC_PROGMEM s[] = "Unknown"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 7); }
         default: return std::nullopt;
     }
 }

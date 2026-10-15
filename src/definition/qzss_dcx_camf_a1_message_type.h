@@ -28,10 +28,10 @@ namespace def {
 #if defined(__AVR__)
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_a1_message_type_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 0: { static const char AZARAC_PROGMEM s[] = "Test"; return azarac_pgm_view(s, 4); }
-        case 1: { static const char AZARAC_PROGMEM s[] = "Alert"; return azarac_pgm_view(s, 5); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "Update"; return azarac_pgm_view(s, 6); }
-        case 3: { static const char AZARAC_PROGMEM s[] = "All Clear"; return azarac_pgm_view(s, 9); }
+        case 0: { static const char AZARAC_PROGMEM s[] = "Test"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 4); }
+        case 1: { static const char AZARAC_PROGMEM s[] = "Alert"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 5); }
+        case 2: { static const char AZARAC_PROGMEM s[] = "Update"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 6); }
+        case 3: { static const char AZARAC_PROGMEM s[] = "All Clear"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 9); }
         default: return std::nullopt;
     }
 }

@@ -28,9 +28,9 @@ namespace def {
 #if defined(__AVR__)
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_typhoon_reference_time_type_en_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 1: { static const char AZARAC_PROGMEM s[] = "Analysis"; return azarac_pgm_view(s, 8); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "Estimate"; return azarac_pgm_view(s, 8); }
-        case 3: { static const char AZARAC_PROGMEM s[] = "Forecast"; return azarac_pgm_view(s, 8); }
+        case 1: { static const char AZARAC_PROGMEM s[] = "Analysis"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 8); }
+        case 2: { static const char AZARAC_PROGMEM s[] = "Estimate"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 8); }
+        case 3: { static const char AZARAC_PROGMEM s[] = "Forecast"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 8); }
         default: return std::nullopt;
     }
 }

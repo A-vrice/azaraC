@@ -34,25 +34,21 @@
 // MT=44 (DCX/CAMF) の窓の上限。ホストは A8-Hazard Duration の上限（6 時間〜7 日、internal/DedupWindow.h）を使うが、AVR の 64 スロットで 7 日の窓は「まだ生きている情報」の枠を長く占め、押し出しによる再通知を招く。MT44 の再送は同じ電文が 2 回（まれに 3〜4 回）で間隔は最大 16 秒（issue #34 の実測）なので、5 分で十分に重複を捕まえられる。A8 の窓は最短でも 6 時間なので、この上限が常に効く。
 #define AZARAC_DEDUP_MT44_MAX_WINDOW_MS 300000UL  // 5 min
 #endif
-#ifndef AZARAC_FLASH_BUF_SIZE
-// Shared definition-lookup buffer (see internal/FlashString.h).
-// AVR default (SEISMIC/TSUNAMI) longest label 30 B → 64 leaves headroom;
-// DCX/CAMF adds far longer labels (a4_hazard_definition: 683 B) → 800 B.
-// Categories are ordered by longest label; add longer ones to this cascade.
-#if defined(AZARAC_ENABLE_DCX_CAMF) && AZARAC_ENABLE_DCX_CAMF
-#define AZARAC_FLASH_BUF_SIZE 800
-#elif defined(AZARAC_ENABLE_NANKAI) && AZARAC_ENABLE_NANKAI
-// NANKAI info-code longest label is 509 B ("調査中B"); 540 leaves headroom.
-#define AZARAC_FLASH_BUF_SIZE 540
-#elif defined(AZARAC_ENABLE_NW_PAC_TSUNAMI) && AZARAC_ENABLE_NW_PAC_TSUNAMI
-// NW-PAC longest label is 72 B (English tsunamigenic potential); 80 leaves headroom.
-#define AZARAC_FLASH_BUF_SIZE 80
+// Flash size decides which families fit: the tables of DCX/CAMF alone are ~100 KB
+// and the decoder needs ~20 KB on top, so a 32 KB part can only carry SEISMIC and
+// TSUNAMI, while a 256 KB part holds DCX/CAMF too (ATmega2560, DCX/CAMF +
+// SEISMIC/TSUNAMI, JA: 142 KiB image measured — see test/bench/avr). Anything
+// above 64 KiB of tables also needs the far Flash addressing in
+// internal/FlashString.h, which such devices select automatically.
+// The remaining families stay off by default even on large parts (all of them at
+// once is ~242 KiB); enable them before including azaraC.h as needed.
+#if !defined(AZARAC_AVR_LARGE_FLASH)
+#if defined(ARDUINO_AVR_MEGA2560) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega2561__)
+#define AZARAC_AVR_LARGE_FLASH 1
 #else
-#define AZARAC_FLASH_BUF_SIZE 64
+#define AZARAC_AVR_LARGE_FLASH 0
 #endif
 #endif
-// AVR has only 32KB Flash: large definitions (EX1 ~41KB, local gov ~38KB) exceed a single PROGMEM array limit, so only SEISMIC/TSUNAMI are enabled.
-// Override before including if you need others (requires more flash).
 #ifndef AZARAC_ENABLE_EEW
 #define AZARAC_ENABLE_EEW 0
 #endif
@@ -90,7 +86,25 @@
 #define AZARAC_ENABLE_MARINE 0
 #endif
 #ifndef AZARAC_ENABLE_DCX_CAMF
-#define AZARAC_ENABLE_DCX_CAMF 0
+#define AZARAC_ENABLE_DCX_CAMF AZARAC_AVR_LARGE_FLASH
+#endif
+
+// Shared definition-lookup buffer (see internal/FlashString.h). Must come after
+// the categories above so a preset (not only a user -D) selects the size:
+// SEISMIC/TSUNAMI longest label is 30 B → 64 leaves headroom; DCX/CAMF adds far
+// longer labels (a4_hazard_definition: 683 B) → 800 B. Ordered by longest label.
+#ifndef AZARAC_FLASH_BUF_SIZE
+#if AZARAC_ENABLE_DCX_CAMF
+#define AZARAC_FLASH_BUF_SIZE 800
+#elif AZARAC_ENABLE_NANKAI
+// NANKAI info-code longest label is 509 B ("調査中B"); 540 leaves headroom.
+#define AZARAC_FLASH_BUF_SIZE 540
+#elif AZARAC_ENABLE_NW_PAC_TSUNAMI
+// NW-PAC longest label is 72 B (English tsunamigenic potential); 80 leaves headroom.
+#define AZARAC_FLASH_BUF_SIZE 80
+#else
+#define AZARAC_FLASH_BUF_SIZE 64
+#endif
 #endif
 #endif // __AVR__
 

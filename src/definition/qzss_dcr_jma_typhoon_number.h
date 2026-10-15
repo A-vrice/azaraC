@@ -147,13 +147,13 @@ static const QZSS_DCR_JMA_TYPHOON_NUMBER_Entry QZSS_DCR_JMA_TYPHOON_NUMBER_TABLE
 };
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_typhoon_number_lookup(uint8_t id) noexcept {
     if (id < QZSS_DCR_JMA_TYPHOON_NUMBER_BASE || id >= QZSS_DCR_JMA_TYPHOON_NUMBER_BASE + QZSS_DCR_JMA_TYPHOON_NUMBER_SIZE) return std::nullopt;
-    const char* AZARAC_PROGMEM p = reinterpret_cast<const char*>(&QZSS_DCR_JMA_TYPHOON_NUMBER_TABLE[id - 1u]);
-    uint16_t off = pgm_read_word(p + offsetof(QZSS_DCR_JMA_TYPHOON_NUMBER_Entry, offset));
-    uint8_t pi = pgm_read_byte(p + offsetof(QZSS_DCR_JMA_TYPHOON_NUMBER_Entry, parent));
-    if (pi == 255u) return azarac_pgm_view_z(QZSS_DCR_JMA_TYPHOON_NUMBER_POOL + off);
-    const char* AZARAC_PROGMEM pp = reinterpret_cast<const char*>(&QZSS_DCR_JMA_TYPHOON_NUMBER_PARENT_TABLE[pi]);
-    uint16_t poff = pgm_read_word(pp + offsetof(QZSS_DCR_JMA_TYPHOON_NUMBER_PARENT_Entry, offset));
-    return azarac_pgm_join_z(QZSS_DCR_JMA_TYPHOON_NUMBER_POOL + off, QZSS_DCR_JMA_TYPHOON_NUMBER_PARENT_POOL + poff);
+    azarac_pgm_ptr p = AZARAC_PGM_PTR(QZSS_DCR_JMA_TYPHOON_NUMBER_TABLE) + static_cast<size_t>(id - 1u) * sizeof(QZSS_DCR_JMA_TYPHOON_NUMBER_Entry);
+    uint16_t off = azarac_read_word(p, offsetof(QZSS_DCR_JMA_TYPHOON_NUMBER_Entry, offset));
+    uint8_t pi = azarac_read_byte(p, offsetof(QZSS_DCR_JMA_TYPHOON_NUMBER_Entry, parent));
+    if (pi == 255u) return azarac_pgm_view_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_TYPHOON_NUMBER_POOL) + off);
+    azarac_pgm_ptr pp = AZARAC_PGM_PTR(QZSS_DCR_JMA_TYPHOON_NUMBER_PARENT_TABLE) + static_cast<size_t>(pi) * sizeof(QZSS_DCR_JMA_TYPHOON_NUMBER_PARENT_Entry);
+    uint16_t poff = azarac_read_word(pp, offsetof(QZSS_DCR_JMA_TYPHOON_NUMBER_PARENT_Entry, offset));
+    return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_TYPHOON_NUMBER_POOL) + off, AZARAC_PGM_PTR(QZSS_DCR_JMA_TYPHOON_NUMBER_PARENT_POOL) + poff);
 }
 #else
 inline constexpr const char* QZSS_DCR_JMA_TYPHOON_NUMBER_TABLE[] = {

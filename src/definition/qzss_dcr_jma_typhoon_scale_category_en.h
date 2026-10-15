@@ -28,10 +28,10 @@ namespace def {
 #if defined(__AVR__)
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_typhoon_scale_category_en_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 0: { static const char AZARAC_PROGMEM s[] = "None"; return azarac_pgm_view(s, 4); }
-        case 1: { static const char AZARAC_PROGMEM s[] = "Large"; return azarac_pgm_view(s, 5); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "Very large"; return azarac_pgm_view(s, 10); }
-        case 15: { static const char AZARAC_PROGMEM s[] = "Other Scale Category"; return azarac_pgm_view(s, 20); }
+        case 0: { static const char AZARAC_PROGMEM s[] = "None"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 4); }
+        case 1: { static const char AZARAC_PROGMEM s[] = "Large"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 5); }
+        case 2: { static const char AZARAC_PROGMEM s[] = "Very large"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 10); }
+        case 15: { static const char AZARAC_PROGMEM s[] = "Other Scale Category"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 20); }
         default: return std::nullopt;
     }
 }

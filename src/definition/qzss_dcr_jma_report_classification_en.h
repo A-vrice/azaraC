@@ -28,10 +28,10 @@ namespace def {
 #if defined(__AVR__)
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_report_classification_en_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 1: { static const char AZARAC_PROGMEM s[] = "Maximum Priority"; return azarac_pgm_view(s, 16); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "Priority"; return azarac_pgm_view(s, 8); }
-        case 3: { static const char AZARAC_PROGMEM s[] = "Regular"; return azarac_pgm_view(s, 7); }
-        case 7: { static const char AZARAC_PROGMEM s[] = "Training/Test"; return azarac_pgm_view(s, 13); }
+        case 1: { static const char AZARAC_PROGMEM s[] = "Maximum Priority"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 16); }
+        case 2: { static const char AZARAC_PROGMEM s[] = "Priority"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 8); }
+        case 3: { static const char AZARAC_PROGMEM s[] = "Regular"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 7); }
+        case 7: { static const char AZARAC_PROGMEM s[] = "Training/Test"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 13); }
         default: return std::nullopt;
     }
 }

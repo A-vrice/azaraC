@@ -29,12 +29,12 @@ namespace def {
 static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D10_DAMAGE_CATEGORY_PARENT_POOL[] = "Category \000";
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_d10_damage_category_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 0: { static const char AZARAC_PROGMEM s[] = "1 - Very dangerous winds will produce some damage. Scale 1 and Intensity 1"; return azarac_pgm_join_z(QZSS_DCX_CAMF_D10_DAMAGE_CATEGORY_PARENT_POOL + 0u, s); }
-        case 1: { static const char AZARAC_PROGMEM s[] = "2 - Extremely dangerous winds will cause extensive damage. Scale 1 and Intensity 2"; return azarac_pgm_join_z(QZSS_DCX_CAMF_D10_DAMAGE_CATEGORY_PARENT_POOL + 0u, s); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "3 - Devastating damage will occur. Scale 1 and Intensity 3"; return azarac_pgm_join_z(QZSS_DCX_CAMF_D10_DAMAGE_CATEGORY_PARENT_POOL + 0u, s); }
-        case 3: { static const char AZARAC_PROGMEM s[] = "4 - Catastrophic damage will occur. Scale 2 and Intensity 1"; return azarac_pgm_join_z(QZSS_DCX_CAMF_D10_DAMAGE_CATEGORY_PARENT_POOL + 0u, s); }
-        case 4: { static const char AZARAC_PROGMEM s[] = "5 - Catastrophic damage will occur. Scale 2 and Intensity 2"; return azarac_pgm_join_z(QZSS_DCX_CAMF_D10_DAMAGE_CATEGORY_PARENT_POOL + 0u, s); }
-        case 5: { static const char AZARAC_PROGMEM s[] = "5 - Catastrophic damage will occur. Scale 3 and Intensity 3"; return azarac_pgm_join_z(QZSS_DCX_CAMF_D10_DAMAGE_CATEGORY_PARENT_POOL + 0u, s); }
+        case 0: { static const char AZARAC_PROGMEM s[] = "1 - Very dangerous winds will produce some damage. Scale 1 and Intensity 1"; return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D10_DAMAGE_CATEGORY_PARENT_POOL) + 0u, AZARAC_PGM_PTR(s)); }
+        case 1: { static const char AZARAC_PROGMEM s[] = "2 - Extremely dangerous winds will cause extensive damage. Scale 1 and Intensity 2"; return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D10_DAMAGE_CATEGORY_PARENT_POOL) + 0u, AZARAC_PGM_PTR(s)); }
+        case 2: { static const char AZARAC_PROGMEM s[] = "3 - Devastating damage will occur. Scale 1 and Intensity 3"; return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D10_DAMAGE_CATEGORY_PARENT_POOL) + 0u, AZARAC_PGM_PTR(s)); }
+        case 3: { static const char AZARAC_PROGMEM s[] = "4 - Catastrophic damage will occur. Scale 2 and Intensity 1"; return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D10_DAMAGE_CATEGORY_PARENT_POOL) + 0u, AZARAC_PGM_PTR(s)); }
+        case 4: { static const char AZARAC_PROGMEM s[] = "5 - Catastrophic damage will occur. Scale 2 and Intensity 2"; return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D10_DAMAGE_CATEGORY_PARENT_POOL) + 0u, AZARAC_PGM_PTR(s)); }
+        case 5: { static const char AZARAC_PROGMEM s[] = "5 - Catastrophic damage will occur. Scale 3 and Intensity 3"; return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D10_DAMAGE_CATEGORY_PARENT_POOL) + 0u, AZARAC_PGM_PTR(s)); }
         default: return std::nullopt;
     }
 }

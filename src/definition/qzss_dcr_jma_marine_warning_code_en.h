@@ -29,15 +29,15 @@ namespace def {
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_MARINE_WARNING_CODE_EN_PARENT_POOL[] = " Warning\000";
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_marine_warning_code_en_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 0: { static const char AZARAC_PROGMEM s[] = "Marine Warning Lifted"; return azarac_pgm_view(s, 21); }
-        case 10: { static const char AZARAC_PROGMEM s[] = "Ice Accretion"; return azarac_pgm_join_z(s, QZSS_DCR_JMA_MARINE_WARNING_CODE_EN_PARENT_POOL + 0u); }
-        case 11: { static const char AZARAC_PROGMEM s[] = "Fog"; return azarac_pgm_join_z(s, QZSS_DCR_JMA_MARINE_WARNING_CODE_EN_PARENT_POOL + 0u); }
-        case 12: { static const char AZARAC_PROGMEM s[] = "Swell"; return azarac_pgm_join_z(s, QZSS_DCR_JMA_MARINE_WARNING_CODE_EN_PARENT_POOL + 0u); }
-        case 20: { static const char AZARAC_PROGMEM s[] = "Wind"; return azarac_pgm_join_z(s, QZSS_DCR_JMA_MARINE_WARNING_CODE_EN_PARENT_POOL + 0u); }
-        case 21: { static const char AZARAC_PROGMEM s[] = "Gale"; return azarac_pgm_join_z(s, QZSS_DCR_JMA_MARINE_WARNING_CODE_EN_PARENT_POOL + 0u); }
-        case 22: { static const char AZARAC_PROGMEM s[] = "Storm"; return azarac_pgm_join_z(s, QZSS_DCR_JMA_MARINE_WARNING_CODE_EN_PARENT_POOL + 0u); }
-        case 23: { static const char AZARAC_PROGMEM s[] = "Typhoon"; return azarac_pgm_join_z(s, QZSS_DCR_JMA_MARINE_WARNING_CODE_EN_PARENT_POOL + 0u); }
-        case 31: { static const char AZARAC_PROGMEM s[] = "Other Marine"; return azarac_pgm_join_z(s, QZSS_DCR_JMA_MARINE_WARNING_CODE_EN_PARENT_POOL + 0u); }
+        case 0: { static const char AZARAC_PROGMEM s[] = "Marine Warning Lifted"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 21); }
+        case 10: { static const char AZARAC_PROGMEM s[] = "Ice Accretion"; return azarac_pgm_join_z(AZARAC_PGM_PTR(s), AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_WARNING_CODE_EN_PARENT_POOL) + 0u); }
+        case 11: { static const char AZARAC_PROGMEM s[] = "Fog"; return azarac_pgm_join_z(AZARAC_PGM_PTR(s), AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_WARNING_CODE_EN_PARENT_POOL) + 0u); }
+        case 12: { static const char AZARAC_PROGMEM s[] = "Swell"; return azarac_pgm_join_z(AZARAC_PGM_PTR(s), AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_WARNING_CODE_EN_PARENT_POOL) + 0u); }
+        case 20: { static const char AZARAC_PROGMEM s[] = "Wind"; return azarac_pgm_join_z(AZARAC_PGM_PTR(s), AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_WARNING_CODE_EN_PARENT_POOL) + 0u); }
+        case 21: { static const char AZARAC_PROGMEM s[] = "Gale"; return azarac_pgm_join_z(AZARAC_PGM_PTR(s), AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_WARNING_CODE_EN_PARENT_POOL) + 0u); }
+        case 22: { static const char AZARAC_PROGMEM s[] = "Storm"; return azarac_pgm_join_z(AZARAC_PGM_PTR(s), AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_WARNING_CODE_EN_PARENT_POOL) + 0u); }
+        case 23: { static const char AZARAC_PROGMEM s[] = "Typhoon"; return azarac_pgm_join_z(AZARAC_PGM_PTR(s), AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_WARNING_CODE_EN_PARENT_POOL) + 0u); }
+        case 31: { static const char AZARAC_PROGMEM s[] = "Other Marine"; return azarac_pgm_join_z(AZARAC_PGM_PTR(s), AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_WARNING_CODE_EN_PARENT_POOL) + 0u); }
         default: return std::nullopt;
     }
 }

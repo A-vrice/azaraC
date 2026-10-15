@@ -28,10 +28,10 @@ namespace def {
 #if defined(__AVR__)
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_a17_type_of_specific_settings_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 0: { static const char AZARAC_PROGMEM s[] = "B1 - Improved Resolution of Main Ellipse"; return azarac_pgm_view(s, 40); }
-        case 1: { static const char AZARAC_PROGMEM s[] = "B2 - Position of the Centre of the Hazard"; return azarac_pgm_view(s, 41); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "B3 - Secondary Ellipse Definition"; return azarac_pgm_view(s, 33); }
-        case 3: { static const char AZARAC_PROGMEM s[] = "B4 - Quantitative and detailed information about the Hazard"; return azarac_pgm_view(s, 59); }
+        case 0: { static const char AZARAC_PROGMEM s[] = "B1 - Improved Resolution of Main Ellipse"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 40); }
+        case 1: { static const char AZARAC_PROGMEM s[] = "B2 - Position of the Centre of the Hazard"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 41); }
+        case 2: { static const char AZARAC_PROGMEM s[] = "B3 - Secondary Ellipse Definition"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 33); }
+        case 3: { static const char AZARAC_PROGMEM s[] = "B4 - Quantitative and detailed information about the Hazard"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 59); }
         default: return std::nullopt;
     }
 }

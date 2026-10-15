@@ -28,14 +28,14 @@ namespace def {
 #if defined(__AVR__)
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_d5_wave_height_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 0: { static const char AZARAC_PROGMEM s[] = "H ≤ 0.5m"; return azarac_pgm_view(s, 10); }
-        case 1: { static const char AZARAC_PROGMEM s[] = "0.5m < H ≤ 1.0m"; return azarac_pgm_view(s, 17); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "1.0m < H ≤ 1.5m"; return azarac_pgm_view(s, 17); }
-        case 3: { static const char AZARAC_PROGMEM s[] = "1.5m < H ≤ 2.0m"; return azarac_pgm_view(s, 17); }
-        case 4: { static const char AZARAC_PROGMEM s[] = "2.0m < H ≤ 3.0m"; return azarac_pgm_view(s, 17); }
-        case 5: { static const char AZARAC_PROGMEM s[] = "3.0m < H ≤ 5.0m"; return azarac_pgm_view(s, 17); }
-        case 6: { static const char AZARAC_PROGMEM s[] = "5.0m < H ≤ 10.0m"; return azarac_pgm_view(s, 18); }
-        case 7: { static const char AZARAC_PROGMEM s[] = "H > 10.0m"; return azarac_pgm_view(s, 9); }
+        case 0: { static const char AZARAC_PROGMEM s[] = "H ≤ 0.5m"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 10); }
+        case 1: { static const char AZARAC_PROGMEM s[] = "0.5m < H ≤ 1.0m"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 17); }
+        case 2: { static const char AZARAC_PROGMEM s[] = "1.0m < H ≤ 1.5m"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 17); }
+        case 3: { static const char AZARAC_PROGMEM s[] = "1.5m < H ≤ 2.0m"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 17); }
+        case 4: { static const char AZARAC_PROGMEM s[] = "2.0m < H ≤ 3.0m"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 17); }
+        case 5: { static const char AZARAC_PROGMEM s[] = "3.0m < H ≤ 5.0m"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 17); }
+        case 6: { static const char AZARAC_PROGMEM s[] = "5.0m < H ≤ 10.0m"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 18); }
+        case 7: { static const char AZARAC_PROGMEM s[] = "H > 10.0m"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 9); }
         default: return std::nullopt;
     }
 }

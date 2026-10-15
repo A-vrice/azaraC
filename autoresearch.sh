@@ -17,8 +17,8 @@
 #                  sizes, which is what keeps the struct-layout term honest.
 # Reported         AVR_STRING_BYTES (the issue's "63 KB pool" number),
 #                  AVR_ENTRY_BYTES/ROWS/ROW_BYTES, AVR_LARGEST_LITERAL, the four
-#                  large pools, UNO_FLASH_BYTES and UNO_RAM_BYTES (a real linked
-#                  image), AVR_TABLES_IN_RAM, AVR_COMPILE_OK,
+#                  large pools, UNO_*/MEGA_* sizes of two real linked images,
+#                  AVR_TABLES_IN_RAM, MEGA_DCX_TABLES, MEGA_FAR_OPS, AVR_COMPILE_OK,
 #                  AVR_TABLE_CROSSCHECK.
 #
 # Gates (non-zero exit)
@@ -33,6 +33,10 @@
 #   crosscheck the primary metric must equal what avr-gcc reports for the
 #             symbols it actually placed.
 #   uno       the default AVR configuration must still compile and link.
+#   mega      the large-flash AVR preset must still compile and link, must still
+#             enable the DCX/CAMF tables, must keep every table in Flash, and
+#             must use far Flash reads (elpm/RAMPZ) — without them the tables
+#             above 64 KB would garble.
 #   ram       SRAM must not grow: UNO_RAM_BYTES (data+bss of the linked image)
 #             never exceeds the baseline, and no definition table may live in
 #             RAM instead of Flash. Shrinking Flash by spending SRAM is a loss —
@@ -57,6 +61,7 @@ UNO_MCU=atmega328p
 AVR_CC="${AVR_CC:-avr-gcc}"
 AVR_SIZE="${AVR_SIZE:-avr-size}"
 AVR_NM="${AVR_NM:-avr-nm}"
+AVR_OBJDUMP="${AVR_OBJDUMP:-avr-objdump}"
 HOST_CXX="${HOST_CXX:-g++}"
 PYTHON="${PYTHON:-python}"
 command -v "$PYTHON" >/dev/null 2>&1 || PYTHON=python3
@@ -215,9 +220,49 @@ if [[ ${#uno_objs[@]} -gt 0 ]] && "$AVR_CC" "${uno_build[@]}" "${uno_objs[@]}" -
         | awk '$2 ~ /^[dDbB]$/ && $3 ~ /(_POOL|_TABLE)$/ { n++ } END { print n + 0 }')"
 fi
 echo "METRIC UNO_COMPILE_OK=$uno_ok"
-[[ -n "$uno_flash" ]] && echo "METRIC UNO_FLASH_BYTES=$uno_flash"
-[[ -n "$uno_ram" ]] && echo "METRIC UNO_RAM_BYTES=$uno_ram"
+[[ -n "${uno_flash:-}" ]] && echo "METRIC UNO_FLASH_BYTES=$uno_flash"
+[[ -n "${uno_ram:-}" ]] && echo "METRIC UNO_RAM_BYTES=$uno_ram"
 [[ -n "${tables_in_ram:-}" ]] && echo "METRIC AVR_TABLES_IN_RAM=$tables_in_ram"
+
+# ---------------------------------------------------------------- stage 5 ---
+# The other shipped AVR preset: a 256 KB part turns DCX/CAMF on by itself
+# (AZARAC_AVR_LARGE_FLASH in azaraC_config.h) and its tables land above 64 KB,
+# so this stage is what proves the far addressing works on a real device.
+mega_ok=0
+mega_build=(-mmcu="$MCU" -Os -std=gnu++17 -fno-exceptions
+            -ffunction-sections -fdata-sections -Wl,--gc-sections
+            -I src -I "$BENCH/shim" -DARDUINO=1)
+mega_objs=()
+rm -rf "$OUT/obj_mega"
+mkdir -p "$OUT/obj_mega"
+for src in src/*.cpp src/*/*.cpp "$BENCH/probe.cpp"; do
+    obj="$OUT/obj_mega/$(echo "$src" | tr '/' '_').o"
+    if "$AVR_CC" "${mega_build[@]}" -c "$src" -o "$obj"; then
+        mega_objs+=("$obj")
+    else
+        mega_objs=()
+        break
+    fi
+done
+if [[ ${#mega_objs[@]} -gt 0 ]] && "$AVR_CC" "${mega_build[@]}" "${mega_objs[@]}" -o "$OUT/mega.elf"; then
+    mega_ok=1
+    mega_flash="$("$AVR_SIZE" "$OUT/mega.elf" | awk 'NR == 2 { print $1 + $2 }')"
+    mega_ram="$("$AVR_SIZE" "$OUT/mega.elf" | awk 'NR == 2 { print $2 + $3 }')"
+    mega_tables_in_ram="$("$AVR_NM" -C "$OUT/mega.elf" 2>/dev/null \
+        | awk '$2 ~ /^[dDbB]$/ && $3 ~ /(_POOL|_TABLE)$/ { n++ } END { print n + 0 }')"
+    # The preset must actually carry the DCX/CAMF tables on a 256 KB part.
+    mega_tables="$("$AVR_NM" -C "$OUT/mega.elf" 2>/dev/null \
+        | awk '$3 ~ /QZSS_DCX_/ && $3 ~ /(_POOL|_TABLE)$/ { n++ } END { print n + 0 }')"
+    # Far Flash addressing must be in use: without RAMPZ/elpm the tables above
+    # 64 KB (138 of 195 symbols in the all-category build) would be unreadable.
+    mega_far_ops="$("$AVR_OBJDUMP" -d "$OUT/mega.elf" 2>/dev/null \
+        | grep -c -e 'elpm' -e 'out.*0x3b')"
+fi
+echo "METRIC MEGA_COMPILE_OK=$mega_ok"
+[[ -n "${mega_flash:-}" ]] && echo "METRIC MEGA_FLASH_BYTES=$mega_flash"
+[[ -n "${mega_ram:-}" ]] && echo "METRIC MEGA_RAM_BYTES=$mega_ram"
+[[ -n "${mega_tables:-}" ]] && echo "METRIC MEGA_DCX_TABLES=$mega_tables"
+[[ -n "${mega_far_ops:-}" ]] && echo "METRIC MEGA_FAR_OPS=$mega_far_ops"
 
 # ---------------------------------------------------------------- gates -----
 status=0
@@ -251,6 +296,24 @@ if [[ -n "${tables_in_ram:-}" ]] && (( tables_in_ram != 0 )); then
     status=11
 fi
 
+if (( mega_ok == 0 )); then
+    echo "autoresearch: the large-flash AVR preset no longer builds" >&2
+    status=12
+else
+    [[ -n "${mega_tables_in_ram:-}" ]] && (( mega_tables_in_ram != 0 )) && {
+        echo "autoresearch: $mega_tables_in_ram Mega table(s) in RAM instead of Flash" >&2
+        status=12
+    }
+    (( ${mega_tables:-0} == 0 )) && {
+        echo "autoresearch: the 256 KB preset stopped enabling the DCX/CAMF tables" >&2
+        status=12
+    }
+    (( ${mega_far_ops:-0} == 0 )) && {
+        echo "autoresearch: the Mega image uses no far Flash reads (elpm/RAMPZ) — tables above 64 KB would garble" >&2
+        status=12
+    }
+fi
+
 if (( label_status != 0 )); then
     status=9
 fi
@@ -259,5 +322,5 @@ if (( status != 0 )); then
     exit "$status"
 fi
 
-echo "autoresearch: ok (AVR_TABLE_BYTES=$table_bytes strings=$string_bytes entries=$entry_bytes rows=$entry_rows largest=$largest AVR_COMPILE_OK=$build_ok UNO_FLASH_BYTES=${uno_flash:-n/a})"
+echo "autoresearch: ok (AVR_TABLE_BYTES=$table_bytes strings=$string_bytes entries=$entry_bytes rows=$entry_rows largest=$largest AVR_COMPILE_OK=$build_ok UNO_FLASH_BYTES=${uno_flash:-n/a} MEGA_FLASH_BYTES=${mega_flash:-n/a})"
 exit 0
