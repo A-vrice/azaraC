@@ -9,10 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **AVR向けに定義テーブルのフラッシュ消費を削減（issue #35）**: 生成表は地域名の親（都道府県・市区町村）を1件ごとに繰り返していた（英語の地域コード表だけで63,064B）。`strategy.py` の `factor_parents` が、同じ表の中で4件以上に共通する最長の接頭辞／接尾辞（`北海道札幌市` の `北海道`、`Sapporo City, Hokkaido Prefecture` の ` City, Hokkaido Prefecture`）を「親」として切り出し、`<GUARD>_PARENT_POOL` に1回だけ置いて、行には親の添字（`0xFF`＝親なし）を持たせ、参照時に `azarac_pgm_join_z` が既存の共有RAMバッファ内で連結する。binary_search / array 戦略の全表が対象。switch 戦略は行を持たないため、共有断片のオフセットを case 本体に定数として埋め込む。あわせて行から `len` を削除した（プールはNUL区切りなので長さは `azarac_pgm_len` が取る）。
-  - **非AVR（ホスト）側の出力は従来どおり非圧縮**（issue #35 の方針）。ラベルは全1,409,708照会でAVR経路・ホスト経路ともバイト単位一致（`test/bench/avr/labels.golden`）。
-  - 実測（全カテゴリ + 日英、`test/bench/avr/measure_tables.py`）: 474,484B → 307,055B（−35.3%）。最大の単一リテラルが 63,064B → 20,944B になり、avr-gcc の1オブジェクト上限 32,767B を下回ったため、**ATmega2560 で DCX/CAMF・火山・降灰の各カテゴリがビルド可能になった**（従来は `size of variable is too large` でコンパイル不可）。定義テーブルは各プールが64KiB未満に収まるため、16bitのFlashオフセットで扱える範囲も広がった。
-  - **SRAMは不変**: Uno実リンクで data+bss = 702B（変更前と同じ）、表がRAMに落ちていないことを `AVR_TABLES_IN_RAM=0` で確認。結合は `internal/FlashString.h` の共有バッファ（800B、既存）内で行う。
+- **AVR向けに定義テーブルのフラッシュ消費を削減（issue #35）**: 生成表は地域名の親（都道府県・市区町村）を1件ごとに繰り返していた（英語の地域コード表だけで63,064B）。`strategy.py` の `factor_parents` が、同じ表の中で4件以上に共通する最長の接頭辞／接尾辞（`北海道札幌市` の `北海道`、`Sapporo City, Hokkaido Prefecture` の ` City, Hokkaido Prefecture`）を「親」として切り出し、`<GUARD>_PARENT_POOL` に1回だけ置いて、行には親の添字（`0xFF`＝親なし）を持たせ、参照時に `azarac_pgm_join_z` が既存の共有RAMバッファ内で連結する。切り出した親自身も同じ規則で再帰的に切り出せる（2段目。` City, Hokkaido Prefecture` → ` City, ` ＋ `Hokkaido Prefecture`）。binary_search / array 戦略の全表が対象。switch 戦略は行を持たないため、共有断片のオフセットを case 本体に定数として埋め込む。あわせて行から `len` を削除した（プールはNUL区切りなので長さは `azarac_pgm_len` が取る）。
+  - 2段目は呼び出し側に分岐と `azarac_pgm_join3` を足すため、表の削減がそのコード（実測60〜130B/呼び出し）を上回る表だけ採用する（閾値 128B）。閾値が無いと既定AVR構成的リンクが122B増えることを実測で確認した。
+  - **非AVR（ホスト）側の出力は従来どおり非圧縮**（issue #35 の方針）。ラベルは全1,409,708照会でAVR経路・ホスト経路ともバイト単位一致（`test/bench/avr/labels.golden`。断片の結合順をわざと入れ替えるとこのゲートが落ちることも確認済み）。
+  - 実測（全カテゴリ + 日英、`test/bench/avr/measure_tables.py`）: 474,484B → 301,116B（−36.5%）。最大の単一リテラルが 63,064B → 20,944B になり、avr-gcc の1オブジェクト上限 32,767B を下回ったため、**ATmega2560 で DCX/CAMF・火山・降灰の各カテゴリがビルド可能になった**（従来は `size of variable is too large` でコンパイル不可）。定義テーブルは各プールが64KiB未満に収まるため、16bitのFlashオフセットで扱える範囲も広がった。
+  - **SRAMは不変**: Uno実リンクで data+bss = 702B（変更前と同じ）、表がRAMに落ちていないことを `AVR_TABLES_IN_RAM=0` で確認。結合は `internal/FlashString.h` の共有バッファ（800B、既存）内で行う。既定AVRプリセット（SEISMIC/TSUNAMI、JA）は表+プール 3,044B・リンク後フラッシュ 17,930B → 17,740B。
 
 ### Added
 
