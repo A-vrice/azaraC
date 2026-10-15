@@ -15,19 +15,20 @@ jobs:
     outputs:
       artifact-name: ${{ steps.archive.outputs.name }}
       subjects: ${{ steps.hash.outputs.subjects }}
-      sorce-sha: ${{ steps.source.outputs.sha}}
+      source-sha: ${{ steps.source.outputs.sha }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
-          ref: ${{ github.sha }}
 
+      # タグは annotated tag なので、github.sha がタグオブジェクトを指す可能性を避け、
+      # checkout したコミットをそのまま記録する。
       - name: Record source commit
         id: source
         shell: bash
         run: |
           set -euo pipefail
-          SORCE_SHA="$(git rev-parse HEAD)"
+          SOURCE_SHA="$(git rev-parse HEAD)"
           echo "sha=${SOURCE_SHA}" >> "$GITHUB_OUTPUT"
 
       - name: Create source archive
@@ -42,14 +43,22 @@ jobs:
             echo "Rejecting invalid release tag: $RELEASE_TAG" >&2
             exit 1
           fi
+          # タグと manifest のバージョンはリリース時にしか突き合わせられない
+          # （CI の version-sync は library.json と library.properties の同期まで）。
+          # library.json は CI が同期を強制しているので properties だけで足りる。
+          # .gitattributes が eol=lf なので改行コードの考慮は不要。
+          if ! grep -qx "version=${RELEASE_TAG#v}" library.properties; then
+            echo "library.properties version does not match tag ${RELEASE_TAG}" >&2
+            exit 1
+          fi
           NAME="azaraC-${RELEASE_TAG#v}"
           mkdir "$NAME"
           # 本体及びその付属物
           cp -r src examples docs "$NAME/"
           # ライブラリとして配布すべきもの
-          cp README.md LICENSE library.properties
+          cp README.md LICENSE library.properties "$NAME/"
           # なくたっていい
-          cp keywords.txt "$NAME/" 2>/dev/null || true
+          cp keywords.txt library.json "$NAME/" 2>/dev/null || true
 
           tar czf "${NAME}.tar.gz" "$NAME"
           zip -r "${NAME}.zip" "$NAME"
@@ -86,6 +95,11 @@ jobs:
       base64-subjects: "${{ needs.build.outputs.subjects }}"
       # upload-assets は意図的に false（既定）のまま: generator に空リリースを作らせない。リリース作成は検証成功後に release ジョブが単独で担う。
       upload-assets: false
+      # private-repository: true は必須の回避策。この generator (v2.1.0) は public
+      # リポジトリを private と誤判定して停止することがある。public リポジトリなので
+      # 公開透明性ログへのリポジトリ名露出は問題なし。d34256f で実際の失敗を受けて
+      # 導入されたもので、消すと provenance ジョブが再び失敗する。
+      private-repository: true
 
   # GitHub Release 作成 + アセットアップロード
   release:
@@ -136,8 +150,6 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # release ジョブは checkout しないため、gh は git remote から
-          # リポジトリを解決できない。GH_REPO で明示する。
           GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ github.ref_name }}
           ARCHIVE_NAME: ${{ needs.build.outputs.artifact-name }}
@@ -145,26 +157,185 @@ jobs:
           EXPECTED_SHA: ${{ needs.build.outputs.source-sha }}
         run: |
           set -euo pipefail
-          
-          RELEASE_ID=""
-          RELEASE_API="repos/${GH_REPO}"
 
-          failed() {
-          
+          # 空のリリースが残る可能性があるので若干過剰かもしれないけど対策。
+
+          RELEASE_ID=""
+          RELEASES_API="repos/${GH_REPO}/releases"
+
+          fail() {
+            printf '%s\n' "$*" >&2
+            exit 1
           }
-          
-          # このステップに到達 = 上流の Verify SLSA provenance が検証成功。
-          # リリース作成はここが単一の所有者。provenance 失敗時はこのジョブが
-          # そもそも skipped になるため、空のリリースは残らない。
-          # --verify-tag: タグが無い場合に gh がデフォルトブランチから自動作成して別コミットへ公開するのを防ぐ。
-          # 
-          # Actionsは不具合多いのでそれを踏まえた作りにしたい。
-          # これだと公開に失敗しても空のリリースが残る可能性がある。
-          # idea: draft->upload->releaseの順にする
-          gh release create "$RELEASE_TAG" \
-            "${ARCHIVE_NAME}.tar.gz" \
-            "${ARCHIVE_NAME}.zip" \
-            "$PROVENANCE" \
-            --title "azaraC $RELEASE_TAG" \
-            --generate-notes \
-            --verify-tag
+
+          # lightweight tag / annotated tag を commit まで解決する。
+          verify_remote_tag() {
+            local object type sha depth
+
+            object="$(gh api \
+              "repos/${GH_REPO}/git/ref/tags/${RELEASE_TAG}" \
+              --jq '.object')" || return 1
+
+            for ((depth = 0; depth < 16; depth++)); do
+              type="$(jq -er '.type | strings' <<< "$object")" || return 1
+              sha="$(jq -er '.sha | strings' <<< "$object")" || return 1
+
+              case "$type" in
+                commit)
+                  if [[ "$sha" != "$EXPECTED_SHA" ]]; then
+                    printf 'Tag commit mismatch: expected=%s actual=%s\n' \
+                      "$EXPECTED_SHA" "$sha" >&2
+                    return 1
+                  fi
+                  return 0
+                  ;;
+                tag)
+                  object="$(gh api \
+                    "repos/${GH_REPO}/git/tags/${sha}" \
+                    --jq '.object')" || return 1
+                  ;;
+                *)
+                  printf 'Unsupported tag target type: %s\n' "$type" >&2
+                  return 1
+                  ;;
+              esac
+            done
+
+            printf '%s\n' "Tag nesting limit exceeded" >&2
+            return 1
+          }
+
+          # この実行で作成した Release だけを対象にする。
+          # 公開済み、または状態が不明な場合には削除しない。
+          cleanup() {
+            local status="$?"
+            local draft
+
+            trap - EXIT
+
+            if [[ "$status" -ne 0 && "$RELEASE_ID" =~ ^[1-9][0-9]*$ ]]; then
+              if draft="$(gh api \
+                "${RELEASES_API}/${RELEASE_ID}" \
+                --jq '.draft')"; then
+                if [[ "$draft" == "true" ]]; then
+                  if ! gh api --method DELETE \
+                    "${RELEASES_API}/${RELEASE_ID}" \
+                    --silent; then
+                    printf '::warning::Could not delete draft release %s\n' \
+                      "$RELEASE_ID" >&2
+                  fi
+                else
+                  printf '::warning::Release %s is not a draft; leaving it untouched\n' \
+                    "$RELEASE_ID" >&2
+                fi
+              else
+                printf '::warning::Could not determine release %s state; leaving it untouched\n' \
+                  "$RELEASE_ID" >&2
+              fi
+            fi
+
+            exit "$status"
+          }
+
+          trap cleanup EXIT
+
+          [[ "$RELEASE_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]] \
+            || fail "Invalid release tag: $RELEASE_TAG"
+
+          [[ "$EXPECTED_SHA" =~ ^[0-9a-f]{40}$ ]] \
+            || fail "Invalid source commit SHA: $EXPECTED_SHA"
+
+          # このステップでは、カレントディレクトリ内の単純なファイル名だけを許可する。
+          # パスや CLI の特殊入力として解釈される値を受け付けない。
+          for name in "$ARCHIVE_NAME" "$PROVENANCE"; do
+            [[ "$name" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]] \
+              || fail "Invalid release asset name: $name"
+          done
+
+          assets=(
+            "${ARCHIVE_NAME}.tar.gz"
+            "${ARCHIVE_NAME}.zip"
+            "$PROVENANCE"
+          )
+
+          [[ "$PROVENANCE" != "${assets[0]}" && "$PROVENANCE" != "${assets[1]}" ]] \
+            || fail "Duplicate release asset name: $PROVENANCE"
+
+          # アセット不足の場合には draft を作成しない。
+          for file in "${assets[@]}"; do
+            [[ -f "./$file" && -r "./$file" && -s "./$file" ]] \
+              || fail "Missing, unreadable, or empty release asset: $file"
+          done
+
+          verify_remote_tag
+
+          # 既存 Release は検索・流用せず、新規作成する。
+          # タグが存在しなくなった場合の作成先も、ビルドした SHA に固定する。
+          release="$(gh api --method POST \
+            "$RELEASES_API" \
+            -f tag_name="$RELEASE_TAG" \
+            -f target_commitish="$EXPECTED_SHA" \
+            -f name="azaraC $RELEASE_TAG" \
+            -F draft=true \
+            -F generate_release_notes=true)"
+
+          # 先に ID を保存し、以後の検証失敗も cleanup の対象にする。
+          RELEASE_ID="$(jq -er \
+            '.id | select(type == "number" and . > 0) | tostring' \
+            <<< "$release")"
+
+          [[ "$RELEASE_ID" =~ ^[1-9][0-9]*$ ]] \
+            || fail "Invalid release ID: $RELEASE_ID"
+
+          jq -e --arg tag "$RELEASE_TAG" \
+            '.draft == true and .tag_name == $tag' \
+            <<< "$release" >/dev/null \
+            || fail "Unexpected release creation response"
+
+          upload_url="$(jq -er \
+            '.upload_url | strings | select(length > 0) | split("{")[0]' \
+            <<< "$release")"
+
+          # タグ名で再検索せず、作成レスポンスの URL にアップロードする。
+          # --input がある場合、-f の値はクエリパラメーターになる。
+          for file in "${assets[@]}"; do
+            case "$file" in
+              *.tar.gz) content_type="application/gzip" ;;
+              *.zip)    content_type="application/zip" ;;
+              *)        content_type="application/octet-stream" ;;
+            esac
+
+            asset="$(gh api --method POST \
+              "$upload_url" \
+              -H "Content-Type: $content_type" \
+              -f name="$file" \
+              --input "./$file")"
+
+            jq -e --arg name "$file" \
+              '.state == "uploaded" and .name == $name and .size > 0' \
+              <<< "$asset" >/dev/null \
+              || fail "Unexpected upload response for asset: $file"
+          done
+
+          # 公開前に、この Release が依然として対象タグの draft であることを確認する。
+          release="$(gh api "${RELEASES_API}/${RELEASE_ID}")"
+
+          jq -e --arg tag "$RELEASE_TAG" \
+            '.draft == true and .tag_name == $tag' \
+            <<< "$release" >/dev/null \
+            || fail "Release state changed before publication"
+
+          # アップロード中のタグ変更も検出する。
+          verify_remote_tag
+
+          # 全アップロードと直前の検証が成功した場合にのみ公開する。
+          release="$(gh api --method PATCH \
+            "${RELEASES_API}/${RELEASE_ID}" \
+            -F draft=false)"
+
+          jq -e --arg tag "$RELEASE_TAG" \
+            '.draft == false and .tag_name == $tag' \
+            <<< "$release" >/dev/null \
+            || fail "Unexpected release publication response"
+
+          trap - EXIT
