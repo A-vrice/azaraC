@@ -53,6 +53,12 @@ jobs:
       - name: Build & run (no dynamic allocation check)
         run: make -C test test-no-alloc
 
+      # dedup ベンチ（test/bench/run_dedup_bench.sh）。NEW_RECALL / DUP_SUPPRESS /
+      # NANKAI_KEY_STABLE / PREAMBLE_KEY_STABLE をゲートする。host の g++ だけで
+      # 動く（AVR ツールチェーンは下の計測ステップで入れる）。
+      - name: Dedup benchmark (gates)
+        run: make -C test bench-dedup
+
       # 定義テーブルの AVR フットプリント計測（autoresearch.sh）。ハーネスは
       # avr-gcc / avr-size / avr-nm を使うが、ランナーイメージには入っていない。
       - name: Install AVR toolchain

@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **定義テーブルのAVRフットプリント計測ハーネス**（`make -C test bench`、`autoresearch.sh` + `test/bench/avr/`）: `avr-gcc -E` の出力からプールと行のバイト数を数え（`AVR_TABLE_BYTES`）、avr-gcc 自身のオブジェクトサイズと突合する（`AVR_TABLE_CROSSCHECK`）。ゲートは6つ——全1,409,708照会のラベル一致（AVR far / AVR 16bit / ホストの3経路）、ATmega2560での全カテゴリのコンパイル（プールが上限を下回っているときのみ）、既定AVR構成のリンク、SRAM非増加（`UNO_RAM_BYTES` ≤ 702B、`AVR_TABLES_IN_RAM` = 0）、**コア側PROGMEMが16bit窓（64KiB）内に残ること**（`test/bench/avr/core_progmem.c` を最後にリンクして `MEGA_CORE_PGM_ADDR` ≤ 0xFFFF）、そして**共有ラベルバッファが有効カテゴリの最長ラベルを収めること**（`test/bench/avr/check_flash_buf.py`、`FLASH_BUF_OK`。全カテゴリ組み合わせ×両言語×両プリセットを掃き、`AZARAC_FLASH_BUF_SIZE` の選択連鎖を avr-gcc の前処理結果と突合する）。`bash autoresearch.sh --bless-labels` はラベル基準値の再記録用。
+- **dedup ベンチを CI に戻した**（`make -C test bench-dedup`、`test/bench/run_dedup_bench.sh`）: AVR テーブル計測ハーネスが `autoresearch.sh` を置き換えた際に、旧 `make -C test bench` が回していた dedup のゲート（`NEW_RECALL` / `DUP_SUPPRESS` / `NANKAI_KEY_STABLE` / `PREAMBLE_KEY_STABLE`）と `test/bench/bench_dedup.cpp` をビルドする経路が CI から落ちていた（`bench` はフットプリント計測のまま）。旧ハーネスを `test/bench/run_dedup_bench.sh` として復帰させ、`bench-dedup` ターゲットと host-test ジョブのステップを追加した。入力は `test/data/*.json` のみ、host の g++ だけで動く。実測: `NEW_CORRECT=118` / `DUP_SUPPRESS=1.0000` / `NANKAI_KEY_STABLE=1` / `PREAMBLE_KEY_STABLE=1` で exit 0。
 
 ### Fixed
 

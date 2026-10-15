@@ -101,7 +101,7 @@ OBJS = $(TEST_OBJS) $(LIB_OBJS)
 # VPATH for library sources
 VPATH = ../src:../src/decoder:../src/framer:../src/json:../src/internal
 
-.PHONY: all clean run run-small-pages run-lang-defaults fuzz decode dedup-realday bench compare-realdata check check-xml check-strict-compile coverage test-no-alloc pgm-stub
+.PHONY: all clean run run-small-pages run-lang-defaults fuzz decode dedup-realday bench bench-dedup compare-realdata check check-xml check-strict-compile coverage test-no-alloc pgm-stub
 
 all: $(TEST_BIN)
 
@@ -182,6 +182,12 @@ $(DEDUP_REALDAY_BIN): $(DEDUP_REALDAY_OBJS) $(LIB_OBJS)
 # ホストの g++ / python が必要。入力は追跡済みの src/definition/*.h のみ。
 bench:
 	@bash ../autoresearch.sh
+
+# dedup ベンチ（test/bench/run_dedup_bench.sh）。host の g++ だけで動き、入力は
+# test/data/*.json のみ。NEW_RECALL / DUP_SUPPRESS / NANKAI_KEY_STABLE /
+# PREAMBLE_KEY_STABLE をゲートし、失敗時は非 0 で終了する。
+bench-dedup:
+	@bash bench/run_dedup_bench.sh
 
 # --- Static Analysis ---
 # 静的解析 (時間をかけた厳格なチェック)
@@ -415,6 +421,7 @@ clean:
 	-@$(RM) fuzz/*.o fuzz/*.d fuzz/*.gcno fuzz/*.gcda
 	-@$(RM) tools/*.o tools/*.d tools/*.gcno tools/*.gcda
 	-@$(RM) scripts/*.o scripts/*.d scripts/*.gcno scripts/*.gcda
+	-@$(RM) bench/*.o bench/*.cc bench/bench_dedup
 
 # ---- PROGMEM stub (AVR branch semantics test on host) ----
 # Compiles all tests with __AVR__ defined and a stub avr/pgmspace.h so the
