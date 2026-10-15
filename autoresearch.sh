@@ -22,9 +22,11 @@
 #                  AVR_TABLE_CROSSCHECK.
 #
 # Gates (non-zero exit)
-#   labels    both label dumps (AVR branch + host branch) must match the golden
-#             hashes in test/bench/avr/labels.golden: every id of every table
-#             must render byte-identical labels on both paths.
+#   labels    every label dump must match the golden hashes in
+#             test/bench/avr/labels.golden: the AVR branch with far Flash reads,
+#             the AVR branch with 16-bit progmem pointers (both modes of
+#             internal/FlashString.h), and the host branch — every id of every
+#             table must render byte-identical labels on all three.
 #   build     every TU must compile for ATmega2560 with all categories enabled
 #             *once* no single pool is over the per-object limit. While a pool
 #             is still oversized the build is expected to fail (the baseline
@@ -127,11 +129,18 @@ build_dump() {  # $1 = label, rest = extra flags
 
 build_dump avr -I test/stub -D__AVR__ -DAZARAC_AVR_STUB \
     || { echo "autoresearch: AVR label dump did not build" >&2; exit 4; }
+# The same tables through the other addressing mode: parts with <= 64 KiB of Flash
+# (the Uno) use 16-bit progmem pointers, larger ones the far accessors. The stub
+# stands in for a large part by default, so pin FLASHEND down for this build.
+# Both modes must render the identical labels, and the host branch with them.
+build_dump avr_short -I test/stub -D__AVR__ -DAZARAC_AVR_STUB -DFLASHEND=0x7FFF \
+    || { echo "autoresearch: short-Flash AVR label dump did not build" >&2; exit 4; }
 build_dump host || { echo "autoresearch: host label dump did not build" >&2; exit 4; }
 
 avr_labels="$(run_dump "$OUT/dump_avr")"
+avr_short_labels="$(run_dump "$OUT/dump_avr_short")"
 host_labels="$(run_dump "$OUT/dump_host")"
-[[ -n "$avr_labels" && -n "$host_labels" ]] \
+[[ -n "$avr_labels" && -n "$avr_short_labels" && -n "$host_labels" ]] \
     || { echo "autoresearch: label dump produced no hash" >&2; exit 4; }
 
 if [[ "${1:-}" == "--bless-labels" ]]; then
@@ -149,11 +158,14 @@ if [[ ! -f "$GOLDEN" ]]; then
     echo "autoresearch: $GOLDEN missing — run 'bash autoresearch.sh --bless-labels'" >&2
     label_status=1
 else
-    for path in AVR HOST; do
-        want="$(sed -n "s/^$path //p" "$GOLDEN")"
+    # AVR_SHORT is the same tables with 16-bit progmem pointers; it is compared
+    # against the AVR golden (there is no separate recording for it).
+    for path in AVR AVR_SHORT HOST; do
+        want="$(sed -n "s/^${path%%_SHORT} //p" "$GOLDEN")"
         case "$path" in
-            AVR)  have="$avr_labels"; bin="$OUT/dump_avr" ;;
-            HOST) have="$host_labels"; bin="$OUT/dump_host" ;;
+            AVR)       have="$avr_labels"; bin="$OUT/dump_avr" ;;
+            AVR_SHORT) have="$avr_short_labels"; bin="$OUT/dump_avr_short" ;;
+            HOST)      have="$host_labels"; bin="$OUT/dump_host" ;;
         esac
         if [[ "$want" != "$have" ]]; then
             echo "autoresearch: $path labels changed: golden='$want' now='$have'" >&2
@@ -164,6 +176,7 @@ else
     done
     echo "METRIC LABELS_AVR_CALLS=$(printf '%s' "$avr_labels" | cut -d' ' -f2)"
     echo "METRIC LABELS_AVR_STRINGS=$(printf '%s' "$avr_labels" | cut -d' ' -f3)"
+    echo "METRIC LABELS_AVR_SHORT_MATCH=$([[ "$avr_short_labels" == "$avr_labels" ]] && echo 1 || echo 0)"
 fi
 
 # ---------------------------------------------------------------- stage 3 ---

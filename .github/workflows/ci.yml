@@ -239,6 +239,18 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - name: Arduino Mega 2560
+            slug: mega2560
+            core: arduino:avr
+            fqbn: arduino:avr:mega
+            additional_urls: ""
+            # 256 KB Flash: the AVR preset turns DCX/CAMF on by itself
+            # (AZARAC_AVR_LARGE_FLASH), so this board is what covers the far
+            # Flash addressing path with the real Arduino core. Best-effort
+            # first (see the job's continue-on-error); promote to
+            # arduino-compile-required once it has been green.
+            build_flags: ""
+
           - name: RP2350 Pico 2
             slug: pico2
             core: rp2040:rp2040
@@ -348,7 +360,7 @@ jobs:
           for sketch in examples/*/; do
             echo "--- $sketch ---"
             sketch_name=$(basename "$sketch")
-            if [[ ("${{ matrix.name }}" == "Arduino GIGA R1 WiFi") || ("${{ matrix.name }}" == "Teensy 4.0" || "${{ matrix.name }}" == "STM32 Nucleo H563ZI" || "${{ matrix.name }}" == "nRF52840 Nano 33 BLE" || "${{ matrix.name }}" == "Arduino Zero" || "${{ matrix.name }}" == "RP2350 Pico 2") && ("$sketch_name" == "wifi_client" || "$sketch_name" == "with_sntp") ]]; then
+            if [[ ("${{ matrix.name }}" == "Arduino GIGA R1 WiFi") || ("${{ matrix.name }}" == "Teensy 4.0" || "${{ matrix.name }}" == "STM32 Nucleo H563ZI" || "${{ matrix.name }}" == "nRF52840 Nano 33 BLE" || "${{ matrix.name }}" == "Arduino Zero" || "${{ matrix.name }}" == "RP2350 Pico 2" || "${{ matrix.name }}" == "Arduino Mega 2560") && ("$sketch_name" == "wifi_client" || "$sketch_name" == "with_sntp") ]]; then
               if [[ "${{ matrix.name }}" == "Arduino GIGA R1 WiFi" ]]; then
                 if [[ "$sketch_name" == "with_sntp" ]]; then
                   echo "skip $sketch_name on ${{ matrix.name }} because configTime is unavailable"
@@ -584,7 +596,7 @@ jobs:
           echo "| arduino-lint | ${{ needs.arduino-lint.result }} |" >> comment.md
           echo "| arduino-compile-required | ${{ needs.arduino-compile-required.result }} |" >> comment.md
           failed=0; total=0
-          expected=8  # arduino-compile-extended matrix size; update if matrix changes
+          expected=9  # arduino-compile-extended matrix size; update if matrix changes
           for f in artifacts/extended/*/extended_outcome.txt; do
             [ -f "$f" ] || continue
             total=$((total+1))

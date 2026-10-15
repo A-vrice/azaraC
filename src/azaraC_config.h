@@ -182,6 +182,11 @@
 
 // PROGMEM abstraction: stores const data in Flash on AVR (no-op on desktop).
 // Usage: const char s[] AZARAC_PROGMEM = "...";
+// The AZARAC_PGM_READ_* / AZARAC_STRCPY_P helpers address Flash through a 16-bit
+// progmem pointer, which only reaches the first 64 KiB of Flash. On a part with
+// more Flash (ATmega2560 …) use avr-libc's far API (`pgm_get_far_address` +
+// `pgm_read_*_far` / `memcpy_PF`) — that is what the definition tables do when
+// FLASHEND > 0xFFFF (see internal/FlashString.h).
 #ifdef __AVR__
 #include <avr/pgmspace.h>
 #define AZARAC_PROGMEM PROGMEM
