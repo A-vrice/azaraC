@@ -81,16 +81,13 @@ qzss_dcx_camf_a3_provider_identifier_lookup(uint16_t country, uint8_t provider) 
                                     sizeof(QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_TABLE[0]));
   while (lo < hi) {
     uint8_t mid = static_cast<uint8_t>(lo + (hi - lo) / 2);
-    const char* AZARAC_PROGMEM ep =
-        reinterpret_cast<const char*>(&QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_TABLE[mid]);
-    uint16_t ekey = pgm_read_word(
-        ep + offsetof(QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_Entry, key));
+    azarac_pgm_ptr ep = AZARAC_PGM_PTR(QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_TABLE)
+        + static_cast<size_t>(mid) * sizeof(QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_Entry);
+    uint16_t ekey = azarac_read_word(ep, offsetof(QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_Entry, key));
     if (ekey == key) {
-      uint16_t off = pgm_read_word(
-          ep + offsetof(QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_Entry, offset));
-      uint16_t n = pgm_read_word(
-          ep + offsetof(QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_Entry, len));
-      return azarac_pgm_view(QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_POOL + off, n);
+      uint16_t off = azarac_read_word(ep, offsetof(QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_Entry, offset));
+      uint16_t n = azarac_read_word(ep, offsetof(QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_Entry, len));
+      return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_POOL) + off, n);
     }
     if (ekey < key) lo = mid + 1;
     else hi = mid;

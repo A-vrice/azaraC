@@ -1,134 +1,326 @@
 #!/usr/bin/env bash
-# autoresearch.sh — dedup benchmark entrypoint.
+# autoresearch.sh — AVR definition-table footprint benchmark.
 #
-#   primary    : NANOS_PER_OP   ns per dedup decision over the scored streams
-#   gates      : NEW_RECALL (NEW_CORRECT >= 118), DUP_SUPPRESS >= 0.99,
-#                NANKAI_KEY_STABLE == 1, PREAMBLE_KEY_STABLE == 1  (exit non-zero)
-#   reported   : CAPACITY_DISTINCT, SRAM_*_BYTES, ACCURACY_P*, CORPUS_* (printed,
-#                not gated — read them in the diff when they move)
+# Goal (issue #35): the generated target-area string pools repeat parent region
+# names, so one pool costs ~63 KB on the English side alone. On AVR that is not
+# just expensive, it is unbuildable: avr-gcc rejects any single object above
+# 32,767 bytes ("size of variable is too large"; verified — 32,767 compiles,
+# 32,768 does not), which is why the AVR preset in azaraC_config.h leaves
+# DCX/CAMF (and the volcano/ash-fall families) off entirely.
 #
-# The scored streams are spec-model traffic (qzss-specs/アプリケーションノートv2.md
-# 原PDF p.23–27): the same information relayed by several satellites, rebroadcast
-# every 4 s, and repeated after its validity window. Accuracy alone is NOT the
-# objective: 2200 of the 2238 scored decisions expect "duplicate", so a filter
-# that answers "always duplicate" would top any accuracy-derived metric while
-# suppressing every alert. NEW_RECALL is therefore included in the objective
-# (DUP_SUPPRESS × NEW_RECALL / NANOS_PER_OP) and also gated: a run that reports
-# any fewer new informations than the baseline is rejected.
+# Primary metric   AVR_TABLE_BYTES — every byte the enabled configuration asks
+#                  the AVR linker for: the string literals of the definition
+#                  tables (the pools, plus the `switch` tables' per-case
+#                  literals) and the entry-table arrays. Measured from
+#                  `avr-gcc -E` output, so the real AVR preprocessor picks the
+#                  tables. Stage 3 cross-checks it against avr-gcc's own object
+#                  sizes, which is what keeps the struct-layout term honest.
+# Reported         AVR_STRING_BYTES (the issue's "63 KB pool" number),
+#                  AVR_ENTRY_BYTES/ROWS/ROW_BYTES, AVR_LARGEST_LITERAL, the four
+#                  large pools, UNO_*/MEGA_* sizes of two real linked images,
+#                  AVR_TABLES_IN_RAM, MEGA_DCX_TABLES, MEGA_FAR_OPS, AVR_COMPILE_OK,
+#                  AVR_TABLE_CROSSCHECK.
 #
-# Deterministic inputs (test/data/*.json), fixed LCG seed, no network, no
-# wall-clock input. Exit 0 on success; non-zero when the harness or a
-# guardrail fails.
+# Gates (non-zero exit)
+#   labels    both label dumps (AVR branch + host branch) must match the golden
+#             hashes in test/bench/avr/labels.golden: every id of every table
+#             must render byte-identical labels on both paths.
+#   build     every TU must compile for ATmega2560 with all categories enabled
+#             *once* no single pool is over the per-object limit. While a pool
+#             is still oversized the build is expected to fail (the baseline
+#             state) and the failure is reported, not gated — that is the bug
+#             this metric exists to fix.
+#   crosscheck the primary metric must equal what avr-gcc reports for the
+#             symbols it actually placed.
+#   uno       the default AVR configuration must still compile and link.
+#   mega      the large-flash AVR preset must still compile and link, must still
+#             enable the DCX/CAMF tables, must keep every table in Flash, and
+#             must use far Flash reads (elpm/RAMPZ) — without them the tables
+#             above 64 KB would garble.
+#   ram       SRAM must not grow: UNO_RAM_BYTES (data+bss of the linked image)
+#             never exceeds the baseline, and no definition table may live in
+#             RAM instead of Flash. Shrinking Flash by spending SRAM is a loss —
+#             the AVR path can only join labels in the shared 800 B buffer it
+#             already owns.
+#
+# Deterministic: fixed toolchain flags, locked inputs, no network, no clock.
+# Requires avr-gcc/avr-size/avr-nm and g++ on PATH.
+#
+# `bash autoresearch.sh --bless-labels` re-records the golden label hashes (use
+# only after confirming the label change was intended).
 
 set -uo pipefail
 
 cd "$(dirname "$0")"
 
-# Baseline NEW_RECALL count (informations reported) — deterministic; raise when it improves.
-MIN_NEW_CORRECT=118
+BENCH="test/bench/avr"
+OUT="$BENCH/out"
+MCU=atmega2560
+UNO_MCU=atmega328p
 
-# Duplicate suppression must not be traded for speed: shrinking the table below the
-# committed capacity (32 slots x 8 ways measures 0.9797) shows up here, not in NANOS_PER_OP.
-MIN_DUP_SUPPRESS=0.99
+AVR_CC="${AVR_CC:-avr-gcc}"
+AVR_SIZE="${AVR_SIZE:-avr-size}"
+AVR_NM="${AVR_NM:-avr-nm}"
+AVR_OBJDUMP="${AVR_OBJDUMP:-avr-objdump}"
+HOST_CXX="${HOST_CXX:-g++}"
+PYTHON="${PYTHON:-python}"
+command -v "$PYTHON" >/dev/null 2>&1 || PYTHON=python3
 
-CXX="${CXX:-g++}"
-BENCH_DIR="test/bench"
-BENCH_BIN="$BENCH_DIR/bench_dedup"
-BENCH_OBJ="$BENCH_DIR/bench_dedup.o"
+# Recipe for the Arduino-core stand-in (see $BENCH/shim/Arduino.h). ARDUINO=1
+# makes azaraC.h include <Print.h> and TimeFields.h use millis(), exactly like a
+# real AVR build; the shim stands in for the core, which is a network download.
+AVR_BUILD=(-mmcu="$MCU" -Os -std=gnu++17 -fno-exceptions
+           -ffunction-sections -fdata-sections
+           -I src -I "$BENCH/shim" -DARDUINO=1)
 
-mkdir -p "$BENCH_DIR"
+# Worst case for the tables: every category, both languages.
+CATS=(-DAZARAC_LANG_JA=1 -DAZARAC_LANG_EN=1
+      -DAZARAC_ENABLE_EEW=1 -DAZARAC_ENABLE_HYPOCENTER=1 -DAZARAC_ENABLE_SEISMIC=1
+      -DAZARAC_ENABLE_NANKAI=1 -DAZARAC_ENABLE_TSUNAMI=1 -DAZARAC_ENABLE_NW_PAC_TSUNAMI=1
+      -DAZARAC_ENABLE_VOLCANO=1 -DAZARAC_ENABLE_ASH_FALL=1 -DAZARAC_ENABLE_WEATHER=1
+      -DAZARAC_ENABLE_FLOOD=1 -DAZARAC_ENABLE_TYPHOON=1 -DAZARAC_ENABLE_MARINE=1
+      -DAZARAC_ENABLE_DCX_CAMF=1)
 
-LIBS=(src/Parser.cpp src/decoder/Decoder.cpp src/decoder/DecoderDcx.cpp
-      src/decoder/DecoderQzqsm.cpp src/framer/UbxFramer.cpp src/framer/NmeaFramer.cpp
-      src/json/JsonWriter.cpp src/json/JsonSerializer.cpp src/json/JsonSerializerDcx.cpp
-      src/json/JsonSerializerQzqsm.cpp src/internal/DcxHelper.cpp src/internal/Dedup.cpp)
+# avr-gcc per-object ceiling. Nothing to tune: 2**15 is the compiler's limit.
+MAX_OBJECT_BYTES=32768
 
-# Headers drive both the library and the header-only bench target, so the newest
-# header is part of every object's dependency set (-MMD would be tighter, but
-# this has to stay dependency-free).
-NEWEST_HEADER="$(ls -t src/*.h src/*/*.h 2>/dev/null | head -1)"
-needs_rebuild() {   # $1 = source, $2 = object
-    [[ ! -f "$2" ]] && return 0
-    [[ "$1" -nt "$2" ]] && return 0
-    [[ -n "$NEWEST_HEADER" && "$NEWEST_HEADER" -nt "$2" ]] && return 0
-    # The compiler is part of the build state: a CXX switch must invalidate the
-    # objects, or a CXX=clang++ rerun would just relink g++-built objects.
-    [[ "$(cat "${2%.o}.cc" 2>/dev/null)" != "$CXX" ]] && return 0
-    return 1
+# The AVR path trades Flash for RAM only where the SRAM it already owns allows
+# it (the shared 800 B label buffer in internal/FlashString.h). Growing SRAM
+# while shrinking Flash is a loss, so the linked Uno image's RAM is gated:
+# measured 702 B (data 626 + bss 76) at the pre-compression baseline.
+MAX_UNO_RAM_BYTES=702
+
+mkdir -p "$OUT"
+
+# ---------------------------------------------------------------- stage 1 ---
+# The enabled tables, as the AVR preprocessor sees them.
+"$AVR_CC" -E -x c++ -std=gnu++17 -mmcu="$MCU" -DARDUINO=1 \
+    -I src -I "$BENCH/shim" "${CATS[@]}" "$BENCH/tables.cpp" -o "$OUT/tables.i" \
+    || { echo "autoresearch: preprocessing failed" >&2; exit 3; }
+"$PYTHON" "$BENCH/measure_tables.py" "$OUT/tables.i" "$OUT/pools.txt" | tee "$OUT/metrics.txt" \
+    || { echo "autoresearch: measure_tables.py failed" >&2; exit 3; }
+
+metric() { sed -n "s/^METRIC $1=\([-0-9.eE+]*\)\$/\1/p" "$OUT/metrics.txt" | tail -1; }
+
+table_bytes="$(metric AVR_TABLE_BYTES)"
+string_bytes="$(metric AVR_STRING_BYTES)"
+entry_bytes="$(metric AVR_ENTRY_BYTES)"
+entry_rows="$(metric AVR_ENTRY_ROWS)"
+largest="$(metric AVR_LARGEST_LITERAL)"
+[[ -n "$table_bytes" && -n "$string_bytes" && -n "$entry_bytes" && -n "$largest" ]] \
+    || { echo "autoresearch: metrics missing" >&2; exit 3; }
+
+# ---------------------------------------------------------------- stage 2 ---
+# Label equivalence: the AVR branch (PROGMEM string views) and the host branch
+# must keep rendering exactly the labels they rendered at the baseline.
+"$PYTHON" "$BENCH/gen_label_dump.py" "$OUT/dump_labels.cpp" || exit 4
+GOLDEN="$BENCH/labels.golden"
+
+run_dump() {   # $1 = binary; prints "<hash> <calls> <labels>"
+    "$1" | sed -n 's/^LABELHASH \([0-9a-f]*\) calls=\([0-9]*\) labels=\([0-9]*\)$/\1 \2 \3/p'
+}
+build_dump() {  # $1 = label, rest = extra flags
+    local label="$1"; shift
+    "$HOST_CXX" -std=c++17 -O1 -I src -DARDUINO=0 "$@" "${CATS[@]}" \
+        "$OUT/dump_labels.cpp" -o "$OUT/dump_$label" || return 1
 }
 
-OBJS=()
-for src in "${LIBS[@]}"; do
-    obj="$BENCH_DIR/$(basename "${src%.cpp}").o"
-    OBJS+=("$obj")
-    needs_rebuild "$src" "$obj" && {
-        "$CXX" -std=c++17 -O2 -I src -I test -DARDUINO=0 -c "$src" -o "$obj" || exit 3
-        printf '%s' "$CXX" > "${obj%.o}.cc"
+build_dump avr -I test/stub -D__AVR__ -DAZARAC_AVR_STUB \
+    || { echo "autoresearch: AVR label dump did not build" >&2; exit 4; }
+build_dump host || { echo "autoresearch: host label dump did not build" >&2; exit 4; }
+
+avr_labels="$(run_dump "$OUT/dump_avr")"
+host_labels="$(run_dump "$OUT/dump_host")"
+[[ -n "$avr_labels" && -n "$host_labels" ]] \
+    || { echo "autoresearch: label dump produced no hash" >&2; exit 4; }
+
+if [[ "${1:-}" == "--bless-labels" ]]; then
+    {
+        echo "# Definition-label hashes: <hash> <lookups> <labels>. Re-record with"
+        echo "#   bash autoresearch.sh --bless-labels"
+        echo "AVR $avr_labels"
+        echo "HOST $host_labels"
+    } > "$GOLDEN"
+    echo "autoresearch: blessed $GOLDEN"
+fi
+
+label_status=0
+if [[ ! -f "$GOLDEN" ]]; then
+    echo "autoresearch: $GOLDEN missing — run 'bash autoresearch.sh --bless-labels'" >&2
+    label_status=1
+else
+    for path in AVR HOST; do
+        want="$(sed -n "s/^$path //p" "$GOLDEN")"
+        case "$path" in
+            AVR)  have="$avr_labels"; bin="$OUT/dump_avr" ;;
+            HOST) have="$host_labels"; bin="$OUT/dump_host" ;;
+        esac
+        if [[ "$want" != "$have" ]]; then
+            echo "autoresearch: $path labels changed: golden='$want' now='$have'" >&2
+            "$bin" dump > "$OUT/labels_$path.txt" 2>/dev/null
+            echo "autoresearch: full dump written to $OUT/labels_$path.txt" >&2
+            label_status=1
+        fi
+    done
+    echo "METRIC LABELS_AVR_CALLS=$(printf '%s' "$avr_labels" | cut -d' ' -f2)"
+    echo "METRIC LABELS_AVR_STRINGS=$(printf '%s' "$avr_labels" | cut -d' ' -f3)"
+fi
+
+# ---------------------------------------------------------------- stage 3 ---
+# Every TU must compile for the real target once no pool exceeds the compiler's
+# per-object ceiling; below that ceiling the build is the gate, above it the
+# failure is the expected baseline state.
+rm -rf "$OUT/obj"
+mkdir -p "$OUT/obj"
+build_failed=0
+for src in src/*.cpp src/*/*.cpp; do
+    obj="$OUT/obj/$(echo "$src" | tr '/' '_').o"
+    "$AVR_CC" "${AVR_BUILD[@]}" "${CATS[@]}" -c "$src" -o "$obj" || build_failed=1
+done
+build_ok=$((1 - build_failed))
+echo "METRIC AVR_COMPILE_OK=$build_ok"
+
+# The primary metric is only honest if it agrees with the sizes avr-gcc reports
+# for the symbols it actually placed.
+if [[ -f "$OUT/pools.txt" ]]; then
+    cross="$("$AVR_NM" --print-size --radix=d -C "$OUT"/obj/*.o 2>/dev/null | tr -d '\r' \
+        | "$PYTHON" "$BENCH/crosscheck_tables.py" "$OUT/pools.txt")"
+    echo "$cross"
+    cross_checked="$(printf '%s\n' "$cross" | sed -n 's/.*CROSSCHECK=\([0-9]*\)\/.*/\1/p')"
+    cross_matched="$(printf '%s\n' "$cross" | sed -n 's/.*CROSSCHECK=[0-9]*\/\([0-9]*\).*/\1/p')"
+fi
+
+# ---------------------------------------------------------------- stage 4 ---
+# The configuration the library actually ships for AVR (preset: seismic and
+# tsunami only, Japanese labels). It must stay buildable and must stay small.
+uno_ok=0
+uno_flash=""
+uno_build=(-mmcu="$UNO_MCU" -Os -std=gnu++17 -fno-exceptions
+           -ffunction-sections -fdata-sections -Wl,--gc-sections
+           -I src -I "$BENCH/shim" -DARDUINO=1)
+uno_objs=()
+rm -rf "$OUT/obj_uno"
+mkdir -p "$OUT/obj_uno"
+for src in src/*.cpp src/*/*.cpp "$BENCH/probe.cpp"; do
+    obj="$OUT/obj_uno/$(echo "$src" | tr '/' '_').o"
+    if "$AVR_CC" "${uno_build[@]}" -c "$src" -o "$obj"; then
+        uno_objs+=("$obj")
+    else
+        uno_objs=()
+        break
+    fi
+done
+if [[ ${#uno_objs[@]} -gt 0 ]] && "$AVR_CC" "${uno_build[@]}" "${uno_objs[@]}" -o "$OUT/uno.elf"; then
+    uno_ok=1
+    uno_flash="$("$AVR_SIZE" "$OUT/uno.elf" | awk 'NR == 2 { print $1 + $2 }')"
+    uno_ram="$("$AVR_SIZE" "$OUT/uno.elf" | awk 'NR == 2 { print $2 + $3 }')"
+    # A definition table that landed in .data/.bss is a table that is no longer
+    # in Flash: every one of them must be PROGMEM.
+    tables_in_ram="$("$AVR_NM" -C "$OUT/uno.elf" 2>/dev/null \
+        | awk '$2 ~ /^[dDbB]$/ && $3 ~ /(_POOL|_TABLE)$/ { n++ } END { print n + 0 }')"
+fi
+echo "METRIC UNO_COMPILE_OK=$uno_ok"
+[[ -n "${uno_flash:-}" ]] && echo "METRIC UNO_FLASH_BYTES=$uno_flash"
+[[ -n "${uno_ram:-}" ]] && echo "METRIC UNO_RAM_BYTES=$uno_ram"
+[[ -n "${tables_in_ram:-}" ]] && echo "METRIC AVR_TABLES_IN_RAM=$tables_in_ram"
+
+# ---------------------------------------------------------------- stage 5 ---
+# The other shipped AVR preset: a 256 KB part turns DCX/CAMF on by itself
+# (AZARAC_AVR_LARGE_FLASH in azaraC_config.h) and its tables land above 64 KB,
+# so this stage is what proves the far addressing works on a real device.
+mega_ok=0
+mega_build=(-mmcu="$MCU" -Os -std=gnu++17 -fno-exceptions
+            -ffunction-sections -fdata-sections -Wl,--gc-sections
+            -I src -I "$BENCH/shim" -DARDUINO=1)
+mega_objs=()
+rm -rf "$OUT/obj_mega"
+mkdir -p "$OUT/obj_mega"
+for src in src/*.cpp src/*/*.cpp "$BENCH/probe.cpp"; do
+    obj="$OUT/obj_mega/$(echo "$src" | tr '/' '_').o"
+    if "$AVR_CC" "${mega_build[@]}" -c "$src" -o "$obj"; then
+        mega_objs+=("$obj")
+    else
+        mega_objs=()
+        break
+    fi
+done
+if [[ ${#mega_objs[@]} -gt 0 ]] && "$AVR_CC" "${mega_build[@]}" "${mega_objs[@]}" -o "$OUT/mega.elf"; then
+    mega_ok=1
+    mega_flash="$("$AVR_SIZE" "$OUT/mega.elf" | awk 'NR == 2 { print $1 + $2 }')"
+    mega_ram="$("$AVR_SIZE" "$OUT/mega.elf" | awk 'NR == 2 { print $2 + $3 }')"
+    mega_tables_in_ram="$("$AVR_NM" -C "$OUT/mega.elf" 2>/dev/null \
+        | awk '$2 ~ /^[dDbB]$/ && $3 ~ /(_POOL|_TABLE)$/ { n++ } END { print n + 0 }')"
+    # The preset must actually carry the DCX/CAMF tables on a 256 KB part.
+    mega_tables="$("$AVR_NM" -C "$OUT/mega.elf" 2>/dev/null \
+        | awk '$3 ~ /QZSS_DCX_/ && $3 ~ /(_POOL|_TABLE)$/ { n++ } END { print n + 0 }')"
+    # Far Flash addressing must be in use: without RAMPZ/elpm the tables above
+    # 64 KB (138 of 195 symbols in the all-category build) would be unreadable.
+    mega_far_ops="$("$AVR_OBJDUMP" -d "$OUT/mega.elf" 2>/dev/null \
+        | grep -c -e 'elpm' -e 'out.*0x3b')"
+fi
+echo "METRIC MEGA_COMPILE_OK=$mega_ok"
+[[ -n "${mega_flash:-}" ]] && echo "METRIC MEGA_FLASH_BYTES=$mega_flash"
+[[ -n "${mega_ram:-}" ]] && echo "METRIC MEGA_RAM_BYTES=$mega_ram"
+[[ -n "${mega_tables:-}" ]] && echo "METRIC MEGA_DCX_TABLES=$mega_tables"
+[[ -n "${mega_far_ops:-}" ]] && echo "METRIC MEGA_FAR_OPS=$mega_far_ops"
+
+# ---------------------------------------------------------------- gates -----
+status=0
+
+if [[ -n "${cross_checked:-}" ]] && [[ "$cross_checked" != "0" && "$cross_matched" != "$cross_checked" ]]; then
+    echo "autoresearch: table sizes disagree with avr-gcc ($cross_matched/$cross_checked) — the metric is wrong" >&2
+    status=6
+fi
+
+if (( largest < MAX_OBJECT_BYTES )); then
+    if (( build_ok == 0 )); then
+        echo "autoresearch: largest pool ($largest B) is placeable but the AVR build fails" >&2
+        status=7
+    fi
+else
+    echo "autoresearch: largest pool is $largest B (>= $MAX_OBJECT_BYTES) — the AVR build cannot compile until it shrinks" >&2
+fi
+
+if (( uno_ok == 0 )); then
+    echo "autoresearch: the default AVR configuration no longer builds" >&2
+    status=8
+fi
+
+if [[ -n "${uno_ram:-}" ]] && (( uno_ram > MAX_UNO_RAM_BYTES )); then
+    echo "autoresearch: SRAM grew to $uno_ram B (baseline $MAX_UNO_RAM_BYTES) — smaller Flash does not buy back RAM" >&2
+    status=10
+fi
+
+if [[ -n "${tables_in_ram:-}" ]] && (( tables_in_ram != 0 )); then
+    echo "autoresearch: $tables_in_ram definition table(s) landed in RAM instead of Flash" >&2
+    status=11
+fi
+
+if (( mega_ok == 0 )); then
+    echo "autoresearch: the large-flash AVR preset no longer builds" >&2
+    status=12
+else
+    [[ -n "${mega_tables_in_ram:-}" ]] && (( mega_tables_in_ram != 0 )) && {
+        echo "autoresearch: $mega_tables_in_ram Mega table(s) in RAM instead of Flash" >&2
+        status=12
     }
-done
-needs_rebuild test/bench/bench_dedup.cpp "$BENCH_OBJ" && {
-    "$CXX" -std=c++17 -O2 -I src -I test -DARDUINO=0 -c test/bench/bench_dedup.cpp -o "$BENCH_OBJ" || exit 3
-    printf '%s' "$CXX" > "${BENCH_OBJ%.o}.cc"; }
-"$CXX" -std=c++17 -O2 "$BENCH_OBJ" "${OBJS[@]}" -o "$BENCH_BIN" || exit 3
-
-OUT="$(./"$BENCH_BIN" 2>&1)"
-STATUS=$?
-printf '%s\n' "$OUT"
-[[ $STATUS -ne 0 ]] && exit $STATUS
-
-metric() { printf '%s\n' "$OUT" | sed -n "s/^METRIC $1=\([-0-9.eE+]*\)\$/\1/p" | tail -1; }
-
-crash="$(metric CRASH_GROUP)"
-[[ "${crash:-1}" == "0" ]] || { echo "bench: incomplete run (CRASH_GROUP=${crash:-missing})" >&2; exit 4; }
-
-nanos="$(metric NANOS_PER_OP)"
-dup="$(metric DUP_SUPPRESS)"
-recall="$(metric NEW_RECALL)"
-new_ok="$(metric NEW_CORRECT)"
-scored="$(metric DECISIONS_SCORED)"
-[[ -n "$nanos" && -n "$dup" && -n "$recall" && -n "$new_ok" && -n "$scored" ]] \
-    || { echo "bench: metrics missing" >&2; exit 5; }
-
-# Guardrail: informational coverage must not regress, or the loop would happily
-# trade every alert away for speed.
-if (( new_ok < MIN_NEW_CORRECT )); then
-    echo "bench: NEW_RECALL regressed (NEW_CORRECT=$new_ok < $MIN_NEW_CORRECT, NEW_RECALL=$recall)" >&2
-    exit 6
+    (( ${mega_tables:-0} == 0 )) && {
+        echo "autoresearch: the 256 KB preset stopped enabling the DCX/CAMF tables" >&2
+        status=12
+    }
+    (( ${mega_far_ops:-0} == 0 )) && {
+        echo "autoresearch: the Mega image uses no far Flash reads (elpm/RAMPZ) — tables above 64 KB would garble" >&2
+        status=12
+    }
 fi
 
-if [[ "$(awk -v d="$dup" -v m="$MIN_DUP_SUPPRESS" 'BEGIN { print (d + 0 < m + 0) ? 1 : 0 }')" == "1" ]]; then
-    echo "bench: DUP_SUPPRESS regressed ($dup < $MIN_DUP_SUPPRESS) — capacity must not be traded for speed" >&2
-    exit 7
+if (( label_status != 0 )); then
+    status=9
 fi
 
-# Guardrail: the two behavioural identity checks must report "stable" (1). They
-# are the only thing that catches a key widened back to the whole 250-bit frame
-# (PREAMBLE_KEY_STABLE: the preamble cycles A→B→C, so a widened key announces one
-# information three times) or a Nankai event identified by its completing page
-# (NANKAI_KEY_STABLE). NEW_RECALL and DUP_SUPPRESS both stay green under those
-# bugs, so without this gate the regression ships silently.
-# A non-1 value has two very different causes, so they get different messages:
-#   0        — the key is wrong (debug the identity, 手順③: MT～VN)
-#   missing  — the metric was not printed (bench did not run that check)
-#   -1       — the fixture is unusable (e.g. nankai_vectors.json lost its 27
-#              pages) — debug test/data/*.json, NOT the hash
-for name in NANKAI_KEY_STABLE PREAMBLE_KEY_STABLE; do
-    got="$(metric "$name")"
-    case "${got:-missing}" in
-    1) ;;
-    0)
-        echo "bench: $name regressed (0) — the identity key no longer matches the spec (手順③: MT～VN)" >&2
-        exit 8
-        ;;
-    *)
-        echo "bench: $name unusable (${got:-missing}) — fixture problem, not a key regression; check test/data/*.json" >&2
-        exit 9
-        ;;
-    esac
-done
+if (( status != 0 )); then
+    exit "$status"
+fi
 
-# Reported objective: cost per decision, penalised for lost duplicate
-# suppression. Constant NEW_RECALL terms cancel in comparisons.
-objective="$(awk -v n="$nanos" -v d="$dup" 'BEGIN { printf "%.6f", (d > 0 ? n / d : 1e18) }')"
-
-echo "bench: ok (NANOS_PER_OP=$nanos DUP_SUPPRESS=$dup NEW_RECALL=$recall OBJECTIVE=$objective)"
+echo "autoresearch: ok (AVR_TABLE_BYTES=$table_bytes strings=$string_bytes entries=$entry_bytes rows=$entry_rows largest=$largest AVR_COMPILE_OK=$build_ok UNO_FLASH_BYTES=${uno_flash:-n/a} MEGA_FLASH_BYTES=${mega_flash:-n/a})"
+exit 0

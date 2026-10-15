@@ -28,9 +28,9 @@ namespace def {
 #if defined(__AVR__)
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_information_type_en_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 0: { static const char AZARAC_PROGMEM s[] = "Issue"; return azarac_pgm_view(s, 5); }
-        case 1: { static const char AZARAC_PROGMEM s[] = "Correction"; return azarac_pgm_view(s, 10); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "Cancellation"; return azarac_pgm_view(s, 12); }
+        case 0: { static const char AZARAC_PROGMEM s[] = "Issue"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 5); }
+        case 1: { static const char AZARAC_PROGMEM s[] = "Correction"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 10); }
+        case 2: { static const char AZARAC_PROGMEM s[] = "Cancellation"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 12); }
         default: return std::nullopt;
     }
 }

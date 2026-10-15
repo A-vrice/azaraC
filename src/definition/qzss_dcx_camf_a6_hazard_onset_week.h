@@ -28,8 +28,8 @@ namespace def {
 #if defined(__AVR__)
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_a6_hazard_onset_week_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 0: { static const char AZARAC_PROGMEM s[] = "Current"; return azarac_pgm_view(s, 7); }
-        case 1: { static const char AZARAC_PROGMEM s[] = "Next"; return azarac_pgm_view(s, 4); }
+        case 0: { static const char AZARAC_PROGMEM s[] = "Current"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 7); }
+        case 1: { static const char AZARAC_PROGMEM s[] = "Next"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 4); }
         default: return std::nullopt;
     }
 }

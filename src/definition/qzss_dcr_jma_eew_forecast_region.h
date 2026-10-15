@@ -26,91 +26,100 @@ namespace def {
 #if (AZARAC_ENABLE_EEW) && (AZARAC_LANG_JA)
 
 #if defined(__AVR__)
-static const char AZARAC_PROGMEM QZSS_DCR_JMA_EEW_FORECAST_REGION_POOL[] = "北海道道央\000北海道道南\000北海道道北\000北海道道東\000青森\000岩手\000宮城\000秋田\000山形\000福島\000茨城\000栃木\000群馬\000埼玉\000千葉\000東京\000伊豆諸島\000小笠原\000神奈川\000新潟\000富山\000石川\000福井\000山梨\000長野\000岐阜\000静岡\000愛知\000三重\000滋賀\000京都\000大阪\000兵庫\000奈良\000和歌山\000鳥取\000島根\000岡山\000広島\000山口\000徳島\000香川\000愛媛\000高知\000福岡\000佐賀\000長崎\000熊本\000大分\000宮崎\000鹿児島\000奄美(群島)\000沖縄本島\000大東島\000宮古島\000八重山\000北海道\000東北\000関東\000伊豆諸島\000小笠原\000北陸\000甲信\000東海\000近畿\000中国\000四国\000九州\000奄美(群島)\000沖縄\000その他の府県予報区および地方予報区_緊急地震速報(警報)\000";
-struct QZSS_DCR_JMA_EEW_FORECAST_REGION_Entry { uint8_t id; uint16_t offset; uint16_t len; };
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_EEW_FORECAST_REGION_POOL[] = "央\000南\000北\000東\000青森\000岩手\000宮城\000秋田\000山形\000福島\000茨城\000栃木\000群馬\000埼玉\000千葉\000東京\000伊豆諸島\000小笠原\000神奈川\000新潟\000富山\000石川\000福井\000山梨\000長野\000岐阜\000静岡\000愛知\000三重\000滋賀\000京都\000大阪\000兵庫\000奈良\000和歌山\000鳥取\000島根\000岡山\000広島\000山口\000徳島\000香川\000愛媛\000高知\000福岡\000佐賀\000長崎\000熊本\000大分\000宮崎\000鹿児島\000奄美(群島)\000沖縄本島\000大東島\000宮古島\000八重山\000道\000東北\000関東\000伊豆諸島\000小笠原\000北陸\000甲信\000東海\000近畿\000中国\000四国\000九州\000奄美(群島)\000沖縄\000その他の府県予報区および地方予報区_緊急地震速報(警報)\000";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_EEW_FORECAST_REGION_PARENT_POOL[] = "北海\000北海道道\000";
+struct QZSS_DCR_JMA_EEW_FORECAST_REGION_PARENT_Entry { uint16_t offset; };
+static const QZSS_DCR_JMA_EEW_FORECAST_REGION_PARENT_Entry QZSS_DCR_JMA_EEW_FORECAST_REGION_PARENT_TABLE[] AZARAC_PROGMEM = {
+    {0u},
+    {7u},
+};
+struct QZSS_DCR_JMA_EEW_FORECAST_REGION_Entry { uint8_t id; uint8_t parent; uint16_t offset; };
 static const QZSS_DCR_JMA_EEW_FORECAST_REGION_Entry QZSS_DCR_JMA_EEW_FORECAST_REGION_TABLE[] AZARAC_PROGMEM = {
-    {1u, 0u, 15u},
-    {2u, 16u, 15u},
-    {3u, 32u, 15u},
-    {4u, 48u, 15u},
-    {5u, 64u, 6u},
-    {6u, 71u, 6u},
-    {7u, 78u, 6u},
-    {8u, 85u, 6u},
-    {9u, 92u, 6u},
-    {10u, 99u, 6u},
-    {11u, 106u, 6u},
-    {12u, 113u, 6u},
-    {13u, 120u, 6u},
-    {14u, 127u, 6u},
-    {15u, 134u, 6u},
-    {16u, 141u, 6u},
-    {17u, 148u, 12u},
-    {18u, 161u, 9u},
-    {19u, 171u, 9u},
-    {20u, 181u, 6u},
-    {21u, 188u, 6u},
-    {22u, 195u, 6u},
-    {23u, 202u, 6u},
-    {24u, 209u, 6u},
-    {25u, 216u, 6u},
-    {26u, 223u, 6u},
-    {27u, 230u, 6u},
-    {28u, 237u, 6u},
-    {29u, 244u, 6u},
-    {30u, 251u, 6u},
-    {31u, 258u, 6u},
-    {32u, 265u, 6u},
-    {33u, 272u, 6u},
-    {34u, 279u, 6u},
-    {35u, 286u, 9u},
-    {36u, 296u, 6u},
-    {37u, 303u, 6u},
-    {38u, 310u, 6u},
-    {39u, 317u, 6u},
-    {40u, 324u, 6u},
-    {41u, 331u, 6u},
-    {42u, 338u, 6u},
-    {43u, 345u, 6u},
-    {44u, 352u, 6u},
-    {45u, 359u, 6u},
-    {46u, 366u, 6u},
-    {47u, 373u, 6u},
-    {48u, 380u, 6u},
-    {49u, 387u, 6u},
-    {50u, 394u, 6u},
-    {51u, 401u, 9u},
-    {52u, 411u, 14u},
-    {53u, 426u, 12u},
-    {54u, 439u, 9u},
-    {55u, 449u, 9u},
-    {56u, 459u, 9u},
-    {57u, 469u, 9u},
-    {58u, 479u, 6u},
-    {59u, 486u, 6u},
-    {60u, 493u, 12u},
-    {61u, 506u, 9u},
-    {62u, 516u, 6u},
-    {63u, 523u, 6u},
-    {64u, 530u, 6u},
-    {65u, 537u, 6u},
-    {66u, 544u, 6u},
-    {67u, 551u, 6u},
-    {68u, 558u, 6u},
-    {69u, 565u, 14u},
-    {70u, 580u, 6u},
-    {80u, 587u, 78u},
+    {1u, 1u, 0u},
+    {2u, 1u, 4u},
+    {3u, 1u, 8u},
+    {4u, 1u, 12u},
+    {5u, 255u, 16u},
+    {6u, 255u, 23u},
+    {7u, 255u, 30u},
+    {8u, 255u, 37u},
+    {9u, 255u, 44u},
+    {10u, 255u, 51u},
+    {11u, 255u, 58u},
+    {12u, 255u, 65u},
+    {13u, 255u, 72u},
+    {14u, 255u, 79u},
+    {15u, 255u, 86u},
+    {16u, 255u, 93u},
+    {17u, 255u, 100u},
+    {18u, 255u, 113u},
+    {19u, 255u, 123u},
+    {20u, 255u, 133u},
+    {21u, 255u, 140u},
+    {22u, 255u, 147u},
+    {23u, 255u, 154u},
+    {24u, 255u, 161u},
+    {25u, 255u, 168u},
+    {26u, 255u, 175u},
+    {27u, 255u, 182u},
+    {28u, 255u, 189u},
+    {29u, 255u, 196u},
+    {30u, 255u, 203u},
+    {31u, 255u, 210u},
+    {32u, 255u, 217u},
+    {33u, 255u, 224u},
+    {34u, 255u, 231u},
+    {35u, 255u, 238u},
+    {36u, 255u, 248u},
+    {37u, 255u, 255u},
+    {38u, 255u, 262u},
+    {39u, 255u, 269u},
+    {40u, 255u, 276u},
+    {41u, 255u, 283u},
+    {42u, 255u, 290u},
+    {43u, 255u, 297u},
+    {44u, 255u, 304u},
+    {45u, 255u, 311u},
+    {46u, 255u, 318u},
+    {47u, 255u, 325u},
+    {48u, 255u, 332u},
+    {49u, 255u, 339u},
+    {50u, 255u, 346u},
+    {51u, 255u, 353u},
+    {52u, 255u, 363u},
+    {53u, 255u, 378u},
+    {54u, 255u, 391u},
+    {55u, 255u, 401u},
+    {56u, 255u, 411u},
+    {57u, 0u, 421u},
+    {58u, 255u, 425u},
+    {59u, 255u, 432u},
+    {60u, 255u, 439u},
+    {61u, 255u, 452u},
+    {62u, 255u, 462u},
+    {63u, 255u, 469u},
+    {64u, 255u, 476u},
+    {65u, 255u, 483u},
+    {66u, 255u, 490u},
+    {67u, 255u, 497u},
+    {68u, 255u, 504u},
+    {69u, 255u, 511u},
+    {70u, 255u, 526u},
+    {80u, 255u, 533u},
 };
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_eew_forecast_region_lookup(uint8_t id) noexcept {
     uint8_t lo = 0, hi = 71;
     while (lo < hi) {
         uint8_t mid = static_cast<uint8_t>(lo + (hi - lo) / 2);
-        const char* AZARAC_PROGMEM ep = reinterpret_cast<const char*>(&QZSS_DCR_JMA_EEW_FORECAST_REGION_TABLE[mid]);
-        uint8_t eid = static_cast<uint8_t>(pgm_read_byte(ep + offsetof(QZSS_DCR_JMA_EEW_FORECAST_REGION_Entry, id)));
+        azarac_pgm_ptr ep = AZARAC_PGM_PTR(QZSS_DCR_JMA_EEW_FORECAST_REGION_TABLE) + static_cast<size_t>(mid) * sizeof(QZSS_DCR_JMA_EEW_FORECAST_REGION_Entry);
+        uint8_t eid = static_cast<uint8_t>(azarac_read_byte(ep, offsetof(QZSS_DCR_JMA_EEW_FORECAST_REGION_Entry, id)));
         if (eid == id) {
-            uint16_t off = pgm_read_word(ep + offsetof(QZSS_DCR_JMA_EEW_FORECAST_REGION_Entry, offset));
-            uint16_t n = pgm_read_word(ep + offsetof(QZSS_DCR_JMA_EEW_FORECAST_REGION_Entry, len));
-            return azarac_pgm_view(QZSS_DCR_JMA_EEW_FORECAST_REGION_POOL + off, n);
+            uint16_t off = azarac_read_word(ep, offsetof(QZSS_DCR_JMA_EEW_FORECAST_REGION_Entry, offset));
+            uint8_t pi = azarac_read_byte(ep, offsetof(QZSS_DCR_JMA_EEW_FORECAST_REGION_Entry, parent));
+            if (pi == 255u) return azarac_pgm_view_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_EEW_FORECAST_REGION_POOL) + off);
+            azarac_pgm_ptr pp = AZARAC_PGM_PTR(QZSS_DCR_JMA_EEW_FORECAST_REGION_PARENT_TABLE) + static_cast<size_t>(pi) * sizeof(QZSS_DCR_JMA_EEW_FORECAST_REGION_PARENT_Entry);
+            uint16_t poff = azarac_read_word(pp, offsetof(QZSS_DCR_JMA_EEW_FORECAST_REGION_PARENT_Entry, offset));
+            return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_EEW_FORECAST_REGION_PARENT_POOL) + poff, AZARAC_PGM_PTR(QZSS_DCR_JMA_EEW_FORECAST_REGION_POOL) + off);
         }
         if (eid < id) lo = static_cast<uint8_t>(mid + 1); else hi = mid;
     }

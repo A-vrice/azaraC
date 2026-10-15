@@ -28,10 +28,10 @@ namespace def {
 #if defined(__AVR__)
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_d34_explosive_hazard_type_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 0: { static const char AZARAC_PROGMEM s[] = "PE1 - Mass explosion hazard in which the entire body of explosives explodes as one."; return azarac_pgm_view(s, 83); }
-        case 1: { static const char AZARAC_PROGMEM s[] = "PE2 - Serious projectile hazard but does not have a mass explosion hazard."; return azarac_pgm_view(s, 74); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "PE3 - Fire hazard and either a minor blast hazard or a minor projection hazard, or both, but does not have a mass explosion hazard. Explosives which give rise to considerable radiant heat or which burn to produce a minor blast or projection hazard."; return azarac_pgm_view(s, 248); }
-        case 3: { static const char AZARAC_PROGMEM s[] = "PE4 - Fire or slight explosion hazard, or both, with only local effect. Explosives which present only a low hazard in the event of ignition or initiation, where no significant blast or projection of fragments of appreciable size or range is expected."; return azarac_pgm_view(s, 250); }
+        case 0: { static const char AZARAC_PROGMEM s[] = "PE1 - Mass explosion hazard in which the entire body of explosives explodes as one."; return azarac_pgm_view(AZARAC_PGM_PTR(s), 83); }
+        case 1: { static const char AZARAC_PROGMEM s[] = "PE2 - Serious projectile hazard but does not have a mass explosion hazard."; return azarac_pgm_view(AZARAC_PGM_PTR(s), 74); }
+        case 2: { static const char AZARAC_PROGMEM s[] = "PE3 - Fire hazard and either a minor blast hazard or a minor projection hazard, or both, but does not have a mass explosion hazard. Explosives which give rise to considerable radiant heat or which burn to produce a minor blast or projection hazard."; return azarac_pgm_view(AZARAC_PGM_PTR(s), 248); }
+        case 3: { static const char AZARAC_PROGMEM s[] = "PE4 - Fire or slight explosion hazard, or both, with only local effect. Explosives which present only a low hazard in the event of ignition or initiation, where no significant blast or projection of fragments of appreciable size or range is expected."; return azarac_pgm_view(AZARAC_PGM_PTR(s), 250); }
         default: return std::nullopt;
     }
 }

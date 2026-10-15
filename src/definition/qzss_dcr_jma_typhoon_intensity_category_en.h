@@ -28,11 +28,11 @@ namespace def {
 #if defined(__AVR__)
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_typhoon_intensity_category_en_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 0: { static const char AZARAC_PROGMEM s[] = "None"; return azarac_pgm_view(s, 4); }
-        case 1: { static const char AZARAC_PROGMEM s[] = "Strong"; return azarac_pgm_view(s, 6); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "Very Strong"; return azarac_pgm_view(s, 11); }
-        case 3: { static const char AZARAC_PROGMEM s[] = "Violent"; return azarac_pgm_view(s, 7); }
-        case 15: { static const char AZARAC_PROGMEM s[] = "Other Intensity Category"; return azarac_pgm_view(s, 24); }
+        case 0: { static const char AZARAC_PROGMEM s[] = "None"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 4); }
+        case 1: { static const char AZARAC_PROGMEM s[] = "Strong"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 6); }
+        case 2: { static const char AZARAC_PROGMEM s[] = "Very Strong"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 11); }
+        case 3: { static const char AZARAC_PROGMEM s[] = "Violent"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 7); }
+        case 15: { static const char AZARAC_PROGMEM s[] = "Other Intensity Category"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 24); }
         default: return std::nullopt;
     }
 }

@@ -28,12 +28,12 @@ namespace def {
 #if defined(__AVR__)
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_tsunami_warning_code_en_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 1: { static const char AZARAC_PROGMEM s[] = "No Tsunami"; return azarac_pgm_view(s, 10); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "Warning Lifted"; return azarac_pgm_view(s, 14); }
-        case 3: { static const char AZARAC_PROGMEM s[] = "Tsunami Warning"; return azarac_pgm_view(s, 15); }
-        case 4: { static const char AZARAC_PROGMEM s[] = "Major Tsunami Warning"; return azarac_pgm_view(s, 21); }
-        case 5: { static const char AZARAC_PROGMEM s[] = "Major Tsunami Warning: Issued"; return azarac_pgm_view(s, 29); }
-        case 15: { static const char AZARAC_PROGMEM s[] = "Other Warning"; return azarac_pgm_view(s, 13); }
+        case 1: { static const char AZARAC_PROGMEM s[] = "No Tsunami"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 10); }
+        case 2: { static const char AZARAC_PROGMEM s[] = "Warning Lifted"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 14); }
+        case 3: { static const char AZARAC_PROGMEM s[] = "Tsunami Warning"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 15); }
+        case 4: { static const char AZARAC_PROGMEM s[] = "Major Tsunami Warning"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 21); }
+        case 5: { static const char AZARAC_PROGMEM s[] = "Major Tsunami Warning: Issued"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 29); }
+        case 15: { static const char AZARAC_PROGMEM s[] = "Other Warning"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 13); }
         default: return std::nullopt;
     }
 }

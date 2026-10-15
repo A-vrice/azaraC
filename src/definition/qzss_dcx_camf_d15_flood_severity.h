@@ -28,10 +28,10 @@ namespace def {
 #if defined(__AVR__)
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_d15_flood_severity_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 0: { static const char AZARAC_PROGMEM s[] = "Minor Flooding - Minimal or no property damage, but possibly some public threat."; return azarac_pgm_view(s, 80); }
-        case 1: { static const char AZARAC_PROGMEM s[] = "Moderate Flooding - Some inundation of structures and roads near stream. Some evacuations of people and/or transfer of property to higher elevations."; return azarac_pgm_view(s, 149); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "Major Flooding - Extensive inundation of structures and roads. Significant evacuations of people and/or transfer of property to higher elevations."; return azarac_pgm_view(s, 146); }
-        case 3: { static const char AZARAC_PROGMEM s[] = "Record Flooding"; return azarac_pgm_view(s, 15); }
+        case 0: { static const char AZARAC_PROGMEM s[] = "Minor Flooding - Minimal or no property damage, but possibly some public threat."; return azarac_pgm_view(AZARAC_PGM_PTR(s), 80); }
+        case 1: { static const char AZARAC_PROGMEM s[] = "Moderate Flooding - Some inundation of structures and roads near stream. Some evacuations of people and/or transfer of property to higher elevations."; return azarac_pgm_view(AZARAC_PGM_PTR(s), 149); }
+        case 2: { static const char AZARAC_PROGMEM s[] = "Major Flooding - Extensive inundation of structures and roads. Significant evacuations of people and/or transfer of property to higher elevations."; return azarac_pgm_view(AZARAC_PGM_PTR(s), 146); }
+        case 3: { static const char AZARAC_PROGMEM s[] = "Record Flooding"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 15); }
         default: return std::nullopt;
     }
 }

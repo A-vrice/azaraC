@@ -26,91 +26,100 @@ namespace def {
 #if (AZARAC_ENABLE_EEW) && (AZARAC_LANG_EN)
 
 #if defined(__AVR__)
-static const char AZARAC_PROGMEM QZSS_DCR_JMA_EEW_FORECAST_REGION_EN_POOL[] = "Central Area of Hokkaido (Do'o)\000Southern Area of Hokkaido (Donan)\000Northern Area of Hokkaido (Dohoku)\000Eastern Area of Hokkaido (Doto)\000Aomori\000Iwate\000Miyagi\000Akita\000Yamagata\000Fukushima\000Ibaraki\000Tochigi\000Gunma\000Saitama\000Chiba\000Tokyo\000Izu Islands\000Ogasawara\000Kanagawa\000Niigata\000Toyama\000Ishikawa\000Fukui\000Yamanashi\000Nagano\000Gifu\000Shizuoka\000Aichi\000Mie\000Shiga\000Kyoto\000Osaka\000Hyogo\000Nara\000Wakayama\000Tottori\000Shimane\000Okayama\000Hiroshima\000Yamaguchi\000Tokushima\000Kagawa\000Ehime\000Kochi\000Fukuoka\000Saga\000Nagasaki\000Kumamoto\000Oita\000Miyazaki\000Kagoshima\000Amami (Islands)\000Okinawa Main Island\000Daitojima Island\000Miyakojima Island\000Yaeyama\000Hokkaido\000Tohoku\000Kanto\000Izu Islands\000Ogasawara\000Hokuriku\000Koshin\000Tokai\000Kinki\000Chugoku\000Shikoku\000Kyushu\000Amami (Islands)\000Okinawa\000Other Forecast Region (Earthquake Early Warning)\000";
-struct QZSS_DCR_JMA_EEW_FORECAST_REGION_EN_Entry { uint8_t id; uint16_t offset; uint16_t len; };
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_EEW_FORECAST_REGION_EN_POOL[] = "Central Area of Hokkaido (Do'o)\000Southern Area of Hokkaido (Donan)\000Northern Area of Hokkaido (Dohoku)\000Eastern Area of Hokkaido (Doto)\000Aomori\000Iwate\000Miyagi\000Akita\000Yamagata\000Fuku\000Ibaraki\000Tochigi\000Gunma\000Saitama\000Chiba\000Tokyo\000Izu Islands\000Ogasawara\000Kanagawa\000Niigata\000To\000Ishikawa\000Fukui\000Yamanashi\000Nagano\000Gifu\000Shizuoka\000Aichi\000Mie\000Shiga\000Kyoto\000Osaka\000Hyogo\000Nara\000Waka\000Tottori\000Shimane\000Oka\000Hiro\000Yamaguchi\000Toku\000Kagawa\000Ehime\000Kochi\000Fukuoka\000Saga\000Nagasaki\000Kumamoto\000Oita\000Miyazaki\000Kago\000Amami (Islands)\000Okinawa Main Island\000Daitojima Island\000Miyakojima Island\000Yae\000Hokkaido\000Tohoku\000Kanto\000Izu Islands\000Ogasawara\000Hokuriku\000Koshin\000Tokai\000Kinki\000Chugoku\000Shikoku\000Kyushu\000Amami (Islands)\000Okinawa\000Other Forecast Region (Earthquake Early Warning)\000";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_EEW_FORECAST_REGION_EN_PARENT_POOL[] = "shima\000yama\000";
+struct QZSS_DCR_JMA_EEW_FORECAST_REGION_EN_PARENT_Entry { uint16_t offset; };
+static const QZSS_DCR_JMA_EEW_FORECAST_REGION_EN_PARENT_Entry QZSS_DCR_JMA_EEW_FORECAST_REGION_EN_PARENT_TABLE[] AZARAC_PROGMEM = {
+    {0u},
+    {6u},
+};
+struct QZSS_DCR_JMA_EEW_FORECAST_REGION_EN_Entry { uint8_t id; uint8_t parent; uint16_t offset; };
 static const QZSS_DCR_JMA_EEW_FORECAST_REGION_EN_Entry QZSS_DCR_JMA_EEW_FORECAST_REGION_EN_TABLE[] AZARAC_PROGMEM = {
-    {1u, 0u, 31u},
-    {2u, 32u, 33u},
-    {3u, 66u, 34u},
-    {4u, 101u, 31u},
-    {5u, 133u, 6u},
-    {6u, 140u, 5u},
-    {7u, 146u, 6u},
-    {8u, 153u, 5u},
-    {9u, 159u, 8u},
-    {10u, 168u, 9u},
-    {11u, 178u, 7u},
-    {12u, 186u, 7u},
-    {13u, 194u, 5u},
-    {14u, 200u, 7u},
-    {15u, 208u, 5u},
-    {16u, 214u, 5u},
-    {17u, 220u, 11u},
-    {18u, 232u, 9u},
-    {19u, 242u, 8u},
-    {20u, 251u, 7u},
-    {21u, 259u, 6u},
-    {22u, 266u, 8u},
-    {23u, 275u, 5u},
-    {24u, 281u, 9u},
-    {25u, 291u, 6u},
-    {26u, 298u, 4u},
-    {27u, 303u, 8u},
-    {28u, 312u, 5u},
-    {29u, 318u, 3u},
-    {30u, 322u, 5u},
-    {31u, 328u, 5u},
-    {32u, 334u, 5u},
-    {33u, 340u, 5u},
-    {34u, 346u, 4u},
-    {35u, 351u, 8u},
-    {36u, 360u, 7u},
-    {37u, 368u, 7u},
-    {38u, 376u, 7u},
-    {39u, 384u, 9u},
-    {40u, 394u, 9u},
-    {41u, 404u, 9u},
-    {42u, 414u, 6u},
-    {43u, 421u, 5u},
-    {44u, 427u, 5u},
-    {45u, 433u, 7u},
-    {46u, 441u, 4u},
-    {47u, 446u, 8u},
-    {48u, 455u, 8u},
-    {49u, 464u, 4u},
-    {50u, 469u, 8u},
-    {51u, 478u, 9u},
-    {52u, 488u, 15u},
-    {53u, 504u, 19u},
-    {54u, 524u, 16u},
-    {55u, 541u, 17u},
-    {56u, 559u, 7u},
-    {57u, 567u, 8u},
-    {58u, 576u, 6u},
-    {59u, 583u, 5u},
-    {60u, 589u, 11u},
-    {61u, 601u, 9u},
-    {62u, 611u, 8u},
-    {63u, 620u, 6u},
-    {64u, 627u, 5u},
-    {65u, 633u, 5u},
-    {66u, 639u, 7u},
-    {67u, 647u, 7u},
-    {68u, 655u, 6u},
-    {69u, 662u, 15u},
-    {70u, 678u, 7u},
-    {80u, 686u, 48u},
+    {1u, 255u, 0u},
+    {2u, 255u, 32u},
+    {3u, 255u, 66u},
+    {4u, 255u, 101u},
+    {5u, 255u, 133u},
+    {6u, 255u, 140u},
+    {7u, 255u, 146u},
+    {8u, 255u, 153u},
+    {9u, 255u, 159u},
+    {10u, 0u, 168u},
+    {11u, 255u, 173u},
+    {12u, 255u, 181u},
+    {13u, 255u, 189u},
+    {14u, 255u, 195u},
+    {15u, 255u, 203u},
+    {16u, 255u, 209u},
+    {17u, 255u, 215u},
+    {18u, 255u, 227u},
+    {19u, 255u, 237u},
+    {20u, 255u, 246u},
+    {21u, 1u, 254u},
+    {22u, 255u, 257u},
+    {23u, 255u, 266u},
+    {24u, 255u, 272u},
+    {25u, 255u, 282u},
+    {26u, 255u, 289u},
+    {27u, 255u, 294u},
+    {28u, 255u, 303u},
+    {29u, 255u, 309u},
+    {30u, 255u, 313u},
+    {31u, 255u, 319u},
+    {32u, 255u, 325u},
+    {33u, 255u, 331u},
+    {34u, 255u, 337u},
+    {35u, 1u, 342u},
+    {36u, 255u, 347u},
+    {37u, 255u, 355u},
+    {38u, 1u, 363u},
+    {39u, 0u, 367u},
+    {40u, 255u, 372u},
+    {41u, 0u, 382u},
+    {42u, 255u, 387u},
+    {43u, 255u, 394u},
+    {44u, 255u, 400u},
+    {45u, 255u, 406u},
+    {46u, 255u, 414u},
+    {47u, 255u, 419u},
+    {48u, 255u, 428u},
+    {49u, 255u, 437u},
+    {50u, 255u, 442u},
+    {51u, 0u, 451u},
+    {52u, 255u, 456u},
+    {53u, 255u, 472u},
+    {54u, 255u, 492u},
+    {55u, 255u, 509u},
+    {56u, 1u, 527u},
+    {57u, 255u, 531u},
+    {58u, 255u, 540u},
+    {59u, 255u, 547u},
+    {60u, 255u, 553u},
+    {61u, 255u, 565u},
+    {62u, 255u, 575u},
+    {63u, 255u, 584u},
+    {64u, 255u, 591u},
+    {65u, 255u, 597u},
+    {66u, 255u, 603u},
+    {67u, 255u, 611u},
+    {68u, 255u, 619u},
+    {69u, 255u, 626u},
+    {70u, 255u, 642u},
+    {80u, 255u, 650u},
 };
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_eew_forecast_region_en_lookup(uint8_t id) noexcept {
     uint8_t lo = 0, hi = 71;
     while (lo < hi) {
         uint8_t mid = static_cast<uint8_t>(lo + (hi - lo) / 2);
-        const char* AZARAC_PROGMEM ep = reinterpret_cast<const char*>(&QZSS_DCR_JMA_EEW_FORECAST_REGION_EN_TABLE[mid]);
-        uint8_t eid = static_cast<uint8_t>(pgm_read_byte(ep + offsetof(QZSS_DCR_JMA_EEW_FORECAST_REGION_EN_Entry, id)));
+        azarac_pgm_ptr ep = AZARAC_PGM_PTR(QZSS_DCR_JMA_EEW_FORECAST_REGION_EN_TABLE) + static_cast<size_t>(mid) * sizeof(QZSS_DCR_JMA_EEW_FORECAST_REGION_EN_Entry);
+        uint8_t eid = static_cast<uint8_t>(azarac_read_byte(ep, offsetof(QZSS_DCR_JMA_EEW_FORECAST_REGION_EN_Entry, id)));
         if (eid == id) {
-            uint16_t off = pgm_read_word(ep + offsetof(QZSS_DCR_JMA_EEW_FORECAST_REGION_EN_Entry, offset));
-            uint16_t n = pgm_read_word(ep + offsetof(QZSS_DCR_JMA_EEW_FORECAST_REGION_EN_Entry, len));
-            return azarac_pgm_view(QZSS_DCR_JMA_EEW_FORECAST_REGION_EN_POOL + off, n);
+            uint16_t off = azarac_read_word(ep, offsetof(QZSS_DCR_JMA_EEW_FORECAST_REGION_EN_Entry, offset));
+            uint8_t pi = azarac_read_byte(ep, offsetof(QZSS_DCR_JMA_EEW_FORECAST_REGION_EN_Entry, parent));
+            if (pi == 255u) return azarac_pgm_view_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_EEW_FORECAST_REGION_EN_POOL) + off);
+            azarac_pgm_ptr pp = AZARAC_PGM_PTR(QZSS_DCR_JMA_EEW_FORECAST_REGION_EN_PARENT_TABLE) + static_cast<size_t>(pi) * sizeof(QZSS_DCR_JMA_EEW_FORECAST_REGION_EN_PARENT_Entry);
+            uint16_t poff = azarac_read_word(pp, offsetof(QZSS_DCR_JMA_EEW_FORECAST_REGION_EN_PARENT_Entry, offset));
+            return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_EEW_FORECAST_REGION_EN_POOL) + off, AZARAC_PGM_PTR(QZSS_DCR_JMA_EEW_FORECAST_REGION_EN_PARENT_POOL) + poff);
         }
         if (eid < id) lo = static_cast<uint8_t>(mid + 1); else hi = mid;
     }

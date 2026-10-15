@@ -26,31 +26,40 @@ namespace def {
 #if (AZARAC_ENABLE_WEATHER) && (AZARAC_LANG_EN)
 
 #if defined(__AVR__)
-static const char AZARAC_PROGMEM QZSS_DCR_JMA_WEATHER_RELATED_DISASTER_SUB_CATEGORY_EN_POOL[] = "Snowstorm Emergency Warning\000Heavy Rain Emergency Warning\000Storm Emergency Warning\000Heavy Snow Emergency Warning\000High Wave Emergency Warning\000Storm Surge Emergency Warning\000All Weather Emergency Warnings\000Record-breaking heavy rain in a short time\000Hazardous Wind Watch\000Landslide Alert Information\000Other Warning\000";
-struct QZSS_DCR_JMA_WEATHER_RELATED_DISASTER_SUB_CATEGORY_EN_Entry { uint8_t id; uint16_t offset; uint16_t len; };
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_WEATHER_RELATED_DISASTER_SUB_CATEGORY_EN_POOL[] = "Snowstorm\000Heavy Rain\000Storm\000Heavy Snow\000High Wave\000Storm Surge\000All Weather Emergency Warnings\000Record-breaking heavy rain in a short time\000Hazardous Wind Watch\000Landslide Alert Information\000Other\000";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_WEATHER_RELATED_DISASTER_SUB_CATEGORY_EN_PARENT_POOL[] = " Emergency Warning\000 Warning\000";
+struct QZSS_DCR_JMA_WEATHER_RELATED_DISASTER_SUB_CATEGORY_EN_PARENT_Entry { uint16_t offset; };
+static const QZSS_DCR_JMA_WEATHER_RELATED_DISASTER_SUB_CATEGORY_EN_PARENT_Entry QZSS_DCR_JMA_WEATHER_RELATED_DISASTER_SUB_CATEGORY_EN_PARENT_TABLE[] AZARAC_PROGMEM = {
+    {0u},
+    {19u},
+};
+struct QZSS_DCR_JMA_WEATHER_RELATED_DISASTER_SUB_CATEGORY_EN_Entry { uint8_t id; uint8_t parent; uint16_t offset; };
 static const QZSS_DCR_JMA_WEATHER_RELATED_DISASTER_SUB_CATEGORY_EN_Entry QZSS_DCR_JMA_WEATHER_RELATED_DISASTER_SUB_CATEGORY_EN_TABLE[] AZARAC_PROGMEM = {
-    {1u, 0u, 27u},
-    {2u, 28u, 28u},
-    {3u, 57u, 23u},
-    {4u, 81u, 28u},
-    {5u, 110u, 27u},
-    {6u, 138u, 29u},
-    {7u, 168u, 30u},
-    {21u, 199u, 42u},
-    {22u, 242u, 20u},
-    {23u, 263u, 27u},
-    {31u, 291u, 13u},
+    {1u, 0u, 0u},
+    {2u, 0u, 10u},
+    {3u, 0u, 21u},
+    {4u, 0u, 27u},
+    {5u, 0u, 38u},
+    {6u, 0u, 48u},
+    {7u, 255u, 60u},
+    {21u, 255u, 91u},
+    {22u, 255u, 134u},
+    {23u, 255u, 155u},
+    {31u, 1u, 183u},
 };
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_weather_related_disaster_sub_category_en_lookup(uint8_t id) noexcept {
     uint8_t lo = 0, hi = 11;
     while (lo < hi) {
         uint8_t mid = static_cast<uint8_t>(lo + (hi - lo) / 2);
-        const char* AZARAC_PROGMEM ep = reinterpret_cast<const char*>(&QZSS_DCR_JMA_WEATHER_RELATED_DISASTER_SUB_CATEGORY_EN_TABLE[mid]);
-        uint8_t eid = static_cast<uint8_t>(pgm_read_byte(ep + offsetof(QZSS_DCR_JMA_WEATHER_RELATED_DISASTER_SUB_CATEGORY_EN_Entry, id)));
+        azarac_pgm_ptr ep = AZARAC_PGM_PTR(QZSS_DCR_JMA_WEATHER_RELATED_DISASTER_SUB_CATEGORY_EN_TABLE) + static_cast<size_t>(mid) * sizeof(QZSS_DCR_JMA_WEATHER_RELATED_DISASTER_SUB_CATEGORY_EN_Entry);
+        uint8_t eid = static_cast<uint8_t>(azarac_read_byte(ep, offsetof(QZSS_DCR_JMA_WEATHER_RELATED_DISASTER_SUB_CATEGORY_EN_Entry, id)));
         if (eid == id) {
-            uint16_t off = pgm_read_word(ep + offsetof(QZSS_DCR_JMA_WEATHER_RELATED_DISASTER_SUB_CATEGORY_EN_Entry, offset));
-            uint16_t n = pgm_read_word(ep + offsetof(QZSS_DCR_JMA_WEATHER_RELATED_DISASTER_SUB_CATEGORY_EN_Entry, len));
-            return azarac_pgm_view(QZSS_DCR_JMA_WEATHER_RELATED_DISASTER_SUB_CATEGORY_EN_POOL + off, n);
+            uint16_t off = azarac_read_word(ep, offsetof(QZSS_DCR_JMA_WEATHER_RELATED_DISASTER_SUB_CATEGORY_EN_Entry, offset));
+            uint8_t pi = azarac_read_byte(ep, offsetof(QZSS_DCR_JMA_WEATHER_RELATED_DISASTER_SUB_CATEGORY_EN_Entry, parent));
+            if (pi == 255u) return azarac_pgm_view_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_WEATHER_RELATED_DISASTER_SUB_CATEGORY_EN_POOL) + off);
+            azarac_pgm_ptr pp = AZARAC_PGM_PTR(QZSS_DCR_JMA_WEATHER_RELATED_DISASTER_SUB_CATEGORY_EN_PARENT_TABLE) + static_cast<size_t>(pi) * sizeof(QZSS_DCR_JMA_WEATHER_RELATED_DISASTER_SUB_CATEGORY_EN_PARENT_Entry);
+            uint16_t poff = azarac_read_word(pp, offsetof(QZSS_DCR_JMA_WEATHER_RELATED_DISASTER_SUB_CATEGORY_EN_PARENT_Entry, offset));
+            return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_WEATHER_RELATED_DISASTER_SUB_CATEGORY_EN_POOL) + off, AZARAC_PGM_PTR(QZSS_DCR_JMA_WEATHER_RELATED_DISASTER_SUB_CATEGORY_EN_PARENT_POOL) + poff);
         }
         if (eid < id) lo = static_cast<uint8_t>(mid + 1); else hi = mid;
     }

@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **AVR向けに定義テーブルのフラッシュ消費を削減（issue #35）**: 生成表は地域名の親（都道府県・市区町村）を1件ごとに繰り返していた（英語の地域コード表だけで63,064B）。`strategy.py` の `factor_parents` が、同じ表の中で4件以上に共通する最長の接頭辞／接尾辞（`北海道札幌市` の `北海道`、`Sapporo City, Hokkaido Prefecture` の ` City, Hokkaido Prefecture`）を「親」として切り出し、`<GUARD>_PARENT_POOL` に1回だけ置いて、行には親の添字（`0xFF`＝親なし）を持たせ、参照時に `azarac_pgm_join_z` が既存の共有RAMバッファ内で連結する。切り出した親自身も同じ規則で再帰的に切り出せる（2段目。` City, Hokkaido Prefecture` → ` City, ` ＋ `Hokkaido Prefecture`）。binary_search / array 戦略の全表が対象。switch 戦略は行を持たないため、共有断片のオフセットを case 本体に定数として埋め込む。あわせて行から `len` を削除した（プールはNUL区切りなので長さは `azarac_pgm_len` が取る）。
+  - 2段目は呼び出し側に分岐と `azarac_pgm_join3` を足すため、表の削減がそのコード（実測60〜130B/呼び出し）を上回る表だけ採用する（閾値 128B）。閾値が無いと既定AVR構成的リンクが122B増えることを実測で確認した。
+  - **非AVR（ホスト）側の出力は従来どおり非圧縮**（issue #35 の方針）。ラベルは全1,409,708照会でAVR経路・ホスト経路ともバイト単位一致（`test/bench/avr/labels.golden`。断片の結合順をわざと入れ替えるとこのゲートが落ちることも確認済み）。
+  - 実測（全カテゴリ + 日英、`test/bench/avr/measure_tables.py`）: 474,484B → 301,116B（−36.5%）。最大の単一リテラルが 63,064B → 20,944B になり、avr-gcc の1オブジェクト上限 32,767B を下回ったため、**ATmega2560 で DCX/CAMF・火山・降灰の各カテゴリがビルド可能になった**（従来は `size of variable is too large` でコンパイル不可）。実際に ATmega2560 向けに DCX/CAMF + SEISMIC/TSUNAMI（日英）をリンクすると、フラッシュ 180,446B（上限 262,144B）・RAM 3,970B（上限 8,192B）に収まり、DCX/CAMF の定義テーブル 100 シンボルがすべてFlash側に置かれることを `avr-nm` で確認した（2026-10 実測）。定義テーブルは各プールが64KiB未満に収まるため、16bitのFlashオフセットで扱える範囲も広がった。
+  - **SRAMは不変**: Uno実リンクで data+bss = 702B（変更前と同じ）、表がRAMに落ちていないことを `AVR_TABLES_IN_RAM=0` で確認。結合は `internal/FlashString.h` の共有バッファ（800B、既存）内で行う。既定AVRプリセット（SEISMIC/TSUNAMI、JA）は表+プール 3,044B・リンク後フラッシュ 17,930B → 17,732B。
+- **ATmega2560 など Flash が 64KiB を超える AVR で定義テーブルを正しく参照できるようにした**: テーブル（DCX/CAMF を含む構成では ~140KB）はリンク時に 0xFFFF より上へ配置され、16bit の PROGMEM ポインタでは届かない（実測: 195 シンボル中 138 個が 64KiB 超。従来のコードは `lpm` のみで `RAMPZ` を一切使わなかった）。`internal/FlashString.h` がデバイスに応じてアドレス方式を切り替え、`FLASHEND > 0xFFFF` では配列のアドレスを `pgm_get_far_address`（`AZARAC_PGM_PTR`）で取り、読み出しを `pgm_read_*_far` / `memcpy_PF` / `strncpy_PF` で行う（64KiB 以下は従来どおり16bitポインタのまま）。プール内のオフセットは16bitのままで、行の形（`{id, parent, offset}`）も不変。`make -C test pgm-stub` は 64KiB 超のデバイスを装う（`FLASHEND=0x3FFFF`）ので far 経路はホストで実行検証され、ラベルは全 1,409,708 照会でホスト経路と一致する。
+- **AVR向けプリセットで DCX/CAMF を大容量ボードで有効化**: `__AVR__` の既定は従来どおり SEISMIC/TSUNAMI のみだが、Flashの大きいボード（`AZARAC_AVR_LARGE_FLASH`: `ARDUINO_AVR_MEGA2560` / `__AVR_ATmega2560__` / `__AVR_ATmega2561__`）では DCX/CAMF も有効にした。ATmega2560 + DCX/CAMF + SEISMIC/TSUNAMI（日本語）で**フラッシュ 146,244B（上限 262,144B）・RAM 3,762B（上限 8,192B）**、DCX の定義テーブル 90 シンボルが全て Flash 側（RAM 0）であることを実測。Uno は従来どおり（DCX/CAMF 無効、共有バッファ 64B）。`AZARAC_FLASH_BUF_SIZE` の自動選択はカテゴリ既定の解決後に評価されるよう順序を直した（プリセットで DCX/CAMF を有効にした場合も 800B になる）。他10カテゴリは大容量ボードでも無効のまま（全て同時は 242KB でユーザーコードの余地がない）。
+
+### Added
+
+- **定義テーブルのAVRフットプリント計測ハーネス**（`make -C test bench`、`autoresearch.sh` + `test/bench/avr/`）: `avr-gcc -E` の出力からプールと行のバイト数を数え（`AVR_TABLE_BYTES`）、avr-gcc 自身のオブジェクトサイズと突合する（`AVR_TABLE_CROSSCHECK`）。ゲートは4つ——全1,409,708照会のラベル一致（AVR経路とホスト経路の両方）、ATMega2560での全カテゴリのコンパイル（プールが上限を下回っているときのみ）、既定AVR構成的リンク、そしてSRAM非増加（`UNO_RAM_BYTES` ≤ 702B、`AVR_TABLES_IN_RAM` = 0）。`bash autoresearch.sh --bless-labels` はラベル基準値の再記録用。
+
+### Fixed
+
+- **`gen_definitions.py` の書き込みが一過性のOSErrorで落ちると、生成が途中で止まったまま古いヘッダが残る**: ファイルスキャナが新規ファイルを一時的に掴むWindowsで `OSError(EINVAL)` が出るため、5回まで再試行する（`write_file`）。CI（Linux）では発生しない。
+
 ## [2.0.0] - 2026-10-13
 
 ### Changed (破壊的変更 — JSON v2)

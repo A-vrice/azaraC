@@ -28,14 +28,14 @@ namespace def {
 #if defined(__AVR__)
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_d2_seismic_coefficient_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 0: { static const char AZARAC_PROGMEM s[] = "2"; return azarac_pgm_view(s, 1); }
-        case 1: { static const char AZARAC_PROGMEM s[] = "3"; return azarac_pgm_view(s, 1); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "4"; return azarac_pgm_view(s, 1); }
-        case 3: { static const char AZARAC_PROGMEM s[] = "5 weak"; return azarac_pgm_view(s, 6); }
-        case 4: { static const char AZARAC_PROGMEM s[] = "5 strong"; return azarac_pgm_view(s, 8); }
-        case 5: { static const char AZARAC_PROGMEM s[] = "6 weak"; return azarac_pgm_view(s, 6); }
-        case 6: { static const char AZARAC_PROGMEM s[] = "6 strong"; return azarac_pgm_view(s, 8); }
-        case 7: { static const char AZARAC_PROGMEM s[] = "7"; return azarac_pgm_view(s, 1); }
+        case 0: { static const char AZARAC_PROGMEM s[] = "2"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 1); }
+        case 1: { static const char AZARAC_PROGMEM s[] = "3"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 1); }
+        case 2: { static const char AZARAC_PROGMEM s[] = "4"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 1); }
+        case 3: { static const char AZARAC_PROGMEM s[] = "5 weak"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 6); }
+        case 4: { static const char AZARAC_PROGMEM s[] = "5 strong"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 8); }
+        case 5: { static const char AZARAC_PROGMEM s[] = "6 weak"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 6); }
+        case 6: { static const char AZARAC_PROGMEM s[] = "6 strong"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 8); }
+        case 7: { static const char AZARAC_PROGMEM s[] = "7"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 1); }
         default: return std::nullopt;
     }
 }

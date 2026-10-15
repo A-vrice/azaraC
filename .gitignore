@@ -58,3 +58,7 @@ test/no_alloc_tests
 # bench のビルド生成物（autoresearch.sh / bench_dedup.cpp は追跡する）
 test/bench/bench_dedup
 test/bench/*.cc
+# AVR 定義テーブル計測（autoresearch.sh）のビルド生成物
+test/bench/avr/out/
+test/bench/avr/*.log
+.mega/

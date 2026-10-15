@@ -28,15 +28,15 @@ namespace def {
 #if defined(__AVR__)
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_tsunami_height_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 1: { static const char AZARAC_PROGMEM s[] = "0.2m未満"; return azarac_pgm_view(s, 10); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "1m"; return azarac_pgm_view(s, 2); }
-        case 3: { static const char AZARAC_PROGMEM s[] = "3m"; return azarac_pgm_view(s, 2); }
-        case 4: { static const char AZARAC_PROGMEM s[] = "5m"; return azarac_pgm_view(s, 2); }
-        case 5: { static const char AZARAC_PROGMEM s[] = "10m"; return azarac_pgm_view(s, 3); }
-        case 6: { static const char AZARAC_PROGMEM s[] = "10m超"; return azarac_pgm_view(s, 6); }
-        case 13: { static const char AZARAC_PROGMEM s[] = "該当情報なし"; return azarac_pgm_view(s, 18); }
-        case 14: { static const char AZARAC_PROGMEM s[] = "不明"; return azarac_pgm_view(s, 6); }
-        case 15: { static const char AZARAC_PROGMEM s[] = "その他の津波の高さ"; return azarac_pgm_view(s, 27); }
+        case 1: { static const char AZARAC_PROGMEM s[] = "0.2m未満"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 10); }
+        case 2: { static const char AZARAC_PROGMEM s[] = "1m"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 2); }
+        case 3: { static const char AZARAC_PROGMEM s[] = "3m"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 2); }
+        case 4: { static const char AZARAC_PROGMEM s[] = "5m"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 2); }
+        case 5: { static const char AZARAC_PROGMEM s[] = "10m"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 3); }
+        case 6: { static const char AZARAC_PROGMEM s[] = "10m超"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 6); }
+        case 13: { static const char AZARAC_PROGMEM s[] = "該当情報なし"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 18); }
+        case 14: { static const char AZARAC_PROGMEM s[] = "不明"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 6); }
+        case 15: { static const char AZARAC_PROGMEM s[] = "その他の津波の高さ"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 27); }
         default: return std::nullopt;
     }
 }

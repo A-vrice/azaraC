@@ -28,15 +28,15 @@ namespace def {
 #if defined(__AVR__)
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_tsunami_height_en_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 1: { static const char AZARAC_PROGMEM s[] = "Less than 0.2 m"; return azarac_pgm_view(s, 15); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "1 m"; return azarac_pgm_view(s, 3); }
-        case 3: { static const char AZARAC_PROGMEM s[] = "3 m"; return azarac_pgm_view(s, 3); }
-        case 4: { static const char AZARAC_PROGMEM s[] = "5 m"; return azarac_pgm_view(s, 3); }
-        case 5: { static const char AZARAC_PROGMEM s[] = "10 m"; return azarac_pgm_view(s, 4); }
-        case 6: { static const char AZARAC_PROGMEM s[] = "Over 10 m"; return azarac_pgm_view(s, 9); }
-        case 13: { static const char AZARAC_PROGMEM s[] = "No data"; return azarac_pgm_view(s, 7); }
-        case 14: { static const char AZARAC_PROGMEM s[] = "Unknown"; return azarac_pgm_view(s, 7); }
-        case 15: { static const char AZARAC_PROGMEM s[] = "Other Tsunami Height"; return azarac_pgm_view(s, 20); }
+        case 1: { static const char AZARAC_PROGMEM s[] = "Less than 0.2 m"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 15); }
+        case 2: { static const char AZARAC_PROGMEM s[] = "1 m"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 3); }
+        case 3: { static const char AZARAC_PROGMEM s[] = "3 m"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 3); }
+        case 4: { static const char AZARAC_PROGMEM s[] = "5 m"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 3); }
+        case 5: { static const char AZARAC_PROGMEM s[] = "10 m"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 4); }
+        case 6: { static const char AZARAC_PROGMEM s[] = "Over 10 m"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 9); }
+        case 13: { static const char AZARAC_PROGMEM s[] = "No data"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 7); }
+        case 14: { static const char AZARAC_PROGMEM s[] = "Unknown"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 7); }
+        case 15: { static const char AZARAC_PROGMEM s[] = "Other Tsunami Height"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 20); }
         default: return std::nullopt;
     }
 }
