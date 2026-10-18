@@ -24,44 +24,6 @@ void writeUint64(Print& out, uint64_t v) {
     out.print(buf + i);
 }
 
-void writeDouble(Print& out, double v, int precision) {
-    if (v != v || v > 1e308 || v < -1e308) {
-        out.print("null");
-        return;
-    }
-
-    // Rounding offset 0.5 * 10^{-precision}
-    double round_off = 0.5;
-    for (int i = 0; i < precision; ++i) round_off /= 10.0;
-
-    // Zero out values that round to zero, before sign output, to avoid "-0.000000"
-    if (v > -round_off && v < round_off) {
-        v = 0.0;
-    }
-
-    // Round away from zero, then output sign
-    v += (v < 0) ? -round_off : round_off;
-    if (v < 0) {
-        out.print('-');
-        v = -v;
-    }
-
-    // Integer part - use uint64_t to avoid truncation for large values
-    uint64_t int_part = (uint64_t)v;
-    writeUint64(out, int_part);
-    out.print('.');
-    double frac = v - (double)int_part;
-    for (int i = 0; i < precision; ++i) {
-        frac *= 10.0;
-        int digit = (int)frac;
-        // Clamp: frac*10 rounding to exactly 10.0 would emit ':' (ASCII 58)
-        if (digit > 9) { digit = 9; frac = 0.0; }
-        else if (digit < 0) { digit = 0; frac = 0.0; }
-        out.print(static_cast<char>('0' + digit));
-        frac -= digit;
-    }
-}
-
 // Write a JSON-escaped string (used for both keys and values)
 static void writeEscaped(Print& out, std::string_view s) {
     if (s.empty()) return;
@@ -139,10 +101,6 @@ void wf_x(Print& out, std::string_view k, uint32_t v, bool last) {
     out.print(buf);
     out.print('"');
     if (!last) writeChar(out, ',');
-}
-
-void wf_d(Print& out, std::string_view k, double v, bool last, int precision) {
-    wk(out, k); writeDouble(out, v, precision); if (!last) writeChar(out, ',');
 }
 
 // 10^6 / 10^5 / 10^3 の 10 進展開を整数だけで出す（丸めなし: v は denominator の

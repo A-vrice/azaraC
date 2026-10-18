@@ -60,7 +60,6 @@ namespace internal {
 void writeChar(Print& out, char c);
 void writeUint32(Print& out, uint32_t v);
 void writeUint64(Print& out, uint64_t v);
-void writeDouble(Print& out, double v, int precision = 3);
 void writeStr(Print& out, std::string_view s);
 void writeOptStr(Print& out, std::optional<std::string_view> s);
 void writeHex(Print& out, uint8_t v);
@@ -72,7 +71,6 @@ void wk(Print& out, std::string_view k);
 void wf_u(Print& out, std::string_view k, uint32_t v, bool last = false);
 void wf_u64(Print& out, std::string_view k, uint64_t v, bool last = false);
 void wf_x(Print& out, std::string_view k, uint32_t v, bool last = false);
-void wf_d(Print& out, std::string_view k, double v, bool last = false, int precision = 3);
 // "key":<v/denominator>。小数部は denominator の桁数ぶんゼロ埋め（1000000 → 6 桁、100000 → 5 桁、1000 → 3 桁）。
 // 整数演算のみで組み立てる: AVR の double は 24 bit 仮数（≈7.2 桁）で 6 桁精度の角度が host と一致しないため。
 void wf_deg(Print& out, std::string_view k, int32_t denominator, int32_t v, bool last = false);

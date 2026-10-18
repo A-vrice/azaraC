@@ -6,7 +6,6 @@
 #include "../test_helpers.h"
 #include "doctest.h"
 #include <cstring>
-#include <limits>
 #include <string>
 
 using namespace azaraC;
@@ -542,6 +541,34 @@ TEST_CASE("JSON Serialization: MT=43 Tsunami") {
     CHECK(hasField(s, "\"height_lower\":null,\"height_upper\":0.2"));
     CHECK(hasField(s, "\"height_lower\":null,\"height_upper\":null"));
 }
+
+// 高さコード → 境界の全数。コードごとに 1 通ずつ組んで、区分の取り違えを落とす
+// （境界は 10 分の 1 m の整数から wf_deg で出すので、値の対応が崩れるとここで落ちる）。
+TEST_CASE("JSON Serialization: MT=43 Tsunami height bounds (全コード)") {
+    static const struct { uint16_t code; const char* bounds; } cases[] = {
+        {1,  "\"height_lower\":null,\"height_upper\":0.2"},   // h < 0.2
+        {2,  "\"height_lower\":0.2,\"height_upper\":1.0"},
+        {3,  "\"height_lower\":1.0,\"height_upper\":3.0"},
+        {4,  "\"height_lower\":3.0,\"height_upper\":5.0"},
+        {5,  "\"height_lower\":5.0,\"height_upper\":10.0"},
+        {6,  "\"height_lower\":10.0,\"height_upper\":null"},
+        {13, "\"height_lower\":null,\"height_upper\":null"},  // 該当情報なし
+    };
+    for (const auto& c : cases) {
+        Message m{};
+        initMt43As(m, 5);
+        TsunamiData* t = m.getMt43()->getTsunami();
+        REQUIRE(t != nullptr);
+        t->count = 1;
+        t->entries[0].region_code = 65;
+        t->entries[0].height_code = c.code;
+
+        StringPrint sp;
+        internal::JsonSerializer::serialize(m, sp);
+        INFO("height_code ", c.code);
+        CHECK(hasField(sp.str(), c.bounds));
+    }
+}
 #endif // AZARAC_ENABLE_TSUNAMI
 
 #if (AZARAC_ENABLE_NANKAI)
@@ -609,6 +636,32 @@ TEST_CASE("JSON Serialization: MT=43 NW Pacific Tsunami") {
     CHECK(hasField(s, "\"height_lower\":10.0,\"height_upper\":null"));
     // S1-lookup regression: coastal_region_en の疎キーテーブル (code 1 → Ust-Kamchatsk)
     CHECK(hasField(s, "\"region\":1,\"region_label\":\"Ust-Kamchatsk (East Coasts of Kamchatka Peninsula)\""));
+}
+
+// 北西太平洋も全コード（508 は上端なし）。
+TEST_CASE("JSON Serialization: MT=43 NW Pacific Tsunami height bounds (全コード)") {
+    static const struct { uint16_t code; const char* bounds; } cases[] = {
+        {1,   "\"height_lower\":0.3,\"height_upper\":1.0"},
+        {2,   "\"height_lower\":1.0,\"height_upper\":3.0"},
+        {3,   "\"height_lower\":3.0,\"height_upper\":5.0"},
+        {4,   "\"height_lower\":5.0,\"height_upper\":10.0"},
+        {508, "\"height_lower\":10.0,\"height_upper\":null"},  // More than 10m
+    };
+    for (const auto& c : cases) {
+        Message m{};
+        initMt43As(m, 6);
+        NwPacTsunamiData* nw = m.getMt43()->getNwPac();
+        REQUIRE(nw != nullptr);
+        nw->potential = 2;
+        nw->count = 1;
+        nw->entries[0].region_code = 1;
+        nw->entries[0].height_code = c.code;
+
+        StringPrint sp;
+        internal::JsonSerializer::serialize(m, sp);
+        INFO("height_code ", c.code);
+        CHECK(hasField(sp.str(), c.bounds));
+    }
 }
 #endif // AZARAC_ENABLE_NW_PAC_TSUNAMI
 
@@ -1431,64 +1484,6 @@ TEST_CASE("wf_u64 出力") {
     sp = StringPrint{};
     internal::wf_u64(sp, "a", 1ULL, false);
     CHECK(sp.str() == "\"a\":1,");
-}
-
-// writeDouble エッジケーステスト
-TEST_CASE("writeDouble: 通常の正の値") {
-    StringPrint sp;
-    internal::writeDouble(sp, 3.14159, 2);
-    CHECK(sp.str() == "3.14");
-}
-
-TEST_CASE("writeDouble: 通常の負の値") {
-    StringPrint sp;
-    internal::writeDouble(sp, -3.14159, 2);
-    CHECK(sp.str() == "-3.14");
-}
-
-TEST_CASE("writeDouble: ゼロ") {
-    StringPrint sp;
-    internal::writeDouble(sp, 0.0, 3);
-    CHECK(sp.str() == "0.000");
-}
-
-TEST_CASE("writeDouble: 負の微小値がゼロに丸められる (符号抑制)") {
-    StringPrint sp;
-    internal::writeDouble(sp, -0.0000001, 6);
-    CHECK(sp.str() == "0.000000");
-}
-
-TEST_CASE("writeDouble: 負の微小値がゼロに丸められる (precision=3)") {
-    StringPrint sp;
-    internal::writeDouble(sp, -0.0004, 3);
-    CHECK(sp.str() == "0.000");
-}
-
-TEST_CASE("writeDouble: 符号抑制のしきい値超えで符号あり") {
-    StringPrint sp;
-    internal::writeDouble(sp, -0.000001, 6);
-    CHECK(sp.str() == "-0.000001");
-}
-
-TEST_CASE("writeDouble: NaNはnull") {
-    StringPrint sp;
-    double nan = std::numeric_limits<double>::quiet_NaN();
-    internal::writeDouble(sp, nan, 3);
-    CHECK(sp.str() == "null");
-}
-
-TEST_CASE("writeDouble: 無限大はnull") {
-    StringPrint sp;
-    double inf = std::numeric_limits<double>::infinity();
-    internal::writeDouble(sp, inf, 3);
-    CHECK(sp.str() == "null");
-}
-
-TEST_CASE("writeDouble: 負の無限大はnull") {
-    StringPrint sp;
-    double ninf = -std::numeric_limits<double>::infinity();
-    internal::writeDouble(sp, ninf, 3);
-    CHECK(sp.str() == "null");
 }
 
 // v2 スキーマ (schema_version: 2)

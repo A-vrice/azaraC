@@ -77,7 +77,7 @@ command -v "$PYTHON" >/dev/null 2>&1 || PYTHON=python3
 # makes azaraC.h include <Print.h> and TimeFields.h use millis(), exactly like a
 # real AVR build; the shim stands in for the core, which is a network download.
 AVR_BUILD=(-mmcu="$MCU" -Os -std=gnu++17 -fno-exceptions
-           -ffunction-sections -fdata-sections
+           -ffunction-sections -fdata-sections -Werror=overflow
            -I src -I "$BENCH/shim" -DARDUINO=1)
 
 # Worst case for the tables: every category, both languages.
@@ -225,7 +225,7 @@ fi
 uno_ok=0
 uno_flash=""
 uno_build=(-mmcu="$UNO_MCU" -Os -std=gnu++17 -fno-exceptions
-           -ffunction-sections -fdata-sections -Wl,--gc-sections
+           -ffunction-sections -fdata-sections -Wl,--gc-sections -Werror=overflow
            -I src -I "$BENCH/shim" -DARDUINO=1)
 uno_objs=()
 rm -rf "$OUT/obj_uno"
@@ -259,7 +259,7 @@ echo "METRIC UNO_COMPILE_OK=$uno_ok"
 # so this stage is what proves the far addressing works on a real device.
 mega_ok=0
 mega_build=(-mmcu="$MCU" -Os -std=gnu++17 -fno-exceptions
-            -ffunction-sections -fdata-sections -Wl,--gc-sections
+            -ffunction-sections -fdata-sections -Wl,--gc-sections -Werror=overflow
             -I src -I "$BENCH/shim" -DARDUINO=1)
 mega_objs=()
 rm -rf "$OUT/obj_mega"

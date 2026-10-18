@@ -27,36 +27,37 @@ static const char* arrivalStatus(uint16_t raw, bool nwpac) {
     if (raw == 0 || hour > 23 || min > 59) return "unrecognized_code";
     return nullptr;
 }
-// 津波の高さコード → 境界（m）。下端は開、上端は閉。azarashi の PROFILES と同じ区分。
-// 境界を持たないコード（センチネル・「その他」）は null で出す。「0.2m未満」の下側のように
-// 片側だけ無い区分も null になる。負値は「境界なし」の印（実際の境界は 0.2 以上）。
+// 津波の高さコード → 境界（m、10 分の 1 m 単位の整数）。下端は開、上端は閉。azarashi の PROFILES と同じ区分。
+// 境界を持たないコード（センチネル・「その他」）は 0 で出し、呼び出し側が null を書く（「0.2m未満」の
+// 下側のように片側だけ無い区分も 0）。値が 10 の倍数を分母とする整数なので wf_deg が小数 1 桁で出せる
+// ——double を経由しないため、24bit 仮数の AVR でも host と同じ文字列になる。
 static void writeHeightBounds(Print& out, uint16_t code, bool nwpac) {
-    double lower = -1.0, upper = -1.0;
+    int32_t lower = 0, upper = 0;
     if (nwpac) {
         switch (code) {
-            case 1:   lower = 0.3; upper = 1;  break;
-            case 2:   lower = 1;   upper = 3;  break;
-            case 3:   lower = 3;   upper = 5;  break;
-            case 4:   lower = 5;   upper = 10; break;
-            case 508: lower = 10;              break;
+            case 1:   lower = 3;   upper = 10;  break;
+            case 2:   lower = 10;  upper = 30;  break;
+            case 3:   lower = 30;  upper = 50;  break;
+            case 4:   lower = 50;  upper = 100; break;
+            case 508: lower = 100;              break;
             default: break;
         }
     } else {
         switch (code) {
-            case 1: upper = 0.2; break;  // h < 0.2
-            case 2: lower = 0.2; upper = 1;  break;
-            case 3: lower = 1;   upper = 3;  break;
-            case 4: lower = 3;   upper = 5;  break;
-            case 5: lower = 5;   upper = 10; break;
-            case 6: lower = 10;              break;
+            case 1: upper = 2;   break;  // h < 0.2
+            case 2: lower = 2;   upper = 10;  break;
+            case 3: lower = 10;  upper = 30;  break;
+            case 4: lower = 30;  upper = 50;  break;
+            case 5: lower = 50;  upper = 100; break;
+            case 6: lower = 100;              break;
             default: break;
         }
     }
     // どちらの呼び出し元でも後ろに region が続くので、常にカンマを打つ（last=false）。
-    if (lower > 0) wf_d(out, "height_lower", lower, /*last=*/false, 1);
-    else           { wk(out, "height_lower"); out.print("null"); writeChar(out, ','); }
-    if (upper > 0) wf_d(out, "height_upper", upper, /*last=*/false, 1);
-    else           { wk(out, "height_upper"); out.print("null"); writeChar(out, ','); }
+    if (lower) wf_deg(out, "height_lower", 10, lower, /*last=*/false);
+    else       { wk(out, "height_lower"); out.print("null"); writeChar(out, ','); }
+    if (upper) wf_deg(out, "height_upper", 10, upper, /*last=*/false);
+    else       { wk(out, "height_upper"); out.print("null"); writeChar(out, ','); }
 }
 #endif  // AZARAC_ENABLE_TSUNAMI || AZARAC_ENABLE_NW_PAC_TSUNAMI
 
