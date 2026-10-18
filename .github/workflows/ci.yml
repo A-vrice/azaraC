@@ -13,7 +13,6 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # バージョン整合性チェック
   version-sync:
     name: Version sync check
     runs-on: ubuntu-latest
@@ -53,14 +52,12 @@ jobs:
       - name: Build & run (no dynamic allocation check)
         run: make -C test test-no-alloc
 
-      # dedup ベンチ（test/bench/run_dedup_bench.sh）。NEW_RECALL / DUP_SUPPRESS /
-      # NANKAI_KEY_STABLE / PREAMBLE_KEY_STABLE をゲートする。host の g++ だけで
-      # 動く（AVR ツールチェーンは下の計測ステップで入れる）。
+      # dedup ベンチ（test/bench/run_dedup_bench.sh）: NEW_RECALL / DUP_SUPPRESS /
+      # NANKAI_KEY_STABLE / PREAMBLE_KEY_STABLE をゲート。host の g++ だけで動く。
       - name: Dedup benchmark (gates)
         run: make -C test bench-dedup
 
-      # 定義テーブルの AVR フットプリント計測（autoresearch.sh）。ハーネスは
-      # avr-gcc / avr-size / avr-nm を使うが、ランナーイメージには入っていない。
+      # 定義テーブルの AVR フットプリント計測（autoresearch.sh は avr-gcc/avr-size/avr-nm を使う）。
       - name: Install AVR toolchain
         run: sudo apt-get update && sudo apt-get install -y gcc-avr binutils-avr avr-libc
 
@@ -70,19 +67,15 @@ jobs:
       - name: AVR-style stub build (PROGMEM, 16-bit int)
         run: make -C test pgm-stub
 
-  # 生成フィクスチャのドリフト検査
-  # nankai_pages_generated.h は azarashi から生成される。生成器を直したのに
-  # 生成物を更新し忘れる（またはその逆）と、テストは古いフィクスチャのまま緑になる。
-  # dcr/dcx はリポジトリ外ログ由来、test_realdata.cpp は gitignore 済み realdata/
-  # 由来なので CI では再現できない。
+  # 生成フィクスチャのドリフト検査: nankai_pages_generated.h は azarashi 生成物なので、
+  # 生成器と生成物を片方だけ直すとテストは古いフィクスチャのまま緑になる。dcr/dcx は
+  # リポジトリ外ログ由来、test_realdata.cpp は gitignore 済み realdata/ 由来で CI では再現できない。
   #
-  # nankai_vectors.json は検査しない: azarashi が params に壁時計の timestamp を
-  # 埋めるため、git diff は常に非空になりゲートとして機能しない。C++ が読むのは
-  # ヘッダ（ページ本文のみで決定論的）なので、そちらだけを見る。
-  #
-  # ピンは検査対象のヘッダに合わせる: nankai_pages_generated.h は 0.17.0 と 0.17.1 で
-  # バイト単位で同一。一方 dcr/dcx/nankai_vectors.json は 0.17.1 で形（v2）が変わり、
-  # パリティテストが読む参照 JSON のまま使えなくなるため再生成しない（検査もしない）。
+  # nankai_vectors.json は検査しない: azarashi が params に壁時計 timestamp を埋めるため
+  # git diff は常に非空でゲートにならない。C++ が読むのはページ本文のみのヘッダなので
+  # そちらだけ見る。ピンは検査対象に合わせ、0.17.0/0.17.1 でバイト同一の
+  # nankai_pages_generated.h のみ再生成する（0.17.1 で形が変わった dcr/dcx と vectors は
+  # パリティテストの参照 JSON のまま使えないため再生成も検査もしない）。
   fixture-drift:
     name: Generated fixture drift
     runs-on: ubuntu-latest
@@ -101,7 +94,6 @@ jobs:
       - name: Verify committed fixtures match the generator
         run: git diff --exit-code -- test/data/nankai_pages_generated.h
 
-  # ファジングテスト
   fuzz-test:
     name: Fuzz testing
     runs-on: ubuntu-latest
@@ -115,7 +107,6 @@ jobs:
       - name: Run fuzz test
         run: make -C test fuzz FUZZ_ITERATIONS=1000000
 
-  # Arduino Lint
   arduino-lint:
     name: Arduino Lint
     runs-on: ubuntu-latest
@@ -131,10 +122,9 @@ jobs:
           library-manager: submit
           compliance: strict
 
-  # 必須コンパイルチェック（リリースゲート）
-  # アーキテクチャ代表 1 台ずつが必須: ARM Cortex-M (RP2040 Pico) /
-  # Xtensa (ESP32-C3) / AVR (Arduino Uno)。失敗で CI が赤くなる。
-  # その他のプラットフォームは compile-extended（ベストエフォート）。
+  # 必須コンパイルチェック（リリースゲート）: アーキテクチャ代表 1 台ずつが必須 —
+  # ARM Cortex-M (RP2040 Pico) / Xtensa (ESP32-C3) / AVR (Arduino Uno)。失敗で CI が赤くなる。
+  # その他は compile-extended（ベストエフォート）。
   arduino-compile-required:
     name: compile required (${{ matrix.name }})
     runs-on: ubuntu-latest
@@ -162,9 +152,9 @@ jobs:
             fqbn: arduino:avr:uno
             additional_urls: ""
             # Uno (32 KB Flash / 2 KB SRAM) cannot hold all definition pools
-            # (all-category tables are ~248 KB; see docs/architecture.md). The
-            # AVR preset in azaraC_config.h keeps SEISMIC/TSUNAMI only
-            # (~3.4 KB tables) so the sketches fit.
+            # (~248 KB all-category; docs/architecture.md): the AVR preset in
+            # azaraC_config.h keeps SEISMIC/TSUNAMI only (~3.4 KB tables) so the
+            # sketches fit.
             build_flags: ""
 
     steps:
@@ -230,10 +220,8 @@ jobs:
             arduino-cli compile --clean --fqbn "${{ matrix.fqbn }}" "$sketch" --build-property "compiler.cpp.extra_flags=$CPP_EXTRA_FLAGS"
           done
 
-  # 拡張コンパイルチェック（ベストエフォート）
-  # required 以外の追加プラットフォーム。continue-on-error なので失敗して
-  # も CI は赤くならない（警告扱い）。主要アーキテクチャの代表は
-  # compile-required（リリースゲート）で検証される。
+  # 拡張コンパイルチェック（ベストエフォート、continue-on-error）: required 以外の
+  # 追加プラットフォームを試す。失敗しても CI は赤くならない（警告扱い）。
   arduino-compile-extended:
     name: compile extended (${{ matrix.name }})
     runs-on: ubuntu-latest
@@ -250,11 +238,9 @@ jobs:
             core: arduino:avr
             fqbn: arduino:avr:mega
             additional_urls: ""
-            # 256 KB Flash: the AVR preset turns DCX/CAMF on by itself
-            # (AZARAC_AVR_LARGE_FLASH), so this board is what covers the far
-            # Flash addressing path with the real Arduino core. Best-effort
-            # first (see the job's continue-on-error); promote to
-            # arduino-compile-required once it has been green.
+            # 256 KB Flash: the preset turns DCX/CAMF on by itself (AZARAC_AVR_LARGE_FLASH),
+            # covering the far-Flash addressing path with the real Arduino core. Best-effort
+            # (see continue-on-error); promote to arduino-compile-required once green.
             build_flags: ""
 
           - name: RP2350 Pico 2
@@ -404,9 +390,8 @@ jobs:
           name: extended-outcome-${{ matrix.slug }}
           path: extended_outcome.txt
 
-  # PlatformIO コンパイルテスト
-  # test/platformio の lib_deps = ../.. でリポジトリ作業ツリーを uno/esp32dev
-  # でコンパイルすることを検証する（Registry の A-vrice/azaraC@^1.0.0 は
+  # PlatformIO コンパイルテスト: test/platformio の lib_deps = ../.. で作業ツリーを
+  # uno/esp32dev でコンパイルすることを検証する（Registry の A-vrice/azaraC@^1.0.0 は
   # 解決しない。公開確認後に Registry 解決テストを別途追加）。
   platformio-compile:
     name: PlatformIO compile
@@ -425,7 +410,6 @@ jobs:
       - name: Compile (uno, esp32dev)
         run: pio run -d test/platformio
 
-  # マクロサイズ計測
   macro-size-check:
     name: Macro size check
     runs-on: ubuntu-latest
@@ -450,7 +434,6 @@ jobs:
           cat test/macro_sizes.txt >> $GITHUB_STEP_SUMMARY
           exit $status
 
-  # マクロ無効化ランタイムテスト
   macro-runtime-test:
     name: Macro disable runtime tests
     runs-on: ubuntu-latest
@@ -464,7 +447,6 @@ jobs:
       - name: Run all 13 individual macro-disabled runtime tests
         run: make -C test macro
 
-  # 静的解析
   static-analysis:
     name: Static analysis (cppcheck)
     runs-on: ubuntu-latest
@@ -497,7 +479,6 @@ jobs:
           name: cppcheck-report
           path: test/cppcheck_report.xml
 
-  # カバレッジ測定
   coverage:
     name: Coverage (gcovr)
     runs-on: ubuntu-latest
@@ -542,7 +523,6 @@ jobs:
           coverage-reports: test/coverage.xml
           language: cpp
 
-  # 結果集約
   summary:
     name: CI Summary
     runs-on: ubuntu-latest
