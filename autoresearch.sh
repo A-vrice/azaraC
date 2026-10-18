@@ -295,12 +295,13 @@ if [[ ${#mega_objs[@]} -gt 0 ]] && "$AVR_CC" "${mega_build[@]}" "${mega_objs[@]}
         | awk '$3 ~ /CRC24Q_T4B[0-2]$/ { print $1 }' | head -n 1)"
 
     # What the core pays for our tables. core.a is linked last, so its own
-    # PROGMEM (digital_pin_to_port_PGM …) lands after every `*(.progmem.*)` input
+    # PROGMEM (digital_pin_to_port_PGM …) lands after every progmem-cluster input
     # section — after ours. Above 0xFFFF the core's 16-bit
     # `pgm_read_byte(&digital_pin_to_port_PGM[pin])` cannot reach it and
     # pinMode/digitalWrite read the wrong port, which is why AZARAC_PROGMEM moves
-    # the tables to the .progmemx.* cluster (placed after the code) on parts with
-    # more than 64 KiB of Flash. See test/bench/avr/core_progmem.c.
+    # the tables to the .text.azaraC.* cluster (with the code, after the progmem
+    # cluster) on parts with more than 64 KiB of Flash. See
+    # test/bench/avr/core_progmem.c.
     core_build=(-mmcu="$MCU" -Os -std=gnu11 -fno-exceptions
                 -ffunction-sections -fdata-sections)
     if "$AVR_CC" "${core_build[@]}" -c "$BENCH/core_progmem.c" -o "$OUT/obj_mega_core.o" \

@@ -31,7 +31,7 @@ import sys
 # hoists __attribute__((__progmem__)) onto its own line; the parser only needs
 # the declaration bodies, so it is stripped first. On a part with more than
 # 64 KiB of Flash AZARAC_PROGMEM expands to an inline
-# `__attribute__((__section__(".progmemx.azaraC.<n>")))` instead — same attribute,
+# `__attribute__((__section__(".text.azaraC.<n>")))` instead — same attribute,
 # one level of parentheses around a quoted name — so the pattern accepts both
 # (this text is parsed, not compiled, so removing an attribute cannot change the
 # measurement).

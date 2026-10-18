@@ -3,11 +3,12 @@
 
    The mirrored hazard: the core reads its pin tables through 16-bit pointers —
    `pgm_read_byte(&digital_pin_to_port_PGM[pin])` in wiring_digital.c — which
-   reach only the first 64 KiB of Flash. avr-libc's linker script puts every
-   `*(.progmem.*)` input section at the START of .text in link order, and the
-   Arduino recipe puts core.a last, so any PROGMEM library linked before it
-   pushes the core's tables up. Once they sit above 0xFFFF the truncated pointer
-   reads a wrong address: pinMode/digitalWrite drive the wrong port.
+   reach only the first 64 KiB of Flash. avr-libc's linker script puts the
+   progmem cluster (`*(.progmem.gcc*)` / `*(.progmem*)`) at the START of .text in
+   link order, and the Arduino recipe puts core.a last, so any PROGMEM library
+   linked before it pushes the core's tables up. Once they sit above 0xFFFF the
+   truncated pointer reads a wrong address: pinMode/digitalWrite drive the wrong
+   port.
 
    autoresearch.sh links this object after the library objects and gates that
    `core_probe_pin_to_port_PGM` stays inside the 16-bit window. It is kept by

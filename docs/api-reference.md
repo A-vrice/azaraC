@@ -472,7 +472,7 @@ if (client.connect(server, port)) {
 
 **AVR 標準ライブラリシム**: AVRツールチェーンはlibstdc++を含まないため、`#if defined(__AVR__)`で`src/internal/avr_std/`の最小シム（`optional`/`string_view`/`std::move`等）が自動適用されます。ライブラリの利用方法/API自体は非AVRと同一です。
 
-**64KiBを超えるFlashのAVR**: 定義テーブルは64KiBを超えて配置されるため、`AZARAC_PGM_READ_*` / `AZARAC_STRCPY_P`（16bitのPROGMEMポインタ）では届きません（ライブラリ内では未使用。定義テーブル自身は `internal/FlashString.h` のfar参照に切り替わります）。自前のデータを64KiB超に置く場合も avr-libc のfar API（`pgm_get_far_address` + `pgm_read_*_far` / `memcpy_PF`）を使ってください。また `AZARAC_PROGMEM` は64KiB超のデバイスでは `.progmemx.*`（コードの後ろ。宣言ごとに `__COUNTER__` で別の節名）に置きます。`*(.progmem.*)`（`.text` の先頭、リンク順）に置くと、Arduinoの `core.a` が最後にリンクされる都合でコア自身のPROGMEM（`digital_pin_to_port_PGM` など）が16bit窓の外へ押し出され、`pinMode`/`digitalWrite` が誤ったポートを読みます。宣言ごとに節を分けるのは、`--gc-sections` が1表の参照で同じ節の他の表まで残してしまうのを避けるためです（`-fdata-sections` と同じ粒度）。
+**64KiBを超えるFlashのAVR**: 定義テーブルは64KiBを超えて配置されるため、`AZARAC_PGM_READ_*` / `AZARAC_STRCPY_P`（16bitのPROGMEMポインタ）では届きません（ライブラリ内では未使用。定義テーブル自身は `internal/FlashString.h` のfar参照に切り替わります）。自前のデータを64KiB超に置く場合も avr-libc のfar API（`pgm_get_far_address` + `pgm_read_*_far` / `memcpy_PF`）を使ってください。また `AZARAC_PROGMEM` は64KiB超のデバイスでは `.text.azaraC.<N>`（`*(.text.*)` クラスタ。progmemクラスタより後ろ）に置きます。`*(.progmem.*)`（`.text` の先頭、リンク順）に置くと、Arduinoの `core.a` が最後にリンクされる都合でコア自身のPROGMEM（`digital_pin_to_port_PGM` など）が16bit窓の外へ押し出され、`pinMode`/`digitalWrite` が誤ったポートを読みます（`.progmemx.*` は binutils 2.29 以降のスクリプトにしか無く、同梱の atmel 2.26 では広い `*(.progmem*)` に取り込まれて同じ失敗になる）。宣言ごとに節を分けるのは、`--gc-sections` が1表の参照で同じ節の他の表まで残してしまうのを避けるためです（`-fdata-sections` と同じ粒度）。
 
 ---
 

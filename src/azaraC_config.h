@@ -211,16 +211,25 @@
 #ifdef __AVR__
 #include <avr/pgmspace.h>
 // Where the definition tables live. avr-libc's linker script puts every
-// `*(.progmem.*)` at the *start* of .text, in input order — and the Arduino
-// recipe links the core (core.a) last. So ~116 KiB of tables there (the
+// progmem-cluster input at the *start* of .text, in input order — and the
+// Arduino recipe links the core (core.a) last. So ~116 KiB of tables there (the
 // large-flash preset) would push the core's own PROGMEM into Flash above
 // 0xFFFF, where the core's 16-bit `pgm_read_byte(&digital_pin_to_port_PGM[pin])`
-// cannot reach: pinMode/digitalWrite would read the wrong port. `.progmemx.*` is
-// the cluster the same script places *after* the code ("for code that needs not
-// to reside in the lower progmem"), which leaves the core's tables where they
-// were. Only parts that read Flash far need it (see internal/FlashString.h);
-// <= 64 KiB parts keep plain PROGMEM — their 16-bit pointers are enough and the
-// tables fit. Far addresses do not care where the section lands.
+// cannot reach: pinMode/digitalWrite would read the wrong port (measured on a
+// Mega 2560 image with the core stand-in in test/bench/avr: the core's table
+// lands at 0x19F46, i.e. immediately after our tables).
+//
+// So the tables go to `.text.azaraC.<n>` instead: every avr-libc script places
+// `*(.text.*)` after both the progmem cluster and the code, which leaves the
+// core's tables low. Not `.progmemx.*` — that cluster only exists in scripts
+// from binutils 2.29 on (PR 21849); the older script (the atmel 2.26 both
+// Ubuntu's binutils-avr and the Arduino toolchain ship) has no `.progmemx.*`
+// pattern and its broad `*(.progmem*)` swallows the name back into the low
+// cluster, which is the very failure this avoids (measured 0x19F46 there too).
+//
+// Only parts that read Flash far need it (see internal/FlashString.h); <= 64 KiB
+// parts keep plain PROGMEM — their 16-bit pointers are enough and the tables
+// fit. Far addresses do not care where the section lands.
 //
 // The counter suffix keeps one section per declaration, like -fdata-sections
 // does for `__progmem__` data: a single shared section would be kept whole by
@@ -231,7 +240,7 @@
 #define AZARAC_PGM_STR_(x) #x
 #define AZARAC_PGM_STR(x) AZARAC_PGM_STR_(x)
 #define AZARAC_PROGMEM \
-    __attribute__((__section__(".progmemx.azaraC." AZARAC_PGM_STR(__COUNTER__))))
+    __attribute__((__section__(".text.azaraC." AZARAC_PGM_STR(__COUNTER__))))
 #else
 #define AZARAC_PROGMEM PROGMEM
 #endif
