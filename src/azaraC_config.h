@@ -37,7 +37,7 @@
 // Flash size decides which families fit: the tables of DCX/CAMF alone are ~100 KB
 // and the decoder needs ~20 KB on top, so a 32 KB part can only carry SEISMIC and
 // TSUNAMI, while a 256 KB part holds DCX/CAMF too (ATmega2560, DCX/CAMF +
-// SEISMIC/TSUNAMI, JA: 142 KiB image measured — see test/bench/avr). Anything
+// SEISMIC/TSUNAMI, JA: 144,804 B image, UNO 16,874 B — see test/bench/avr). Anything
 // above 64 KiB of tables also needs the far Flash addressing in
 // internal/FlashString.h, which such devices select automatically.
 // The remaining families stay off by default even on large parts (all of them at
