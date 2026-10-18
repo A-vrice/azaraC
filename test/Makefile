@@ -421,7 +421,7 @@ clean:
 	-@$(RM) fuzz/*.o fuzz/*.d fuzz/*.gcno fuzz/*.gcda
 	-@$(RM) tools/*.o tools/*.d tools/*.gcno tools/*.gcda
 	-@$(RM) scripts/*.o scripts/*.d scripts/*.gcno scripts/*.gcda
-	-@$(RM) bench/*.o bench/*.cc bench/bench_dedup
+	-@$(RM) bench/*.o bench/*.cxxid bench/bench_dedup
 
 # ---- PROGMEM stub (AVR branch semantics test on host) ----
 # Compiles all tests with __AVR__ defined and a stub avr/pgmspace.h so the

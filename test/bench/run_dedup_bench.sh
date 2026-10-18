@@ -55,7 +55,7 @@ needs_rebuild() {   # $1 = source, $2 = object
     [[ -n "$NEWEST_HEADER" && "$NEWEST_HEADER" -nt "$2" ]] && return 0
     # The compiler is part of the build state: a CXX switch must invalidate the
     # objects, or a CXX=clang++ rerun would just relink g++-built objects.
-    [[ "$(cat "${2%.o}.cc" 2>/dev/null)" != "$CXX" ]] && return 0
+    [[ "$(cat "${2%.o}.cxxid" 2>/dev/null)" != "$CXX" ]] && return 0
     return 1
 }
 
@@ -65,12 +65,12 @@ for src in "${LIBS[@]}"; do
     OBJS+=("$obj")
     needs_rebuild "$src" "$obj" && {
         "$CXX" -std=c++17 -O2 -I src -I test -DARDUINO=0 -c "$src" -o "$obj" || exit 3
-        printf '%s' "$CXX" > "${obj%.o}.cc"
+        printf '%s' "$CXX" > "${obj%.o}.cxxid"
     }
 done
 needs_rebuild test/bench/bench_dedup.cpp "$BENCH_OBJ" && {
     "$CXX" -std=c++17 -O2 -I src -I test -DARDUINO=0 -c test/bench/bench_dedup.cpp -o "$BENCH_OBJ" || exit 3
-    printf '%s' "$CXX" > "${BENCH_OBJ%.o}.cc"; }
+    printf '%s' "$CXX" > "${BENCH_OBJ%.o}.cxxid"; }
 "$CXX" -std=c++17 -O2 "$BENCH_OBJ" "${OBJS[@]}" -o "$BENCH_BIN" || exit 3
 
 OUT="$(./"$BENCH_BIN" 2>&1)"
