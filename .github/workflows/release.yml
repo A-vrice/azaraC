@@ -47,7 +47,7 @@ jobs:
           # （CI の version-sync は library.json と library.properties の同期まで）。
           # library.json は CI が同期を強制しているので properties だけで足りる。
           # .gitattributes が eol=lf なので改行コードの考慮は不要。
-          if ! grep -qx "version=${RELEASE_TAG#v}" library.properties; then
+          if ! grep -qxF "version=${RELEASE_TAG#v}" library.properties; then
             echo "library.properties version does not match tag ${RELEASE_TAG}" >&2
             exit 1
           fi
