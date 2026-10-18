@@ -54,7 +54,6 @@ struct Message {
 #else
     static constexpr size_t payload_size_ = sizeof(Mt43Data);
 #endif
-    alignas(8) unsigned char payload_storage_[payload_size_];
 
     Message() : payload_type(MsgPayloadType::Empty) {
         memset(payload_storage_, 0, sizeof(payload_storage_));
@@ -140,6 +139,10 @@ struct Message {
     }
 
 private:
+    // 生の payload 領域。直接触らせない: 生存期間と型は initPayload<T>() / getMt43() / getMt44() だけが決める。
+    // 公開すると外部から initPayload() 無しで書き換えられ、payload_type との不整合を作れてしまう。
+    alignas(8) unsigned char payload_storage_[payload_size_];
+
     template<typename T> static MsgPayloadType typeForPayload();
 
     void destroyPayload() {

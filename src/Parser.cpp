@@ -22,16 +22,14 @@ bool Parser::feed(uint8_t byte, Message& out, uint32_t report_unix) {
 }
 
 bool Parser::handleFrame(internal::Frame& frame, Message& out, uint32_t report_unix) {
-    Message decoded;
-    if (!_decoder.decode(frame, decoded, report_unix)) {
-        // decoded is already cleared by decode(); copy it whole so a reused out holding a previous valid message cannot leak stale payload.
-        out = decoded;
-        return false;
-    }
+    // out をそのままデコード先にする: decode() は冒頭で out.clear() するので、
+    // 失敗時に再使用中の Message が前の payload を残すことはない（旧実装は
+    // 局所 Message を作って out へコピーしていた = 288 B のスタックと memcpy が毎フレーム）。
+    if (!_decoder.decode(frame, out, report_unix)) return false;
     // 手順③ の照合対象は MT～VN（フレーム bit 8..219 = 212 bit。bit 220..225 は Reserved）。プリアンブル（bit 0..7）と Reserved は放送で巡回するため鍵に含めない。
     // 受信衛星も含めない（Satellite ID はフレームに無く、NMEA/UBX ヘッダ由来）。MT=44 の SD は QZS 事務局回答の照合範囲（MT および CAMF〜EM）に無いため Decoder::messageIdentity がゼロにしてから digest を取る。
     const uint32_t identity = internal::Decoder::messageIdentity(frame.bits);
-    return postDecode(decoded, out, identity);
+    return postDecode(out, out, identity);   // decoded と out は同一オブジェクト（postDecode は aliasing 前提）
 }
 
 bool Parser::postDecode(const Message& decoded, Message& out, uint32_t identity) {
@@ -49,7 +47,9 @@ bool Parser::postDecode(const Message& decoded, Message& out, uint32_t identity)
         if (mt43 && mt43->disaster_category == 4) {
             // getNankai() が無いのは電文として成立していない場合。集約できないので以前と同じく出力しない。
             if (!nankai) { out.clear(); return false; }
-            // decoded と out を別オブジェクトにすることでエイリアシング UB を回避
+            // out が decoded と同一でも安全: processNankaiAggregation が上書きするのは
+            // is_aggregated / aggregated_* / truncated / page / total_page のみで、
+            // 直後に鍵として読む info_code と report_* には触れない。
             if (!processNankaiAggregation(decoded, out, mt43, now_ms64)) {
                 out.clear();
                 return false;
@@ -70,7 +70,8 @@ bool Parser::postDecode(const Message& decoded, Message& out, uint32_t identity)
     internal::DedupKey key{ decoded.msg_type, identity };
     if (_dedup.isDuplicate(key, now_ms, window_ms)) { out.clear(); return false; }
 
-    out = decoded;
+    // decoded と out が同一（Parser::handleFrame は常にそう渡す）なら内容は既に out にある。
+    if (&decoded != &out) out = decoded;
     return true;
 }
 

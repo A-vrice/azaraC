@@ -64,6 +64,16 @@ void writeDouble(Print& out, double v, int precision) {
 
 // Write a JSON-escaped string (used for both keys and values)
 static void writeEscaped(Print& out, std::string_view s) {
+    if (s.empty()) return;
+    // エスケープが 1 つも無い文字列（JSON のキーとほぼ全てのラベル）は 1 回の write() で出す。
+    // 1 バイト 1 回の print() は文書全体のコストの大半を占める（実測 0.92 呼び出し/バイト）。
+    bool plain = true;
+    for (size_t i = 0; i < s.size(); ++i) {
+        const uint8_t c = static_cast<uint8_t>(s[i]);
+        if (c == '"' || c == '\\' || c < 0x20) { plain = false; break; }
+    }
+    if (plain) { out.write(s.data(), s.size()); return; }
+
     for (size_t i = 0; i < s.size(); ++i) {
         uint8_t c = static_cast<uint8_t>(s[i]);
         switch (c) {
@@ -133,6 +143,31 @@ void wf_x(Print& out, std::string_view k, uint32_t v, bool last) {
 
 void wf_d(Print& out, std::string_view k, double v, bool last, int precision) {
     wk(out, k); writeDouble(out, v, precision); if (!last) writeChar(out, ',');
+}
+
+// 10^6 / 10^5 / 10^3 の 10 進展開を整数だけで出す（丸めなし: v は denominator の
+// 倍数として来るので、桁は正確に決まる）。float/double を一切使わないため AVR でも host と同一。
+void wf_deg(Print& out, std::string_view k, int32_t denominator, int32_t v, bool last) {
+    wk(out, k);
+
+    uint32_t mag = (uint32_t)v;
+    if (v < 0) { out.print('-'); mag = 0u - mag; }   // 2 の補数で絶対値（INT32_MIN でも UB にしない）
+
+    const uint32_t den = (uint32_t)denominator;
+    writeUint32(out, mag / den);
+
+    // denominator の桁数 = 小数部の桁数（1000000 → 6）
+    uint8_t digits = 0;
+    for (uint32_t d = den / 10u; d != 0; d /= 10u) ++digits;
+    if (digits) {
+        char buf[12];   // uint32 の denominator は最大 10 桁
+        uint32_t frac = mag % den;
+        for (int8_t i = (int8_t)digits - 1; i >= 0; --i) { buf[i] = (char)('0' + (frac % 10u)); frac /= 10u; }
+        buf[digits] = '\0';
+        out.print('.');
+        out.print(buf);
+    }
+    if (!last) writeChar(out, ',');
 }
 
 void wf_s(Print& out, std::string_view k, std::optional<std::string_view> v, bool last) {

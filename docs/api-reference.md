@@ -31,6 +31,8 @@ Parser();
 explicit Parser(internal::IFramer& framer);
 ```
 
+コピー・ムーブは禁止されています (dedup テーブル・Nankai バッファを実体で持ち、`framer` は呼び出し側の所有物のため)。`Parser` の複製はコンパイルエラーになります。
+
 #### メソッド
 
 ##### `feed()`

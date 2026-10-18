@@ -286,6 +286,13 @@ if [[ ${#mega_objs[@]} -gt 0 ]] && "$AVR_CC" "${mega_build[@]}" "${mega_objs[@]}
     # 64 KB (138 of 195 symbols in the all-category build) would be unreadable.
     mega_far_ops="$("$AVR_OBJDUMP" -d "$OUT/mega.elf" 2>/dev/null \
         | grep -c -e 'elpm' -e 'out.*0x3b')"
+    # The CRC24Q nibble tables are plain PROGMEM, so they take the `*(.progmem.*)`
+    # cluster at the front of .text — the one spot a large image pushes past
+    # 0xFFFF. crc24q reads them with 16-bit `pgm_read_byte`, so a table above the
+    # window would gag every frame. The three 16 B tables sit in the same TU
+    # (at most 32 B apart), one address stands for all of them.
+    crc_sym_addr="$("$AVR_NM" -C "$OUT/mega.elf" 2>/dev/null \
+        | awk '$3 ~ /CRC24Q_T4B[0-2]$/ { print $1 }' | head -n 1)"
 
     # What the core pays for our tables. core.a is linked last, so its own
     # PROGMEM (digital_pin_to_port_PGM …) lands after every `*(.progmem.*)` input
@@ -308,6 +315,7 @@ echo "METRIC MEGA_COMPILE_OK=$mega_ok"
 [[ -n "${mega_ram:-}" ]] && echo "METRIC MEGA_RAM_BYTES=$mega_ram"
 [[ -n "${mega_tables:-}" ]] && echo "METRIC MEGA_DCX_TABLES=$mega_tables"
 [[ -n "${mega_far_ops:-}" ]] && echo "METRIC MEGA_FAR_OPS=$mega_far_ops"
+[[ -n "${crc_sym_addr:-}" ]] && echo "METRIC MEGA_CRC_SYM_ADDR=0x$crc_sym_addr"
 [[ -n "${mega_core_pgm:-}" ]] && echo "METRIC MEGA_CORE_PGM_ADDR=0x$mega_core_pgm"
 
 # ---------------------------------------------------------------- gates -----
@@ -365,6 +373,15 @@ else
         status=13
     elif (( 0x$mega_core_pgm > 0xFFFF )); then
         echo "autoresearch: the core's PROGMEM landed at 0x$mega_core_pgm, past the 16-bit progmem window — pinMode/digitalWrite would read the wrong port" >&2
+        status=13
+    fi
+    # Same window, our own side: the CRC24Q tables are read through 16-bit
+    # `pgm_read_byte`, and a garbage CRC rejects every frame without a word.
+    if [[ -z "${crc_sym_addr:-}" ]]; then
+        echo "autoresearch: the CRC24Q PROGMEM tables are missing from the Mega link — the symbols disappeared into the wrong section" >&2
+        status=13
+    elif (( 0x$crc_sym_addr > 0xFFFF )); then
+        echo "autoresearch: azaraC's CRC24Q PROGMEM tables landed at 0x$crc_sym_addr, past the 16-bit progmem window — crc24q would read garbage and reject every frame on a large-flash AVR" >&2
         status=13
     fi
 fi
