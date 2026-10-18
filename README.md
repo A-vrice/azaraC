@@ -23,7 +23,17 @@ MT=44 の B フィールド（B1–B4）と C10 は [EWSS CAMF Issue 1.2](https:
 
 ## インストール
 
-git clone で直接導入できます:
+パッケージマネージャーから導入できます:
+
+```bash
+# Arduino Library Manager（Arduino IDE / arduino-cli）
+arduino-cli lib install azaraC
+
+# PlatformIO
+pio pkg install --library "a-vrice/azaraC"
+```
+
+開発版は git clone でも導入できます:
 
 ```bash
 # Arduino IDE
@@ -33,8 +43,6 @@ git clone https://github.com/A-vrice/azaraC <PROJECT_DIR>/libraries/azaraC
 git clone https://github.com/A-vrice/azaraC <PROJECT_DIR>/.pio/libdeps/<TARGET_BOARD>/azaraC
 ```
 
-> **注:** Library Manager / `pio pkg install` は未申請のため現時点で利用できません。
->
 > **注:** 本ライブラリは C++17 必須です。Arduino IDE / PlatformIO のビルドで `-std=gnu++17` を指定してください（設定例は [`platformio.ini.example`](platformio.ini.example) を参照）。
 
 ## ドキュメント

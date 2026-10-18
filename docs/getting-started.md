@@ -7,6 +7,18 @@
 
 ## インストール
 
+パッケージマネージャーから導入できます:
+
+```bash
+# Arduino Library Manager（Arduino IDE / arduino-cli）
+arduino-cli lib install azaraC
+
+# PlatformIO
+pio pkg install --library "a-vrice/azaraC"
+```
+
+開発版は git clone でも導入できます:
+
 ```bash
 # Arduino IDE
 git clone https://github.com/A-vrice/azaraC \
@@ -16,8 +28,6 @@ git clone https://github.com/A-vrice/azaraC \
 git clone https://github.com/A-vrice/azaraC \
   <PROJECT_DIR>/.pio/libdeps/<TARGET_BOARD>/azaraC
 ```
-
-> **注:** Library Manager / `pio pkg install` は未申請のため現時点で利用できません。
 
 ## クイックスタート
 
