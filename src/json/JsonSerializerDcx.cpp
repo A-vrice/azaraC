@@ -25,11 +25,11 @@ void serializeDcx(const Message& m, Print& out) {
 
     const Mt44Data* d = m.getMt44();
     if (!d) {
-        wf_s(out, keys::note, "invalid_mt44", /*last=*/true);
+        wf_s(out, AZARAC_KEY("note"), "invalid_mt44", /*last=*/true);
         return;
     }
 
-    wk(out, "data"); out.print('{');
+    wk(out, AZARAC_KEY("data")); out.print('{');
 
     const char* dcx_label = "UNKNOWN";
     switch (d->service_kind) {
@@ -40,50 +40,50 @@ void serializeDcx(const Message& m, Print& out) {
         case Mt44ServiceKind::OutsideJapan:    dcx_label = "OUTSIDE_JAPAN"; break;
         default: break;
     }
-    wf_s(out, "dcx_type", dcx_label);
+    wf_s(out, AZARAC_KEY("dcx_type"), dcx_label);
 
-    wf_s(out, "a1_msg_type",
+    wf_s(out, AZARAC_KEY("a1_msg_type"),
         qzss_dcx_camf_a1_message_type_lookup(d->camf.a1));
-    wf_u(out, "a2_country", d->camf.a2);
-    wf_s(out, "a2_country_label",
+    wf_u(out, AZARAC_KEY("a2_country"), d->camf.a2);
+    wf_s(out, AZARAC_KEY("a2_country_label"),
         qzss_dcx_camf_a2_country_region_name_lookup(d->camf.a2));
-    wf_u(out, "a3_provider", d->camf.a3);
-    wf_s(out, "a3_provider_label",
+    wf_u(out, AZARAC_KEY("a3_provider"), d->camf.a3);
+    wf_s(out, AZARAC_KEY("a3_provider_label"),
         qzss_dcx_camf_a3_provider_identifier_lookup(d->camf.a2, d->camf.a3));
-    wf_u(out, "a4_hazard", d->camf.a4);
-    wf_s(out, "a4_hazard_category",
+    wf_u(out, AZARAC_KEY("a4_hazard"), d->camf.a4);
+    wf_s(out, AZARAC_KEY("a4_hazard_category"),
         qzss_dcx_camf_a4_hazard_category_lookup(d->camf.a4));
-    wf_s(out, "a4_hazard_type",
+    wf_s(out, AZARAC_KEY("a4_hazard_type"),
         qzss_dcx_camf_a4_hazard_type_lookup(d->camf.a4));
-    wf_s(out, "a4_hazard_definition",
+    wf_s(out, AZARAC_KEY("a4_hazard_definition"),
         qzss_dcx_camf_a4_hazard_definition_lookup(d->camf.a4));
-    wf_u(out, "a5_severity", d->camf.a5);
-    wf_s(out, "a5_severity_label",
+    wf_u(out, AZARAC_KEY("a5_severity"), d->camf.a5);
+    wf_s(out, AZARAC_KEY("a5_severity_label"),
         qzss_dcx_camf_a5_severity_lookup(d->camf.a5));
-    wf_u(out, "a6_onset_week", d->camf.a6);
-    wf_s(out, "a6_onset_week_label",
+    wf_u(out, AZARAC_KEY("a6_onset_week"), d->camf.a6);
+    wf_s(out, AZARAC_KEY("a6_onset_week_label"),
         qzss_dcx_camf_a6_hazard_onset_week_lookup(d->camf.a6));
-    wf_u(out, "a7_onset_minute", d->camf.a7);
-    wf_u(out, "a8_duration", d->camf.a8);
-    wf_s(out, "a8_duration_label",
+    wf_u(out, AZARAC_KEY("a7_onset_minute"), d->camf.a7);
+    wf_u(out, AZARAC_KEY("a8_duration"), d->camf.a8);
+    wf_s(out, AZARAC_KEY("a8_duration_label"),
         qzss_dcx_camf_a8_hazard_duration_lookup(d->camf.a8));
-    writeDHM(out, "onset_time", d->onset_time);
+    writeDHM(out, AZARAC_KEY("onset_time"), d->onset_time);
 
     // A9/A10 Library selection
-    wf_u(out, "a9_type_of_library", d->camf.a9);
-    wf_s(out, "a9_type_of_library_label",
+    wf_u(out, AZARAC_KEY("a9_type_of_library"), d->camf.a9);
+    wf_s(out, AZARAC_KEY("a9_type_of_library_label"),
         qzss_dcx_camf_a9_type_of_library_lookup(d->camf.a9));
-    wf_u(out, "a10_library_version", d->camf.a10);
-    wf_s(out, "a10_library_version_label",
+    wf_u(out, AZARAC_KEY("a10_library_version"), d->camf.a10);
+    wf_s(out, AZARAC_KEY("a10_library_version_label"),
         qzss_dcx_camf_a10_library_version_lookup(d->camf.a10));
 
     // A11 Guidance to react library (IS-QZSS-DCX-004 §4.2.3.9 Table 4.2-12 / EWSS CAMF v1.2 §3.5.3, §11): A11 は List A 5bit (a11 >> 5) と List B 5bit (a11 & 0x1F) の2コード。
     // 国際表 (A9=0) は両者を別々に引く。
     // 日本の表は 10bit を鍵にした結合表なので 1 本で足りる（List B は null）。
-    wf_u(out, "a11_guidance", d->camf.a11);
+    wf_u(out, AZARAC_KEY("a11_guidance"), d->camf.a11);
     std::optional<std::string_view> a11_b;
     if (d->camf.a9 == 0) {
-        wf_s(out, "a11_guidance_label",
+        wf_s(out, AZARAC_KEY("a11_guidance_label"),
              qzss_dcx_camf_a11_international_library_lookup(
                  static_cast<uint8_t>(d->camf.a11 >> 5)));
         a11_b = qzss_dcx_camf_a11_international_library_b_lookup(
@@ -93,36 +93,36 @@ void serializeDcx(const Message& m, Print& out) {
             qzss_dcx_camf_a11_japanese_library_ja_lookup,
             qzss_dcx_camf_a11_japanese_library_en_lookup, d->camf.a11, false);
     } else {
-        wf_s(out, "a11_guidance_label", std::nullopt);
+        wf_s(out, AZARAC_KEY("a11_guidance_label"), std::nullopt);
     }
-    wf_s(out, "a11_guidance_list_b_label", a11_b);
+    wf_s(out, AZARAC_KEY("a11_guidance_list_b_label"), a11_b);
 
     // A17/A18 Specific Settings
-    wf_u(out, "a17_type_of_specific_settings", d->camf.a17);
-    wf_s(out, "a17_type_of_specific_settings_label",
+    wf_u(out, AZARAC_KEY("a17_type_of_specific_settings"), d->camf.a17);
+    wf_s(out, AZARAC_KEY("a17_type_of_specific_settings_label"),
         qzss_dcx_camf_a17_type_of_specific_settings_lookup(d->camf.a17));
-    wf_u(out, "a18_specific_settings", d->camf.a18);
+    wf_u(out, AZARAC_KEY("a18_specific_settings"), d->camf.a18);
 
     // Decoded main ellipse (A12-A16)
     const Mt44Decoded& dec = d->mt44_decoded;
     if (dec.main_ellipse_present) {
-        wk(out, "main_ellipse");
+        wk(out, AZARAC_KEY("main_ellipse"));
         out.print('{');
-        wf_deg(out, "lat_deg", 1000000, dec.main_ellipse.lat_microdeg, false);
-        wf_deg(out, "lon_deg", 1000000, dec.main_ellipse.lon_microdeg, false);
-        wf_deg(out, "semi_major_km", 1000, dec.main_ellipse.semi_major_m);
-        wf_deg(out, "semi_minor_km", 1000, dec.main_ellipse.semi_minor_m);
+        wf_deg(out, AZARAC_KEY("lat_deg"), 1000000, dec.main_ellipse.lat_microdeg, false);
+        wf_deg(out, AZARAC_KEY("lon_deg"), 1000000, dec.main_ellipse.lon_microdeg, false);
+        wf_deg(out, AZARAC_KEY("semi_major_km"), 1000, dec.main_ellipse.semi_major_m);
+        wf_deg(out, AZARAC_KEY("semi_minor_km"), 1000, dec.main_ellipse.semi_minor_m);
         // azimuth_decideg は 1e-5 deg 単位。µdeg（×10）扱いにして他と同じ 6 桁で出す（下位は常に 0）。
-        wf_deg(out, "azimuth_deg", 1000000, dec.main_ellipse.azimuth_decideg * 10, /*last=*/!d->camf.b1_present);
+        wf_deg(out, AZARAC_KEY("azimuth_deg"), 1000000, dec.main_ellipse.azimuth_decideg * 10, /*last=*/!d->camf.b1_present);
 
         // B1 refinement (EWSS CAMF v1.2 §3.7.1)
         if (d->camf.b1_present) {
-            wk(out, "b1_refinement");
+            wk(out, AZARAC_KEY("b1_refinement"));
             out.print('{');
-            wf_deg(out, "c1_lat_offset_deg", 1000000, dec.main_ellipse.b1_lat_offset_microdeg, false);
-            wf_deg(out, "c2_lon_offset_deg", 1000000, dec.main_ellipse.b1_lon_offset_microdeg, false);
-            wf_deg(out, "c3_refined_semi_major_km", 1000, dec.main_ellipse.b1_refined_semi_major_m);
-            wf_deg(out, "c4_refined_semi_minor_km", 1000, dec.main_ellipse.b1_refined_semi_minor_m, /*last=*/true);
+            wf_deg(out, AZARAC_KEY("c1_lat_offset_deg"), 1000000, dec.main_ellipse.b1_lat_offset_microdeg, false);
+            wf_deg(out, AZARAC_KEY("c2_lon_offset_deg"), 1000000, dec.main_ellipse.b1_lon_offset_microdeg, false);
+            wf_deg(out, AZARAC_KEY("c3_refined_semi_major_km"), 1000, dec.main_ellipse.b1_refined_semi_major_m);
+            wf_deg(out, AZARAC_KEY("c4_refined_semi_minor_km"), 1000, dec.main_ellipse.b1_refined_semi_minor_m, /*last=*/true);
             out.print('}');
         }
 
@@ -132,30 +132,30 @@ void serializeDcx(const Message& m, Print& out) {
 
     // B2 (A17=01) - Hazard center offset (EWSS CAMF v1.2 §3.7.2)
     if (d->camf.b2_present) {
-        wk(out, "hazard_center");
+        wk(out, AZARAC_KEY("hazard_center"));
         out.print('{');
-        wf_u(out, "c5_raw", d->camf.b2_c5);
-        wf_u(out, "c6_raw", d->camf.b2_c6);
+        wf_u(out, AZARAC_KEY("c5_raw"), d->camf.b2_c5);
+        wf_u(out, AZARAC_KEY("c6_raw"), d->camf.b2_c6);
         // delta = b2_hazard - main_ellipse (both in microdegrees)
         int32_t delta_lat = dec.b2_hazard_lat_microdeg - dec.main_ellipse.lat_microdeg;
         int32_t delta_lon = dec.b2_hazard_lon_microdeg - dec.main_ellipse.lon_microdeg;
-        wf_deg(out, "delta_lat_deg", 1000000, delta_lat, false);
-        wf_deg(out, "delta_lon_deg", 1000000, delta_lon, /*last=*/true);
+        wf_deg(out, AZARAC_KEY("delta_lat_deg"), 1000000, delta_lat, false);
+        wf_deg(out, AZARAC_KEY("delta_lon_deg"), 1000000, delta_lon, /*last=*/true);
         out.print('}');
         writeChar(out, ',');
     }
 
     // B3 (A17=10) - Secondary ellipse definition (EWSS CAMF v1.2 §3.7.3)
     if (d->camf.b3_present) {
-        wk(out, "secondary_ellipse");
+        wk(out, AZARAC_KEY("secondary_ellipse"));
         out.print('{');
-        wf_u(out, "c7_shift", d->camf.b3_c7);
-        wf_u(out, "c8_homothetic", d->camf.b3_c8);
-        wf_u(out, "c9_bearing", d->camf.b3_c9);
-        wf_u(out, "c10_guidance", d->camf.b3_c10);
-        wf_s(out, "c10_guidance_label",
+        wf_u(out, AZARAC_KEY("c7_shift"), d->camf.b3_c7);
+        wf_u(out, AZARAC_KEY("c8_homothetic"), d->camf.b3_c8);
+        wf_u(out, AZARAC_KEY("c9_bearing"), d->camf.b3_c9);
+        wf_u(out, AZARAC_KEY("c10_guidance"), d->camf.b3_c10);
+        wf_s(out, AZARAC_KEY("c10_guidance_label"),
             qzss_dcx_camf_c10_instruction_library_for_second_ellipse_lookup(d->camf.b3_c10));
-        wf_s(out, "c10_guidance_code",
+        wf_s(out, AZARAC_KEY("c10_guidance_code"),
             qzss_dcx_camf_c10_instruction_library_for_second_ellipse_code_lookup(d->camf.b3_c10), /*last=*/true);
         out.print('}');
         writeChar(out, ',');
@@ -165,7 +165,7 @@ void serializeDcx(const Message& m, Print& out) {
     if (d->camf.b4_present) {
         B4DetailedInfo b4;
         decodeB4DetailedInfo(d->camf.a18, d->camf.a4, b4);
-        wk(out, "detailed_info");
+        wk(out, AZARAC_KEY("detailed_info"));
         out.print('{');
         bool first_detail_field = true;
         auto beginDetailField = [&]() {
@@ -173,50 +173,50 @@ void serializeDcx(const Message& m, Print& out) {
             first_detail_field = false;
         };
 
-        auto writeDField = [&](const char* name, uint32_t value, bool present, auto lookup) {
+        auto writeDField = [&](JsonKey name, uint32_t value, bool present, auto lookup) {
             if (!present) return;
             beginDetailField();
             wf_v(out, name, value, lookup(static_cast<uint8_t>(value)), /*last=*/true);
         };
         // All 36 D-fields go through writeDField; index [0]=D1 … [3]=D4, [4..35]=D5..D36
-        writeDField("d3_azimuth",       b4.d_values[2], b4.d_present[2],
+        writeDField(AZARAC_KEY("d3_azimuth"),       b4.d_values[2], b4.d_present[2],
                     qzss_dcx_camf_d3_azimuth_from_centre_of_main_ellipse_to_epicentre_lookup);
-        writeDField("d4_vector_length", b4.d_values[3], b4.d_present[3],
+        writeDField(AZARAC_KEY("d4_vector_length"), b4.d_values[3], b4.d_present[3],
                     qzss_dcx_camf_d4_vector_length_between_centre_of_main_ellipse_and_epicentre_lookup);
-        writeDField("d1_magnitude",         b4.d_values[0],  b4.d_present[0],  qzss_dcx_camf_d1_magnitude_on_richter_scale_lookup);
-writeDField("d2_seismic_coeff",     b4.d_values[1],  b4.d_present[1],  qzss_dcx_camf_d2_seismic_coefficient_lookup);
-writeDField("d5_wave_height",       b4.d_values[4],  b4.d_present[4],  qzss_dcx_camf_d5_wave_height_lookup);
-writeDField("d6_temp_range",        b4.d_values[5],  b4.d_present[5],  qzss_dcx_camf_d6_temperature_range_lookup);
-writeDField("d7_hurricane_cat",     b4.d_values[6],  b4.d_present[6],  qzss_dcx_camf_d7_hurricane_category_lookup);
-writeDField("d8_wind_speed",        b4.d_values[7],  b4.d_present[7],  qzss_dcx_camf_d8_wind_speed_lookup);
-writeDField("d9_rainfall",          b4.d_values[8],  b4.d_present[8],  qzss_dcx_camf_d9_rainfall_amounts_lookup);
-writeDField("d10_damage",           b4.d_values[9],  b4.d_present[9],  qzss_dcx_camf_d10_damage_category_lookup);
-writeDField("d11_tornado_prob",     b4.d_values[10], b4.d_present[10], qzss_dcx_camf_d11_tornado_probability_lookup);
-writeDField("d12_hail_scale",       b4.d_values[11], b4.d_present[11], qzss_dcx_camf_d12_hail_scale_lookup);
-writeDField("d13_visibility",       b4.d_values[12], b4.d_present[12], qzss_dcx_camf_d13_visibility_lookup);
-writeDField("d14_snow_depth",       b4.d_values[13], b4.d_present[13], qzss_dcx_camf_d14_snow_depth_lookup);
-writeDField("d15_flood_severity",   b4.d_values[14], b4.d_present[14], qzss_dcx_camf_d15_flood_severity_lookup);
-writeDField("d16_lightning",        b4.d_values[15], b4.d_present[15], qzss_dcx_camf_d16_lightning_intensity_lookup);
-writeDField("d17_fog_level",        b4.d_values[16], b4.d_present[16], qzss_dcx_camf_d17_fog_level_lookup);
-writeDField("d18_drought",          b4.d_values[17], b4.d_present[17], qzss_dcx_camf_d18_drought_level_lookup);
-writeDField("d19_avalanche",        b4.d_values[18], b4.d_present[18], qzss_dcx_camf_d19_avalanche_warning_level_lookup);
-writeDField("d20_ash_fall",         b4.d_values[19], b4.d_present[19], qzss_dcx_camf_d20_ash_fall_amount_and_impact_lookup);
-writeDField("d21_geomagnetic",      b4.d_values[20], b4.d_present[20], qzss_dcx_camf_d21_geomagnetic_scale_lookup);
-writeDField("d22_terrorism",        b4.d_values[21], b4.d_present[21], qzss_dcx_camf_d22_terrorism_threat_level_lookup);
-writeDField("d23_fire_risk",        b4.d_values[22], b4.d_present[22], qzss_dcx_camf_d23_fire_risk_level_lookup);
-writeDField("d24_water_quality",    b4.d_values[23], b4.d_present[23], qzss_dcx_camf_d24_water_quality_lookup);
-writeDField("d25_uv_index",         b4.d_values[24], b4.d_present[24], qzss_dcx_camf_d25_uv_index_lookup);
-writeDField("d26_cases_per_100k",   b4.d_values[25], b4.d_present[25], qzss_dcx_camf_d26_number_of_cases_per_100000_inhabitants_lookup);
-writeDField("d27_noise",            b4.d_values[26], b4.d_present[26], qzss_dcx_camf_d27_noise_range_lookup);
-writeDField("d28_air_quality",      b4.d_values[27], b4.d_present[27], qzss_dcx_camf_d28_air_quality_index_lookup);
-writeDField("d29_outage_duration",  b4.d_values[28], b4.d_present[28], qzss_dcx_camf_d29_outage_estimated_duration_lookup);
-writeDField("d30_nuclear_scale",    b4.d_values[29], b4.d_present[29], qzss_dcx_camf_d30_nuclear_event_scale_lookup);
-writeDField("d31_chemical_type",    b4.d_values[30], b4.d_present[30], qzss_dcx_camf_d31_chemical_hazard_type_lookup);
-writeDField("d32_biohazard_level",  b4.d_values[31], b4.d_present[31], qzss_dcx_camf_d32_biohazard_level_lookup);
-writeDField("d33_biohazard_type",   b4.d_values[32], b4.d_present[32], qzss_dcx_camf_d33_biohazard_type_lookup);
-writeDField("d34_explosive_type",   b4.d_values[33], b4.d_present[33], qzss_dcx_camf_d34_explosive_hazard_type_lookup);
-writeDField("d35_infection_type",   b4.d_values[34], b4.d_present[34], qzss_dcx_camf_d35_infection_type_lookup);
-writeDField("d36_typhoon_cat",      b4.d_values[35], b4.d_present[35], qzss_dcx_camf_d36_typhoon_category_lookup);
+        writeDField(AZARAC_KEY("d1_magnitude"),         b4.d_values[0],  b4.d_present[0],  qzss_dcx_camf_d1_magnitude_on_richter_scale_lookup);
+writeDField(AZARAC_KEY("d2_seismic_coeff"),     b4.d_values[1],  b4.d_present[1],  qzss_dcx_camf_d2_seismic_coefficient_lookup);
+writeDField(AZARAC_KEY("d5_wave_height"),       b4.d_values[4],  b4.d_present[4],  qzss_dcx_camf_d5_wave_height_lookup);
+writeDField(AZARAC_KEY("d6_temp_range"),        b4.d_values[5],  b4.d_present[5],  qzss_dcx_camf_d6_temperature_range_lookup);
+writeDField(AZARAC_KEY("d7_hurricane_cat"),     b4.d_values[6],  b4.d_present[6],  qzss_dcx_camf_d7_hurricane_category_lookup);
+writeDField(AZARAC_KEY("d8_wind_speed"),        b4.d_values[7],  b4.d_present[7],  qzss_dcx_camf_d8_wind_speed_lookup);
+writeDField(AZARAC_KEY("d9_rainfall"),          b4.d_values[8],  b4.d_present[8],  qzss_dcx_camf_d9_rainfall_amounts_lookup);
+writeDField(AZARAC_KEY("d10_damage"),           b4.d_values[9],  b4.d_present[9],  qzss_dcx_camf_d10_damage_category_lookup);
+writeDField(AZARAC_KEY("d11_tornado_prob"),     b4.d_values[10], b4.d_present[10], qzss_dcx_camf_d11_tornado_probability_lookup);
+writeDField(AZARAC_KEY("d12_hail_scale"),       b4.d_values[11], b4.d_present[11], qzss_dcx_camf_d12_hail_scale_lookup);
+writeDField(AZARAC_KEY("d13_visibility"),       b4.d_values[12], b4.d_present[12], qzss_dcx_camf_d13_visibility_lookup);
+writeDField(AZARAC_KEY("d14_snow_depth"),       b4.d_values[13], b4.d_present[13], qzss_dcx_camf_d14_snow_depth_lookup);
+writeDField(AZARAC_KEY("d15_flood_severity"),   b4.d_values[14], b4.d_present[14], qzss_dcx_camf_d15_flood_severity_lookup);
+writeDField(AZARAC_KEY("d16_lightning"),        b4.d_values[15], b4.d_present[15], qzss_dcx_camf_d16_lightning_intensity_lookup);
+writeDField(AZARAC_KEY("d17_fog_level"),        b4.d_values[16], b4.d_present[16], qzss_dcx_camf_d17_fog_level_lookup);
+writeDField(AZARAC_KEY("d18_drought"),          b4.d_values[17], b4.d_present[17], qzss_dcx_camf_d18_drought_level_lookup);
+writeDField(AZARAC_KEY("d19_avalanche"),        b4.d_values[18], b4.d_present[18], qzss_dcx_camf_d19_avalanche_warning_level_lookup);
+writeDField(AZARAC_KEY("d20_ash_fall"),         b4.d_values[19], b4.d_present[19], qzss_dcx_camf_d20_ash_fall_amount_and_impact_lookup);
+writeDField(AZARAC_KEY("d21_geomagnetic"),      b4.d_values[20], b4.d_present[20], qzss_dcx_camf_d21_geomagnetic_scale_lookup);
+writeDField(AZARAC_KEY("d22_terrorism"),        b4.d_values[21], b4.d_present[21], qzss_dcx_camf_d22_terrorism_threat_level_lookup);
+writeDField(AZARAC_KEY("d23_fire_risk"),        b4.d_values[22], b4.d_present[22], qzss_dcx_camf_d23_fire_risk_level_lookup);
+writeDField(AZARAC_KEY("d24_water_quality"),    b4.d_values[23], b4.d_present[23], qzss_dcx_camf_d24_water_quality_lookup);
+writeDField(AZARAC_KEY("d25_uv_index"),         b4.d_values[24], b4.d_present[24], qzss_dcx_camf_d25_uv_index_lookup);
+writeDField(AZARAC_KEY("d26_cases_per_100k"),   b4.d_values[25], b4.d_present[25], qzss_dcx_camf_d26_number_of_cases_per_100000_inhabitants_lookup);
+writeDField(AZARAC_KEY("d27_noise"),            b4.d_values[26], b4.d_present[26], qzss_dcx_camf_d27_noise_range_lookup);
+writeDField(AZARAC_KEY("d28_air_quality"),      b4.d_values[27], b4.d_present[27], qzss_dcx_camf_d28_air_quality_index_lookup);
+writeDField(AZARAC_KEY("d29_outage_duration"),  b4.d_values[28], b4.d_present[28], qzss_dcx_camf_d29_outage_estimated_duration_lookup);
+writeDField(AZARAC_KEY("d30_nuclear_scale"),    b4.d_values[29], b4.d_present[29], qzss_dcx_camf_d30_nuclear_event_scale_lookup);
+writeDField(AZARAC_KEY("d31_chemical_type"),    b4.d_values[30], b4.d_present[30], qzss_dcx_camf_d31_chemical_hazard_type_lookup);
+writeDField(AZARAC_KEY("d32_biohazard_level"),  b4.d_values[31], b4.d_present[31], qzss_dcx_camf_d32_biohazard_level_lookup);
+writeDField(AZARAC_KEY("d33_biohazard_type"),   b4.d_values[32], b4.d_present[32], qzss_dcx_camf_d33_biohazard_type_lookup);
+writeDField(AZARAC_KEY("d34_explosive_type"),   b4.d_values[33], b4.d_present[33], qzss_dcx_camf_d34_explosive_hazard_type_lookup);
+writeDField(AZARAC_KEY("d35_infection_type"),   b4.d_values[34], b4.d_present[34], qzss_dcx_camf_d35_infection_type_lookup);
+writeDField(AZARAC_KEY("d36_typhoon_cat"),      b4.d_values[35], b4.d_present[35], qzss_dcx_camf_d36_typhoon_category_lookup);
 
 
         out.print('}');
@@ -225,59 +225,59 @@ writeDField("d36_typhoon_cat",      b4.d_values[35], b4.d_present[35], qzss_dcx_
 
     // Extended Message fields
     if (d->ex_kind == ExtendedKind::LAlertOrLocal) {
-        wf_u(out, "ex1_target_area", d->ex_lalert_local.ex1);
+        wf_u(out, AZARAC_KEY("ex1_target_area"), d->ex_lalert_local.ex1);
         AZARAC_LABEL(out, "ex1_target_area_label",
             qzss_dcx_ex1_target_area_code_ja_lookup,
             qzss_dcx_ex1_target_area_code_en_lookup, d->ex_lalert_local.ex1, false);
 
         // Decoded target area code (main ellipse absent)
         if (dec.target_area_code_present) {
-            wf_u(out, "target_area_code", dec.target_area_code);
+            wf_u(out, AZARAC_KEY("target_area_code"), dec.target_area_code);
         }
 
         // EX2-EX7 Additional Ellipse (local government only)
         if (dec.additional_area.present) {
-            wk(out, "additional_area");
+            wk(out, AZARAC_KEY("additional_area"));
             out.print('{');
-            wf_u(out, "head_to_area", dec.additional_area.head_to_area);
-            wk(out, "ellipse");
+            wf_u(out, AZARAC_KEY("head_to_area"), dec.additional_area.head_to_area);
+            wk(out, AZARAC_KEY("ellipse"));
             out.print('{');
-            wf_deg(out, "lat_deg", 1000000, dec.additional_area.ellipse.lat_microdeg, false);
-            wf_deg(out, "lon_deg", 1000000, dec.additional_area.ellipse.lon_microdeg, false);
-            wf_deg(out, "semi_major_km", 1000, dec.additional_area.ellipse.semi_major_m);
-            wf_deg(out, "semi_minor_km", 1000, dec.additional_area.ellipse.semi_minor_m);
-            wf_deg(out, "azimuth_deg", 1000000, dec.additional_area.ellipse.azimuth_decideg * 10, /*last=*/true);
+            wf_deg(out, AZARAC_KEY("lat_deg"), 1000000, dec.additional_area.ellipse.lat_microdeg, false);
+            wf_deg(out, AZARAC_KEY("lon_deg"), 1000000, dec.additional_area.ellipse.lon_microdeg, false);
+            wf_deg(out, AZARAC_KEY("semi_major_km"), 1000, dec.additional_area.ellipse.semi_major_m);
+            wf_deg(out, AZARAC_KEY("semi_minor_km"), 1000, dec.additional_area.ellipse.semi_minor_m);
+            wf_deg(out, AZARAC_KEY("azimuth_deg"), 1000000, dec.additional_area.ellipse.azimuth_decideg * 10, /*last=*/true);
             out.print('}');
             out.print('}');
             writeChar(out, ',');
         }
-        wf_u(out, "ex_vn", d->ex_lalert_local.vn);
+        wf_u(out, AZARAC_KEY("ex_vn"), d->ex_lalert_local.vn);
     } else if (d->ex_kind == ExtendedKind::JAlert) {
-        wf_u(out, "ex8_area_type", d->ex_jalert.ex8);
+        wf_u(out, AZARAC_KEY("ex8_area_type"), d->ex_jalert.ex8);
 
-        wk(out, "jalert_target");
+        wk(out, AZARAC_KEY("jalert_target"));
         out.print('{');
         if (dec.jalert_prefecture_mode) {
-            wk(out, "prefectures"); out.print('[');
+            wk(out, AZARAC_KEY("prefectures")); out.print('[');
             for (uint8_t i = 0; i < dec.prefecture_count; ++i) {
                 if (i) writeChar(out, ',');
                 uint8_t pos = dec.prefecture_positions[i];
                 out.print('{');
-                wf_u(out, "position", pos);
-                wf_s(out, "label",
+                wf_u(out, AZARAC_KEY("position"), pos);
+                wf_s(out, AZARAC_KEY("label"),
                     AZARAC_LOOKUP_LANG(qzss_dcr_jma_prefecture_lookup, qzss_dcr_jma_prefecture_en_lookup, pos),
                     /*last=*/true);
                 out.print('}');
             }
             out.print("],");
         } else {
-            wk(out, "cities"); out.print('[');
+            wk(out, AZARAC_KEY("cities")); out.print('[');
             for (uint8_t i = 0; i < dec.city_code_count; ++i) {
                 if (i) writeChar(out, ',');
                 uint16_t code = dec.city_codes[i];
                 out.print('{');
-                wf_u(out, "code", code);
-                wf_s(out, "label",
+                wf_u(out, AZARAC_KEY("code"), code);
+                wf_s(out, AZARAC_KEY("label"),
                     AZARAC_LOOKUP_LANG(qzss_dcx_ex1_target_area_code_ja_lookup,
                                        qzss_dcx_ex1_target_area_code_en_lookup, code),
                     /*last=*/true);
@@ -285,27 +285,26 @@ writeDField("d36_typhoon_cat",      b4.d_values[35], b4.d_present[35], qzss_dcx_
             }
             out.print("],");
         }
-        wf_u(out, "ex_vn", d->ex_jalert.vn, /*last=*/true);
+        wf_u(out, AZARAC_KEY("ex_vn"), d->ex_jalert.vn, /*last=*/true);
         out.print('}');
         writeChar(out, ',');
     } else if (d->ex_kind == ExtendedKind::OutsideJapan) {
         // EX11 raw data (68 bits) as hex string
-        wk(out, "ex11_raw");
+        wk(out, AZARAC_KEY("ex11_raw"));
         writeChar(out, '"');
-        const char hex[] = "0123456789ABCDEF";
-        for (int i = 0; i < 8; ++i) {
-            uint8_t v = d->ex_outside.ex11_raw[i];
-            writeChar(out, hex[v >> 4]);
-            writeChar(out, hex[v & 0x0F]);
+        for (uint8_t i = 0; i < 8; ++i) {
+            const uint8_t v = d->ex_outside.ex11_raw[i];
+            writeChar(out, hexDigit(v >> 4));
+            writeChar(out, hexDigit(v));
         }
-        writeChar(out, hex[d->ex_outside.ex11_raw[8] >> 4]);
+        writeChar(out, hexDigit(d->ex_outside.ex11_raw[8] >> 4));
         writeChar(out, '"');
         writeChar(out, ',');
-        wf_u(out, "ex_vn", d->ex_outside.vn);
+        wf_u(out, AZARAC_KEY("ex_vn"), d->ex_outside.vn);
     }
 
-    wf_u(out, "sd_sdmt", d->sd.sdmt);
-    wf_u(out, "sd_sdm", d->sd.sdm, /*last=*/true);
+    wf_u(out, AZARAC_KEY("sd_sdmt"), d->sd.sdmt);
+    wf_u(out, AZARAC_KEY("sd_sdm"), d->sd.sdm, /*last=*/true);
 
     out.print('}');
 }

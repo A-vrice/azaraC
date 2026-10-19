@@ -1,6 +1,7 @@
 // DCX MT44 decode helpers
 // Based on IS-QZSS-DCX-004 / EWSS CAMF v1.2
 #include "DcxHelper.h"
+#include "../azaraC_config.h"   // AZARAC_PROGMEM_NEAR / AZARAC_PGM_READ_*
 
 namespace azaraC {
 namespace internal {
@@ -34,9 +35,8 @@ int32_t decodeLongitude17_45_225(uint32_t code) {
 }
 
 // Radius decoding (5-bit code): IS-QZSS-DCX-003 Table 4.2-17 / 4.2-18 Radius[m] = 10^(log10(216.20) + a * (log10(2500000) - log10(216.20)) / 31)
-
-int32_t decodeRadiusCode(uint8_t code) {
-    static constexpr int32_t radius_table_m[32] = {
+// Flash に置く: avr-libc のリンカスクリプトは .rodata を .data（SRAM）へ含めるので、属性の無い const 配列はそのまま SRAM を食う（実測 128 B）。
+static const int32_t RADIUS_TABLE[32] AZARAC_PROGMEM_NEAR = {
         216,
         292,
         395,
@@ -69,10 +69,11 @@ int32_t decodeRadiusCode(uint8_t code) {
         1367116,
         1848727,
         2500000
-    };
+};
 
+int32_t decodeRadiusCode(uint8_t code) {
     if (code < 32) {
-        return radius_table_m[code];
+        return static_cast<int32_t>(AZARAC_PGM_READ_DWORD(&RADIUS_TABLE[code]));
     }
     return 0;
 }
@@ -194,8 +195,13 @@ struct HazardB4Layout {
     DFieldSpec fields[4];
 };
 
+// Flash に置く（avr-libc のリンカスクリプトは .rodata を .data に含めるため、属性の無い const 配列は SRAM を食う — 実測 45 行 = 585 B）。
+// 行はパディング無しの 13 B であることが前提で、下の読み出しがバイト単位でオフセットを組む。
+static_assert(sizeof(DFieldSpec) == 3, "DFieldSpec must stay padding-free");
+static_assert(sizeof(HazardB4Layout) == 13, "HazardB4Layout must stay padding-free");
+
 // Sorted by a4_code; linear scan over ~45 entries is fast enough.
-static const HazardB4Layout B4_LAYOUTS[] = {
+static const HazardB4Layout B4_LAYOUT_TABLE[] AZARAC_PROGMEM_NEAR = {
     {4  , {{31,13,2}, {32,11,2}, {255,0,0}, {255,0,0}}},
     {5  , {{30,11,4}, {255,0,0}, {255,0,0}, {255,0,0}}},
     {6  , {{33,13,2}, {255,0,0}, {255,0,0}, {255,0,0}}},
@@ -250,16 +256,21 @@ void decodeB4DetailedInfo(uint16_t a18, uint8_t a4_code, B4DetailedInfo& out) {
     out.present = true;
     out.a4_code = a4_code;
 
-    for (uint8_t i = 0; i < sizeof(B4_LAYOUTS) / sizeof(B4_LAYOUTS[0]); ++i) {
-        if (B4_LAYOUTS[i].a4_code == a4_code) {
-            for (uint8_t j = 0; j < 4; ++j) {
-                const DFieldSpec& f = B4_LAYOUTS[i].fields[j];
-                if (f.d_idx == 0xFF) break;
-                out.d_values[f.d_idx] = static_cast<uint8_t>((a18 >> f.shift) & ((1u << f.bits) - 1));
-                out.d_present[f.d_idx] = true;
-            }
-            return;
+    // 表は Flash にある: 行全体を RAM へ写さず、必要なバイトだけ AZARAC_PGM_READ_BYTE で読む（host では通常のロード）。
+    const uint8_t* rows = reinterpret_cast<const uint8_t*>(B4_LAYOUT_TABLE);
+    constexpr uint8_t ROW_BYTES = sizeof(HazardB4Layout);
+    for (uint8_t i = 0; i < sizeof(B4_LAYOUT_TABLE) / sizeof(B4_LAYOUT_TABLE[0]); ++i) {
+        if (AZARAC_PGM_READ_BYTE(rows + i * ROW_BYTES) != a4_code) continue;
+        for (uint8_t j = 0; j < 4; ++j) {
+            const uint8_t* f = rows + i * ROW_BYTES + 1 + j * sizeof(DFieldSpec);
+            const uint8_t d_idx = AZARAC_PGM_READ_BYTE(f);
+            if (d_idx == 0xFF) break;
+            const uint8_t shift = AZARAC_PGM_READ_BYTE(f + 1);
+            const uint8_t bits  = AZARAC_PGM_READ_BYTE(f + 2);
+            out.d_values[d_idx] = static_cast<uint8_t>((a18 >> shift) & ((1u << bits) - 1u));
+            out.d_present[d_idx] = true;
         }
+        return;
     }
 }
 

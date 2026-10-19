@@ -74,12 +74,19 @@ static void outputTask(void* pvParameters);
 static void processByte(uint8_t b, azaraC::Parser& parser);
 
 // Nankai aggregated_text_ptr は Parser 内部バッファへの借用ポインタで、次の feed()/reset() や別イベントの集約で無効化される。
-// queue 経由で別タスクへ渡すと dangling になるため、is_aggregated のときはここで JSON にシリアライズするか、aggregated テキストをコピーしてから enqueue すること。
+// queue 経由で別タスクへ渡すと dangling になるため、集約済みはこのタスクで直列化して出力し、queue には載せない。
 static void processByte(uint8_t b, azaraC::Parser& parser) {
     azaraC::Message msg;
     if (parser.feed(b, msg, g_cachedGnssUnixTime)) {
 #if AZARAC_ENABLE_NANKAI
-        // toJson() は借用ポインタを直接参照するため、並行 feed() で破損し得る。
+        const azaraC::Mt43Data* mt43 = msg.getMt43();
+        const azaraC::NankaiData* nankai = mt43 ? mt43->getNankai() : nullptr;
+        if (nankai && nankai->is_aggregated) {
+            azaraC::toJson(msg, Serial);
+            Serial.println();
+            g_stats.Messages++;
+            return;
+        }
 #endif
         // キューに送信 (待たない)
         if (xQueueSend(g_messageQueue, &msg, 0) != pdTRUE) {

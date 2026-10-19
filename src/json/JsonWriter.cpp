@@ -3,11 +3,26 @@
 namespace azaraC {
 namespace internal {
 
-// ニブル → 16進1文字。表を持たない: 16 エントリの表は `.rodata`（avr-libc のリンカスクリプトでは `.data` = SRAM、または属性を付けても Flash に 17B）を食うだけで、この計算は数命令に畳まれる。
-// 実測（ATmega328P + `-flto`、Uno 実リンク、`autoresearch.sh` stage 4 と同じレシピ）: 表を Flash に置くと 13,982B、この計算だと 13,546B（表を畳んでいた元の実装と同値）。
-static inline char hexDigit(uint8_t nibble) {
-    const uint8_t n = static_cast<uint8_t>(nibble & 0x0F);
-    return static_cast<char>(n < 10 ? ('0' + n) : ('A' + (n - 10)));
+#if defined(__AVR__)
+// キーを書き出すときの 1 次コピー先。ラベルの共有バッファ (def::azarac_flash_buf) とは別に持つ: wf_s はキーを書いた後にラベルを書くが、ラベルは呼び出し側で既にそのバッファへ展開済みなので、同じバッファへキーを写すとラベルを壊す。
+static char* keyBuf() {
+    static char buf[AZARAC_KEY_BUF_SIZE];
+    return buf;
+}
+#endif
+
+// キーを書き出せる形にする。AVR ではキーが Flash にあるので、sizeof で分かっている長さぶんだけ RAM へ写す。
+static std::string_view keyView(JsonKey k) {
+#if defined(__AVR__)
+    char* buf = keyBuf();
+    for (uint8_t i = 0; i < k.len; ++i) {
+        buf[i] = static_cast<char>(AZARAC_PGM_READ_BYTE(k.p + i));
+    }
+    buf[k.len] = '\0';
+    return std::string_view(buf, k.len);
+#else
+    return std::string_view(k.p, k.len);
+#endif
 }
 
 void writeChar(Print& out, char c) { out.print(c); }
@@ -78,20 +93,26 @@ void writeHex(Print& out, uint8_t v) {
     out.print(buf);
 }
 
-void wk(Print& out, std::string_view k) {
-    out.print('"'); writeEscaped(out, k); out.print("\":");
+// `"key":`。keyView の戻りは次のキー書き出しまでしか有効でない（AVR では共有のキーバッファを指す）。
+static void writeKey(Print& out, JsonKey k) {
+    const std::string_view name = keyView(k);
+    out.print('"'); writeEscaped(out, name); out.print("\":");
 }
 
-void wf_u(Print& out, std::string_view k, uint32_t v, bool last) {
-    wk(out, k); writeUint32(out, v); if (!last) writeChar(out, ',');
+void wk(Print& out, JsonKey k) {
+    writeKey(out, k);
 }
 
-void wf_u64(Print& out, std::string_view k, uint64_t v, bool last) {
-    wk(out, k); writeUint64(out, v); if (!last) writeChar(out, ',');
+void wf_u(Print& out, JsonKey k, uint32_t v, bool last) {
+    writeKey(out, k); writeUint32(out, v); if (!last) writeChar(out, ',');
 }
 
-void wf_x(Print& out, std::string_view k, uint32_t v, bool last) {
-    wk(out, k);
+void wf_u64(Print& out, JsonKey k, uint64_t v, bool last) {
+    writeKey(out, k); writeUint64(out, v); if (!last) writeChar(out, ',');
+}
+
+void wf_x(Print& out, JsonKey k, uint32_t v, bool last) {
+    writeKey(out, k);
     char buf[11];
     buf[0] = '0'; buf[1] = 'x';
     for (int i = 0; i < 8; ++i) {
@@ -104,8 +125,8 @@ void wf_x(Print& out, std::string_view k, uint32_t v, bool last) {
     if (!last) writeChar(out, ',');
 }
 
-void wf_deg(Print& out, std::string_view k, int32_t denominator, int32_t v, bool last) {
-    wk(out, k);
+void wf_deg(Print& out, JsonKey k, int32_t denominator, int32_t v, bool last) {
+    writeKey(out, k);
 
     uint32_t mag = (uint32_t)v;
     if (v < 0) { out.print('-'); mag = 0u - mag; }   // 2 の補数で絶対値（INT32_MIN でも UB にしない）
@@ -127,12 +148,12 @@ void wf_deg(Print& out, std::string_view k, int32_t denominator, int32_t v, bool
     if (!last) writeChar(out, ',');
 }
 
-void wf_s(Print& out, std::string_view k, std::optional<std::string_view> v, bool last) {
-    wk(out, k); writeOptStr(out, v); if (!last) writeChar(out, ',');
+void wf_s(Print& out, JsonKey k, std::optional<std::string_view> v, bool last) {
+    writeKey(out, k); writeOptStr(out, v); if (!last) writeChar(out, ',');
 }
 
-void wf_s(Print& out, std::string_view k, const char* v, bool last) {
-    wk(out, k);
+void wf_s(Print& out, JsonKey k, const char* v, bool last) {
+    writeKey(out, k);
     if (v) {
         writeStr(out, std::string_view(v));
     } else {
@@ -141,38 +162,41 @@ void wf_s(Print& out, std::string_view k, const char* v, bool last) {
     if (!last) writeChar(out, ',');
 }
 
-void wf_v(Print& out, std::string_view field, uint32_t value,
+void wf_v(Print& out, JsonKey field, uint32_t value,
           std::optional<std::string_view> label, bool last) {
-    wk(out, field); writeUint32(out, value); writeChar(out, ',');
-    out.print('"'); writeEscaped(out, field); out.print("_label\":");
+    // 名前は 1 度だけ取り出す（`"d1_magnitude":1,"d1_magnitude_label":"…"`）: AVR では Flash からのコピーが 1 回で済む。
+    const std::string_view name = keyView(field);
+    out.print('"'); writeEscaped(out, name); out.print("\":");
+    writeUint32(out, value); writeChar(out, ',');
+    out.print('"'); writeEscaped(out, name); out.print("_label\":");
     writeOptStr(out, label);
     if (!last) writeChar(out, ',');
 }
 
-void writeDHM(Print& out, std::string_view key, const TimeFields& t, bool last) {
-    wk(out, key);
+void writeDHM(Print& out, JsonKey key, const TimeFields& t, bool last) {
+    writeKey(out, key);
     out.print('{');
-    wf_u(out, "month", t.month);
-    wf_u(out, "day",   t.day);
-    wf_u(out, "hour",  t.hour);
-    wf_u(out, "min",   t.minute);
-    if (t.unix_time == 0) { wk(out, "unix"); out.print("null"); }
-    else                  { wf_u(out, "unix", t.unix_time, /*last=*/true); }
+    wf_u(out, AZARAC_KEY("month"), t.month);
+    wf_u(out, AZARAC_KEY("day"),   t.day);
+    wf_u(out, AZARAC_KEY("hour"),  t.hour);
+    wf_u(out, AZARAC_KEY("min"),   t.minute);
+    if (t.unix_time == 0) { wk(out, AZARAC_KEY("unix")); out.print("null"); }
+    else                  { wf_u(out, AZARAC_KEY("unix"), t.unix_time, /*last=*/true); }
     out.print('}');
     if (!last) writeChar(out, ',');
 }
 
-void writeLatLon(Print& out, std::string_view key, const LatLon& ll, bool last) {
-    wk(out, key);
+void writeLatLon(Print& out, JsonKey key, const LatLon& ll, bool last) {
+    writeKey(out, key);
     out.print('{');
-    wf_u(out, "lat_ns",  ll.lat_ns);
-    wf_u(out, "lat_deg", ll.lat_deg);
-    wf_u(out, "lat_min", ll.lat_min);
-    wf_u(out, "lat_sec", ll.lat_sec);
-    wf_u(out, "lon_ew",  ll.lon_ew);
-    wf_u(out, "lon_deg", ll.lon_deg);
-    wf_u(out, "lon_min", ll.lon_min);
-    wf_u(out, "lon_sec", ll.lon_sec, /*last=*/true);
+    wf_u(out, AZARAC_KEY("lat_ns"),  ll.lat_ns);
+    wf_u(out, AZARAC_KEY("lat_deg"), ll.lat_deg);
+    wf_u(out, AZARAC_KEY("lat_min"), ll.lat_min);
+    wf_u(out, AZARAC_KEY("lat_sec"), ll.lat_sec);
+    wf_u(out, AZARAC_KEY("lon_ew"),  ll.lon_ew);
+    wf_u(out, AZARAC_KEY("lon_deg"), ll.lon_deg);
+    wf_u(out, AZARAC_KEY("lon_min"), ll.lon_min);
+    wf_u(out, AZARAC_KEY("lon_sec"), ll.lon_sec, /*last=*/true);
     out.print('}');
     if (!last) writeChar(out, ',');
 }

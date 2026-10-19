@@ -207,6 +207,52 @@ TEST_CASE("Time: DCX onset_time resolved with valid report_unix") {
     CHECK(mt44->onset_time.hour == 0);
 }
 
+TEST_CASE("Time: DCX onset_time A7 boundary (16-bit overflow guard)") {
+    // A7 は 1..10080（週頭からの分）。16 bit の unsigned int では (a7-1)*60 が 65535 を超えた時点で
+    // 週内の別時刻へ折り返す（a7=1094 が最初の外れ値、a7=10080 が上限）。ここでは境界の意味
+    // （週頭 + (a7-1) 分）を固定する。
+    struct Case { uint16_t a6, a7; uint32_t offset_s; uint8_t hour, minute; };
+    const Case cases[] = {
+        {0, 1094,  65580u, 18, 13},   // 16 bit で最初に折り返す値
+        {1, 10080, 604740u, 23, 59},  // A7 の上限 = 翌週の日曜 23:59
+    };
+
+    // 2024-05-20 は月曜 00:00 UTC（週の起点）
+    const uint32_t report_unix = static_cast<uint32_t>(daysFromCivil(2024, 5, 20) * 86400u);
+
+    for (const Case& c : cases) {
+        uint8_t bits[32] = {};
+        setBits(bits, 0, 8, 0x53);
+        setBits(bits, 8, 6, 44);
+        setBits(bits, 14, 1, 0);
+        setBits(bits, 15, 9, 0x1FF);
+        setBits(bits, 24, 2, 1);
+        setBits(bits, 26, 9, 111);
+        setBits(bits, 35, 5, 1);
+        setBits(bits, 40, 7, 10);
+        setBits(bits, 47, 2, 3);
+        setBits(bits, 49, 1, c.a6);
+        setBits(bits, 50, 14, c.a7);
+        setBits(bits, 214, 6, 1);
+        setBits(bits, 226, 24, crc24qRef(bits, 226));
+
+        Frame frame{};
+        memcpy(frame.bits, bits, 32);
+        frame.svid = 193;
+        Decoder dec;
+        Message msg{};
+        REQUIRE(dec.decode(frame, msg, report_unix));
+
+        const Mt44Data* mt44 = msg.getMt44();
+        REQUIRE(mt44 != nullptr);
+        // a6=1 は翌週の月曜が起点
+        const uint32_t week_start = report_unix + (c.a6 ? 7u * 86400u : 0u);
+        CHECK(mt44->onset_time.unix_time == week_start + c.offset_s);
+        CHECK(mt44->onset_time.hour == c.hour);
+        CHECK(mt44->onset_time.minute == c.minute);
+    }
+}
+
 TEST_CASE("Time: DCX onset_time NOT resolved with report_unix=0") {
     uint8_t bits[32] = {};
     setBits(bits, 0, 8, 0x53);

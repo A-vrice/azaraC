@@ -25,19 +25,19 @@ namespace internal {
 // dedup 側も同じ 6 フィールドを使う（Dedup.h dedupEventToken）。
 struct NankaiPageKey {
     uint8_t  info_code = 0;        // 1B — Is (Information Serial Code, 4b)
-    uint8_t  information_type = 0; // 1B — It (2b: 0=発表, 2=取消)
     uint8_t  report_month  = 0;    // 1B — raw report_time month (4b)
     uint8_t  report_day    = 0;    // 1B — raw report_time day (5b)
     uint8_t  report_hour   = 0;    // 1B — raw report_time hour (5b)
     uint8_t  report_minute = 0;    // 1B — raw report_time minute (6b)
+    uint8_t  information_type = 0; // 1B — It (2b: 0=発表, 2=取消)
     // 合計 6B（パディングなし）
 
     constexpr NankaiPageKey() = default;
     // it は末尾の既定引数（既存呼び出し {ic, mo, d, h, m} の意味を変えない）。
     constexpr NankaiPageKey(uint8_t ic, uint8_t mo = 0, uint8_t d = 0, uint8_t h = 0, uint8_t m = 0,
                             uint8_t it = 0)
-        : info_code(ic), information_type(it), report_month(mo), report_day(d), report_hour(h),
-          report_minute(m) {}
+        : info_code(ic), report_month(mo), report_day(d), report_hour(h),
+          report_minute(m), information_type(it) {}
 
     bool operator==(const NankaiPageKey& o) const {
         return info_code == o.info_code &&
@@ -57,6 +57,9 @@ struct NankaiPageKey {
         report_minute = 0;
     }
 };
+
+// 6 バイト（パディングなし）を固定する: 鍵はページ受信のたびにコピーされ、バッファごとに 1 個常駐する。
+static_assert(sizeof(NankaiPageKey) == 6, "NankaiPageKey must stay 6 bytes");
 
 // Page aggregation buffer for a single event.
 // Truncation: total_pages > MAX_PAGES なら pages 1..MAX_PAGES を残して truncated を立て、残りは静かに破棄する。

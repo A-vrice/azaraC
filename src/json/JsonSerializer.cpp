@@ -63,10 +63,10 @@ bool serializeMarine(const Mt43Data* d, Print& out);
 void JsonSerializer::serialize(const Message& msg, Print& out) {
     using namespace azaraC::def;
     out.print('{');
-    wf_u(out, "schema_version", 2);
-    wf_u(out, "svid",     msg.svid);
-    wf_u(out, "msg_type", msg.msg_type);
-    wf_x(out, "crc24",    msg.crc24);
+    wf_u(out, AZARAC_KEY("schema_version"), 2);
+    wf_u(out, AZARAC_KEY("svid"),     msg.svid);
+    wf_u(out, AZARAC_KEY("msg_type"), msg.msg_type);
+    wf_x(out, AZARAC_KEY("crc24"),    msg.crc24);
 
 #if (AZARAC_ENABLE_DCX_CAMF)
     if (msg.msg_type == 44) {
@@ -76,27 +76,27 @@ void JsonSerializer::serialize(const Message& msg, Print& out) {
     if (msg.msg_type == 43) {
         const Mt43Data* d = msg.getMt43();
         if (!d) {
-            wf_s(out, keys::note, "invalid_mt43", /*last=*/true);
+            wf_s(out, AZARAC_KEY("note"), "invalid_mt43", /*last=*/true);
             out.print('}');
             return;
         }
         
-        wf_u(out, "report_classification", d->report_classification);
+        wf_u(out, AZARAC_KEY("report_classification"), d->report_classification);
         AZARAC_LABEL(out, "report_classification_label",
             qzss_dcr_jma_report_classification_lookup,
             qzss_dcr_jma_report_classification_en_lookup, d->report_classification, false);
-        wf_u(out, "disaster_category", d->disaster_category);
+        wf_u(out, AZARAC_KEY("disaster_category"), d->disaster_category);
         AZARAC_LABEL(out, "disaster_category_label",
             qzss_dcr_jma_disaster_category_lookup,
             qzss_dcr_jma_disaster_category_en_lookup, d->disaster_category, false);
-        wf_u(out, "information_type", d->information_type);
+        wf_u(out, AZARAC_KEY("information_type"), d->information_type);
         AZARAC_LABEL(out, "information_type_label",
             qzss_dcr_jma_information_type_lookup,
             qzss_dcr_jma_information_type_en_lookup, d->information_type, false);
         // Vn は decodeQzqsm が 1 以外を拒否するため常に 1。それでも「値が無い」と区別できるよう明示的に出す。
-        wf_u(out, "version", d->version);
-        writeDHM(out, "report_time", d->event_time);
-        wk(out, "data"); out.print('{');
+        wf_u(out, AZARAC_KEY("version"), d->version);
+        writeDHM(out, AZARAC_KEY("report_time"), d->event_time);
+        wk(out, AZARAC_KEY("data")); out.print('{');
 
         // Dispatch by disaster_category (categories 7/13 undefined in spec)
         bool serialized = false;
@@ -140,12 +140,12 @@ void JsonSerializer::serialize(const Message& msg, Print& out) {
         default:
             break;
         }
-        if (!serialized) wf_s(out, keys::note, "unsupported_category", /*last=*/true);
+        if (!serialized) wf_s(out, AZARAC_KEY("note"), "unsupported_category", /*last=*/true);
 
         out.print('}');
 
     } else {
-        wf_s(out, keys::note, "unsupported_msg_type", /*last=*/true);
+        wf_s(out, AZARAC_KEY("note"), "unsupported_msg_type", /*last=*/true);
     }
 
     out.print('}');

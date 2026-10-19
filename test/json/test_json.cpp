@@ -1451,22 +1451,22 @@ TEST_CASE("wf_u64 出力") {
     StringPrint sp;
 
     // 最小値: 0
-    internal::wf_u64(sp, "zero", 0ULL, true);
+    internal::wf_u64(sp, AZARAC_KEY("zero"), 0ULL, true);
     CHECK(sp.str() == "\"zero\":0");
 
     // 最大値
     sp = StringPrint{};
-    internal::wf_u64(sp, "max", 18446744073709551615ULL, false);
+    internal::wf_u64(sp, AZARAC_KEY("max"), 18446744073709551615ULL, false);
     CHECK(sp.str() == "\"max\":18446744073709551615,");
 
     // 中間値: last=true でカンマなし
     sp = StringPrint{};
-    internal::wf_u64(sp, "val", 12345678901234ULL, true);
+    internal::wf_u64(sp, AZARAC_KEY("val"), 12345678901234ULL, true);
     CHECK(sp.str() == "\"val\":12345678901234");
 
     // last=false でカンマあり
     sp = StringPrint{};
-    internal::wf_u64(sp, "a", 1ULL, false);
+    internal::wf_u64(sp, AZARAC_KEY("a"), 1ULL, false);
     CHECK(sp.str() == "\"a\":1,");
 }
 

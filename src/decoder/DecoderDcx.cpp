@@ -9,6 +9,14 @@ namespace internal {
 
 #if (AZARAC_ENABLE_DCX_CAMF)
 
+// A6/A7（週の先頭からの分、A7 = 1..10080）を週頭からの秒数へ。32 bit で計算する: AVR の unsigned int は 16 bit で、10079*60 = 604,740 は 65,535 を超える（a7 >= 1094 で onset が黙って週内の別時刻になる）。
+// ホストの int は 32 bit なので、この static_assert は AVR ビルドでのみ意味を持つ。
+static constexpr uint32_t onsetOffsetSec(uint16_t a7) {
+    return static_cast<uint32_t>(a7 - 1u) * 60u;
+}
+static_assert(onsetOffsetSec(10080) == 604740u,
+              "onset offset must be computed in 32 bits (AVR unsigned int is 16-bit)");
+
 bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix) {
     out.initPayload<Mt44Data>();
     Mt44Data* d = out.getMt44();
@@ -88,7 +96,7 @@ bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix)
         }
 
         uint32_t monday_unix = monday_days * 86400u;
-        uint32_t onset_unix  = monday_unix + (d->camf.a7 - 1u) * 60u;
+        uint32_t onset_unix  = monday_unix + onsetOffsetSec(d->camf.a7);
         d->onset_time.unix_time = onset_unix;
 
         uint32_t y, m, day_val;

@@ -4,6 +4,8 @@
 #include <cstring>
 #define PROGMEM
 #define PGM_P const char*
+// avr-libc の PSTR 相当。実機はリテラルを __progmem__ の static 配列にする statement expression だが、host では PROGMEM が空なのでリテラルそのままでよい。
+#define PSTR(s) ((const char*)(s))
 // Stands in for a device with more than 64 KiB of Flash, so the host build exercises the far addressing path (AZARAC_PGM_PTR / pgm_read_*_far); the short path is the uno's and is compiled by the real toolchain.
 #ifndef FLASHEND
 #define FLASHEND 0x3FFFFUL

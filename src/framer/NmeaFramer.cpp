@@ -65,18 +65,21 @@ bool NmeaFramer::parse(Frame& out) {
 
     char* p = _buf + 6;
     uint16_t svid_tmp = 0;
-    bool has_digit = false;
+    uint8_t digit_count = 0;
     while (*p && *p != ',') {
         if (*p >= '0' && *p <= '9') {
             svid_tmp = svid_tmp * 10 + (*p - '0');
-            has_digit = true;
+            ++digit_count;
             if (svid_tmp > 255) return false;
         } else {
             return false;
         }
         p++;
     }
-    if (!has_digit || *p != ',') return false;
+    // 仕様の Satellite ID は「PRN 下位 6bit の2桁10進」（IS-QZSS-DCR-017 §4.3.1 / DCX-004 §4.3.1、Table 4.3.1-1）。
+    // 1桁は下位 6bit の範囲外（PRN 183 = 55 は2桁）で、3桁は `| 0x80` しても PRN 契約（181-191）の外の値になる（100 → 228）。
+    // azarashi も長さ 2 を要求して拒否する。
+    if (digit_count != 2 || *p != ',') return false;
     uint8_t svid = static_cast<uint8_t>(svid_tmp);
     ++p;
 

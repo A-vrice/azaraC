@@ -254,6 +254,44 @@ TEST_CASE("NMEA: Satellite ID は生 ID から PRN に正規化される") {
     }
 }
 
+// 仕様の Satellite ID は PRN 下位 6bit の2桁10進（Table 4.3.1-1）。azarashi も長さ 2 を要求する。
+// 1桁/3桁を通すと `| 0x80` の結果が PRN 契約（181-191）の外に出る（100 → 228）。
+TEST_CASE("NMEA: Satellite ID の桁数は 2 に限る") {
+    auto sentence = [](const char* id_field) {
+        std::string s = std::string("$QZQSM,") + id_field + ",";
+        for (int i = 0; i < 31; ++i) {
+            char hex[3];
+            snprintf(hex, sizeof(hex), "%02X", 0);
+            s += hex;
+        }
+        s += '0';
+        uint8_t xsum = 0;
+        for (size_t i = 1; i < s.size(); ++i) xsum ^= static_cast<uint8_t>(s[i]);
+        char tail[8];
+        snprintf(tail, sizeof(tail), "*%02X\r\n", xsum);
+        return s + tail;
+    };
+
+    struct Case { const char* id_field; bool accepted; };
+    const Case cases[] = {
+        {"5",   false},   // 1 桁
+        {"55",  true},    // 2 桁（仕様どおり）
+        {"100", false},   // 3 桁 → 228 になり PRN 契約外
+    };
+    for (const auto& c : cases) {
+        NmeaFramer framer;
+        Frame out{};
+        bool found = false;
+        const std::string pkt = sentence(c.id_field);
+        for (char ch : pkt) {
+            if (framer.feed(static_cast<uint8_t>(ch), out)) { found = true; break; }
+        }
+        INFO("id field=", c.id_field);
+        CHECK(found == c.accepted);
+        if (c.accepted) CHECK(out.svid == 183);
+    }
+}
+
 // UBX SFRBX 境界値テスト
 
 TEST_CASE("UBX: SFRBX length must be 40") {

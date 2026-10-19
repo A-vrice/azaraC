@@ -46,9 +46,9 @@ LIBS=(src/Parser.cpp src/decoder/Decoder.cpp src/decoder/DecoderDcx.cpp
       src/json/JsonSerializerQzqsm.cpp src/internal/DcxHelper.cpp src/internal/Dedup.cpp)
 
 # Headers drive both the library and the header-only bench target, so the newest
-# header is part of every object's dependency set (-MMD would be tighter, but
-# this has to stay dependency-free).
-NEWEST_HEADER="$(ls -t src/*.h src/*/*.h 2>/dev/null | head -1)"
+# header (src or test — bench_dedup.cpp includes test_helpers.h) is part of every
+# object's dependency set (-MMD would be tighter, but this has to stay dependency-free).
+NEWEST_HEADER="$(ls -t src/*.h src/*/*.h test/*.h test/*/*.h 2>/dev/null | head -1)"
 needs_rebuild() {   # $1 = source, $2 = object
     [[ ! -f "$2" ]] && return 0
     [[ "$1" -nt "$2" ]] && return 0

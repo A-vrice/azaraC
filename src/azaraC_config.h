@@ -38,9 +38,9 @@
 #define AZARAC_DEDUP_MT44_MAX_WINDOW_MS 300000UL  // 5 min
 #endif
 // DCX/CAMF's tables alone are ~100 KB and its decoder ~20 KB on top, so it only fits a 256 KB part (ATmega2560, DCX/CAMF + SEISMIC/TSUNAMI, JA: 144,804 B image — see test/bench/avr).
-// Nothing is switched on by the chip name: every AVR part starts at SEISMIC/TSUNAMI, the Uno's set, and the user opts in — AZARAC_AVR_LARGE_FLASH=1 (the name this preset was built around) or AZARAC_ENABLE_DCX_CAMF=1 — before including azaraC.h.
+// Nothing is switched on by the chip name: every AVR part starts at SEISMIC/TSUNAMI, the Uno's set, and the user opts in with build flags — -DAZARAC_AVR_LARGE_FLASH=1 (the name this preset was built around) or -DAZARAC_ENABLE_DCX_CAMF=1. The library is a separate translation unit, so a #define placed in the sketch does not reach it.
 // Tables above 64 KiB also need the far Flash addressing in internal/FlashString.h, which such devices select automatically (FLASHEND > 0xFFFF).
-// The remaining families stay off by default even on large parts (all of them at once is ~242 KiB); enable them before including azaraC.h as needed.
+// The remaining families stay off by default even on large parts (all of them at once is ~242 KiB); enable them the same way (-DAZARAC_ENABLE_EEW=1 …) as needed.
 #if !defined(AZARAC_AVR_LARGE_FLASH)
 #define AZARAC_AVR_LARGE_FLASH 0
 #endif
@@ -212,6 +212,10 @@
 #else
 #define AZARAC_PROGMEM PROGMEM
 #endif
+// Small constant tables read through a plain 16-bit Flash pointer (AZARAC_PGM_READ_*), not through the far accessors.
+// `PROGMEM` puts them in the `*(.progmem*)` cluster at the front of .text, where the Arduino core's own tables live too, so a 16-bit pointer reaches them; `AZARAC_PROGMEM` would move them to `.text.azaraC.<n>`, which a >64 KiB image places above that window.
+// autoresearch.sh gates both ends of this: the core's stand-in PROGMEM and azaraC's own near-Flash tables must stay below 0xFFFF in the large-flash link.
+#define AZARAC_PROGMEM_NEAR PROGMEM
 #define AZARAC_PGM_READ_BYTE(addr)    pgm_read_byte(addr)
 #define AZARAC_PGM_READ_WORD(addr)    pgm_read_word(addr)
 #define AZARAC_PGM_READ_DWORD(addr)   pgm_read_dword(addr)
@@ -219,6 +223,7 @@
 #define AZARAC_STRCPY_P(dst, src)     strcpy_P(dst, src)
 #else
 #define AZARAC_PROGMEM
+#define AZARAC_PROGMEM_NEAR
 #define AZARAC_PGM_READ_BYTE(addr)    (*(addr))
 #define AZARAC_PGM_READ_WORD(addr)    (*(addr))
 #define AZARAC_PGM_READ_DWORD(addr)   (*(addr))
