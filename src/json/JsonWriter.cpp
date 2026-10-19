@@ -3,7 +3,12 @@
 namespace azaraC {
 namespace internal {
 
-static constexpr char HEX_CHARS[] = "0123456789ABCDEF";
+// ニブル → 16進1文字。表を持たない: 16 エントリの表は `.rodata`（avr-libc のリンカスクリプトでは `.data` = SRAM、または属性を付けても Flash に 17B）を食うだけで、この計算は数命令に畳まれる。
+// 実測（ATmega328P + `-flto`、Uno 実リンク、`autoresearch.sh` stage 4 と同じレシピ）: 表を Flash に置くと 13,982B、この計算だと 13,546B（表を畳んでいた元の実装と同値）。
+static inline char hexDigit(uint8_t nibble) {
+    const uint8_t n = static_cast<uint8_t>(nibble & 0x0F);
+    return static_cast<char>(n < 10 ? ('0' + n) : ('A' + (n - 10)));
+}
 
 void writeChar(Print& out, char c) { out.print(c); }
 
@@ -46,8 +51,8 @@ static void writeEscaped(Print& out, std::string_view s) {
                 if (c < 0x20) {
                     // \u00XX via nibbles (avoids snprintf/printf dep)
                     out.print("\\u00");
-                    out.print(HEX_CHARS[c >> 4]);
-                    out.print(HEX_CHARS[c & 0xF]);
+                    out.print(hexDigit(c >> 4));
+                    out.print(hexDigit(c));
                 } else {
                     // Printable ASCII and UTF-8 pass through
                     out.print(static_cast<char>(c));
@@ -68,8 +73,8 @@ void writeOptStr(Print& out, std::optional<std::string_view> s) {
 
 void writeHex(Print& out, uint8_t v) {
     char buf[5] = "\"00\"";
-    buf[1] = HEX_CHARS[v >> 4];
-    buf[2] = HEX_CHARS[v & 0x0F];
+    buf[1] = hexDigit(v >> 4);
+    buf[2] = hexDigit(v);
     out.print(buf);
 }
 
@@ -90,7 +95,7 @@ void wf_x(Print& out, std::string_view k, uint32_t v, bool last) {
     char buf[11];
     buf[0] = '0'; buf[1] = 'x';
     for (int i = 0; i < 8; ++i) {
-        buf[2 + i] = HEX_CHARS[(v >> (28 - i * 4)) & 0xF];
+        buf[2 + i] = hexDigit(v >> (28 - i * 4));
     }
     buf[10] = '\0';
     out.print('"');

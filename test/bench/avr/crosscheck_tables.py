@@ -14,11 +14,20 @@ reporting a wrong number.
 Coverage is partial by construction: a table lives in the translation units that
 reference it, and one too large to compile is in no object at all — so the count
 is reported (the harness gates only on the ones that were checked).
+azaraC's own hand-written tables (HAND_WRITTEN_TABLES) share the `_TABLE` suffix so
+that the RAM gate in autoresearch.sh sees them; they are not parsed here and are
+excluded from the count.
 """
 
 import sys
 
 SUFFIXES = ('_POOL', '_TABLE')
+
+# azaraC's own small Flash tables (internal/DcxHelper.cpp) follow the same name
+# convention as the generated definition tables so that the "not in RAM" gate picks
+# them up, but measure_tables.py does not parse them: they are hand-written, not
+# generated. Their placement is gated by MEGA_NEAR_SYM_ADDR instead.
+HAND_WRITTEN_TABLES = {'RADIUS_TABLE', 'B4_LAYOUT_TABLE'}
 
 
 def main(pools_path: str) -> int:
@@ -32,9 +41,13 @@ def main(pools_path: str) -> int:
     placed = {}
     for line in sys.stdin:
         parts = line.split()
-        if len(parts) != 4 or len(parts[2]) != 1 or not parts[2].isalpha():
+        if len(parts) < 4 or len(parts[2]) != 1 or not parts[2].isalpha():
             continue
-        name = parts[3].rsplit('::', 1)[-1]
+        # A demangled name in an anonymous namespace contains spaces, so the name is
+        # everything after the type field, not just parts[3].
+        name = ' '.join(parts[3:]).rsplit('::', 1)[-1]
+        if name in HAND_WRITTEN_TABLES:
+            continue
         if name.endswith(SUFFIXES):
             placed[name] = max(placed.get(name, 0), int(parts[1]))
 
