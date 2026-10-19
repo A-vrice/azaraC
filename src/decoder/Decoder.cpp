@@ -11,9 +11,7 @@ namespace internal {
 // CRC-24Q  (generator 0x1864CFB, GPS/QZSS standard)
 static constexpr uint32_t CRC24Q_POLY = 0x1864CFBu;
 
-// ニブル表の 1 項目: 4 bit の {i, 0000} をレジスタに取り込んだ結果（MSB-first, init=0）。
-// 1 ビットずつの `crc <<= 1; if (crc & 0x1000000) crc ^= POLY;` を 4 回ぶんまとめた値。
-// 16 エントリの表はこれから生成する（手書きの定数を置かない）。
+// ニブル表の 1 項目: 4 bit の {i, 0000} を MSB-first, init=0 で取り込んだ結果。 1 ビットずつの `crc <<= 1; if (crc & 0x1000000) crc ^= POLY;` 4 回ぶん。表はこれから生成する（手書き定数を置かない）。
 static constexpr uint32_t crc24qT4(uint32_t i) {
     uint32_t c = i << 20;
     for (uint8_t k = 0; k < 4; ++k) {
@@ -24,8 +22,7 @@ static constexpr uint32_t crc24qT4(uint32_t i) {
 }
 
 #if defined(__AVR__)
-// AVR: 32 bit の `>> 20` / `<< 4` は LSR/ROR の回転ループに展開されるため（実測: -Os）、
-// 24 bit レジスタを 3 バイトで持ち 8 bit 演算だけで回す。表は Flash に置き 3 分割で読む。
+// AVR: 32 bit の `>> 20` / `<< 4` は LSR/ROR の回転ループに展開されるため（実測: -Os）、 24 bit レジスタを 3 バイトで持ち 8 bit 演算だけで回す。表は Flash に置き 3 分割で読む。
 #define AZARAC_CRC24Q_T4B(BYTE) \
     (uint8_t)(crc24qT4(0)  >> (BYTE)), (uint8_t)(crc24qT4(1)  >> (BYTE)), \
     (uint8_t)(crc24qT4(2)  >> (BYTE)), (uint8_t)(crc24qT4(3)  >> (BYTE)), \
@@ -106,8 +103,7 @@ uint32_t Decoder::crc24q(const uint8_t* data, uint16_t bit_len) {
 uint32_t Decoder::messageIdentity(uint8_t* bits) {
     const uint8_t mt = (uint8_t)((bits[1] >> 2) & 0x3Fu);   // MT = frame bit 8..13（byte 1 の上位 6 bit）
     if (mt != 44) return crc24q(bits + 1, 212);
-    // SD（SDMT bit 14 + SDM bit 15..23 = byte 1 の下位 2 bit と byte 2）だけをゼロにして digest を取る。
-    // 32 B のフレームをコピーしないよう、対象 2 バイトを外して取ったあと戻す（呼び出し側から見てフレームは不変）。
+    // SD（byte 1 の下位 2 bit + byte 2 = frame bit 14..23）だけゼロにして digest を取る。 32 B のフレームをコピーしないよう、対象 2 バイトを外して取ったあと戻す（呼び出し側から見てフレームは不変）。
     const uint8_t sd_hi = bits[1];
     const uint8_t sd_lo = bits[2];
     bits[1] &= 0xFCu;
@@ -118,10 +114,8 @@ uint32_t Decoder::messageIdentity(uint8_t* bits) {
     return identity;
 }
 
-// Bit extraction (MSB-first, 0-indexed)
 uint32_t Decoder::getBits(const uint8_t* buf, uint16_t start, uint8_t len) {
-    // OOB: return 0 + set oob_ so decode() rejects (embedded safety, no assert).
-    // Limit 256 (not 250): Frame::bits is a 256-bit array; bits 250-255 are padding.
+    // OOB: return 0 and set oob_ so decode() rejects (embedded, no assert). Limit 256 (not 250): Frame::bits is 256 bits wide; bits 250-255 are padding.
     if (start + len > 256) { oob_ = true; return 0; }
     uint32_t val = 0;
     for (uint8_t i = 0; i < len; ++i) {
@@ -131,7 +125,7 @@ uint32_t Decoder::getBits(const uint8_t* buf, uint16_t start, uint8_t len) {
     return val;
 }
 
-// 64-bit bit extraction (MSB-first, 0-indexed) — for fields > 32 bits
+// 64-bit extraction (MSB-first, 0-indexed) — for fields > 32 bits
 uint64_t Decoder::getBits64(const uint8_t* buf, uint16_t start, uint8_t len) {
     // Same silent-zero-with-oob-flag policy as getBits()
     if (start + len > 256) { oob_ = true; return 0; }
@@ -143,7 +137,6 @@ uint64_t Decoder::getBits64(const uint8_t* buf, uint16_t start, uint8_t len) {
     return val;
 }
 
-// Simple civil date to days since 1970-01-01
 void Decoder::civil_from_days(uint32_t days_since_1970, uint32_t& y, uint32_t& m, uint32_t& d) {
     uint32_t z = days_since_1970 + 719468u;
     uint32_t era = z / 146097u;
@@ -166,7 +159,6 @@ uint32_t Decoder::days_from_civil(uint32_t y, uint32_t m, uint32_t d) {
     return era * 146097 + doe - 719468;
 }
 
-// LatLon — 41 bits: lat_ns(1) lat_d(7) lat_m(6) lat_s(6) lon_ew(1) lon_d(8) lon_m(6) lon_s(6)
 LatLon Decoder::extractLatLon(const uint8_t* buf, uint16_t start) {
     LatLon ll{};
     ll.lat_ns  = getBits(buf, start,      1);
@@ -180,7 +172,6 @@ LatLon Decoder::extractLatLon(const uint8_t* buf, uint16_t start) {
     return ll;
 }
 
-// day(5)+hour(5)+min(6) = 16 bits -> TimeFields
 TimeFields Decoder::extractDHM(const uint8_t* buf, uint16_t start, uint32_t report_unix) {
     uint8_t d = getBits(buf, start,      5);
     uint8_t h = getBits(buf, start +  5, 5);
@@ -188,20 +179,16 @@ TimeFields Decoder::extractDHM(const uint8_t* buf, uint16_t start, uint32_t repo
     return resolveTime(0, d, h, m, report_unix);
 }
 
-// Resolve time using report_unix as baseline.
-// report_unix: UNIX time from GPS module (recommended) or SNTP.
-//   < 2000-01-01 (946684800): return unix_time = 0 (unresolved).
 TimeFields Decoder::resolveTime(uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint32_t report_unix) {
     TimeFields t{month, day, hour, minute, 0};
-    // Basic sanity
     if (day < 1 || day > 31 || hour > 23 || minute > 59 || (month > 12 && month != 0)) {
         t.day = t.hour = t.minute = 0;
         return t;
     }
 
-    // Skip year resolution if baseline invalid/uninitialized (< 2000-01-01)
+    // Skip year resolution if baseline invalid (< 2000-01-01); unix_time stays 0.
     if (report_unix < 946684800u) {
-        return t; // unix_time remains 0
+        return t;
     }
 
     uint32_t base_unix = report_unix;
@@ -211,9 +198,10 @@ TimeFields Decoder::resolveTime(uint8_t month, uint8_t day, uint8_t hour, uint8_
     civil_from_days(base_days, y, m, d);
 
     if (month == 0) {
-        // Month not provided (DHM only): pick the (day,hour,minute) occurrence closest to report_unix within a few days' margin (covers clock drift / day-month boundary, e.g. 01/31 23:00 report + 02/01 02:00 event → Feb).
-        // Beyond the margin the message is stale → fall back to most recent PAST occurrence.
-        static constexpr uint32_t MARGIN_SEC = 3u * 86400u; // a few days
+        // No month (DHM only): pick the (day,hour,minute) closest to report_unix.
+        // The few-day margin absorbs clock drift and the month boundary (01/31 23:00 report + 02/01 02:00 event → Feb).
+        // Beyond the margin the message is stale: fall back to the most recent past occurrence.
+        static constexpr uint32_t MARGIN_SEC = 3u * 86400u;
         uint32_t best_y = y, best_m = m;
         uint32_t best_diff = 0xFFFFFFFFu;
         for (int8_t dm = -1; dm <= 1; ++dm) {
@@ -239,7 +227,7 @@ TimeFields Decoder::resolveTime(uint8_t month, uint8_t day, uint8_t hour, uint8_
             }
         }
     } else {
-        // Month provided (MDHM): resolve year from base with month-wrap correction
+        // Month provided (MDHM): resolve the year from the baseline with month-wrap correction.
         uint32_t cur_m = m;
         m = month;
         int32_t diff = (int32_t)month - (int32_t)cur_m;
@@ -247,17 +235,16 @@ TimeFields Decoder::resolveTime(uint8_t month, uint8_t day, uint8_t hour, uint8_
         else if (diff < -6) y++;
     }
 
-    // Normalize date (e.g. resolve Feb 29 to Mar 1 in non-leap years)
+    // Normalize the date (e.g. Feb 29 in a non-leap year resolves to Mar 1).
     uint32_t resolved_days = days_from_civil(y, m, day);
     civil_from_days(resolved_days, y, m, d);
 
     t.unix_time = resolved_days * 86400u + (uint32_t)hour * 3600u + (uint32_t)minute * 60u;
-    t.day = d;   // update to normalized day
-    t.month = m; // update to normalized month
+    t.day = d;
+    t.month = m;
     return t;
 }
 
-// Arrival time: 12-bit field (day_offset:1, hour:5, min:6) -> TimeFields
 TimeFields Decoder::resolveArrivalTime(uint16_t raw, uint32_t base_unix) {
     TimeFields t{};
     if (raw == 0) return t;
@@ -268,11 +255,11 @@ TimeFields Decoder::resolveArrivalTime(uint16_t raw, uint32_t base_unix) {
 
     if (hour > 23 || min > 59) return t;
 
-    // Skip year/month resolution if base_unix invalid (< 2000-01-01)
+    // Skip year/month resolution if base_unix is invalid (< 2000-01-01); unix_time, month, day stay 0.
     if (base_unix < 946684800u) {
         t.hour = hour;
         t.minute = min;
-        return t; // unix_time, month, day remain 0 (unresolved)
+        return t;
     }
 
     uint32_t base_days = base_unix / 86400u;
@@ -288,8 +275,6 @@ TimeFields Decoder::resolveArrivalTime(uint16_t raw, uint32_t base_unix) {
     return t;
 }
 
-// Read up to 3 notification codes (9 bits each) starting at bit offset
-// Returns count of valid codes read
 uint8_t Decoder::readNotifications(const uint8_t* b, uint16_t start, uint16_t* notification) {
     uint8_t count = 0;
     for (uint8_t i = 0; i < 3; ++i) {
@@ -300,7 +285,6 @@ uint8_t Decoder::readNotifications(const uint8_t* b, uint16_t start, uint16_t* n
     return count;
 }
 
-// Main decode entry
 bool Decoder::decode(const Frame& frame, Message& out, uint32_t report_unix) {
     oob_ = false;
     out.clear();

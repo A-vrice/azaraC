@@ -1,6 +1,4 @@
-; azaraC を使う PlatformIO プロジェクトの設定例
-; プロジェクトルートに platformio.ini としてコピーして使う
-; azaraC は C++17 必須のため -std=gnu++17 を指定する
+; azaraC を使う PlatformIO プロジェクトの設定例。プロジェクトルートに platformio.ini としてコピーして使う。 azaraC は C++17 必須のため -std=gnu++17 を指定する。
 
 [env:uno]
 platform = atmelavr@5.3.0

@@ -1,12 +1,7 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.17.1 with CI-CD
-// Source module : azarashi.definitions.camf.c10_instruction_library_for_second_ellipse
-// Variable      : qzss_dcx_camf_c10_instruction_library_for_second_ellipse
-// Entries       : 19
-// Strategy      : binary_search
-
-// NOTE: This function may return nullptr for unknown IDs.
-// Callers MUST perform a null-check before using the result.
+// AUTO-GENERATED from azarashi 0.17.1 — do not edit
+// azarashi.definitions.camf.c10_instruction_library_for_second_ellipse → qzss_dcx_camf_c10_instruction_library_for_second_ellipse: 19 entries, strategy binary_search
+// Unknown id returns nullptr — callers MUST null-check.
 
 #if defined(__AVR__)
 #include "../internal/avr_std/cstdint"

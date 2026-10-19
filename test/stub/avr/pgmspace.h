@@ -4,9 +4,7 @@
 #include <cstring>
 #define PROGMEM
 #define PGM_P const char*
-// The stub stands in for a device with more than 64 KiB of Flash so that the far
-// addressing path (AZARAC_PGM_PTR / pgm_read_*_far) is what the host build
-// exercises; the short path is the uno's, and is compiled by the real toolchain.
+// Stands in for a device with more than 64 KiB of Flash, so the host build exercises the far addressing path (AZARAC_PGM_PTR / pgm_read_*_far); the short path is the uno's and is compiled by the real toolchain.
 #ifndef FLASHEND
 #define FLASHEND 0x3FFFFUL
 #endif
@@ -14,7 +12,8 @@ inline void* memcpy_P(void* d, const void* s, std::size_t n) { return std::memcp
 inline char* strncpy_P(char* d, const char* s, std::size_t n) { return std::strncpy(d, s, n); }
 inline char* strcpy_P(char* d, const char* s) { return std::strcpy(d, s); }
 inline uint8_t  pgm_read_byte(const void* a)  { return *static_cast<const uint8_t*>(a); }
-// Read via memcpy into a typed local: the source may be unaligned (PROGMEM pools are byte-packed), so dereferencing a cast pointer can trap on hosts with strict alignment (e.g. ARM).
+// memcpy into a typed local: the source may be unaligned (PROGMEM pools are byte-packed), and dereferencing a cast pointer can trap on hosts with strict alignment (e.g.
+// ARM).
 inline uint16_t pgm_read_word(const void* a) {
     uint16_t v;
     std::memcpy(&v, a, sizeof(v));
@@ -27,9 +26,8 @@ inline uint32_t pgm_read_dword(const void* a) {
 }
 inline const void* pgm_read_ptr(const void* a) { return *static_cast<void* const*>(a); }
 
-// Far variants: on a host a Flash address is just an address, so a cast is
-// enough (the real avr-libc loads RAMPZ and uses lpm/memcpy_PF). The addresses
-// are host-wide (uintptr_t) — a 32-bit one would truncate.
+// Far variants: on a host a Flash address is just an address, so a cast suffices (avr-libc loads RAMPZ and uses lpm/memcpy_PF).
+// Addresses must be host-wide (uintptr_t): a 32-bit one would truncate.
 #define pgm_get_far_address(flash_array) \
     (static_cast<uintptr_t>(reinterpret_cast<uintptr_t>(&(flash_array))))
 inline uint8_t  pgm_read_byte_far(uintptr_t a)  { return *reinterpret_cast<const uint8_t*>(a); }

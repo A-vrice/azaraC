@@ -1,5 +1,4 @@
-// test/core/test_boundary_values.cpp — 境界値テスト
-// 緯度経度、日付、時間の境界値テスト
+// test/core/test_boundary_values.cpp — 緯度経度・日付・時間の境界値テスト
 
 #include "../test_helpers.h"
 #include "doctest.h"
@@ -11,7 +10,6 @@ using namespace azaraC;
 
 TEST_CASE("Boundary: Latitude 90°N") {
     uint8_t buf[32] = {};
-    // lat_ns=0, lat_deg=90, lat_min=59, lat_sec=59
     setBits(buf, 0, 1, 0);       // lat_ns = 0 (North)
     setBits(buf, 1, 7, 90);      // lat_deg = 90
     setBits(buf, 8, 6, 59);      // lat_min = 59
@@ -26,7 +24,6 @@ TEST_CASE("Boundary: Latitude 90°N") {
 
 TEST_CASE("Boundary: Latitude 90°S") {
     uint8_t buf[32] = {};
-    // lat_ns=1, lat_deg=90, lat_min=59, lat_sec=59
     setBits(buf, 0, 1, 1);       // lat_ns = 1 (South)
     setBits(buf, 1, 7, 90);      // lat_deg = 90
     setBits(buf, 8, 6, 59);      // lat_min = 59
@@ -41,7 +38,6 @@ TEST_CASE("Boundary: Latitude 90°S") {
 
 TEST_CASE("Boundary: Longitude 180°E") {
     uint8_t buf[32] = {};
-    // lon_ew=0, lon_deg=180, lon_min=59, lon_sec=59
     setBits(buf, 20, 1, 0);      // lon_ew = 0 (East)
     setBits(buf, 21, 8, 180);    // lon_deg = 180
     setBits(buf, 29, 6, 59);     // lon_min = 59
@@ -56,7 +52,6 @@ TEST_CASE("Boundary: Longitude 180°E") {
 
 TEST_CASE("Boundary: Longitude 180°W") {
     uint8_t buf[32] = {};
-    // lon_ew=1, lon_deg=180, lon_min=59, lon_sec=59
     setBits(buf, 20, 1, 1);      // lon_ew = 1 (West)
     setBits(buf, 21, 8, 180);    // lon_deg = 180
     setBits(buf, 29, 6, 59);     // lon_min = 59
@@ -251,7 +246,6 @@ TEST_CASE("Boundary: EEW notification count=3") {
     setBits(bits, 0, 8, 0x53);
     setBits(bits, 8, 6, 43);
     setBits(bits, 17, 4, 1);     // EEW
-    // 3 notification codes: 100, 200, 300
     setBits(bits, 53, 9, 100);
     setBits(bits, 62, 9, 200);
     setBits(bits, 71, 9, 300);

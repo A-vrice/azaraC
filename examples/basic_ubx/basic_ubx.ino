@@ -12,10 +12,9 @@
 //   CFG-SIGNAL-QZSS_L1S_ENA        = 1
 //   CFG-UART1-BAUDRATE              = 9600
 
-// (AZARAC_DEDUP_SLOTS needs no override: the non-AVR default is 512 slots and the AVR preset already lowers it to 64 — see src/azaraC_config.h for the measured false-re-notification counts before shrinking it further.)
+// (AZARAC_DEDUP_SLOTS: no override needed — the non-AVR default is 512 slots and the AVR preset already lowers it to 64; see src/azaraC_config.h for the measured false-re-notification counts.)
 
-// Arduino Uno (AVR) compatibility: the Uno has no Serial1 (single hardware
-// UART = Serial on pins 0/1), so the GNSS module connects to Serial and JSON goes out the same port. Category reduction for the 32KB flash is applied automatically by azaraC_config.h (AVR preset keeps SEISMIC/TSUNAMI only).
+// Arduino Uno (AVR) compatibility: no Serial1 (single hardware UART = Serial on pins 0/1), so the GNSS module and the JSON output share that port. azaraC_config.h applies the 32KB-flash category reduction automatically (AVR preset keeps SEISMIC/TSUNAMI only).
 #include <azaraC.h>
 
 

@@ -1,14 +1,11 @@
 #pragma once
 // Definition-table string access with AVR PROGMEM support.
-// On AVR, label strings live in Flash; std::string_view cannot address it, so lookups copy into a shared RAM buffer. The returned view/pointer is valid only until the NEXT definition lookup call. Non-AVR: identity passthroughs.
+// On AVR, label strings live in Flash, which std::string_view cannot address, so lookups copy into a shared RAM buffer; the returned view/pointer is valid only until the NEXT definition lookup call.
+// Non-AVR: passthrough.
 //
-// AVR address spaces: on a device with more than 64 KiB of Flash the tables are
-// linked well above 0xFFFF, where a 16-bit progmem pointer cannot reach them, so
-// addresses (and reads) go through the far accessors there; on smaller devices
-// they are plain progmem pointers. Offsets stay 16-bit relative to a pool — each
-// pool is far smaller than 64 KiB — so a row is still {id, parent, offset}.
-// Those parts also keep the tables out of the low-Flash progmem cluster, which
-// the Arduino core's own tables share: see AZARAC_PROGMEM in azaraC_config.h.
+// AVR addresses: tables on a >64 KiB Flash device link above 0xFFFF, where a 16-bit progmem pointer cannot reach, so addresses and reads go through the far accessors (plain progmem pointers below that).
+// Rows remain {id, parent, offset} — offsets are 16-bit within a pool, each far below 64 KiB.
+// This also keeps the tables out of the low-Flash progmem cluster shared with the Arduino core's tables (AZARAC_PROGMEM in azaraC_config.h).
 
 #include "../azaraC_config.h"
 #if defined(__AVR__)
@@ -38,15 +35,11 @@ namespace def {
 #include <avr/io.h>          // FLASHEND
 #endif
 
-// A pool is addressed by `azarac_pgm_ptr`: a Flash address on devices that need
-// more than 16 bits for it, a plain progmem pointer otherwise. Read the byte /
-// word at an *offset into* such an address with the accessors below, and take an
-// array's address with AZARAC_PGM_PTR — a bare pointer would be truncated on the
-// far devices.
+// A pool is addressed by `azarac_pgm_ptr`: a Flash address on far devices, a plain progmem pointer otherwise.
+// Read at an *offset into* such an address with the accessors below, and take an array's address with AZARAC_PGM_PTR — a bare pointer would be truncated on the far devices.
 #if FLASHEND > 0xFFFF
 #if defined(AZARAC_AVR_STUB)
-// Host validation build: a "Flash address" is a host pointer there, so it is as
-// wide as one (see test/stub/avr/pgmspace.h).
+// Host validation build: a "Flash address" is a host pointer, as wide as one (test/stub/avr/pgmspace.h).
 using azarac_pgm_ptr = uintptr_t;
 #else
 using azarac_pgm_ptr = uint32_t;     // a 24-bit Flash address
@@ -67,7 +60,7 @@ inline void azarac_read_block(char* dst, azarac_pgm_ptr src, size_t n) { memcpy_
 inline void azarac_copy_string(char* dst, azarac_pgm_ptr src, size_t n) { strncpy_P(dst, src, n); }
 #endif
 
-// Single shared RAM buffer: two static buffers (800 B each) would overflow the Uno's 2 KB SRAM. Valid until the next definition lookup call.
+// One shared RAM buffer: two 800 B buffers would overflow the Uno's 2 KB SRAM. Valid until the next lookup.
 inline char* azarac_flash_buf() {
     static char buf[AZARAC_FLASH_BUF_SIZE];
     return buf;
@@ -79,8 +72,7 @@ inline std::string_view azarac_pgm_view(azarac_pgm_ptr src, size_t n) {
     buf[n] = '\0';
     return std::string_view(buf, n);
 }
-// Length of a pool entry: the pools are NUL-separated, so a table does not have
-// to store the length in its row — one byte saved per row across ~17,000 rows.
+// Pool entries are NUL-separated, so a row stores no length — 1 byte saved per row over ~17,000 rows.
 // Bounded by the buffer size so a malformed pool cannot walk off the end.
 inline size_t azarac_pgm_len(azarac_pgm_ptr src) {
     size_t n = 0;
@@ -90,10 +82,8 @@ inline size_t azarac_pgm_len(azarac_pgm_ptr src) {
 inline std::string_view azarac_pgm_view_z(azarac_pgm_ptr src) {
     return azarac_pgm_view(src, azarac_pgm_len(src));
 }
-// Two-part labels: a generated table may store a shared region name once and
-// join it to the child at lookup time (see scripts/gen/strategy.py,
-// factor_parents). Both halves live in Flash, so the join lands in the same
-// shared RAM buffer — the two-copy form costs no extra SRAM.
+// Two-part labels: a table may store a shared region name once and join it to the child at lookup time (scripts/gen/strategy.py, factor_parents).
+// Both halves are in Flash, so the join costs no extra SRAM.
 inline size_t azarac_pgm_append(char* buf, size_t at, azarac_pgm_ptr src) {
     size_t n = azarac_pgm_len(src);
     if (n > AZARAC_FLASH_BUF_SIZE - 1 - at) n = AZARAC_FLASH_BUF_SIZE - 1 - at;
@@ -107,9 +97,8 @@ inline std::string_view azarac_pgm_join_z(azarac_pgm_ptr a, azarac_pgm_ptr b) {
     buf[n] = '\0';
     return std::string_view(buf, n);
 }
-// Three-part labels: the same idea one level deeper — a shared fragment may
-// itself repeat (" City, Aichi Prefecture" over " City, " + "Aichi
-// Prefecture"). Still one copy into the same buffer.
+// Three-part labels: the same idea one level deeper, where a shared fragment itself repeats (" City, Aichi Prefecture" over " City, " + "Aichi Prefecture").
+// Still one copy into the same buffer.
 inline std::string_view azarac_pgm_join3(azarac_pgm_ptr a, azarac_pgm_ptr b, azarac_pgm_ptr c) {
     char* buf = azarac_flash_buf();
     size_t n = azarac_pgm_append(buf, 0, a);

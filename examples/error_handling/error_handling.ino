@@ -15,7 +15,6 @@
 azaraC::Parser  parser;
 azaraC::Message msg;
 
-// 定数定義
 static constexpr uint8_t  QZSS_SVID_MIN  = 181;  // PRN181–191（実データには ID 53/54 = PRN181/182 もある）
 static constexpr uint8_t  QZSS_SVID_MAX  = 191;
 static constexpr uint8_t  MSG_TYPE_MT43  = 43;
@@ -24,39 +23,15 @@ static constexpr uint32_t HEARTBEAT_MS   = 5000;
 static constexpr uint32_t STATS_INTERVAL = 10;  // メッセージ数
 
 //
-// この変数は parser.feed() の第3引数として渡され、DCR/DCX電文の「年」を正確に算出するために使用されます。値が0の場合、年は解決されませんが月・日・時・分は正しく取得できます。
+// この変数は parser.feed() の第3引数で、DCR/DCX 電文の「年」の算出に使われる。0 なら年は解決されないが月・日・時・分は正しく取れる。ライブラリは UBX-NAV-PVT (0x01 0x07) をパースしないため、時刻源はユーザーが用意する:
+//   - SNTP: uint32_t now = (time(nullptr) > 0) ? static_cast<uint32_t>(time(nullptr)) : 0;  (with_sntp.ino)
+//   - UBX-NAV-PVT を手動パース: payload[12..13]=year, [14]=month, [15]=day, [16]=hour, [17]=min, [18]=sec
+//   - RTC など他の同期手段
 //
-// ライブラリはUBX-NAV-PVT (0x01 0x07) をパースしないため、ユーザーは別途実装する必要があります。以下は実装例です：
-//
-//   【方法1: SNTPを使用】
-//   // with_sntp.ino の例: time(nullptr) で現在時刻を取得
-//   uint32_t now = (time(nullptr) > 0) ? static_cast<uint32_t>(time(nullptr)) : 0;
-//
-//   【方法2: UBX-NAV-PVTを手動パース】
-//   // UBX-NAV-PVT メッセージ (クラス0x01, ID0x07) を受信し、
-//   // iTOW (4bytes) + 年月日時分秒フィールドから UNIX時刻を計算して更新
-//   // 例:
-//   //   if (ubx_class == 0x01 && ubx_id == 0x07) {
-//   //       uint16_t year  = (payload[12] << 8) | payload[13];
-//   //       uint8_t  month = payload[14];
-//   //       uint8_t  day   = payload[15];
-//   //       uint8_t  hour  = payload[16];
-//   //       uint8_t  min   = payload[17];
-//   //       uint8_t  sec   = payload[18];
-//   //       cached_gnss_unix_time = to_unix_time(year, month, day, hour, min, sec);
-//   //   }
-//
-//   【方法3: 他の時刻源】
-//   // GPSセンテロドライブ、RTC、または他の時刻同期手段から取得
-//
-// 詳細は with_sntp.ino の「SNTP時刻解決付きパターン」を参照してください。
 
-// to_unix_time ヘルパー関数
-// UTCの年月日時分秒からUNIX時刻（秒）を計算します。
-// 整数演算のみ（Decoder::days_from_civil と同等、AVRで軽量）。
+// UTC の年月日時分秒 → UNIX 秒。Decoder::days_from_civil と同等の Howard Hinnant 整数演算のみ（float 不使用、AVR で軽量）。
 static uint32_t to_unix_time(uint16_t year, uint8_t month, uint8_t day,
                              uint8_t hour, uint8_t minute, uint8_t sec) {
-    // Howard Hinnant days_from_civil — 整数のみ、浮動小数点不使用
     uint32_t y = year;
     uint32_t m = month;
     uint32_t d = day;
@@ -74,11 +49,9 @@ static uint32_t to_unix_time(uint16_t year, uint8_t month, uint8_t day,
 
 static uint32_t cached_gnss_unix_time = 0;
 
-// 統計カウンタ
-// Parser::feed() が true を返した時点で msg.valid は保証されるため、 total_messages は feed() が true を返した回数をカウントする。
-// 将来 CRC/フレームエラーを Parser から取得できるようになったら、 errors カウンタを追加して error rate を算出する設計にできる。
+// Parser::feed() が true を返した時点で msg.valid は保証されるため、total_messages は feed() の成功回数。将来 CRC/フレームエラーが API から取れるようになったら、errors を足して error rate を算出する。
 struct Statistics {
-    uint32_t total_messages = 0;      // feed() が true を返した回数
+    uint32_t total_messages = 0;
     uint32_t mt43_count = 0;          // MT=43 メッセージ数
     uint32_t mt44_count = 0;          // MT=44 メッセージ数
     uint32_t last_svid = 0;           // 最後に受信したSVID
@@ -86,7 +59,6 @@ struct Statistics {
 
 Statistics stats;
 
-// 統計情報を表示
 void printStatistics() {
     Serial.println(F("=== azaraC Statistics ==="));
     Serial.print(F("Total messages:    "));
@@ -100,10 +72,7 @@ void printStatistics() {
     Serial.println(F("========================"));
 }
 
-// メッセージの妥当性チェック
-// 注意: Parser::feed() が true を返した時点で msg.valid == true は保証されている。
-// この関数は feed() 呼出し前に呼ばれることはないため、msg.valid チェックはデッドコード。
-// 将来、invalid なメッセージも取得できる API が追加された時点で復活させる。
+// 注意: Parser::feed() が true を返した時点で msg.valid == true は保証されている。この関数は feed() 呼出し前に呼ばれないため msg.valid チェックはデッドコード。invalid も取れる API ができたら復活させる。
 bool validateMessage(const azaraC::Message& msg) {
     // SVIDの範囲チェック (QZSS L1S PRN: 181-191)
     if (msg.svid < QZSS_SVID_MIN || msg.svid > QZSS_SVID_MAX) {
@@ -112,7 +81,6 @@ bool validateMessage(const azaraC::Message& msg) {
         // 警告のみで処理は続行
     }
 
-    // msg_typeのチェック
     if (msg.msg_type != MSG_TYPE_MT43 && msg.msg_type != MSG_TYPE_MT44) {
         Serial.print(F("[ERROR] Unknown msg_type: "));
         Serial.println(msg.msg_type);
@@ -122,7 +90,6 @@ bool validateMessage(const azaraC::Message& msg) {
     return true;
 }
 
-// MT=43 メッセージの詳細バリデーション
 bool validateMt43(const azaraC::Message& msg) {
     const azaraC::Mt43Data* mt43 = msg.getMt43();
     if (!mt43) {
@@ -130,7 +97,6 @@ bool validateMt43(const azaraC::Message& msg) {
         return false;
     }
 
-    // disaster_categoryの範囲チェック
     bool valid_category = false;
     switch (mt43->disaster_category) {
         case 1: case 2: case 3: case 4: case 5: case 6:
@@ -143,7 +109,6 @@ bool validateMt43(const azaraC::Message& msg) {
             break;
     }
 
-    // 日付の妥当性チェック
     if (mt43->event_time.month > 12) {
         Serial.print(F("[WARN] Invalid month: "));
         Serial.println(mt43->event_time.month);
@@ -164,7 +129,6 @@ bool validateMt43(const azaraC::Message& msg) {
     return true;
 }
 
-// MT=44 メッセージの詳細バリデーション
 bool validateMt44(const azaraC::Message& msg) {
     const azaraC::Mt44Data* mt44 = msg.getMt44();
     if (!mt44) {
@@ -172,7 +136,6 @@ bool validateMt44(const azaraC::Message& msg) {
         return false;
     }
 
-    // service_kindのチェック
     switch (mt44->service_kind) {
         case azaraC::Mt44ServiceKind::LAlert:
         case azaraC::Mt44ServiceKind::JAlert:
@@ -208,19 +171,17 @@ void loop() {
         uint8_t b = static_cast<uint8_t>(Serial1.read());
 
 
-        // 第3引数にUNIX時刻を渡すことで、DCR/DCX電文の「年」を正確に算出できます
+        // 第3引数に UNIX 時刻を渡すと DCR/DCX 電文の「年」が解決する
         if (parser.feed(b, msg, cached_gnss_unix_time)) {
             // feed() == true で msg.valid は保証される
             stats.total_messages++;
             stats.last_svid = msg.svid;
 
-            // 基本的な妥当性チェック (SVID / msg_type 範囲チェック)
             if (!validateMessage(msg)) {
                 Serial.println(F("[ERROR] Message validation failed"));
                 continue;
             }
 
-            // メッセージタイプ別の処理
             if (msg.msg_type == MSG_TYPE_MT43) {
                 stats.mt43_count++;
                 if (!validateMt43(msg)) {
@@ -233,11 +194,9 @@ void loop() {
                 }
             }
 
-            // JSON出力
             azaraC::toJson(msg, Serial);
             Serial.println();
 
-            // 統計表示
             if (stats.total_messages % STATS_INTERVAL == 0) {
                 printStatistics();
             }

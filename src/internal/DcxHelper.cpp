@@ -33,46 +33,42 @@ int32_t decodeLongitude17_45_225(uint32_t code) {
     );
 }
 
-// Radius decoding (5-bit code)
-// IS-QZSS-DCX-003 Table 4.2-17 / 4.2-18
-// Radius[m] = 10^(log10(MinRadius) + a * (log10(MaxRadius) - log10(MinRadius)) / Max_a)
-// MinRadius = 216.20, MaxRadius = 2500000, Max_a = 31
+// Radius decoding (5-bit code): IS-QZSS-DCX-003 Table 4.2-17 / 4.2-18 Radius[m] = 10^(log10(216.20) + a * (log10(2500000) - log10(216.20)) / 31)
 
 int32_t decodeRadiusCode(uint8_t code) {
-    // Radius[m] = table lookup, 0.001km precision (1 m)
     static constexpr int32_t radius_table_m[32] = {
-        216,    // 0
-        292,    // 1
-        395,    // 2
-        535,    // 3
-        723,    // 4
-        978,    // 5
-        1322,   // 6
-        1788,   // 7
-        2418,   // 8
-        3269,   // 9
-        4421,   // 10
-        5979,   // 11
-        8085,   // 12
-        10933,  // 13
-        14784,  // 14
-        19992,  // 15
-        27035,  // 16
-        36559,  // 17
-        49439,  // 18
-        66855,  // 19
-        90407,  // 20
-        122255, // 21
-        165324, // 22
-        223564, // 23
-        302322, // 24
-        408824, // 25
-        552846, // 26
-        747603, // 27
-        1010970,// 28
-        1367116,// 29
-        1848727,// 30
-        2500000 // 31
+        216,
+        292,
+        395,
+        535,
+        723,
+        978,
+        1322,
+        1788,
+        2418,
+        3269,
+        4421,
+        5979,
+        8085,
+        10933,
+        14784,
+        19992,
+        27035,
+        36559,
+        49439,
+        66855,
+        90407,
+        122255,
+        165324,
+        223564,
+        302322,
+        408824,
+        552846,
+        747603,
+        1010970,
+        1367116,
+        1848727,
+        2500000
     };
 
     if (code < 32) {
@@ -102,14 +98,13 @@ int32_t decodeAzimuth7(uint8_t code) {
 uint8_t decodePrefectureBitmask(uint64_t ex9, uint8_t* out_positions) {
     uint8_t count = 0;
 
-    // EX8=0: EX9 = [47-bit prefecture][17-bit reserved]; prefecture = ex9[63:17] (stream bits 147..193); reserved = ex9[16:0] (bits 194..210).
-    // Bit 0 (LSB) = Hokkaido (JIS 1), bit 46 (MSB) = Okinawa (JIS 47).
+    // EX8=0: prefecture = ex9[63:17] (stream bits 147..193); ex9[16:0] (bits 194..210) reserved.
 
-    uint64_t pref = ex9 >> 17;  // Extract 47-bit prefecture field
+    uint64_t pref = ex9 >> 17;
 
     for (uint8_t i = 0; i < 47; ++i) {
         if (pref & (1ULL << i)) {
-            // i+1 = JIS code (1=Hokkaido … 47=Okinawa)
+            // i+1 = JIS code
             out_positions[count++] = i + 1;
         }
     }
@@ -120,7 +115,7 @@ uint8_t decodePrefectureBitmask(uint64_t ex9, uint8_t* out_positions) {
 uint8_t decodeCityCodeList(uint64_t ex9, uint16_t* out_codes) {
     uint8_t count = 0;
 
-    // EX8=1: four 16-bit codes at bits {0..15, 16..31, 32..47, 48..63}
+    // EX8=1: four 16-bit codes, LSB-first.
 
     for (uint8_t i = 0; i < 4; ++i) {
         uint16_t code = static_cast<uint16_t>((ex9 >> (i * 16)) & 0xFFFF);
@@ -132,18 +127,14 @@ uint8_t decodeCityCodeList(uint64_t ex9, uint16_t* out_codes) {
     return count;
 }
 
-// B1 (A17=00) - Improved Resolution of Main Ellipse (EWSS CAMF v1.1 §3.7.1)
-// A18 bit[14]=MSB (spec bit 131), bit[0]=LSB (spec bit 145); getBits() reads MSB-first.
-// C1: spec 131-133 → a18[14:12]; C2: spec 134-136 → a18[11:9]; C3: spec 137-139 → a18[8:6]
-// C4: spec 140-142 → a18[5:3]; Reserved: spec 143-145 → a18[2:0]
+// B1 (A17=00) - Improved Resolution of Main Ellipse (EWSS CAMF v1.2 §3.7.1) A18 is MSB-first (a18[14] = spec bit 131): C1..C4 = spec 131-133/134-136/137-139/140-142 → a18[14:12]/[11:9]/[8:6]/[5:3] (3b each); a18[2:0] reserved.
 
 B1Refinement decodeB1Refinement(uint16_t a18) {
     B1Refinement b1;
-    b1.c1 = (a18 >> 12) & 0x07;  // spec[131:133] → a18[14:12]
-    b1.c2 = (a18 >> 9)  & 0x07;  // spec[134:136] → a18[11:9]
-    b1.c3 = (a18 >> 6)  & 0x07;  // spec[137:139] → a18[8:6]
-    b1.c4 = (a18 >> 3)  & 0x07;  // spec[140:142] → a18[5:3]
-    // a18[2:0] reserved (spec bits 143-145)
+    b1.c1 = (a18 >> 12) & 0x07;
+    b1.c2 = (a18 >> 9)  & 0x07;
+    b1.c3 = (a18 >> 6)  & 0x07;
+    b1.c4 = (a18 >> 3)  & 0x07;
     return b1;
 }
 
@@ -172,13 +163,14 @@ int32_t b1RefinedRadiusM(uint8_t code, int32_t base_radius_m, uint8_t original_r
     return base_radius_m - (delta_m * code + 4) / 8;
 }
 
-// B2 (A17=01) - Position of the Centre of the Hazard (EWSS CAMF v1.1 §3.7.2)
+// B2 (A17=01) - Position of the Centre of the Hazard (EWSS CAMF v1.2 §3.7.2)
 
 B2HazardCenter decodeB2HazardCenter(uint8_t c5, uint8_t c6) {
     B2HazardCenter r{};
     r.c5 = c5;
     r.c6 = c6;
-    // delta = -10 + 20 * code / 128 → microdegrees; code 64..127 rounds up (+1) gives exact +10,000,000 at code=127 Matches EWSS-CAMF v1.2 §3.7.2 C5/C6 table exactly for all visible entries (e.g. code 0 → -10°, 43 → -3.28125°, 86 → +3.59375°, 107 → +6.875°, 127 → +10°).
+    // delta = -10 + 20 * code / 128 (microdegrees); code 64..127 rounds up (+1) so code 127 gives exactly +10,000,000.
+    // Matches the EWSS-CAMF v1.2 §3.7.2 C5/C6 table for all visible entries (e.g. 0 → -10°, 127 → +10°).
     if (c5 <= 63) r.delta_lat_microdeg = -10000000 + 156250 * c5;
     else          r.delta_lat_microdeg = -10000000 + 156250 * (c5 + 1);
     if (c6 <= 63) r.delta_lon_microdeg = -10000000 + 156250 * c6;
@@ -187,9 +179,7 @@ B2HazardCenter decodeB2HazardCenter(uint8_t c5, uint8_t c6) {
 }
 
 
-// B4 field layout table
-// Each A4 hazard code maps to up to 4 D-field specs (d_idx=0xFF terminates).
-// Fields are ordered MSB→LSB within A18[15:0] per EWSS CAMF v1.2 §3.7.4.
+// B4 field layout: A4 hazard code → up to 4 D-field specs, ordered MSB→LSB within A18[15:0] per EWSS CAMF v1.2 §3.7.4 (d_idx=0xFF terminates).
 
 namespace {
 
@@ -201,10 +191,10 @@ struct DFieldSpec {
 
 struct HazardB4Layout {
     uint8_t a4_code;
-    DFieldSpec fields[4];  // d_idx=0xFF terminates
+    DFieldSpec fields[4];
 };
 
-// Sorted by a4_code; linear scan is fast enough for ~45 entries.
+// Sorted by a4_code; linear scan over ~45 entries is fast enough.
 static const HazardB4Layout B4_LAYOUTS[] = {
     {4  , {{31,13,2}, {32,11,2}, {255,0,0}, {255,0,0}}},
     {5  , {{30,11,4}, {255,0,0}, {255,0,0}, {255,0,0}}},

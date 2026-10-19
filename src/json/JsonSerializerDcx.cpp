@@ -20,7 +20,6 @@ namespace internal {
 
 #if (AZARAC_ENABLE_DCX_CAMF)
 
-// MT=44 DCX
 void serializeDcx(const Message& m, Print& out) {
     using namespace azaraC::def;
 
@@ -78,10 +77,9 @@ void serializeDcx(const Message& m, Print& out) {
     wf_s(out, "a10_library_version_label",
         qzss_dcx_camf_a10_library_version_lookup(d->camf.a10));
 
-    // A11 Guidance to react library
-    // IS-QZSS-DCX-004 §4.2.3.9 Table 4.2-12 / EWSS CAMF v1.2 §3.5.3, §11:
-    // A11 は List A 5bit (a11 >> 5) と List B 5bit (a11 & 0x1F) の2コード。
-    // 国際表 (A9=0) は List A / List B を別々に引く。日本の表は 10bit を鍵にした結合表なので1本で足りる（List B は null）。
+    // A11 Guidance to react library (IS-QZSS-DCX-004 §4.2.3.9 Table 4.2-12 / EWSS CAMF v1.2 §3.5.3, §11): A11 は List A 5bit (a11 >> 5) と List B 5bit (a11 & 0x1F) の2コード。
+    // 国際表 (A9=0) は両者を別々に引く。
+    // 日本の表は 10bit を鍵にした結合表なので 1 本で足りる（List B は null）。
     wf_u(out, "a11_guidance", d->camf.a11);
     std::optional<std::string_view> a11_b;
     if (d->camf.a9 == 0) {
@@ -114,8 +112,7 @@ void serializeDcx(const Message& m, Print& out) {
         wf_deg(out, "lon_deg", 1000000, dec.main_ellipse.lon_microdeg, false);
         wf_deg(out, "semi_major_km", 1000, dec.main_ellipse.semi_major_m);
         wf_deg(out, "semi_minor_km", 1000, dec.main_ellipse.semi_minor_m);
-        // azimuth_decideg は 1e-5 deg 単位だが、従来の出力は precision 6（下位は常に 0）なので
-        // 桁数を変えないよう µdeg（×10）で 6 桁として出す。
+        // azimuth_decideg は 1e-5 deg 単位。µdeg（×10）扱いにして他と同じ 6 桁で出す（下位は常に 0）。
         wf_deg(out, "azimuth_deg", 1000000, dec.main_ellipse.azimuth_decideg * 10, /*last=*/!d->camf.b1_present);
 
         // B1 refinement (EWSS CAMF v1.2 §3.7.1)
@@ -176,14 +173,12 @@ void serializeDcx(const Message& m, Print& out) {
             first_detail_field = false;
         };
 
-        // Helper lambda for lookups returning std::optional<std::string_view>
         auto writeDField = [&](const char* name, uint32_t value, bool present, auto lookup) {
             if (!present) return;
             beginDetailField();
             wf_v(out, name, value, lookup(static_cast<uint8_t>(value)), /*last=*/true);
         };
-        // All 36 D-fields go through writeDField
-        // [0]=D1, [1]=D2, [2]=D3, [3]=D4, [4..35]=D5..D36
+        // All 36 D-fields go through writeDField; index [0]=D1 … [3]=D4, [4..35]=D5..D36
         writeDField("d3_azimuth",       b4.d_values[2], b4.d_present[2],
                     qzss_dcx_camf_d3_azimuth_from_centre_of_main_ellipse_to_epicentre_lookup);
         writeDField("d4_vector_length", b4.d_values[3], b4.d_present[3],
@@ -235,7 +230,7 @@ writeDField("d36_typhoon_cat",      b4.d_values[35], b4.d_present[35], qzss_dcx_
             qzss_dcx_ex1_target_area_code_ja_lookup,
             qzss_dcx_ex1_target_area_code_en_lookup, d->ex_lalert_local.ex1, false);
 
-        // Decoded target area code (when main ellipse is absent)
+        // Decoded target area code (main ellipse absent)
         if (dec.target_area_code_present) {
             wf_u(out, "target_area_code", dec.target_area_code);
         }
@@ -260,7 +255,6 @@ writeDField("d36_typhoon_cat",      b4.d_values[35], b4.d_present[35], qzss_dcx_
     } else if (d->ex_kind == ExtendedKind::JAlert) {
         wf_u(out, "ex8_area_type", d->ex_jalert.ex8);
 
-        // Decoded J-Alert target area
         wk(out, "jalert_target");
         out.print('{');
         if (dec.jalert_prefecture_mode) {
@@ -295,7 +289,7 @@ writeDField("d36_typhoon_cat",      b4.d_values[35], b4.d_present[35], qzss_dcx_
         out.print('}');
         writeChar(out, ',');
     } else if (d->ex_kind == ExtendedKind::OutsideJapan) {
-        // EX11 raw data (68 bits) - output as hex string
+        // EX11 raw data (68 bits) as hex string
         wk(out, "ex11_raw");
         writeChar(out, '"');
         const char hex[] = "0123456789ABCDEF";

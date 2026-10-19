@@ -52,8 +52,7 @@ jobs:
       - name: Build & run (no dynamic allocation check)
         run: make -C test test-no-alloc
 
-      # dedup ベンチ（test/bench/run_dedup_bench.sh）: NEW_RECALL / DUP_SUPPRESS /
-      # NANKAI_KEY_STABLE / PREAMBLE_KEY_STABLE をゲート。host の g++ だけで動く。
+      # dedup ベンチ（test/bench/run_dedup_bench.sh）: NEW_RECALL / DUP_SUPPRESS / NANKAI_KEY_STABLE / PREAMBLE_KEY_STABLE をゲート。host の g++ だけで動く。
       - name: Dedup benchmark (gates)
         run: make -C test bench-dedup
 
@@ -67,15 +66,12 @@ jobs:
       - name: AVR-style stub build (PROGMEM, 16-bit int)
         run: make -C test pgm-stub
 
-  # 生成フィクスチャのドリフト検査: nankai_pages_generated.h は azarashi 生成物なので、
-  # 生成器と生成物を片方だけ直すとテストは古いフィクスチャのまま緑になる。dcr/dcx は
-  # リポジトリ外ログ由来、test_realdata.cpp は gitignore 済み realdata/ 由来で CI では再現できない。
+  # 生成フィクスチャのドリフト検査: nankai_pages_generated.h は azarashi 生成物なので、生成器と生成物を片方だけ直すとテストは古いフィクスチャのまま緑になる。
+  # dcr/dcx はリポジトリ外ログ由来、test_realdata.cpp は gitignore 済み realdata/ 由来で CI では再現できない。
   #
-  # nankai_vectors.json は検査しない: azarashi が params に壁時計 timestamp を埋めるため
-  # git diff は常に非空でゲートにならない。C++ が読むのはページ本文のみのヘッダなので
-  # そちらだけ見る。ピンは検査対象に合わせ、0.17.0/0.17.1 でバイト同一の
-  # nankai_pages_generated.h のみ再生成する（0.17.1 で形が変わった dcr/dcx と vectors は
-  # パリティテストの参照 JSON のまま使えないため再生成も検査もしない）。
+  # nankai_vectors.json は検査しない: azarashi が params に壁時計 timestamp を埋めるため git diff は常に非空でゲートにならない。
+  # C++ が読むのはページ本文のみのヘッダなのでそちらだけ見る。
+  # ピンは検査対象に合わせ、0.17.0/0.17.1 でバイト同一の nankai_pages_generated.h のみ再生成する（0.17.1 で形が変わった dcr/dcx と vectors はパリティテストの参照 JSON のまま使えないため再生成も検査もしない）。
   fixture-drift:
     name: Generated fixture drift
     runs-on: ubuntu-latest
@@ -122,8 +118,8 @@ jobs:
           library-manager: update
           compliance: strict
 
-  # 必須コンパイルチェック（リリースゲート）: アーキテクチャ代表が必須 — ARM Cortex-M (RP2040 Pico) /
-  # Xtensa (ESP32-C3) / AVR (Arduino Uno, Arduino Mega 2560)。失敗で CI が赤くなる。
+  # 必須コンパイルチェック（リリースゲート）: アーキテクチャ代表が必須 — ARM Cortex-M (RP2040 Pico) / Xtensa (ESP32-C3) / AVR (Arduino Uno, Arduino Mega 2560)。
+  # 失敗で CI が赤くなる。
   # その他は compile-extended（ベストエフォート）。
   arduino-compile-required:
     name: compile required (${{ matrix.name }})
@@ -151,20 +147,15 @@ jobs:
             core: arduino:avr
             fqbn: arduino:avr:uno
             additional_urls: ""
-            # Uno (32 KB Flash / 2 KB SRAM) cannot hold all definition pools
-            # (~248 KB all-category; docs/architecture.md): the AVR preset in
-            # azaraC_config.h keeps SEISMIC/TSUNAMI only (~3.4 KB tables) so the
-            # sketches fit.
+            # Uno (32 KB Flash / 2 KB SRAM) cannot hold all definition pools (~248 KB all-category; docs/architecture.md): the AVR preset in azaraC_config.h keeps SEISMIC/TSUNAMI only (~3.4 KB tables) so the sketches fit.
             build_flags: ""
 
           - name: Arduino Mega 2560
             core: arduino:avr
             fqbn: arduino:avr:mega
             additional_urls: ""
-            # 256 KB Flash, but the AVR preset keeps the Uno's categories — DCX/CAMF is opt-in
-            # (azaraC_config.h) — so this gate is the default AVR configuration on a large part.
-            # The far-Flash DCX/CAMF image is gated by `make -C test bench` (autoresearch.sh
-            # stage 5, real avr-gcc) instead of a sketch build here.
+            # 256 KB Flash, but the AVR preset keeps the Uno's categories — DCX/CAMF is opt-in (azaraC_config.h) — so this gate is the default AVR configuration on a large part.
+            # The far-Flash DCX/CAMF image is gated by `make -C test bench` (autoresearch.sh stage 5, real avr-gcc) instead of a sketch build here.
             build_flags: ""
 
     steps:
@@ -180,12 +171,9 @@ jobs:
       - name: Configure board manager
         run: |
           # 'config init'自体がindex更新を行い、一時的な取得失敗でexit 1になる
-          # (例: #92 Nano 33 BLEで2連続 "Some indexes could not be updated")。
-          # config作成が目的なので失敗許容し、update-index側でリトライする。
+          # (例: #92 Nano 33 BLEで2連続 "Some indexes could not be updated")。 config作成が目的なので失敗許容し、update-index側でリトライする。
           arduino-cli config init --overwrite || true
-          # Boards with a built-in core (e.g. arduino:avr) have no additional
-          # index URL; an empty URL makes 'core update-index' fail with
-          # "Invalid index URL".
+          # Boards with a built-in core (e.g. arduino:avr) have no additional index URL; an empty URL makes 'core update-index' fail with "Invalid index URL".
           if [[ -n "${{ matrix.additional_urls }}" ]]; then
             arduino-cli config add board_manager.additional_urls "${{ matrix.additional_urls }}"
           fi
@@ -207,10 +195,8 @@ jobs:
           for sketch in examples/*/; do
             echo "--- $sketch ---"
             sketch_name=$(basename "$sketch")
-            # Arduino Uno: only the basic examples are AVR-aware (they use
-            # Serial instead of Serial1 and the AVR preset reduces the
-            # enabled categories). The other examples need Serial1 or more
-            # flash/RAM than the Uno has.
+            # Arduino Uno: only the basic examples are AVR-aware (they use Serial instead of Serial1 and the AVR preset reduces the enabled categories).
+            # The other examples need Serial1 or more flash/RAM than the Uno has.
             if [[ "${{ matrix.name }}" == "Arduino Uno" && "$sketch_name" != "basic_ubx" && "$sketch_name" != "basic_nmea" && "$sketch_name" != "basic_uno" ]]; then
               echo "skip $sketch_name on ${{ matrix.name }} (not AVR-aware)"
               continue
@@ -313,12 +299,9 @@ jobs:
       - name: Configure board manager
         run: |
           # 'config init'自体がindex更新を行い、一時的な取得失敗でexit 1になる
-          # (例: #92 Nano 33 BLEで2連続 "Some indexes could not be updated")。
-          # config作成が目的なので失敗許容し、update-index側でリトライする。
+          # (例: #92 Nano 33 BLEで2連続 "Some indexes could not be updated")。 config作成が目的なので失敗許容し、update-index側でリトライする。
           arduino-cli config init --overwrite || true
-          # Boards with a built-in core (e.g. arduino:avr) have no additional
-          # index URL; an empty URL makes 'core update-index' fail with
-          # "Invalid index URL".
+          # Boards with a built-in core (e.g. arduino:avr) have no additional index URL; an empty URL makes 'core update-index' fail with "Invalid index URL".
           if [[ -n "${{ matrix.additional_urls }}" ]]; then
             arduino-cli config add board_manager.additional_urls "${{ matrix.additional_urls }}"
           fi
@@ -390,9 +373,8 @@ jobs:
           name: extended-outcome-${{ matrix.slug }}
           path: extended_outcome.txt
 
-  # PlatformIO コンパイルテスト: test/platformio の lib_deps = ../.. で作業ツリーを
-  # uno/esp32dev でコンパイルすることを検証する（Registry の A-vrice/azaraC@^1.0.0 は
-  # 解決しない。公開確認後に Registry 解決テストを別途追加）。
+  # PlatformIO コンパイルテスト: test/platformio の lib_deps = ../.. で作業ツリーを uno/esp32dev でコンパイルすることを検証する（Registry の A-vrice/azaraC@^1.0.0 は解決しない。
+  # 公開確認後に Registry 解決テストを別途追加）。
   platformio-compile:
     name: PlatformIO compile
     runs-on: ubuntu-latest

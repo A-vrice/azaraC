@@ -1,12 +1,7 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.17.1 with CI-CD
-// Source module : azarashi.definitions.camf.d_fields
-// Variable      : qzss_dcx_camf_d26_number_of_cases_per_100000_inhabitants
-// Entries       : 21
-// Strategy      : array
-
-// NOTE: This function may return nullptr for unknown IDs.
-// Callers MUST perform a null-check before using the result.
+// AUTO-GENERATED from azarashi 0.17.1 — do not edit
+// azarashi.definitions.camf.d_fields → qzss_dcx_camf_d26_number_of_cases_per_100000_inhabitants: 21 entries, strategy array
+// Unknown id returns nullptr — callers MUST null-check.
 
 #if defined(__AVR__)
 #include "../internal/avr_std/cstdint"

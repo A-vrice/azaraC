@@ -1,9 +1,6 @@
 // azaraC - test/internal/test_avr_std_shim.cpp
-// Host validation of the minimal AVR C++ standard library shims (src/internal/avr_std/) WITHOUT AZARAC_AVR_STUB, i.e. the real minimal implementations that the Arduino AVR toolchain uses.
-//
-// Only optional / string_view / placement-new are exercised here. The utility/algorithm/iterator shims are trivial (std::move / std::max /
-// std::size) and are excluded to avoid redefinition conflicts if doctest or its dependencies pull the real <utility>/<algorithm>.
-//
+// Host validation of the real minimal AVR C++ stdlib shims (src/internal/avr_std/) that the Arduino AVR toolchain uses, WITHOUT AZARAC_AVR_STUB.
+// Only optional / string_view / placement-new are exercised; the trivial utility/algorithm/iterator shims (move / max / size) are excluded because doctest may pull the real <utility>/<algorithm> and they would clash.
 // NOTE: this TU must not include the azaraC library — the shim defines the same std::optional/std::string_view names as the real standard library.
 
 #define DOCTEST_CONFIG_IMPLEMENT_WITHOUT_MAIN
@@ -62,7 +59,7 @@ TEST_CASE("avr_std optional basic operations") {
 }
 
 TEST_CASE("avr_std optional string_view integration") {
-    // lookup-style: build an optional<string_view> over a shared buffer
+    // lookup-style: optional<string_view> over a buffer
     char buf[] = "北海道札幌市";
     std::optional<std::string_view> r = std::string_view(buf, 18);
     CHECK(r.has_value());

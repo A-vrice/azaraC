@@ -1,12 +1,7 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.17.1 with CI-CD
-// Source module : azarashi.definitions.qzss.dcr.ambiguity_of_activity_time
-// Variable      : qzss_dcr_jma_ambiguity_of_activity_time_en
-// Entries       : 8
-// Strategy      : switch
-
-// NOTE: This function may return nullptr for unknown IDs.
-// Callers MUST perform a null-check before using the result.
+// AUTO-GENERATED from azarashi 0.17.1 — do not edit
+// azarashi.definitions.qzss.dcr.ambiguity_of_activity_time → qzss_dcr_jma_ambiguity_of_activity_time_en: 8 entries, strategy switch
+// Unknown id returns nullptr — callers MUST null-check.
 
 #if defined(__AVR__)
 #include "../internal/avr_std/cstdint"

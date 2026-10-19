@@ -21,8 +21,7 @@ jobs:
         with:
           persist-credentials: false
 
-      # タグは annotated tag なので、github.sha がタグオブジェクトを指す可能性を避け、
-      # checkout したコミットをそのまま記録する。
+      # タグは annotated tag なので、github.sha ではなく checkout したコミットを記録する。
       - name: Record source commit
         id: source
         shell: bash
@@ -44,9 +43,7 @@ jobs:
             exit 1
           fi
           # タグと manifest のバージョンはリリース時にしか突き合わせられない
-          # （CI の version-sync は library.json と library.properties の同期まで）。
-          # library.json は CI が同期を強制しているので properties だけで足りる。
-          # .gitattributes が eol=lf なので改行コードの考慮は不要。
+          # （CI の version-sync は library.json と library.properties の同期まで）。 library.json は CI が同期を強制しているので properties だけで足りる。.gitattributes が eol=lf なので改行コードの考慮は不要。
           if ! grep -qxF "version=${RELEASE_TAG#v}" library.properties; then
             echo "library.properties version does not match tag ${RELEASE_TAG}" >&2
             exit 1
@@ -88,20 +85,15 @@ jobs:
       actions: read
       id-token: write
       contents: write
-    # 注意: slsa-github-generator の generic generator は SHA 参照をサポートしない。
-    # 仕様上SHA参照だとビルドが失敗するため@X.Y.Z形式。更新は Renovate が担う。(ただしこのアクションの保守/更新は限定的なため、今後置き換え等も要検討)
+    # 注意: この generator は SHA 参照非対応（ビルドが失敗する）ため @X.Y.Z 形式。更新は Renovate が担うが、このアクションの保守は限定的なので置き換えも要検討。
     uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0
     with:
       base64-subjects: "${{ needs.build.outputs.subjects }}"
-      # upload-assets は意図的に false（既定）のまま: generator に空リリースを作らせない。リリース作成は検証成功後に release ジョブが単独で担う。
+      # upload-assets は意図的に false のまま: generator に空リリースを作らせず、リリース作成は検証成功後に release ジョブだけが担う。
       upload-assets: false
-      # private-repository: true は必須の回避策。この generator (v2.1.0) は public
-      # リポジトリを private と誤判定して停止することがある。public リポジトリなので
-      # 公開透明性ログへのリポジトリ名露出は問題なし。d34256f で実際の失敗を受けて
-      # 導入されたもので、消すと provenance ジョブが再び失敗する。
+      # private-repository: true は必須の回避策。generator (v2.1.0) は public リポジトリを private と誤判定して停止することがあり、d34256f で実際の失敗を受けて導入された。 public リポジトリなので透明性ログへの名前露出は問題ない。消すと再び失敗する。
       private-repository: true
 
-  # GitHub Release 作成 + アセットアップロード
   release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
@@ -129,9 +121,7 @@ jobs:
           RELEASE_TAG: ${{ github.ref_name }}
           ARCHIVE_NAME: ${{ needs.build.outputs.artifact-name }}
           PROVENANCE: ${{ needs.provenance.outputs.provenance-name }}
-        # provenance の署名、各ファイルの digest と subjectの一致、ソースリポジトリとタグの一致をそれぞれ検証する。
-        # 失敗すればこのジョブで止まり、成果物はアップロードされない。
-        # Builderとそこで生成されたprovenanceが侵害されない限り信頼できる
+        # provenance の署名、各ファイルの digest と subject の一致、ソースリポジトリとタグの一致を検証する。失敗すればこのジョブで止まり、成果物はアップロードされない。
         run: |
           slsa-verifier verify-artifact \
             "${ARCHIVE_NAME}.tar.gz" \

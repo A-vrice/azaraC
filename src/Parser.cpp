@@ -22,19 +22,18 @@ bool Parser::feed(uint8_t byte, Message& out, uint32_t report_unix) {
 }
 
 bool Parser::handleFrame(internal::Frame& frame, Message& out, uint32_t report_unix) {
-    // out をそのままデコード先にする: decode() は冒頭で out.clear() するので、
-    // 失敗時に再使用中の Message が前の payload を残すことはない（旧実装は
-    // 局所 Message を作って out へコピーしていた = 288 B のスタックと memcpy が毎フレーム）。
     if (!_decoder.decode(frame, out, report_unix)) return false;
-    // 手順③ の照合対象は MT～VN（フレーム bit 8..219 = 212 bit。bit 220..225 は Reserved）。プリアンブル（bit 0..7）と Reserved は放送で巡回するため鍵に含めない。
-    // 受信衛星も含めない（Satellite ID はフレームに無く、NMEA/UBX ヘッダ由来）。MT=44 の SD は QZS 事務局回答の照合範囲（MT および CAMF〜EM）に無いため Decoder::messageIdentity がゼロにしてから digest を取る。
+    // 手順③ の照合範囲は MT～VN（bit 8..219 = 212 bit、bit 220..225 は Reserved）。
+    // プリアンブルと Reserved は放送で巡回し、受信衛星はフレームに無く NMEA/UBX ヘッダ由来なので鍵に含めない。
+    // MT=44 の SD は事務局回答の照合範囲（MT および CAMF〜EM）に無く、Decoder::messageIdentity がゼロにしてから digest を取る。
     const uint32_t identity = internal::Decoder::messageIdentity(frame.bits);
-    return postDecode(out, out, identity);   // decoded と out は同一オブジェクト（postDecode は aliasing 前提）
+    return postDecode(out, out, identity);   // decoded と out は同一（postDecode は aliasing 前提）
 }
 
 bool Parser::postDecode(const Message& decoded, Message& out, uint32_t identity) {
-    // Reception time for the dedup validity window (手順④'). Nankai aggregation below uses the same clock, so both stages agree on "now".
-    // Keep the full 64-bit value: NankaiPageBuffer's timeout is uint64 and the 32-bit dedup window wraps every ~49.7 days; truncating here underflows the buffer's unsigned age comparison.
+    // Reception time for the dedup validity window (手順④').
+    // The Nankai aggregation below uses the same clock, so both stages agree on "now".
+    // Keep the full 64 bits: NankaiPageBuffer's timeout is uint64 and the 32-bit dedup window wraps every ~49.7 days — truncating here underflows its unsigned age comparison.
     const uint64_t now_ms64 = internal::getMillis();
     const uint32_t now_ms = static_cast<uint32_t>(now_ms64);
     const uint32_t window_ms = internal::dedupWindowMs(decoded);
@@ -45,16 +44,16 @@ bool Parser::postDecode(const Message& decoded, Message& out, uint32_t identity)
         const Mt43Data* mt43 = decoded.getMt43();
         const NankaiData* nankai = mt43 ? mt43->getNankai() : nullptr;
         if (mt43 && mt43->disaster_category == 4) {
-            // getNankai() が無いのは電文として成立していない場合。集約できないので以前と同じく出力しない。
+            // getNankai() が無いのは電文として成立していない場合。集約できないので出力しない。
             if (!nankai) { out.clear(); return false; }
-            // out が decoded と同一でも安全: processNankaiAggregation が上書きするのは
-            // is_aggregated / aggregated_* / truncated / page / total_page のみで、
-            // 直後に鍵として読む info_code と report_* には触れない。
+            // out が decoded と同一でも安全: processNankaiAggregation が上書きするのは is_aggregated / aggregated_* / truncated / page / total_page だけで、直後に鍵として読む info_code と report_* は不変。
             if (!processNankaiAggregation(decoded, out, mt43, now_ms64)) {
                 out.clear();
                 return false;
             }
-            // 同一性は事象そのもの（info_code + 情報種別 + 報告時刻）。ページ集合を完成させた電文は到着順で変わるため、その crc24 を鍵にすると同じ事象が再送のたびに別情報として通知される。情報種別を含めるのは同一 info_code + 同一報告時刻の発表と取消を別情報として扱うため（NankaiPageKey 参照）。
+            // 同一性は事象そのもの（info_code + 情報種別 + 報告時刻）。
+            // ページ集合を完成させた電文は到着順で変わるため、その crc24 を鍵にすると同じ事象が再送のたびに別情報として通知される。
+            // 情報種別を含めるのは同一 info_code + 同一報告時刻の発表と取消を別扱いするため（NankaiPageKey 参照）。
             const internal::DedupKey key = internal::dedupEventKey(internal::dedupEventToken(
                 nankai->info_code, mt43->information_type, nankai->report_month, nankai->report_day,
                 nankai->report_hour, nankai->report_minute));
@@ -70,7 +69,7 @@ bool Parser::postDecode(const Message& decoded, Message& out, uint32_t identity)
     internal::DedupKey key{ decoded.msg_type, identity };
     if (_dedup.isDuplicate(key, now_ms, window_ms)) { out.clear(); return false; }
 
-    // decoded と out が同一（Parser::handleFrame は常にそう渡す）なら内容は既に out にある。
+    // 同一オブジェクトなら内容は既に out にあるのでコピーしない（handleFrame は常にそう渡す）。
     if (&decoded != &out) out = decoded;
     return true;
 }
@@ -81,7 +80,8 @@ bool Parser::processNankaiAggregation(const Message& decoded, Message& out, cons
     const NankaiData* nankai = d->getNankai();
     if (!nankai) return false;
 
-    // 事象の identity = info_code + information_type + report_time month/day/hour/minute。値は電文の生ビット (NankaiData::report_*) から取り、正規化済みの Mt43Data::event_time は使わない: resolveTime() は暦外の日付を書き換えたり（2/30 → 3/1）月=0 に近い月を割り当てるため、放送途中で report_unix が現れると1つの事象が複数バッファに分裂する。NankaiPageKey 参照。
+    // 事象の identity = info_code + information_type + report_time month/day/hour/minute。
+    // 正規化済みの Mt43Data::event_time は使わず電文の生ビット (NankaiData::report_*) から取る: resolveTime() は暦外の日付を書き換えたり（2/30 → 3/1）月=0 に近い月を割り当てるため、放送途中で report_unix が現れると 1 つの事象が複数バッファに分裂する（NankaiPageKey 参照）。
     internal::NankaiPageKey key;
     key.info_code       = nankai->info_code;
     key.information_type = d->information_type;
@@ -90,7 +90,6 @@ bool Parser::processNankaiAggregation(const Message& decoded, Message& out, cons
     key.report_hour     = nankai->report_hour;
     key.report_minute   = nankai->report_minute;
 
-    // Add page to buffer
     internal::NankaiPageBuffer* completed = _nankaiBuffers.addPage(
         key,
         nankai->page,
@@ -115,7 +114,7 @@ bool Parser::processNankaiAggregation(const Message& decoded, Message& out, cons
                 uint16_t textLen = completed->compactText();
                 if (textLen > 0) {
                     // Zero-copy: point into NankaiPageBuffer's internal storage.
-                    // VALID ONLY until next feed() or reset() — see NankaiData docs.
+                    // VALID ONLY until next feed() or reset() (see NankaiData docs) — aggregated_text_ptr dangles after that.
                     outNankai->aggregated_text_ptr = completed->aggregated_text;
                     outNankai->aggregated_len = textLen;
                     outNankai->is_aggregated = true;

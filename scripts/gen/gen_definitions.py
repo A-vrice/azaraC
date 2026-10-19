@@ -1,10 +1,7 @@
 #!/usr/bin/env python3
-# azaraC - scripts/gen_definitions.py
+# azaraC - scripts/gen/gen_definitions.py
 # Generates src/definition/*.h from azarashi (installed in current env).
-#
-# Usage:
-#   pip install azarashi==<version>
-#   python scripts/gen_definitions.py [--out-dir src/definition]
+# Usage: pip install azarashi==<version>; python scripts/gen/gen_definitions.py [--out-dir src/definition]
 
 import argparse
 import importlib
@@ -111,9 +108,7 @@ GUARD_MAP = {
     "qzss_dcx_ex1_target_area_code_en": "AZARAC_ENABLE_DCX_CAMF",
     "qzss_dcx_ex1_target_area_code_ja": "AZARAC_ENABLE_DCX_CAMF",
 
-    # azarashi 0.17 added these. Their *_en siblings inherit the guard of the
-    # JA table they translate (see category_guard_for), so only the tables with
-    # no JA sibling are listed here.
+    # azarashi 0.17 additions: an *_en table with a JA sibling inherits that sibling's guard (see category_guard_for), so only JA-less tables are listed.
     "qzss_dcr_jma_ambiguity_of_activity_time_en": "(AZARAC_ENABLE_VOLCANO || AZARAC_ENABLE_ASH_FALL)",
     "qzss_dcr_jma_ash_fall_warning_type": "AZARAC_ENABLE_ASH_FALL",
     "qzss_dcr_jma_depth_of_hypocenter": (
@@ -128,8 +123,7 @@ GUARD_MAP = {
     "qzss_dcr_jma_typhoon_number": "AZARAC_ENABLE_TYPHOON",
 }
 
-# Modules / variables to skip during generation (handled manually, or not scalar).
-# Matched against both the source module name and the generated variable name.
+# Modules/variables to skip during generation (hand-written, or not scalar); matched against both the source module name and the generated variable name.
 SKIP_MODULES = {
     # hand-written: the lookup must stay std::optional (see developer-guide.md)
     "ublox_qzss_svid_prn_map",
@@ -185,9 +179,7 @@ def category_guard_for(varname):
                 return GUARD_MAP[candidate]
     return None
 
-# Modules under azarashi.definitions whose tables reuse azaraC's existing C++
-# variable names. azarashi 0.17 dropped the spec prefix from the variable name
-# and moved the module; these are the names the two differ on.
+# Modules whose tables reuse azaraC's existing C++ variable names: azarashi 0.17 dropped the spec prefix and moved the module, so these are the names that differ.
 NAME_OVERRIDE = {
     "preambles": "qzss_dcr_preamble",
     "message_types": "qzss_dcr_message_type",
@@ -257,17 +249,10 @@ def c_str_literal(s):
     escaped = escape(s)
     return f'"{escaped}"'
 
-# --- AVR label storage ------------------------------------------------------
-# A pool-backed AVR table stores its labels as one NUL-separated literal plus
-# rows of {key, offset} — the pool already delimits each entry, so the lookup
-# takes the length from the pool itself (azarac_pgm_len) instead of paying a
-# byte per row for it. Two families (target_area_code, local_government) repeat
-# the region a label belongs to on every row — "Sapporo City, Hokkaido
-# Prefecture", "北海道札幌市" — so factor_parents (strategy.py) can split those
-# labels into a child and a shared parent name; the row then carries a parent
-# index and the lookup joins the halves in FlashString's shared RAM buffer, so
-# SRAM does not grow. The plain layout stays the default: it is preferred
-# whenever factoring does not actually save bytes.
+# AVR label storage
+# A pool-backed AVR table stores its labels as one NUL-separated literal plus {key, offset} rows: the pool delimits each entry, so the lookup takes the length from the pool itself (azarac_pgm_len) instead of a byte per row.
+# Labels that repeat a region on every row (target_area_code, local_government — "Sapporo City, Hokkaido Prefecture", "北海道札幌市") are split by factor_parents (strategy.py) into a child + shared parent, and the halves are joined in FlashString's shared RAM buffer, so SRAM does not grow.
+# The plain layout stays the default: it is preferred whenever factoring does not actually save bytes.
 
 def _pool_decl(guard, name, strings):
     """The NUL-separated pool literal, plus the {offset, len} of each label."""
@@ -284,10 +269,7 @@ def _read(struct, field, ptr, ltype):
     fn = "azarac_read_byte" if ltype == "uint8_t" else "azarac_read_word"
     return f"{fn}({ptr}, offsetof({struct}, {field}))"
 
-# A second factoring level also puts a branch and a three-part join into every
-# call site of the table, so it must save more than that code costs (~60-130 B of
-# AVR code per site, measured on the shipped preset). Tables that only save a few
-# bytes keep the single level.
+# The second level also adds a branch and a three-part join to every call site, so it must save more than that code costs (~60-130 B of AVR code per site, measured on the shipped preset).
 GRAND_MIN_GAIN = 128
 
 def _grand_fragments(guard, parents):
@@ -304,8 +286,6 @@ def _grand_fragments(guard, parents):
     saved = (sum(len(s.encode('utf-8')) + 1 for s in parents)
              - sum(len(v.encode('utf-8')) + 1 for v in plan["children"].values())
              - sum(len(g.encode('utf-8')) + 1 for g in plan["parents"]))
-    # The extra level also adds a branch and a three-part join to every call site
-    # of the table, so only take it when the tables clearly pay for that code too.
     if saved <= len(parents) + 2 * len(plan["parents"]) + GRAND_MIN_GAIN:
         return None
     ppool, poffs = _pool_decl(guard, "GRAND_POOL", list(enumerate(plan["parents"])))
@@ -335,8 +315,7 @@ def _fragment_section(guard, plan, positional, kt, ptr):
     order2 = {"pre": ("parent", "literal"), "post": ("literal", "parent")}[plan["order"]]
     if grand:
         gdecls, gplan, gpool = grand
-        # With a grand level the parent pool holds the fragments' own children
-        # (" City, ") and the grand pool the rest ("Hokkaido Prefecture").
+        # With a grand level the parent pool holds the fragments' children (" City, ") and the grand pool the rest ("Hokkaido Prefecture").
         middle = [gplan["children"][i] for i in range(len(plan["parents"]))]
         gsel = [(gplan["sel"][i] if gplan["sel"][i] is not None else PARENT_NONE)
                 for i in range(len(plan["parents"]))]
@@ -571,9 +550,7 @@ def emit_array(varname, entries, guard, kt):
     pool_str = "".join(pool_parts)
     avr_body = "\n".join([
         f'static const char AZARAC_PROGMEM {guard}_POOL[] = "{pool_str}";',
-        # The copy-based lookup stops at the NUL that already ends each pool
-        # entry, so these rows only need the offset: the len field the
-        # string_view tables carry would be dead weight here.
+        # The copy-based lookup stops at each row's NUL, so the rows need only offset — a len field (as in the string_view tables) would be dead weight.
         f"struct {guard}_Entry {{ uint16_t offset; }};",
         f"static const {guard}_Entry {guard}_TABLE[] AZARAC_PROGMEM = {{",
         ",\n".join(f"    {{{off}u}}" for off, _ in offsets),
@@ -585,7 +562,7 @@ def emit_array(varname, entries, guard, kt):
         f"    return azarac_pgm_copy(AZARAC_PGM_PTR({guard}_POOL) + off);",
         "}",
     ])
-    # Non-AVR (unchanged constexpr logic)
+    # Non-AVR: constexpr table + lookup.
     rows = ",\n    ".join(
         c_str_literal(v) if v is not None else "nullptr" for v in table)
     non_avr_body = "\n".join([
@@ -619,10 +596,8 @@ def emit_array_optional(varname, entries, guard, kt):
         *[f"    {line}" for line in fetch],
         "}",
     ])
-    # Non-AVR: const char* payload (4 B on 32-bit targets vs 12 B for a
-    # std::optional<std::string_view> entry).  The lookup still returns
-    # std::optional<std::string_view> so that absent (nullptr) and
-    # defined-but-empty ("") stay distinguishable at the call site.
+    # Non-AVR: const char* payload (4 B on 32-bit targets vs 12 B for a std::optional<std::string_view> entry).
+    # The lookup still returns optional, so absent (nullptr) and defined-but-empty ("") stay distinguishable.
     rows = ",\n    ".join(
         c_str_literal(v) if v is not None else "nullptr" for v in table)
     non_avr_body = "\n".join([
@@ -648,8 +623,7 @@ def emit_bsearch(varname, entries, guard, kt):
     keys = sorted(entries.keys())
     n = len(keys)
     idx_type = "uint8_t" if n <= 255 else ("uint16_t" if n <= 65535 else "uint32_t")
-    # AVR: string pool + id/offset/len entries + manual bsearch.
-    # The id field uses the same type as the key (kt) to avoid narrowing.
+    # AVR: string pool + id/offset/len entries + manual bsearch. The id field uses the same type as the key (kt) to avoid narrowing.
     if kt == "uint8_t":
         read_id = f"static_cast<{kt}>(azarac_read_byte(ep, offsetof({guard}_Entry, id)))"
     elif kt == "uint16_t":
@@ -676,7 +650,7 @@ def emit_bsearch(varname, entries, guard, kt):
         "    return nullptr;",
         "}",
     ])
-    # Non-AVR (unchanged constexpr)
+    # Non-AVR: constexpr table + binary search.
     rows = "\n".join(f'    {{{k}u, {c_str_literal(entries[k])}}},' for k in keys)
     non_avr_body = "\n".join([
         f"struct {guard}_Entry {{ {kt} id; const char* label; }};",
@@ -699,8 +673,7 @@ def emit_bsearch_optional(varname, entries, guard, kt):
     keys = sorted(entries.keys())
     n = len(keys)
     idx_type = "uint8_t" if n <= 255 else ("uint16_t" if n <= 65535 else "uint32_t")
-    # AVR: string pool + id/offset/len entries + manual bsearch.
-    # The id field uses the same type as the key (kt) to avoid narrowing.
+    # AVR: string pool + id/offset/len entries + manual bsearch. The id field uses the same type as the key (kt) to avoid narrowing.
     if kt == "uint8_t":
         read_id = f"static_cast<{kt}>(azarac_read_byte(ep, offsetof({guard}_Entry, id)))"
     elif kt == "uint16_t":
@@ -728,8 +701,7 @@ def emit_bsearch_optional(varname, entries, guard, kt):
         "}",
     ])
     # Non-AVR: const char* payload, same width as emit_bsearch.  The lookup
-    # still returns std::optional<std::string_view>; a missing key is the
-    # absent signal for binary search, so no nullptr row is needed.
+    # still returns std::optional<std::string_view>; a missing key is the absent signal for binary search, so no nullptr row is needed.
     rows = "\n".join(f'    {{{k}u, {c_str_literal(entries[k])}}},' for k in keys)
     non_avr_body = "\n".join([
         f"struct {guard}_Entry {{ {kt} id; const char* label; }};",
@@ -753,15 +725,13 @@ def emit_bsearch_optional(varname, entries, guard, kt):
 def build_header(modname, varname, entries, ver, all_varnames, obj=None, use_optional_override=None):
     keys = [k for k in entries if isinstance(k, int)]
     if not keys: return None
-    # Filter entries to include string, int, and float values for lookup
     int_entries = {k: str(entries[k]) for k in keys if isinstance(entries[k], (str, int, float))}
     if not int_entries: return None
     guard = varname.upper()
     kt    = key_type(keys)
     strat = choose(keys)
     
-    # Check if this is a QzssDcrDefinition with undefined attribute,
-    # or override via use_optional_override (used by header transform scripts).
+    # Optional-returning table: the object's `undefined` attribute, or an explicit override.
     use_optional = False
     if use_optional_override is not None:
         use_optional = use_optional_override
@@ -780,12 +750,8 @@ def build_header(modname, varname, entries, ver, all_varnames, obj=None, use_opt
     category_guard = category_guard_for(varname)
     lang_guard = None
     if varname.endswith("_en"):
-        # Only an _en table that has a JA counterpart is a language variant.
-        # A lone _en table has no JA sibling, so it is the only source of that
-        # data (the spec itself is English, as with the CAMF tables) and must
-        # not be gated on AZARAC_LANG_EN: doing so compiles it to a nullopt
-        # stub in the library default (AZARAC_LANG_JA=1 / AZARAC_LANG_EN=0)
-        # and erases the label entirely.
+        # Only an _en table with a JA counterpart is a language variant.
+        # A lone _en table (the spec is English, as with the CAMF tables) is that data's only source, so gating it on AZARAC_LANG_EN would compile it to a nullopt stub in the library default (LANG_JA=1 / LANG_EN=0).
         if varname[:-3] in all_varnames or f"{varname[:-3]}_ja" in all_varnames:
             lang_guard = "AZARAC_LANG_EN"
     elif varname.endswith("_ja") or f"{varname}_en" in all_varnames:
@@ -807,8 +773,7 @@ def build_header(modname, varname, entries, ver, all_varnames, obj=None, use_opt
         full_guard = " && ".join(guards)
         wrapped_body = f"#if {full_guard}\n\n{body}\n\n#else\n\n"
         if use_optional:
-            # The AVR stdlib shim optional has a non-trivial destructor and is
-            # not a literal type, so the stub cannot be constexpr on AVR.
+            # The AVR shim optional is not a literal type, so the stub cannot be constexpr.
             wrapped_body += "#if defined(__AVR__)\n"
             wrapped_body += (
                 f"[[nodiscard]] inline std::optional<std::string_view> {varname}_lookup({kt} id)"
@@ -829,13 +794,9 @@ def build_header(modname, varname, entries, ver, all_varnames, obj=None, use_opt
 
     return (
         f"#pragma once\n"
-        f"// AUTO-GENERATED from azarashi {ver} with CI-CD\n"
-        f"// Source module : {modname}\n"
-        f"// Variable      : {varname}\n"
-        f"// Entries       : {len(keys)}\n"
-        f"// Strategy      : {strat}\n\n"
-        f"// NOTE: This function may return nullptr for unknown IDs.\n"
-        f"// Callers MUST perform a null-check before using the result.\n\n"
+        f"// AUTO-GENERATED from azarashi {ver} — do not edit\n"
+        f"// {modname} → {varname}: {len(keys)} entries, strategy {strat}\n"
+        f"// Unknown id returns nullptr — callers MUST null-check.\n\n"
         f"#if defined(__AVR__)\n"
         f"#include \"../internal/avr_std/cstdint\"\n"
         f"#include \"../internal/avr_std/optional\"\n"
@@ -877,15 +838,13 @@ def run(out_dir):
     base_path = find_def_path()
     ver = get_azarashi_version()
 
-    # Pass 1 — every generated variable name, so that build_header can tell
-    # whether a table has an _en sibling (which makes the JA table EN-aware).
+    # Pass 1: every generated variable name, so build_header can spot an _en sibling.
     modules = list(iter_definition_modules(base_path))
     tables = []
     for modname in modules:
         try:
             tables.extend((modname, varname, obj) for varname, obj in tables_of(modname))
-        # azarashi 側モジュールが import 時に投げる例外は種類を問わないため、
-        # 1 モジュールの失敗で生成全体を止めずに警告で続行する。
+        # azarashi 側の import 例外は種類を問わないので、1 モジュールの失敗で全体を止めず警告で続行する。
         except Exception as e:  # noqa: BLE001
             print(f"[WARN] skip {modname}: {e}", file=sys.stderr)
     all_varnames = {varname for _, varname, _ in tables}
@@ -899,8 +858,7 @@ def run(out_dir):
         write_file(os.path.join(out_dir, f"{varname}.h"), hdr)
         generated.append(varname)
 
-    # _index.h — the hand-written headers are included last, so that a reader
-    # sees them together and the generated set stays in alphabetical order.
+    # _index.h: hand-written headers go last, so the generated set stays alphabetical.
     extra_headers = [
         "ublox_qzss_svid_prn_map.h",
         "qzss_dcx_camf_a3_provider_identifier.h",
@@ -911,9 +869,7 @@ def run(out_dir):
             extra_includes += f'#include "{h}"\n'
         else:
             print(f"[WARN] Extra header not found: {h}", file=sys.stderr)
-    # Headers for tables azaraC has no consumer for must not linger from an
-    # earlier run: _index.h is regenerated in full, so a stale .h would still
-    # compile but silently ship.
+    # A stale .h for a table with no consumer must not linger: it would still compile and silently ship.
     keep = set(generated) | {h[:-2] for h in extra_headers}
     for name in os.listdir(out_dir):
         if name == "_index.h" or not name.endswith(".h"):

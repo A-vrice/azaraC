@@ -1,8 +1,8 @@
 // azaraC — examples/with_sntp/with_sntp.ino
 //
-// Wi-Fi + SNTP で UNIX 時刻を取得し、DCR/DCX の発生時刻を解決する例 disaster_category == 1 (EEW) および MT=44 DCX メッセージ のみ Serial に警告ログを出力するフィルタ付き
+// Wi-Fi + SNTP で UNIX 時刻を取得し DCR/DCX の「年」を解決する例。 disaster_category == 1 (EEW) と MT=44 DCX のみ警告ログを出し、他は JSON を出力する。
 
-// (AZARAC_DEDUP_SLOTS is not overridden here: the default is sized from 30 QZSS archive days — see src/azaraC_config.h.)
+// (AZARAC_DEDUP_SLOTS: no override — the default is sized from 30 QZSS archive days; see src/azaraC_config.h.)
 #include <azaraC.h>
 #include <WiFi.h>
 #include <time.h>
@@ -18,17 +18,14 @@
 #endif
 
 
-// グローバル
 azaraC::Parser  parser;
 azaraC::Message msg;
 
-// setup
 void setup() {
     Serial.begin(115200);
     uint32_t start = millis();
     while (!Serial && (millis() - start < 5000)) { delay(10); } // 5秒タイムアウト
 
-    // Wi-Fi
     WiFi.begin(WIFI_SSID, WIFI_PASS);
     Serial.print(F("[wifi] connecting"));
     while (WiFi.status() != WL_CONNECTED) { delay(500); Serial.print('.'); }
@@ -56,18 +53,13 @@ void setup() {
     Serial.println(F("[azaraC] ready"));
 }
 
-// loop
 void loop() {
     while (Serial1.available()) {
-        // SNTPで取得した現在時刻を UNIX タイムスタンプとして渡す。
-        // ※ 万一 SNTP 未同期で 2000 年以前の古い時刻が返る場合でも、 azaraC 内部で未同期と判定され、年の解決がスキップされるため電文の生データ (月・日・時・分) 自体は安全に取得できます。
-        // time_t は 64-bit 環境 (ESP-IDF newlib) で long long の可能性があるため、負値 (エラー) をガードしてから uint32_t にキャストする。
+        // SNTP 同期の現在時刻を UNIX 秒で渡す。未同期で 2000 年以前の値でも、azaraC が年解決をスキップするので電文の生データ (月・日・時・分) は正しく取れる。 time_t は 64-bit 環境で long long のため、負値 (エラー) をガードしてから uint32_t にキャストする。
         time_t now_t = time(nullptr);
         uint32_t now = (now_t > 0) ? static_cast<uint32_t>(now_t) : 0;
 
         if (parser.feed(static_cast<uint8_t>(Serial1.read()), msg, now)) {
-            // EEW および DCX 災害警報のみ警告出力（他は通常 JSON）
-            // 安全なアクセサを使用してunionメンバーにアクセス
             if (msg.msg_type == 43) {
                 const azaraC::Mt43Data* mt43 = msg.getMt43();
                 if (mt43 && mt43->disaster_category == 1) {
@@ -105,7 +97,6 @@ void loop() {
                 }
             }
 
-            // 全メッセージを JSON で Serial 出力
             azaraC::toJson(msg, Serial);
             Serial.println();
         }

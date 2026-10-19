@@ -1,5 +1,4 @@
-// test/framer/test_framer.cpp — フレーマーテスト
-// UBX/NMEA フレーマーの統合テスト
+// test/framer/test_framer.cpp — UBX/NMEA フレーマーの統合テスト
 
 #define ARDUINO 0
 #include "../test_helpers.h"
@@ -188,8 +187,7 @@ TEST_CASE("NMEA Oversize Recovery") {
     for (int i = 0; i < 300; ++i) {
         framer.feed('A', out); // Fill buffer beyond capacity
     }
-    // Should have reset internally. Try valid one now.
-    // $QZQSM svid=61 -> PRN189 (QZS-3 L1S)
+    // 内部でリセットされる前提。以下、有効フレームを受け付けることを確認する。$QZQSM svid=61 -> PRN189 (QZS-3 L1S)
     uint8_t bits[32] = {0x55};
     auto pkt = makeNmeaQzqsm(61, bits);
     bool found = false;
@@ -200,8 +198,7 @@ TEST_CASE("NMEA Oversize Recovery") {
     CHECK(out.svid == 189);  // NMEA 61 + 128 = PRN189
 }
 
-// NMEA ペイロード長検証
-// NmeaFramer のみをテスト（Decoder を経由しない）
+// NMEA ペイロード長検証: NmeaFramer のみ（Decoder を経由しない）
 
 TEST_CASE("NMEA: 62文字の拒否") {
     Frame out{};
@@ -229,8 +226,8 @@ TEST_CASE("NMEA: 65文字の拒否") {
     CHECK_FALSE(feedNmeaRaw(nmea.c_str(), out));
 }
 
-// Satellite ID は「PRN を表す 8bit の下位 6bit」(DCR-017/DCX-004 §4.3.1) なので、
-// Frame::svid は常に PRN (id | 0x80)。55-63 だけを +128 していた旧実装では、実データに存在する 53/54 (QZS の PRN181/182) が生 ID のまま通っていた。
+// Satellite ID は「PRN を表す 8bit の下位 6bit」(DCR-017/DCX-004 §4.3.1) なので Frame::svid は常に PRN (id | 0x80)。
+// 55-63 だけ +128 していた旧実装では、実データにある 53/54 (PRN181/182) が生 ID のまま通っていた。
 TEST_CASE("NMEA: Satellite ID は生 ID から PRN に正規化される") {
     struct Case { uint8_t id; uint8_t expected_prn; };
     const Case cases[] = {
@@ -260,8 +257,7 @@ TEST_CASE("NMEA: Satellite ID は生 ID から PRN に正規化される") {
 // UBX SFRBX 境界値テスト
 
 TEST_CASE("UBX: SFRBX length must be 40") {
-    // Build a packet with length=8 (header only, no words) so checksum is consistent but parse() rejects it because _len < 8 + numWords*4.
-    // This ensures the frame fails specifically due to length mismatch, not a checksum error.
+    // length=8（ヘッダのみ、words なし）でチェックサムは整合させ、parse() に _len < 8 + numWords*4 で落とさせる（失敗理由を長さ不一致に限定する）。
     std::vector<uint8_t> pkt;
     pkt.push_back(0xB5); pkt.push_back(0x62); // SYNC
     pkt.push_back(0x02); pkt.push_back(0x13); // CLASS/ID (RXM-SFRBX)
@@ -286,7 +282,7 @@ TEST_CASE("UBX: SFRBX length must be 40") {
 
 namespace {
 
-// UBX-RXM-SFRBX パケットを組み立てる。SFRBX ヘッダのフィールドを直接指定して、長さとチェックサムが整合したまま 1 フィールドだけ不正なパケットを作る。
+// UBX-RXM-SFRBX パケットを組み立てる。SFRBX ヘッダのフィールドを直接指定し、長さとチェックサムを整合させたまま 1 フィールドだけ不正にできる。
 std::vector<uint8_t> makeSfrbxRaw(uint8_t gnssId, uint8_t sigId, uint8_t numWords) {
     std::vector<uint8_t> pkt;
     pkt.push_back(0xB5); pkt.push_back(0x62);  // SYNC

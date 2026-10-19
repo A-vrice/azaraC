@@ -1,12 +1,7 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.17.1 with CI-CD
-// Source module : azarashi.definitions.qzss.dcr.tsunamigenic_potential
-// Variable      : qzss_dcr_jma_tsunamigenic_potential_en
-// Entries       : 6
-// Strategy      : switch
-
-// NOTE: This function may return nullptr for unknown IDs.
-// Callers MUST perform a null-check before using the result.
+// AUTO-GENERATED from azarashi 0.17.1 — do not edit
+// azarashi.definitions.qzss.dcr.tsunamigenic_potential → qzss_dcr_jma_tsunamigenic_potential_en: 6 entries, strategy switch
+// Unknown id returns nullptr — callers MUST null-check.
 
 #if defined(__AVR__)
 #include "../internal/avr_std/cstdint"

@@ -1,8 +1,8 @@
 // test/internal/test_definition_labels.cpp — 定義テーブルのラベル参照テスト
 //
-// 一部のテーブルは id 0 を「定義済みの空文字列」として持つ（国際表 List A など）。AVR と非AVRは同じ値を返さなければならない: 存在する長さ0の view — nullopt ではない。AVR 側の `if (n == 0) return std::nullopt;` は「欠落」と「空」を混同していたため、このテストはその回帰を検出する（pgm-stub ビルドで意味を持つ）。
-//
-// あわせて、非AVR のラベル実体を `const char*` 化した表が内容を失っていないことを、各 strategy（array / binary_search / 手書き）で1件ずつ確認する。
+// 一部のテーブルは id 0 を「定義済みの空文字列」として持つ（国際表 List A など）。
+// AVR と非AVR は同じ値を返さねばならない（存在する長さ0の view であり nullopt ではない）。
+// あわせて非AVR の `const char*` 化した表が内容を保っていることを各 strategy で確認する。
 
 #define ARDUINO 0
 #include "../src/definition/_index.h"
@@ -18,7 +18,7 @@ using namespace azaraC;
 
 #if (AZARAC_ENABLE_DCX_CAMF)
 TEST_CASE("Definition lookup: empty label is present, not absent") {
-    // array strategy (BASE=0) — 行0 が空文字列
+    // array strategy (BASE=0): 行0 が空文字列
     auto intl = def::qzss_dcx_camf_a11_international_library_lookup(0);
     REQUIRE(intl.has_value());
     CHECK(intl->size() == 0);
@@ -28,7 +28,7 @@ TEST_CASE("Definition lookup: empty label is present, not absent") {
     REQUIRE(instr.has_value());
     CHECK(*instr == std::string_view("No instruction"));
 
-    // List B は azarashi 0.17.1 が追加した 2 つ目の国際表。id 0 は定義済みの空文字列で、29/30 は欠落（そのまま nullopt）。
+    // List B は azarashi 0.17.1 が追加した 2 つ目の国際表。id 0 は定義済みの空文字列、29/30 は欠落（nullopt）。
     auto list_b0 = def::qzss_dcx_camf_a11_international_library_b_lookup(0);
     REQUIRE(list_b0.has_value());
     CHECK(list_b0->size() == 0);
@@ -51,7 +51,7 @@ TEST_CASE("Definition lookup: empty label is present, not absent") {
     CHECK(*en == std::string_view("No instruction"));
 #endif
 
-    // 欠落は欠落のまま（範囲チェック／検索外れであって len ヒューリスティックではない）
+    // 欠落は欠落のまま（範囲外・検索外れ。len ヒューリスティックではない）
     auto oob = def::qzss_dcx_camf_c10_instruction_library_for_second_ellipse_lookup(250);
     CHECK_FALSE(oob.has_value());
     auto oob_arr = def::qzss_dcx_camf_a11_international_library_lookup(250);
@@ -81,13 +81,11 @@ TEST_CASE("Definition lookup: label content survives const char* storage") {
 }
 #endif // AZARAC_ENABLE_DCX_CAMF
 
-// 英語索引 — azarashi 0.17 が追加した _en 表を、3 戦略すべてで引く
-//
-// 索引そのものが正しいこと（strategy ごとの境界と欠落）と、値が英語であることを確かめる。期待値は実ヘッダから実測したもの。
+// 英語索引 — azarashi 0.17 が追加した _en 表を 3 戦略で引く（strategy ごとの境界・欠落、値が英語であることを確認）。期待値は実ヘッダからの実測。
 
 #if (AZARAC_LANG_EN)
 
-// 表によって戻り値が 2 通りある（undefined を持つ表は optional、持たない表は const char*）。テストは両方を受ける。2 通りであること自体は既知の非対称で、ここで検証したい対象ではない。
+// 表によって戻り値は 2 通り（undefined を持つ表は optional、持たない表は const char*）。両方を受ける。この非対称自体は既知で、検証対象ではない。
 static bool present(std::optional<std::string_view> v) { return v.has_value(); }
 static bool present(const char* v) { return v != nullptr; }
 
@@ -110,7 +108,6 @@ static bool isAsciiLabel(std::string_view s) {
 }
 
 TEST_CASE("Definition lookup EN: array strategy indexes by BASE") {
-    // AVR のルックアップは共有スクラッチバッファを返す。2 つ目の呼び出しが 1 つ目の view を上書きするため、値を保持する場合は都度コピーする。
 #if (AZARAC_ENABLE_SEISMIC || AZARAC_ENABLE_DCX_CAMF)
     const std::string first(def::qzss_dcr_jma_prefecture_en_lookup(1)->data(),
                             def::qzss_dcr_jma_prefecture_en_lookup(1)->size());
@@ -245,13 +242,11 @@ TEST_CASE("Definition lookup EN: every label is English") {
 
 #endif // AZARAC_LANG_EN
 
-// JA と EN は同じコード集合を引く（索引の一致）
-//
-// 片方だけにコードがあると、言語を切り替えただけでラベルが消える。
+// JA と EN は同じコード集合を引く（片方だけにあるコードは言語切替でラベルが消える）
 
 #if (AZARAC_LANG_JA) && (AZARAC_LANG_EN)
 
-// 表によって戻り値が 2 通りある（undefined を持つ表は optional、持たない表は const char*）。どちらも「引けたか」に落とす（present は上で定義済み）。
+// 戻り値の 2 通り（optional / const char*）を「引けたか」に落とす。
 template <typename JF, typename EF>
 static void expectSameKeySet(JF ja, EF en, uint16_t hi, const char* name) {
     for (uint16_t k = 0; k <= hi; ++k) {
@@ -279,8 +274,7 @@ TEST_CASE("Definition lookup: JA and EN cover the same codes") {
     expectSameKeySet(def::qzss_dcr_jma_seismic_intensity_upper_limit_lookup,
                      def::qzss_dcr_jma_seismic_intensity_upper_limit_en_lookup, 20, "seis_upper");
 #if (AZARAC_ENABLE_EEW)
-    // id 0 は長周期地震動では「該当情報なし」/ "No data"（azarashi 0.17.1）—
-    // JA/EN とも定義済みで揃う
+    // id 0 は長周期地震動では JA「該当情報なし」/ EN "No data"（azarashi 0.17.1）で JA/EN とも定義済み
     CHECK(label(def::qzss_dcr_jma_long_period_ground_motion_lower_limit_lookup(0)) == "該当情報なし");
     CHECK(label(def::qzss_dcr_jma_long_period_ground_motion_lower_limit_en_lookup(0)) == "No data");
 #endif // EEW
@@ -292,11 +286,8 @@ TEST_CASE("Definition lookup: JA and EN cover the same codes") {
 
 #endif // AZARAC_LANG_JA && AZARAC_LANG_EN
 
-// 日本語版を持たない _en 表は言語非依存（AZARAC_LANG_EN に依存しない）
-//
-// これらは仕様自体が英語で、日本語版が存在しないため表の唯一の供給元になる。
-// AZARAC_LANG_EN でガードすると、ライブラリ既定（JA=1 / EN=0）で nullopt スタブになり、北西太平洋津波のラベルが全滅する。ガードを外した状態を固定するため、このテストは AZARAC_LANG_EN でガードしない（両構成で走る）。
-// 期待値は実ヘッダから実測。
+// 日本語版を持たない _en 表は言語非依存（AZARAC_LANG_EN でガードしない）
+// 仕様自体が英語で日本語版が存在せず、表の唯一の供給元になる。既定構成（JA=1 / EN=0）でガードすると nullopt スタブになり北西太平洋津波のラベルが全滅する。期待値は実ヘッダからの実測。
 
 #if (AZARAC_ENABLE_NW_PAC_TSUNAMI)
 TEST_CASE("Definition lookup: lone _en tables resolve regardless of AZARAC_LANG_EN") {

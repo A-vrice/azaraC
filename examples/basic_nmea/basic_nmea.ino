@@ -9,8 +9,7 @@
 //
 // Tested with: u-blox M10 / ZED-F9P (L1S enabled), Furuno GT-87
 
-// Arduino Uno (AVR) compatibility: the Uno has no Serial1 (single hardware
-// UART = Serial on pins 0/1), so the GNSS module connects to Serial and JSON goes out the same port. Category reduction for the 32KB flash is applied automatically by azaraC_config.h (AVR preset keeps SEISMIC/TSUNAMI only).
+// Arduino Uno (AVR) compatibility: no Serial1 (single hardware UART = Serial on pins 0/1), so the GNSS module and the JSON output share that port. azaraC_config.h applies the 32KB-flash category reduction automatically (AVR preset keeps SEISMIC/TSUNAMI only).
 #include <azaraC.h>
 
 

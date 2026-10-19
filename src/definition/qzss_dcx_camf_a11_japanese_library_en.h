@@ -1,12 +1,7 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.17.1 with CI-CD
-// Source module : azarashi.definitions.camf.a11_japanese_library
-// Variable      : qzss_dcx_camf_a11_japanese_library_en
-// Entries       : 38
-// Strategy      : binary_search
-
-// NOTE: This function may return nullptr for unknown IDs.
-// Callers MUST perform a null-check before using the result.
+// AUTO-GENERATED from azarashi 0.17.1 — do not edit
+// azarashi.definitions.camf.a11_japanese_library → qzss_dcx_camf_a11_japanese_library_en: 38 entries, strategy binary_search
+// Unknown id returns nullptr — callers MUST null-check.
 
 #if defined(__AVR__)
 #include "../internal/avr_std/cstdint"

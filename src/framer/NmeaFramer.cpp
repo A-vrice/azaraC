@@ -80,41 +80,38 @@ bool NmeaFramer::parse(Frame& out) {
     uint8_t svid = static_cast<uint8_t>(svid_tmp);
     ++p;
 
-    // hex decode into bits[] — single pass
     memset(out.bits, 0, sizeof(out.bits));
     uint8_t byte_idx = 0;
     uint8_t hex_count = 0;
     uint8_t nibble = 0;
 
     while (*p && ((*p >= '0' && *p <= '9') || (*p >= 'A' && *p <= 'F') || (*p >= 'a' && *p <= 'f'))) {
-        if (hex_count >= 64) return false;  // reject payloads longer than 64 hex chars
+        if (hex_count >= 64) return false;
         uint8_t val = hexVal(*p++);
-        if (val == 0xFF) return false;      // defensive: loop condition already filters
+        if (val == 0xFF) return false;      // defensive: loop filter already excludes this
         hex_count++;
-        if (byte_idx >= 32) continue;       // first 32 bytes captured; keep counting
+        if (byte_idx >= 32) continue;       // keep counting: hex_count still validates total length
         nibble = (nibble << 4) | val;
         if ((hex_count & 1) == 0) {
             out.bits[byte_idx++] = nibble;
             nibble = 0;
         }
     }
-    // QZSS L1S = 252 bits (250 data + 2-bit padding, spec Table 4.3.1-1) = 63 hex chars;
-    // some receivers output 64, so accept both. Anything after the hex payload (before '*', already NUL-terminated by feed) is garbage -> reject.
+    // QZSS L1S = 252 bits (250 data + 2-bit padding, spec Table 4.3.1-1) = 63 hex chars, but some receivers emit 64, so accept both.
+    // Trailing bytes before '*' (NUL-terminated by feed) are garbage -> reject.
     if (hex_count != 63 && hex_count != 64) return false;
     if (*p != '\0') return false;
 
-    // Handle trailing nibble (odd hex length, e.g. 63 chars)
     if ((hex_count & 1) && byte_idx < 32) {
         out.bits[byte_idx++] = nibble << 4;
     }
-    // 64 hex chars (32 bytes): mask lower nibble (bits 252-255); bits 250-251 are spec-guaranteed 00
+    // 64 hex chars (32 bytes): mask bits 252-255; bits 250-251 are spec-guaranteed 0
     if (hex_count >= 63) {
-        out.bits[31] &= 0xC0;  // 250 data bits MSB-first, byte31 bits 5..0 are padding
+        out.bits[31] &= 0xC0;
     }
 
-    // QZQSM の Satellite ID は「PRN を表す 8bit の下位 6bit」(DCR-017 §4.3.1 /
-    // DCX-004 §4.3.1)。Frame::svid の契約は PRN（api-reference.md の 181-191）なので、生 ID に上位ビットを立てて PRN に正規化する。
-    // 既に PRN（>=128）が入っている場合は | 0x80 が恒等なので二重変換しない。
+    // QZQSM の Satellite ID は PRN の下位 6bit (DCR-017 §4.3.1 / DCX-004 §4.3.1)。
+    // Frame::svid は PRN 契約 (api-reference.md の 181-191) なので上位ビットを立てて正規化する。既に PRN (>=128) なら | 0x80 は恒等。
     out.svid = static_cast<uint8_t>(svid | 0x80);
 
     return true;

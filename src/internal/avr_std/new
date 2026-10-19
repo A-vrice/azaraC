@@ -1,9 +1,7 @@
 #pragma once
 // azaraC - src/internal/avr_std/new
 // Minimal <new> shim for the Arduino AVR toolchain (no libstdc++).
-//
-// azaraC is no-heap: placement new only (safe tagged unions in Message/Mt43Data).
-// Plain operator new/delete are intentionally omitted.
+// azaraC is no-heap: placement new only (safe tagged unions in Message/Mt43Data); plain new/delete are omitted.
 
 #include <stddef.h>
 

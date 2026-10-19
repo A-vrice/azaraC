@@ -54,9 +54,7 @@ bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix)
     d->camf.b3_c10 = 0;
 
 
-    // Null Message Check (IS-QZSS-DCX-004 §4.3)
-    // All fields except PAB, MT, SD, Reserved, CRC must be 0
-    // A2 must be Japan (001101111 = 111), A3 must be 0
+    // Null Message Check (IS-QZSS-DCX-004 §4.3): every field except PAB, MT, SD, Reserved and CRC must be 0. A2 must be Japan (001101111 = 111) and A3 must be 0.
     if (d->camf.a1 == 0 && d->camf.a2 == DCX_COUNTRY_CODE_JAPAN && d->camf.a3 == 0 &&
         d->camf.a4 == 0 && d->camf.a5 == 0 && d->camf.a6 == 0 &&
         d->camf.a7 == 0 && d->camf.a8 == 0 && d->camf.a9 == 0 &&
@@ -64,8 +62,7 @@ bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix)
         d->camf.a12 == 0 && d->camf.a13 == 0 && d->camf.a14 == 0 &&
         d->camf.a15 == 0 && d->camf.a16 == 0 && d->camf.a17 == 0 &&
         d->camf.a18 == 0) {
-        // Extended Message must also be all 0 (bits 146..219 = 74 bits)
-        // Check using getBits for correctness
+        // The extended message part must also be all 0 (bits 146..219 = 74 bits).
         uint32_t ex_part1 = getBits(bits, 146, 32);  // bits 146..177
         uint32_t ex_part2 = getBits(bits, 178, 32);  // bits 178..209
         uint32_t ex_part3 = getBits(bits, 210, 10);  // bits 210..219
@@ -78,16 +75,13 @@ bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix)
         }
     }
 
-    // Resolve onset time from week (current/next) + time-of-week
-    // IS-QZSS-DCX-004 §4.2.3.6, Table 4.2-9: A6 = 0 (current week), 1 (next week)
-    // EWSS CAMF v1.2 §3.3: A week starts Monday 00:00 UTC, ends Sunday 23:59 UTC
-    // The hazard onset is encoded by 15 bits (1-bit A6 + 14-bit A7), with 1-minute resolution, allowing identification up to 2 weeks in advance.
+    // Onset: A6 (0 = current week, 1 = next week) + A7 (14 bits, 1-minute steps) encodes 15 bits, up to 2 weeks ahead.
+    // IS-QZSS-DCX-004 §4.2.3.6, Table 4.2-9 / EWSS CAMF v1.2 §3.3: a week starts Monday 00:00 UTC and ends Sunday 23:59 UTC.
     if (d->camf.a7 > 0 && d->camf.a7 <= 10080 && report_unix >= 946684800u) {
-        // Find Monday 00:00 UTC of the week containing report_unix
-        // 1970-01-01 was Thursday: (days_since_epoch + 3) % 7 → 0=Mon, 3=Thu, 6=Sun
+        // 1970-01-01 was a Thursday, so (days + 3) % 7 gives 0=Mon … 6=Sun. Find Monday 00:00 UTC of the week containing report_unix.
         uint32_t days        = report_unix / 86400u;
         uint32_t dow         = (days + 3u) % 7u;   // 0=Mon, …, 6=Sun
-        uint32_t monday_days = days - dow;          // Monday 00:00 UTC of the current week
+        uint32_t monday_days = days - dow;
 
         if (d->camf.a6 == 1) {
             monday_days += 7u; // next week
@@ -105,23 +99,19 @@ bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix)
         d->onset_time.minute = (d->camf.a7 - 1u) % 60u;
     }
 
-    // Determine Service Kind based on A2 and A3
     if (d->camf.a2 != DCX_COUNTRY_CODE_JAPAN) {
         d->service_kind = Mt44ServiceKind::OutsideJapan;
         d->ex_kind = ExtendedKind::OutsideJapan;
     } else {
         if (d->camf.a3 == 0 || d->camf.a3 == 2 || d->camf.a3 == 3) {
-            // A3=0: J-Alert (Fire and Disaster Management Agency) - IS-QZSS-DCX-003 §4.2.1.2
-            // A3=2: J-Alert (Cabinet Office)
-            // A3=3: J-Alert (Fire and Disaster Management Agency)
+            // A3=0,3: J-Alert (Fire and Disaster Management Agency), A3=2: J-Alert (Cabinet Office) — IS-QZSS-DCX-003 §4.2.1.2
             d->service_kind = Mt44ServiceKind::JAlert;
             d->ex_kind = ExtendedKind::JAlert;
         } else if (d->camf.a3 == 1) {
             d->service_kind = Mt44ServiceKind::LAlert;
             d->ex_kind = ExtendedKind::LAlertOrLocal;
         } else if (d->camf.a3 <= 31) {
-            // A3=4: Local Government (IS-QZSS-DCX-003 §4.2.1.2)
-            // A3=5-31: Local Government codes reserved for future use (IS-QZSS-DCX-003 §4.2.1.2)
+            // A3=4: Local Government, A3=5-31: reserved for future use — IS-QZSS-DCX-003 §4.2.1.2
             d->service_kind = Mt44ServiceKind::LocalGovernment;
             d->ex_kind = ExtendedKind::LAlertOrLocal;
         } else {
@@ -185,10 +175,10 @@ bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix)
             B1Refinement b1 = decodeB1Refinement(d->camf.a18);
             d->camf.b1_present = (b1.c1 != 0 || b1.c2 != 0 || b1.c3 != 0 || b1.c4 != 0);
 
-            // Store refinement values in decoded ellipse (EWSS CAMF v1.2 §3.7.1.3/4)
+            // Store the refinement values in the decoded ellipse (EWSS CAMF v1.2 §3.7.1.3/4).
+            // Radius scaling: C3 → semi-major (A14), C4 → semi-minor (A15).
             dec.main_ellipse.b1_lat_offset_microdeg = b1RefinedLatitudeOffset(b1.c1);
             dec.main_ellipse.b1_lon_offset_microdeg = b1RefinedLongitudeOffset(b1.c2);
-            // B1 refinement: C3 → semi-major (uses A14), C4 → semi-minor (uses A15)
             dec.main_ellipse.b1_refined_semi_major_m = b1RefinedRadiusM(
                 b1.c3, dec.main_ellipse.semi_major_m, d->camf.a14);
             dec.main_ellipse.b1_refined_semi_minor_m = b1RefinedRadiusM(
@@ -222,8 +212,7 @@ bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix)
             d->camf.b3_c10 = c10;
         }
     }
-    // B4 (A17=11) - Quantitative and Detailed Information (EWSS CAMF v1.2 §3.7.4)
-    // For B4, the detailed D1–D36 fields are decoded later in JsonSerializerDcx.cpp
+    // B4 (A17=11) - Quantitative and Detailed Information (EWSS CAMF v1.2 §3.7.4) B4's detailed D1–D36 fields are decoded later in JsonSerializerDcx.cpp.
     if (d->camf.a17 == 3) {
         d->camf.b4_present = true;
     }
@@ -256,10 +245,8 @@ bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix)
     } else if (d->ex_kind == ExtendedKind::JAlert) {
         dec.jalert_prefecture_mode = (d->ex_jalert.ex8 == 0);
         if (dec.jalert_prefecture_mode) {
-            // Prefecture bitmask mode
             dec.prefecture_count = decodePrefectureBitmask(d->ex_jalert.ex9, dec.prefecture_positions);
         } else {
-            // City/town/village code list mode
             dec.city_code_count = decodeCityCodeList(d->ex_jalert.ex9, dec.city_codes);
         }
     }

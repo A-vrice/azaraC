@@ -1,12 +1,7 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.17.1 with CI-CD
-// Source module : azarashi.definitions.qzss.dcr.disaster_category
-// Variable      : qzss_dcr_jma_disaster_category_en
-// Entries       : 12
-// Strategy      : binary_search
-
-// NOTE: This function may return nullptr for unknown IDs.
-// Callers MUST perform a null-check before using the result.
+// AUTO-GENERATED from azarashi 0.17.1 — do not edit
+// azarashi.definitions.qzss.dcr.disaster_category → qzss_dcr_jma_disaster_category_en: 12 entries, strategy binary_search
+// Unknown id returns nullptr — callers MUST null-check.
 
 #if defined(__AVR__)
 #include "../internal/avr_std/cstdint"

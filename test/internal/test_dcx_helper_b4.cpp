@@ -1,4 +1,4 @@
-// test/internal/test_dcx_helper_b4.cpp — DcxHelper B4 全ハザードタイプテスト decodeB4DetailedInfo の各 a4_code 分岐を網羅し、正しいビット展開を検証する
+// DcxHelper B4 全ハザードタイプの単体テスト（decodeB4DetailedInfo の a4_code 分岐ごとのビット展開）。
 
 #define ARDUINO 0
 #include "../src/internal/DcxHelper.h"
@@ -29,7 +29,6 @@ static void check_not_present(const B4DetailedInfo& r, uint8_t idx) {
 
 TEST_CASE("B4: Earthquake (a4=36) - D1/D2/D3/D4") {
     // a18[14:11]=D1(4b), a18[10:8]=D2(3b), a18[7:4]=D3(4b), a18[3:0]=D4(4b)
-    // D1=0x0A, D2=0x05, D3=0x0C, D4=0x03
     uint16_t a18 = (0x0A << 11) | (0x05 << 8) | (0x0C << 4) | 0x03;
     B4DetailedInfo r;
     decodeB4DetailedInfo(a18, 36, r);
@@ -39,14 +38,12 @@ TEST_CASE("B4: Earthquake (a4=36) - D1/D2/D3/D4") {
     check_value(r, 1, 0x05); // D2
     check_value(r, 2, 0x0C); // D3
     check_value(r, 3, 0x03); // D4
-    // 他の D_present は false
     check_not_present(r, 4);
     check_not_present(r, 5);
 }
 
 TEST_CASE("B4: Tsunami (a4=43) - D5") {
-    // D5[131:133] → a18[14:12] → shift=12, mask=0x07
-    // D5 = 0x06
+    // D5[131:133]→a18[14:12] shift=12 mask=0x07
     uint16_t a18 = (0x06 << 12);
     B4DetailedInfo r;
     decodeB4DetailedInfo(a18, 43, r);
@@ -65,7 +62,7 @@ TEST_CASE("B4: Tidal wave (a4=44) - D5") {
 }
 
 TEST_CASE("B4: Cold wave (a4=63) - D6") {
-    // D6[131:134] → a18[14:11] → shift=11, mask=0x0F
+    // D6[131:134]→a18[14:11] shift=11 mask=0x0F
     uint16_t a18 = (0x0B << 11);
     B4DetailedInfo r;
     decodeB4DetailedInfo(a18, 63, r);
@@ -490,7 +487,6 @@ TEST_CASE("B4: 境界値 - a18=0x7FFF (全ビット 1)") {
     B4DetailedInfo r;
     decodeB4DetailedInfo(0x7FFF, 36, r);
     REQUIRE(r.present);
-    // D1=0x0F, D2=0x07, D3=0x0F, D4=0x0F
     CHECK(r.d_values[0] == 0x0F);
     CHECK(r.d_values[1] == 0x07);
     CHECK(r.d_values[2] == 0x0F);
@@ -503,7 +499,6 @@ TEST_CASE("B4: unknown a4_code は present=true だが d_present=false") {
     decodeB4DetailedInfo(0x3FFF, 99, r);
     CHECK(r.present);
     CHECK(r.a4_code == 99);
-    // どの D_present も false
     for (uint8_t i = 0; i < B4DetailedInfo::D_COUNT; ++i) {
         CHECK(!r.d_present[i]);
     }

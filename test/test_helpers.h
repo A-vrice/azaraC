@@ -1,5 +1,4 @@
-// test/test_helpers.h — 共通テストユーティリティ
-// 複数のテストファイルで共有するヘルパー関数・クラスを定義
+// test/test_helpers.h — 複数のテストファイルで共有するヘルパー関数・クラス
 
 #ifndef TEST_HELPERS_H
 #define TEST_HELPERS_H
@@ -146,8 +145,7 @@ inline bool decodeNmea(const char* nmea, Message& msg, uint32_t report_unix = 0)
     return dec.decode(frame, msg, report_unix);
 }
 
-// NMEAフレーマー専用ヘルパー（Decoder を経由しない）
-// NmeaFramer のパーサー動作のみをテストする。チェックサム検証を含む。
+// NmeaFramer のパーサー動作のみをテストする（Decoder を経由せず、チェックサム検証を含む）
 
 inline bool feedNmeaRaw(const char* nmea, Frame& out) {
     NmeaFramer framer;
@@ -180,7 +178,7 @@ inline std::string makeNmeaQzqsmHex(int num_hex_chars) {
 // テスト用デコーダー（protected関数を公開）
 
 struct TestDecoder : Decoder {
-    // Shared instance — ensures OOB flag, getBits, getBits64 share one Decoder
+    // One shared instance: the OOB flag and getBits/getBits64 state must persist across calls
     static TestDecoder& inst() {
         static TestDecoder t;
         return t;
@@ -191,7 +189,7 @@ struct TestDecoder : Decoder {
         return crc24q(data, bit_len);
     }
 
-    // ビット抽出 (non-static になった getBits をインスタンス経由で呼ぶ)
+    // ビット抽出（getBits は非static、インスタンス経由で呼ぶ）
     static uint32_t extractBits(const uint8_t* b, uint16_t s, uint8_t l) {
         return inst().getBits(b, s, l);
     }
@@ -204,26 +202,25 @@ struct TestDecoder : Decoder {
         return inst().oob_;
     }
 
-    // 64-bit bit extraction (non-static getBits64 wrapper)
+    // getBits64 is non-static: call through the instance
     static uint64_t extractBits64(const uint8_t* b, uint16_t s, uint8_t l) {
         return inst().getBits64(b, s, l);
     }
 
-    // DHM extraction (non-static extractDHM wrapper)
+    // extractDHM is non-static: call through the instance
     static TimeFields testExtractDHM(const uint8_t* b, uint16_t start, uint32_t report_unix = 0) {
         static TestDecoder t;
         t.oob_ = false;
         return t.extractDHM(b, start, report_unix);
     }
 
-    // Read notifications (non-static readNotifications wrapper)
+    // readNotifications is non-static: call through the instance
     static uint8_t testReadNotifications(const uint8_t* b, uint16_t start, uint16_t* out) {
         static TestDecoder t;
         return t.readNotifications(b, start, out);
     }
 
-    // 各サブデコーダーのテスト用ラッパー
-    // 各メソッドは基底クラス Decoder の条件コンパイルに合わせて #if ガードする
+    // サブデコーダー用ラッパー。基底の条件コンパイルに合わせて #if ガードする
 #if (AZARAC_ENABLE_EEW)
     static void testDecodeEEW(const uint8_t* bits, Message& out, uint32_t now_unix) {
         TestDecoder t;
@@ -231,7 +228,7 @@ struct TestDecoder : Decoder {
     }
 #endif
 
-    // Arrival time resolution (static method, but declared protected in base)
+    // protected static in the base class: callable directly
     static TimeFields testResolveArrivalTime(uint16_t raw, uint32_t base_unix) {
         return resolveArrivalTime(raw, base_unix);
     }
@@ -241,7 +238,7 @@ struct TestDecoder : Decoder {
         return resolveTime(month, day, hour, minute, now_unix);
     }
 
-    // 緯度経度抽出 (non-static になった extractLatLon をインスタンス経由で呼ぶ)
+    // 緯度経度抽出（extractLatLon は非static、インスタンス経由で呼ぶ）
     static LatLon testExtractLatLon(const uint8_t* buf, uint16_t start) {
         return TestDecoder().extractLatLon(buf, start);
     }

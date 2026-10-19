@@ -18,8 +18,7 @@ namespace azaraC {
 namespace internal {
 
 #if (AZARAC_ENABLE_TSUNAMI) || (AZARAC_ENABLE_NW_PAC_TSUNAMI)
-// 12bit Ta から azarashi と同じ語彙の状態を返す。通常時刻なら nullptr。
-// 順序が本質: 範囲外チェックを先に置くと hour==30 の no_information が到達不能になる（30 > 23）。
+// 12bit Ta → azarashi と同じ語彙の状態（通常時刻は nullptr）。判定順が本質: 範囲外チェックを先に置くと hour==30 の no_information（30 > 23）が到達不能になる。
 static const char* arrivalStatus(uint16_t raw, bool nwpac) {
     uint8_t day = (raw >> 11) & 1u, hour = (raw >> 6) & 0x1Fu, min = raw & 0x3Fu;
     if (hour == 31 && min == 63) return nwpac ? "arrived_or_unknown" : "arrival_estimated";
@@ -27,10 +26,8 @@ static const char* arrivalStatus(uint16_t raw, bool nwpac) {
     if (raw == 0 || hour > 23 || min > 59) return "unrecognized_code";
     return nullptr;
 }
-// 津波の高さコード → 境界（m、10 分の 1 m 単位の整数）。下端は開、上端は閉。azarashi の PROFILES と同じ区分。
-// 境界を持たないコード（センチネル・「その他」）は 0 で出し、呼び出し側が null を書く（「0.2m未満」の
-// 下側のように片側だけ無い区分も 0）。値が 10 の倍数を分母とする整数なので wf_deg が小数 1 桁で出せる
-// ——double を経由しないため、24bit 仮数の AVR でも host と同じ文字列になる。
+// 津波の高さコード → 境界（m。10 分の 1 m 単位の整数で、下端は開・上端は閉。azarashi の PROFILES と同じ区分）。
+// 境界を持たないコード（センチネル・「その他」）と片側だけ無い区分（「0.2m未満」の下側）は 0 で出し、呼び出し側が null を書く。10 の倍数なので wf_deg の整数演算だけで済み、24bit 仮数の AVR でも host と一致する。
 static void writeHeightBounds(Print& out, uint16_t code, bool nwpac) {
     int32_t lower = 0, upper = 0;
     if (nwpac) {
@@ -61,8 +58,7 @@ static void writeHeightBounds(Print& out, uint16_t code, bool nwpac) {
 }
 #endif  // AZARAC_ENABLE_TSUNAMI || AZARAC_ENABLE_NW_PAC_TSUNAMI
 
-// MT=43 sub-type serializers
-// Each returns after writing its last field with last=true
+// MT=43 sub-type serializers (each ends by writing its last field with last=true)
 
 #if (AZARAC_ENABLE_EEW)
 bool serializeEEW(const Mt43Data* d, Print& out) {
@@ -198,7 +194,7 @@ bool serializeNankai(const Mt43Data* d, Print& out) {
     wf_s(out, "info_code_label",
         qzss_dcr_jma_information_serial_code_lookup(nankai->info_code));
     
-    // Aggregated complete text if available, else per-page info + hex
+    // Aggregated text if available, else per-page info + hex
     if (nankai->is_aggregated && nankai->aggregated_len > 0) {
         wf_u(out, "truncated", nankai->truncated ? 1u : 0u);
         wf_u(out, "page", nankai->page);
@@ -305,7 +301,7 @@ bool serializeVolcano(const Mt43Data* d, Print& out) {
     if (!vol) return false;
     
     wf_u(out, "ambiguity",     vol->ambiguity);
-    // 日本語版を持たない英語専用表なので言語非依存（_label_en は出さない）
+    // 日本語版を持たない英語専用表なので言語非依存（_label_en は出さない）。
     wf_s(out, "ambiguity_label",
         qzss_dcr_jma_ambiguity_of_activity_time_en_lookup(vol->ambiguity));
     writeDHM(out, "activity_time", vol->activity_time);

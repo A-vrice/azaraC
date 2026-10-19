@@ -5,11 +5,7 @@
 // このスケッチは loop() を使わず、FreeRTOS タスクで全ての処理を行います。
 // RTOS 対応の Arduino 環境 (ESP32, ESP32-S3, ESP32-C3 等) で動作します。
 //
-// アーキテクチャ:
-//   ┌─────────────────┐     ┌─────────────┐     ┌─────────────────┐
-//   │  UART RX Task   │────▶│  Message    │────▶│  Output Task    │
-//   │  (Serial受信)    │     │  Queue      │     │  (JSON出力)      │
-//   └─────────────────┘     └─────────────┘     └─────────────────┘
+// アーキテクチャ: UART RX Task ──(Message Queue)──▶ Output Task
 //
 // Wiring (例:ESP32-C3 DevKitM-1):
 //   GNSS TX → GPIO20 (Serial1 RX)
@@ -36,15 +32,13 @@
 #include <queue.h>
 #endif
 
-// 設定
 
 // キューサイズ (保持できるメッセージ数)
 static constexpr size_t kQueueSize = 16;
 
-// UART 受信バッファサイズ
 static constexpr size_t kUartBufferSize = 256;
 
-// タスクスタックサイズ (ワード単位)
+// スタックサイズ (ワード単位)
 static constexpr uint32_t kRxTaskStackSize = 4096;
 static constexpr uint32_t kOutputTaskStackSize = 4096;
 
@@ -57,7 +51,6 @@ static constexpr UBaseType_t kOutputTaskPriority = 1;
 #define TX_PIN 21
 #define SERIAL_GNSS Serial1
 
-// グローバル変数
 
 // メッセージキュー (azaraC::Message をやり取り)
 static QueueHandle_t g_messageQueue = nullptr;
@@ -68,29 +61,25 @@ static azaraC::Parser g_Parser;
 // GNSS 時刻キャッシュ (UBX-NAV-PVT 等から更新)
 static uint32_t g_cachedGnssUnixTime = 0;
 
-// 統計カウンタ
-// std::atomic を使用して複数タスクからのアクセスを安全にする
-// brace-initialization は Arduino 環境 (ESP32 コア 2.x) でコンパイルエラーの可能性があるため、明示的なデフォルトコンストラクタで初期化する。
+// 複数タスクから触るため std::atomic。brace-init は ESP32 コア 2.x でコンパイルエラーになり得るので、明示的なデフォルトコンストラクタで初期化する。
 static struct Stats {
     std::atomic<uint32_t> Messages;
     std::atomic<uint32_t> queueFullErrors;
     Stats() : Messages(0), queueFullErrors(0) {}
 } g_stats;
 
-// 関数プロトタイプ
 
 static void uartRxTask(void* pvParameters);
 static void outputTask(void* pvParameters);
 static void processByte(uint8_t b, azaraC::Parser& parser);
 
-// バイト処理
-// Note: Nankai aggregated_text_ptr は Parser 内部バッファへの借用ポインタ（次の feed()/reset() や別イベントの集約で無効化される）。queue 経由で別タスクへ渡す前にコピー/シリアライズしないと dangling になるため、 is_aggregated の場合はここで JSON にシリアライズしてから送信するか、下記のように aggregated テキストをコピーしてから enqueue すること。
+// Nankai aggregated_text_ptr は Parser 内部バッファへの借用ポインタで、次の feed()/reset() や別イベントの集約で無効化される。
+// queue 経由で別タスクへ渡すと dangling になるため、is_aggregated のときはここで JSON にシリアライズするか、aggregated テキストをコピーしてから enqueue すること。
 static void processByte(uint8_t b, azaraC::Parser& parser) {
     azaraC::Message msg;
     if (parser.feed(b, msg, g_cachedGnssUnixTime)) {
 #if AZARAC_ENABLE_NANKAI
-        // aggregated_text_ptr は Parser 内部バッファへの借用ポインタ。
-        // toJson() はバッファを直接参照するため、並行 feed() で破損し得る。
+        // toJson() は借用ポインタを直接参照するため、並行 feed() で破損し得る。
 #endif
         // キューに送信 (待たない)
         if (xQueueSend(g_messageQueue, &msg, 0) != pdTRUE) {
@@ -101,7 +90,6 @@ static void processByte(uint8_t b, azaraC::Parser& parser) {
     }
 }
 
-// UART RX タスク
 
 static void uartRxTask(void* pvParameters) {
     (void)pvParameters;
@@ -111,23 +99,20 @@ static void uartRxTask(void* pvParameters) {
     Serial.println(F("[RTOS] UART RX task started"));
 
     for (;;) {
-        // データ処理 - 1回のループで読み取りと処理を行う
         size_t Available = SERIAL_GNSS.available();
         if (Available > 0) {
             size_t toRead = (Available < kUartBufferSize) ? Available : kUartBufferSize;
             for (size_t i = 0; i < toRead; i++) {
                 Buffer[i] = static_cast<uint8_t>(SERIAL_GNSS.read());
-                processByte(Buffer[i], g_Parser);  // 読み取りと処理を1回のループで
+                processByte(Buffer[i], g_Parser);
             }
         }
 
-        // 少し待機して CPU 使用率を下げる
-        // 1ms 待機 = 約1000回/秒のポーリング
+        // 少し待機して CPU 使用率を下げる (1ms 待機 = 約1000回/秒のポーリング)
         vTaskDelay(pdMS_TO_TICKS(1));
     }
 }
 
-// 出力タスク
 
 static void outputTask(void* pvParameters) {
     (void)pvParameters;
@@ -139,7 +124,6 @@ static void outputTask(void* pvParameters) {
     for (;;) {
         // キューからメッセージを待機 (最大 100ms)
         if (xQueueReceive(g_messageQueue, &msg, pdMS_TO_TICKS(100)) == pdTRUE) {
-            // JSON を Serial (USB) に出力
             azaraC::toJson(msg, Serial);
             Serial.println();
         }
@@ -158,10 +142,8 @@ static void outputTask(void* pvParameters) {
     }
 }
 
-// setup()
 
 void setup() {
-    // USB Serial 初期化
     Serial.begin(115200);
     uint32_t start = millis();
     while (!Serial && (millis() - start < 5000)) { delay(10); } // 5秒タイムアウト
@@ -171,7 +153,6 @@ void setup() {
     Serial.println(F("NMEA ($QZQSM) or UBX (SFRBX)"));
     Serial.println(F("================================="));
 
-    // UART 初期化
 #if defined(ESP32)
     SERIAL_GNSS.begin(9600, SERIAL_8N1, RX_PIN, TX_PIN);
 #else
@@ -180,7 +161,6 @@ void setup() {
     Serial.print(F("[INIT] GNSS UART on RX="));
     Serial.println(RX_PIN);
 
-    // メッセージキュー作成
     g_messageQueue = xQueueCreate(kQueueSize, sizeof(azaraC::Message));
     if (g_messageQueue == nullptr) {
         Serial.println(F("[ERROR] Failed to create message queue!"));
@@ -193,7 +173,6 @@ void setup() {
     Serial.print(kQueueSize);
     Serial.println(F(")"));
 
-    // UART RX タスク作成
     BaseType_t result = xTaskCreatePinnedToCore(
         uartRxTask,           // タスク関数
         "UART_RX",            // タスク名
@@ -211,7 +190,6 @@ void setup() {
     }
     Serial.println(F("[INIT] UART RX task created"));
 
-    // 出力タスク作成
     result = xTaskCreatePinnedToCore(
         outputTask,              // タスク関数
         "OUTPUT",                // タスク名
@@ -235,9 +213,7 @@ void setup() {
     vTaskSuspend(nullptr);
 }
 
-// loop()
-// RTOS タスクで全ての処理を行うため、loop() は使用しません。
-// vTaskSuspend(nullptr) で setup タスクが停止されるため、この関数は実際には呼ばれません。
+// loop() は使わない。RTOS タスクで全て処理し、vTaskSuspend(nullptr) で setup タスクが停止するため到達しない。
 
 void loop() {
     // ここには到達しない

@@ -49,7 +49,6 @@ struct CategoryFilter {
 
 CategoryFilter filter;
 
-// 災害カテゴリのラベル（日本語）
 const char* getCategoryLabel(uint8_t category) {
     switch (category) {
         case 1:  return "緊急地震速報";
@@ -68,7 +67,6 @@ const char* getCategoryLabel(uint8_t category) {
     }
 }
 
-// フィルタリング判定
 bool shouldOutput(uint8_t category) {
     switch (category) {
         case 1:  return filter.eew;
@@ -87,7 +85,6 @@ bool shouldOutput(uint8_t category) {
     }
 }
 
-// MT=43 カテゴリ別の詳細出力
 void printMt43Details(const azaraC::Message& msg) {
     const azaraC::Mt43Data* mt43 = msg.getMt43();
     if (!mt43) return;
@@ -172,7 +169,7 @@ void loop() {
     while (Serial1.available()) {
         uint8_t b = static_cast<uint8_t>(Serial1.read());
 
-        // 第3引数にUNIX時刻を渡すことで、DCR/DCX電文の「年」を正確に算出できます
+        // 第3引数に UNIX 時刻を渡すと DCR/DCX 電文の「年」が解決する
         if (parser.feed(b, msg, cached_gnss_unix_time)) {
             if (msg.msg_type == 43) {
                 const azaraC::Mt43Data* mt43 = msg.getMt43();
@@ -184,9 +181,7 @@ void loop() {
                     printMt43Details(msg);
                 }
             } else if (msg.msg_type == 44) {
-                // DCX (MT=44) はカテゴリフィルタの対象外のため、常に出力する。
-                // MT=43 と同様にフィルタリングしたい場合は shouldOutput() に
-                // MT=44 用の分岐を追加すること。
+                // DCX (MT=44) はカテゴリフィルタの対象外。フィルタしたい場合は shouldOutput() に分岐を足す。
                 Serial.print(F("[MT44] SVID="));
                 Serial.println(msg.svid);
                 azaraC::toJson(msg, Serial);

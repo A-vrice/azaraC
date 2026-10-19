@@ -1,20 +1,14 @@
 #!/usr/bin/env bash
 # autoresearch.sh — AVR definition-table footprint benchmark.
 #
-# Goal (issue #35): the generated target-area string pools repeat parent region
-# names, so one pool costs ~63 KB on the English side alone. On AVR that is not
-# just expensive, it is unbuildable: avr-gcc rejects any single object above
-# 32,767 bytes ("size of variable is too large"; verified — 32,767 compiles,
-# 32,768 does not), which is why the AVR preset in azaraC_config.h leaves
-# DCX/CAMF (and the volcano/ash-fall families) off entirely.
+# Goal (issue #35): the generated target-area string pools repeat parent region names, so one pool costs ~63 KB on the English side alone.
+# On AVR that is not just expensive, it is unbuildable: avr-gcc rejects any single object above 32,767 bytes ("size of variable is too large"; verified — 32,767 compiles, 32,768 does not), which is why the AVR preset in azaraC_config.h leaves DCX/CAMF (and the volcano/ash-fall families) off entirely.
 #
-# Primary metric   AVR_TABLE_BYTES — every byte the enabled configuration asks
-#                  the AVR linker for: the string literals of the definition
-#                  tables (the pools, plus the `switch` tables' per-case
-#                  literals) and the entry-table arrays. Measured from
-#                  `avr-gcc -E` output, so the real AVR preprocessor picks the
-#                  tables. Stage 3 cross-checks it against avr-gcc's own object
-#                  sizes, which is what keeps the struct-layout term honest.
+# Primary metric   AVR_TABLE_BYTES — every byte the enabled configuration asks the
+#                  AVR linker for: the string literals of the definition tables (the
+#                  pools plus the `switch` tables' per-case literals) and the entry
+#                  arrays, measured from `avr-gcc -E` output. Stage 3 cross-checks it
+#                  against avr-gcc's own object sizes, which keeps struct layout honest.
 # Reported         AVR_STRING_BYTES (the issue's "63 KB pool" number),
 #                  AVR_ENTRY_BYTES/ROWS/ROW_BYTES, AVR_LARGEST_LITERAL, the four
 #                  large pools, UNO_*/MEGA_* sizes of two real linked images,
@@ -22,41 +16,31 @@
 #                  AVR_TABLE_CROSSCHECK, FLASH_BUF_OK.
 #
 # Gates (non-zero exit)
-#   labels    every label dump must match the golden hashes in
-#             test/bench/avr/labels.golden: the AVR branch with far Flash reads,
-#             the AVR branch with 16-bit progmem pointers (both modes of
-#             internal/FlashString.h), and the host branch — every id of every
-#             table must render byte-identical labels on all three.
-#   buffer    AZARAC_FLASH_BUF_SIZE (src/azaraC_config.h) must hold the longest
-#             label of every enabled category: internal/FlashString.h clamps the
-#             copy at size - 1, so a category missing from the size chain would
-#             truncate its labels silently (test/bench/avr/check_flash_buf.py
-#             sweeps every category combination, both languages, both presets).
-#   build     every TU must compile for ATmega2560 with all categories enabled
-#             *once* no single pool is over the per-object limit. While a pool
-#             is still oversized the build is expected to fail (the baseline
-#             state) and the failure is reported, not gated — that is the bug
-#             this metric exists to fix.
-#   crosscheck the primary metric must equal what avr-gcc reports for the
-#             symbols it actually placed.
+#   labels    every id of every table must render byte-identical labels in all three
+#             modes (AVR far Flash, AVR 16-bit progmem, host) against the golden
+#             hashes in test/bench/avr/labels.golden.
+#   buffer    AZARAC_FLASH_BUF_SIZE (src/azaraC_config.h) must hold the longest label
+#             of every enabled category: internal/FlashString.h clamps the copy at
+#             size - 1, so a category missing from the size chain would truncate its
+#             labels silently (check_flash_buf.py sweeps all combinations, both
+#             languages, both presets).
+#   build     every TU must compile for ATmega2560 with all categories enabled *once*
+#             no single pool is over the per-object limit. While a pool is oversized
+#             the failure is the expected baseline, reported but not gated — that is
+#             the bug this metric fixes.
+#   crosscheck the primary metric must equal what avr-gcc reports for the symbols it placed.
 #   uno       the default AVR configuration must still compile and link.
-#   mega      the DCX/CAMF configuration (opted in, as on a 256 KB part) must still
-#             compile and link, enable the DCX/CAMF tables, keep every table in Flash
-#             and use far Flash reads (elpm/RAMPZ) — without them the tables above
-#             64 KB would garble.
-#   ram       SRAM must not grow: UNO_RAM_BYTES and MEGA_RAM_BYTES (data+bss of the
-#             linked images) never exceed the baseline, and no definition table may
-#             live in RAM instead of Flash. Shrinking Flash by spending SRAM is a
-#             loss — the AVR path can only join labels in the shared 800 B buffer it
-#             already owns.
+#   mega      the DCX/CAMF configuration (opted in, as on a 256 KB part) must still compile
+#             and link, enable the DCX/CAMF tables, keep every table in Flash and use far
+#             Flash reads (elpm/RAMPZ) — without them the tables above 64 KB would garble.
+#   ram       SRAM must not grow (UNO_RAM_BYTES and MEGA_RAM_BYTES <= baseline) and no table
+#             may live in RAM instead of Flash: shrinking Flash by spending SRAM is a loss, and
+#             the AVR path can only join labels in the shared 800 B buffer it already owns.
 #
-# Deterministic: fixed toolchain flags, locked inputs, no network, no clock.
-# Requires avr-gcc/avr-size/avr-nm and g++ on PATH. The Uno image links with the
-# Arduino AVR core's `-flto -fuse-linker-plugin` (AVR_LTO); the Mega one does not,
-# see stage 5.
+# Deterministic: fixed toolchain flags, locked inputs, no network, no clock; requires avr-gcc/avr-size/avr-nm and g++ on PATH.
+# The Uno and Mega images link with the Arduino AVR core's `-flto -fuse-linker-plugin` (AVR_LTO).
 #
-# `bash autoresearch.sh --bless-labels` re-records the golden label hashes (use
-# only after confirming the label change was intended).
+# `bash autoresearch.sh --bless-labels` re-records the golden label hashes — only after confirming the label change was intended.
 
 set -uo pipefail
 
@@ -75,17 +59,13 @@ HOST_CXX="${HOST_CXX:-g++}"
 PYTHON="${PYTHON:-python}"
 command -v "$PYTHON" >/dev/null 2>&1 || PYTHON=python3
 
-# Recipe for the Arduino-core stand-in (see $BENCH/shim/Arduino.h). ARDUINO=1
-# makes azaraC.h include <Print.h> and TimeFields.h use millis(), exactly like a
-# real AVR build; the shim stands in for the core, which is a network download.
+# Recipe for the Arduino-core stand-in (see $BENCH/shim/Arduino.h): ARDUINO=1 makes azaraC.h include <Print.h> and TimeFields.h use millis(), as in a real AVR build.
 AVR_BUILD=(-mmcu="$MCU" -Os -std=gnu++17 -fno-exceptions
            -ffunction-sections -fdata-sections -Werror=overflow
            -I src -I "$BENCH/shim" -DARDUINO=1)
 
-# The Arduino AVR core compiles and links with `-flto -fuse-linker-plugin` (platform.txt),
-# so stage 4's Uno image — the configuration a sketch actually ships — uses them too.
-# Stage 3 keeps its own LTO-free recipe on purpose: an LTO object carries no sizes for
-# symbols, which would leave nothing for the avr-gcc crosscheck to compare against.
+# The Arduino AVR core compiles and links with `-flto -fuse-linker-plugin` (platform.txt), so stage 4's Uno image — the configuration a sketch actually ships — uses them too.
+# Stage 3 keeps its own LTO-free recipe on purpose: an LTO object carries no sizes for symbols, which would leave nothing for the avr-gcc crosscheck to compare against.
 # Stage 5 stays LTO-free for a different reason; see the note there.
 AVR_LTO=(-flto -fuse-linker-plugin)
 
@@ -97,23 +77,19 @@ CATS=(-DAZARAC_LANG_JA=1 -DAZARAC_LANG_EN=1
       -DAZARAC_ENABLE_FLOOD=1 -DAZARAC_ENABLE_TYPHOON=1 -DAZARAC_ENABLE_MARINE=1
       -DAZARAC_ENABLE_DCX_CAMF=1)
 
-# avr-gcc per-object ceiling. Nothing to tune: 2**15 is the compiler's limit.
+# avr-gcc per-object ceiling: 2**15 is the compiler's limit.
 MAX_OBJECT_BYTES=32768
 
-# The AVR path trades Flash for RAM only where the SRAM it already owns allows
-# it (the shared 800 B label buffer in internal/FlashString.h). Growing SRAM
-# while shrinking Flash is a loss, so the linked Uno image's RAM is gated:
-# measured 702 B (data 626 + bss 76) at the pre-compression baseline.
+# The AVR path trades Flash for RAM only within the SRAM it already owns (the shared 800 B label buffer in internal/FlashString.h); growing SRAM to shrink Flash is a loss, so the linked Uno image's RAM is gated: measured 702 B (data 626 + bss 76) at the pre-compression baseline.
 MAX_UNO_RAM_BYTES=702
 
-# The same ceiling for stage 5's DCX/CAMF image: measured 3,714 B (data 2,902 + bss 812)
-# of the Mega's 8,192 B, so the tables may cost Flash but never SRAM. This is also what
-# catches an LTO build there — see the stage-5 comment (28,230 B of .data).
+# The same ceiling for stage 5's DCX/CAMF image: measured 3,714 B (data 2,902 + bss 812) of the Mega's 8,192 B, so the tables may cost Flash but never SRAM.
+# This is also what catches an LTO build here — see the stage-5 comment (28,230 B of .data).
 MAX_MEGA_RAM_BYTES=3714
 
 mkdir -p "$OUT"
 
-# ---------------------------------------------------------------- stage 1 ---
+# stage 1
 # The enabled tables, as the AVR preprocessor sees them.
 "$AVR_CC" -E -x c++ -std=gnu++17 -mmcu="$MCU" -DARDUINO=1 \
     -I src -I "$BENCH/shim" "${CATS[@]}" "$BENCH/tables.cpp" -o "$OUT/tables.i" \
@@ -131,20 +107,15 @@ largest="$(metric AVR_LARGEST_LITERAL)"
 [[ -n "$table_bytes" && -n "$string_bytes" && -n "$entry_bytes" && -n "$largest" ]] \
     || { echo "autoresearch: metrics missing" >&2; exit 3; }
 
-# ------------------------------------------------------------- stage 1b ---
-# The shared label buffer must hold the longest label of every enabled category:
-# internal/FlashString.h clamps the copy at AZARAC_FLASH_BUF_SIZE - 1, so a
-# category the size chain does not know about would truncate its labels silently
-# (and mid-UTF-8). Swept over every category combination, both languages and both
-# shipped presets; the size chain is read from azaraC_config.h and cross-checked
-# against the AVR preprocessor.
+# stage 1b
+# The shared label buffer must hold the longest label of every enabled category: internal/FlashString.h clamps the copy at AZARAC_FLASH_BUF_SIZE - 1, so a category the size chain misses would truncate its labels silently (mid-UTF-8).
+# Swept over every category combination, both languages, both presets; the size chain is read from azaraC_config.h and cross-checked against the AVR preprocessor.
 buf_status=0
 "$PYTHON" "$BENCH/check_flash_buf.py" --avr-gcc "$AVR_CC" || buf_status=$?
 echo "METRIC FLASH_BUF_OK=$(( buf_status == 0 ? 1 : 0 ))"
 
-# ---------------------------------------------------------------- stage 2 ---
-# Label equivalence: the AVR branch (PROGMEM string views) and the host branch
-# must keep rendering exactly the labels they rendered at the baseline.
+# stage 2
+# Label equivalence: the AVR branch (PROGMEM string views) and the host branch must keep rendering the labels they rendered at the baseline.
 "$PYTHON" "$BENCH/gen_label_dump.py" "$OUT/dump_labels.cpp" || exit 4
 GOLDEN="$BENCH/labels.golden"
 
@@ -159,10 +130,8 @@ build_dump() {  # $1 = label, rest = extra flags
 
 build_dump avr -I test/stub -D__AVR__ -DAZARAC_AVR_STUB \
     || { echo "autoresearch: AVR label dump did not build" >&2; exit 4; }
-# The same tables through the other addressing mode: parts with <= 64 KiB of Flash
-# (the Uno) use 16-bit progmem pointers, larger ones the far accessors. The stub
-# stands in for a large part by default, so pin FLASHEND down for this build.
-# Both modes must render the identical labels, and the host branch with them.
+# The same tables through the other addressing mode: parts with <= 64 KiB of Flash (the Uno) use 16-bit progmem pointers, larger ones the far accessors.
+# The stub stands in for a large part by default, so pin FLASHEND down for this build.
 build_dump avr_short -I test/stub -D__AVR__ -DAZARAC_AVR_STUB -DFLASHEND=0x7FFF \
     || { echo "autoresearch: short-Flash AVR label dump did not build" >&2; exit 4; }
 build_dump host || { echo "autoresearch: host label dump did not build" >&2; exit 4; }
@@ -188,8 +157,7 @@ if [[ ! -f "$GOLDEN" ]]; then
     echo "autoresearch: $GOLDEN missing — run 'bash autoresearch.sh --bless-labels'" >&2
     label_status=1
 else
-    # AVR_SHORT is the same tables with 16-bit progmem pointers; it is compared
-    # against the AVR golden (there is no separate recording for it).
+    # AVR_SHORT uses 16-bit progmem pointers; it is compared against the AVR golden.
     for path in AVR AVR_SHORT HOST; do
         want="$(sed -n "s/^${path%%_SHORT} //p" "$GOLDEN")"
         case "$path" in
@@ -209,10 +177,8 @@ else
     echo "METRIC LABELS_AVR_SHORT_MATCH=$([[ "$avr_short_labels" == "$avr_labels" ]] && echo 1 || echo 0)"
 fi
 
-# ---------------------------------------------------------------- stage 3 ---
-# Every TU must compile for the real target once no pool exceeds the compiler's
-# per-object ceiling; below that ceiling the build is the gate, above it the
-# failure is the expected baseline state.
+# stage 3
+# Every TU must compile for the real target once no pool exceeds the per-object ceiling; below it the build is the gate, above it failure is the expected baseline.
 rm -rf "$OUT/obj"
 mkdir -p "$OUT/obj"
 build_failed=0
@@ -223,8 +189,7 @@ done
 build_ok=$((1 - build_failed))
 echo "METRIC AVR_COMPILE_OK=$build_ok"
 
-# The primary metric is only honest if it agrees with the sizes avr-gcc reports
-# for the symbols it actually placed.
+# The primary metric is only honest if it agrees with the sizes avr-gcc reports for the symbols it actually placed.
 if [[ -f "$OUT/pools.txt" ]]; then
     cross="$("$AVR_NM" --print-size --radix=d -C "$OUT"/obj/*.o 2>/dev/null | tr -d '\r' \
         | "$PYTHON" "$BENCH/crosscheck_tables.py" "$OUT/pools.txt")"
@@ -233,9 +198,8 @@ if [[ -f "$OUT/pools.txt" ]]; then
     cross_matched="$(printf '%s\n' "$cross" | sed -n 's/.*CROSSCHECK=\([0-9]*\)\/.*/\1/p')"
 fi
 
-# ---------------------------------------------------------------- stage 4 ---
-# The configuration the library actually ships for AVR (preset: seismic and
-# tsunami only, Japanese labels). It must stay buildable and must stay small.
+# stage 4
+# The configuration the library actually ships for AVR (preset: seismic and tsunami only, Japanese labels); it must stay buildable and small.
 uno_ok=0
 uno_flash=""
 uno_build=(-mmcu="$UNO_MCU" -Os -std=gnu++17 -fno-exceptions "${AVR_LTO[@]}"
@@ -257,8 +221,7 @@ if [[ ${#uno_objs[@]} -gt 0 ]] && "$AVR_CC" "${uno_build[@]}" "${uno_objs[@]}" -
     uno_ok=1
     uno_flash="$("$AVR_SIZE" "$OUT/uno.elf" | awk 'NR == 2 { print $1 + $2 }')"
     uno_ram="$("$AVR_SIZE" "$OUT/uno.elf" | awk 'NR == 2 { print $2 + $3 }')"
-    # A definition table that landed in .data/.bss is a table that is no longer
-    # in Flash: every one of them must be PROGMEM.
+    # A definition table in .data/.bss is no longer in Flash: all must be PROGMEM.
     tables_in_ram="$("$AVR_NM" -C "$OUT/uno.elf" 2>/dev/null \
         | awk '$2 ~ /^[dDbB]$/ && $3 ~ /(_POOL|_TABLE)$/ { n++ } END { print n + 0 }')"
 fi
@@ -267,18 +230,12 @@ echo "METRIC UNO_COMPILE_OK=$uno_ok"
 [[ -n "${uno_ram:-}" ]] && echo "METRIC UNO_RAM_BYTES=$uno_ram"
 [[ -n "${tables_in_ram:-}" ]] && echo "METRIC AVR_TABLES_IN_RAM=$tables_in_ram"
 
-# ---------------------------------------------------------------- stage 5 ---
-# The large-flash image: a 256 KB part with DCX/CAMF opted in (the preset no longer
-# flips it on by chip name, so this stage defines it, as a Mega user would). Its tables
-# land above 64 KB, which is what makes this stage able to prove the far addressing on
-# a real device.
+# stage 5
+# The large-flash image: a 256 KB part with DCX/CAMF opted in (the preset no longer flips it on by chip name, so this stage defines it, as a Mega user would).
+# Its tables land above 64 KB, which is what makes this stage able to prove the far addressing on a real device.
 #
-# No ${AVR_LTO[@]} here, unlike stage 4: avr-gcc 7.3 + LTO drops the `.text.azaraC.<n>`
-# section attribute of the generated function-local literal statics, and they land in
-# .rodata, which the linkerscript maps into .data — measured on this exact recipe,
-# .data 2,902 B without LTO vs 28,230 B with it, i.e. ~25 KB of labels in SRAM on a
-# part that has 8 KB. The far-Flash placement this stage exists to check is therefore
-# only measurable LTO-free; the ceiling that keeps it honest is MAX_MEGA_RAM_BYTES.
+# No ${AVR_LTO[@]} here, unlike stage 4: avr-gcc 7.3 + LTO drops the `.text.azaraC.<n>` section attribute of the generated function-local literal statics, and they land in .rodata, which the linkerscript maps into .data — measured on this exact recipe, .data 2,902 B without LTO vs 28,230 B with it, i.e. ~25 KB of labels in SRAM on a part that has 8 KB.
+# The far-Flash placement this stage exists to check is therefore only measurable LTO-free; the ceiling that keeps it honest is MAX_MEGA_RAM_BYTES below.
 mega_ok=0
 mega_build=(-mmcu="$MCU" -Os -std=gnu++17 -fno-exceptions
             -ffunction-sections -fdata-sections -Wl,--gc-sections -Werror=overflow
@@ -305,26 +262,17 @@ if [[ ${#mega_objs[@]} -gt 0 ]] && "$AVR_CC" "${mega_build[@]}" "${mega_objs[@]}
     # The preset must actually carry the DCX/CAMF tables on a 256 KB part.
     mega_tables="$("$AVR_NM" -C "$OUT/mega.elf" 2>/dev/null \
         | awk '$3 ~ /QZSS_DCX_/ && $3 ~ /(_POOL|_TABLE)$/ { n++ } END { print n + 0 }')"
-    # Far Flash addressing must be in use: without RAMPZ/elpm the tables above
-    # 64 KB (138 of 195 symbols in the all-category build) would be unreadable.
+    # Far Flash addressing must be in use: without RAMPZ/elpm the tables above 64 KB (138 of 195 symbols in the all-category build) would be unreadable.
     mega_far_ops="$("$AVR_OBJDUMP" -d "$OUT/mega.elf" 2>/dev/null \
         | grep -c -e 'elpm' -e 'out.*0x3b')"
-    # The CRC24Q nibble tables are plain PROGMEM, so they take the `*(.progmem.*)`
-    # cluster at the front of .text — the one spot a large image pushes past
-    # 0xFFFF. crc24q reads them with 16-bit `pgm_read_byte`, so a table above the
-    # window would gag every frame. The three 16 B tables sit in the same TU
-    # (at most 32 B apart), one address stands for all of them.
+    # The CRC24Q nibble tables are plain PROGMEM, so they take the `*(.progmem.*)` cluster at the front of .text — the one spot a large image pushes past 0xFFFF — and crc24q reads them with 16-bit `pgm_read_byte`, so a table above the window would gag every frame.
+    # The three 16 B tables sit in the same TU (at most 32 B apart), so one address stands for all of them.
     crc_sym_addr="$("$AVR_NM" -C "$OUT/mega.elf" 2>/dev/null \
         | awk '$3 ~ /CRC24Q_T4B[0-2]$/ { print $1 }' | head -n 1)"
 
-    # What the core pays for our tables. core.a is linked last, so its own
-    # PROGMEM (digital_pin_to_port_PGM …) lands after every progmem-cluster input
-    # section — after ours. Above 0xFFFF the core's 16-bit
-    # `pgm_read_byte(&digital_pin_to_port_PGM[pin])` cannot reach it and
-    # pinMode/digitalWrite read the wrong port, which is why AZARAC_PROGMEM moves
-    # the tables to the .text.azaraC.* cluster (with the code, after the progmem
-    # cluster) on parts with more than 64 KiB of Flash. See
-    # test/bench/avr/core_progmem.c.
+    # What the core pays for our tables. core.a is linked last, so its own PROGMEM (digital_pin_to_port_PGM …) lands after every progmem-cluster input section — after ours.
+    # Above 0xFFFF the core's 16-bit `pgm_read_byte(&digital_pin_to_port_PGM[pin])` cannot reach it and pinMode/digitalWrite read the wrong port, which is why AZARAC_PROGMEM moves the tables to the .text.azaraC.* cluster on parts with more than 64 KiB of Flash.
+    # See test/bench/avr/core_progmem.c.
     core_build=(-mmcu="$MCU" -Os -std=gnu11 -fno-exceptions
                 -ffunction-sections -fdata-sections)
     if "$AVR_CC" "${core_build[@]}" -c "$BENCH/core_progmem.c" -o "$OUT/obj_mega_core.o" \
@@ -375,7 +323,7 @@ echo "METRIC MEGA_LTO_COMPILE_OK=$mega_lto_ok"
 [[ -n "${mega_lto_flash:-}" ]] && echo "METRIC MEGA_LTO_FLASH_BYTES=$mega_lto_flash"
 [[ -n "${mega_lto_ram:-}" ]] && echo "METRIC MEGA_LTO_RAM_BYTES=$mega_lto_ram"
 
-# ---------------------------------------------------------------- gates -----
+# gates
 status=0
 
 if [[ -n "${cross_checked:-}" ]] && [[ "$cross_checked" != "0" && "$cross_matched" != "$cross_checked" ]]; then
@@ -435,8 +383,7 @@ else
         echo "autoresearch: the Mega image uses no far Flash reads (elpm/RAMPZ) — tables above 64 KB would garble" >&2
         status=12
     }
-    # The tables must not sit in the low-progmem cluster: they would push the
-    # core's own PROGMEM past the 16-bit window the core reads it through.
+    # The tables must not sit in the low-progmem cluster: they would push the core's own PROGMEM past the 16-bit window the core reads it through.
     if [[ -z "${mega_core_pgm:-}" ]]; then
         echo "autoresearch: the core PROGMEM stand-in did not link — placement is unverified" >&2
         status=13
@@ -444,8 +391,7 @@ else
         echo "autoresearch: the core's PROGMEM landed at 0x$mega_core_pgm, past the 16-bit progmem window — pinMode/digitalWrite would read the wrong port" >&2
         status=13
     fi
-    # Same window, our own side: the CRC24Q tables are read through 16-bit
-    # `pgm_read_byte`, and a garbage CRC rejects every frame without a word.
+    # Same window, our own side: the CRC24Q tables are read through 16-bit `pgm_read_byte`, and a garbage CRC rejects every frame without a word.
     if [[ -z "${crc_sym_addr:-}" ]]; then
         echo "autoresearch: the CRC24Q PROGMEM tables are missing from the Mega link — the symbols disappeared into the wrong section" >&2
         status=13

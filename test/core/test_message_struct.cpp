@@ -221,7 +221,7 @@ TEST_CASE("Mt43Data: コピー代入演算子") {
 }
 
 TEST_CASE("Mt43Data: コピーコンストラクタ - 全12型") {
-    // 各 ActiveType に対してコピーコンストラクタが正しく動作することを検証コピー先の型が正しく、nullptr が適切に返ることを確認（型安全性）
+    // 全 ActiveType でコピー後の型が一致し、他型アクセスのみ nullptr を返す（型安全性）
     struct TypeInfo { Mt43Data::ActiveType type; const char* name; };
     TypeInfo types[] = {
         {Mt43Data::ActiveType::Eew,          "Eew"},
@@ -242,7 +242,6 @@ TEST_CASE("Mt43Data: コピーコンストラクタ - 全12型") {
 
     for (auto t : types) {
         Mt43Data orig;
-        // initAs を使って適切な型で初期化
         switch (t.type) {
             case Mt43Data::ActiveType::Eew:          orig.initAs<EewData>(); break;
             case Mt43Data::ActiveType::Hypocenter:   orig.initAs<HypocenterData>(); break;
@@ -262,11 +261,9 @@ TEST_CASE("Mt43Data: コピーコンストラクタ - 全12型") {
         }
         CHECK(orig.active_type == t.type);
 
-        // コピー構築
         Mt43Data copied(orig);
         CHECK(copied.active_type == t.type);
 
-        // コピー先の正しい型へのアクセスが非nullであること
         switch (t.type) {
             case Mt43Data::ActiveType::Eew:          CHECK(copied.get<EewData>()          != nullptr); break;
             case Mt43Data::ActiveType::Hypocenter:   CHECK(copied.get<HypocenterData>()   != nullptr); break;
@@ -285,7 +282,6 @@ TEST_CASE("Mt43Data: コピーコンストラクタ - 全12型") {
             default: break;
         }
 
-        // 異なる型へのアクセスは nullptr（型安全性の確認）
         if (t.type != Mt43Data::ActiveType::Eew)          CHECK(copied.get<EewData>()          == nullptr);
         if (t.type != Mt43Data::ActiveType::Hypocenter)   CHECK(copied.get<HypocenterData>()   == nullptr);
         if (t.type != Mt43Data::ActiveType::Seismic)      CHECK(copied.get<SeismicData>()      == nullptr);
@@ -320,9 +316,7 @@ TEST_CASE("Mt43Data: コピーコンストラクタ - 深いコピー") {
     CHECK(h2->magnitude == 70);
     CHECK(h2->epicenter == 12345);
 
-    // コピー先を変更
     h2->depth = 999;
-    // 元データは影響を受けない
     CHECK(h->depth == 500);
 }
 
@@ -382,14 +376,12 @@ TEST_CASE("Mt43Data: ムーブコンストラクタ - 全12型") {
         }
         CHECK(orig.active_type == t.type);
 
-        // ムーブ構築
         Mt43Data moved(std::move(orig));
         CHECK(moved.active_type == t.type);
 
-        // ムーブ元は None になっている
+        // ムーブ元は None
         CHECK(orig.active_type == Mt43Data::ActiveType::None);
 
-        // ムーブ先の正しい型へのアクセスが非nullであること
         switch (t.type) {
             case Mt43Data::ActiveType::Eew:          CHECK(moved.get<EewData>()          != nullptr); break;
             case Mt43Data::ActiveType::Hypocenter:   CHECK(moved.get<HypocenterData>()   != nullptr); break;
@@ -408,7 +400,6 @@ TEST_CASE("Mt43Data: ムーブコンストラクタ - 全12型") {
             default: break;
         }
 
-        // ムーブ先の異なる型は nullptr
         if (t.type != Mt43Data::ActiveType::Eew)          CHECK(moved.get<EewData>()          == nullptr);
         if (t.type != Mt43Data::ActiveType::Hypocenter)   CHECK(moved.get<HypocenterData>()   == nullptr);
         if (t.type != Mt43Data::ActiveType::Seismic)      CHECK(moved.get<SeismicData>()      == nullptr);
@@ -439,13 +430,12 @@ TEST_CASE("Mt43Data: 型切り替えでデストラクタが呼ばれる") {
     data.initAs<TyphoonData>();
     CHECK(data.getTyphoon() != nullptr);
 
-    // 別の型に切り替え → Typhoon のデストラクタが呼ばれる (destroyActive経由)
+    // destroyActive 経由で旧型のデストラクタが呼ばれる
     data.initAs<VolcanoData>();
     CHECK(data.active_type == Mt43Data::ActiveType::Volcano);
     CHECK(data.getVolcano() != nullptr);
     CHECK(data.getTyphoon() == nullptr);
 
-    // もう一度切り替え
     data.initAs<MarineData>();
     CHECK(data.active_type == Mt43Data::ActiveType::Marine);
     CHECK(data.getMarine() != nullptr);
@@ -456,11 +446,9 @@ TEST_CASE("Mt43Data: None のコピー/ムーブは安全") {
     Mt43Data empty;
     CHECK(empty.active_type == Mt43Data::ActiveType::None);
 
-    // None からのコピー
     Mt43Data copied(empty);
     CHECK(copied.active_type == Mt43Data::ActiveType::None);
 
-    // None からのムーブ
     Mt43Data moved(std::move(empty));
     CHECK(moved.active_type == Mt43Data::ActiveType::None);
 }

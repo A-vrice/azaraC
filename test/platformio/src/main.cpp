@@ -1,5 +1,4 @@
-// Minimal PlatformIO compile test for azaraC.
-// Exercises the public API so the library actually links.
+// Minimal PlatformIO compile test: exercises the public API so the library links.
 #include <Arduino.h>
 #include <azaraC.h>
 

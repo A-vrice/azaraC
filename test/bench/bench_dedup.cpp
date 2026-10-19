@@ -1,29 +1,20 @@
-// test/bench/bench_dedup.cpp
-// Deterministic duplicate-suppression benchmark + spec conformance check.
+// test/bench/bench_dedup.cpp — deterministic duplicate-suppression benchmark + spec conformance check.
 //
-// Inputs are tracked real captures only (no network, no clock input, fixed 32-bit LCG seed):
-//   test/data/dcr_vectors.json    — 2022 QZQSM capture (MT43)
-//   test/data/dcx_vectors.json    — 2024 QZQSM capture (MT44, 3 satellites)
-//   test/data/nankai_vectors.json — Nankai multi-page event
+// Inputs are tracked captures only (no network/clock input, fixed 32-bit LCG seed):
+//   test/data/{dcr,dcx,nankai}_vectors.json — 2022 MT43 / 2024 MT44 (3 satellites) / Nankai multi-page event.
 //
-// Spec model (qzss-specs/アプリケーションノートv2.md, 原PDF p.23–27)
-//   ① 複数衛星からの受信 — 照合の対象は MT～VN（フレーム bit 8..219 = 212 bit、付属フローチャートも「MT～Vnの212bitについて比較する」と明記）。250 ビット全体でもなく、プリアンブル（bit 0..7）も Reserved（bit 220..225）も含めない — どちらも放送で巡回するため、含めると 1 情報が分裂する。
-//     The 250-bit frame carries no satellite identifier (svid comes from the
-//     NMEA/UBX header), so the key carries no svid — a per-satellite key would re-announce one information once per relay satellite.
-//   ② 連続受信 — 保存した履歴と照合し、一致すれば通知しない。履歴は手順④ 配信終了条件 / 手順④' 無受信タイムアウトで削除する。
-//     One information is therefore remembered for its validity window and forgotten after it. Roughest faithful reading used here: an information is live while it was received within the phase's declared window.
+// Spec model (qzss-specs/アプリケーションノートv2.md, 原PDF p.23–27):
+//   ① 複数衛星からの受信 — 照合対象は MT～VN（フレーム bit 8..219 = 212 bit）。プリアンブル(bit 0..7)も
+//      Reserved(bit 220..225)も放送で巡回するため、含めると 1 情報が分裂する。250-bit フレームは衛星
+//      識別子を持たない（svid は NMEA/UBX ヘッダ）ので鍵にも svid を入れない。
+//   ② 連続受信 — 履歴と照合し一致すれば通知しない。履歴は手順④/④' の終了条件で消えるので、情報は有効窓の間だけ覚える（本ベンチは「窓内に受信済みなら live」と読む）。
 //
-// Phases P1–P4 are scored against that model; P5 measures throughput only.
-// The aggregated Nankai check is behavioural, not a phase: the same event fed in two page orders must be reported once (see nankaiKeyStable).
+// P1–P4 はこのモデルで採点。P5 はスループットのみ。集約 Nankai はページ順に依存しないことを挙動で見る（nankaiKeyStable）。
 //
-// What is optimised
-// Primary     NANOS_PER_OP   — ns per decision over the scored stream.
-// Guardrails  NEW_RECALL     — fraction of genuinely-new informations reported (a filter that suppresses everything scores 0 here; autoresearch.sh fails the run below the baseline).
-//             DUP_SUPPRESS   — fraction of in-window repeats suppressed.
-// A metric built only from ACCURACY would be gamed by the trivial "everything is a duplicate" filter, which would suppress every alert.
-//
-// Harness contract: "METRIC <name>=<value>" lines, exit 0 on success.
-// CRASH_GROUP is a sentinel: a run that aborts mid-way leaves it at -1.
+// Primary NANOS_PER_OP（scored ストリームの 1 判定あたり ns）。
+// Guardrail は NEW_RECALL（新規情報の通知率）と DUP_SUPPRESS（窓内再送の抑止率）— ACCURACY 単独では「全部重複」フィルタが満点になる。
+// Harness contract: "METRIC <name>=<value>" を出力し成功時 exit 0。
+// CRASH_GROUP は中断センチネル（-1）。
 
 #include "azaraC.h"
 #include "internal/Dedup.h"
@@ -114,8 +105,7 @@ static void scanFile(const char* path, Corpus& out) {
 
         CorpusEntry e{};
         e.key.msg_type = (uint8_t)((hexVal(buf[h0 + 2]) << 2) | (hexVal(buf[h0 + 3]) >> 2));
-        // 手順③ の照合対象 MT～VN = フレーム bit 8..219 = hex 2..55 文字目（26.5 バイト）。
-        // Parser::handleFrame と同じ digest を作る（プリアンブルも Reserved も含まない）。
+        // 手順③ の照合対象 MT～VN = フレーム bit 8..219 = hex 2..55 文字目。Parser::handleFrame と同じ digest（プリアンブルも Reserved も含まない）。
         uint8_t fbuf[32] = {};
         for (int i = 0; i < 31; ++i) {
             fbuf[i] = (uint8_t)((hexVal(buf[h0 + i * 2]) << 4) | hexVal(buf[h0 + i * 2 + 1]));
@@ -265,8 +255,7 @@ static Phase phaseRebroadcast(const Corpus& c) {
     return p;
 }
 
-// P3 — in-window repeats are duplicates, post-window repeats are new (手順④' 一定時間受信しなかった情報は履歴から削除する).
-// Window is EEW's 5 min (原PDF p.26); the clock starts at a realistic uptime.
+// P3 — 窓内の再送は重複、窓外の再送は新規（手順④' 一定時間受信しなかった情報は履歴から削除する）。窓は EEW の 5 min（原PDF p.26）。
 static Phase phaseWindowExpiry(const Corpus& c) {
     Phase p;
     p.name = "P3_expiry";
@@ -323,7 +312,7 @@ static Phase phaseCapacity(const Corpus& c) {
     return p;
 }
 
-// P6 — capacity reclaimed: an information that stopped being received must not pin a slot forever. A window is enough silence to retire the old set (手順④'), so the new set must be tracked with no false duplicate.
+// P6 — capacity reclaimed: 受信が止まった情報がスロットを永久に占有してはならない。窓分の無音で旧セットは退役する（手順④'）ので、新セットは偽の重複なしに追跡できる。
 static Phase phaseReclaim(const Corpus& c) {
     Phase p;
     p.name = "P6_reclaim";
@@ -372,12 +361,11 @@ static Phase phaseChurn(const Corpus& c) {
 
 // spec identity for aggregated Nankai events
 
-// The completed aggregation is one information, so its identity must not depend on which page completed the set: the page that finishes last is an artefact of arrival order. Measured behaviourally, through the Parser:
-//   1) event A (27 pages, file order)      → reported once
-//   2) event B (same pages, other event)   → reported (and evicts A's buffer, since AZARAC_NANKAI_BUFFERS is 1)
-//   3) event A again, reversed page order  → NOT reported
-// Step 3 is the discriminator: identified by the completing frame's CRC, A completes on a different page and is reported a second time.
-// 1 = stable, 0 = unstable, -1 = fixture unusable.
+// 集約後の Nankai は 1 情報なので、その identity はどのページが集合を完成させたかに依存してはならない（最後のページは到着順の産物）。Parser を通して挙動で測る:
+//   1) event A (27 pages, file order)      → 1 回通知
+//   2) event B (same pages, other event)   → 通知（AZARAC_NANKAI_BUFFERS=1 なので A のバッファは追い出される）
+//   3) event A again, reversed page order  → 通知しない
+// step 3 が判定点: 完成フレームの CRC で識別していると A は別ページで完成し 2 度目が通知される。 1 = stable, 0 = unstable, -1 = fixture unusable.
 static int nankaiKeyStable(const std::vector<std::string>& pages, uint32_t& key_used) {
     key_used = 0;
     if (pages.size() < 2) return -1;
@@ -435,8 +423,9 @@ static int nankaiKeyStable(const std::vector<std::string>& pages, uint32_t& key_
 
 // spec identity: MT～VN, not the whole 250-bit frame
 
-// 手順③ の照合対象は MT～VN（フレーム bit 8..219 = 212 bit）で、プリアンブル（bit 0..7）も Reserved（bit 220..225）も含まない。どちらも放送で巡回する（プリアンブルは A→B→C、
-// Reserved は 16 値）ので、250 ビット全体でも 218 bit でも 1 情報が分裂する。fixture の 1 文について両方を回し、通知がちょうど 1 回であることを見る。
+// 手順③ の照合対象は MT～VN（フレーム bit 8..219 = 212 bit）で、プリアンブル(bit 0..7)も Reserved(bit 220..225)も含まない。
+// どちらも放送で巡回する（プリアンブルは A→B→C、Reserved は 16 値）ので 250 bit 全体でも 218 bit でも 1 情報が分裂する。
+// fixture の 1 文について両方を回し、通知がちょうど 1 回であることを見る。
 // 1 = stable, 0 = unstable, -1 = fixture unusable（1 回も通知されない = デコード不能）。
 static int preambleKeyStable(const std::string& sentence) {
     const size_t p = sentence.find(',', 7);
@@ -536,7 +525,7 @@ int main() {
     const double new_recall = new_expected ? (double)new_correct / (double)new_expected : 0.0;
     const double dup_suppress = dup_expected ? (double)dup_correct / (double)dup_expected : 0.0;
 
-    // ── Timing: averaged streaming (steady_clock). The TSC of a hardware counter is ~50 % noisy here on short runs; a 200-pass average of the same workload repeats to ~3 %.
+    // ── Timing: averaged streaming (steady_clock)。ハードウェア TSC は短い run では ~50 % ノイズるので、同じ負荷の 200 pass 平均にする（再現性 ~3 %）。
     constexpr double TARGET_SECONDS = 0.25;
     size_t all_ops = 0;
     for (Phase* p : all) all_ops += p->ops.size();
@@ -589,8 +578,7 @@ int main() {
     std::vector<std::string> nk_pages;
     nk_pages.reserve(nankai.distinct.size());
     for (const CorpusEntry& e : nankai.distinct) nk_pages.push_back(e.nmea);
-    // nankai_vectors.json holds exactly one event: the real 27-page 南海トラフ message.
-    // A different fixture size would silently measure something else.
+    // nankai_vectors.json は実データ 27 ページの南海トラフ 1 イベントちょうど。fixture サイズが違うと別物を測ってしまう。
     const bool nk_ok = (nk_pages.size() == 27);
     uint32_t nk_steps = 0;
     const int nankai_stable = nk_ok ? nankaiKeyStable(nk_pages, nk_steps) : -1;

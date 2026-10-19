@@ -1,12 +1,6 @@
-// test/integration/test_no_alloc.cpp — ライブラリが動的確保を行わないことの検証
-//
-// 公開 API（Parser::feed / toJson）が malloc/calloc/realloc/posix_memalign と operator new/new[] を一切呼ばないことを、リンカの --wrap で計測した生カウンタで検証する。Valgrind Massif と違い「ライブラリ自身の確保が 0 か」を直接示す。
-//
-// --wrap の制約: 未解決参照のみ差し替える。計測区間（snapshot〜delta）はライブラリ呼び出しの前後だけに置き、テスト基盤（doctest / std::string など）の確保を混ぜない。このファイル内の std::string 使用は計測区間外に限る。
-//
-// 出力が空になる構成（該当カテゴリが AZARAC_ENABLE_*=0）でも計測が空回りしないよう、「この構成で必ずデコードできる」電文を #if で選ぶ。全カテゴリが無効な構成では JSON 出力の確認をスキップする（確保ゼロの assert は常に生きる）。
-//
-// ホストビルド専用（test/Makefile の test-no-alloc）。GNU ld の --wrap が必要で、 macOS の ld64 では利用できない。
+// test/integration/test_no_alloc.cpp — ライブラリが動的確保を行わないことの検証 (--wrap 生カウンタ).公開 API（Parser::feed / toJson）が malloc/calloc/realloc/posix_memalign と operator new/new[] を呼ばないことを--wrap で検証する（Valgrind と違い「ライブラリ自身の確保が 0 か」を直接示せる）。
+// --wrap は未解決参照のみ差し替えるため計測区間（snapshot〜delta）はライブラリ呼び出しの前後にだけ置き、テスト基盤や std::string の確保を混ぜない；該当カテゴリが無効な構成でも空回りしないよう電文を #if で選び、全カテゴリ無効なら JSON 出力確認をスキップする。
+// ホストビルド専用（GNU ld の--wrap、macOS ld64 不可）。
 
 #include "../test_helpers.h"
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
@@ -23,7 +17,7 @@ inline unsigned long snapshot() { return g_allocs; }
 inline unsigned long delta(unsigned long base) { return g_allocs - base; }
 }  // namespace noalloc
 
-// --- C アロケータを --wrap で差し替えてカウントする ---
+// C アロケータを --wrap で差し替えてカウントする
 extern "C" {
 void* __real_malloc(size_t);
 void* __real_calloc(size_t, size_t);
@@ -35,11 +29,11 @@ int __wrap_posix_memalign(void** out, size_t align, size_t size) {
     (void)align; (void)size;
     ++noalloc::g_allocs;
     if (out) *out = nullptr;
-    return 12;  // ENOMEM。呼ばれた時点で失敗させる（この経路が通らない前提の計測用）
+    return 12;  // ENOMEM。この経路が通らない前提の計測用に、呼ばれた時点で失敗させる
 }
 }
 
-// --- operator new / new[] も置換してカウントする。本体が std::malloc を明示的に呼ぶため、置換した new 経由の 1 回の確保は __wrap_malloc でも数えられ 2 回加算される（テストは >= 1 しか要求しない）。---
+// operator new / new[] も置換してカウントする。本体が std::malloc を明示的に呼ぶため、置換した new 経由の 1 回の確保は __wrap_malloc でも数えられ 2 回加算される（テストは >= 1 しか要求しない）。
 void* operator new(size_t size) {
     ++noalloc::g_allocs;
     void* p = std::malloc(size ? size : 1);
@@ -81,7 +75,7 @@ const uint8_t kUbxMarine[] = {
     0x73, 0x18, 0x10, 0xB2, 0x62, 0x2F
 };
 
-// 計測区間の実体: feed + toJson のみ。区間外の準備は呼び出し側で済ませる。
+// 計測区間は feed + toJson のみ（区間外の準備は呼び出し側で済ませる）
 unsigned long measureNmea(const char* nmea, CountingPrint& sink) {
     Parser p;
     Message m;
@@ -138,8 +132,7 @@ TEST_CASE("No allocation: counter detects deliberate new[]") {
 }
 
 #if (AZARAC_ENABLE_NANKAI) && (AZARAC_NANKAI_MAX_PAGES >= 27)
-// 南海トラフ 27 ページ集約: ページバッファ経由の最長経路。
-// NMEA 文は計測区間の外で組み立てる（makeNmeaQzqsm は std::string を作るため）。
+// 南海トラフ 27 ページ集約: ページバッファ経由の最長経路。NMEA 文は計測区間の外で組み立てる（makeNmeaQzqsm は std::string を作るため）。
 namespace {
 constexpr unsigned kPageCount = 27;
 

@@ -58,12 +58,12 @@ TEST_CASE("JSON DCX B1: refinement fields") {
     mt44->camf.a3 = 1;
     mt44->camf.b1_present = true;
     mt44->mt44_decoded.main_ellipse_present = true;
-    mt44->mt44_decoded.main_ellipse.lat_microdeg = 35600000;      // 35.6° in microdegrees
-    mt44->mt44_decoded.main_ellipse.lon_microdeg = 139600000;     // 139.6° in microdegrees
-    mt44->mt44_decoded.main_ellipse.b1_lat_offset_microdeg = 2400; // 0.0024° in microdegrees
-    mt44->mt44_decoded.main_ellipse.b1_lon_offset_microdeg = 2400; // 0.0024° in microdegrees
-    mt44->mt44_decoded.main_ellipse.b1_refined_semi_major_m = 215125;  // 215.125 km in meters
-    mt44->mt44_decoded.main_ellipse.b1_refined_semi_minor_m = 215125;  // 215.125 km in meters
+    mt44->mt44_decoded.main_ellipse.lat_microdeg = 35600000;      // 35.6°
+    mt44->mt44_decoded.main_ellipse.lon_microdeg = 139600000;     // 139.6°
+    mt44->mt44_decoded.main_ellipse.b1_lat_offset_microdeg = 2400; // 0.0024°
+    mt44->mt44_decoded.main_ellipse.b1_lon_offset_microdeg = 2400; // 0.0024°
+    mt44->mt44_decoded.main_ellipse.b1_refined_semi_major_m = 215125;  // 215.125 km
+    mt44->mt44_decoded.main_ellipse.b1_refined_semi_minor_m = 215125;  // 215.125 km
 
     StringPrint sp;
     internal::JsonSerializer::serialize(m, sp);
@@ -94,8 +94,8 @@ TEST_CASE("JSON DCX B2: hazard center fields") {
     mt44->camf.b2_c5 = 63;
     mt44->camf.b2_c6 = 63;
     mt44->mt44_decoded.main_ellipse_present = true;
-    mt44->mt44_decoded.main_ellipse.lat_microdeg = 35600000; // 35.6° in microdegrees
-    mt44->mt44_decoded.main_ellipse.lon_microdeg = 139600000; // 139.6° in microdegrees
+    mt44->mt44_decoded.main_ellipse.lat_microdeg = 35600000; // 35.6°
+    mt44->mt44_decoded.main_ellipse.lon_microdeg = 139600000; // 139.6°
     mt44->mt44_decoded.b2_hazard_center_present = true;
     mt44->mt44_decoded.b2_hazard_lat_microdeg = 35600000;
     mt44->mt44_decoded.b2_hazard_lon_microdeg = 139600000;
@@ -174,7 +174,7 @@ TEST_CASE("JSON DCX B4: detailed info fields") {
     CHECK(has(s, "\"d4_vector_length\":9,\"d4_vector_length_label\":\"30\""));
 }
 
-// Build a B4 message with the given hazard code and A18 bit-field, return its JSON.
+// B4 message (hazard code + A18 bit-field) as JSON.
 static std::string b4Json(uint8_t a4, uint16_t a18) {
     Message m{};
     m.svid = 193;
@@ -196,8 +196,7 @@ static std::string b4Json(uint8_t a4, uint16_t a18) {
 }
 
 TEST_CASE("JSON DCX B4: multi-field layouts emit the correct raw values") {
-    // Each A18 is assembled from the layout's (shift, width) so a wrong mapping (shift/width/field) changes the emitted raw value.
-    // a4=64: D8(11,4) D9(8,3) D16(5,3) D11(2,3)
+    // Each A18 is assembled from the layout's (shift, width); a wrong mapping changes the emitted raw value. a4=64: D8(11,4) D9(8,3) D16(5,3) D11(2,3)
     {
         const std::string s = b4Json(64, (15u << 11) | (7u << 8) | (5u << 5) | (3u << 2));
         CHECK(has(s, "\"d8_wind_speed\":15"));
@@ -301,8 +300,8 @@ TEST_CASE("JSON DCX additional area fields") {
     mt44->camf.a3 = 4;
     mt44->mt44_decoded.additional_area.present = true;
     mt44->mt44_decoded.additional_area.head_to_area = true;
-    mt44->mt44_decoded.additional_area.ellipse.lat_microdeg = 35000000;  // 35.0° in microdegrees
-    mt44->mt44_decoded.additional_area.ellipse.lon_microdeg = 140000000; // 140.0° in microdegrees
+    mt44->mt44_decoded.additional_area.ellipse.lat_microdeg = 35000000;  // 35.0°
+    mt44->mt44_decoded.additional_area.ellipse.lon_microdeg = 140000000; // 140.0°
 
     StringPrint sp;
     internal::JsonSerializer::serialize(m, sp);
@@ -333,7 +332,7 @@ TEST_CASE("JSON DCX EX1 city codes with labels") {
     // City codes mode (EX8=1)
     mt44->ex_jalert.ex8 = 1;
     mt44->ex_jalert.vn = 1;
-    // Set a valid known city code (1101 = "Chuo-ku, Sapporo-shi")
+    // known city code 1101 = "Chuo-ku, Sapporo-shi"
     mt44->mt44_decoded.jalert_prefecture_mode = false;
     mt44->mt44_decoded.city_code_count = 1;
     mt44->mt44_decoded.city_codes[0] = 1101;
@@ -344,13 +343,11 @@ TEST_CASE("JSON DCX EX1 city codes with labels") {
     internal::JsonSerializer::serialize(m, sp);
     const auto& s = sp.str();
 
-    // Check city objects output (label is resolved, not null)
     CHECK(has(s, "\"cities\":[{\"code\":1101,\"label\":\""));
-    // At minimum we should NOT see null labels for known codes
     CHECK(s.find("\"cities\":[{\"code\":1101,\"label\":null}]") == std::string::npos);
     CHECK(s.find("city_codes") == std::string::npos);
     CHECK(s.find("city_labels") == std::string::npos);
-    // Regression: ex_vn must be preceded by a comma (was "]\"ex_vn\"" — invalid JSON)
+    // Regression: array close followed by a comma then ex_vn (was "]\"ex_vn\"" — invalid JSON)
     CHECK(s.find("],\"ex_vn\"") != std::string::npos);
     CHECK(s.find("]\"ex_vn\"") == std::string::npos);
 }
@@ -387,11 +384,9 @@ TEST_CASE("JSON DCX EX1 city codes multiple entries") {
     internal::JsonSerializer::serialize(m, sp);
     const auto& s = sp.str();
 
-    // All three codes appear in the cities array
     CHECK(has(s, "\"cities\":[{\"code\":1101,"));
     CHECK(hasField(s, "\"code\":1102"));
     CHECK(hasField(s, "\"code\":47201"));
-    // Check no null labels at any position within the cities array
     {
         const auto p = s.find("\"cities\":[");
         const auto q = s.find(']', p + 10);

@@ -1,4 +1,4 @@
-# azaraC - scripts/strategy.py
+# azaraC - scripts/gen/strategy.py
 # Lookup strategy selector (shared by gen_definitions.py).
 
 def key_type(keys: list) -> str:
@@ -21,8 +21,7 @@ def choose(keys: list) -> str:
     fill = n / span if span > 0 else 1.0
     if mx > 0xFFFF:   return "binary_search"
     if n <= 10:       return "switch"
-    # array indexes by `id - BASE`; a gap in the key range would silently
-    # shift every subsequent entry (wrong labels). Require contiguity.
+    # array indexes by `id - BASE`: a gap in the key range would silently shift every later entry (wrong labels), so require contiguity.
     if fill >= 0.6 and span == n: return "array"
     return "binary_search"
 
@@ -68,8 +67,7 @@ def factor_parents(labels: dict, min_len: int = 4,
                  'post' -> label == child + parent
     """
     keys = sorted(labels)
-    labels = {k: labels[k] for k in keys}   # canonical order: the tie-breaking in
-                                            # the sweep below is order-sensitive
+    labels = {k: labels[k] for k in keys}   # canonical order: the sweep's tie-breaking is order-sensitive
     texts = [labels[k].encode('utf-8') for k in keys]
     baseline = sum(len(t) + 1 for t in texts)
     best = None
@@ -109,11 +107,7 @@ def factor_parents(labels: dict, min_len: int = 4,
         children = {k: (plan[i][2] if i in plan else texts[i]) for i, k in enumerate(keys)}
         children_bytes = sum(len(c) + 1 for c in children.values())
         parent_bytes = sum(len(p) + 1 for p in parents)
-        # Adding the parent index always costs one byte per row: every emitted
-        # AVR row shape ({kt} id + parent + offset / offset + parent /
-        # offset + grand) has no length field to shrink instead, and AVR-GCC
-        # gives the entry structs byte alignment (verified in
-        # test/bench/avr/measure_tables.py SCALARS note).
+        # The parent index costs one byte per row: every emitted AVR row shape ({kt} id + parent + offset / offset + parent / offset + grand) has no length field to shrink instead (AVR-GCC byte-aligns the structs; see test/bench/avr/measure_tables.py SCALARS).
         rows_extra = len(keys)
         cost = children_bytes + parent_bytes + rows_extra
         if cost >= baseline:

@@ -2,14 +2,8 @@
 // azaraC - src/internal/avr_std/optional
 // Minimal std::optional shim for the Arduino AVR toolchain (no libstdc++).
 //
-// Supports only what azaraC uses:
-//   - default / nullopt / value construction (incl. implicit from the
-//     return value of lookup functions)
-//   - copy / move construction and assignment
-//   - has_value(), operator bool, value(), value_or(), reset(),
-//     operator* / operator->, operator=(nullopt_t)
-//
-// No exceptions are used (AVR has no runtime); access is unchecked.
+// Only what azaraC uses: default / nullopt / value construction (incl. implicit from a lookup return value), copy / move construction and assignment, has_value(), operator bool, value(), value_or(), reset(), operator* / operator->, operator=(nullopt_t).
+// No exceptions (AVR has no runtime); access is unchecked.
 #include <stddef.h>
 #include "new"
 

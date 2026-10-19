@@ -1,6 +1,5 @@
 // test/integration/test_azarashi_dcr.cpp
-// MT=43 DCR の azarashi 比較テスト（データ駆動）
-// azarashi のデコード結果と照合（定義テーブルは azarashi 0.17.1）
+// MT=43 DCR の azarashi 比較テスト（データ駆動、定義テーブルは azarashi 0.17.1）
 
 #include "../test_helpers.h"
 #include "../src/json/JsonSerializer.h"
@@ -11,8 +10,7 @@
 
 using namespace azaraC;
 
-// hasField: value の直後が JSON の区切り文字であることまで見る（境界チェック）。
-// test_json.cpp と同じ流儀。
+// hasField: value の直後が JSON の区切り文字であることまで見る（境界チェック）。test_json.cpp と同じ流儀。
 static bool hasField(const std::string& s, const std::string& key_val) {
     auto pos = s.find(key_val);
     if (pos == std::string::npos) return false;
@@ -20,10 +18,9 @@ static bool hasField(const std::string& s, const std::string& key_val) {
     return end >= s.size() || s[end] == ',' || s[end] == '}' || s[end] == '\n' || s[end] == ' ';
 }
 
-// Vn（Version Number）— 6bit at [214..219]、仕様は 1 を要求
-//
-// decodeQzqsm は Vn != 1 を UnsupportedVersion として拒否する。保持された値は「フィールドが無い」ではなく「1 だった」ことを示すために出力する。
-// 電文が EEW なので EEW 無効時は decode が通らない（＝検証対象外）。
+// Vn（Version Number）— 6bit at [214..219]、仕様は 1 を要求。
+// decodeQzqsm は Vn != 1 を UnsupportedVersion として拒否するので、保持された値は「フィールドが無い」ではなく「1 だった」ことを示す。
+// EEW 電文なので EEW 無効時は検証対象外。
 
 #if (AZARAC_ENABLE_EEW)
 TEST_CASE("DCR: version (Vn) is retained on decoded reports") {
@@ -37,8 +34,7 @@ TEST_CASE("DCR: version (Vn) is retained on decoded reports") {
     REQUIRE(mt43 != nullptr);
     CHECK(mt43->version == 1);
 
-    // 修正の対象はシリアライザなので、実際の JSON 出力を固定する。
-    // "version":1 の直後は , か } でなければならない（境界まで見る）。
+    // シリアライザ出力を固定する。"version":1 の直後は , か } でなければならない（境界まで見る）。
     StringPrint sp;
     internal::JsonSerializer::serialize(msg, sp);
     const std::string& s = sp.str();
@@ -52,8 +48,7 @@ TEST_CASE("DCR: version defaults to 0 before decode") {
     CHECK(fresh.version == 0);
 }
 
-// Nankai Trough 20メッセージ — test_scenario3
-// azarashi でデコードした結果: page_number と total_page を検証
+// Nankai Trough 20メッセージ (test_scenario3): azarashi でデコードした page_number と total_page を検証
 
 #if (AZARAC_ENABLE_NANKAI)
 TEST_CASE("DCR: Nankai Trough 20 messages - page tracking") {
@@ -126,8 +121,7 @@ TEST_CASE("DCR: Nankai Trough 20 messages - page tracking") {
 }
 #endif // AZARAC_ENABLE_NANKAI
 
-// Ash Fall 5メッセージ — test_scenario5
-// azarashi でデコードした結果: volcano_name, warning_codes, local_governments を検証
+// Ash Fall 5メッセージ (test_scenario5): azarashi でデコードした volcano_name, warning_codes, local_governments を検証
 
 #if (AZARAC_ENABLE_ASH_FALL)
 TEST_CASE("DCR: Ash Fall Detailed 5 messages - field verification") {
@@ -183,8 +177,7 @@ TEST_CASE("DCR: Ash Fall Detailed 5 messages - field verification") {
 }
 #endif // AZARAC_ENABLE_ASH_FALL
 
-// Weather 3メッセージ — test_scenario6
-// azarashi でデコードした結果: sub_categories, region_codes を検証
+// Weather 3メッセージ (test_scenario6): azarashi でデコードした sub_categories, region_codes を検証
 
 #if (AZARAC_ENABLE_WEATHER)
 TEST_CASE("DCR: Weather 3 messages - field verification") {
@@ -234,7 +227,7 @@ TEST_CASE("DCR: Weather 3 messages - field verification") {
 
 #if (AZARAC_ENABLE_EEW)
 TEST_CASE("DCR: EEW Long Period Ground Motion - exhaustive") {
-    // LgL1=3, LgU3=3 のテスト (既存のLong Period Ground Motionテストの検証強化)
+    // LgL1=3, LgU3=3 のテスト
     Message msg{};
     const char* nmea = "$QZQSM,56,9AAF88A48000DB24000049000548C5E2C000000003DFF8001C000012101445C*7B";
     REQUIRE(decodeNmea(nmea, msg));
@@ -256,7 +249,7 @@ TEST_CASE("DCR: EEW Long Period Ground Motion - exhaustive") {
 
 #if (AZARAC_ENABLE_TSUNAMI)
 TEST_CASE("DCR: Tsunami arrival time boundary - arrived (hour=31, min=63)") {
-    // 津波が既に到達した場合: azaraCではhour/minuteを0にクリアし、unix_timeも0にするこれは仕様書の「到達済み」フラグを正しく処理している
+    // 津波が既に到達した場合、azaraC は hour/minute/unix_time を 0 にクリアする（仕様書の「到達済み」フラグ）。
     uint8_t bits[32] = {};
     Message msg{};
 
@@ -298,7 +291,6 @@ TEST_CASE("DCR: Tsunami arrival time boundary - arrived (hour=31, min=63)") {
     const TsunamiData* tsunami = mt43->getTsunami();
     REQUIRE(tsunami != nullptr);
     CHECK(tsunami->count >= 1);
-    // 到達済みの場合、azaraCではhour=0, minute=0, unix_time=0 にクリアする
     CHECK(tsunami->entries[0].arrival_time.hour == 0);
     CHECK(tsunami->entries[0].arrival_time.minute == 0);
     CHECK(tsunami->entries[0].arrival_time.unix_time == 0);

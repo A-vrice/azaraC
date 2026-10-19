@@ -1,9 +1,6 @@
-// test/tools/decode_to_json.cpp
-// azaraC NMEA decoder → JSON output CLI
-// Usage: decode_to_json < nmea_lines.txt
-//        もしくは echo '$QZQSM,57,...' | decode_to_json
-// Output: JSON array of decoded messages.
-// Uses Parser (not raw Decoder) so that Nankai multi-page aggregation works.
+// test/tools/decode_to_json.cpp — azaraC NMEA decoder → JSON output CLI
+// Usage: decode_to_json < nmea_lines.txt / echo '$QZQSM,57,...' | decode_to_json
+// Output: JSON array of decoded messages. Uses Parser (not raw Decoder) so Nankai multi-page aggregation works.
 
 #define ARDUINO 0
 #include "azaraC.h"
@@ -27,7 +24,6 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    // Read all stdin into a string
     std::string input;
     char buf[4096];
     while (fgets(buf, sizeof(buf), stdin)) {

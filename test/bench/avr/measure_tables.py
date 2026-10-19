@@ -27,14 +27,8 @@ Every line of output is a `METRIC <name>=<value>` line.
 import re
 import sys
 
-# Preprocessed output splits declarations across `# 12 "file.h"` markers and
-# hoists __attribute__((__progmem__)) onto its own line; the parser only needs
-# the declaration bodies, so it is stripped first. On a part with more than
-# 64 KiB of Flash AZARAC_PROGMEM expands to an inline
-# `__attribute__((__section__(".text.azaraC.<n>")))` instead — same attribute,
-# one level of parentheses around a quoted name — so the pattern accepts both
-# (this text is parsed, not compiled, so removing an attribute cannot change the
-# measurement).
+# Preprocessed output splits declarations across `# 12 "file.h"` markers and hoists __attribute__((__progmem__)) onto its own line; only the declaration bodies matter, so that is stripped first.
+# With more than 64 KiB of Flash AZARAC_PROGMEM expands to an inline `__attribute__((__section__(".text.azaraC.<n>")))` instead — same attribute, one more parenthesis level — so the pattern accepts both (the text is parsed, not compiled).
 MARKER = re.compile(r'^# \d+ "[^"]*"(?: \d+)*$', re.M)
 ATTR = re.compile(r'__attribute__\s*\(\((?:[^()]|\([^()]*\))*\)\)')
 LITERAL_START = re.compile(r'\[\]\s*=\s*"')
@@ -43,12 +37,8 @@ TABLE = re.compile(r'(\w+_TABLE)\[\]\s*=\s*\{(.*?)\n\s*\};', re.S)
 ROW = re.compile(r'\{\s*[0-9][0-9a-fA-FxXuUlL]*(?:\s*,\s*[0-9][0-9a-fA-FxXuUlL]*)*\s*\}')
 NAME = re.compile(r'(\w+)\s*$')
 
-# AVR-GCC gives these fields byte alignment (verified on avr-gcc 7.3.0: a
-# `{uint8_t id; uint16_t offset; uint16_t len;}` entry measures 5 bytes, not the
-# 6 a 2-byte alignment would give, and alignof(uint64_t) is 1). So the entry
-# size is the plain sum of its fields — no padding. Anything else in an entry
-# struct means the layout model has to be revisited rather than silently
-# guessed; the harness cross-checks the result against avr-gcc either way.
+# AVR-GCC gives these fields byte alignment (measured on avr-gcc 7.3.0: a `{uint8_t id; uint16_t offset; uint16_t len;}` entry is 5 bytes, not the 6 a 2-byte alignment would give, and alignof(uint64_t) is 1), so an entry is the plain sum of its fields.
+# An unknown field means the layout model must be revisited, not guessed; crosscheck_tables.py checks the result against avr-gcc either way.
 SCALARS = {'uint8_t': 1, 'int8_t': 1, 'char': 1, 'bool': 1,
            'uint16_t': 2, 'int16_t': 2, 'uint32_t': 4, 'int32_t': 4,
            'uint64_t': 8, 'int64_t': 8,
@@ -184,8 +174,7 @@ def main(path: str, detail_path=None) -> int:
         if pool in pools:
             print(f'METRIC {pool}={pools[pool]}')
     if detail_path:
-        # Every measured symbol, so the harness can compare these bytes with the
-        # sizes avr-gcc reports for the same symbols.
+        # Every measured symbol, so the harness can compare these bytes with avr-gcc's.
         with open(detail_path, 'w', encoding='utf-8', newline='\n') as fh:
             for name in sorted(list(pools) + list(entries)):
                 fh.write(f'{name} {pools.get(name, entries.get(name))}\n')

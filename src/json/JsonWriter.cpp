@@ -1,5 +1,3 @@
-// Common JSON writer helpers for serializers
-
 #include "JsonWriter.h"
 
 namespace azaraC {
@@ -7,7 +5,6 @@ namespace internal {
 
 static constexpr char HEX_CHARS[] = "0123456789ABCDEF";
 
-// Primitive writers
 void writeChar(Print& out, char c) { out.print(c); }
 
 void writeUint32(Print& out, uint32_t v) {
@@ -24,11 +21,10 @@ void writeUint64(Print& out, uint64_t v) {
     out.print(buf + i);
 }
 
-// Write a JSON-escaped string (used for both keys and values)
+// Escapes a JSON string (used for both keys and values)
 static void writeEscaped(Print& out, std::string_view s) {
     if (s.empty()) return;
-    // エスケープが 1 つも無い文字列（JSON のキーとほぼ全てのラベル）は 1 回の write() で出す。
-    // 1 バイト 1 回の print() は文書全体のコストの大半を占める（実測 0.92 呼び出し/バイト）。
+    // エスケープ不要な文字列（キーとほぼ全てのラベル）は 1 回の write() で出す。 1 バイト 1 回の print() が文書全体のコストの大半を占めるため（実測 0.92 呼び出し/バイト）。
     bool plain = true;
     for (size_t i = 0; i < s.size(); ++i) {
         const uint8_t c = static_cast<uint8_t>(s[i]);
@@ -48,12 +44,12 @@ static void writeEscaped(Print& out, std::string_view s) {
             case '\t': out.print("\\t");  break;
             default:
                 if (c < 0x20) {
-                    // Control characters: \u00XX via nibbles (no snprintf/printf dep).
+                    // \u00XX via nibbles (avoids snprintf/printf dep)
                     out.print("\\u00");
                     out.print(HEX_CHARS[c >> 4]);
                     out.print(HEX_CHARS[c & 0xF]);
                 } else {
-                    // Printable ASCII and UTF-8 bytes pass through
+                    // Printable ASCII and UTF-8 pass through
                     out.print(static_cast<char>(c));
                 }
                 break;
@@ -103,8 +99,6 @@ void wf_x(Print& out, std::string_view k, uint32_t v, bool last) {
     if (!last) writeChar(out, ',');
 }
 
-// 10^6 / 10^5 / 10^3 の 10 進展開を整数だけで出す（丸めなし: v は denominator の
-// 倍数として来るので、桁は正確に決まる）。float/double を一切使わないため AVR でも host と同一。
 void wf_deg(Print& out, std::string_view k, int32_t denominator, int32_t v, bool last) {
     wk(out, k);
 
@@ -149,8 +143,6 @@ void wf_v(Print& out, std::string_view field, uint32_t value,
     writeOptStr(out, label);
     if (!last) writeChar(out, ',');
 }
-
-// Helpers for repeated structures
 
 void writeDHM(Print& out, std::string_view key, const TimeFields& t, bool last) {
     wk(out, key);

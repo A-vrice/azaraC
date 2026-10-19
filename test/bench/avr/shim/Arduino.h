@@ -1,14 +1,8 @@
 #pragma once
 // Minimal stand-in for the Arduino core's <Arduino.h>.
 //
-// benchmarks/autoresearch.sh builds the real library for the real AVR target
-// (avr-gcc, ATmega2560) to measure flash bytes. The Arduino core itself is a
-// network download, so it cannot be part of a deterministic offline benchmark.
-// Only the surface azaraC touches is provided here: millis() and Print.
-//
-// This header is NOT part of the library build path; it is reached only because
-// the probe compiles with -DARDUINO=1, which is what makes azaraC.h include
-// <Print.h> and pick up the Arduino branch of internal/TimeFields.h.
+// autoresearch.sh builds the real library for the real AVR target (avr-gcc, ATmega2560) to measure flash bytes, but the Arduino core is a network download and cannot be part of a deterministic offline benchmark, so only the surface azaraC touches (millis and Print) is provided.
+// Reached only with -DARDUINO=1, which makes azaraC.h include <Print.h> and take the Arduino branch of internal/TimeFields.h; not the library's own build path.
 
 #include <stddef.h>
 #include <stdint.h>

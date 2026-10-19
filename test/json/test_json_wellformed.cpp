@@ -1,12 +1,9 @@
 // test/json/test_json_wellformed.cpp — シリアライザ出力が JSON として妥当か
 //
-// `_label_en` の併記は各ラベルサイトを 2 つのペアで書くため、`last` の受け渡しを誤ると `"a":1"b":2` のような**カンマ欠落**や、逆に二重カンマを生む。既存テストは
-// `has()` による部分文字列検査なので、この種の構文崩れを検出できない。
-//
-// ここでは全カテゴリを 1 通ずつシリアライズし、
-//   1. JSON として構造が閉じている（括弧・引用符・カンマ）
+// `_label_en` の併記は各ラベルサイトを 2 ペアで書き、`last` の受け渡しを誤ると `"a":1"b":2` のカンマ欠落や二重カンマを生む。既存テストの has() 部分一致では検出できないので、全カテゴリを 1 通ずつシリアライズし、
+//   1. 構造が閉じている（括弧・引用符・カンマ）
 //   2. 同じオブジェクト内でキーが重複していない
-// を検証する。キー重複は、数量フィールドに `_label` を足した際などに起こり得る。
+// を検証する（重複は数量フィールドに `_label` を足した際などに起こる）。
 
 #define ARDUINO 0
 #include "../src/azaraC.h"
@@ -215,8 +212,7 @@ void checkWellFormed(const std::string& json, const char* what) {
 
 } // namespace
 
-// 各カテゴリを代表値付きで埋め、1 通ずつ JSON 妥当性を検査する。
-// 数量フィールドは境界値（センチネル）を入れてラベルの分岐も通す。
+// 各カテゴリを代表値付きで埋め、1 通ずつ JSON 妥当性を検査する（数量はセンチネルを入れてラベル分岐も通す）。
 TEST_CASE("JSON well-formedness: every MT43 category") {
     for (uint8_t dc : allCategories()) {
         Message m{};
@@ -292,8 +288,7 @@ TEST_CASE("JSON well-formedness: MT44 DCX") {
 }
 #endif // AZARAC_ENABLE_DCX_CAMF
 
-// 不正な JSON を検出できること（検査器自体の回帰）。
-// これが無いと「常に true を返す検査器」で上のテストが無意味になる。
+// 検査器自体の回帰: 不正な JSON を検出できること（これが無いと「常に true を返す検査器」で上のテストが無意味になる）。
 TEST_CASE("JSON well-formedness: the checker rejects malformed input") {
     const char* bad[] = {
         "{\"a\":1\"b\":2}",          // カンマ欠落（AZARAC_LABEL の last 誤りと同じ形）

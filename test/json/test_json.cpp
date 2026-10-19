@@ -18,7 +18,7 @@ static bool has(const std::string& s, const std::string& sub) {
     return s.find(sub) != std::string::npos;
 }
 
-// ラベルはビルド時に選んだ言語で出力される。これらのテストが検証するのはコード→ラベルの対応（S1-lookup 回帰）なので、言語ごとの期待値を持たせてどの構成でも意味を保つ。
+// ラベルはビルド時の言語で出力される。検証対象はコード→ラベルの対応（S1-lookup 回帰）なので、期待値を言語別に持たせてどの構成でも意味を保つ。
 #if AZARAC_LANG_JA
 #  define LBL(ja, en) ja
 #elif AZARAC_LANG_EN
@@ -31,13 +31,11 @@ static bool hasLabel(const std::string& s, const char* key, const char* value) {
     return s.find(std::string("\"") + key + "\":\"" + value + "\"") != std::string::npos;
 }
 
-// JSON文字列中で "key":value が正しい境界で存在することを検証
-// value の直後が , } または文字列終端であることを確認
+// JSON 中で "key":value が境界つきで存在することを検証（value の直後が区切り文字か文字列終端）。
 static bool hasField(const std::string& s, const std::string& key_val) {
     auto pos = s.find(key_val);
     if (pos == std::string::npos) return false;
     size_t end = pos + key_val.size();
-    // value の直後が JSON の区切り文字または文字列終端
     return end >= s.size() || s[end] == ',' || s[end] == '}' || s[end] == '\n' || s[end] == ' ';
 }
 
@@ -57,7 +55,7 @@ static void initMt44(Message& m) {
 }
 #endif // AZARAC_ENABLE_DCX_CAMF
 
-// Helper: init Mt43 with specific sub-type (avoids repetitive initAs pattern)
+// Mt43 を sub-type ごとに初期化（initAs の定型をまとめる）
 static void initMt43As(Message& m, uint8_t dc) {
     initMt43(m, dc);
     Mt43Data* mt43 = m.getMt43();
@@ -152,7 +150,7 @@ TEST_CASE("JSON Serialization: MT=44 DCX J-Alert") {
     CHECK(s.find("prefecture_mode") == std::string::npos);
     CHECK(s.find("prefecture_positions") == std::string::npos);
     CHECK(s.find("prefecture_labels") == std::string::npos);
-    // Regression: ex_vn must be preceded by a comma after the array close (was "]\"ex_vn\"" — invalid JSON). See bugfix: JAlert JSON missing comma.
+    // 回帰: array 終端の直後に ex_vn があること（以前は ]"ex_vn" で不正 JSON）。
     CHECK(s.find("],\"ex_vn\"") != std::string::npos);
     CHECK(s.find("]\"ex_vn\"") == std::string::npos);
 }
@@ -285,7 +283,7 @@ TEST_CASE("JSON Serialization: MT=44 DCX main ellipse") {
 // MT=43 DCR JSON 出力テスト
 
 TEST_CASE("JSON v2: svid is the raw PRN, no svid_label") {
-    // フレーマは svid を PRN（128–191）に正規化して入れる。v2 はそれをそのまま出し、ラベルは付けない（読み手は PRN から自分で引く）。
+    // フレーマは svid を PRN（128–191）に正規化する。v2 はそれをそのまま出しラベルを付けない（読み手が PRN から引く）。
     Message m{};
     initMt43As(m, 1);
 
@@ -336,8 +334,7 @@ TEST_CASE("JSON Serialization: MT=43 EEW") {
 }
 #endif // AZARAC_ENABLE_EEW
 
-// _label_en は _label と別言語のラベルを併記する。両言語 ON のときだけ出る。
-// AZARAC_LANG_EN 単独でガードすると JA=0/EN=1 でも走り、その構成では _label が EN になるため JA 前提の期待値が成立しない。
+// _label_en は _label と別言語のラベルを併記し、両言語 ON のときだけ出る。 AZARAC_LANG_EN 単独でガードすると JA=0/EN=1 でも走り、その構成では _label が EN になり JA 前提の期待値が崩れる。
 #if (AZARAC_ENABLE_EEW) && (AZARAC_LANG_JA) && (AZARAC_LANG_EN)
 TEST_CASE("JSON Serialization: label_en is emitted when both languages are on") {
     Message m{};
@@ -361,10 +358,9 @@ TEST_CASE("JSON Serialization: label_en is emitted when both languages are on") 
 }
 #endif // AZARAC_ENABLE_EEW && AZARAC_LANG_JA && AZARAC_LANG_EN
 
-// 数量コードの境界値とセンチネルがラベルとして可視化されること。
-// 501/101 は「境界超過」、511/127 は「不明」で、生コード値だけでは利用者が判別できない。
+// 数量コードの境界値とセンチネルがラベルとして可視化されること（501/101 は境界超過、511/127 は不明で、生コード値では利用者が判別できない）。
 #if (AZARAC_ENABLE_EEW)
-// 両言語とも無効な構成では LBL が "" を返し、hasLabel(..., "") が常に真になる（空振り通過）。その構成ではラベル自体が出力されないため検証対象が無く、テストごとコンパイルしない。
+// 両言語無効では LBL が "" を返し hasLabel(..., "") が常に真になる（空振り通過）。その構成ではラベル自体が出ないのでテストごとコンパイルしない。
 #if (AZARAC_LANG_JA) || (AZARAC_LANG_EN)
 TEST_CASE("JSON Serialization: quantity labels expose bounds and sentinels") {
     Message m{};
@@ -477,8 +473,7 @@ TEST_CASE("JSON Serialization: hypocenter quantity labels expose bounds and sent
     REQUIRE(hypo != nullptr);
     hypo->epicenter = 791;   // 既存テストと同じ値。epicenter_label を非空に保つ
 
-    // depth は EEW と同じ depth_of_hypocenter テーブル。実ガードは (EEW || HYPOCENTER || NW_PAC_TSUNAMI) なので、EEW=0 構成でも
-    // Hypocenter 側で境界とセンチネルを検証できる。
+    // depth は EEW と同じ depth_of_hypocenter テーブル。実ガードは (EEW || HYPOCENTER || NW_PAC_TSUNAMI) なので、EEW=0 構成でもここで境界とセンチネルを検証できる。
     hypo->depth = 501;       // 500km より深い
     hypo->magnitude = 126;   // 不明(8.0より大きい) — Hypocenter 専用の境界マーカー
     StringPrint sp1;
@@ -542,8 +537,7 @@ TEST_CASE("JSON Serialization: MT=43 Tsunami") {
     CHECK(hasField(s, "\"height_lower\":null,\"height_upper\":null"));
 }
 
-// 高さコード → 境界の全数。コードごとに 1 通ずつ組んで、区分の取り違えを落とす
-// （境界は 10 分の 1 m の整数から wf_deg で出すので、値の対応が崩れるとここで落ちる）。
+// 高さコード → 境界の全数。コードごとに 1 通組んで区分の取り違えを落とす（境界は 10 分の 1 m の整数を wf_deg で出すので、値の対応が崩れるとここで落ちる）。
 TEST_CASE("JSON Serialization: MT=43 Tsunami height bounds (全コード)") {
     static const struct { uint16_t code; const char* bounds; } cases[] = {
         {1,  "\"height_lower\":null,\"height_upper\":0.2"},   // h < 0.2
@@ -880,7 +874,7 @@ TEST_CASE("JSON Serialization: MT=43 Marine") {
     const auto& s = sp.str();
 
     CHECK(hasField(s, "\"disaster_category\":14"));
-    // S1-lookup regression: dc=14 は海上（修正前は array 戦略で out-of-bounds→空）
+    // S1-lookup regression: dc=14 は海上（旧 array 戦略では out-of-bounds→空）
     CHECK(hasLabel(s, "disaster_category_label", LBL("海上", "Marine")));
     CHECK(has(s, "\"data\":{"));
     CHECK(has(s, "\"entries\":["));
@@ -910,8 +904,7 @@ TEST_CASE("JSON Serialization: Balanced braces/brackets") {
             prev = c;
         }
         CHECK_MESSAGE((brace == 0 && bracket == 0), "json=", s.c_str());
-        // Missing-comma guard: a closing bracket/brace must not be immediately followed by a key's opening quote (would be "]\"key\"" / "}\"key\"").
-        // Regression for the JAlert prefecture_labels/city_labels comma bug.
+        // Missing-comma guard: 閉じ括弧の直後にキーの開き引用符が来ないこと ("]"key"" / "}"key"")。JAlert の comma バグ回帰。
         for (size_t i = 1; i < s.size(); ++i) {
             if ((s[i-1] == ']' || s[i-1] == '}') && s[i] == '"') {
                 const std::string msg = "missing comma after closing bracket at idx "
@@ -919,8 +912,7 @@ TEST_CASE("JSON Serialization: Balanced braces/brackets") {
                 FAIL(msg.c_str());
             }
         }
-        // Double-comma guard: a field separator must not be doubled (",,").
-        // Catches a field emitted with a trailing comma before a closing brace that is itself followed by another comma.
+        // Double-comma guard: "," が二重にならないこと。
         for (size_t i = 1; i < s.size(); ++i) {
             if (s[i-1] == ',' && s[i] == ',') {
                 const std::string msg = "double comma at idx "
@@ -928,7 +920,7 @@ TEST_CASE("JSON Serialization: Balanced braces/brackets") {
                 FAIL(msg.c_str());
             }
         }
-        // Trailing-comma guard: a comma must not precede a closing brace/bracket (",}" / ",]"). JSON forbids trailing commas in objects/arrays. Catches a field emitted with last=false immediately before its closing brace.
+        // Trailing-comma guard: 閉じ括弧の直前に "," が来ないこと（JSON は末尾 comma 禁止）。
         for (size_t i = 1; i < s.size(); ++i) {
             if (s[i-1] == ',' && (s[i] == '}' || s[i] == ']')) {
                 const std::string msg = "trailing comma before closing at idx "
@@ -991,8 +983,7 @@ TEST_CASE("JSON Serialization: Balanced braces/brackets") {
 #endif // AZARAC_ENABLE_DCX_CAMF
 #if (AZARAC_ENABLE_DCX_CAMF)
     SUBCASE("MT=44 JAlert real vector (47 prefectures)") {
-        // 実データ: J-Alert Missile Attack, 全47都道府県 (test_azarashi_dcx.cpp と同一ベクタ) decodeNmea は DCX デコードを呼ぶため AZARAC_ENABLE_DCX_CAMF 依存。
-        // ガードしないと macro-off (DCX_CAMF=0) で decodeNmea が false になり CI が落ちる。
+        // 実データ: J-Alert Missile Attack, 全47都道府県 (test_azarashi_dcx.cpp と同一ベクタ)。 decodeNmea は DCX デコードを呼ぶため、ガードしないと DCX_CAMF=0 で false になり CI が落ちる。
         Message msg{};
         REQUIRE(decodeNmea(
             "$QZQSM,55,53B0840DE31188FC208600000000000000001FFFFFFFFFFFC00000120738628*00",
@@ -1011,7 +1002,6 @@ TEST_CASE("JSON Serialization: Balanced braces/brackets") {
 // JSON エスケープ文字テスト (json_serialization.md #1)
 
 TEST_CASE("JSON Serialization: Escape characters in writeStr") {
-    // Test that writeStr properly escapes special JSON characters
     SUBCASE("Double quote") {
         StringPrint sp;
         internal::writeStr(sp, std::string_view("test\"value"));
@@ -1081,7 +1071,6 @@ TEST_CASE("JSON Serialization: MT=43 report_time output") {
     REQUIRE(mt43 != nullptr);
     mt43->disaster_category = 1;
 
-    // Set event_time fields
     mt43->event_time.month = 1;
     mt43->event_time.day = 1;
     mt43->event_time.hour = 0;
@@ -1121,7 +1110,6 @@ TEST_CASE("JSON Serialization: MT=44 onset_time output") {
     mt44->ex_lalert_local.vn = 1;
     mt44->sd.sdmt = 0; mt44->sd.sdm = 0x1FF;
 
-    // Set onset_time fields
     mt44->onset_time.month = 3;
     mt44->onset_time.day = 15;
     mt44->onset_time.hour = 14;
@@ -1158,7 +1146,7 @@ TEST_CASE("JSON Serialization: MT=44 sd_sdmt=1 output") {
     mt44->camf.a4 = 10; mt44->camf.a5 = 3; mt44->camf.a8 = 4;
     mt44->ex_lalert_local.ex1 = 1100;
     mt44->ex_lalert_local.vn = 1;
-    mt44->sd.sdmt = 1;  // ← sdmt=1
+    mt44->sd.sdmt = 1;
     mt44->sd.sdm = 0x1FF;
 
     StringPrint sp;
@@ -1169,7 +1157,7 @@ TEST_CASE("JSON Serialization: MT=44 sd_sdmt=1 output") {
 }
 #endif // AZARAC_ENABLE_DCX_CAMF
 
-// MT=44 a6=0 / a8=0 / a9=0 / a10=0 / a11=0 テスト (json_serialization.md #5)
+// MT=44 a6/a8/a9/a10/a11=0 テスト (json_serialization.md #5)
 
 #if (AZARAC_ENABLE_DCX_CAMF)
 TEST_CASE("JSON Serialization: MT=44 zero-value fields output") {
@@ -1184,12 +1172,12 @@ TEST_CASE("JSON Serialization: MT=44 zero-value fields output") {
     mt44->ex_kind = ExtendedKind::LAlertOrLocal;
     mt44->camf.a1 = 1; mt44->camf.a2 = 111; mt44->camf.a3 = 1;
     mt44->camf.a4 = 10; mt44->camf.a5 = 3;
-    mt44->camf.a6 = 0;   // ← 0
+    mt44->camf.a6 = 0;
     mt44->camf.a7 = 1;
-    mt44->camf.a8 = 0;   // ← 0
-    mt44->camf.a9 = 0;   // ← 0
-    mt44->camf.a10 = 0;  // ← 0
-    mt44->camf.a11 = 0;  // ← 0
+    mt44->camf.a8 = 0;
+    mt44->camf.a9 = 0;
+    mt44->camf.a10 = 0;
+    mt44->camf.a11 = 0;
     mt44->ex_lalert_local.ex1 = 1100;
     mt44->ex_lalert_local.vn = 1;
     mt44->sd.sdmt = 0; mt44->sd.sdm = 0x1FF;
@@ -1205,8 +1193,9 @@ TEST_CASE("JSON Serialization: MT=44 zero-value fields output") {
     CHECK(hasField(s, "\"a11_guidance\":0"));
 }
 
-// a11=0 は「定義済みの空ラベル」であって欠落ではない。AVR と非AVRは同じ結果でなければならない: 空の JSON 文字列であって null ではない。
-// v2 の 3 値規則では `""` = 表に当たったがラベルが空、`null` = 表に無い / 表が無い。区別するのは test/internal/test_definition_labels.cpp の lookup レベルの検査。ここは JSON 出力での回帰ガード。
+// a11=0 は「定義済みの空ラベル」であって欠落ではない（AVR と非AVRは同じ結果でなければならない）。
+// v2 の 3 値規則では `""` = 表に当たりラベルが空、`null` = 表に無い。
+// 区別は test_definition_labels.cpp の lookup 検査が担い、ここは JSON 出力の回帰ガード。
 TEST_CASE("JSON Serialization: a11 empty label is present, not absent") {
     Message m{};
     m.svid = 193; m.crc24 = 0xABCDEF;
@@ -1238,8 +1227,8 @@ TEST_CASE("JSON Serialization: a11 empty label is present, not absent") {
     CHECK(hasField(s, "\"a11_guidance_list_b_label\":null"));
 }
 
-// IS-QZSS-DCX-004 §4.2.3.9 Table 4.2-12 / EWSS CAMF v1.1 §3.5.3, §11: A9=0 は
-// International library。A11 は List A 5bit (a11 >> 5) と List B 5bit (a11 & 0x1F) の2コードで、それぞれ別の表を引く。
+// IS-QZSS-DCX-004 §4.2.3.9 Table 4.2-12 / EWSS CAMF v1.1 §3.5.3, §11: A9=0 は International library。
+// A11 は List A 5bit (a11 >> 5) と List B 5bit (a11 & 0x1F) の 2 コードで、それぞれ別の表を引く。
 TEST_CASE("JSON Serialization: A9=0 uses the international library") {
     auto jsonFor = [](uint16_t a11) {
         Message m{};
@@ -1390,7 +1379,6 @@ TEST_CASE("JSON Serialization: MT=43 unix_time=0 output") {
     REQUIRE(mt43 != nullptr);
     mt43->disaster_category = 1;
 
-    // event_time with unix_time=0 (not resolved)
     mt43->event_time.month = 0;
     mt43->event_time.day = 0;
     mt43->event_time.hour = 0;
@@ -1417,7 +1405,6 @@ TEST_CASE("JSON Serialization: Nankai aggregated text_utf8 output") {
     NankaiData* nankai = mt43->getNankai();
     REQUIRE(nankai != nullptr);
 
-    // Simulate aggregated state (multi-page complete)
     nankai->is_aggregated = true;
     const char* aggregated = "南海トラフ地震に関する情報";
     nankai->aggregated_len = strlen(aggregated);
@@ -1427,7 +1414,6 @@ TEST_CASE("JSON Serialization: Nankai aggregated text_utf8 output") {
     internal::JsonSerializer::serialize(m, sp);
     const auto& s = sp.str();
 
-    // Should output text_utf8, not text_hex
     CHECK(s.find("\"text_utf8\":") != std::string::npos);
     CHECK(s.find("\"text_hex\"") == std::string::npos);
     CHECK(has(s, aggregated));
@@ -1444,7 +1430,6 @@ TEST_CASE("JSON Serialization: Nankai incomplete text_hex output") {
     NankaiData* nankai = mt43->getNankai();
     REQUIRE(nankai != nullptr);
 
-    // Not aggregated (default state)
     nankai->is_aggregated = false;
     nankai->page = 3;
     nankai->total_page = 27;
@@ -1453,7 +1438,6 @@ TEST_CASE("JSON Serialization: Nankai incomplete text_hex output") {
     internal::JsonSerializer::serialize(m, sp);
     const auto& s = sp.str();
 
-    // Should output text_hex, not text_utf8
     CHECK(s.find("\"text_hex\":") != std::string::npos);
     CHECK(s.find("\"text_utf8\"") == std::string::npos);
     CHECK(hasField(s, "\"page\":3"));

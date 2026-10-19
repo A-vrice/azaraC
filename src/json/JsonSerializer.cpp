@@ -59,7 +59,7 @@ bool serializeTyphoon(const Mt43Data* d, Print& out);
 bool serializeMarine(const Mt43Data* d, Print& out);
 #endif
 
-// Top-level serialize entry: dispatch by msg_type
+// Dispatch by msg_type
 void JsonSerializer::serialize(const Message& msg, Print& out) {
     using namespace azaraC::def;
     out.print('{');
@@ -93,8 +93,7 @@ void JsonSerializer::serialize(const Message& msg, Print& out) {
         AZARAC_LABEL(out, "information_type_label",
             qzss_dcr_jma_information_type_lookup,
             qzss_dcr_jma_information_type_en_lookup, d->information_type, false);
-        // Vn は仕様上 1 以外を decodeQzqsm が拒否するため、ここでは常に 1。
-        // 「値が無い」と「1 だった」を区別できるよう明示する。
+        // Vn は decodeQzqsm が 1 以外を拒否するため常に 1。それでも「値が無い」と区別できるよう明示的に出す。
         wf_u(out, "version", d->version);
         writeDHM(out, "report_time", d->event_time);
         wk(out, "data"); out.print('{');
