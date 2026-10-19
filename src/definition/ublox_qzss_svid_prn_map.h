@@ -32,13 +32,23 @@ namespace def {
 
 #if defined(__AVR__)
 
+// Labels are namespace-scope arrays, not function-local statics: the Arduino core
+// builds with LTO, which drops the `__section__` attribute of an inline function's
+// local static (a one-only symbol), so such a label lands in .rodata — i.e. in
+// SRAM. Same shape as the generated tables (see gen_definitions.py, switch_labels).
+static const char AZARAC_PROGMEM UBLOX_QZSS_SVID_PRN_MAP_C1[] = "183";
+static const char AZARAC_PROGMEM UBLOX_QZSS_SVID_PRN_MAP_C2[] = "184";
+static const char AZARAC_PROGMEM UBLOX_QZSS_SVID_PRN_MAP_C3[] = "185";
+static const char AZARAC_PROGMEM UBLOX_QZSS_SVID_PRN_MAP_C4[] = "186";
+static const char AZARAC_PROGMEM UBLOX_QZSS_SVID_PRN_MAP_C7[] = "189";
+
 [[nodiscard]] inline std::optional<std::string_view> ublox_qzss_svid_prn_map_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 1: { static const char AZARAC_PROGMEM s[] = "183"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 3); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "184"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 3); }
-        case 3: { static const char AZARAC_PROGMEM s[] = "185"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 3); }
-        case 4: { static const char AZARAC_PROGMEM s[] = "186"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 3); }
-        case 7: { static const char AZARAC_PROGMEM s[] = "189"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 3); }
+        case 1: return azarac_pgm_view(AZARAC_PGM_PTR(UBLOX_QZSS_SVID_PRN_MAP_C1), 3);
+        case 2: return azarac_pgm_view(AZARAC_PGM_PTR(UBLOX_QZSS_SVID_PRN_MAP_C2), 3);
+        case 3: return azarac_pgm_view(AZARAC_PGM_PTR(UBLOX_QZSS_SVID_PRN_MAP_C3), 3);
+        case 4: return azarac_pgm_view(AZARAC_PGM_PTR(UBLOX_QZSS_SVID_PRN_MAP_C4), 3);
+        case 7: return azarac_pgm_view(AZARAC_PGM_PTR(UBLOX_QZSS_SVID_PRN_MAP_C7), 3);
         default: return std::nullopt;
     }
 }
