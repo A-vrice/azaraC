@@ -1,6 +1,6 @@
 // azaraC — examples/with_sntp/with_sntp.ino
 //
-// Wi-Fi + SNTP で UNIX 時刻を取得し DCR/DCX の「年」を解決する例。 disaster_category == 1 (EEW) と MT=44 DCX のみ警告ログを出し、他は JSON を出力する。
+// Wi-Fi + SNTP で UNIX 時刻を取得し DCR/DCX の「年」を解決する例。すべてのメッセージを JSON で出力し、EEW と MT=44 DCX は詳細ログも出す。
 
 // (AZARAC_DEDUP_SLOTS: no override — the default is sized from 30 QZSS archive days; see src/azaraC_config.h.)
 #include <azaraC.h>

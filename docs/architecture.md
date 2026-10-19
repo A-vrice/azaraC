@@ -77,7 +77,7 @@ graph LR
 
 [`Decoder`](https://github.com/A-vrice/azaraC/tree/main/src/decoder/Decoder.h)はビット列からメッセージフィールドを抽出します。
 
-**共通処理**: CRC-24Q検証（IS-QZSS-L1S §3.2.8準拠）、MSB-firstビット抽出、UNIX時刻ベースの年月補正。
+**共通処理**: CRC-24Q検証（IS-QZSS-L1S §3.2.8。§番号は原本で要確認 — リポジトリに L1S 規格の原本は無い）、MSB-firstビット抽出、UNIX時刻ベースの年月補正。
 
 **MT=43**: `DecoderQzqsm`がX-macroテーブル`AZARAC_DC_CATEGORIES`から全12カテゴリのサポート判定・ディスパッチを生成。カテゴリ一覧は[APIリファレンス](api-reference.md#azaracmt43data-mt43-qzqsm)を参照。
 
@@ -163,8 +163,10 @@ graph TD
 | コンポーネント | メモリ使用量 | 備考 |
 |---------------|-------------|------|
 | DedupFilter | `AZARAC_DEDUP_SLOTS × 8` B | 既定 4,096B（512スロット。AVRプリセットは512B）。1エントリ = CRC-24Q 4B + 受信時刻 4B |
-| NankaiPageBuffer | 28B（メタデータ）+ `MAX_PAGES × 18 + 1` B | 既定 63 ページで構造体 1,168B。LRUエビクション |
+| NankaiPageBuffer | メタデータ 28B（ホスト、アラインメント込み）/ 26B（AVR）+ `MAX_PAGES × 18 + 1` B | 既定 63 ページで 1,168B（ホスト）/ 1,161B（AVR）。LRUエビクション |
 | 定義テーブル | 表エントリ39本で約122KiB、定義文字列を含むライブラリ全体の読み取り専用セクションは約344KiB。計測条件: 全カテゴリ + 日英ラベル有効、64bit ホスト `g++ 15.2 -std=c++17 -O2 -fdata-sections`（生成対象外の4表を含む計測） | Flash(AVRではPROGMEM)に配置。同一TU内の同一リテラルは定数プールで同じコピーに統合されるが、TUを跨ぐ統合はツールチェーン依存。非AVRはエントリを `const char*`（32bit機で4B）で保持し、上記は非AVRの値。AVR（`-D__AVR__ -DAZARAC_AVR_STUB`）では表ごとに文字列プール＋共有断片プールを持ち、行は `{id, 親, offset}` の3フィールド（長さはプールのNUL区切りから取る）。AVRプリセット（`-mmcu=atmega328p -Os`、SEISMIC/TSUNAMI のみ、JA）では表 + プール計 3,011B（2026-10 実測。`test/bench/avr/measure_tables.py`）。Flashが64KiBを超えるデバイス（ATmega2560 等）では、表・プールを `*(.progmem.*)`（`.text` 先頭のリンク順クラスタ）ではなく `.text.azaraC.<N>`（`*(.text.*)`、コードの後ろ）に置く（`AZARAC_PROGMEM`）。Arduino は `core.a` を最後にリンクするため、先頭クラスタに116KiBの表があるとコア自身のPROGMEM（`digital_pin_to_port_PGM` 等）が16bit窓の外へ出て `pinMode`/`digitalWrite` が誤動作する（`autoresearch.sh` のコア模擬オブジェクトがアドレスをゲートする）。アドレスは32bitのFlashアドレスで扱う（`AZARAC_PGM_PTR` + `pgm_read_*_far` / `memcpy_PF`） |
+
+**LTO の制約（AVR）**: Arduino の AVR コアは `-flto` でコンパイル・リンクする。inline 関数内の `static const char[]` は one-only シンボルになり、LTO では `__section__` が落ちて `.rodata`（リンカスクリプト上 `.data`、実体 SRAM）へ移る。そのため生成ヘッダの switch 戦略は case リテラルを名前空間スコープの配列として出す。実測（Mega + DCX/CAMF）: LTO なし 3,714B / LTO あり 3,718B。`make -C test bench` の stage 5b が LTO 画像の SRAM を計測する（ゲートではなくレポート）。
 
 ## 関連ドキュメント
 

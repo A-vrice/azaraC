@@ -373,8 +373,8 @@ jobs:
           name: extended-outcome-${{ matrix.slug }}
           path: extended_outcome.txt
 
-  # PlatformIO コンパイルテスト: test/platformio の lib_deps = ../.. で作業ツリーを uno/esp32dev でコンパイルすることを検証する（Registry の A-vrice/azaraC@^1.0.0 は解決しない。
-  # 公開確認後に Registry 解決テストを別途追加）。
+  # PlatformIO コンパイルテスト: test/platformio の lib_deps = ../.. で作業ツリーを uno/esp32dev でコンパイルすることを検証する。
+  # Registry には 2.0.0 が公開済み（2026-10-15）なので、Registry からの解決を確かめるテストは別途追加できる。
   platformio-compile:
     name: PlatformIO compile
     runs-on: ubuntu-latest

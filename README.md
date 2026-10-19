@@ -21,6 +21,8 @@
 
 MT=44 の B フィールド（B1–B4）と C10 は [EWSS CAMF Issue 1.2](https://www.gsc-europa.eu/electronic-library/programme-reference-documents/galileo-in-force/ewss) に基づきます。
 
+AVR（Uno・Mega を含む）では既定で SEISMIC/TSUNAMI のみ有効です。MT=44 を使うには `-DAZARAC_AVR_LARGE_FLASH=1` または `-DAZARAC_ENABLE_DCX_CAMF=1` を指定してください（Flash が 64KB を超えるボードが対象）。
+
 ## インストール
 
 パッケージマネージャーから導入できます:
