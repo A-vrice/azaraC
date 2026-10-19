@@ -76,7 +76,7 @@ TEST_SRCS = \
 	integration/test_dcx_edge_cases.cpp \
 	integration/test_azarashi_dcr.cpp \
 	integration/test_azarashi_dcx.cpp \
-	integration/test_realdata.cpp
+	data/test_realdata_generated.cpp
 
 # Library sources (src/ 配下の実装ファイル)
 LIB_SRCS = \
@@ -178,10 +178,10 @@ endif
 $(DEDUP_REALDAY_BIN): $(DEDUP_REALDAY_OBJS) $(LIB_OBJS)
 	$(CXX) $(CXXFLAGS) $(CXXFLAGS_EXTRA) $^ -o $@ $(LDFLAGS)
 
-# 定義テーブルの AVR フットプリント計測（autoresearch.sh）。avr-gcc / avr-libc と
+# 定義テーブルの AVR フットプリント計測（test/bench/avr/autoresearch.sh）。avr-gcc / avr-libc と
 # ホストの g++ / python が必要。入力は追跡済みの src/definition/*.h のみ。
 bench:
-	@bash ../autoresearch.sh
+	@bash bench/avr/autoresearch.sh
 
 # dedup ベンチ（test/bench/run_dedup_bench.sh）。host の g++ だけで動き、入力は
 # test/data/*.json のみ。NEW_RECALL / DUP_SUPPRESS / NANKAI_KEY_STABLE /
@@ -417,6 +417,7 @@ clean:
 	-@$(RM) framer/*.o framer/*.d framer/*.gcno framer/*.gcda
 	-@$(RM) json/*.o json/*.d json/*.gcno json/*.gcda
 	-@$(RM) integration/*.o integration/*.d integration/*.gcno integration/*.gcda
+	-@$(RM) data/*.o data/*.d data/*.gcno data/*.gcda
 	-@$(RM) internal/*.o internal/*.d internal/*.gcno internal/*.gcda
 	-@$(RM) fuzz/*.o fuzz/*.d fuzz/*.gcno fuzz/*.gcda
 	-@$(RM) tools/*.o tools/*.d tools/*.gcno tools/*.gcda

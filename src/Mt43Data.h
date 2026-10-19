@@ -69,6 +69,7 @@ struct NwPacTsunamiEntry {
 
 // MT=43 Data (QZQSM / DC Report)
 
+#if AZARAC_ENABLE_EEW
 struct EewData {
     uint8_t  long_period_lower;
     uint8_t  long_period_upper;
@@ -83,7 +84,9 @@ struct EewData {
     uint8_t  regions[80];
     uint8_t  region_count;
 };
+#endif // AZARAC_ENABLE_EEW
 
+#if AZARAC_ENABLE_HYPOCENTER
 struct HypocenterData {
     uint16_t   notification[3];
     uint8_t    notification_count;
@@ -93,6 +96,7 @@ struct HypocenterData {
     uint16_t   epicenter;
     LatLon     coords;
 };
+#endif // AZARAC_ENABLE_HYPOCENTER
 
 struct SeismicData {
     TimeFields   quake_time;
@@ -190,7 +194,14 @@ struct Mt43Data {
     TimeFields event_time;
 
     enum class ActiveType : uint8_t {
-        None, Eew, Hypocenter, Seismic,
+        None,
+#if AZARAC_ENABLE_EEW
+        Eew,
+#endif
+#if AZARAC_ENABLE_HYPOCENTER
+        Hypocenter,
+#endif
+        Seismic,
 #if AZARAC_ENABLE_NANKAI
         Nankai,
 #endif
@@ -202,8 +213,12 @@ struct Mt43Data {
 
     static constexpr size_t storage_size_ = []() -> size_t {
         constexpr size_t sizes[] = {
+#if AZARAC_ENABLE_EEW
             sizeof(EewData),
+#endif
+#if AZARAC_ENABLE_HYPOCENTER
             sizeof(HypocenterData),
+#endif
             sizeof(SeismicData),
 #if AZARAC_ENABLE_NANKAI
             sizeof(NankaiData),
@@ -309,8 +324,12 @@ struct Mt43Data {
         return (active_type == typeFor<T>()) ? reinterpret_cast<const T*>(storage_) : nullptr;
     }
 
+#if AZARAC_ENABLE_EEW
     EewData* getEew() { return get<EewData>(); }
+#endif
+#if AZARAC_ENABLE_HYPOCENTER
     HypocenterData* getHypocenter() { return get<HypocenterData>(); }
+#endif
     SeismicData* getSeismic() { return get<SeismicData>(); }
 #if AZARAC_ENABLE_NANKAI
     NankaiData* getNankai() { return get<NankaiData>(); }
@@ -324,8 +343,12 @@ struct Mt43Data {
     TyphoonData* getTyphoon() { return get<TyphoonData>(); }
     MarineData* getMarine() { return get<MarineData>(); }
 
+#if AZARAC_ENABLE_EEW
     const EewData* getEew() const { return get<EewData>(); }
+#endif
+#if AZARAC_ENABLE_HYPOCENTER
     const HypocenterData* getHypocenter() const { return get<HypocenterData>(); }
+#endif
     const SeismicData* getSeismic() const { return get<SeismicData>(); }
 #if AZARAC_ENABLE_NANKAI
     const NankaiData* getNankai() const { return get<NankaiData>(); }
@@ -357,8 +380,12 @@ private:
 };
 
 // Type mapping specializations
+#if AZARAC_ENABLE_EEW
 template<> inline Mt43Data::ActiveType Mt43Data::typeFor<EewData>() { return ActiveType::Eew; }
+#endif
+#if AZARAC_ENABLE_HYPOCENTER
 template<> inline Mt43Data::ActiveType Mt43Data::typeFor<HypocenterData>() { return ActiveType::Hypocenter; }
+#endif
 template<> inline Mt43Data::ActiveType Mt43Data::typeFor<SeismicData>() { return ActiveType::Seismic; }
 #if AZARAC_ENABLE_NANKAI
 template<> inline Mt43Data::ActiveType Mt43Data::typeFor<NankaiData>() { return ActiveType::Nankai; }

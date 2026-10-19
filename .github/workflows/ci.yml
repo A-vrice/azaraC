@@ -67,7 +67,7 @@ jobs:
         run: make -C test pgm-stub
 
   # 生成フィクスチャのドリフト検査: nankai_pages_generated.h は azarashi 生成物なので、生成器と生成物を片方だけ直すとテストは古いフィクスチャのまま緑になる。
-  # dcr/dcx はリポジトリ外ログ由来、test_realdata.cpp は gitignore 済み realdata/ 由来で CI では再現できない。
+  # dcr/dcx はリポジトリ外ログ由来、test/data/test_realdata_generated.cpp は gitignore 済み realdata/ 由来で CI では再現できない。
   #
   # nankai_vectors.json は検査しない: azarashi が params に壁時計 timestamp を埋めるため git diff は常に非空でゲートにならない。
   # C++ が読むのはページ本文のみのヘッダなのでそちらだけ見る。

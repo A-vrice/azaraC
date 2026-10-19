@@ -62,6 +62,7 @@ void loop() {
         if (parser.feed(static_cast<uint8_t>(Serial1.read()), msg, now)) {
             if (msg.msg_type == 43) {
                 const azaraC::Mt43Data* mt43 = msg.getMt43();
+#if (AZARAC_ENABLE_EEW)
                 if (mt43 && mt43->disaster_category == 1) {
                     const azaraC::EewData* eew = mt43->getEew();
                     if (!eew) return;
@@ -75,6 +76,7 @@ void loop() {
                     Serial.print(eew->depth);
                     Serial.println(F("km"));
                 }
+#endif // AZARAC_ENABLE_EEW
             } else if (msg.msg_type == 44) {
                 const azaraC::Mt44Data* mt44 = msg.getMt44();
                 if (mt44) {

@@ -58,7 +58,7 @@ struct CountingPrint : Print {
 };
 
 // 実データ由来のベクタ。
-// MT43: test/integration/test_realdata.cpp の dc=1 緊急地震速報
+// MT43: test/data/test_realdata_generated.cpp の dc=1 緊急地震速報
 // MT44: test/integration/test_azarashi_dcx.cpp の Outside Japan (Fiji)
 // UBX : test/framer/test_ublox_azarashi.cpp の sv56 pattern1 (Marine)
 const char* const kMt43Cat1 =

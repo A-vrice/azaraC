@@ -1,4 +1,5 @@
 #include "NmeaFramer.h"
+#include "../azaraC_config.h"
 #if defined(__AVR__)
 #include "../internal/avr_std/cstring"
 #else
@@ -61,7 +62,9 @@ bool NmeaFramer::feed(uint8_t b, Frame& out) {
 
 bool NmeaFramer::parse(Frame& out) {
     // Expected: QZQSM,<svid>,<hex-data>
-    if (strncmp(_buf, "QZQSM,", 6) != 0) return false;
+    // 先頭 6 バイトは固定なので Flash に置く（素のリテラルは avr-libc のリンカスクリプトで .data = SRAM に入る）。
+    // リテラルは AZARAC_STRNCMP_P が PSTR で包むので、ここでは素のままでよい（ホストでは no-op）。
+    if (AZARAC_STRNCMP_P(_buf, "QZQSM,", 6) != 0) return false;
 
     char* p = _buf + 6;
     uint16_t svid_tmp = 0;

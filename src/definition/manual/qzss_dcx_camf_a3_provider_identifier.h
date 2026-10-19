@@ -1,22 +1,27 @@
 #pragma once
-// AUTO-GENERATED from azarashi: qzss_dcx_camf_a3_provider_identifier
+// HAND-MAINTAINED — NOT auto-generated. scripts/gen/gen_definitions.py lists this
+// table in SKIP_MODULES and preserves it in the _index.h extra_headers list; it is
+// never rewritten. The generator emits a single-key lookup per table, while CAMF A3
+// is keyed by (country, provider) and the caller needs std::optional, so the lookup
+// below is written by hand. Keep in sync by hand with azarashi's
+// qzss_dcx_camf_a3_provider_identifier (provenance: azarashi 0.17.1).
 #if defined(__AVR__)
-#include "../internal/avr_std/cstdint"
+#include "../../internal/avr_std/cstdint"
 #else
 #include <cstdint>
 #endif
 #if defined(__AVR__)
-#include "../internal/avr_std/optional"
+#include "../../internal/avr_std/optional"
 #else
 #include <optional>
 #endif
 #if defined(__AVR__)
-#include "../internal/avr_std/string_view"
+#include "../../internal/avr_std/string_view"
 #else
 #include <string_view>
 #endif
-#include "../azaraC_config.h"
-#include "../internal/FlashString.h"
+#include "../../azaraC_config.h"
+#include "../../internal/FlashString.h"
 
 namespace azaraC {
 namespace def {

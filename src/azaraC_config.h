@@ -221,6 +221,7 @@
 #define AZARAC_PGM_READ_DWORD(addr)   pgm_read_dword(addr)
 #define AZARAC_PGM_READ_PTR(addr)     pgm_read_ptr(addr)
 #define AZARAC_STRCPY_P(dst, src)     strcpy_P(dst, src)
+#define AZARAC_STRNCMP_P(a, b, n)     strncmp_P(a, PSTR(b), n)
 #else
 #define AZARAC_PROGMEM
 #define AZARAC_PROGMEM_NEAR
@@ -229,4 +230,5 @@
 #define AZARAC_PGM_READ_DWORD(addr)   (*(addr))
 #define AZARAC_PGM_READ_PTR(addr)     (*(addr))
 #define AZARAC_STRCPY_P(dst, src)     strcpy(dst, src)
+#define AZARAC_STRNCMP_P(a, b, n)     strncmp(a, b, n)
 #endif

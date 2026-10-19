@@ -90,6 +90,7 @@ void printMt43Details(const azaraC::Message& msg) {
     if (!mt43) return;
 
     switch (mt43->disaster_category) {
+#if (AZARAC_ENABLE_EEW)
         case 1: { // EEW
             const azaraC::EewData* eew = mt43->getEew();
             if (!eew) break;
@@ -104,6 +105,8 @@ void printMt43Details(const azaraC::Message& msg) {
             Serial.println(F("km"));
             break;
         }
+#endif // AZARAC_ENABLE_EEW
+#if (AZARAC_ENABLE_HYPOCENTER)
         case 2: { // Hypocenter
             const azaraC::HypocenterData* hypo = mt43->getHypocenter();
             if (!hypo) break;
@@ -116,6 +119,7 @@ void printMt43Details(const azaraC::Message& msg) {
             Serial.println();
             break;
         }
+#endif // AZARAC_ENABLE_HYPOCENTER
         case 3: { // Seismic Intensity
             const azaraC::SeismicData* seis = mt43->getSeismic();
             if (!seis) break;

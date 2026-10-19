@@ -103,4 +103,4 @@ jobs:
             | Previous | `${{ steps.ver.outputs.current }}` |
             | New | `${{ steps.ver.outputs.latest }}` |
 
-            Changes are in `src/definition/`. Do not edit those files manually.
+            Changes are in `src/definition/` (generated tables only; the two hand-written headers are listed in the generator's extra_headers and are not touched). Do not edit the generated files manually.

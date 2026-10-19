@@ -181,8 +181,12 @@ void initMt43As(Message& m, uint8_t dc) {
     if (!mt43) return;
     mt43->disaster_category = dc;
     switch (dc) {
+#if (AZARAC_ENABLE_EEW)
         case 1: mt43->initAs<EewData>(); break;
+#endif
+#if (AZARAC_ENABLE_HYPOCENTER)
         case 2: mt43->initAs<HypocenterData>(); break;
+#endif
         case 3: mt43->initAs<SeismicData>(); break;
 #if (AZARAC_ENABLE_NANKAI)
         case 4: mt43->initAs<NankaiData>(); break;

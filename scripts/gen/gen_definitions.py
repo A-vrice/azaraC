@@ -874,9 +874,10 @@ def run(out_dir):
         generated.append(varname)
 
     # _index.h: hand-written headers go last, so the generated set stays alphabetical.
+    # They live in manual/ so that "everything directly under src/definition/ is generated" holds.
     extra_headers = [
-        "ublox_qzss_svid_prn_map.h",
-        "qzss_dcx_camf_a3_provider_identifier.h",
+        "manual/ublox_qzss_svid_prn_map.h",
+        "manual/qzss_dcx_camf_a3_provider_identifier.h",
     ]
     extra_includes = ""
     for h in extra_headers:
@@ -885,7 +886,8 @@ def run(out_dir):
         else:
             print(f"[WARN] Extra header not found: {h}", file=sys.stderr)
     # A stale .h for a table with no consumer must not linger: it would still compile and silently ship.
-    keep = set(generated) | {h[:-2] for h in extra_headers}
+    # The scan is top-level only, so a stale copy of a manual/ header is removed too.
+    keep = set(generated)
     for name in os.listdir(out_dir):
         if name == "_index.h" or not name.endswith(".h"):
             continue
@@ -895,7 +897,8 @@ def run(out_dir):
     idx = (
         "#pragma once\n"
         f"// AUTO-GENERATED from azarashi {ver} — do not edit\n"
-        f"// {len(generated)} generated + extra definition headers\n\n"
+        f"// {len(generated)} generated + {len(extra_headers)} hand-written definition headers\n"
+        "\n"
         + "\n".join(f'#include "{a}.h"' for a in sorted(generated))
         + "\n"
         + extra_includes

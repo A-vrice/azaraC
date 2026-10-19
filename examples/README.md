@@ -54,7 +54,7 @@ CFG-UART1-BAUDRATE              = 9600
 
 Arduino Uno 用の最小例です。Uno には Serial1 が無いため、GNSS モジュールを Serial (pin 0=RX) に接続し、JSON も同一の Serial に出力します（ボーレート 9600）。
 
-**対応ハードウェア**: Arduino Uno (AVR)。`azaraC_config.h` の AVR プリセットにより SEISMIC/TSUNAMI のみ有効化され、32KB Flash に収まります。ATmega2560（Mega）でも既定は同じ SEISMIC/TSUNAMI のみで、DCX/CAMF を使う場合は `-DAZARAC_ENABLE_DCX_CAMF=1`（または `-DAZARAC_AVR_LARGE_FLASH=1`）を明示します（DCX/CAMF 入りは日本語でフラッシュ146KB / RAM 1.1KB（1,086B）を実測。Arduino コアの実ビルド（`-flto`）でも RAM 1,086B で同じ — switch 戦略のリテラルは LTO の section 属性落ちを避けるため名前空間スコープに置いている）。
+**対応ハードウェア**: Arduino Uno (AVR)。`azaraC_config.h` の AVR プリセットにより SEISMIC/TSUNAMI のみ有効化され、32KB Flash に収まります。ATmega2560（Mega）でも既定は同じ SEISMIC/TSUNAMI のみで、DCX/CAMF を使う場合は `-DAZARAC_ENABLE_DCX_CAMF=1`（または `-DAZARAC_AVR_LARGE_FLASH=1`）を明示します（DCX/CAMF 入りは日本語でフラッシュ146KB / RAM 896B を実測。Arduino コアの実ビルド（`-flto`）でも RAM 896B で同じ — switch 戦略のリテラルは LTO の section 属性落ちを避けるため名前空間スコープに置いている）。
 
 **配線 (Arduino Uno)**:
 
@@ -93,6 +93,8 @@ Wi-FiとSNTPを使用してUNIX時刻を取得し、DCR/DCXメッセージの年
 ### filter_by_category - カテゴリ別フィルタリング
 
 MT=43メッセージを災害カテゴリ別にフィルタリングして出力します。
+
+カテゴリ 1（EEW）と 2（震源）の詳細出力は `#if (AZARAC_ENABLE_EEW)` / `#if (AZARAC_ENABLE_HYPOCENTER)` で囲んであり、そのカテゴリを無効にしたビルド（AVR プリセットの既定）では型ごと消えるため case も出力されません。フィルタの `eew` / `hypocenter` フラグ自体は残るので、有効にしたビルドではそのまま効きます。
 
 **対応カテゴリ**:
 

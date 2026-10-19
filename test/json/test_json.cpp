@@ -61,8 +61,12 @@ static void initMt43As(Message& m, uint8_t dc) {
     Mt43Data* mt43 = m.getMt43();
     if (!mt43) return;
     switch (dc) {
+#if (AZARAC_ENABLE_EEW)
         case 1: mt43->initAs<EewData>(); break;
+#endif
+#if (AZARAC_ENABLE_HYPOCENTER)
         case 2: mt43->initAs<HypocenterData>(); break;
+#endif
         case 3: mt43->initAs<SeismicData>(); break;
 #if (AZARAC_ENABLE_NANKAI)
         case 4: mt43->initAs<NankaiData>(); break;
@@ -295,6 +299,32 @@ TEST_CASE("JSON v2: svid is the raw PRN, no svid_label") {
         INFO("svid=", (int)svid);
         CHECK(hasField(s, std::string("\"svid\":") + std::to_string(svid)));
         CHECK(s.find("svid_label") == std::string::npos);
+    }
+}
+
+// `note` は値も Flash の JsonKey で出す（wf_s(JsonKey, JsonKey)）。キーと値を同じ 1 次コピー先で
+// 書き出すため、順序が崩れると文字列が壊れる — 出力をここで固定する。
+TEST_CASE("JSON Serialization: note の値は Flash の JsonKey 経路で出る") {
+    {
+        Message m{};                      // payload 未設定の MT=43
+        m.msg_type = 43;
+        StringPrint sp;
+        internal::JsonSerializer::serialize(m, sp);
+        CHECK(hasField(sp.str(), "\"note\":\"invalid_mt43\""));
+    }
+    {
+        Message m{};
+        initMt43As(m, 7);                 // 7 は仕様に無い災害種別 → どの serializer も引き受けない
+        StringPrint sp;
+        internal::JsonSerializer::serialize(m, sp);
+        CHECK(hasField(sp.str(), "\"note\":\"unsupported_category\""));
+    }
+    {
+        Message m{};                      // MT=43/44 以外
+        m.msg_type = 45;
+        StringPrint sp;
+        internal::JsonSerializer::serialize(m, sp);
+        CHECK(hasField(sp.str(), "\"note\":\"unsupported_msg_type\""));
     }
 }
 

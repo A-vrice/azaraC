@@ -18,13 +18,14 @@ namespace azaraC {
 namespace internal {
 
 #if (AZARAC_ENABLE_TSUNAMI) || (AZARAC_ENABLE_NW_PAC_TSUNAMI)
-// 12bit Ta → azarashi と同じ語彙の状態（通常時刻は nullptr）。判定順が本質: 範囲外チェックを先に置くと hour==30 の no_information（30 > 23）が到達不能になる。
-static const char* arrivalStatus(uint16_t raw, bool nwpac) {
+// 12bit Ta → azarashi と同じ語彙の状態（通常時刻は空の JsonKey）。判定順が本質: 範囲外チェックを先に置くと hour==30 の no_information（30 > 23）が到達不能になる。
+// 値も固定文字列なので AZARAC_KEY で Flash に置く（AVR の SRAM を食う .rodata を作らない）。
+static azaraC::internal::JsonKey arrivalStatus(uint16_t raw, bool nwpac) {
     uint8_t day = (raw >> 11) & 1u, hour = (raw >> 6) & 0x1Fu, min = raw & 0x3Fu;
-    if (hour == 31 && min == 63) return nwpac ? "arrived_or_unknown" : "arrival_estimated";
-    if (!nwpac && day == 0 && hour == 30 && min == 62) return "no_information";
-    if (raw == 0 || hour > 23 || min > 59) return "unrecognized_code";
-    return nullptr;
+    if (hour == 31 && min == 63) return nwpac ? AZARAC_KEY("arrived_or_unknown") : AZARAC_KEY("arrival_estimated");
+    if (!nwpac && day == 0 && hour == 30 && min == 62) return AZARAC_KEY("no_information");
+    if (raw == 0 || hour > 23 || min > 59) return AZARAC_KEY("unrecognized_code");
+    return {nullptr, 0};
 }
 // 津波の高さコード → 境界（m。10 分の 1 m 単位の整数で、下端は開・上端は閉。azarashi の PROFILES と同じ区分）。
 // 境界を持たないコード（センチネル・「その他」）と片側だけ無い区分（「0.2m未満」の下側）は 0 で出し、呼び出し側が null を書く。10 の倍数なので wf_deg の整数演算だけで済み、24bit 仮数の AVR でも host と一致する。
@@ -232,9 +233,9 @@ bool serializeTsunami(const Mt43Data* d, Print& out) {
         const TsunamiEntry& e = tsunami->entries[i];
         out.print('{');
         uint16_t raw = e.arrival_time_raw;
-        const char* st = arrivalStatus(raw, /*nwpac=*/false);
+        const JsonKey st = arrivalStatus(raw, /*nwpac=*/false);
         wf_u(out, AZARAC_KEY("arrival_time_raw"), raw);
-        if (st) {
+        if (st.p) {
             wf_s(out, AZARAC_KEY("arrival_status"), st);
             wk(out, AZARAC_KEY("arrival_time")); out.print("null"); writeChar(out, ',');
         } else {
@@ -271,9 +272,9 @@ bool serializeNwPacTsu(const Mt43Data* d, Print& out) {
         const NwPacTsunamiEntry& e = nw_pac->entries[i];
         out.print('{');
         uint16_t raw = e.arrival_time_raw;
-        const char* st = arrivalStatus(raw, /*nwpac=*/true);
+        const JsonKey st = arrivalStatus(raw, /*nwpac=*/true);
         wf_u(out, AZARAC_KEY("arrival_time_raw"), raw);
-        if (st) {
+        if (st.p) {
             wf_s(out, AZARAC_KEY("arrival_status"), st);
             wk(out, AZARAC_KEY("arrival_time")); out.print("null"); writeChar(out, ',');
         } else {

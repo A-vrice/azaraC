@@ -81,11 +81,15 @@ def scan_tables():
     folded here instead.
     """
     out = {}
-    for name in sorted(os.listdir(DEFS)):
-        if not name.endswith(".h"):
-            continue
+    # Walk (not listdir): hand-written tables live in definition/manual/, and they
+    # return labels through the same shared buffer, so they must be scanned too.
+    paths = []
+    for root, _dirs, files in os.walk(DEFS):
+        paths.extend(os.path.join(root, f) for f in files if f.endswith(".h"))
+    for path in sorted(paths):
+        name = os.path.relpath(path, DEFS).replace(os.sep, "/")
         stack = []  # [(categories, language)], one entry per open #if
-        for line in open(os.path.join(DEFS, name), encoding="utf-8"):
+        for line in open(path, encoding="utf-8"):
             stripped = line.lstrip()
             if stripped.startswith("#if"):
                 stack.append(parse_condition(stripped))

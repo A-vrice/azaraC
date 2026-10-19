@@ -43,11 +43,12 @@
 # Deterministic: fixed toolchain flags, locked inputs, no network, no clock; requires avr-gcc/avr-size/avr-nm and g++ on PATH.
 # The Uno image links with the Arduino AVR core's `-flto -fuse-linker-plugin` (AVR_LTO). The Mega image links LTO-free in stage 5 and with the Arduino recipe in stage 5b.
 #
-# `bash autoresearch.sh --bless-labels` re-records the golden label hashes — only after confirming the label change was intended.
+# `bash test/bench/avr/autoresearch.sh --bless-labels` re-records the golden label hashes — only after confirming the label change was intended.
 
 set -uo pipefail
 
-cd "$(dirname "$0")"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$SCRIPT_DIR/../../.."
 
 BENCH="test/bench/avr"
 OUT="$BENCH/out"
@@ -84,13 +85,15 @@ CATS=(-DAZARAC_LANG_JA=1 -DAZARAC_LANG_EN=1
 MAX_OBJECT_BYTES=32768
 
 # The AVR path trades Flash for RAM only within the SRAM it already owns (the shared 800 B label buffer in internal/FlashString.h); growing SRAM to shrink Flash is a loss, so the linked Uno image's RAM is gated.
-# Measured 702 B (data 626 + bss 76) at the pre-compression baseline, 640 B before the JSON keys moved to Flash, 204 B now (data 88 + bss 116): the keys and the helper tables left .data (avr-libc's script copies .rodata into SRAM) and the 40 B of new bss is the shared key buffer (AZARAC_KEY_BUF_SIZE), for +730 B of Flash (13,546 → 14,276).
-MAX_UNO_RAM_BYTES=204
+# Measured 702 B (data 626 + bss 76) at the pre-compression baseline, 640 B before the JSON keys moved to Flash, 204 B once they did (data 88 + bss 116), 146 B now (data 30 + bss 116): the keys and the helper tables left .data (avr-libc's script copies .rodata into SRAM) and the 40 B of new bss is the shared key buffer (AZARAC_KEY_BUF_SIZE), for +730 B of Flash (13,546 → 14,276).
+# The last 58 B are the fixed strings that left .data: "QZQSM," (7) from NmeaFramer plus the JSON values arrival_estimated (18), no_information (15) and unrecognized_code (18), which now go through AZARAC_KEY; .data is down to the allocator's globals and the two framer vtables, for +194 B of Flash (14,276 → 14,470). ("null" cost nothing even before: the seven call sites measured byte-identical.)
+MAX_UNO_RAM_BYTES=146
 
-# The same ceiling for stage 5's DCX/CAMF image: measured 3,714 B (data 2,902 + bss 812) of the Mega's 8,192 B — the keys alone were ~1.8 KB of it — and 1,086 B now (data 234 + bss 852) for +1,712 B of Flash (144,806 → 146,518), so the tables may cost Flash but never SRAM.
+# The same ceiling for stage 5's DCX/CAMF image: measured 3,714 B (data 2,902 + bss 812) of the Mega's 8,192 B — the keys alone were ~1.8 KB of it — and 1,086 B once they moved (data 234 + bss 852) for +1,712 B of Flash (144,806 → 146,518), so the tables may cost Flash but never SRAM.
 # The +40 B of bss is the shared key buffer the Flash keys are copied through.
-# The ceiling keeps no slack: 1,086 B is the current measurement, so any SRAM regression fails here (growing SRAM to shrink Flash is the failure this exists for).
-MAX_MEGA_RAM_BYTES=1086
+# 896 B now (data 44 + bss 852): the DCX value literals (invalid_mt44, NULL/L_ALERT/J_ALERT/LOCAL_GOV/OUTSIDE_JAPAN/UNKNOWN, unsupported_*) left .data the same way, for +154 B of Flash (146,518 → 146,672).
+# The ceiling keeps no slack: 896 B is the current measurement, so any SRAM regression fails here (growing SRAM to shrink Flash is the failure this exists for).
+MAX_MEGA_RAM_BYTES=896
 
 mkdir -p "$OUT"
 

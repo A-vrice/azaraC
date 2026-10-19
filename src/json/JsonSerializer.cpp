@@ -76,7 +76,7 @@ void JsonSerializer::serialize(const Message& msg, Print& out) {
     if (msg.msg_type == 43) {
         const Mt43Data* d = msg.getMt43();
         if (!d) {
-            wf_s(out, AZARAC_KEY("note"), "invalid_mt43", /*last=*/true);
+            wf_s(out, AZARAC_KEY("note"), AZARAC_KEY("invalid_mt43"), /*last=*/true);
             out.print('}');
             return;
         }
@@ -140,12 +140,12 @@ void JsonSerializer::serialize(const Message& msg, Print& out) {
         default:
             break;
         }
-        if (!serialized) wf_s(out, AZARAC_KEY("note"), "unsupported_category", /*last=*/true);
+        if (!serialized) wf_s(out, AZARAC_KEY("note"), AZARAC_KEY("unsupported_category"), /*last=*/true);
 
         out.print('}');
 
     } else {
-        wf_s(out, AZARAC_KEY("note"), "unsupported_msg_type", /*last=*/true);
+        wf_s(out, AZARAC_KEY("note"), AZARAC_KEY("unsupported_msg_type"), /*last=*/true);
     }
 
     out.print('}');

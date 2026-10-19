@@ -53,7 +53,7 @@
 namespace azaraC {
 namespace internal {
 
-// JSON のキー。キーは必ず文字列リテラルなので、AVR では Flash に置く（AZARAC_KEY が PSTR を通す）。
+// JSON のキー。キーは必ず文字列リテラルなので、AVR では Flash に置く（AZARAC_KEY が PSTR を通す）。値を固定リテラルで出すときも同じ型を使う（`AZARAC_KEY("invalid_mt43")`）。
 // 素のリテラルは .rodata に入り、avr-libc のリンカスクリプトがそれを .data（SRAM）へ含めるため、そのまま SRAM を食う（実測: Uno プリセットの .data は 564 B → 88 B、ATmega2560 + DCX/CAMF の .data は 2,902 B → 250 B。いずれも 16進表をやめた分を含む）。
 // 長さは sizeof でコンパイル時に決まる（ランタイムの走査も切り詰めも無い）。生の const char* からは暗黙変換できない: 包み忘れはホスト（RAM）では正しく動いて AVR だけ文字化けするので、コンパイルエラーにする。
 struct JsonKey {
@@ -61,7 +61,7 @@ struct JsonKey {
     uint8_t     len;
 };
 
-// キーの 1 次コピー先の長さ。最長のキーは 35 B（a17_type_of_specific_settings_label）。
+// キー／値の 1 次コピー先の長さ。最長はキーの 35 B（a17_type_of_specific_settings_label）、値は 20 B（unsupported_category）。
 #ifndef AZARAC_KEY_BUF_SIZE
 #define AZARAC_KEY_BUF_SIZE 40
 #endif
@@ -69,7 +69,7 @@ struct JsonKey {
 template <size_t N>
 constexpr JsonKey makeKey(const char* literal) {
     static_assert(N > 1 && N - 1 < AZARAC_KEY_BUF_SIZE,
-                  "JSON key does not fit AZARAC_KEY_BUF_SIZE");
+                  "JSON string (key or value) does not fit AZARAC_KEY_BUF_SIZE");
     return JsonKey{literal, static_cast<uint8_t>(N - 1)};
 }
 
@@ -106,6 +106,9 @@ void wf_x(Print& out, JsonKey k, uint32_t v, bool last = false);
 void wf_deg(Print& out, JsonKey k, int32_t denominator, int32_t v, bool last = false);
 void wf_s(Print& out, JsonKey k, std::optional<std::string_view> v, bool last = false);
 void wf_s(Print& out, JsonKey k, const char* v, bool last = false);
+// "key":"value"。値も固定リテラルなら AZARAC_KEY で包む（SRAM に置かない）。
+// AVR では k と v が同じ 1 次コピー先を共有するので、キーを書き終えてから値の keyView を取る（この順序が契約）。
+void wf_s(Print& out, JsonKey k, JsonKey v, bool last = false);
 // "field":value,"field_label":label|null
 void wf_v(Print& out, JsonKey field, uint32_t value,
           std::optional<std::string_view> label, bool last = false);

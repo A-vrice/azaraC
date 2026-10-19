@@ -162,6 +162,10 @@ void wf_s(Print& out, JsonKey k, const char* v, bool last) {
     if (!last) writeChar(out, ',');
 }
 
+void wf_s(Print& out, JsonKey k, JsonKey v, bool last) {
+    writeKey(out, k); writeStr(out, keyView(v)); if (!last) writeChar(out, ',');
+}
+
 void wf_v(Print& out, JsonKey field, uint32_t value,
           std::optional<std::string_view> label, bool last) {
     // 名前は 1 度だけ取り出す（`"d1_magnitude":1,"d1_magnitude_label":"…"`）: AVR では Flash からのコピーが 1 回で済む。

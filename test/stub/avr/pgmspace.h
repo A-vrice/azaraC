@@ -13,6 +13,7 @@
 inline void* memcpy_P(void* d, const void* s, std::size_t n) { return std::memcpy(d, s, n); }
 inline char* strncpy_P(char* d, const char* s, std::size_t n) { return std::strncpy(d, s, n); }
 inline char* strcpy_P(char* d, const char* s) { return std::strcpy(d, s); }
+inline int strncmp_P(const char* a, const char* b, std::size_t n) { return std::strncmp(a, b, n); }
 inline uint8_t  pgm_read_byte(const void* a)  { return *static_cast<const uint8_t*>(a); }
 // memcpy into a typed local: the source may be unaligned (PROGMEM pools are byte-packed), and dereferencing a cast pointer can trap on hosts with strict alignment (e.g.
 // ARM).

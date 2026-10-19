@@ -20,27 +20,31 @@ namespace internal {
 
 #if (AZARAC_ENABLE_DCX_CAMF)
 
+// service_kind のラベル。固定文字列なので AZARAC_KEY で Flash に置く（値もキーと同じ扱い）。
+static JsonKey serviceKindLabel(Mt44ServiceKind k) {
+    switch (k) {
+        case Mt44ServiceKind::NullMessage:     return AZARAC_KEY("NULL");
+        case Mt44ServiceKind::LAlert:          return AZARAC_KEY("L_ALERT");
+        case Mt44ServiceKind::JAlert:          return AZARAC_KEY("J_ALERT");
+        case Mt44ServiceKind::LocalGovernment: return AZARAC_KEY("LOCAL_GOV");
+        case Mt44ServiceKind::OutsideJapan:    return AZARAC_KEY("OUTSIDE_JAPAN");
+        default: break;
+    }
+    return AZARAC_KEY("UNKNOWN");
+}
+
 void serializeDcx(const Message& m, Print& out) {
     using namespace azaraC::def;
 
     const Mt44Data* d = m.getMt44();
     if (!d) {
-        wf_s(out, AZARAC_KEY("note"), "invalid_mt44", /*last=*/true);
+        wf_s(out, AZARAC_KEY("note"), AZARAC_KEY("invalid_mt44"), /*last=*/true);
         return;
     }
 
     wk(out, AZARAC_KEY("data")); out.print('{');
 
-    const char* dcx_label = "UNKNOWN";
-    switch (d->service_kind) {
-        case Mt44ServiceKind::NullMessage:     dcx_label = "NULL";          break;
-        case Mt44ServiceKind::LAlert:          dcx_label = "L_ALERT";       break;
-        case Mt44ServiceKind::JAlert:          dcx_label = "J_ALERT";       break;
-        case Mt44ServiceKind::LocalGovernment: dcx_label = "LOCAL_GOV";     break;
-        case Mt44ServiceKind::OutsideJapan:    dcx_label = "OUTSIDE_JAPAN"; break;
-        default: break;
-    }
-    wf_s(out, AZARAC_KEY("dcx_type"), dcx_label);
+    wf_s(out, AZARAC_KEY("dcx_type"), serviceKindLabel(d->service_kind));
 
     wf_s(out, AZARAC_KEY("a1_msg_type"),
         qzss_dcx_camf_a1_message_type_lookup(d->camf.a1));

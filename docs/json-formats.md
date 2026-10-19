@@ -66,7 +66,7 @@ MT44 のルートは `crc24` までで、A フィールド・拡張部・`sd_sdm
 | 12 | 台風 | `coords`, `elapsed`(+`_label`), `intensity`(+`_label`), `max_gust`(+`_label`), `max_wind`(+`_label`), `number`(+`_label`), `pressure`(+`_label`), `ref_type`(+`_label`), `reference_time`, `scale`(+`_label`) |
 | 14 | 海上 | `entries[]{region(+_label),warning_code(+_label)}` |
 
-カテゴリ 6 の電文を検証しているのは `test/integration/test_realdata.cpp`。洪水の予報区コードのように 10 桁を超えるコードは `uint64_t` のまま数値で出る。
+カテゴリ 6 の電文を検証しているのは `test/data/test_realdata_generated.cpp`。洪水の予報区コードのように 10 桁を超えるコードは `uint64_t` のまま数値で出る。
 各行はそのカテゴリの `AZARAC_ENABLE_*` が有効なビルドでの形。無効なビルドでは `unsupported_category` になる（§1 の note 表）。
 
 津波の到着時刻は `arrival_time_raw`（12bit: day_offset 1 + hour 5 + min 6）だけを残し、`arrival_time` は解決できたときだけオブジェクト、できないときは `null`となる。
@@ -289,7 +289,7 @@ CAMF の表は英語のみなので `_label_en` は出ない。List A / List B �
 `month` / `day` / `hour` / `min` は生の分解値のまま（未解決時は 0）。
 
 - 津波の到着時刻は §1.2 の `arrival_status` で状態を明示する。例
-  （`test/integration/test_realdata.cpp` の `$QZQSM,56,53ADA8BECF…`、Ta = 2047 = hour 31, min 63）:
+  （`test/data/test_realdata_generated.cpp` の `$QZQSM,56,53ADA8BECF…`、Ta = 2047 = hour 31, min 63）:
 
   ```
   azarashi:  "arrival": {"status": "special", "value": null, "labels": {…}, "source": {"day": 0, "hour": 31, "minute": 63}}

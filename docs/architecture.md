@@ -127,7 +127,7 @@ graph LR
   残る2カテゴリはこの計測の対象外:
 
   - **南海トラフ(4)**: 重複判定はMT～VNフィールドではなく`info_code` + 報告時刻で判定を行うため対象外。詳細は後述。
-  - **北西太平洋津波(6)**: 選んだ30日には出現しないため、`test/integration/test_realdata.cpp` の個別ケースで検証。
+  - **北西太平洋津波(6)**: 選んだ30日には出現しないため、`test/data/test_realdata_generated.cpp` の個別ケースで検証。
 
   `.l1s` は衛星別なので、同じ日でも衛星によって内容が違う（例 2024-08-07: Q002 は distinct 106・生存ピーク 68、Q005 は 148・110）。
   
@@ -140,7 +140,7 @@ graph LR
 
 ### 6. JsonSerializer (JSONシリアライザ)
 
-[`JsonSerializer`](https://github.com/A-vrice/azaraC/tree/main/src/json/JsonSerializer.h)はMessageをJSON形式にシリアライズ。ヒープ割り当てはせず固定バッファで処理。`Print&`経由で出力（Serial, WiFiClient等）。日本語/英語ラベルの選択的コンパイルに対応。
+[`JsonSerializer`](https://github.com/A-vrice/azaraC/tree/main/src/json/JsonSerializer.h)はMessageをJSON形式にシリアライズ。ヒープ割り当てはせず固定バッファで処理。`Print&`経由で出力（Serial, WiFiClient等）。日本語/英語ラベルの選択的コンパイルに対応。キーと固定値リテラルは `internal::JsonKey`（`AZARAC_KEY("...")`）で受け、AVR では `PSTR` で Flash に置く（素のリテラルは avr-libc のリンカスクリプトが `.rodata` ごと `.data`＝SRAM に置くため）。書き出し時はキーを `AZARAC_KEY_BUF_SIZE`（既定 40B）の共有バッファへ 1 度だけ写し、値も同じバッファを通るので **キーを書き終えてから値の `keyView` を取る**順序が契約になる（ホストは 1 本のリテラルを直接指すため順序の誤りを検出できず、`make -C test pgm-stub` が `__AVR__` 経路で検出する）。
 
 ## データフロー
 
@@ -163,10 +163,13 @@ graph TD
 | コンポーネント | メモリ使用量 | 備考 |
 |---------------|-------------|------|
 | DedupFilter | `AZARAC_DEDUP_SLOTS × 8` B | 既定 4,096B（512スロット。AVRプリセットは512B）。1エントリ = CRC-24Q 4B + 受信時刻 4B |
+| Message | 104B（AVR プリセット。`AZARAC_ENABLE_EEW=1` で 144B）/ ホストは全カテゴリ有効で最大 | payload 枠は有効カテゴリ最大の `sizeof`（AVR プリセットは津波の 67B、EEW 有効時は 105B）に `alignas(8)` を付けた `Mt43Data`。 スケッチがグローバルに 1 個持つとそのまま `.bss` を食う（AVR プリセットで 104B） |
 | NankaiPageBuffer | メタデータ 28B（ホスト、アラインメント込み）/ 26B（AVR）+ `MAX_PAGES × 18 + 1` B | 既定 63 ページで 1,168B（ホスト）/ 1,161B（AVR）。LRUエビクション |
 | 定義テーブル | 表エントリ39本で約122KiB、定義文字列を含むライブラリ全体の読み取り専用セクションは約344KiB。計測条件: 全カテゴリ + 日英ラベル有効、64bit ホスト `g++ 15.2 -std=c++17 -O2 -fdata-sections`（生成対象外の4表を含む計測） | Flash(AVRではPROGMEM)に配置。同一TU内の同一リテラルは定数プールで同じコピーに統合されるが、TUを跨ぐ統合はツールチェーン依存。非AVRはエントリを `const char*`（32bit機で4B）で保持し、上記は非AVRの値。AVR（`-D__AVR__ -DAZARAC_AVR_STUB`）では表ごとに文字列プール＋共有断片プールを持ち、行は `{id, 親, offset}` の3フィールド（長さはプールのNUL区切りから取る）。AVRプリセット（`-mmcu=atmega328p -Os`、SEISMIC/TSUNAMI のみ、JA）では表 + プール計 3,011B（2026-10 実測。`test/bench/avr/measure_tables.py`）。Flashが64KiBを超えるデバイス（ATmega2560 等）では、表・プールを `*(.progmem.*)`（`.text` 先頭のリンク順クラスタ）ではなく `.text.azaraC.<N>`（`*(.text.*)`、コードの後ろ）に置く（`AZARAC_PROGMEM`）。Arduino は `core.a` を最後にリンクするため、先頭クラスタに116KiBの表があるとコア自身のPROGMEM（`digital_pin_to_port_PGM` 等）が16bit窓の外へ出て `pinMode`/`digitalWrite` が誤動作する（`autoresearch.sh` のコア模擬オブジェクトがアドレスをゲートする）。アドレスは32bitのFlashアドレスで扱う（`AZARAC_PGM_PTR` + `pgm_read_*_far` / `memcpy_PF`） |
 
-**LTO の制約（AVR）**: Arduino の AVR コアは `-flto` でコンパイル・リンクする。inline 関数内の `static const char[]` は one-only シンボルになり、LTO では `__section__` が落ちて `.rodata`（リンカスクリプト上 `.data`、実体 SRAM）へ移る。そのため生成ヘッダの switch 戦略は case リテラルを名前空間スコープの配列として出す。実測（Mega + DCX/CAMF、SRAM）: LTO なし 1,086B / LTO あり 1,086B。`make -C test bench` の stage 5b が LTO 画像の SRAM を計測する（ゲートではなくレポート）。
+**payload 枠の大きさ**: `Mt43Data` は `storage_` のサイズを `storage_size_`（有効なカテゴリの payload 型の `sizeof` の最大値、コンパイル時 `constexpr`）で決める。`EewData`（`regions[80]` を含む 105B）と `HypocenterData` は `AZARAC_ENABLE_EEW` / `AZARAC_ENABLE_HYPOCENTER` で定義ごとガードしてある: EEW を有効にすると最大は `EewData` の 105B、AVR プリセット（両方 0）では津波の 67B が最大になり、`sizeof(Mt43Data)` は 128B → 88B、`Message` は 144B → 104B になる（avr-gcc `-Os`、ATmega328P で実測）。`alignas(8)` のため実サイズは 8 の倍数に切り上がる。ガードの追加箇所は 開発者ガイドの「カテゴリ無効時の型ガード」を参照。
+
+**LTO の制約（AVR）**: Arduino の AVR コアは `-flto` でコンパイル・リンクする。inline 関数内の `static const char[]` は one-only シンボルになり、LTO では `__section__` が落ちて `.rodata`（リンカスクリプト上 `.data`、実体 SRAM）へ移る。そのため生成ヘッダの switch 戦略は case リテラルを名前空間スコープの配列として出す。実測（Mega + DCX/CAMF、SRAM）: LTO なし 896B / LTO あり 896B。`make -C test bench` の stage 5b が LTO 画像の SRAM を計測する（ゲートではなくレポート）。
 
 ## 関連ドキュメント
 

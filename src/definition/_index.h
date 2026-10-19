@@ -1,6 +1,6 @@
 #pragma once
 // AUTO-GENERATED from azarashi 0.17.1 — do not edit
-// 138 generated + extra definition headers
+// 138 generated + 2 hand-written definition headers
 
 #include "qzss_dcr_jma_ambiguity_of_activity_time_en.h"
 #include "qzss_dcr_jma_ash_fall_warning_code.h"
@@ -140,5 +140,5 @@
 #include "qzss_dcx_camf_d9_rainfall_amounts.h"
 #include "qzss_dcx_ex1_target_area_code_en.h"
 #include "qzss_dcx_ex1_target_area_code_ja.h"
-#include "ublox_qzss_svid_prn_map.h"
-#include "qzss_dcx_camf_a3_provider_identifier.h"
+#include "manual/ublox_qzss_svid_prn_map.h"
+#include "manual/qzss_dcx_camf_a3_provider_identifier.h"
