@@ -297,8 +297,13 @@ echo "METRIC MEGA_COMPILE_OK=$mega_ok"
 # gated: this number is the honest one for the board, and the fix belongs in the
 # generator (hoist the case literals to file scope), not in this harness.
 mega_lto_ok=0
+# The data region is checked by ld: binutils 2.26 (CI) refuses a .data past the
+# Mega's 8 KB and stops the link, binutils 2.30 (dev machines) does not. The
+# measurement needs an image, not a placeable one — the number is the point, and it
+# is over the limit on the board either way.
 mega_lto_build=(-mmcu="$MCU" -Os -std=gnu++17 -fno-exceptions "${AVR_LTO[@]}"
                 -ffunction-sections -fdata-sections -Wl,--gc-sections -Werror=overflow
+                -Wl,--no-check-sections
                 -DAZARAC_ENABLE_DCX_CAMF=1
                 -I src -I "$BENCH/shim" -DARDUINO=1)
 mega_lto_objs=()
