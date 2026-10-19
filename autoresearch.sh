@@ -342,6 +342,39 @@ echo "METRIC MEGA_COMPILE_OK=$mega_ok"
 [[ -n "${crc_sym_addr:-}" ]] && echo "METRIC MEGA_CRC_SYM_ADDR=0x$crc_sym_addr"
 [[ -n "${mega_core_pgm:-}" ]] && echo "METRIC MEGA_CORE_PGM_ADDR=0x$mega_core_pgm"
 
+# --------------------------------------------------------------- stage 5b ---
+# The same preset under the recipe a sketch is actually built with: the Arduino AVR
+# core compiles and links with `-flto` (${AVR_LTO[@]}), and that is what puts the
+# generated switch-strategy literals into SRAM — see the stage-5 note. Reported, not
+# gated: this number is the honest one for the board, and the fix belongs in the
+# generator (hoist the case literals to file scope), not in this harness.
+mega_lto_ok=0
+mega_lto_build=(-mmcu="$MCU" -Os -std=gnu++17 -fno-exceptions "${AVR_LTO[@]}"
+                -ffunction-sections -fdata-sections -Wl,--gc-sections -Werror=overflow
+                -DAZARAC_ENABLE_DCX_CAMF=1
+                -I src -I "$BENCH/shim" -DARDUINO=1)
+mega_lto_objs=()
+rm -rf "$OUT/obj_mega_lto"
+mkdir -p "$OUT/obj_mega_lto"
+for src in src/*.cpp src/*/*.cpp "$BENCH/probe.cpp"; do
+    obj="$OUT/obj_mega_lto/$(echo "$src" | tr '/' '_').o"
+    if "$AVR_CC" "${mega_lto_build[@]}" -c "$src" -o "$obj"; then
+        mega_lto_objs+=("$obj")
+    else
+        mega_lto_objs=()
+        break
+    fi
+done
+if [[ ${#mega_lto_objs[@]} -gt 0 ]] \
+   && "$AVR_CC" "${mega_lto_build[@]}" "${mega_lto_objs[@]}" -o "$OUT/mega_lto.elf"; then
+    mega_lto_ok=1
+    mega_lto_flash="$("$AVR_SIZE" "$OUT/mega_lto.elf" | awk 'NR == 2 { print $1 + $2 }')"
+    mega_lto_ram="$("$AVR_SIZE" "$OUT/mega_lto.elf" | awk 'NR == 2 { print $2 + $3 }')"
+fi
+echo "METRIC MEGA_LTO_COMPILE_OK=$mega_lto_ok"
+[[ -n "${mega_lto_flash:-}" ]] && echo "METRIC MEGA_LTO_FLASH_BYTES=$mega_lto_flash"
+[[ -n "${mega_lto_ram:-}" ]] && echo "METRIC MEGA_LTO_RAM_BYTES=$mega_lto_ram"
+
 # ---------------------------------------------------------------- gates -----
 status=0
 
@@ -372,6 +405,13 @@ fi
 if [[ -n "${mega_ram:-}" ]] && (( mega_ram > MAX_MEGA_RAM_BYTES )); then
     echo "autoresearch: Mega SRAM grew to $mega_ram B (baseline $MAX_MEGA_RAM_BYTES) — the DCX/CAMF labels must stay in Flash" >&2
     status=15
+fi
+
+# Stage 5b's number, reported rather than gated: it is the Arduino build's truth (the
+# core applies -flto), and it is larger than the LTO-free one by exactly the generated
+# switch-strategy literals, which LTO drops the section attribute of.
+if [[ -n "${mega_lto_ram:-}" ]] && (( mega_lto_ram > MAX_MEGA_RAM_BYTES )); then
+    echo "autoresearch: the Arduino recipe (-flto) makes the Mega image cost $mega_lto_ram B of SRAM against the LTO-free $mega_ram B — the switch-strategy literals are function-local statics, whose section attribute LTO drops, so they land in .data (not gated: the fix is the generator emitting file-scope literals)" >&2
 fi
 
 if [[ -n "${tables_in_ram:-}" ]] && (( tables_in_ram != 0 )); then
