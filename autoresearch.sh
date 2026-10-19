@@ -40,18 +40,20 @@
 #   crosscheck the primary metric must equal what avr-gcc reports for the
 #             symbols it actually placed.
 #   uno       the default AVR configuration must still compile and link.
-#   mega      the large-flash AVR preset must still compile and link, must still
-#             enable the DCX/CAMF tables, must keep every table in Flash, and
-#             must use far Flash reads (elpm/RAMPZ) — without them the tables
-#             above 64 KB would garble.
-#   ram       SRAM must not grow: UNO_RAM_BYTES (data+bss of the linked image)
-#             never exceeds the baseline, and no definition table may live in
-#             RAM instead of Flash. Shrinking Flash by spending SRAM is a loss —
-#             the AVR path can only join labels in the shared 800 B buffer it
+#   mega      the DCX/CAMF configuration (opted in, as on a 256 KB part) must still
+#             compile and link, enable the DCX/CAMF tables, keep every table in Flash
+#             and use far Flash reads (elpm/RAMPZ) — without them the tables above
+#             64 KB would garble.
+#   ram       SRAM must not grow: UNO_RAM_BYTES and MEGA_RAM_BYTES (data+bss of the
+#             linked images) never exceed the baseline, and no definition table may
+#             live in RAM instead of Flash. Shrinking Flash by spending SRAM is a
+#             loss — the AVR path can only join labels in the shared 800 B buffer it
 #             already owns.
 #
 # Deterministic: fixed toolchain flags, locked inputs, no network, no clock.
-# Requires avr-gcc/avr-size/avr-nm and g++ on PATH.
+# Requires avr-gcc/avr-size/avr-nm and g++ on PATH. The Uno image links with the
+# Arduino AVR core's `-flto -fuse-linker-plugin` (AVR_LTO); the Mega one does not,
+# see stage 5.
 #
 # `bash autoresearch.sh --bless-labels` re-records the golden label hashes (use
 # only after confirming the label change was intended).
@@ -80,6 +82,13 @@ AVR_BUILD=(-mmcu="$MCU" -Os -std=gnu++17 -fno-exceptions
            -ffunction-sections -fdata-sections -Werror=overflow
            -I src -I "$BENCH/shim" -DARDUINO=1)
 
+# The Arduino AVR core compiles and links with `-flto -fuse-linker-plugin` (platform.txt),
+# so stage 4's Uno image — the configuration a sketch actually ships — uses them too.
+# Stage 3 keeps its own LTO-free recipe on purpose: an LTO object carries no sizes for
+# symbols, which would leave nothing for the avr-gcc crosscheck to compare against.
+# Stage 5 stays LTO-free for a different reason; see the note there.
+AVR_LTO=(-flto -fuse-linker-plugin)
+
 # Worst case for the tables: every category, both languages.
 CATS=(-DAZARAC_LANG_JA=1 -DAZARAC_LANG_EN=1
       -DAZARAC_ENABLE_EEW=1 -DAZARAC_ENABLE_HYPOCENTER=1 -DAZARAC_ENABLE_SEISMIC=1
@@ -96,6 +105,11 @@ MAX_OBJECT_BYTES=32768
 # while shrinking Flash is a loss, so the linked Uno image's RAM is gated:
 # measured 702 B (data 626 + bss 76) at the pre-compression baseline.
 MAX_UNO_RAM_BYTES=702
+
+# The same ceiling for stage 5's DCX/CAMF image: measured 3,714 B (data 2,902 + bss 812)
+# of the Mega's 8,192 B, so the tables may cost Flash but never SRAM. This is also what
+# catches an LTO build there — see the stage-5 comment (28,230 B of .data).
+MAX_MEGA_RAM_BYTES=3714
 
 mkdir -p "$OUT"
 
@@ -224,7 +238,7 @@ fi
 # tsunami only, Japanese labels). It must stay buildable and must stay small.
 uno_ok=0
 uno_flash=""
-uno_build=(-mmcu="$UNO_MCU" -Os -std=gnu++17 -fno-exceptions
+uno_build=(-mmcu="$UNO_MCU" -Os -std=gnu++17 -fno-exceptions "${AVR_LTO[@]}"
            -ffunction-sections -fdata-sections -Wl,--gc-sections -Werror=overflow
            -I src -I "$BENCH/shim" -DARDUINO=1)
 uno_objs=()
@@ -254,12 +268,21 @@ echo "METRIC UNO_COMPILE_OK=$uno_ok"
 [[ -n "${tables_in_ram:-}" ]] && echo "METRIC AVR_TABLES_IN_RAM=$tables_in_ram"
 
 # ---------------------------------------------------------------- stage 5 ---
-# The other shipped AVR preset: a 256 KB part turns DCX/CAMF on by itself
-# (AZARAC_AVR_LARGE_FLASH in azaraC_config.h) and its tables land above 64 KB,
-# so this stage is what proves the far addressing works on a real device.
+# The large-flash image: a 256 KB part with DCX/CAMF opted in (the preset no longer
+# flips it on by chip name, so this stage defines it, as a Mega user would). Its tables
+# land above 64 KB, which is what makes this stage able to prove the far addressing on
+# a real device.
+#
+# No ${AVR_LTO[@]} here, unlike stage 4: avr-gcc 7.3 + LTO drops the `.text.azaraC.<n>`
+# section attribute of the generated function-local literal statics, and they land in
+# .rodata, which the linkerscript maps into .data — measured on this exact recipe,
+# .data 2,902 B without LTO vs 28,230 B with it, i.e. ~25 KB of labels in SRAM on a
+# part that has 8 KB. The far-Flash placement this stage exists to check is therefore
+# only measurable LTO-free; the ceiling that keeps it honest is MAX_MEGA_RAM_BYTES.
 mega_ok=0
 mega_build=(-mmcu="$MCU" -Os -std=gnu++17 -fno-exceptions
             -ffunction-sections -fdata-sections -Wl,--gc-sections -Werror=overflow
+            -DAZARAC_ENABLE_DCX_CAMF=1
             -I src -I "$BENCH/shim" -DARDUINO=1)
 mega_objs=()
 rm -rf "$OUT/obj_mega"
@@ -346,13 +369,18 @@ if [[ -n "${uno_ram:-}" ]] && (( uno_ram > MAX_UNO_RAM_BYTES )); then
     status=10
 fi
 
+if [[ -n "${mega_ram:-}" ]] && (( mega_ram > MAX_MEGA_RAM_BYTES )); then
+    echo "autoresearch: Mega SRAM grew to $mega_ram B (baseline $MAX_MEGA_RAM_BYTES) — the DCX/CAMF labels must stay in Flash" >&2
+    status=15
+fi
+
 if [[ -n "${tables_in_ram:-}" ]] && (( tables_in_ram != 0 )); then
     echo "autoresearch: $tables_in_ram definition table(s) landed in RAM instead of Flash" >&2
     status=11
 fi
 
 if (( mega_ok == 0 )); then
-    echo "autoresearch: the large-flash AVR preset no longer builds" >&2
+    echo "autoresearch: the DCX/CAMF AVR configuration no longer builds" >&2
     status=12
 else
     [[ -n "${mega_tables_in_ram:-}" ]] && (( mega_tables_in_ram != 0 )) && {

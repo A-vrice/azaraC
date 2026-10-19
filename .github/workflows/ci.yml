@@ -122,8 +122,8 @@ jobs:
           library-manager: update
           compliance: strict
 
-  # 必須コンパイルチェック（リリースゲート）: アーキテクチャ代表 1 台ずつが必須 —
-  # ARM Cortex-M (RP2040 Pico) / Xtensa (ESP32-C3) / AVR (Arduino Uno)。失敗で CI が赤くなる。
+  # 必須コンパイルチェック（リリースゲート）: アーキテクチャ代表が必須 — ARM Cortex-M (RP2040 Pico) /
+  # Xtensa (ESP32-C3) / AVR (Arduino Uno, Arduino Mega 2560)。失敗で CI が赤くなる。
   # その他は compile-extended（ベストエフォート）。
   arduino-compile-required:
     name: compile required (${{ matrix.name }})
@@ -155,6 +155,16 @@ jobs:
             # (~248 KB all-category; docs/architecture.md): the AVR preset in
             # azaraC_config.h keeps SEISMIC/TSUNAMI only (~3.4 KB tables) so the
             # sketches fit.
+            build_flags: ""
+
+          - name: Arduino Mega 2560
+            core: arduino:avr
+            fqbn: arduino:avr:mega
+            additional_urls: ""
+            # 256 KB Flash, but the AVR preset keeps the Uno's categories — DCX/CAMF is opt-in
+            # (azaraC_config.h) — so this gate is the default AVR configuration on a large part.
+            # The far-Flash DCX/CAMF image is gated by `make -C test bench` (autoresearch.sh
+            # stage 5, real avr-gcc) instead of a sketch build here.
             build_flags: ""
 
     steps:
@@ -206,7 +216,7 @@ jobs:
               continue
             fi
             # Skip WiFi examples on boards without WiFi (requires WiFi.h)
-            if [[ "${{ matrix.name }}" == "RP2040 Pico" && ("$sketch_name" == "wifi_client" || "$sketch_name" == "with_sntp") ]]; then
+            if [[ ("${{ matrix.name }}" == "RP2040 Pico" || "${{ matrix.name }}" == "Arduino Mega 2560") && ("$sketch_name" == "wifi_client" || "$sketch_name" == "with_sntp") ]]; then
               echo "skip $sketch_name on ${{ matrix.name }} because WiFi.h is unavailable"
               continue
             fi
@@ -233,16 +243,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: Arduino Mega 2560
-            slug: mega2560
-            core: arduino:avr
-            fqbn: arduino:avr:mega
-            additional_urls: ""
-            # 256 KB Flash: the preset turns DCX/CAMF on by itself (AZARAC_AVR_LARGE_FLASH),
-            # covering the far-Flash addressing path with the real Arduino core. Best-effort
-            # (see continue-on-error); promote to arduino-compile-required once green.
-            build_flags: ""
-
           - name: RP2350 Pico 2
             slug: pico2
             core: rp2040:rp2040
@@ -352,7 +352,7 @@ jobs:
           for sketch in examples/*/; do
             echo "--- $sketch ---"
             sketch_name=$(basename "$sketch")
-            if [[ ("${{ matrix.name }}" == "Arduino GIGA R1 WiFi") || ("${{ matrix.name }}" == "Teensy 4.0" || "${{ matrix.name }}" == "STM32 Nucleo H563ZI" || "${{ matrix.name }}" == "nRF52840 Nano 33 BLE" || "${{ matrix.name }}" == "Arduino Zero" || "${{ matrix.name }}" == "RP2350 Pico 2" || "${{ matrix.name }}" == "Arduino Mega 2560") && ("$sketch_name" == "wifi_client" || "$sketch_name" == "with_sntp") ]]; then
+            if [[ ("${{ matrix.name }}" == "Arduino GIGA R1 WiFi") || ("${{ matrix.name }}" == "Teensy 4.0" || "${{ matrix.name }}" == "STM32 Nucleo H563ZI" || "${{ matrix.name }}" == "nRF52840 Nano 33 BLE" || "${{ matrix.name }}" == "Arduino Zero" || "${{ matrix.name }}" == "RP2350 Pico 2") && ("$sketch_name" == "wifi_client" || "$sketch_name" == "with_sntp") ]]; then
               if [[ "${{ matrix.name }}" == "Arduino GIGA R1 WiFi" ]]; then
                 if [[ "$sketch_name" == "with_sntp" ]]; then
                   echo "skip $sketch_name on ${{ matrix.name }} because configTime is unavailable"
@@ -582,7 +582,7 @@ jobs:
           echo "| arduino-lint | ${{ needs.arduino-lint.result }} |" >> comment.md
           echo "| arduino-compile-required | ${{ needs.arduino-compile-required.result }} |" >> comment.md
           failed=0; total=0
-          expected=9  # arduino-compile-extended matrix size; update if matrix changes
+          expected=8  # arduino-compile-extended matrix size; update if matrix changes
           for f in artifacts/extended/*/extended_outcome.txt; do
             [ -f "$f" ] || continue
             total=$((total+1))

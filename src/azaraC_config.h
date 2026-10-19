@@ -34,20 +34,18 @@
 // MT=44 (DCX/CAMF) の窓の上限。ホストは A8-Hazard Duration の上限（6 時間〜7 日、internal/DedupWindow.h）を使うが、AVR の 64 スロットで 7 日の窓は「まだ生きている情報」の枠を長く占め、押し出しによる再通知を招く。MT44 の再送は同じ電文が 2 回（まれに 3〜4 回）で間隔は最大 16 秒（issue #34 の実測）なので、5 分で十分に重複を捕まえられる。A8 の窓は最短でも 6 時間なので、この上限が常に効く。
 #define AZARAC_DEDUP_MT44_MAX_WINDOW_MS 300000UL  // 5 min
 #endif
-// Flash size decides which families fit: the tables of DCX/CAMF alone are ~100 KB
-// and the decoder needs ~20 KB on top, so a 32 KB part can only carry SEISMIC and
-// TSUNAMI, while a 256 KB part holds DCX/CAMF too (ATmega2560, DCX/CAMF +
-// SEISMIC/TSUNAMI, JA: 144,804 B image, UNO 16,874 B — see test/bench/avr). Anything
-// above 64 KiB of tables also needs the far Flash addressing in
-// internal/FlashString.h, which such devices select automatically.
+// Flash size decides which families fit: the tables of DCX/CAMF alone are ~100 KB and
+// its decoder ~20 KB on top, so only a 256 KB part can hold them (ATmega2560,
+// DCX/CAMF + SEISMIC/TSUNAMI, JA: 144,804 B image — see test/bench/avr). Nothing is
+// enabled by the chip name: every AVR part starts on the Uno's set (SEISMIC/TSUNAMI)
+// and DCX/CAMF is opt-in — AZARAC_AVR_LARGE_FLASH=1 (the name this preset was built
+// around) or AZARAC_ENABLE_DCX_CAMF=1 — before including azaraC.h.
+// Anything above 64 KiB of tables also needs the far Flash addressing in
+// internal/FlashString.h, which such devices select automatically (FLASHEND > 0xFFFF).
 // The remaining families stay off by default even on large parts (all of them at
 // once is ~242 KiB); enable them before including azaraC.h as needed.
 #if !defined(AZARAC_AVR_LARGE_FLASH)
-#if defined(ARDUINO_AVR_MEGA2560) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega2561__)
-#define AZARAC_AVR_LARGE_FLASH 1
-#else
 #define AZARAC_AVR_LARGE_FLASH 0
-#endif
 #endif
 #ifndef AZARAC_ENABLE_EEW
 #define AZARAC_ENABLE_EEW 0

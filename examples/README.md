@@ -54,7 +54,7 @@ CFG-UART1-BAUDRATE              = 9600
 
 Arduino Uno 用の最小例です。Uno には Serial1 が無いため、GNSS モジュールを Serial (pin 0=RX) に接続し、JSON も同一の Serial に出力します（ボーレート 9600）。
 
-**対応ハードウェア**: Arduino Uno (AVR)。`azaraC_config.h` の AVR プリセットにより SEISMIC/TSUNAMI のみ有効化され、32KB Flash に収まります。ATmega2560（Mega）では同プリセットが DCX/CAMF も有効化します（フラッシュ145KB / RAM 3.7KB、実測）。
+**対応ハードウェア**: Arduino Uno (AVR)。`azaraC_config.h` の AVR プリセットにより SEISMIC/TSUNAMI のみ有効化され、32KB Flash に収まります。ATmega2560（Mega）でも既定は同じ SEISMIC/TSUNAMI のみで、DCX/CAMF を使う場合は `-DAZARAC_ENABLE_DCX_CAMF=1`（または `-DAZARAC_AVR_LARGE_FLASH=1`）を明示します（DCX/CAMF 入りは日本語でフラッシュ145KB / RAM 3.7KB、実測）。
 
 **配線 (Arduino Uno)**:
 

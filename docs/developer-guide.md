@@ -165,7 +165,7 @@ AVRツールチェーン（avr-gcc）はC++の標準ライブラリを一切含�
 - **PROGMEM 分岐のホスト検証**: `make -C test pgm-stub`が`__AVR__`とスタブ`test/stub/avr/pgmspace.h`で全テストをコンパイルし、PROGMEMコードパスをホストで検証します。
 - **定義ヘッダの再生成**: `scripts/gen/gen_definitions.py --out-dir src/definition`で再生成できます。
 - **定義テーブルは CI（`.github/workflows/update-definitions.yml`）でazarashiから自動生成されるため手編集禁止**です。
-- **AVR プリセット**（`src/azaraC_config.h`）: 有効カテゴリはSEISMIC/TSUNAMI、Flashの大きいボード（`AZARAC_AVR_LARGE_FLASH`: `ARDUINO_AVR_MEGA2560` / `__AVR_ATmega2560__` / `__AVR_ATmega2561__`）では加えてDCX/CAMF（他10カテゴリは無効）、`AZARAC_DEDUP_SLOTS=64`（`AZARAC_DEDUP_WAYS=8`、512B）、`AZARAC_NANKAI_MAX_PAGES=4`、`AZARAC_NANKAI_BUFFERS=1`。Unoジョブ（`.github/workflows/ci.yml`の`arduino-compile-required`）は`basic_ubx` / `basic_nmea` / `basic_uno`の3つをコンパイル/検証します。
+- **AVR プリセット**（`src/azaraC_config.h`）: 有効カテゴリはボードによらずSEISMIC/TSUNAMIのみで、DCX/CAMFはオプトイン（`AZARAC_AVR_LARGE_FLASH=1` / `AZARAC_ENABLE_DCX_CAMF=1`。他10カテゴリは無効）、`AZARAC_DEDUP_SLOTS=64`（`AZARAC_DEDUP_WAYS=8`、512B）、`AZARAC_NANKAI_MAX_PAGES=4`、`AZARAC_NANKAI_BUFFERS=1`。`arduino-compile-required`（`.github/workflows/ci.yml`）はAVRをUnoとMega 2560の2台で見ます — Unoは`basic_ubx` / `basic_nmea` / `basic_uno`の3つ、MegaはWiFi/RTOSを除く全exampleを既定カテゴリ（DCX/CAMF無効）でコンパイル/検証します。DCX/CAMF入りのfar-Flash構成は`make -C test bench`（`autoresearch.sh` stage 5）が実avr-gccでリンクしてゲートします。
 
 ## コーディング規約
 

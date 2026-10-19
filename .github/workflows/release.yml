@@ -128,6 +128,7 @@ jobs:
         env:
           RELEASE_TAG: ${{ github.ref_name }}
           ARCHIVE_NAME: ${{ needs.build.outputs.artifact-name }}
+          PROVENANCE: ${{ needs.provenance.outputs.provenance-name }}
         # provenance の署名、各ファイルの digest と subjectの一致、ソースリポジトリとタグの一致をそれぞれ検証する。
         # 失敗すればこのジョブで止まり、成果物はアップロードされない。
         # Builderとそこで生成されたprovenanceが侵害されない限り信頼できる
@@ -135,7 +136,7 @@ jobs:
           slsa-verifier verify-artifact \
             "${ARCHIVE_NAME}.tar.gz" \
             "${ARCHIVE_NAME}.zip" \
-            --provenance-path "${{ needs.provenance.outputs.provenance-name }}" \
+            --provenance-path "$PROVENANCE" \
             --source-uri "github.com/A-vrice/azaraC" \
             --source-tag "$RELEASE_TAG"
 
