@@ -21,12 +21,16 @@ namespace def {
 #if (AZARAC_ENABLE_DCX_CAMF)
 
 #if defined(__AVR__)
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_A5_SEVERITY_C0[] = "Unknown";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_A5_SEVERITY_C1[] = "Moderate - Possible threat to life or property";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_A5_SEVERITY_C2[] = "Severe - Significant threat to life or property";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_A5_SEVERITY_C3[] = "Extreme - Extraordinary threat to life or property";
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_a5_severity_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 0: { static const char AZARAC_PROGMEM s[] = "Unknown"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 7); }
-        case 1: { static const char AZARAC_PROGMEM s[] = "Moderate - Possible threat to life or property"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 46); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "Severe - Significant threat to life or property"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 47); }
-        case 3: { static const char AZARAC_PROGMEM s[] = "Extreme - Extraordinary threat to life or property"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 50); }
+        case 0: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCX_CAMF_A5_SEVERITY_C0), 7);
+        case 1: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCX_CAMF_A5_SEVERITY_C1), 46);
+        case 2: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCX_CAMF_A5_SEVERITY_C2), 47);
+        case 3: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCX_CAMF_A5_SEVERITY_C3), 50);
         default: return std::nullopt;
     }
 }

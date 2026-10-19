@@ -21,12 +21,16 @@ namespace def {
 #if (AZARAC_ENABLE_DCX_CAMF)
 
 #if defined(__AVR__)
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_A17_TYPE_OF_SPECIFIC_SETTINGS_C0[] = "B1 - Improved Resolution of Main Ellipse";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_A17_TYPE_OF_SPECIFIC_SETTINGS_C1[] = "B2 - Position of the Centre of the Hazard";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_A17_TYPE_OF_SPECIFIC_SETTINGS_C2[] = "B3 - Secondary Ellipse Definition";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_A17_TYPE_OF_SPECIFIC_SETTINGS_C3[] = "B4 - Quantitative and detailed information about the Hazard";
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_a17_type_of_specific_settings_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 0: { static const char AZARAC_PROGMEM s[] = "B1 - Improved Resolution of Main Ellipse"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 40); }
-        case 1: { static const char AZARAC_PROGMEM s[] = "B2 - Position of the Centre of the Hazard"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 41); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "B3 - Secondary Ellipse Definition"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 33); }
-        case 3: { static const char AZARAC_PROGMEM s[] = "B4 - Quantitative and detailed information about the Hazard"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 59); }
+        case 0: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCX_CAMF_A17_TYPE_OF_SPECIFIC_SETTINGS_C0), 40);
+        case 1: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCX_CAMF_A17_TYPE_OF_SPECIFIC_SETTINGS_C1), 41);
+        case 2: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCX_CAMF_A17_TYPE_OF_SPECIFIC_SETTINGS_C2), 33);
+        case 3: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCX_CAMF_A17_TYPE_OF_SPECIFIC_SETTINGS_C3), 59);
         default: return std::nullopt;
     }
 }

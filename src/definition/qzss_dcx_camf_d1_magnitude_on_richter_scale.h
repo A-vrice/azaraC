@@ -21,17 +21,26 @@ namespace def {
 #if (AZARAC_ENABLE_DCX_CAMF)
 
 #if defined(__AVR__)
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D1_MAGNITUDE_ON_RICHTER_SCALE_C0[] = "1.0-1.9 - Micro";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D1_MAGNITUDE_ON_RICHTER_SCALE_C1[] = "2.0-2.9 - Minor";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D1_MAGNITUDE_ON_RICHTER_SCALE_C2[] = "3.0-3.9 - Minor";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D1_MAGNITUDE_ON_RICHTER_SCALE_C3[] = "4.0-4.9 - Light";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D1_MAGNITUDE_ON_RICHTER_SCALE_C4[] = "5.0-5.9 - Moderate";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D1_MAGNITUDE_ON_RICHTER_SCALE_C5[] = "6.0-6.9 - Strong";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D1_MAGNITUDE_ON_RICHTER_SCALE_C6[] = "7.0-7.9 - Major";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D1_MAGNITUDE_ON_RICHTER_SCALE_C7[] = "8.0-8.9 - Great";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D1_MAGNITUDE_ON_RICHTER_SCALE_C8[] = "9.0 and greater - Great";
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_d1_magnitude_on_richter_scale_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 0: { static const char AZARAC_PROGMEM s[] = "1.0-1.9 - Micro"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 15); }
-        case 1: { static const char AZARAC_PROGMEM s[] = "2.0-2.9 - Minor"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 15); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "3.0-3.9 - Minor"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 15); }
-        case 3: { static const char AZARAC_PROGMEM s[] = "4.0-4.9 - Light"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 15); }
-        case 4: { static const char AZARAC_PROGMEM s[] = "5.0-5.9 - Moderate"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 18); }
-        case 5: { static const char AZARAC_PROGMEM s[] = "6.0-6.9 - Strong"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 16); }
-        case 6: { static const char AZARAC_PROGMEM s[] = "7.0-7.9 - Major"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 15); }
-        case 7: { static const char AZARAC_PROGMEM s[] = "8.0-8.9 - Great"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 15); }
-        case 8: { static const char AZARAC_PROGMEM s[] = "9.0 and greater - Great"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 23); }
+        case 0: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D1_MAGNITUDE_ON_RICHTER_SCALE_C0), 15);
+        case 1: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D1_MAGNITUDE_ON_RICHTER_SCALE_C1), 15);
+        case 2: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D1_MAGNITUDE_ON_RICHTER_SCALE_C2), 15);
+        case 3: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D1_MAGNITUDE_ON_RICHTER_SCALE_C3), 15);
+        case 4: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D1_MAGNITUDE_ON_RICHTER_SCALE_C4), 18);
+        case 5: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D1_MAGNITUDE_ON_RICHTER_SCALE_C5), 16);
+        case 6: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D1_MAGNITUDE_ON_RICHTER_SCALE_C6), 15);
+        case 7: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D1_MAGNITUDE_ON_RICHTER_SCALE_C7), 15);
+        case 8: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D1_MAGNITUDE_ON_RICHTER_SCALE_C8), 23);
         default: return std::nullopt;
     }
 }

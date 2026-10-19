@@ -21,17 +21,25 @@ namespace def {
 #if (AZARAC_ENABLE_VOLCANO || AZARAC_ENABLE_ASH_FALL)
 
 #if defined(__AVR__)
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_AMBIGUITY_OF_ACTIVITY_TIME_EN_C0[] = "No ambiguity";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_AMBIGUITY_OF_ACTIVITY_TIME_EN_C1[] = "equivalent to Approximate time (minute))";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_AMBIGUITY_OF_ACTIVITY_TIME_EN_C2[] = "second)";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_AMBIGUITY_OF_ACTIVITY_TIME_EN_C3[] = "minute)";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_AMBIGUITY_OF_ACTIVITY_TIME_EN_C4[] = "hour)";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_AMBIGUITY_OF_ACTIVITY_TIME_EN_C5[] = "day)";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_AMBIGUITY_OF_ACTIVITY_TIME_EN_C6[] = "month)";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_AMBIGUITY_OF_ACTIVITY_TIME_EN_C7[] = "year)";
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_AMBIGUITY_OF_ACTIVITY_TIME_EN_PARENT_POOL[] = "Approximate time (\000";
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_ambiguity_of_activity_time_en_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 0: { static const char AZARAC_PROGMEM s[] = "No ambiguity"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 12); }
-        case 1: { static const char AZARAC_PROGMEM s[] = "equivalent to Approximate time (minute))"; return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_AMBIGUITY_OF_ACTIVITY_TIME_EN_PARENT_POOL) + 0u, AZARAC_PGM_PTR(s)); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "second)"; return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_AMBIGUITY_OF_ACTIVITY_TIME_EN_PARENT_POOL) + 0u, AZARAC_PGM_PTR(s)); }
-        case 3: { static const char AZARAC_PROGMEM s[] = "minute)"; return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_AMBIGUITY_OF_ACTIVITY_TIME_EN_PARENT_POOL) + 0u, AZARAC_PGM_PTR(s)); }
-        case 4: { static const char AZARAC_PROGMEM s[] = "hour)"; return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_AMBIGUITY_OF_ACTIVITY_TIME_EN_PARENT_POOL) + 0u, AZARAC_PGM_PTR(s)); }
-        case 5: { static const char AZARAC_PROGMEM s[] = "day)"; return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_AMBIGUITY_OF_ACTIVITY_TIME_EN_PARENT_POOL) + 0u, AZARAC_PGM_PTR(s)); }
-        case 6: { static const char AZARAC_PROGMEM s[] = "month)"; return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_AMBIGUITY_OF_ACTIVITY_TIME_EN_PARENT_POOL) + 0u, AZARAC_PGM_PTR(s)); }
-        case 7: { static const char AZARAC_PROGMEM s[] = "year)"; return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_AMBIGUITY_OF_ACTIVITY_TIME_EN_PARENT_POOL) + 0u, AZARAC_PGM_PTR(s)); }
+        case 0: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_AMBIGUITY_OF_ACTIVITY_TIME_EN_C0), 12);
+        case 1: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_AMBIGUITY_OF_ACTIVITY_TIME_EN_PARENT_POOL) + 0u, AZARAC_PGM_PTR(QZSS_DCR_JMA_AMBIGUITY_OF_ACTIVITY_TIME_EN_C1));
+        case 2: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_AMBIGUITY_OF_ACTIVITY_TIME_EN_PARENT_POOL) + 0u, AZARAC_PGM_PTR(QZSS_DCR_JMA_AMBIGUITY_OF_ACTIVITY_TIME_EN_C2));
+        case 3: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_AMBIGUITY_OF_ACTIVITY_TIME_EN_PARENT_POOL) + 0u, AZARAC_PGM_PTR(QZSS_DCR_JMA_AMBIGUITY_OF_ACTIVITY_TIME_EN_C3));
+        case 4: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_AMBIGUITY_OF_ACTIVITY_TIME_EN_PARENT_POOL) + 0u, AZARAC_PGM_PTR(QZSS_DCR_JMA_AMBIGUITY_OF_ACTIVITY_TIME_EN_C4));
+        case 5: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_AMBIGUITY_OF_ACTIVITY_TIME_EN_PARENT_POOL) + 0u, AZARAC_PGM_PTR(QZSS_DCR_JMA_AMBIGUITY_OF_ACTIVITY_TIME_EN_C5));
+        case 6: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_AMBIGUITY_OF_ACTIVITY_TIME_EN_PARENT_POOL) + 0u, AZARAC_PGM_PTR(QZSS_DCR_JMA_AMBIGUITY_OF_ACTIVITY_TIME_EN_C6));
+        case 7: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_AMBIGUITY_OF_ACTIVITY_TIME_EN_PARENT_POOL) + 0u, AZARAC_PGM_PTR(QZSS_DCR_JMA_AMBIGUITY_OF_ACTIVITY_TIME_EN_C7));
         default: return std::nullopt;
     }
 }

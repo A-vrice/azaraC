@@ -21,13 +21,18 @@ namespace def {
 #if (AZARAC_ENABLE_TYPHOON) && (AZARAC_LANG_JA)
 
 #if defined(__AVR__)
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_TYPHOON_INTENSITY_CATEGORY_C0[] = "なし";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_TYPHOON_INTENSITY_CATEGORY_C1[] = "強い";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_TYPHOON_INTENSITY_CATEGORY_C2[] = "非常に強い";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_TYPHOON_INTENSITY_CATEGORY_C3[] = "猛烈な";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_TYPHOON_INTENSITY_CATEGORY_C15[] = "その他の強さ階級分類";
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_typhoon_intensity_category_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 0: { static const char AZARAC_PROGMEM s[] = "なし"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 6); }
-        case 1: { static const char AZARAC_PROGMEM s[] = "強い"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 6); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "非常に強い"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 15); }
-        case 3: { static const char AZARAC_PROGMEM s[] = "猛烈な"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 9); }
-        case 15: { static const char AZARAC_PROGMEM s[] = "その他の強さ階級分類"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 30); }
+        case 0: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_TYPHOON_INTENSITY_CATEGORY_C0), 6);
+        case 1: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_TYPHOON_INTENSITY_CATEGORY_C1), 6);
+        case 2: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_TYPHOON_INTENSITY_CATEGORY_C2), 15);
+        case 3: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_TYPHOON_INTENSITY_CATEGORY_C3), 9);
+        case 15: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_TYPHOON_INTENSITY_CATEGORY_C15), 30);
         default: return std::nullopt;
     }
 }

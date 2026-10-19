@@ -21,12 +21,16 @@ namespace def {
 #if (AZARAC_ENABLE_TYPHOON) && (AZARAC_LANG_EN)
 
 #if defined(__AVR__)
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_TYPHOON_SCALE_CATEGORY_EN_C0[] = "None";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_TYPHOON_SCALE_CATEGORY_EN_C1[] = "Large";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_TYPHOON_SCALE_CATEGORY_EN_C2[] = "Very large";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_TYPHOON_SCALE_CATEGORY_EN_C15[] = "Other Scale Category";
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_typhoon_scale_category_en_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 0: { static const char AZARAC_PROGMEM s[] = "None"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 4); }
-        case 1: { static const char AZARAC_PROGMEM s[] = "Large"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 5); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "Very large"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 10); }
-        case 15: { static const char AZARAC_PROGMEM s[] = "Other Scale Category"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 20); }
+        case 0: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_TYPHOON_SCALE_CATEGORY_EN_C0), 4);
+        case 1: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_TYPHOON_SCALE_CATEGORY_EN_C1), 5);
+        case 2: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_TYPHOON_SCALE_CATEGORY_EN_C2), 10);
+        case 15: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_TYPHOON_SCALE_CATEGORY_EN_C15), 20);
         default: return std::nullopt;
     }
 }

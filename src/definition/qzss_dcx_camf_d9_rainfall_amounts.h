@@ -21,17 +21,25 @@ namespace def {
 #if (AZARAC_ENABLE_DCX_CAMF)
 
 #if defined(__AVR__)
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D9_RAINFALL_AMOUNTS_C0[] = "p ≤ 2.5";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D9_RAINFALL_AMOUNTS_C1[] = "2.5mm/h < p ≤ 7.5";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D9_RAINFALL_AMOUNTS_C2[] = "7.5mm/h < p ≤ 1";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D9_RAINFALL_AMOUNTS_C3[] = "10mm/h < p ≤ 2";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D9_RAINFALL_AMOUNTS_C4[] = "20mm/h < p ≤ 3";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D9_RAINFALL_AMOUNTS_C5[] = "30mm/h < p ≤ 5";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D9_RAINFALL_AMOUNTS_C6[] = "50mm/h < p ≤ 8";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D9_RAINFALL_AMOUNTS_C7[] = "80mm/h < p";
 static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D9_RAINFALL_AMOUNTS_PARENT_POOL[] = "0mm/h\000mm/h\000";
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_d9_rainfall_amounts_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 0: { static const char AZARAC_PROGMEM s[] = "p ≤ 2.5"; return azarac_pgm_join_z(AZARAC_PGM_PTR(s), AZARAC_PGM_PTR(QZSS_DCX_CAMF_D9_RAINFALL_AMOUNTS_PARENT_POOL) + 6u); }
-        case 1: { static const char AZARAC_PROGMEM s[] = "2.5mm/h < p ≤ 7.5"; return azarac_pgm_join_z(AZARAC_PGM_PTR(s), AZARAC_PGM_PTR(QZSS_DCX_CAMF_D9_RAINFALL_AMOUNTS_PARENT_POOL) + 6u); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "7.5mm/h < p ≤ 1"; return azarac_pgm_join_z(AZARAC_PGM_PTR(s), AZARAC_PGM_PTR(QZSS_DCX_CAMF_D9_RAINFALL_AMOUNTS_PARENT_POOL) + 0u); }
-        case 3: { static const char AZARAC_PROGMEM s[] = "10mm/h < p ≤ 2"; return azarac_pgm_join_z(AZARAC_PGM_PTR(s), AZARAC_PGM_PTR(QZSS_DCX_CAMF_D9_RAINFALL_AMOUNTS_PARENT_POOL) + 0u); }
-        case 4: { static const char AZARAC_PROGMEM s[] = "20mm/h < p ≤ 3"; return azarac_pgm_join_z(AZARAC_PGM_PTR(s), AZARAC_PGM_PTR(QZSS_DCX_CAMF_D9_RAINFALL_AMOUNTS_PARENT_POOL) + 0u); }
-        case 5: { static const char AZARAC_PROGMEM s[] = "30mm/h < p ≤ 5"; return azarac_pgm_join_z(AZARAC_PGM_PTR(s), AZARAC_PGM_PTR(QZSS_DCX_CAMF_D9_RAINFALL_AMOUNTS_PARENT_POOL) + 0u); }
-        case 6: { static const char AZARAC_PROGMEM s[] = "50mm/h < p ≤ 8"; return azarac_pgm_join_z(AZARAC_PGM_PTR(s), AZARAC_PGM_PTR(QZSS_DCX_CAMF_D9_RAINFALL_AMOUNTS_PARENT_POOL) + 0u); }
-        case 7: { static const char AZARAC_PROGMEM s[] = "80mm/h < p"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 10); }
+        case 0: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D9_RAINFALL_AMOUNTS_C0), AZARAC_PGM_PTR(QZSS_DCX_CAMF_D9_RAINFALL_AMOUNTS_PARENT_POOL) + 6u);
+        case 1: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D9_RAINFALL_AMOUNTS_C1), AZARAC_PGM_PTR(QZSS_DCX_CAMF_D9_RAINFALL_AMOUNTS_PARENT_POOL) + 6u);
+        case 2: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D9_RAINFALL_AMOUNTS_C2), AZARAC_PGM_PTR(QZSS_DCX_CAMF_D9_RAINFALL_AMOUNTS_PARENT_POOL) + 0u);
+        case 3: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D9_RAINFALL_AMOUNTS_C3), AZARAC_PGM_PTR(QZSS_DCX_CAMF_D9_RAINFALL_AMOUNTS_PARENT_POOL) + 0u);
+        case 4: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D9_RAINFALL_AMOUNTS_C4), AZARAC_PGM_PTR(QZSS_DCX_CAMF_D9_RAINFALL_AMOUNTS_PARENT_POOL) + 0u);
+        case 5: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D9_RAINFALL_AMOUNTS_C5), AZARAC_PGM_PTR(QZSS_DCX_CAMF_D9_RAINFALL_AMOUNTS_PARENT_POOL) + 0u);
+        case 6: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D9_RAINFALL_AMOUNTS_C6), AZARAC_PGM_PTR(QZSS_DCX_CAMF_D9_RAINFALL_AMOUNTS_PARENT_POOL) + 0u);
+        case 7: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D9_RAINFALL_AMOUNTS_C7), 10);
         default: return std::nullopt;
     }
 }

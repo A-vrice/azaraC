@@ -21,16 +21,23 @@ namespace def {
 #if (AZARAC_ENABLE_NANKAI)
 
 #if defined(__AVR__)
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_INFORMATION_SERIAL_CODE_C1[] = "中A（監視領域内でマグニチュード6.8以上の地震が発生したことにより、臨時に「南海トラフ沿いの地震に関する評価検討会」を開催）";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_INFORMATION_SERIAL_CODE_C2[] = "中B（1カ所以上のひずみ計での有意な変化と共に、他の複数の観測点でもそれに関係すると思われる変化が観測され、想定震源域内のプレート境界で通常と異なるゆっくりすべりが発生している可能性がある場合など、ひずみ計で南海トラフ地震との関連性の検討が必要と認められる変化を観測したことにより、臨時に「南海トラフ沿いの地震に関する評価検討会」を開催）";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_INFORMATION_SERIAL_CODE_C3[] = "中C（その他、想定震源域内のプレート境界の固着状態の変化を示す可能性のある現象が観測される等、南海トラフ地震との関連性の検討が必要と認められる現象を観測したことにより、臨時に「南海トラフ沿いの地震に関する評価検討会」を開催）";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_INFORMATION_SERIAL_CODE_C4[] = "巨大地震警戒";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_INFORMATION_SERIAL_CODE_C5[] = "巨大地震注意";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_INFORMATION_SERIAL_CODE_C6[] = "終了";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_INFORMATION_SERIAL_CODE_C15[] = "その他の情報";
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_INFORMATION_SERIAL_CODE_PARENT_POOL[] = "調査\000";
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_information_serial_code_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 1: { static const char AZARAC_PROGMEM s[] = "中A（監視領域内でマグニチュード6.8以上の地震が発生したことにより、臨時に「南海トラフ沿いの地震に関する評価検討会」を開催）"; return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_INFORMATION_SERIAL_CODE_PARENT_POOL) + 0u, AZARAC_PGM_PTR(s)); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "中B（1カ所以上のひずみ計での有意な変化と共に、他の複数の観測点でもそれに関係すると思われる変化が観測され、想定震源域内のプレート境界で通常と異なるゆっくりすべりが発生している可能性がある場合など、ひずみ計で南海トラフ地震との関連性の検討が必要と認められる変化を観測したことにより、臨時に「南海トラフ沿いの地震に関する評価検討会」を開催）"; return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_INFORMATION_SERIAL_CODE_PARENT_POOL) + 0u, AZARAC_PGM_PTR(s)); }
-        case 3: { static const char AZARAC_PROGMEM s[] = "中C（その他、想定震源域内のプレート境界の固着状態の変化を示す可能性のある現象が観測される等、南海トラフ地震との関連性の検討が必要と認められる現象を観測したことにより、臨時に「南海トラフ沿いの地震に関する評価検討会」を開催）"; return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_INFORMATION_SERIAL_CODE_PARENT_POOL) + 0u, AZARAC_PGM_PTR(s)); }
-        case 4: { static const char AZARAC_PROGMEM s[] = "巨大地震警戒"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 18); }
-        case 5: { static const char AZARAC_PROGMEM s[] = "巨大地震注意"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 18); }
-        case 6: { static const char AZARAC_PROGMEM s[] = "終了"; return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_INFORMATION_SERIAL_CODE_PARENT_POOL) + 0u, AZARAC_PGM_PTR(s)); }
-        case 15: { static const char AZARAC_PROGMEM s[] = "その他の情報"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 18); }
+        case 1: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_INFORMATION_SERIAL_CODE_PARENT_POOL) + 0u, AZARAC_PGM_PTR(QZSS_DCR_JMA_INFORMATION_SERIAL_CODE_C1));
+        case 2: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_INFORMATION_SERIAL_CODE_PARENT_POOL) + 0u, AZARAC_PGM_PTR(QZSS_DCR_JMA_INFORMATION_SERIAL_CODE_C2));
+        case 3: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_INFORMATION_SERIAL_CODE_PARENT_POOL) + 0u, AZARAC_PGM_PTR(QZSS_DCR_JMA_INFORMATION_SERIAL_CODE_C3));
+        case 4: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_INFORMATION_SERIAL_CODE_C4), 18);
+        case 5: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_INFORMATION_SERIAL_CODE_C5), 18);
+        case 6: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_INFORMATION_SERIAL_CODE_PARENT_POOL) + 0u, AZARAC_PGM_PTR(QZSS_DCR_JMA_INFORMATION_SERIAL_CODE_C6));
+        case 15: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_INFORMATION_SERIAL_CODE_C15), 18);
         default: return std::nullopt;
     }
 }

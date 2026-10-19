@@ -21,14 +21,20 @@ namespace def {
 #if (AZARAC_ENABLE_TSUNAMI) && (AZARAC_LANG_JA)
 
 #if defined(__AVR__)
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_TSUNAMI_WARNING_CODE_C1[] = "津波なし";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_TSUNAMI_WARNING_CODE_C2[] = "警報解除";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_TSUNAMI_WARNING_CODE_C3[] = "津波警報";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_TSUNAMI_WARNING_CODE_C4[] = "大津波警報";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_TSUNAMI_WARNING_CODE_C5[] = "大津波警報：発表";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_TSUNAMI_WARNING_CODE_C15[] = "その他の警報";
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_tsunami_warning_code_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 1: { static const char AZARAC_PROGMEM s[] = "津波なし"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 12); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "警報解除"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 12); }
-        case 3: { static const char AZARAC_PROGMEM s[] = "津波警報"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 12); }
-        case 4: { static const char AZARAC_PROGMEM s[] = "大津波警報"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 15); }
-        case 5: { static const char AZARAC_PROGMEM s[] = "大津波警報：発表"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 24); }
-        case 15: { static const char AZARAC_PROGMEM s[] = "その他の警報"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 18); }
+        case 1: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_TSUNAMI_WARNING_CODE_C1), 12);
+        case 2: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_TSUNAMI_WARNING_CODE_C2), 12);
+        case 3: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_TSUNAMI_WARNING_CODE_C3), 12);
+        case 4: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_TSUNAMI_WARNING_CODE_C4), 15);
+        case 5: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_TSUNAMI_WARNING_CODE_C5), 24);
+        case 15: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_TSUNAMI_WARNING_CODE_C15), 18);
         default: return std::nullopt;
     }
 }

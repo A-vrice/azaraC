@@ -21,15 +21,21 @@ namespace def {
 #if (AZARAC_ENABLE_DCX_CAMF)
 
 #if defined(__AVR__)
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D24_WATER_QUALITY_C0[] = "Excellent";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D24_WATER_QUALITY_C1[] = "Good";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D24_WATER_QUALITY_C2[] = "Poor";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D24_WATER_QUALITY_C3[] = "Very poor";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D24_WATER_QUALITY_C4[] = "Suitable for drinking purposes";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D24_WATER_QUALITY_C5[] = "Unsuitable for drinking purposes";
 static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D24_WATER_QUALITY_PARENT_POOL[] = " water quality\000";
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_d24_water_quality_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 0: { static const char AZARAC_PROGMEM s[] = "Excellent"; return azarac_pgm_join_z(AZARAC_PGM_PTR(s), AZARAC_PGM_PTR(QZSS_DCX_CAMF_D24_WATER_QUALITY_PARENT_POOL) + 0u); }
-        case 1: { static const char AZARAC_PROGMEM s[] = "Good"; return azarac_pgm_join_z(AZARAC_PGM_PTR(s), AZARAC_PGM_PTR(QZSS_DCX_CAMF_D24_WATER_QUALITY_PARENT_POOL) + 0u); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "Poor"; return azarac_pgm_join_z(AZARAC_PGM_PTR(s), AZARAC_PGM_PTR(QZSS_DCX_CAMF_D24_WATER_QUALITY_PARENT_POOL) + 0u); }
-        case 3: { static const char AZARAC_PROGMEM s[] = "Very poor"; return azarac_pgm_join_z(AZARAC_PGM_PTR(s), AZARAC_PGM_PTR(QZSS_DCX_CAMF_D24_WATER_QUALITY_PARENT_POOL) + 0u); }
-        case 4: { static const char AZARAC_PROGMEM s[] = "Suitable for drinking purposes"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 30); }
-        case 5: { static const char AZARAC_PROGMEM s[] = "Unsuitable for drinking purposes"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 32); }
+        case 0: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D24_WATER_QUALITY_C0), AZARAC_PGM_PTR(QZSS_DCX_CAMF_D24_WATER_QUALITY_PARENT_POOL) + 0u);
+        case 1: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D24_WATER_QUALITY_C1), AZARAC_PGM_PTR(QZSS_DCX_CAMF_D24_WATER_QUALITY_PARENT_POOL) + 0u);
+        case 2: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D24_WATER_QUALITY_C2), AZARAC_PGM_PTR(QZSS_DCX_CAMF_D24_WATER_QUALITY_PARENT_POOL) + 0u);
+        case 3: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D24_WATER_QUALITY_C3), AZARAC_PGM_PTR(QZSS_DCX_CAMF_D24_WATER_QUALITY_PARENT_POOL) + 0u);
+        case 4: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D24_WATER_QUALITY_C4), 30);
+        case 5: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D24_WATER_QUALITY_C5), 32);
         default: return std::nullopt;
     }
 }

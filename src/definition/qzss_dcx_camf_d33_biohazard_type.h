@@ -21,12 +21,16 @@ namespace def {
 #if (AZARAC_ENABLE_DCX_CAMF)
 
 #if defined(__AVR__)
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D33_BIOHAZARD_TYPE_C0[] = "Biological agents. These include bacteria, viruses, parasites, and fungi (such as yeasts and molds).";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D33_BIOHAZARD_TYPE_C1[] = "Biotoxins. These refer to a group of substances with a biological origin that are toxic and poisonous to humans. Often, biotoxins are produced by plants, bacteria, insects, or certain animals, among others. Continuous exposure to these may cause, at the very least, a series of inflammatory reactions throughout the body.";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D33_BIOHAZARD_TYPE_C2[] = "Blood and blood products. While blood isn't considered a biological hazard, it can still bring potential risks if it's contaminated or its source is in any way infected. Also, blood products such as red blood cells, white blood cells, plasma, tissues, and platelets are also hazardous if not properly handled.";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D33_BIOHAZARD_TYPE_C3[] = "Environmental specimens. Generally, these refer to plants, soil, or water that potentially contain biological agents(include bacteria, viruses, parasites, and fungi) and biotoxins.";
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_d33_biohazard_type_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 0: { static const char AZARAC_PROGMEM s[] = "Biological agents. These include bacteria, viruses, parasites, and fungi (such as yeasts and molds)."; return azarac_pgm_view(AZARAC_PGM_PTR(s), 100); }
-        case 1: { static const char AZARAC_PROGMEM s[] = "Biotoxins. These refer to a group of substances with a biological origin that are toxic and poisonous to humans. Often, biotoxins are produced by plants, bacteria, insects, or certain animals, among others. Continuous exposure to these may cause, at the very least, a series of inflammatory reactions throughout the body."; return azarac_pgm_view(AZARAC_PGM_PTR(s), 321); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "Blood and blood products. While blood isn't considered a biological hazard, it can still bring potential risks if it's contaminated or its source is in any way infected. Also, blood products such as red blood cells, white blood cells, plasma, tissues, and platelets are also hazardous if not properly handled."; return azarac_pgm_view(AZARAC_PGM_PTR(s), 309); }
-        case 3: { static const char AZARAC_PROGMEM s[] = "Environmental specimens. Generally, these refer to plants, soil, or water that potentially contain biological agents(include bacteria, viruses, parasites, and fungi) and biotoxins."; return azarac_pgm_view(AZARAC_PGM_PTR(s), 180); }
+        case 0: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D33_BIOHAZARD_TYPE_C0), 100);
+        case 1: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D33_BIOHAZARD_TYPE_C1), 321);
+        case 2: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D33_BIOHAZARD_TYPE_C2), 309);
+        case 3: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D33_BIOHAZARD_TYPE_C3), 180);
         default: return std::nullopt;
     }
 }

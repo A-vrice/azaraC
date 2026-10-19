@@ -21,13 +21,18 @@ namespace def {
 #if (AZARAC_ENABLE_FLOOD) && (AZARAC_LANG_JA)
 
 #if defined(__AVR__)
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_FLOOD_WARNING_LEVEL_C1[] = "警報解除";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_FLOOD_WARNING_LEVEL_C2[] = "氾濫警戒情報";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_FLOOD_WARNING_LEVEL_C3[] = "氾濫危険情報";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_FLOOD_WARNING_LEVEL_C4[] = "氾濫発生情報";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_FLOOD_WARNING_LEVEL_C15[] = "その他の警戒レベル";
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_flood_warning_level_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 1: { static const char AZARAC_PROGMEM s[] = "警報解除"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 12); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "氾濫警戒情報"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 18); }
-        case 3: { static const char AZARAC_PROGMEM s[] = "氾濫危険情報"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 18); }
-        case 4: { static const char AZARAC_PROGMEM s[] = "氾濫発生情報"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 18); }
-        case 15: { static const char AZARAC_PROGMEM s[] = "その他の警戒レベル"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 27); }
+        case 1: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_FLOOD_WARNING_LEVEL_C1), 12);
+        case 2: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_FLOOD_WARNING_LEVEL_C2), 18);
+        case 3: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_FLOOD_WARNING_LEVEL_C3), 18);
+        case 4: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_FLOOD_WARNING_LEVEL_C4), 18);
+        case 15: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_FLOOD_WARNING_LEVEL_C15), 27);
         default: return std::nullopt;
     }
 }

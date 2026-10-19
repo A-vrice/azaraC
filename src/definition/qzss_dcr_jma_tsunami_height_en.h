@@ -21,17 +21,26 @@ namespace def {
 #if (AZARAC_ENABLE_TSUNAMI) && (AZARAC_LANG_EN)
 
 #if defined(__AVR__)
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_TSUNAMI_HEIGHT_EN_C1[] = "Less than 0.2 m";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_TSUNAMI_HEIGHT_EN_C2[] = "1 m";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_TSUNAMI_HEIGHT_EN_C3[] = "3 m";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_TSUNAMI_HEIGHT_EN_C4[] = "5 m";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_TSUNAMI_HEIGHT_EN_C5[] = "10 m";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_TSUNAMI_HEIGHT_EN_C6[] = "Over 10 m";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_TSUNAMI_HEIGHT_EN_C13[] = "No data";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_TSUNAMI_HEIGHT_EN_C14[] = "Unknown";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_TSUNAMI_HEIGHT_EN_C15[] = "Other Tsunami Height";
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_tsunami_height_en_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 1: { static const char AZARAC_PROGMEM s[] = "Less than 0.2 m"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 15); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "1 m"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 3); }
-        case 3: { static const char AZARAC_PROGMEM s[] = "3 m"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 3); }
-        case 4: { static const char AZARAC_PROGMEM s[] = "5 m"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 3); }
-        case 5: { static const char AZARAC_PROGMEM s[] = "10 m"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 4); }
-        case 6: { static const char AZARAC_PROGMEM s[] = "Over 10 m"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 9); }
-        case 13: { static const char AZARAC_PROGMEM s[] = "No data"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 7); }
-        case 14: { static const char AZARAC_PROGMEM s[] = "Unknown"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 7); }
-        case 15: { static const char AZARAC_PROGMEM s[] = "Other Tsunami Height"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 20); }
+        case 1: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_TSUNAMI_HEIGHT_EN_C1), 15);
+        case 2: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_TSUNAMI_HEIGHT_EN_C2), 3);
+        case 3: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_TSUNAMI_HEIGHT_EN_C3), 3);
+        case 4: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_TSUNAMI_HEIGHT_EN_C4), 3);
+        case 5: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_TSUNAMI_HEIGHT_EN_C5), 4);
+        case 6: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_TSUNAMI_HEIGHT_EN_C6), 9);
+        case 13: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_TSUNAMI_HEIGHT_EN_C13), 7);
+        case 14: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_TSUNAMI_HEIGHT_EN_C14), 7);
+        case 15: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_TSUNAMI_HEIGHT_EN_C15), 20);
         default: return std::nullopt;
     }
 }

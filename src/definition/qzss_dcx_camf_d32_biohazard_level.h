@@ -21,13 +21,17 @@ namespace def {
 #if (AZARAC_ENABLE_DCX_CAMF)
 
 #if defined(__AVR__)
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D32_BIOHAZARD_LEVEL_C0[] = "1/4: Often pertains to agents that include viruses and bacteria, this biosafety level requires minimal precaution, such as wearing face masks and maintaining no close contact. The biological hazard examples in the first level include E. coli and other non-infectious bacteria.";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D32_BIOHAZARD_LEVEL_C1[] = "2/4: Usually causing severe diseases to humans, the second level classifies agents that can be transmitted through direct contact with infected materials. HIV and hepatitis B are some biological hazard examples that pose moderate risks to humans.";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D32_BIOHAZARD_LEVEL_C2[] = "3/4: Mainly through respiratory transmission, pathogens that are highly likely to become airborne can cause serious or lethal diseases to humans. Mycobacterium tuberculosis, the bacteria that causes tuberculosis, is an example of a level-3 biohazard.";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D32_BIOHAZARD_LEVEL_C3[] = "4/4: Extremely dangerous pathogens that expose humans to life-threatening diseases, the fourth and last level requires workers to utilise maximum protection and containment. Some biological hazard examples are the Ebola virus and the Lassa virus.";
 static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D32_BIOHAZARD_LEVEL_PARENT_POOL[] = "Biohazard Level \000";
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_d32_biohazard_level_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 0: { static const char AZARAC_PROGMEM s[] = "1/4: Often pertains to agents that include viruses and bacteria, this biosafety level requires minimal precaution, such as wearing face masks and maintaining no close contact. The biological hazard examples in the first level include E. coli and other non-infectious bacteria."; return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D32_BIOHAZARD_LEVEL_PARENT_POOL) + 0u, AZARAC_PGM_PTR(s)); }
-        case 1: { static const char AZARAC_PROGMEM s[] = "2/4: Usually causing severe diseases to humans, the second level classifies agents that can be transmitted through direct contact with infected materials. HIV and hepatitis B are some biological hazard examples that pose moderate risks to humans."; return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D32_BIOHAZARD_LEVEL_PARENT_POOL) + 0u, AZARAC_PGM_PTR(s)); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "3/4: Mainly through respiratory transmission, pathogens that are highly likely to become airborne can cause serious or lethal diseases to humans. Mycobacterium tuberculosis, the bacteria that causes tuberculosis, is an example of a level-3 biohazard."; return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D32_BIOHAZARD_LEVEL_PARENT_POOL) + 0u, AZARAC_PGM_PTR(s)); }
-        case 3: { static const char AZARAC_PROGMEM s[] = "4/4: Extremely dangerous pathogens that expose humans to life-threatening diseases, the fourth and last level requires workers to utilise maximum protection and containment. Some biological hazard examples are the Ebola virus and the Lassa virus."; return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D32_BIOHAZARD_LEVEL_PARENT_POOL) + 0u, AZARAC_PGM_PTR(s)); }
+        case 0: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D32_BIOHAZARD_LEVEL_PARENT_POOL) + 0u, AZARAC_PGM_PTR(QZSS_DCX_CAMF_D32_BIOHAZARD_LEVEL_C0));
+        case 1: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D32_BIOHAZARD_LEVEL_PARENT_POOL) + 0u, AZARAC_PGM_PTR(QZSS_DCX_CAMF_D32_BIOHAZARD_LEVEL_C1));
+        case 2: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D32_BIOHAZARD_LEVEL_PARENT_POOL) + 0u, AZARAC_PGM_PTR(QZSS_DCX_CAMF_D32_BIOHAZARD_LEVEL_C2));
+        case 3: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D32_BIOHAZARD_LEVEL_PARENT_POOL) + 0u, AZARAC_PGM_PTR(QZSS_DCX_CAMF_D32_BIOHAZARD_LEVEL_C3));
         default: return std::nullopt;
     }
 }

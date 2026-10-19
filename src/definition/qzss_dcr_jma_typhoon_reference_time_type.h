@@ -21,11 +21,14 @@ namespace def {
 #if (AZARAC_ENABLE_TYPHOON) && (AZARAC_LANG_JA)
 
 #if defined(__AVR__)
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_TYPHOON_REFERENCE_TIME_TYPE_C1[] = "実況";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_TYPHOON_REFERENCE_TIME_TYPE_C2[] = "推定";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_TYPHOON_REFERENCE_TIME_TYPE_C3[] = "予報";
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_typhoon_reference_time_type_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 1: { static const char AZARAC_PROGMEM s[] = "実況"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 6); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "推定"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 6); }
-        case 3: { static const char AZARAC_PROGMEM s[] = "予報"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 6); }
+        case 1: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_TYPHOON_REFERENCE_TIME_TYPE_C1), 6);
+        case 2: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_TYPHOON_REFERENCE_TIME_TYPE_C2), 6);
+        case 3: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_TYPHOON_REFERENCE_TIME_TYPE_C3), 6);
         default: return std::nullopt;
     }
 }

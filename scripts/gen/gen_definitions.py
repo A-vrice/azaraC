@@ -450,11 +450,22 @@ def switch_labels(guard, entries, as_cstr, missing=None):
     constant inside that case's body (and, unlike the pooled tables, each case
     may join in either direction). Returns (pool_decl, cases) — the pool is None
     when nothing is shared, and `missing` is the expression a None entry emits.
+
+    The case literals are namespace-scope arrays, not function-local statics:
+    under the Arduino core's LTO build (`-flto -fno-fat-lto-objects`) GCC drops
+    the `__section__` attribute of an inline function's local static (it is a
+    one-only symbol), so the label lands in .rodata — which avr-libc's script
+    puts in .data, i.e. SRAM. Measured on a bare __attribute__((__section__))
+    const array: flash without LTO, RAM with it; the same attribute on a
+    namespace-scope array survives both. Nothing else changes: one array per
+    case keeps the per-declaration section (and hence the --gc-sections
+    granularity) the function-local form had.
     """
     plan = factor_parents(entries)
     decl, offsets = (None, {})
     if plan:
         decl, offsets = _pool_decl(guard, "PARENT_POOL", list(enumerate(plan["parents"])))
+    decls = []
     cases = []
     for key in sorted(entries):
         value = entries[key]
@@ -464,18 +475,22 @@ def switch_labels(guard, entries, as_cstr, missing=None):
         child = plan["children"][key] if plan else value
         sel = plan["sel"][key] if plan else None
         lit = c_str_literal(child)
+        # A case key is a uint8_t id, but keep the name valid for any int.
+        name = f"{guard}_C{key}" if key >= 0 else f"{guard}_Cm{-key}"
+        decls.append(f"static const char AZARAC_PROGMEM {name}[] = {lit};")
+        ptr = f"AZARAC_PGM_PTR({name})"
         if sel is None:
-            expr = ("azarac_pgm_copy(AZARAC_PGM_PTR(s))" if as_cstr
-                    else f"azarac_pgm_view(AZARAC_PGM_PTR(s), {len(child.encode('utf-8'))})")
+            expr = ("azarac_pgm_copy(%s)" % ptr if as_cstr
+                    else f"azarac_pgm_view({ptr}, {len(child.encode('utf-8'))})")
         else:
             arg = f"AZARAC_PGM_PTR({guard}_PARENT_POOL) + {offsets[sel][0]}u"
-            expr = (f"azarac_pgm_join_z({arg}, AZARAC_PGM_PTR(s))" if plan["order"] == "pre"
-                    else f"azarac_pgm_join_z(AZARAC_PGM_PTR(s), {arg})")
+            expr = (f"azarac_pgm_join_z({arg}, {ptr})" if plan["order"] == "pre"
+                    else f"azarac_pgm_join_z({ptr}, {arg})")
             if as_cstr:
                 expr += ".data()"
-        cases.append(f"        case {key}: {{ static const char AZARAC_PROGMEM s[] = {lit}; "
-                     f"return {expr}; }}")
-    return decl, cases
+        cases.append(f"        case {key}: return {expr};")
+    what = "\n".join(decls + ([decl] if decl else []))
+    return (what or None), cases
 
 def emit_switch(varname, entries, guard, kt):
     pool, avr_cases = switch_labels(guard, entries, as_cstr=True)

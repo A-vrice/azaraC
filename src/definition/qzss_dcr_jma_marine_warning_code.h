@@ -21,18 +21,27 @@ namespace def {
 #if (AZARAC_ENABLE_MARINE) && (AZARAC_LANG_JA)
 
 #if defined(__AVR__)
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_MARINE_WARNING_CODE_C0[] = "警報解除";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_MARINE_WARNING_CODE_C10[] = "着氷警報";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_MARINE_WARNING_CODE_C11[] = "濃霧警報";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_MARINE_WARNING_CODE_C12[] = "うねり警報";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_MARINE_WARNING_CODE_C20[] = "風警報";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_MARINE_WARNING_CODE_C21[] = "強風警報";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_MARINE_WARNING_CODE_C22[] = "暴風警報";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_MARINE_WARNING_CODE_C23[] = "台風警報";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_MARINE_WARNING_CODE_C31[] = "その他の警報等情報要素_海上警報";
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_MARINE_WARNING_CODE_PARENT_POOL[] = "海上\000";
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_marine_warning_code_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 0: { static const char AZARAC_PROGMEM s[] = "警報解除"; return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_WARNING_CODE_PARENT_POOL) + 0u, AZARAC_PGM_PTR(s)); }
-        case 10: { static const char AZARAC_PROGMEM s[] = "着氷警報"; return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_WARNING_CODE_PARENT_POOL) + 0u, AZARAC_PGM_PTR(s)); }
-        case 11: { static const char AZARAC_PROGMEM s[] = "濃霧警報"; return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_WARNING_CODE_PARENT_POOL) + 0u, AZARAC_PGM_PTR(s)); }
-        case 12: { static const char AZARAC_PROGMEM s[] = "うねり警報"; return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_WARNING_CODE_PARENT_POOL) + 0u, AZARAC_PGM_PTR(s)); }
-        case 20: { static const char AZARAC_PROGMEM s[] = "風警報"; return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_WARNING_CODE_PARENT_POOL) + 0u, AZARAC_PGM_PTR(s)); }
-        case 21: { static const char AZARAC_PROGMEM s[] = "強風警報"; return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_WARNING_CODE_PARENT_POOL) + 0u, AZARAC_PGM_PTR(s)); }
-        case 22: { static const char AZARAC_PROGMEM s[] = "暴風警報"; return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_WARNING_CODE_PARENT_POOL) + 0u, AZARAC_PGM_PTR(s)); }
-        case 23: { static const char AZARAC_PROGMEM s[] = "台風警報"; return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_WARNING_CODE_PARENT_POOL) + 0u, AZARAC_PGM_PTR(s)); }
-        case 31: { static const char AZARAC_PROGMEM s[] = "その他の警報等情報要素_海上警報"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 46); }
+        case 0: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_WARNING_CODE_PARENT_POOL) + 0u, AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_WARNING_CODE_C0));
+        case 10: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_WARNING_CODE_PARENT_POOL) + 0u, AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_WARNING_CODE_C10));
+        case 11: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_WARNING_CODE_PARENT_POOL) + 0u, AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_WARNING_CODE_C11));
+        case 12: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_WARNING_CODE_PARENT_POOL) + 0u, AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_WARNING_CODE_C12));
+        case 20: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_WARNING_CODE_PARENT_POOL) + 0u, AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_WARNING_CODE_C20));
+        case 21: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_WARNING_CODE_PARENT_POOL) + 0u, AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_WARNING_CODE_C21));
+        case 22: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_WARNING_CODE_PARENT_POOL) + 0u, AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_WARNING_CODE_C22));
+        case 23: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_WARNING_CODE_PARENT_POOL) + 0u, AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_WARNING_CODE_C23));
+        case 31: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_WARNING_CODE_C31), 46);
         default: return std::nullopt;
     }
 }

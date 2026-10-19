@@ -21,13 +21,18 @@ namespace def {
 #if (AZARAC_ENABLE_DCX_CAMF)
 
 #if defined(__AVR__)
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D19_AVALANCHE_WARNING_LEVEL_C0[] = "1 – Low. Generally stable conditions. Triggering is generally possible only from high additional loads in isolated areas of very steep, extreme terrain. Only small and medium natural avalanches are possible.";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D19_AVALANCHE_WARNING_LEVEL_C1[] = "2 – Moderate. Heightened avalanche conditions on specific terrain features. Triggering is possible, primarily from high additional loads, particularly on the indicated steep slopes. Very large natural avalanches are unlikely.";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D19_AVALANCHE_WARNING_LEVEL_C2[] = "3 – Considerable. Dangerous avalanche conditions Triggering is possible, even from low additional loads, particularly on the indicated steep slopes. In certain situations, some large, and in isolated cases very large natural avalanches are possible.";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D19_AVALANCHE_WARNING_LEVEL_C3[] = "4 – High. Very dangerous avalanche conditions. Triggering is likely, even from low additional loads, on many steep slopes. In some cases, numerous large and often very large natural avalanches can be expected.";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D19_AVALANCHE_WARNING_LEVEL_C4[] = "5 – Very high. Extraordinary avalanche conditions. Numerous very large and often extremely large natural avalanches can be expected, even in moderately steep terrain.";
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_d19_avalanche_warning_level_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 0: { static const char AZARAC_PROGMEM s[] = "1 – Low. Generally stable conditions. Triggering is generally possible only from high additional loads in isolated areas of very steep, extreme terrain. Only small and medium natural avalanches are possible."; return azarac_pgm_view(AZARAC_PGM_PTR(s), 209); }
-        case 1: { static const char AZARAC_PROGMEM s[] = "2 – Moderate. Heightened avalanche conditions on specific terrain features. Triggering is possible, primarily from high additional loads, particularly on the indicated steep slopes. Very large natural avalanches are unlikely."; return azarac_pgm_view(AZARAC_PGM_PTR(s), 227); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "3 – Considerable. Dangerous avalanche conditions Triggering is possible, even from low additional loads, particularly on the indicated steep slopes. In certain situations, some large, and in isolated cases very large natural avalanches are possible."; return azarac_pgm_view(AZARAC_PGM_PTR(s), 251); }
-        case 3: { static const char AZARAC_PROGMEM s[] = "4 – High. Very dangerous avalanche conditions. Triggering is likely, even from low additional loads, on many steep slopes. In some cases, numerous large and often very large natural avalanches can be expected."; return azarac_pgm_view(AZARAC_PGM_PTR(s), 211); }
-        case 4: { static const char AZARAC_PROGMEM s[] = "5 – Very high. Extraordinary avalanche conditions. Numerous very large and often extremely large natural avalanches can be expected, even in moderately steep terrain."; return azarac_pgm_view(AZARAC_PGM_PTR(s), 168); }
+        case 0: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D19_AVALANCHE_WARNING_LEVEL_C0), 209);
+        case 1: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D19_AVALANCHE_WARNING_LEVEL_C1), 227);
+        case 2: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D19_AVALANCHE_WARNING_LEVEL_C2), 251);
+        case 3: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D19_AVALANCHE_WARNING_LEVEL_C3), 211);
+        case 4: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D19_AVALANCHE_WARNING_LEVEL_C4), 168);
         default: return std::nullopt;
     }
 }

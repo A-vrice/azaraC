@@ -21,12 +21,16 @@ namespace def {
 #if (AZARAC_LANG_JA)
 
 #if defined(__AVR__)
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_REPORT_CLASSIFICATION_C1[] = "最優先";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_REPORT_CLASSIFICATION_C2[] = "優先";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_REPORT_CLASSIFICATION_C3[] = "通常";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_REPORT_CLASSIFICATION_C7[] = "訓練/試験";
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_report_classification_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 1: { static const char AZARAC_PROGMEM s[] = "最優先"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 9); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "優先"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 6); }
-        case 3: { static const char AZARAC_PROGMEM s[] = "通常"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 6); }
-        case 7: { static const char AZARAC_PROGMEM s[] = "訓練/試験"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 13); }
+        case 1: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_REPORT_CLASSIFICATION_C1), 9);
+        case 2: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_REPORT_CLASSIFICATION_C2), 6);
+        case 3: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_REPORT_CLASSIFICATION_C3), 6);
+        case 7: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_REPORT_CLASSIFICATION_C7), 13);
         default: return std::nullopt;
     }
 }

@@ -21,12 +21,16 @@ namespace def {
 #if (AZARAC_ENABLE_DCX_CAMF)
 
 #if defined(__AVR__)
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D18_DROUGHT_LEVEL_C0[] = "D1 – Moderate Drought – PDSI = -2.0 to -2.9. Some damage to crops, pastures. Streams, reservoirs, or wells low, some water shortages developing or imminent. Voluntary water-use restrictions requested.";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D18_DROUGHT_LEVEL_C1[] = "D2 – Severe Drought – PDSI = -3.0 to -3.9. Crop or pasture losses likely. Water shortages common. Water restrictions imposed.";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D18_DROUGHT_LEVEL_C2[] = "D3 – Extreme Drought – PDSI = -4.0 to -4.9. Major crop/pasture losses. Widespread water shortages or restrictions.";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D18_DROUGHT_LEVEL_C3[] = "D4 – Exceptional Drought – PDSI = -5.0 or less. Exceptional and widespread crop/pasture losses. Shortages of water in reservoirs, streams, and wells creating water emergencies.";
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_d18_drought_level_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 0: { static const char AZARAC_PROGMEM s[] = "D1 – Moderate Drought – PDSI = -2.0 to -2.9. Some damage to crops, pastures. Streams, reservoirs, or wells low, some water shortages developing or imminent. Voluntary water-use restrictions requested."; return azarac_pgm_view(AZARAC_PGM_PTR(s), 204); }
-        case 1: { static const char AZARAC_PROGMEM s[] = "D2 – Severe Drought – PDSI = -3.0 to -3.9. Crop or pasture losses likely. Water shortages common. Water restrictions imposed."; return azarac_pgm_view(AZARAC_PGM_PTR(s), 129); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "D3 – Extreme Drought – PDSI = -4.0 to -4.9. Major crop/pasture losses. Widespread water shortages or restrictions."; return azarac_pgm_view(AZARAC_PGM_PTR(s), 118); }
-        case 3: { static const char AZARAC_PROGMEM s[] = "D4 – Exceptional Drought – PDSI = -5.0 or less. Exceptional and widespread crop/pasture losses. Shortages of water in reservoirs, streams, and wells creating water emergencies."; return azarac_pgm_view(AZARAC_PGM_PTR(s), 180); }
+        case 0: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D18_DROUGHT_LEVEL_C0), 204);
+        case 1: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D18_DROUGHT_LEVEL_C1), 129);
+        case 2: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D18_DROUGHT_LEVEL_C2), 118);
+        case 3: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D18_DROUGHT_LEVEL_C3), 180);
         default: return std::nullopt;
     }
 }

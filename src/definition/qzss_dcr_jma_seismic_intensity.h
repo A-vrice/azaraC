@@ -21,15 +21,22 @@ namespace def {
 #if (AZARAC_ENABLE_SEISMIC) && (AZARAC_LANG_JA)
 
 #if defined(__AVR__)
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_SEISMIC_INTENSITY_C1[] = "4未満";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_SEISMIC_INTENSITY_C2[] = "4";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_SEISMIC_INTENSITY_C3[] = "5弱";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_SEISMIC_INTENSITY_C4[] = "5強";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_SEISMIC_INTENSITY_C5[] = "6弱";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_SEISMIC_INTENSITY_C6[] = "6強";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_SEISMIC_INTENSITY_C7[] = "7";
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_seismic_intensity_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 1: { static const char AZARAC_PROGMEM s[] = "4未満"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 7); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "4"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 1); }
-        case 3: { static const char AZARAC_PROGMEM s[] = "5弱"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 4); }
-        case 4: { static const char AZARAC_PROGMEM s[] = "5強"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 4); }
-        case 5: { static const char AZARAC_PROGMEM s[] = "6弱"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 4); }
-        case 6: { static const char AZARAC_PROGMEM s[] = "6強"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 4); }
-        case 7: { static const char AZARAC_PROGMEM s[] = "7"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 1); }
+        case 1: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_SEISMIC_INTENSITY_C1), 7);
+        case 2: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_SEISMIC_INTENSITY_C2), 1);
+        case 3: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_SEISMIC_INTENSITY_C3), 4);
+        case 4: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_SEISMIC_INTENSITY_C4), 4);
+        case 5: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_SEISMIC_INTENSITY_C5), 4);
+        case 6: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_SEISMIC_INTENSITY_C6), 4);
+        case 7: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_SEISMIC_INTENSITY_C7), 1);
         default: return std::nullopt;
     }
 }

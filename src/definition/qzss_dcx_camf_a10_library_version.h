@@ -21,9 +21,10 @@ namespace def {
 #if (AZARAC_ENABLE_DCX_CAMF)
 
 #if defined(__AVR__)
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_A10_LIBRARY_VERSION_C0[] = "#1";
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_a10_library_version_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 0: { static const char AZARAC_PROGMEM s[] = "#1"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 2); }
+        case 0: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCX_CAMF_A10_LIBRARY_VERSION_C0), 2);
         default: return std::nullopt;
     }
 }

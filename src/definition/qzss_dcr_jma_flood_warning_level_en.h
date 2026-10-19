@@ -21,13 +21,18 @@ namespace def {
 #if (AZARAC_ENABLE_FLOOD) && (AZARAC_LANG_EN)
 
 #if defined(__AVR__)
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_FLOOD_WARNING_LEVEL_EN_C1[] = "Warning Lifted";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_FLOOD_WARNING_LEVEL_EN_C2[] = "Information to provide a warning on flooding";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_FLOOD_WARNING_LEVEL_EN_C3[] = "Information on potential flood hazards";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_FLOOD_WARNING_LEVEL_EN_C4[] = "Information on flooding";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_FLOOD_WARNING_LEVEL_EN_C15[] = "Other Warning Level";
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_flood_warning_level_en_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 1: { static const char AZARAC_PROGMEM s[] = "Warning Lifted"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 14); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "Information to provide a warning on flooding"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 44); }
-        case 3: { static const char AZARAC_PROGMEM s[] = "Information on potential flood hazards"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 38); }
-        case 4: { static const char AZARAC_PROGMEM s[] = "Information on flooding"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 23); }
-        case 15: { static const char AZARAC_PROGMEM s[] = "Other Warning Level"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 19); }
+        case 1: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_FLOOD_WARNING_LEVEL_EN_C1), 14);
+        case 2: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_FLOOD_WARNING_LEVEL_EN_C2), 44);
+        case 3: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_FLOOD_WARNING_LEVEL_EN_C3), 38);
+        case 4: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_FLOOD_WARNING_LEVEL_EN_C4), 23);
+        case 15: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_FLOOD_WARNING_LEVEL_EN_C15), 19);
         default: return std::nullopt;
     }
 }

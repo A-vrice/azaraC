@@ -21,13 +21,18 @@ namespace def {
 #if (AZARAC_ENABLE_ASH_FALL) && (AZARAC_LANG_EN)
 
 #if defined(__AVR__)
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_ASH_FALL_WARNING_CODE_EN_C1[] = "Low ash fall";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_ASH_FALL_WARNING_CODE_EN_C2[] = "Moderate ash fall";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_ASH_FALL_WARNING_CODE_EN_C3[] = "Heavy ash fall";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_ASH_FALL_WARNING_CODE_EN_C4[] = "Falling debris";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_ASH_FALL_WARNING_CODE_EN_C7[] = "Other Ash Fall Warning";
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_ash_fall_warning_code_en_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 1: { static const char AZARAC_PROGMEM s[] = "Low ash fall"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 12); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "Moderate ash fall"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 17); }
-        case 3: { static const char AZARAC_PROGMEM s[] = "Heavy ash fall"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 14); }
-        case 4: { static const char AZARAC_PROGMEM s[] = "Falling debris"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 14); }
-        case 7: { static const char AZARAC_PROGMEM s[] = "Other Ash Fall Warning"; return azarac_pgm_view(AZARAC_PGM_PTR(s), 22); }
+        case 1: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_ASH_FALL_WARNING_CODE_EN_C1), 12);
+        case 2: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_ASH_FALL_WARNING_CODE_EN_C2), 17);
+        case 3: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_ASH_FALL_WARNING_CODE_EN_C3), 14);
+        case 4: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_ASH_FALL_WARNING_CODE_EN_C4), 14);
+        case 7: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_ASH_FALL_WARNING_CODE_EN_C7), 22);
         default: return std::nullopt;
     }
 }

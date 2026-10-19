@@ -362,10 +362,12 @@ if [[ -n "${mega_ram:-}" ]] && (( mega_ram > MAX_MEGA_RAM_BYTES )); then
 fi
 
 # Stage 5b's number, reported rather than gated: it is the Arduino build's truth (the
-# core applies -flto), and it is larger than the LTO-free one by exactly the generated
-# switch-strategy literals, which LTO drops the section attribute of.
-if [[ -n "${mega_lto_ram:-}" ]] && (( mega_lto_ram > MAX_MEGA_RAM_BYTES )); then
-    echo "autoresearch: the Arduino recipe (-flto) makes the Mega image cost $mega_lto_ram B of SRAM against the LTO-free $mega_ram B — the switch-strategy literals are function-local statics, whose section attribute LTO drops, so they land in .data (not gated: the fix is the generator emitting file-scope literals)" >&2
+# core applies -flto). It matches the LTO-free figure while every generated literal
+# survives LTO — the generator emits the switch-strategy literals at namespace scope
+# for exactly that reason — so a gap means literals are falling back into .data.
+if [[ -n "${mega_lto_ram:-}" && -n "${mega_ram:-}" ]] \
+   && (( mega_lto_ram > mega_ram + 64 )); then
+    echo "autoresearch: the Arduino recipe (-flto) makes the Mega image cost $mega_lto_ram B of SRAM against the LTO-free $mega_ram B — generated literals are landing in .data instead of Flash (not gated: the fix is the generator emitting namespace-scope literals)" >&2
 fi
 
 if [[ -n "${tables_in_ram:-}" ]] && (( tables_in_ram != 0 )); then
