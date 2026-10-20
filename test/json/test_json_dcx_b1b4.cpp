@@ -16,10 +16,6 @@ static bool has(const std::string& s, const char* sub) {
     return s.find(sub) != std::string::npos;
 }
 
-static bool has(const std::string& s, const std::string& sub) {
-    return s.find(sub) != std::string::npos;
-}
-
 // ラベルはビルド時に選んだ言語で出力される（test_json.cpp と同じ規則）。
 #if AZARAC_LANG_JA
 #  define LBL(ja, en) ja
