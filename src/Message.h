@@ -138,7 +138,8 @@ struct Message {
 
 private:
     // 生の payload 領域。生存期間と型は initPayload<T>() / getMt43() / getMt44() だけが決める（公開すると initPayload() 無しで payload_type と不整合に書ける）。
-    alignas(8) unsigned char payload_storage_[payload_size_];
+    // payload には uint64_t を含む型（Mt44Data 等）が入るため境界が必要。AVR の alignof(uint64_t) は 1 なので、この指定は AVR では境界を要求しない（8 の倍数への切り上げが起きない）。ホストは 8 のまま。
+    alignas(uint64_t) unsigned char payload_storage_[payload_size_];
 
     template<typename T> static MsgPayloadType typeForPayload();
 

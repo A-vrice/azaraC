@@ -7,6 +7,12 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#if defined(__AVR__)
+// internal/TimeFields.h saves/restores SREG and calls cli() on __AVR__ (f41550a); a real core gets both from <avr/interrupt.h>. Reaching the toolchain's own headers keeps the shim's no-fake-state rule (FlashString.h already includes <avr/io.h> for FLASHEND, so SREG may be a macro by then).
+#include <avr/interrupt.h>
+#include <avr/io.h>
+#endif
+
 #include "internal/avr_std/string_view"
 
 unsigned long millis(void);

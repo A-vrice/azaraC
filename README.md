@@ -21,7 +21,7 @@
 
 MT=44 の B フィールド（B1–B4）と C10 は [EWSS CAMF Issue 1.2](https://www.gsc-europa.eu/electronic-library/programme-reference-documents/galileo-in-force/ewss) に基づきます。
 
-AVR（Uno・Mega を含む）では既定で SEISMIC/TSUNAMI のみ有効です。無効にしたカテゴリは定義テーブルがコンパイルされず、payload 型も `EewData` / `HypocenterData` / `NankaiData` は型ごと除外されます（`SeismicData` / `TsunamiData` など残りの型は、そのカテゴリを無効にしても定義は残ります）。その結果 `Message` は 104B（全カテゴリ有効時は 144B。ATmega328P の `sizeof` 実測）です。EEW と震源は AVR プリセットでは無効なので `EewData` / `getEew()` / `HypocenterData` / `getHypocenter()` は存在しません（使う場合は `-DAZARAC_ENABLE_EEW=1` / `-DAZARAC_ENABLE_HYPOCENTER=1`）。MT=44 を使うには `-DAZARAC_AVR_LARGE_FLASH=1` または `-DAZARAC_ENABLE_DCX_CAMF=1` を指定してください（Flash が 64KB を超えるボードが対象）。
+AVR（Uno・Mega を含む）では既定で SEISMIC/TSUNAMI のみ有効です。無効にしたカテゴリは定義テーブルがコンパイルされず、payload 型も `EewData` / `HypocenterData` / `NankaiData` は型ごと除外されます（`SeismicData` / `TsunamiData` など残りの型は、そのカテゴリを無効にしても定義は残ります）。その結果 `Message` は 89B（全カテゴリ有効時は 127B。ATmega328P の `sizeof` 実測）です。EEW と震源は AVR プリセットでは無効なので `EewData` / `getEew()` / `HypocenterData` / `getHypocenter()` は存在しません（使う場合は `-DAZARAC_ENABLE_EEW=1` / `-DAZARAC_ENABLE_HYPOCENTER=1`）。MT=44 を使うには `-DAZARAC_AVR_LARGE_FLASH=1` または `-DAZARAC_ENABLE_DCX_CAMF=1` を指定してください（Flash が 64KB を超えるボードが対象）。
 
 ## インストール
 

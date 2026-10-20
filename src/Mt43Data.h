@@ -236,7 +236,8 @@ struct Mt43Data {
         for (auto x : sizes) if (x > m) m = x;
         return m;
     }();
-    alignas(8) unsigned char storage_[storage_size_];
+    // payload には uint64_t を含む型（FloodEntry 等）が入るため境界が必要。AVR の alignof(uint64_t) は 1 なので、この指定は AVR では境界を要求しない（8 の倍数への切り上げが起きない）。ホストは 8 のまま。
+    alignas(uint64_t) unsigned char storage_[storage_size_];
 
     Mt43Data()
         : report_classification(0)

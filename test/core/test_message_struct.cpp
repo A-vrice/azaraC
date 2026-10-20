@@ -9,6 +9,17 @@
 
 using namespace azaraC;
 
+// payload 領域は Mt44Data（uint64_t を含む）を配置できる境界を持つこと。
+// alignas(uint64_t) はホストで 8、AVR で 1 に解決されるので、どちらでもこの条件は満たされる。
+static_assert(alignof(azaraC::Message) >= alignof(azaraC::Mt44Data),
+              "Message payload storage must be aligned for Mt44Data");
+// その境界を決めるのは payload 型の側: `alignas(uint64_t)` の枠に載る型は alignof(uint64_t) を超えてはならない。
+// 超えた型（メンバに alignas(16) の配列を持つ等）を足すと枠が足りなくなるので、Message の他のメンバに救われて通る書き方ではなくこちらで固定する。
+static_assert(alignof(azaraC::Mt43Data) <= alignof(uint64_t),
+              "Mt43Data over-aligns the alignas(uint64_t) payload buffer");
+static_assert(alignof(azaraC::Mt44Data) <= alignof(uint64_t),
+              "Mt44Data over-aligns the alignas(uint64_t) payload buffer");
+
 // Message構造体のテスト
 
 TEST_CASE("Message: デフォルトコンストラクタ") {

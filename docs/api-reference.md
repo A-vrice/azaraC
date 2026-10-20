@@ -467,7 +467,7 @@ if (client.connect(server, port)) {
 | `AZARAC_ENABLE_MARINE` | 1 | 海上警報 (カテゴリ14) |
 | `AZARAC_ENABLE_DCX_CAMF` | 1 | DCX/CAMF全般 (MT=44) |
 
-`AZARAC_ENABLE_EEW` / `AZARAC_ENABLE_HYPOCENTER` / `AZARAC_ENABLE_NANKAI` を 0 にすると、定義テーブルだけでなく**payload 型そのもの**（`EewData` / `HypocenterData` / `NankaiData`）と対応する getter（`getEew()` など）もコンパイルから外れ、`Mt43Data` の payload 枠（`storage_size_`）は残ったカテゴリの最大 `sizeof` まで縮みます。AVR プリセットは EEW・震源が既定で 0 なので `sizeof(Mt43Data)` は 88B、`Message` は 104B です（全カテゴリ有効時は 128B / 144B。avr-gcc `-Os`、ATmega328P で実測）。無効にしたカテゴリの型を扱うコードはコンパイルエラーになるので `#if (AZARAC_ENABLE_EEW)` などで囲んでください（`examples/filter_by_category`・`examples/with_sntp` の EEW ブロックがその形です）。
+`AZARAC_ENABLE_EEW` / `AZARAC_ENABLE_HYPOCENTER` / `AZARAC_ENABLE_NANKAI` を 0 にすると、定義テーブルだけでなく**payload 型そのもの**（`EewData` / `HypocenterData` / `NankaiData`）と対応する getter（`getEew()` など）もコンパイルから外れ、`Mt43Data` の payload 枠（`storage_size_`）は残ったカテゴリの最大 `sizeof` まで縮みます。AVR プリセットは EEW・震源が既定で 0 なので `sizeof(Mt43Data)` は 80B、`Message` は 89B です（全カテゴリ有効時は 118B / 127B。avr-gcc `-Os`、ATmega328P で実測）。無効にしたカテゴリの型を扱うコードはコンパイルエラーになるので `#if (AZARAC_ENABLE_EEW)` などで囲んでください（`examples/filter_by_category`・`examples/with_sntp` の EEW ブロックがその形です）。
 
 ### リソース制約・AVR 関連
 
@@ -475,9 +475,9 @@ if (client.connect(server, port)) {
 |-------|-----------|------|
 | `AZARAC_FLASH_BUF_SIZE` | カテゴリ連鎖（AVR既定=64） | PROGMEMルックアップ用の共有RAMバッファサイズ (バイト)。AVRでは有効カテゴリに応じて 64（SEISMIC/TSUNAMI など）/ 80（＋北西太平洋津波）/ 96（＋火山・洪水）/ 540（＋南海トラフ）/ 640（＋緊急地震速報・震源）/ 800（＋DCX/CAMF）に自動選択。有効なカテゴリの最長ラベルを必ず収める（`make -C test bench` の `FLASH_BUF_OK` ゲート）。非AVRでは使われない |
 | `AZARAC_DEDUP_MT44_MAX_WINDOW_MS` | 300000 | MT=44 の情報有効時間(ms)の上限。`__AVR__`のみ定義され、常に A8 由来の窓（最短6時間）を置き換える。ホストは上限を設けず A8 の窓をそのまま使う |
-| `AZARAC_KEY_BUF_SIZE` | 40 | AVRでJSONのキーと固定値リテラルをFlashから写す共有バッファのバイト数（どちらも `AZARAC_KEY("...")` で包む。値は `wf_s` の `JsonKey` オーバーロードが受ける）。最長はキーの35B（`a17_type_of_specific_settings_label`）、値は20B（`unsupported_category`）で、`JsonKey` の生成時に `static_assert` が収まらないリテラルをコンパイルエラーにする。非AVRでは使われない |
+| `AZARAC_KEY_BUF_SIZE` | 36 | AVRでJSONのキーと固定値リテラルをFlashから写す共有バッファのバイト数（どちらも `AZARAC_KEY("...")` で包む。値は `wf_s` の `JsonKey` オーバーロードが受ける）。最長はキーの35B（`a17_type_of_specific_settings_label`）、値は20B（`unsupported_category`）で、`JsonKey` の生成時に `static_assert` が収まらないリテラルをコンパイルエラーにする。非AVRでは使われない |
 
-**AVRプリセット**: `__AVR__`では`azaraC_config.h`のプリセットがデフォルトを変更します。有効カテゴリはボードによらず**SEISMIC/TSUNAMIのみ**（チップ名では何も有効化しません）。DCX/CAMFはオプトインで、`AZARAC_AVR_LARGE_FLASH=1`または`AZARAC_ENABLE_DCX_CAMF=1`を指定すると有効になります（ATmega2560 + DCX/CAMF + SEISMIC/TSUNAMI、日本語でフラッシュ146KB / RAM 896B を実測）。他10カテゴリは大容量ボードでも無効です（全部同時にすると 250,138B/262,144B でユーザーコードの余地が 12KB）。`AZARAC_DEDUP_SLOTS=64`（`AZARAC_DEDUP_WAYS=8`、512B）、`AZARAC_DEDUP_MT44_MAX_WINDOW_MS=300000`、`AZARAC_NANKAI_BUFFERS=1`、`AZARAC_NANKAI_MAX_PAGES=4`となります。`-D` で明示することで上書きできます（例: Mega で DCX/CAMF `-DAZARAC_ENABLE_DCX_CAMF=1`、Mega で全カテゴリ `-DAZARAC_ENABLE_EEW=1 ...`）。
+**AVRプリセット**: `__AVR__`では`azaraC_config.h`のプリセットがデフォルトを変更します。有効カテゴリはボードによらず**SEISMIC/TSUNAMIのみ**（チップ名では何も有効化しません）。DCX/CAMFはオプトインで、`AZARAC_AVR_LARGE_FLASH=1`または`AZARAC_ENABLE_DCX_CAMF=1`を指定すると有効になります（ATmega2560 + DCX/CAMF + SEISMIC/TSUNAMI、日本語でフラッシュ146KB / RAM 892B を実測）。他10カテゴリは大容量ボードでも無効です（全部同時にすると 250,138B/262,144B でユーザーコードの余地が 12KB）。`AZARAC_DEDUP_SLOTS=64`（`AZARAC_DEDUP_WAYS=8`、512B）、`AZARAC_DEDUP_MT44_MAX_WINDOW_MS=300000`、`AZARAC_NANKAI_BUFFERS=1`、`AZARAC_NANKAI_MAX_PAGES=4`となります。`-D` で明示することで上書きできます（例: Mega で DCX/CAMF `-DAZARAC_ENABLE_DCX_CAMF=1`、Mega で全カテゴリ `-DAZARAC_ENABLE_EEW=1 ...`）。
 
 **AVR 標準ライブラリシム**: AVRツールチェーンはlibstdc++を含まないため、`#if defined(__AVR__)`で`src/internal/avr_std/`の最小シム（`cstddef`/`cstdint`/`cstring`/`new`/`optional`/`string_view`）が自動適用されます。ライブラリの利用方法/API自体は非AVRと同一です。
 

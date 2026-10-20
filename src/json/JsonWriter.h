@@ -63,7 +63,7 @@ struct JsonKey {
 
 // キー／値の 1 次コピー先の長さ。最長はキーの 35 B（a17_type_of_specific_settings_label）、値は 20 B（unsupported_category）。
 #ifndef AZARAC_KEY_BUF_SIZE
-#define AZARAC_KEY_BUF_SIZE 40
+#define AZARAC_KEY_BUF_SIZE 36
 #endif
 
 template <size_t N>
