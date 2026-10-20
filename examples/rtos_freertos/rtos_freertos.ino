@@ -88,9 +88,9 @@ static void printJson(const azaraC::Message& msg) {
     }
 }
 
-// タスク開始後の 1 行出力も同じミューテックスで直列化する（F() の型をそのまま受ける）。
-template <typename T>
-static void printLine(const T& text) {
+// タスク開始後の 1 行出力も同じミューテックスで直列化する。
+// テンプレートにすると Arduino の prototype 自動生成が `T` を解決できず .ino がコンパイルできないため、F() の型で受ける。
+static void printLine(const __FlashStringHelper* text) {
     if (xSemaphoreTake(g_serialMutex, portMAX_DELAY) == pdTRUE) {
         Serial.println(text);
         xSemaphoreGive(g_serialMutex);
