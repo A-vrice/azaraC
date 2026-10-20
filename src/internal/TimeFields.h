@@ -33,8 +33,11 @@ static inline uint64_t getMillis() {
     cli();
 #elif defined(__arm__)
     // Cortex-M: restore PRIMASK rather than unconditionally enabling IRQs.
-    uint32_t irq_state = __get_PRIMASK();
-    __disable_irq();
+    // Use mrs/msr directly: CMSIS intrinsics are not in scope on every Arduino
+    // ARM core (rp2040, Teensy), and every Cortex-M supports these instructions.
+    uint32_t irq_state;
+    __asm__ volatile("mrs %0, primask" : "=r"(irq_state));
+    __asm__ volatile("cpsid i" ::: "memory");
 #else
     // No portable save/restore API on this core (e.g. Xtensa). Keep the previous behaviour.
     noInterrupts();
@@ -52,7 +55,7 @@ static inline uint64_t getMillis() {
 #if defined(__AVR__)
     SREG = irq_state;
 #elif defined(__arm__)
-    __set_PRIMASK(irq_state);
+    __asm__ volatile("msr primask, %0" :: "r"(irq_state) : "memory");
 #else
     interrupts();
 #endif
