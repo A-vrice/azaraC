@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **レビュー指摘の修正（コア）**: `internal::getMillis()` が `noInterrupts()` の後に無条件で `interrupts()` を呼び、呼び出し側の割り込み禁止区間を破っていた問題を修正した。AVR は `SREG`、Cortex-M は `PRIMASK` を退避・復元し、`test-time-irq`（`ARDUINO=1` / `__AVR__` のホストスタブ）で検証する。`NmeaFramer` は 2 桁でも 6bit に収まらない Satellite ID 64–99 を拒否する（0–52 は PRN 128–180 として通すが契約外）。`Parser.h` の `report_unix=0` の説明を実装（未解決）に合わせ、`Parser::feed()` のカスタムフレーマ経路で局所 `Frame` をゼロ初期化し、`IFramer::feed()` に Frame の全フィールドを埋める契約を明記した。UBX の `numWords` は実データに合わせて 8/9 のみ受理し（9 は u-blox が付ける余剰 word）、10 以上はコメントと回帰テストで拒否する。
+- **FreeRTOS example の出力競合**: RX タスク（集約済み南海トラフ）と Output タスクが同じ `Serial` に書いていたため、JSON 1 通・統計行・起動行を FreeRTOS ミューテックスで直列化した。キューは引き続き `Message` のバイトコピーで、payload が trivially copyable で所有ポインタを持たないこと（標準のコピー意味論ではなくオブジェクト表現のコピーとして扱う）、借用ポインタを持つ集約済み南海トラフを載せないことをコメント化した。`xTaskCreatePinnedToCore` を使うため ESP32 専用であることも明示した。
+- **テスト・ドキュメント整理**: JSON DCX シリアライザの B4 ブロックのインデントを直し、未使用の `has()` オーバーロードを削除した。テスト件数を 418 ケース / 10,500 アサーションに更新し、NMEA の svid 範囲（64–99 拒否、0–52 は契約外）を `architecture.md` / `json-formats.md` に追記した。
+
 ### Changed
 
 - **レビュー指摘の記述を実装に合わせた**: `feed()` が `false` を返す理由（フレーム未完成・CRC誤り・重複でも `false`。`msg.unsupported_reason` に入るのは復号器が完成フレームを拒否した場合だけ）を `docs/api-reference.md` の 3 箇所で明確にし、`unsupported_category` が出るのは手動で構築した `Mt43Data` の直列化だけであること（受信電文の復号では無効カテゴリは拒否され `payload_type` は `Empty`）を `docs/json-formats.md` に、AVR プリセットで除外される payload 型が `EewData` / `HypocenterData` / `NankaiData` だけで `SeismicData` / `TsunamiData` はカテゴリを無効にしても定義が残ることを `README.md` に書いた。
