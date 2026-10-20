@@ -50,7 +50,7 @@ bool feed(uint8_t byte, Message& out, uint32_t report_unix = 0);
 | `out` | `Message&` | 出力メッセージ (戻り値がtrueの場合に有効) |
 | `report_unix` | `uint32_t` | UNIX時刻 (省略時: 0 = 未解決) |
 
-**戻り値:** `bool` - フレームが完成し、デコードに成功し、重複でもない場合に `true`。フレーム未完成・CRC誤り・未対応バージョン（Vn≠1）・コンパイル時に無効なカテゴリ／MT・重複受信・南海トラフのページ集約途中は `false`（完成したフレームの復号に失敗した時と重複時は `out` もクリアされる）。`msg.unsupported_reason` に入るのは**復号器が完成フレームを拒否した場合だけ**（`DisabledAtCompileTime` / `UnknownCategory` / `UnsupportedVersion`）で、フレーム未完成・CRC誤り・重複では `None` のまま。
+**戻り値:** `bool` - フレームが完成し、デコードに成功し、重複でもない場合に `true`。フレーム未完成・CRC誤り・未対応バージョン（Vn≠1）・コンパイル時に無効なカテゴリ・仕様上未定義のカテゴリ（7/13）・43/44 以外の MT・重複受信・南海トラフのページ集約途中は `false`（完成したフレームの復号に失敗した時と重複時は `out` もクリアされる。フレーム未完成の時は `out` は書き換えられない）。`msg.unsupported_reason` に入るのは**復号器が完成フレームを拒否した場合だけ**（`DisabledAtCompileTime` / `UnknownCategory` / `UnsupportedVersion`）で、フレーム未完成・CRC誤り・重複では `None` のまま。
 
 **使用例:**
 ```cpp
@@ -125,7 +125,7 @@ const internal::NankaiPageBuffer* getNankaiBuffer(const internal::NankaiPageKey&
 | `msg_type` | `uint8_t` | メッセージタイプ (43=DCR, 44=DCX) |
 | `crc24` | `uint32_t` | CRC-24Qチェックサム |
 | `valid` | `bool` | メッセージの妥当性フラグ。`feed()` が `true` を返したときは常に `true` |
-| `unsupported_reason` | `UnsupportedReason` | 復号器が電文を拒否した理由（`None` / `DisabledAtCompileTime` / `UnknownCategory` / `UnsupportedVersion`）。フレーム未完成・CRC誤り・重複では `None` のまま |
+| `unsupported_reason` | `UnsupportedReason` | 復号器が電文を拒否した理由（`None` / `DisabledAtCompileTime` / `UnknownCategory` / `UnsupportedVersion`）。`UnknownCategory` は仕様上未定義のカテゴリと 43/44 以外の MT。フレーム未完成・CRC誤り・重複では `None` のまま |
 | `payload_type` | `MsgPayloadType` | ペイロードタイプ |
 
 #### 安全なアクセサ
