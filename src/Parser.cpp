@@ -9,6 +9,10 @@ bool Parser::feed(uint8_t byte, Message& out, uint32_t report_unix) {
 
     // カスタムフレーマ（排他モード）
     if (_custom) {
+        // A custom framer may return true without filling every field. Give it a deterministic
+        // zero baseline, but only on this opt-in path: zeroing 33 B on every byte would add cost
+        // to the built-in framers, which always fill Frame on success.
+        frame = internal::Frame{};
         if (!_custom->feed(byte, frame)) return false;
         return handleFrame(frame, out, report_unix);
     }

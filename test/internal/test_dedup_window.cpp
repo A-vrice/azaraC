@@ -288,6 +288,26 @@ private:
     bool _deliver;
 };
 
+// 1 回目に Frame を汚して false を返し、2 回目の Frame がゼロ初期化されているかを見る。
+class StaleFrameFramer : public azaraC::internal::IFramer {
+public:
+    bool saw_stale = false;
+    bool feed(uint8_t, azaraC::internal::Frame& out) override {
+        if (!_touched) {
+            _touched = true;
+            out.bits[0] = 0xAA;
+            return false;
+        }
+        for (uint8_t b : out.bits) {
+            if (b != 0) saw_stale = true;
+        }
+        return false;
+    }
+    void reset() override {}
+private:
+    bool _touched = false;
+};
+
 } // namespace
 
 TEST_CASE("Parser: custom framer with no frame keeps out untouched") {
@@ -304,6 +324,16 @@ TEST_CASE("Parser: custom framer with no frame keeps out untouched") {
     // フレームが来ない限り out は書き換えない（呼び出し側の前回値が残る）
     CHECK(m.valid);
     CHECK(m.msg_type == 43);
+}
+
+TEST_CASE("Parser: custom framer starts each call with a zeroed Frame") {
+    StaleFrameFramer framer;
+    Parser p(framer);
+    Message m{};
+
+    CHECK_FALSE(p.feed(0x00, m));   // 1 回目: Frame を汚す
+    CHECK_FALSE(p.feed(0x00, m));   // 2 回目: 前回の値が残っていないこと
+    CHECK_FALSE(framer.saw_stale);
 }
 
 TEST_CASE("Parser: custom framer decode failure clears the previous payload") {

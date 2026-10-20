@@ -31,7 +31,7 @@ public:
     Parser& operator=(Parser&&) = delete;
 
     // Feed one byte. Returns true when a new, non-duplicate, valid message is in `out`.
-    // report_unix: UNIX epoch of the report for time resolution (0 = use fixed baseline 2024-01-01)
+    // report_unix: UNIX epoch of the report for time resolution (0 = unresolved: DHM fields are kept, unix_time stays 0)
     bool feed(uint8_t byte, Message& out, uint32_t report_unix = 0);
 
     void reset();
