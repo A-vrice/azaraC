@@ -136,7 +136,10 @@ void wf_deg(Print& out, JsonKey k, int32_t denominator, int32_t v, bool last) {
 
     // denominator の桁数 = 小数部の桁数（1000000 → 6）
     uint8_t digits = 0;
-    for (uint32_t d = den / 10u; d != 0; d /= 10u) ++digits;
+    // 上限 9 は uint32 の最大桁数 - 1。明示すると GCC が buf[digits] の範囲を
+    // 証明でき、-O2 -flto の -Wstringop-overflow 偽陽性（digits を [129,255]
+    // と誤認）を出さない。den が 10 桁でも digits=9 のまま。
+    for (uint32_t d = den / 10u; d != 0 && digits < 9; d /= 10u) ++digits;
     if (digits) {
         char buf[12];   // uint32 の denominator は最大 10 桁
         uint32_t frac = mag % den;
