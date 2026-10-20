@@ -372,9 +372,13 @@ TEST_CASE("UBX: sigId outside {0,1} rejected") {
     CHECK(feedSfrbx(makeSfrbxRaw(/*gnssId=*/5, /*sigId=*/1, /*numWords=*/8)));
 }
 
-TEST_CASE("UBX: numWords < 8 rejected even when length matches") {
-    // numWords=1 で length=8+1*4=12 とし、長さ検査より先に numWords 検査で弾かせる
+TEST_CASE("UBX: numWords outside {8,9} rejected even when length matches") {
+    // length は 8 + numWords*4 で整合させ、numWords 検査だけで弾かれることを確認する。
     CHECK_FALSE(feedSfrbx(makeSfrbxRaw(/*gnssId=*/5, /*sigId=*/0, /*numWords=*/1)));
+    CHECK_FALSE(feedSfrbx(makeSfrbxRaw(/*gnssId=*/5, /*sigId=*/0, /*numWords=*/10)));
+    // 対照: 8 words（仕様どおり）と 9 words（u-blox の実データ。余剰 word は無視）を受理する
+    CHECK(feedSfrbx(makeSfrbxRaw(/*gnssId=*/5, /*sigId=*/0, /*numWords=*/8)));
+    CHECK(feedSfrbx(makeSfrbxRaw(/*gnssId=*/5, /*sigId=*/0, /*numWords=*/9)));
 }
 
 TEST_CASE("UBX: Two consecutive frames decoded") {

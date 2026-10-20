@@ -30,7 +30,7 @@ static bool feedUbxPacket(UbxFramer& framer, Frame& frame, uint8_t svId, const u
 #if (AZARAC_ENABLE_MARINE)
 TEST_CASE("UBX: SFRBX sv56 pattern1 - Marine (round-trip with NMEA)") {
     // azarashi ublox_sv56_p1: svid=2, Marine, Regular, 8 regions
-    // UBXヘッダー: gnssId=5(QZSS), svId=2, sigId=0, freqId=0, numWords=8, chn=0, version=1 注: このデータは有効なCRC-24Qチェックサムを持つ
+    // UBXヘッダー: gnssId=5(QZSS), svId=2, sigId=1, freqId=0, numWords=9, chn=0x40, version=2 注: このデータは有効なCRC-24Qチェックサムを持つ
     std::vector<uint8_t> ubx_data = {
         0xB5, 0x62, 0x02, 0x13, 0x2C, 0x00,
         0x05, 0x02, 0x01, 0x00, 0x09, 0x40, 0x02, 0x00,

@@ -80,7 +80,10 @@ bool UbxFramer::parse(Frame& out) {
     // QZSS gnssId=5, L1S sigId=0 or 1
     if (gnssId != 5)  return false;
     if (sigId != 0 && sigId != 1) return false;
-    if (numWords < 8) return false;  // L1S subframe = 8 words × 32 bits = 256 bits (250 data bits)
+    // L1S subframe = 8 words × 32 bits = 256 bits (250 data bits). u-blox can append one
+    // padding word (numWords=9; real azarashi fixtures use 8/9). Reject anything else so an
+    // oversized frame cannot smuggle extra words past the 250-bit packing loop.
+    if (numWords != 8 && numWords != 9) return false;
     if (_len != 8u + static_cast<uint16_t>(numWords) * 4u) return false;
 
     // Pack nav bits MSB-first into out.bits[32]: 8 words x 32 bits = 256, first 250 are data, the rest zero padding.
