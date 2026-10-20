@@ -3,7 +3,7 @@
 // FreeRTOS タスクベースの NMEA / UBX デコーダ
 //
 // このスケッチは loop() を使わず、FreeRTOS タスクで全ての処理を行います。
-// RTOS 対応の Arduino 環境 (ESP32, ESP32-S3, ESP32-C3 等) で動作します。
+// ESP32 系 Arduino コア専用です（xTaskCreatePinnedToCore を使用）。
 //
 // アーキテクチャ: UART RX Task ──(Message Queue)──▶ Output Task
 //
@@ -21,16 +21,14 @@
 #include <azaraC.h>
 #include <atomic>
 
-#if defined(ESP32) || defined(ESP32S3) || defined(ESP32C3) || defined(ESP32C6)
+#if !defined(ESP32)
+#error "rtos_freertos uses the ESP32 Arduino core (xTaskCreatePinnedToCore)."
+#endif
+
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include <freertos/queue.h>
-#else
-// ESP32 以外の FreeRTOS 対応ボード用
-#include <FreeRTOS.h>
-#include <task.h>
-#include <queue.h>
-#endif
+#include <freertos/semphr.h>
 
 
 // キューサイズ (保持できるメッセージ数)
@@ -53,7 +51,15 @@ static constexpr UBaseType_t kOutputTaskPriority = 1;
 
 
 // メッセージキュー (azaraC::Message をやり取り)
+// FreeRTOS のキューはバイトコピーで、Message のコピー ctor/dtor は通らない。payload の
+// サブオブジェクトは trivially copyable で所有ポインタを持たないため、この example では
+// オブジェクト表現のコピーとして扱う（標準のコピー意味論ではない）。Nankai の
+// aggregated_text_ptr は Parser 内部への借用ポインタなのでキューには載せない（processByte を参照）。
 static QueueHandle_t g_messageQueue = nullptr;
+
+// Serial は RX タスク（集約済み南海トラフ）と Output タスク（キュー・統計）の両方から書く。
+// 1 レコードが途中で混ざらないよう、JSON 1 通・統計行・起動行を丸ごとミューテックスで囲む。
+static SemaphoreHandle_t g_serialMutex = nullptr;
 
 // パーサー (NMEA/UBX共用)
 static azaraC::Parser g_Parser;
@@ -73,6 +79,24 @@ static void uartRxTask(void* pvParameters);
 static void outputTask(void* pvParameters);
 static void processByte(uint8_t b, azaraC::Parser& parser);
 
+// 1 通の JSON を、他のタスクの出力と混ざらないように書き出す。
+static void printJson(const azaraC::Message& msg) {
+    if (xSemaphoreTake(g_serialMutex, portMAX_DELAY) == pdTRUE) {
+        azaraC::toJson(msg, Serial);
+        Serial.println();
+        xSemaphoreGive(g_serialMutex);
+    }
+}
+
+// タスク開始後の 1 行出力も同じミューテックスで直列化する（F() の型をそのまま受ける）。
+template <typename T>
+static void printLine(const T& text) {
+    if (xSemaphoreTake(g_serialMutex, portMAX_DELAY) == pdTRUE) {
+        Serial.println(text);
+        xSemaphoreGive(g_serialMutex);
+    }
+}
+
 // Nankai aggregated_text_ptr は Parser 内部バッファへの借用ポインタで、次の feed()/reset() や別イベントの集約で無効化される。
 // queue 経由で別タスクへ渡すと dangling になるため、集約済みはこのタスクで直列化して出力し、queue には載せない。
 static void processByte(uint8_t b, azaraC::Parser& parser) {
@@ -82,8 +106,7 @@ static void processByte(uint8_t b, azaraC::Parser& parser) {
         const azaraC::Mt43Data* mt43 = msg.getMt43();
         const azaraC::NankaiData* nankai = mt43 ? mt43->getNankai() : nullptr;
         if (nankai && nankai->is_aggregated) {
-            azaraC::toJson(msg, Serial);
-            Serial.println();
+            printJson(msg);
             g_stats.Messages++;
             return;
         }
@@ -103,7 +126,7 @@ static void uartRxTask(void* pvParameters) {
 
     uint8_t Buffer[kUartBufferSize];
 
-    Serial.println(F("[RTOS] UART RX task started"));
+    printLine(F("[RTOS] UART RX task started"));
 
     for (;;) {
         size_t Available = SERIAL_GNSS.available();
@@ -126,13 +149,12 @@ static void outputTask(void* pvParameters) {
 
     azaraC::Message msg;
 
-    Serial.println(F("[RTOS] Output task started"));
+    printLine(F("[RTOS] Output task started"));
 
     for (;;) {
         // キューからメッセージを待機 (最大 100ms)
         if (xQueueReceive(g_messageQueue, &msg, pdMS_TO_TICKS(100)) == pdTRUE) {
-            azaraC::toJson(msg, Serial);
-            Serial.println();
+            printJson(msg);
         }
 
         // 統計情報の定期出力 (約10秒ごと)
@@ -142,9 +164,12 @@ static void outputTask(void* pvParameters) {
             lastStatsTime = now;
             const uint32_t stats = g_stats.Messages.load();
             const uint32_t qfull = g_stats.queueFullErrors.load();
-            Serial.printf("[STATS] Messages: %lu, Queue Full: %lu\n",
-                         static_cast<unsigned long>(stats),
-                         static_cast<unsigned long>(qfull));
+            if (xSemaphoreTake(g_serialMutex, portMAX_DELAY) == pdTRUE) {
+                Serial.printf("[STATS] Messages: %lu, Queue Full: %lu\n",
+                             static_cast<unsigned long>(stats),
+                             static_cast<unsigned long>(qfull));
+                xSemaphoreGive(g_serialMutex);
+            }
         }
     }
 }
@@ -160,13 +185,17 @@ void setup() {
     Serial.println(F("NMEA ($QZQSM) or UBX (SFRBX)"));
     Serial.println(F("================================="));
 
-#if defined(ESP32)
     SERIAL_GNSS.begin(9600, SERIAL_8N1, RX_PIN, TX_PIN);
-#else
-    SERIAL_GNSS.begin(9600, SERIAL_8N1);
-#endif
     Serial.print(F("[INIT] GNSS UART on RX="));
     Serial.println(RX_PIN);
+
+    g_serialMutex = xSemaphoreCreateMutex();
+    if (g_serialMutex == nullptr) {
+        Serial.println(F("[ERROR] Failed to create serial mutex!"));
+        for (;;) {
+            vTaskDelay(pdMS_TO_TICKS(1000));
+        }
+    }
 
     g_messageQueue = xQueueCreate(kQueueSize, sizeof(azaraC::Message));
     if (g_messageQueue == nullptr) {
@@ -195,7 +224,7 @@ void setup() {
             vTaskDelay(pdMS_TO_TICKS(1000));
         }
     }
-    Serial.println(F("[INIT] UART RX task created"));
+    printLine(F("[INIT] UART RX task created"));
 
     result = xTaskCreatePinnedToCore(
         outputTask,              // タスク関数
@@ -207,14 +236,14 @@ void setup() {
         tskNO_AFFINITY           // コアアフィニティなし（スケジューラに任せる）
     );
     if (result != pdPASS) {
-        Serial.println(F("[ERROR] Failed to create output task!"));
+        printLine(F("[ERROR] Failed to create output task!"));
         for (;;) {
             vTaskDelay(pdMS_TO_TICKS(1000));
         }
     }
-    Serial.println(F("[INIT] Output task created"));
+    printLine(F("[INIT] Output task created"));
 
-    Serial.println(F("[INIT] All tasks started, suspending setup/loop..."));
+    printLine(F("[INIT] All tasks started, suspending setup/loop..."));
 
     // setup/loop タスクをサスペンド (RTOS タスクで全て処理)
     vTaskSuspend(nullptr);
