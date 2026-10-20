@@ -50,7 +50,7 @@ bool feed(uint8_t byte, Message& out, uint32_t report_unix = 0);
 | `out` | `Message&` | 出力メッセージ (戻り値がtrueの場合に有効) |
 | `report_unix` | `uint32_t` | UNIX時刻 (省略時: 0 = 未解決) |
 
-**戻り値:** `bool` - フレームが完成し、デコードに成功し、重複でもない場合に `true`。CRC誤り・未対応バージョン（Vn≠1）・コンパイル時に無効なカテゴリ・重複受信は `false`（重複時は `out` もクリアされる）。南海トラフはページ集約が完成したときだけ `true`。失敗理由は `msg.unsupported_reason` で区別できる。
+**戻り値:** `bool` - フレームが完成し、デコードに成功し、重複でもない場合に `true`。フレーム未完成・CRC誤り・未対応バージョン（Vn≠1）・コンパイル時に無効なカテゴリ／MT・重複受信・南海トラフのページ集約途中は `false`（完成したフレームの復号に失敗した時と重複時は `out` もクリアされる）。`msg.unsupported_reason` に入るのは**復号器が完成フレームを拒否した場合だけ**（`DisabledAtCompileTime` / `UnknownCategory` / `UnsupportedVersion`）で、フレーム未完成・CRC誤り・重複では `None` のまま。
 
 **使用例:**
 ```cpp
@@ -125,7 +125,7 @@ const internal::NankaiPageBuffer* getNankaiBuffer(const internal::NankaiPageKey&
 | `msg_type` | `uint8_t` | メッセージタイプ (43=DCR, 44=DCX) |
 | `crc24` | `uint32_t` | CRC-24Qチェックサム |
 | `valid` | `bool` | メッセージの妥当性フラグ。`feed()` が `true` を返したときは常に `true` |
-| `unsupported_reason` | `UnsupportedReason` | `feed()` が `false` を返した理由（`None` / `DisabledAtCompileTime` / `UnknownCategory` / `UnsupportedVersion`） |
+| `unsupported_reason` | `UnsupportedReason` | 復号器が電文を拒否した理由（`None` / `DisabledAtCompileTime` / `UnknownCategory` / `UnsupportedVersion`）。フレーム未完成・CRC誤り・重複では `None` のまま |
 | `payload_type` | `MsgPayloadType` | ペイロードタイプ |
 
 #### 安全なアクセサ
@@ -526,7 +526,7 @@ public:
 
 ```cpp
 // feed() が true を返したメッセージだけを渡す（msg.valid はそこで保証される）。
-// false のときは msg.unsupported_reason で理由を区別できる。
+// false のときは、完成フレームを復号器が拒否した場合だけ msg.unsupported_reason に理由が入る（未完成・CRC誤り・重複は None）。
 void processMessage(const azaraC::Message& msg) {
     // SVID範囲チェック（PRN は 181-191: 53/54 -> 181/182 も実データに存在）
     if (msg.svid < 181 || msg.svid > 191) {

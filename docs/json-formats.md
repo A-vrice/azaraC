@@ -30,7 +30,7 @@ azaraC の `JsonSerializer`（C++ / `Print&`）が出力する JSON と、参照
 | `invalid_mt43` | MT43として解析に失敗 |
 | `invalid_mt44` | MT44として解析に失敗 |
 | `unsupported_msg_type` | MTが43/44ではない、または当該型のシリアライザがビルド無効（例: `AZARAC_ENABLE_DCX_CAMF=0` の MT44）。`crc24`フィールドの直後に`note`を出力しそれ以降のフィールドは出力なし。 |
-| `unsupported_category`| 仕様上未定義のカテゴリ、対応する `AZARAC_ENABLE_*` が無効なビルド、または解析結果が欠けている場合。MT43のメタ情報を出力するが`"data":{"note":"unsupported_category"}`となる |
+| `unsupported_category`| 引き受けるシリアライザが無いカテゴリ（規格に無い 7/13 や、そのカテゴリの `AZARAC_ENABLE_*` が無効なビルド）の `Mt43Data` を直列化した場合。MT43のメタ情報を出力するが`"data":{"note":"unsupported_category"}`となる。受信電文の復号では無効カテゴリは拒否される（`feed()` は `false`、`payload_type` は `Empty`）ので、この note は出ない |
 
 ### 1.1 共通ヘッダ
 
@@ -67,7 +67,7 @@ MT44 のルートは `crc24` までで、A フィールド・拡張部・`sd_sdm
 | 14 | 海上 | `entries[]{region(+_label),warning_code(+_label)}` |
 
 カテゴリ 6 の電文を検証しているのは `test/data/test_realdata_generated.cpp`。洪水の予報区コードのように 10 桁を超えるコードは `uint64_t` のまま数値で出る。
-各行はそのカテゴリの `AZARAC_ENABLE_*` が有効なビルドでの形。無効なビルドでは `unsupported_category` になる（§1 の note 表）。
+各行はそのカテゴリの `AZARAC_ENABLE_*` が有効なビルドでの形。無効なビルドでは復号器がそのカテゴリの電文を拒否する（`feed()` は `false`、`payload_type` は `Empty`、`unsupported_reason` は `DisabledAtCompileTime`）ため、受信電文からこの表の形は出ない。`unsupported_category` は手動で構築した `Mt43Data`（規格に無いカテゴリ 7/13 など）を直列化したときだけ出る（§1 の note 表）。
 
 津波の到着時刻は `arrival_time_raw`（12bit: day_offset 1 + hour 5 + min 6）だけを残し、`arrival_time` は解決できたときだけオブジェクト、できないときは `null`となる。
 解決できなかった理由は `arrival_status` に出る（解決時の出力はなし）

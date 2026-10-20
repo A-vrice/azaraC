@@ -39,9 +39,14 @@
 #   ram       SRAM must not grow (UNO_RAM_BYTES and MEGA_RAM_BYTES <= baseline) and no table
 #             may live in RAM instead of Flash: shrinking Flash by spending SRAM is a loss, and
 #             the AVR path can only join labels in the shared 800 B buffer it already owns.
+#   mega-lto  the same DCX/CAMF configuration under the Arduino recipe (-flto, the build a Mega
+#             sketch really gets) must link and fit the ATmega2560's SRAM.
+#   path      every linked image must still hold the decode path, the serializer and the
+#             definition tables: if LTO ever drops them, the flash numbers stop meaning
+#             "what a sketch pays".
 #
 # Deterministic: fixed toolchain flags, locked inputs, no network, no clock; requires avr-gcc/avr-size/avr-nm and g++ on PATH.
-# The Uno image links with the Arduino AVR core's `-flto -fuse-linker-plugin` (AVR_LTO). The Mega image links LTO-free in stage 5 and with the Arduino recipe in stage 5b.
+# The Uno image links with the Arduino AVR core's `-flto -fuse-linker-plugin` (AVR_LTO). The Mega image links LTO-free in stage 5 and with the Arduino recipe in stage 5b; stage 5b's image is gated (it must link and fit the part's SRAM).
 #
 # `bash test/bench/avr/autoresearch.sh --bless-labels` re-records the golden label hashes — only after confirming the label change was intended.
 
@@ -87,13 +92,18 @@ MAX_OBJECT_BYTES=32768
 # The AVR path trades Flash for RAM only within the SRAM it already owns (the shared 800 B label buffer in internal/FlashString.h); growing SRAM to shrink Flash is a loss, so the linked Uno image's RAM is gated.
 # Measured 702 B (data 626 + bss 76) at the pre-compression baseline, 640 B before the JSON keys moved to Flash, 204 B once they did (data 88 + bss 116), 146 B now (data 30 + bss 116): the keys and the helper tables left .data (avr-libc's script copies .rodata into SRAM) and the 40 B of new bss is the shared key buffer (AZARAC_KEY_BUF_SIZE), for +730 B of Flash (13,546 → 14,276).
 # The last 58 B are the fixed strings that left .data: "QZQSM," (7) from NmeaFramer plus the JSON values arrival_estimated (18), no_information (15) and unrecognized_code (18), which now go through AZARAC_KEY; .data is down to the allocator's globals and the two framer vtables, for +194 B of Flash (14,276 → 14,470). ("null" cost nothing even before: the seven call sites measured byte-identical.)
+# The probe's opaque sink (the write() that keeps the serialize path in the image) adds 132 B on top: 14,602 B.
 MAX_UNO_RAM_BYTES=146
 
 # The same ceiling for stage 5's DCX/CAMF image: measured 3,714 B (data 2,902 + bss 812) of the Mega's 8,192 B — the keys alone were ~1.8 KB of it — and 1,086 B once they moved (data 234 + bss 852) for +1,712 B of Flash (144,806 → 146,518), so the tables may cost Flash but never SRAM.
 # The +40 B of bss is the shared key buffer the Flash keys are copied through.
-# 896 B now (data 44 + bss 852): the DCX value literals (invalid_mt44, NULL/L_ALERT/J_ALERT/LOCAL_GOV/OUTSIDE_JAPAN/UNKNOWN, unsupported_*) left .data the same way, for +154 B of Flash (146,518 → 146,672).
+# 896 B now (data 44 + bss 852): the DCX value literals (invalid_mt44, NULL/L_ALERT/J_ALERT/LOCAL_GOV/OUTSIDE_JAPAN/UNKNOWN, unsupported_*) left .data the same way, for +154 B of Flash (146,518 → 146,672). The probe's opaque sink adds 20 B: 146,692 B.
 # The ceiling keeps no slack: 896 B is the current measurement, so any SRAM regression fails here (growing SRAM to shrink Flash is the failure this exists for).
 MAX_MEGA_RAM_BYTES=896
+
+# The part's SRAM, for the image a sketch really gets (stage 5b, the Arduino recipe): the LTO
+# build must link and fit the ATmega2560, or the configuration is not shippable at all.
+ATMEGA2560_SRAM_BYTES=8192
 
 mkdir -p "$OUT"
 
@@ -299,10 +309,11 @@ echo "METRIC MEGA_COMPILE_OK=$mega_ok"
 
 # --------------------------------------------------------------- stage 5b ---
 # The same preset under the recipe a sketch is actually built with: the Arduino AVR
-# core compiles and links with `-flto` (${AVR_LTO[@]}). Reported, not gated: this is
-# the number the board sees, and it must track the LTO-free stage-5 figure — the
-# generator hoists the switch-strategy literals to namespace scope so LTO keeps them
-# in Flash, and a gap means they fell back into .data.
+# core compiles and links with `-flto` (${AVR_LTO[@]}). This is the number the board
+# sees, so the image itself is gated below (it must link and fit the ATmega2560's SRAM).
+# It must also track the LTO-free stage-5 figure — the generator hoists the
+# switch-strategy literals to namespace scope so LTO keeps them in Flash, and a gap
+# means they fell back into .data.
 mega_lto_ok=0
 mega_lto_build=(-mmcu="$MCU" -Os -std=gnu++17 -fno-exceptions "${AVR_LTO[@]}"
                 -ffunction-sections -fdata-sections -Wl,--gc-sections -Werror=overflow
@@ -329,6 +340,18 @@ fi
 echo "METRIC MEGA_LTO_COMPILE_OK=$mega_lto_ok"
 [[ -n "${mega_lto_flash:-}" ]] && echo "METRIC MEGA_LTO_FLASH_BYTES=$mega_lto_flash"
 [[ -n "${mega_lto_ram:-}" ]] && echo "METRIC MEGA_LTO_RAM_BYTES=$mega_lto_ram"
+
+# The probe exists to keep the decode + serialize path — and the definition tables it reads —
+# in the linked image. This is the check that it stayed there: if LTO ever drops them, the
+# flash numbers above stop meaning "what a sketch pays". avr-nm prints CRLF on Windows, so
+# the patterns are not anchored to the line end.
+image_has_path() {  # $1 = elf
+    "$AVR_NM" -C "$1" 2>/dev/null | awk '
+        /Decoder::decode/ { d++ }
+        /JsonSerializer/ { s++ }
+        /_POOL|_TABLE/ { t++ }
+        END { exit !(d > 0 && s > 0 && t > 0) }'
+}
 
 # gates
 status=0
@@ -362,14 +385,32 @@ if [[ -n "${mega_ram:-}" ]] && (( mega_ram > MAX_MEGA_RAM_BYTES )); then
     status=15
 fi
 
-# Stage 5b's number, reported rather than gated: it is the Arduino build's truth (the
-# core applies -flto). It matches the LTO-free figure while every generated literal
-# survives LTO — the generator emits the switch-strategy literals at namespace scope
-# for exactly that reason — so a gap means literals are falling back into .data.
+# Stage 5b's image is the one a Mega sketch really gets (the core applies -flto), so it is
+# gated: it must link, and it must fit the part. The gap to the LTO-free figure is warned
+# about rather than gated — it matches while every generated literal survives LTO (the
+# generator emits the switch-strategy literals at namespace scope for exactly that reason),
+# and the gap itself depends on the toolchain.
+if (( mega_lto_ok == 0 )); then
+    echo "autoresearch: the DCX/CAMF configuration no longer builds with the Arduino recipe (-flto)" >&2
+    status=16
+elif [[ -n "${mega_lto_ram:-}" ]] && (( mega_lto_ram > ATMEGA2560_SRAM_BYTES )); then
+    echo "autoresearch: the Arduino recipe (-flto) makes the Mega image cost $mega_lto_ram B of SRAM — over the ATmega2560's $ATMEGA2560_SRAM_BYTES B" >&2
+    status=16
+fi
+
 if [[ -n "${mega_lto_ram:-}" && -n "${mega_ram:-}" ]] \
    && (( mega_lto_ram > mega_ram + 64 )); then
     echo "autoresearch: the Arduino recipe (-flto) makes the Mega image cost $mega_lto_ram B of SRAM against the LTO-free $mega_ram B — generated literals are landing in .data instead of Flash (not gated: the fix is the generator emitting namespace-scope literals)" >&2
 fi
+
+# The probe must still keep the decode + serialize path and the definition tables in every
+# linked image; otherwise the flash numbers above measure an image a sketch never runs.
+for img in "$OUT/uno.elf" "$OUT/mega.elf" "$OUT/mega_lto.elf"; do
+    if [[ -f "$img" ]] && ! image_has_path "$img"; then
+        echo "autoresearch: $(basename "$img") lost the decode path, the serializer or the definition tables — its flash number no longer reflects a sketch" >&2
+        status=17
+    fi
+done
 
 if [[ -n "${tables_in_ram:-}" ]] && (( tables_in_ram != 0 )); then
     echo "autoresearch: $tables_in_ram definition table(s) landed in RAM instead of Flash" >&2
