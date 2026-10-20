@@ -34,7 +34,7 @@ namespace {
 class ProbePrint : public Print {
 public:
     size_t write(uint8_t) override {
-        asm volatile("" : : "r"((uint8_t)0) : "memory");
+        asm volatile("" ::: "memory");
         return 1;
     }
     size_t write(const char* s, size_t n) override {

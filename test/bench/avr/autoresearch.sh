@@ -97,7 +97,7 @@ MAX_UNO_RAM_BYTES=146
 
 # The same ceiling for stage 5's DCX/CAMF image: measured 3,714 B (data 2,902 + bss 812) of the Mega's 8,192 B — the keys alone were ~1.8 KB of it — and 1,086 B once they moved (data 234 + bss 852) for +1,712 B of Flash (144,806 → 146,518), so the tables may cost Flash but never SRAM.
 # The +40 B of bss is the shared key buffer the Flash keys are copied through.
-# 896 B now (data 44 + bss 852): the DCX value literals (invalid_mt44, NULL/L_ALERT/J_ALERT/LOCAL_GOV/OUTSIDE_JAPAN/UNKNOWN, unsupported_*) left .data the same way, for +154 B of Flash (146,518 → 146,672). The probe's opaque sink adds 20 B: 146,692 B.
+# 896 B now (data 44 + bss 852): the DCX value literals (invalid_mt44, NULL/L_ALERT/J_ALERT/LOCAL_GOV/OUTSIDE_JAPAN/UNKNOWN, unsupported_*) left .data the same way, for +154 B of Flash (146,518 → 146,672). The probe's opaque sink adds 18 B: 146,690 B.
 # The ceiling keeps no slack: 896 B is the current measurement, so any SRAM regression fails here (growing SRAM to shrink Flash is the failure this exists for).
 MAX_MEGA_RAM_BYTES=896
 
