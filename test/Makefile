@@ -101,7 +101,7 @@ OBJS = $(TEST_OBJS) $(LIB_OBJS)
 # VPATH for library sources
 VPATH = ../src:../src/decoder:../src/framer:../src/json:../src/internal
 
-.PHONY: all clean run run-small-pages run-lang-defaults fuzz decode dedup-realday bench bench-dedup compare-realdata check check-xml check-strict-compile coverage test-no-alloc pgm-stub test-time-irq
+.PHONY: all clean run run-small-pages run-lto run-lang-defaults fuzz decode dedup-realday bench bench-dedup compare-realdata check check-xml check-strict-compile coverage test-no-alloc pgm-stub test-time-irq
 
 all: $(TEST_BIN)
 
@@ -123,6 +123,16 @@ run: all
 # check-strict-compile 後に混在リンクして落ちる。必ず clean する。
 run-small-pages:
 	$(MAKE) -B CXXFLAGS_EXTRA="-DAZARAC_NANKAI_MAX_PAGES=8" run; status=$$?; $(MAKE) clean; exit $$status
+
+# リンク時最適化（LTO）の検証。-O2 と併用しないと LTO の codegen 経路が
+# ほぼ通らないため -O2 -flto で全体を再ビルドする。CXXFLAGS は依存関係に
+# 載らないので -B を使い、終了後は必ず clean する（既定 -O0 の .o と混在すると
+# 以降の run が再ビルドされない）。LTO は ODR 違反・インライン後の未定義動作を
+# リンク時に顕在化させる。型不一致系は GCC では既定で警告に留まり
+# （例: Dedup.h / Dedup.cpp の配列長不一致）、素の -flto では緑のままなので
+# この 2 つだけ -Werror にする（-Werror 全体だと -O2 由来の無関係な警告で落ちる）。
+run-lto:
+	$(MAKE) -B CXXFLAGS="$(CXXFLAGS) -O2 -flto -Werror=lto-type-mismatch -Werror=odr" run; status=$$?; $(MAKE) clean; exit $$status
 
 # 言語構成の検証。ライブラリ既定は JA=1 / EN=0 で、テスト既定（JA=1 / EN=1）とは
 # 出力が変わる: 日本語版を持たない英語専用表が EN=0 で消える回帰は、テスト既定では

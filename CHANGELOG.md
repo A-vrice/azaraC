@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **CI に LTO ゲートを追加**: `make -C test run-lto` を新設し、host-test で `-O2 -flto` の全体再ビルド・テスト実行を必須にした。LTO の型不一致（`-Wlto-type-mismatch`）と ODR 違反（`-Wodr`）は GCC では既定で警告に留まり素の `-flto` では緑のままなので、この 2 つだけ `-Werror` にしてゲートで落とす（過去に `AZARAC_DEDUP_SLOTS` の配列長不一致を LTO だけが検出した事例がある）。`CXXFLAGS` は依存関係に載らないため `-B` で再ビルドし、終了時に `clean` する。あわせて `wf_deg` の桁数ループに上限 9 を明示し、`-O2 -flto` で出ていた `-Wstringop-overflow` の偽陽性を解消した（`buf[12]` に対する値域証明）。
+
 ### Fixed
 
 - **レビュー指摘の修正（コア）**: `internal::getMillis()` が `noInterrupts()` の後に無条件で `interrupts()` を呼び、呼び出し側の割り込み禁止区間を破っていた問題を修正した。AVR は `SREG`、Cortex-M は `PRIMASK` を退避・復元し、`test-time-irq`（`ARDUINO=1` / `__AVR__` のホストスタブ）で検証する。`NmeaFramer` は 2 桁でも 6bit に収まらない Satellite ID 64–99 を拒否する（0–52 は PRN 128–180 として通すが契約外）。`Parser.h` の `report_unix=0` の説明を実装（未解決）に合わせ、`Parser::feed()` のカスタムフレーマ経路で局所 `Frame` をゼロ初期化し、`IFramer::feed()` に Frame の全フィールドを埋める契約を明記した。UBX の `numWords` は実データに合わせて 8/9 のみ受理し（9 は u-blox が付ける余剰 word）、10 以上はコメントと回帰テストで拒否する。
