@@ -379,7 +379,7 @@ static void test_nmea_framer(FuzzStats& stats, std::mt19937& rng, int iterations
             set_valid_msg_type(bits, rng);
             set_valid_crc(bits);
 
-            std::string nmea = makeNmeaQzqsm(193, bits);
+            std::string nmea = makeNmeaQzqsm(63, bits);
 
             NmeaFramer framer;
             Frame frame;
@@ -599,7 +599,7 @@ static void test_long_running(FuzzStats& stats, std::mt19937& rng, int iteration
             set_valid_msg_type(bits, rng);
             set_valid_crc(bits);
 
-            std::string nmea = makeNmeaQzqsm(193, bits);
+            std::string nmea = makeNmeaQzqsm(63, bits);
 
             NmeaFramer framer;
             Frame frame;
@@ -679,7 +679,7 @@ static void test_corrupted_nmea(FuzzStats& stats, std::mt19937& rng, int iterati
             set_valid_msg_type(bits, rng);
             set_valid_crc(bits);
 
-            std::string nmea = makeNmeaQzqsm(193, bits);
+            std::string nmea = makeNmeaQzqsm(63, bits);
 
             // NMEAを破損させる（ランダムな位置の文字を変更）
             if (nmea.size() > 10) {
@@ -805,7 +805,7 @@ static void test_corrupted_nmea_dollar(FuzzStats& stats, std::mt19937& rng, int 
             set_valid_msg_type(bits, rng);
             set_valid_crc(bits);
 
-            std::string nmea = makeNmeaQzqsm(193, bits);
+            std::string nmea = makeNmeaQzqsm(63, bits);
 
             if (nmea.size() > 0 && nmea[0] == '$') {
                 nmea = nmea.substr(1);
@@ -925,7 +925,7 @@ static void test_memory_stability(FuzzStats& stats, std::mt19937& rng, int itera
             set_valid_msg_type(bits, rng);
             set_valid_crc(bits);
 
-            std::string nmea = makeNmeaQzqsm(193, bits);
+            std::string nmea = makeNmeaQzqsm(63, bits);
 
             NmeaFramer framer;
             Frame frame;

@@ -37,7 +37,7 @@ azaraC の `JsonSerializer`（C++ / `Print&`）が出力する JSON と、参照
 | キー | 型 | 内容 |
 |---|---|---|
 | `schema_version` | int | 常に 2 |
-| `svid` | int | QZSS L1S PRN。`NmeaFramer` は受理した Satellite ID を `\| 0x80` で正規化（53→181, 54→182, 55–63→183–191）。`UbxFramer` は `ublox_qzss_svid_prn_map` で変換（1–4→183–186、7→189）し、表に無い `svId` は入力値のまま通す |
+| `svid` | int | QZSS L1S PRN。`NmeaFramer` は受理した Satellite ID を `\| 0x80` で正規化（53→181, 54→182, 55–63→183–191）。64–99 は 6bit 外なので拒否し、0–52 は通すが PRN 128–180 で契約外。`UbxFramer` は `ublox_qzss_svid_prn_map` で変換（1–4→183–186、7→189）し、表に無い `svId` は入力値のまま通す |
 | `msg_type` | int | 43 / 44 |
 | `crc24` | str | `"0x00F92C3F"`。azarashi の出力には無い |
 | `data` | obj | 本文（§1.2 / §1.3）。失敗時は代わりに `note` |

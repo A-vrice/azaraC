@@ -238,6 +238,7 @@ TEST_CASE("NMEA: Satellite ID は生 ID から PRN に正規化される") {
         {57, 185},
         {58, 186},
         {61, 189},
+        {63, 191},   // 6bit の上限
     };
     for (const auto& c : cases) {
         uint8_t bits[32] = {0};
@@ -255,8 +256,8 @@ TEST_CASE("NMEA: Satellite ID は生 ID から PRN に正規化される") {
 }
 
 // 仕様の Satellite ID は PRN 下位 6bit の2桁10進（Table 4.3.1-1）。azarashi も長さ 2 を要求する。
-// 1桁/3桁を通すと `| 0x80` の結果が PRN 契約（181-191）の外に出る（100 → 228）。
-TEST_CASE("NMEA: Satellite ID の桁数は 2 に限る") {
+// 1桁/3桁/6bit を超える2桁を通すと `| 0x80` の結果が PRN 契約（181-191）の外に出る（64 → 192, 100 → 228）。
+TEST_CASE("NMEA: Satellite ID は 2 桁かつ 6bit に限る") {
     auto sentence = [](const char* id_field) {
         std::string s = std::string("$QZQSM,") + id_field + ",";
         for (int i = 0; i < 31; ++i) {
@@ -272,11 +273,14 @@ TEST_CASE("NMEA: Satellite ID の桁数は 2 に限る") {
         return s + tail;
     };
 
-    struct Case { const char* id_field; bool accepted; };
+    struct Case { const char* id_field; bool accepted; uint8_t expected_prn; };
     const Case cases[] = {
-        {"5",   false},   // 1 桁
-        {"55",  true},    // 2 桁（仕様どおり）
-        {"100", false},   // 3 桁 → 228 になり PRN 契約外
+        {"5",   false, 0},     // 1 桁
+        {"55",  true,  183},   // 2 桁（仕様どおり）
+        {"63",  true,  191},   // 6bit の上限
+        {"64",  false, 0},     // 6bit 外 → 192
+        {"99",  false, 0},     // 6bit 外 → 227
+        {"100", false, 0},     // 3 桁 → 228 になり PRN 契約外
     };
     for (const auto& c : cases) {
         NmeaFramer framer;
@@ -288,7 +292,7 @@ TEST_CASE("NMEA: Satellite ID の桁数は 2 に限る") {
         }
         INFO("id field=", c.id_field);
         CHECK(found == c.accepted);
-        if (c.accepted) CHECK(out.svid == 183);
+        if (c.accepted) CHECK(out.svid == c.expected_prn);
     }
 }
 

@@ -80,9 +80,9 @@ inline std::vector<uint8_t> makeUbxSfrbx(uint8_t svId, const uint8_t* nav_bits) 
 }
 
 // NMEA QZQSM 文生成
-// 第1引数は PRN（QZS の 183-191）でも生の Satellite ID（下位 6bit、53-63）でもよい: 電文に載るのは下位 7bit の2桁10進だけなので `& 0x7F` に落として書く（FRAME 側は `| 0x80` で PRN に戻す）。2桁で書ける 0..99 が上限（100 以上は3桁になり、受信側が仕様どおり拒否する）。
+// 第1引数は PRN（QZS の 183-191）でも生の Satellite ID（下位 6bit、53-63）でもよい: 電文に載るのは下位 7bit の2桁10進だけなので `& 0x7F` に落として書く（FRAME 側は `| 0x80` で PRN に戻す）。受信側は 6bit を超える値（64 以上）を拒否する。
 inline std::string makeNmeaQzqsm(uint8_t svid, const uint8_t* nav_bits) {
-    assert((svid & 0x7F) <= 99);
+    assert((svid & 0x7F) <= 63);
     char buf[256];
     snprintf(buf, sizeof(buf), "QZQSM,%02u,", static_cast<unsigned>(svid & 0x7F));
     std::string s = "$";

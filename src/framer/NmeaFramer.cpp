@@ -81,8 +81,10 @@ bool NmeaFramer::parse(Frame& out) {
     }
     // 仕様の Satellite ID は「PRN 下位 6bit の2桁10進」（IS-QZSS-DCR-017 §4.3.1 / DCX-004 §4.3.1、Table 4.3.1-1）。
     // 1桁は下位 6bit の範囲外（PRN 183 = 55 は2桁）で、3桁は `| 0x80` しても PRN 契約（181-191）の外の値になる（100 → 228）。
+    // 64-99 は2桁だが 6bit に収まらないため拒否する（64 → 192）。0-52 は 6bit としては有効だが
+    // PRN 128-180 に対応し、L1S の PRN 契約（181-191）の外になる。フレーマーは通し、利用側が svid で絞る。
     // azarashi も長さ 2 を要求して拒否する。
-    if (digit_count != 2 || *p != ',') return false;
+    if (digit_count != 2 || *p != ',' || svid_tmp > 63) return false;
     uint8_t svid = static_cast<uint8_t>(svid_tmp);
     ++p;
 
