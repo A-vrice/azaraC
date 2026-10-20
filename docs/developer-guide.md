@@ -115,6 +115,7 @@ make -C test fuzz FUZZ_ITERATIONS=100000
 | ターゲット | 用途 |
 |----------|------|
 | `make -C test pgm-stub` | `__AVR__` + スタブ `avr/pgmspace.h` で全テストをコンパイルし PROGMEM 分岐をホスト検証 |
+| `make -C test test-time-irq` | `ARDUINO=1` + `__AVR__` + スタブ `avr/io.h` で `internal::getMillis()` の割り込み状態保存・復元をホスト検証 |
 | `make -C test run-small-pages` | `AZARAC_NANKAI_MAX_PAGES=8` で全体を再ビルドし、ページ打ち切り経路を検証（既定 63 では打ち切りが発生せず該当テストが `#if` で除外されるため） |
 | `make -C test decode` | decode_to_jsonのCLIビルド（azarashi 比較用） |
 | `make -C test dedup-realday` | 実日の `.l1s`（`realdata/`）に対する重複判定の再現計測。フレーム数・distinct・生存ピーク・再通知/取りこぼしを METRIC 行で出す。`REALDAY_CAT<n>_*` はカテゴリ別の内訳（`MISSED`=取りこぼし、`FALSE_RE`=再通知）、`REALDAY_UNALIGNED` は非整列フレーム数。`REALDAY_INPUT` で入力、`CXXFLAGS_EXTRA="-DAZARAC_DEDUP_SLOTS=…"` + `-B` で容量を変えて反復（**`CXXFLAGS_EXTRA` は依存関係に載らないため、スイープ後は `make -C test clean`** で残った `.o` を消す） |

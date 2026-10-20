@@ -66,6 +66,9 @@ jobs:
       - name: AVR-style stub build (PROGMEM, 16-bit int)
         run: make -C test pgm-stub
 
+      - name: Arduino interrupt-state test (ARDUINO=1, AVR branch)
+        run: make -C test test-time-irq
+
   # 生成フィクスチャのドリフト検査: nankai_pages_generated.h は azarashi 生成物なので、生成器と生成物を片方だけ直すとテストは古いフィクスチャのまま緑になる。
   # dcr/dcx はリポジトリ外ログ由来、test/data/test_realdata_generated.cpp は gitignore 済み realdata/ 由来で CI では再現できない。
   #

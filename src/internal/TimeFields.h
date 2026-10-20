@@ -3,6 +3,7 @@
 // - Arduino: millis() (~49.7-day wrap) extended to uint64_t with a volatile counter, so no <atomic> (avoids libatomic link issues on 32-bit MCUs).
 // - Host: std::chrono::steady_clock.
 // The volatile + read-compute-write is unsynchronized: multi-core callers may see non-monotonic values, single-task use is safe.
+// On AVR and Cortex-M the update saves and restores the caller's interrupt state instead of unconditionally enabling IRQs.
 #if defined(__AVR__)
 #include "avr_std/cstdint"
 #else
@@ -24,8 +25,22 @@ static inline uint64_t getMillis() {
     // The unsynchronized read-compute-write can go backwards on multi-core / FreeRTOS; acceptable for coarse timing from a single task.
     static volatile uint64_t s_last = 0;
 
-    uint32_t raw = millis();
+    uint32_t raw;
+#if defined(__AVR__)
+    // Save SREG instead of calling interrupts(): getMillis() may be called from the
+    // caller's critical section or an ISR, and re-enabling IRQs there would break its atomicity.
+    uint8_t irq_state = SREG;
+    cli();
+#elif defined(__arm__)
+    // Cortex-M: restore PRIMASK rather than unconditionally enabling IRQs.
+    uint32_t irq_state = __get_PRIMASK();
+    __disable_irq();
+#else
+    // No portable save/restore API on this core (e.g. Xtensa). Keep the previous behaviour.
     noInterrupts();
+#endif
+    // Read millis() inside the critical section so the extension below observes one consistent value.
+    raw = millis();
     uint64_t prev = s_last;
     uint32_t prev_low = static_cast<uint32_t>(prev);
     uint64_t high = prev & 0xFFFFFFFF00000000ULL;
@@ -34,7 +49,13 @@ static inline uint64_t getMillis() {
     }
     uint64_t current = high | raw;
     s_last = current;
+#if defined(__AVR__)
+    SREG = irq_state;
+#elif defined(__arm__)
+    __set_PRIMASK(irq_state);
+#else
     interrupts();
+#endif
     return current;
 #else
     auto now = std::chrono::steady_clock::now();
