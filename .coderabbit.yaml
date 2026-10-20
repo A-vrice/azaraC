@@ -22,6 +22,10 @@ reviews:
     base_branches:
       - "main"
       - "main-pre"
+  # docstring カバー率のゲートはこのリポジトリのコメント方針（簡潔な日本語のコメント）と噛み合わないので止める。
+  pre_merge_checks:
+    docstrings:
+      mode: "off"
 chat:
   auto_reply: true
   art: true
