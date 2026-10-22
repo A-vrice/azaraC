@@ -11,13 +11,14 @@ class Decoder {
 public:
     bool decode(const Frame& frame, Message& out, uint32_t report_unix = 0);
 
-    // CRC-24Q (IS-QZSS-L1S §3.2.8)。Parser がフレームの部分区間（手順③ の照合対象 MT～VN = bit 8..219）の digest を作るためにも使う。ハッシュ実装を二重に持たない。
-    // data[0] の MSB から bit_len ビットを処理する。
+    // CRC-24Q (IS-QZSS-L1S §3.2.8)。data[0] の MSB から bit_len ビットを処理する。Parser も同じ実装を使う（手順③ の照合対象 MT～VN = bit 8..219 の digest）。
     static uint32_t crc24q(const uint8_t* data, uint16_t bit_len);
 
-    // 手順③ の照合対象（MT～VN = frame bit 8..219）の digest。MT=44 は SD（SDMT 1 bit + SDM 9 bit = frame bit 14..23）をゼロにしてから取る。
-    // QZS 事務局回答: 照合範囲「MT および CAMF〜EM」に SDMT・SDM・Reserved を含めない。プリアンブル（bit 0..7）と Reserved（bit 220..225）は範囲外。
-    // bits は非 const だが、対象 2 バイトを外して戻すだけで呼び出しの前後で内容は変わらない（コピーを作らないため）。
+    // 手順③ の照合対象（MT～VN = frame bit 8..219）の digest。
+    // プリアンブル（bit 0..7）と Reserved（bit 220..225）は範囲外。
+    // QZS 事務局回答: 照合範囲「MT および CAMF〜EM」に SDMT・SDM・Reserved を含めない。
+    // MT=44 は SD（SDMT 1 bit + SDM 9 bit = frame bit 14..23）をゼロにしてから取る。
+    // bits は非 const だが、対象 2 バイトを外して戻すだけなので呼び出しの前後でフレームの内容は変わらない（コピーを作らないため）。
     static uint32_t messageIdentity(uint8_t* bits);
 
 protected:
@@ -33,11 +34,10 @@ protected:
     LatLon  extractLatLon(const uint8_t* buf, uint16_t start);
 
     // day(5)+hour(5)+min(6)=16 bit sub-field -> TimeFields
-    // report_unix: UNIX time from GPS module (recommended) or SNTP, 0 = unresolved
+    // report_unix: GPS/SNTP の UNIX 時刻。0 は未解決。
     TimeFields extractDHM(const uint8_t* buf, uint16_t start, uint32_t report_unix);
 
-    // Resolve TimeFields from components using report_unix as baseline.
-    // report_unix < 2000-01-01 → unix_time = 0 (unresolved).
+    // report_unix を基準に解決する。無効（< 2000-01-01）なら unix_time = 0。
     static TimeFields resolveTime(uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint32_t report_unix);
 
     // Resolve 12-bit arrival time (day_offset:1, hour:5, min:6) into TimeFields
@@ -52,10 +52,11 @@ protected:
 
     bool decodeQzqsm(const uint8_t* bits, Message& out, uint32_t report_unix);
 
-    // OOB flag: set by getBits/getBits64 on reads beyond the 256-bit frame boundary. decode() clears it per session and fails if OOB is detected.
+    // OOB フラグ: 256 bit のフレーム外を読むと getBits/getBits64 が立てる。decode() は呼び出しごとにクリアし、立っていれば失敗させる。
     bool oob_ = false;
 
-    // MT=43 JMA sub-decoders. Declarations unconditional: guards on the definitions control code size; decodeQzqsm() dispatches via the shared AZARAC_DC_CATEGORIES table (constant-folded guards, disabled never called).
+    // MT=43 JMA サブデコーダ。
+    // 宣言は無条件（コードサイズを抑えるガードは定義側に置く）。decodeQzqsm() は共有の AZARAC_DC_CATEGORIES 表で振り分けるので、無効カテゴリは呼ばれない。
     void decodeEEW(const uint8_t* b, Message& out, uint32_t report_unix);
     void decodeHypocenter(const uint8_t* b, Message& out, uint32_t report_unix);
     void decodeSeismic(const uint8_t* b, Message& out, uint32_t report_unix);

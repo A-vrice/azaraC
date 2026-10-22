@@ -19,7 +19,6 @@ import json
 import sys
 from pathlib import Path
 
-# メイン処理
 
 def parse_gcovr_json(json_path: Path) -> dict:
     """gcovr JSON を読み込み、ファイル別のカバレッジ情報を返す。"""
@@ -43,8 +42,8 @@ def parse_gcovr_json(json_path: Path) -> dict:
         file_path = file_info.get("file", "(unknown)")
         lines = file_info.get("lines", [])
 
-        total_lines = 0  # 実行可能行数
-        executed_lines = 0  # 実行された行数
+        total_lines = 0
+        executed_lines = 0
 
         for line_data in lines:
             count = line_data.get("count", None)
@@ -78,7 +77,7 @@ def parse_gcovr_json(json_path: Path) -> dict:
     if grand_total_lines > 0:
         total_coverage = (grand_total_exec / grand_total_lines) * 100.0
     else:
-        total_coverage = 100.0  # per_file と同様、実行可能行が 0 なら 100% 扱い
+        total_coverage = 100.0
 
     return {
         "total_lines": grand_total_lines,
@@ -123,7 +122,6 @@ def generate_markdown(stats: dict) -> str:
         lines.append("")
         return "\n".join(lines)
 
-    # ファイル別カバレッジテーブル
     lines.append("| File | Lines | Executed | Coverage |")
     lines.append("|------|-------|----------|----------|")
     for entry in per_file:
@@ -136,7 +134,6 @@ def generate_markdown(stats: dict) -> str:
             f"| {emoji} {entry['coverage']:.1f}% |"
         )
 
-    # 全体サマリー
     emoji_total = _coverage_emoji(total_coverage)
     lines.append(
         f"| **Total** "
@@ -146,7 +143,6 @@ def generate_markdown(stats: dict) -> str:
     )
     lines.append("")
 
-    # コメント
     if total_coverage >= 80:
         lines.append(f"{emoji_total} Overall coverage: **{total_coverage:.1f}%** — Excellent!")
     elif total_coverage >= 50:

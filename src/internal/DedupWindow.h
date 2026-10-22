@@ -1,8 +1,9 @@
 #pragma once
 // 情報有効時間（手順④ 配信終了条件）: アプリケーションノートv2 原PDF p.26–27。
-// MT=44 (DCX/CAMF) は同表を持たないため、A8-Hazard Duration のカテゴリ上限を窓にする（DCX §4.2.3.8 Table 4.2-11 / EWSS-CAMF §3.3.2、A8=00 の 1 週間は DCX §5.4。QZS 事務局回答）。AVR はスロットが 64 と少ないので `AZARAC_DEDUP_MT44_MAX_WINDOW_MS` で頭打ちにする。
+// MT=44 (DCX/CAMF) は同表を持たないため、A8-Hazard Duration のカテゴリ上限を窓にする（DCX §4.2.3.8 Table 4.2-11 / EWSS-CAMF §3.3.2、A8=00 の 1 週間は DCX §5.4。QZS 事務局回答）。
+// AVR はスロットが 64 と少ないので `AZARAC_DEDUP_MT44_MAX_WINDOW_MS` で頭打ちにする。
 //
-// Header-only so the Parser, the benchmark and test/tools/dedup_realday.cpp share one table. A second copy would drift silently: the realday tool measures the false re-notifications the Parser's windows produce.
+// header-only にして Parser・benchmark・test/tools/dedup_realday.cpp で 1 つの表を共有する。2 つ目の写しは黙って食い違う（realday ツールは Parser の窓が生む誤再通知を測る）。
 
 #include "../azaraC_config.h"
 #include "../Message.h"
@@ -10,10 +11,11 @@
 namespace azaraC {
 namespace internal {
 
-// 1 通に複数の副種別（気象の Ww、洪水の Lv、海上の Dw）が入る場合は「条件にて該当する情報の配信が終了する」ので、条件を満たす情報のうち最長の窓を採る: 窓を短くする誤りは「まだ生きている情報を新規として再通知する」側に倒れるため、長い側が安全。
-// fallback_ms は表に無い災害種別（未割当・予約など）に使う。
+// 1 通に複数の副種別（気象の Ww、洪水の Lv、海上の Dw）が入る場合は「条件にて該当する情報の配信が終了する」ので、条件を満たす情報のうち最長の窓を採る。短くする誤りは「まだ生きている情報を新規として再通知する」側に倒れるため、長い側が安全。 fallback_ms は表に無い災害種別（未割当・予約など）に使う。
 //
-// 定数は必ず UL を付ける。AVR の unsigned int は 16 bit なので `60u*60u*1000u` は 65536 で剰余を踏み（= 61056 ms）、`24u*60u*60u*1000u` も同様に（= 23552 ms）、全カテゴリの窓が 20〜61 秒に潰れる。ホストの pgm-stub は int が 32 bit なのでこの欠陥を検出できない。
+// 定数は必ず UL を付ける。
+// AVR の unsigned int は 16 bit なので `60u*60u*1000u` は 65536 で剰余を踏み（61056 ms）、`24u*60u*60u*1000u` も同様（23552 ms）で全カテゴリの窓が 20〜61 秒に潰れる。
+// ホストの pgm-stub は int が 32 bit なのでこの欠陥を検出できない。
 constexpr uint32_t kMinuteMs = 60UL * 1000UL;
 constexpr uint32_t kHourMs   = 60UL * kMinuteMs;
 constexpr uint32_t kDayMs    = 24UL * kHourMs;
@@ -38,7 +40,7 @@ constexpr uint32_t dedupWindowMs(uint32_t fallback_ms, uint8_t disaster_category
     case 8: return kDayMs;                                 // 火山 24 時間
     case 9: return kHourMs;                                // 降灰 最大 1 時間
     case 10: {                                             // 気象
-        // 24 時間は「発表状況 Ar=1（発表）」かつ「Ww が 1..6 or 23（特別警報系・土砂災害警戒情報）」のときだけ。Ww=21/22（大雨・竜巻注意情報）や解除は 3 時間。
+        // 24 時間は発表状況 Ar=1 かつ Ww=1..6 or 23（特別警報系・土砂災害警戒情報）のときだけ。Ww=21/22（大雨・竜巻注意情報）や解除は 3 時間。
         const WeatherData* w = static_cast<const WeatherData*>(payload);
         bool special = false;
         for (uint8_t i = 0; w && i < w->count && i < 6; ++i) {
@@ -50,7 +52,7 @@ constexpr uint32_t dedupWindowMs(uint32_t fallback_ms, uint8_t disaster_category
                    : 3UL * kHourMs;
     }
     case 11: {                                             // 洪水
-        // 24 時間は発表/訂正かつ警戒レベル 2..4（氾濫警戒/危険/発生）。解除・取消は 3 時間。
+        // 24 時間は発表/訂正（It≠2）かつ警戒レベル 2..4（氾濫警戒/危険/発生）。解除・取消は 3 時間。
         const FloodData* f = static_cast<const FloodData*>(payload);
         bool warn = false;
         for (uint8_t i = 0; f && i < f->count && i < 3; ++i) {
@@ -62,8 +64,7 @@ constexpr uint32_t dedupWindowMs(uint32_t fallback_ms, uint8_t disaster_category
     }
     case 12: return 3UL * kHourMs;                         // 台風 3 時間
     case 14: {                                             // 海上
-        // 各警報コード 10/11/12/20/21/22/23 が最大 24 時間、解除 Dw=0 は最大 3 時間。
-        // Dw は 5 bit（0..31）で、定義表は {0,10,11,12,20,21,22,23,31} を持つ。
+        // 各警報コード 10/11/12/20/21/22/23 が最大 24 時間、解除 Dw=0 は最大 3 時間。Dw は 5 bit（0..31）で、定義表は {0,10,11,12,20,21,22,23,31} を持つ。
         const MarineData* mi = static_cast<const MarineData*>(payload);
         bool warn = false;
         for (uint8_t i = 0; mi && i < mi->count && i < 8; ++i) {
@@ -79,18 +80,18 @@ constexpr uint32_t dedupWindowMs(uint32_t fallback_ms, uint8_t disaster_category
     }
 }
 
-// 単位定数を固定する（AVR の 16 bit int での剰余を Arduino ジョブで落とす。pgm-stub は int が 32 bit なので検出できない）。各 case はこの 3 定数と `NUL * 定数` だけで組み立てる（関数自体は payload を cast するため定数式にはできず、static_assert から呼べない）。
+// AVR の 16 bit int での剰余を Arduino ジョブで落とす（pgm-stub は int が 32 bit なので検出できない）。
+// 関数は payload を cast するため定数式にできず static_assert から呼べないので、各 case は必ずこの 3 定数と `NUL * 定数` で組み立てる。
 static_assert(kMinuteMs == 60000UL,    "1 minute must be exact on a 16-bit int");
 static_assert(kHourMs   == 3600000UL,   "1 hour must be exact on a 16-bit int");
 static_assert(kDayMs    == 86400000UL,  "1 day must be exact on a 16-bit int");
 
 // Message 版: MT=43 はカテゴリ条件の表、MT=44 は A8-Hazard Duration の上限を使う。
 inline uint32_t dedupWindowMs(const Message& m) {
-    // MT=44 (DCX/CAMF) は配信終了条件の代わりに A8-Hazard Duration の上限を使う（QZS 事務局回答）。
     // A8=00 (Unknown) は DCX §5.4「All Clear 未受信かつ A8=00 のときは 1 週間前以前に受信した警報を消去する」に従い 7 日。
     if (m.payload_type == MsgPayloadType::Mt44) {
         const Mt44Data* c = m.getMt44();
-        if (!c) return AZARAC_DEDUP_WINDOW_MS;   // DCX 無効時は payload_type が 44 にならないため通常は到達しない
+        if (!c) return AZARAC_DEDUP_WINDOW_MS;   // DCX 無効時は payload_type=44 にならない（通常は到達しない）
 #if defined(__AVR__)
         // AVR は 7 日の窓を保持する余裕がないので上限を設ける（azaraC_config.h、issue #34 の実測: 再送間隔は最大 16 秒）。A8 の窓は最短でも 6 時間なので上限が常に効く。
         return AZARAC_DEDUP_MT44_MAX_WINDOW_MS;

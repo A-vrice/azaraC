@@ -1,4 +1,5 @@
 #include "NmeaFramer.h"
+#include "../azaraC_config.h"
 #if defined(__AVR__)
 #include "../internal/avr_std/cstring"
 #else
@@ -61,60 +62,64 @@ bool NmeaFramer::feed(uint8_t b, Frame& out) {
 
 bool NmeaFramer::parse(Frame& out) {
     // Expected: QZQSM,<svid>,<hex-data>
-    if (strncmp(_buf, "QZQSM,", 6) != 0) return false;
+    // 先頭 6 バイトは固定なので Flash に置く（素のリテラルは avr-libc のリンカスクリプトで .data = SRAM に入る）。
+    // リテラルは AZARAC_STRNCMP_P が PSTR で包むので、ここでは素のままでよい（ホストでは no-op）。
+    if (AZARAC_STRNCMP_P(_buf, "QZQSM,", 6) != 0) return false;
 
     char* p = _buf + 6;
     uint16_t svid_tmp = 0;
-    bool has_digit = false;
+    uint8_t digit_count = 0;
     while (*p && *p != ',') {
         if (*p >= '0' && *p <= '9') {
             svid_tmp = svid_tmp * 10 + (*p - '0');
-            has_digit = true;
+            ++digit_count;
             if (svid_tmp > 255) return false;
         } else {
             return false;
         }
         p++;
     }
-    if (!has_digit || *p != ',') return false;
+    // 仕様の Satellite ID は「PRN 下位 6bit の2桁10進」（IS-QZSS-DCR-017 §4.3.1 / DCX-004 §4.3.1、Table 4.3.1-1）。
+    // 1桁は下位 6bit の範囲外（PRN 183 = 55 は2桁）で、3桁は `| 0x80` しても PRN 契約（181-191）の外の値になる（100 → 228）。
+    // 64-99 は2桁だが 6bit に収まらないため拒否する（64 → 192）。0-52 は 6bit としては有効だが
+    // PRN 128-180 に対応し、L1S の PRN 契約（181-191）の外になる。フレーマーは通し、利用側が svid で絞る。
+    // azarashi も長さ 2 を要求して拒否する。
+    if (digit_count != 2 || *p != ',' || svid_tmp > 63) return false;
     uint8_t svid = static_cast<uint8_t>(svid_tmp);
     ++p;
 
-    // hex decode into bits[] — single pass
     memset(out.bits, 0, sizeof(out.bits));
     uint8_t byte_idx = 0;
     uint8_t hex_count = 0;
     uint8_t nibble = 0;
 
     while (*p && ((*p >= '0' && *p <= '9') || (*p >= 'A' && *p <= 'F') || (*p >= 'a' && *p <= 'f'))) {
-        if (hex_count >= 64) return false;  // reject payloads longer than 64 hex chars
+        if (hex_count >= 64) return false;
         uint8_t val = hexVal(*p++);
-        if (val == 0xFF) return false;      // defensive: loop condition already filters
+        if (val == 0xFF) return false;      // 保険: ループ条件で既に弾いている
         hex_count++;
-        if (byte_idx >= 32) continue;       // first 32 bytes captured; keep counting
+        if (byte_idx >= 32) continue;       // 数えるのは続ける: 総長の検証は hex_count が行う
         nibble = (nibble << 4) | val;
         if ((hex_count & 1) == 0) {
             out.bits[byte_idx++] = nibble;
             nibble = 0;
         }
     }
-    // QZSS L1S = 252 bits (250 data + 2-bit padding, spec Table 4.3.1-1) = 63 hex chars;
-    // some receivers output 64, so accept both. Anything after the hex payload (before '*', already NUL-terminated by feed) is garbage -> reject.
+    // QZSS L1S = 252 bit（250 bit データ + 2 bit 詰め物、仕様 Table 4.3.1-1）= 63 hex 文字だが、64 文字で送る受信機もあるので両方受ける。
+    // '*' より前の余分なバイト（feed が NUL 終端済み）はゴミなので拒否する。
     if (hex_count != 63 && hex_count != 64) return false;
     if (*p != '\0') return false;
 
-    // Handle trailing nibble (odd hex length, e.g. 63 chars)
     if ((hex_count & 1) && byte_idx < 32) {
         out.bits[byte_idx++] = nibble << 4;
     }
-    // 64 hex chars (32 bytes): mask lower nibble (bits 252-255); bits 250-251 are spec-guaranteed 00
+    // 64 hex 文字（32 バイト）: bit 252-255 をマスクする。bit 250-251 は仕様上 0 が保証される
     if (hex_count >= 63) {
-        out.bits[31] &= 0xC0;  // 250 data bits MSB-first, byte31 bits 5..0 are padding
+        out.bits[31] &= 0xC0;
     }
 
-    // QZQSM の Satellite ID は「PRN を表す 8bit の下位 6bit」(DCR-017 §4.3.1 /
-    // DCX-004 §4.3.1)。Frame::svid の契約は PRN（api-reference.md の 181-191）なので、生 ID に上位ビットを立てて PRN に正規化する。
-    // 既に PRN（>=128）が入っている場合は | 0x80 が恒等なので二重変換しない。
+    // QZQSM の Satellite ID は PRN の下位 6bit (DCR-017 §4.3.1 / DCX-004 §4.3.1)。
+    // Frame::svid は PRN 契約 (api-reference.md の 181-191) なので上位ビットを立てて正規化する。既に PRN (>=128) なら | 0x80 は恒等。
     out.svid = static_cast<uint8_t>(svid | 0x80);
 
     return true;

@@ -1,6 +1,6 @@
 #pragma once
-// Main message struct.
-// Safe tagged union: payload held in raw aligned storage; copy/destroy use placement-new + explicit destructor. Payload sub-objects must stay trivially copyable (Mt43Data::copyFrom uses memcpy).
+// メッセージ本体: raw な整列ストレージ上のタグ付き union。コピー/破棄は placement-new と明示的デストラクタで行う。
+// payload の各型は trivially copyable のまま維持すること（Mt43Data::copyFrom はストレージを memcpy する）。
 
 #if defined(__AVR__)
 #include "internal/avr_std/cstdint"
@@ -45,8 +45,7 @@ struct Message {
     UnsupportedReason unsupported_reason = UnsupportedReason::None;
     MsgPayloadType payload_type = MsgPayloadType::Empty;
 
-    // Max of enabled payloads for safe placement-new.
-    // DCX off: Mt44 is never decoded, so drop its storage to save SRAM (Uno has 2 KB; Mt44Data alone is ~280 B per Message).
+    // 有効な payload の最大サイズ（DCX off では Mt44 を復号しないのでその ~280 B/Message を削る。Uno は 2 KB）。
     // Ternary instead of std::max: Arduino.h defines `max` as a macro.
 #if AZARAC_ENABLE_DCX_CAMF
     static constexpr size_t payload_size_ =
@@ -54,7 +53,6 @@ struct Message {
 #else
     static constexpr size_t payload_size_ = sizeof(Mt43Data);
 #endif
-    alignas(8) unsigned char payload_storage_[payload_size_];
 
     Message() : payload_type(MsgPayloadType::Empty) {
         memset(payload_storage_, 0, sizeof(payload_storage_));
@@ -105,7 +103,6 @@ struct Message {
         // Compile-time guard: instantiating a disabled payload (e.g. Mt44 with AZARAC_ENABLE_DCX_CAMF=0) fails here instead of overflowing.
         static_assert(sizeof(T) <= payload_size_,
                       "Payload type exceeds Message storage (disabled at compile time?)");
-        // Payload triviality is guarded by Mt43Data::initAs<T>().
         destroyPayload();
         new (payload_storage_) T();
         payload_type = typeForPayload<T>();
@@ -140,6 +137,10 @@ struct Message {
     }
 
 private:
+    // 生の payload 領域。生存期間と型は initPayload<T>() / getMt43() / getMt44() だけが決める（公開すると initPayload() 無しで payload_type と不整合に書ける）。
+    // payload には uint64_t を含む型（Mt44Data 等）が入るため境界が必要。AVR の alignof(uint64_t) は 1 なので、この指定は AVR では境界を要求しない（8 の倍数への切り上げが起きない）。ホストは 8 のまま。
+    alignas(uint64_t) unsigned char payload_storage_[payload_size_];
+
     template<typename T> static MsgPayloadType typeForPayload();
 
     void destroyPayload() {

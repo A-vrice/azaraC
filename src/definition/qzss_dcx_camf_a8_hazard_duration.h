@@ -1,12 +1,7 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.17.1 with CI-CD
-// Source module : azarashi.definitions.camf.a8_hazard_duration
-// Variable      : qzss_dcx_camf_a8_hazard_duration
-// Entries       : 4
-// Strategy      : switch
-
-// NOTE: This function may return nullptr for unknown IDs.
-// Callers MUST perform a null-check before using the result.
+// AUTO-GENERATED from azarashi 0.17.1 — do not edit
+// azarashi.definitions.camf.a8_hazard_duration → qzss_dcx_camf_a8_hazard_duration: 4 entries, strategy switch
+// Unknown id returns nullptr — callers MUST null-check.
 
 #if defined(__AVR__)
 #include "../internal/avr_std/cstdint"
@@ -26,12 +21,16 @@ namespace def {
 #if (AZARAC_ENABLE_DCX_CAMF)
 
 #if defined(__AVR__)
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_A8_HAZARD_DURATION_C0[] = "Unknown";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_A8_HAZARD_DURATION_C1[] = "Duration < 6H";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_A8_HAZARD_DURATION_C2[] = "6H <= Duration < 12H";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_A8_HAZARD_DURATION_C3[] = "12H <= Duration < 24H";
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_a8_hazard_duration_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 0: { static const char AZARAC_PROGMEM s[] = "Unknown"; return azarac_pgm_view(s, 7); }
-        case 1: { static const char AZARAC_PROGMEM s[] = "Duration < 6H"; return azarac_pgm_view(s, 13); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "6H <= Duration < 12H"; return azarac_pgm_view(s, 20); }
-        case 3: { static const char AZARAC_PROGMEM s[] = "12H <= Duration < 24H"; return azarac_pgm_view(s, 21); }
+        case 0: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCX_CAMF_A8_HAZARD_DURATION_C0), 7);
+        case 1: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCX_CAMF_A8_HAZARD_DURATION_C1), 13);
+        case 2: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCX_CAMF_A8_HAZARD_DURATION_C2), 20);
+        case 3: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCX_CAMF_A8_HAZARD_DURATION_C3), 21);
         default: return std::nullopt;
     }
 }

@@ -1,9 +1,7 @@
 #pragma once
 // Nankai Trough Earthquake multi-page aggregation buffer
 //
-// Pages are written DIRECTLY into aggregated_text[] at offset (page_num-1)*TEXT_PER_PAGE;
-// a 64-bit bitmap tracks received pages. No separate PageData array (saves ~1KB at
-// MAX_PAGES=63), no sorting, O(1) duplicate detection. total_pages > MAX_PAGES truncates.
+// ページは aggregated_text[] の (page_num-1)*TEXT_PER_PAGE へ直接書き、受信済みページは 64 bit の bitmap で管理する — PageData 配列を持たず（MAX_PAGES=63 で約 1 KB 節約）、ソートもせず、重複判定は O(1)。total_pages > MAX_PAGES なら打ち切る。
 
 #if defined(__AVR__)
 #include "avr_std/cstdint"
@@ -20,27 +18,26 @@
 namespace azaraC {
 namespace internal {
 
-// Event key. svid deliberately excluded: multiple QZSS satellites relay the same message, so including svid would create duplicate buffers for one event.
-//
-// Identity is {info_code, information_type, report_time month/day/hour/minute} and the DHM values are the RAW protocol bits (NankaiData::report_*), not the normalized
-// Mt43Data::event_time: resolveTime() rewrites out-of-calendar dates (2/30 → 3/1) and picks a month when the field is 0, so a page arriving with a report_unix baseline would hash differently from one arriving without — splitting one event across buffers. Raw bits keep the identity stable across resolution changes.
-//
-// information_type（It: 0=発表 / 2=取消）は鍵に含める。含めないと同一 info_code + 同一報告時刻の発表と取消が1つのバッファに載り、同じ Pn のページが先着優先で捨てられて2つの文面が混ざる（集約テキストの破損）。dedup 側の事象トークンも同じ 6 フィールドを使う（internal/Dedup.h の dedupEventToken）。
+// 事象の鍵。svid は除外（複数衛星が同一電文を中継するため重複する）。
+// identity = {info_code, information_type, 生の report_time DHM}。
+// DHM は正規化前の生プロトコルビット（NankaiData::report_*）: Mt43Data::event_time は resolveTime() が 2/30→3/1 を書き換え、月 0 を補完するため、report_unix の有無でハッシュが割れ、1 事象が複数バッファに分かれる。
+// information_type（It: 0=発表 / 2=取消）も鍵に必要（無いと発表と取消が同じ Pn を先着優先で潰し合い文面が混ざる）。
+// dedup 側も同じ 6 フィールドを使う（Dedup.h dedupEventToken）。
 struct NankaiPageKey {
     uint8_t  info_code = 0;        // 1B — Is (Information Serial Code, 4b)
-    uint8_t  information_type = 0; // 1B — It (2b: 0=発表, 2=取消)
     uint8_t  report_month  = 0;    // 1B — raw report_time month (4b)
     uint8_t  report_day    = 0;    // 1B — raw report_time day (5b)
     uint8_t  report_hour   = 0;    // 1B — raw report_time hour (5b)
     uint8_t  report_minute = 0;    // 1B — raw report_time minute (6b)
+    uint8_t  information_type = 0; // 1B — It (2b: 0=発表, 2=取消)
     // 合計 6B（パディングなし）
 
     constexpr NankaiPageKey() = default;
-    // it は末尾の既定引数: 既存の呼び出し {ic, mo, d, h, m} の意味を変えない。
+    // it は末尾の既定引数（既存呼び出し {ic, mo, d, h, m} の意味を変えない）。
     constexpr NankaiPageKey(uint8_t ic, uint8_t mo = 0, uint8_t d = 0, uint8_t h = 0, uint8_t m = 0,
                             uint8_t it = 0)
-        : info_code(ic), information_type(it), report_month(mo), report_day(d), report_hour(h),
-          report_minute(m) {}
+        : info_code(ic), report_month(mo), report_day(d), report_hour(h),
+          report_minute(m), information_type(it) {}
 
     bool operator==(const NankaiPageKey& o) const {
         return info_code == o.info_code &&
@@ -61,13 +58,14 @@ struct NankaiPageKey {
     }
 };
 
-// Page aggregation buffer for a single event. Pages written directly at (page_num-1)*TEXT_PER_PAGE; bitmap tracks received pages.
-// Truncation: if total_pages > MAX_PAGES, keep pages 1..MAX_PAGES and set truncated; the rest are silently dropped.
-// ページ数上限・バッファ数は azaraC_config.h の
-// AZARAC_NANKAI_MAX_PAGES / AZARAC_NANKAI_BUFFERS が唯一の定義元。
-// MAX_PAGES の範囲は spec の Pn/Pm（1-63, 6bit）に従う。
+// 6 バイト（パディングなし）を固定する: 鍵はページ受信のたびにコピーされ、バッファごとに 1 個常駐する。
+static_assert(sizeof(NankaiPageKey) == 6, "NankaiPageKey must stay 6 bytes");
 
-// Static assertion ensures MAX_PAGES fits in a 64-bit bitmap (63 max per spec)
+// 1 事象分のページ集約バッファ。
+// 打ち切り: total_pages > MAX_PAGES なら pages 1..MAX_PAGES を残して truncated を立て、残りは静かに破棄する。
+// ページ数上限・バッファ数は azaraC_config.h の AZARAC_NANKAI_MAX_PAGES / AZARAC_NANKAI_BUFFERS が唯一の定義元（範囲は spec の Pn/Pm: 1-63, 6bit）。
+
+// MAX_PAGES は 64-bit bitmap に収まる 63 まで（spec の Pn/Pm 上限）
 static_assert(AZARAC_NANKAI_MAX_PAGES > 0 && AZARAC_NANKAI_MAX_PAGES <= 63,
               "AZARAC_NANKAI_MAX_PAGES must be in range 1-63");
 
@@ -75,7 +73,7 @@ struct NankaiPageBuffer {
     static constexpr uint8_t MAX_PAGES = AZARAC_NANKAI_MAX_PAGES;
     static constexpr uint8_t SPEC_MAX_PAGES = 63;  // Official maximum (6 bits)
     static constexpr uint8_t TEXT_PER_PAGE = 18;
-    static constexpr uint32_t TIMEOUT_MS = 60000;  // 60 seconds timeout
+    static constexpr uint32_t TIMEOUT_MS = 60000;
 
     NankaiPageKey key;                  // 6B
     uint64_t received_bitmap = 0;       // 8B — bitmap: bit (page_num-1) set when received
@@ -91,47 +89,42 @@ struct NankaiPageBuffer {
         clearAll();
     }
 
-    // Add a page (page_num 1-based, total_pages_in from Pm, text_data 18 bytes).
-    // Returns true if added.
+    // ページを追加する（page_num は 1 始まり、total_pages_in は Pm 由来、text_data は 18 バイト）。追加できたら true。
     bool addPage(uint8_t page_num, uint8_t total_pages_in, const uint8_t* text_data, uint64_t current_ms) {
-        // Page number range check (1-63 per spec)
+        // Pn は 1-63 (spec)
         if (page_num == 0 || page_num > SPEC_MAX_PAGES) {
             return false;
         }
 
-        // total_pages_in exceeds capacity → cap to MAX_PAGES
         uint8_t effective_total = total_pages_in;
         if (total_pages_in > MAX_PAGES) {
             effective_total = MAX_PAGES;
-            // truncated flag set once (first call)
+            // truncated は初回呼び出しで一度だけ立てる
             if (this->total_pages == 0) {
                 truncated = true;
             }
         }
 
-        // Page number must be within effective range
         if (page_num > effective_total) {
             return false;
         }
 
-        // Set total_pages on first call
         if (this->total_pages == 0) {
             this->total_pages = effective_total;
             this->original_total_pages = total_pages_in;
         }
 
-        // total_pages_in must match (original value for consistency check)
+        // 以降の total_pages_in は初回値と一致必須
         if (this->original_total_pages != total_pages_in) {
             return false;
         }
 
-        // Duplicate check via bitmap (O(1))
+        // bitmap による重複判定 O(1)
         uint64_t mask = 1ULL << (page_num - 1);
         if (received_bitmap & mask) {
-            return false;  // Already received
+            return false;
         }
 
-        // Write directly to aggregated_text at offset (page_num-1) * 18
         uint16_t offset = static_cast<uint16_t>(page_num - 1) * TEXT_PER_PAGE;
         memcpy(aggregated_text + offset, text_data, TEXT_PER_PAGE);
         received_bitmap |= mask;
@@ -146,12 +139,10 @@ struct NankaiPageBuffer {
         return received_count >= total_pages;
     }
 
-    // Text length excluding null terminator; stops at first 0x00 per page (UTF-8 has no NUL).
-    // Safe on incomplete buffers: only reads received pages.
+    // NUL を除いたテキスト長。ページごとに最初の 0x00 で止まる（UTF-8 に NUL は無い）。未完成のバッファでも安全（受信済みページしか読まない）。
     uint16_t getTextLength() const {
         uint16_t len = 0;
 
-        // Iterate only received pages (checked via bitmap)
         uint64_t bm = received_bitmap;
         uint8_t p = 0;
         while (bm && p < total_pages) {
@@ -167,8 +158,8 @@ struct NankaiPageBuffer {
     }
 
     // Compact received pages into a contiguous C string (call only when complete).
-    // Non-final pages may be short (NUL hole); getTextLength sums per-page lengths but serialize emits [ptr, ptr+len) contiguously, so holes would leak NULs.
-    // In-place is safe: w <= p*TEXT_PER_PAGE always, earlier writes end at or before the next source page.
+    // 最終ページ以外は短いことがある（NUL の穴）— serialize は [ptr, ptr+len) を連続で出力するので、穴があると NUL が漏れる。
+    // その場での圧縮は安全: 常に w <= p*TEXT_PER_PAGE で、書き込みが次のソースページに達することはない。
     uint16_t compactText() {
         uint16_t w = 0;
         for (uint8_t p = 0; p < total_pages; ++p) {
@@ -202,7 +193,7 @@ struct NankaiPageBuffer {
         return total_pages == 0;
     }
 
-    // Empty buffers hold an all-zero key, which would otherwise equal a zero-key event and bind incoming pages to a free slot instead of the buffer already tracking the event. Never match an empty buffer.
+    // 空バッファの鍵は all-zero で zero-key 事象と一致してしまうため、空バッファは決してマッチさせない。
     bool matchesKey(const NankaiPageKey& k) const {
         return !isEmpty() && key == k;
     }
@@ -220,8 +211,7 @@ private:
     }
 };
 
-// Manages multiple page buffers with bitmap tracking + LRU eviction;
-// buffer count = AZARAC_NANKAI_BUFFERS (defined in azaraC_config.h).
+// 複数のページバッファを bitmap 追跡 + LRU 追い出しで管理する。バッファ数 = AZARAC_NANKAI_BUFFERS（azaraC_config.h）。
 
 static_assert(AZARAC_NANKAI_BUFFERS > 0 && AZARAC_NANKAI_BUFFERS <= 32,
               "AZARAC_NANKAI_BUFFERS must be in range 1-32");
@@ -240,24 +230,19 @@ public:
     NankaiPageBuffer* addPage(const NankaiPageKey& key, uint8_t page_num,
                                uint8_t total_pages, const uint8_t* text_data,
                                uint64_t current_ms) {
-        // Expire old buffers
         expireBuffers(current_ms);
 
         int8_t idx = findBuffer(key);
 
         if (idx < 0) {
-            // No existing buffer, find empty slot
             idx = findEmptyBuffer();
             if (idx < 0) {
-                // No empty slot, use LRU eviction (oldest buffer)
                 idx = findOldestBuffer(current_ms);
             }
-            // Initialize new buffer
             _buffers[idx].clearAll();
             _buffers[idx].setKey(key);
         }
 
-        // Add page to buffer
         if (_buffers[idx].addPage(page_num, total_pages, text_data, current_ms)) {
             if (_buffers[idx].isComplete()) {
                 return &_buffers[idx];
@@ -272,7 +257,6 @@ public:
         return (idx >= 0) ? &_buffers[idx] : nullptr;
     }
 
-    // Clear all buffers
     void clearAll() {
         for (uint8_t i = 0; i < MAX_BUFFERS; ++i) {
             _buffers[i].clearAll();
@@ -306,7 +290,7 @@ private:
         int8_t oldest_idx = 0;
 
         for (uint8_t i = 0; i < MAX_BUFFERS; ++i) {
-            // Empty buffers have age 0 and are picked only if nothing is older
+            // 空バッファの age は 0（他に古いものが無い場合のみ選ばれる）
             uint64_t age = _buffers[i].isEmpty() ? 0 : (current_ms - _buffers[i].last_update_ms);
             if (age > max_age) {
                 max_age = age;

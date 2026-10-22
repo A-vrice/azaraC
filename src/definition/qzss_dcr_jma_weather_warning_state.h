@@ -1,12 +1,7 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.17.1 with CI-CD
-// Source module : azarashi.definitions.qzss.dcr.weather_warning_state
-// Variable      : qzss_dcr_jma_weather_warning_state
-// Entries       : 2
-// Strategy      : switch
-
-// NOTE: This function may return nullptr for unknown IDs.
-// Callers MUST perform a null-check before using the result.
+// AUTO-GENERATED from azarashi 0.17.1 — do not edit
+// azarashi.definitions.qzss.dcr.weather_warning_state → qzss_dcr_jma_weather_warning_state: 2 entries, strategy switch
+// Unknown id returns nullptr — callers MUST null-check.
 
 #if defined(__AVR__)
 #include "../internal/avr_std/cstdint"
@@ -26,10 +21,12 @@ namespace def {
 #if (AZARAC_ENABLE_WEATHER) && (AZARAC_LANG_JA)
 
 #if defined(__AVR__)
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_WEATHER_WARNING_STATE_C1[] = "発表";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_WEATHER_WARNING_STATE_C2[] = "解除";
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_weather_warning_state_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 1: { static const char AZARAC_PROGMEM s[] = "発表"; return azarac_pgm_view(s, 6); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "解除"; return azarac_pgm_view(s, 6); }
+        case 1: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_WEATHER_WARNING_STATE_C1), 6);
+        case 2: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_WEATHER_WARNING_STATE_C2), 6);
         default: return std::nullopt;
     }
 }

@@ -1,7 +1,6 @@
 #pragma once
 // azaraC - src/internal/avr_std/cstring
-// Minimal <cstring> shim for the Arduino AVR toolchain (no libstdc++).
-// avr-libc provides <string.h>.
+// Arduino AVR ツールチェーン（libstdc++ なし）向けの最小限の <cstring> shim。avr-libc が <string.h> を提供する。
 
 #if defined(AZARAC_AVR_STUB)
 #include <cstring>

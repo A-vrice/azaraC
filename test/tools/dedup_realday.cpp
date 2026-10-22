@@ -14,9 +14,8 @@
 //   REALDAY_MISSED       — 生きていない情報を重複と誤判定した回数
 //   REALDAY_UNALIGNED    — 1 秒境界（bit 40 + n*288）に載らなかった CRC 有効フレーム数（0 でなければ入力の枠組みが想定と違う = 数字を信用しない）
 //
-// 窓・ハッシュ・カテゴリ判定はすべてライブラリ本体と同じものを使う:
-// Decoder::decode で電文を復号し、internal::dedupWindowMs(Message) で窓を取り、
-// internal::DedupFilter で判定する。表やカテゴリ判定をここで写すと、計測対象が本体から静かにずれる（payload を渡さない窓は津波・気象・洪水・海上を 3〜10 時間と誤って短く見積もる、など）。
+// 窓・ハッシュ・カテゴリ判定はすべてライブラリ本体と同じものを使う: Decoder::decode で復号し、internal::dedupWindowMs(Message) で窓を取り、internal::DedupFilter で判定する。
+// 表やカテゴリ判定をここに写すと計測対象が本体から静かにずれる（payload を渡さない窓は津波・気象・洪水・海上を 3〜10 時間と誤って短く見積もる、など）。
 
 #define ARDUINO 0
 #include "azaraC.h"
@@ -48,12 +47,10 @@ struct FrameRef {
     uint8_t  category;   // disaster_category (MT=44 はカテゴリ番号なし → 0)
 };
 
-// .l1s は 36 B/秒（288 bit）、フレーム（250 bit）は各秒の bit 40 から始まる。
-// ファイル全体を走査し、Decoder が受理するフレームだけを採る（固定レコード長にもカテゴリのマクロ構成にも依存しない — 無効カテゴリは decode() が false を返す）。
+// .l1s は 36 B/秒（288 bit）で、フレーム（250 bit）は各秒の bit 40 から始まる。全体を走査し Decoder が受理したフレームだけを採る（無効カテゴリは decode() が false を返すので、固定レコード長にもマクロ構成にも依存しない）。
 //
-// 南海トラフ（dc=4）は除く: Parser はページを集約し事象トークンで判定するので、電文単位の鍵とは軸が違う。集約の同一性は test/bench の NANKAI_KEY_STABLE が見る。
-// unaligned には「1 秒境界（bit 40 + n*288）に載っていない CRC 有効フレーム」の数を返す。
-// slot は受信秒なので、境界に無いフレームに秒を割り当てると隣の秒へ化ける。このアーカイブでは 0 だが、別の形式の .l1s を渡されたときに黙って壊れた数字を出さないよう数えて除外する（0 でなければ REALDAY_UNALIGNED が 0 以外になる）。
+// 南海トラフ(dc=4)は除く: Parser はページを集約し事象トークンで判定するので電文単位の鍵とは軸が違う（集約の同一性は test/bench の NANKAI_KEY_STABLE が見る）。
+// unaligned には「1 秒境界（bit 40 + n*288）に載らない CRC 有効フレーム」の数を返す: slot は受信秒なので、境界にないフレームへ秒を割り当てると隣の秒に化ける（このアーカイブでは 0 だが、別形式の .l1s で黙って壊れた数字を出さないよう数えて除外する）。
 std::vector<FrameRef> extractFrames(const std::vector<uint8_t>& data, Decoder& decoder,
                                     size_t& unaligned) {
     std::vector<FrameRef> out;
@@ -68,7 +65,7 @@ std::vector<FrameRef> extractFrames(const std::vector<uint8_t>& data, Decoder& d
         return v;
     };
 
-    // 走査上限は 256 bit（Frame::bits 全体）。k<32 のコピーが off+0..255 を読むため、 250 で切ると末尾 5 bit がバッファ外に出る（このアーカイブは 36 B/秒 + 端数 1 B で実際に到達する）。
+    // 走査上限は 256 bit（Frame::bits 全体）: k<32 のコピーが off+0..255 を読むため 250 で切ると末尾 5 bit がバッファ外に出る（このアーカイブは 36 B/秒 + 端数 1 B で実際に到達する）。
     for (size_t off = 40; off + 256 <= total_bits; ++off) {
         const uint8_t preamble = (uint8_t)get(off, 8);
         if (preamble != 0x53 && preamble != 0x9A && preamble != 0xC6) continue;
@@ -97,8 +94,7 @@ inline bool sameId(const Identity& a, const Identity& b) {
     return a.mt == b.mt && a.digest == b.digest;
 }
 
-// 生存ピーク: 各情報を自身の窓で失効させ、再受信で最終受信時刻を更新する。
-// 計算量は O(n·live)。1 日分のオフライン計測専用で、長期の実測に使うなら時刻順の優先度付きキューで失効させる。
+// 生存ピーク: 各情報を自身の窓で失効させ、再受信で最終受信時刻を更新する。O(n·live) のオフライン計測専用（長期間なら時刻順の優先度付きキューで失効させる）。
 size_t peakLive(const std::vector<FrameRef>& frames, bool perCategoryWindow) {
     struct Live { Identity id; uint32_t last_ms; uint32_t window_ms; };
     std::vector<Live> live;
@@ -184,7 +180,7 @@ int main(int argc, char* argv[]) {
     DedupFilter filter;
     size_t expected_dup = 0, false_re = 0, missed = 0, suppressed = 0;
 
-    // カテゴリ別の内訳。expected = 窓内の再受信なので抑制が正解。MISSED は「窓外＝新規のはずなのに抑制した」＝通知が落ちる側（危険側）なので、どの災害でどれだけ落ちるかをカテゴリごとに数える。判定はメインループと同一。
+    // カテゴリ別の内訳。expected = 窓内の再受信なので抑制が正解。MISSED は「窓外＝新規のはずなのに抑制した」＝通知が落ちる側（危険側）で、どの災害でどれだけ落ちるかを数える。判定はメインループと同一。
     struct CatStat {
         size_t frames = 0, distinct = 0, false_re = 0, missed = 0;
         std::vector<Identity> seen_ids;

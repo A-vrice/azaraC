@@ -29,15 +29,15 @@ azaraC の `JsonSerializer`（C++ / `Print&`）が出力する JSON と、参照
 |--|--|
 | `invalid_mt43` | MT43として解析に失敗 |
 | `invalid_mt44` | MT44として解析に失敗 |
-| `unsupported_msg_type` | MTが43/44ではない。`crc24`フィールドの直後に`note`を出力しそれ以降のフィールドは出力なし。 |
-| `unsupported_category`| 非対応のカテゴリ。MT43のメタ情報を出力するが`"data":{"note":"unsupported_category"}`となる |
+| `unsupported_msg_type` | MTが43/44ではない、または当該型のシリアライザがビルド無効（例: `AZARAC_ENABLE_DCX_CAMF=0` の MT44）。`crc24`フィールドの直後に`note`を出力しそれ以降のフィールドは出力なし。 |
+| `unsupported_category`| 引き受けるシリアライザが無いカテゴリ（規格に無い 7/13 や、そのカテゴリの `AZARAC_ENABLE_*` が無効なビルド）の `Mt43Data` を直列化した場合。MT43のメタ情報を出力するが`"data":{"note":"unsupported_category"}`となる。受信電文の復号では無効カテゴリは拒否される（`feed()` は `false`、`payload_type` は `Empty`）ので、この note は出ない |
 
 ### 1.1 共通ヘッダ
 
 | キー | 型 | 内容 |
 |---|---|---|
 | `schema_version` | int | 常に 2 |
-| `svid` | int | QZSS L1S PRN。`NmeaFramer` は受理した Satellite ID を `\| 0x80` で正規化（53→181, 54→182, 55–63→183–191）。`UbxFramer` は `ublox_qzss_svid_prn_map` で変換（1–4→183–186、7→189）し、表に無い `svId` は入力値のまま通す |
+| `svid` | int | QZSS L1S PRN。`NmeaFramer` は受理した Satellite ID を `\| 0x80` で正規化（53→181, 54→182, 55–63→183–191）。64–99 は 6bit 外なので拒否し、0–52 は通すが PRN 128–180 で契約外。`UbxFramer` は `ublox_qzss_svid_prn_map` で変換（1–4→183–186、7→189）し、表に無い `svId` は入力値のまま通す |
 | `msg_type` | int | 43 / 44 |
 | `crc24` | str | `"0x00F92C3F"`。azarashi の出力には無い |
 | `data` | obj | 本文（§1.2 / §1.3）。失敗時は代わりに `note` |
@@ -60,13 +60,14 @@ MT44 のルートは `crc24` までで、A フィールド・拡張部・`sd_sdm
 | 5 | 津波 | `warning_code`(+`_label`), `entries[]{arrival_time_raw,arrival_status?,arrival_time?,height(+`_label`),height_lower,height_upper,region(+`_label`)}` |
 | 6 | 北西太平洋津波 | `potential`(+`_label`), `entries[]{…cat5 と同形}` |
 | 8 | 火山 | `ambiguity`(+`_label`), `activity_time`, `warning_code`(+`_label`), `volcano_name`(+`_label`), `local_govs[]{code,label}` |
-| 9 | 降灰 | `activity_time`, `warning_type`(+`_label`), `volcano_name`(+`_label`), `entries[]{arrival_time_code(+_label),warning_code(+_label),local_gov(+_label)}` |
+| 9 | 降灰 | `activity_time`, `warning_type`(+`_label`), `volcano_name`(+`_label`), `entries[]{arrival_time_code,arrival_time_label,warning_code(+`_label`),local_gov(+`_label`)}` |
 | 10 | 気象 | `warning_state`(+`_label`), `entries[]{region(+_label),sub_category(+_label)}` |
 | 11 | 洪水 | `entries[]{region(+_label),warning_level(+_label)}` |
 | 12 | 台風 | `coords`, `elapsed`(+`_label`), `intensity`(+`_label`), `max_gust`(+`_label`), `max_wind`(+`_label`), `number`(+`_label`), `pressure`(+`_label`), `ref_type`(+`_label`), `reference_time`, `scale`(+`_label`) |
 | 14 | 海上 | `entries[]{region(+_label),warning_code(+_label)}` |
 
-カテゴリ 6 の電文を検証しているのは `test/integration/test_realdata.cpp`。洪水の予報区コードのように 10 桁を超えるコードは `uint64_t` のまま数値で出る。
+カテゴリ 6 の電文を検証しているのは `test/data/test_realdata_generated.cpp`。洪水の予報区コードのように 10 桁を超えるコードは `uint64_t` のまま数値で出る。
+各行はそのカテゴリの `AZARAC_ENABLE_*` が有効なビルドでの形。無効なビルドでは復号器がそのカテゴリの電文を拒否する（`feed()` は `false`、`payload_type` は `Empty`、`unsupported_reason` は `DisabledAtCompileTime`）ため、受信電文からこの表の形は出ない。`unsupported_category` は手動で構築した `Mt43Data`（規格に無いカテゴリ 7/13 など）を直列化したときだけ出る（§1 の note 表）。
 
 津波の到着時刻は `arrival_time_raw`（12bit: day_offset 1 + hour 5 + min 6）だけを残し、`arrival_time` は解決できたときだけオブジェクト、できないときは `null`となる。
 解決できなかった理由は `arrival_status` に出る（解決時の出力はなし）
@@ -109,7 +110,7 @@ A フィールド: `dcx_type`（`"NULL"` / `"L_ALERT"` / `"J_ALERT"` / `"LOCAL_G
 | `ex1_target_area`(+`_label`), `target_area_code` | L-Alert | — |
 | `ex8_area_type` | J-Alert | — |
 | `ex11_raw` | 国外 | — |
-| `ex_vn` | 拡張部あり | 拡張部の版数 |
+| `ex_vn` | 拡張部あり | L-Alert/地方自治体と国外では data 直下、J-Alert では `jalert_target.ex_vn`（`jalert_target` の最後のキー） |
 | `sd_sdmt`, `sd_sdm` | 常時（MT44 の最後） | — |
 
 `main_ellipse` は 130 通中 8 通に出て、いずれも `b1_refinement` を伴う（A17=0 でも C1–C4 が非ゼロなら B1 として出る）。
@@ -151,7 +152,7 @@ Dフィールドを持たないハザード（例 a4=1）では`detailed_info` �
 | `a11_guidance_label` のみ: A9=1 かつ A2≠111（国/地域ライブラリが日本以外に無い） | `"a11_guidance_label": null` / `"a11_guidance_list_b_label": null` |
 
 `AZARAC_LANG_JA=1` かつ `AZARAC_LANG_EN=1` の構成では、文字列リテラルのキーを持つ `_label` の後に `_label_en` も出力される。
-`_label_en` を持たないのは汎用キーのラベル（`notifications[].label`, `regions[].region_label`, `prefectures[].label`, `cities[].label`, `entries[].label`, `local_govs[].label`）で、これらは要素ごとにコード体系が異なるため固定キー名の `_label_en` では処理できない。詳細は[API リファレンス](api-reference.md#言語選択)を参照。
+`_label_en` を持たないのは汎用キー（`keys::label` / `keys::region_label`）で出力するラベル（`notifications[].label`, `regions[].label`, `prefectures[].label`, `cities[].label`, `local_govs[].label`, `entries[].region_label`）です。固定の文字列リテラルキー（`AZARAC_LABEL`）は配列要素でも `_label_en` を併記します（例: 震度の `entries[].intensity_label`）。詳細は[API リファレンス](api-reference.md#言語選択)を参照。
 
 ---
 
@@ -288,7 +289,7 @@ CAMF の表は英語のみなので `_label_en` は出ない。List A / List B �
 `month` / `day` / `hour` / `min` は生の分解値のまま（未解決時は 0）。
 
 - 津波の到着時刻は §1.2 の `arrival_status` で状態を明示する。例
-  （`test/integration/test_realdata.cpp` の `$QZQSM,56,53ADA8BECF…`、Ta = 2047 = hour 31, min 63）:
+  （`test/data/test_realdata_generated.cpp` の `$QZQSM,56,53ADA8BECF…`、Ta = 2047 = hour 31, min 63）:
 
   ```
   azarashi:  "arrival": {"status": "special", "value": null, "labels": {…}, "source": {"day": 0, "hour": 31, "minute": 63}}

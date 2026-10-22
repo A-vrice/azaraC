@@ -1,12 +1,7 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.17.1 with CI-CD
-// Source module : azarashi.definitions.camf.c10_instruction_library_for_second_ellipse
-// Variable      : qzss_dcx_camf_c10_instruction_library_for_second_ellipse_code
-// Entries       : 19
-// Strategy      : binary_search
-
-// NOTE: This function may return nullptr for unknown IDs.
-// Callers MUST perform a null-check before using the result.
+// AUTO-GENERATED from azarashi 0.17.1 — do not edit
+// azarashi.definitions.camf.c10_instruction_library_for_second_ellipse → qzss_dcx_camf_c10_instruction_library_for_second_ellipse_code: 19 entries, strategy binary_search
+// Unknown id returns nullptr — callers MUST null-check.
 
 #if defined(__AVR__)
 #include "../internal/avr_std/cstdint"
@@ -26,39 +21,49 @@ namespace def {
 #if (AZARAC_ENABLE_DCX_CAMF)
 
 #if defined(__AVR__)
-static const char AZARAC_PROGMEM QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_POOL[] = "IC-C-01\000IC-C-02\000IC-C-03\000IC-C-04\000IC-C-05\000IC-C-06\000IC-C-07\000IC-C-08\000IC-C-09\000IC-C-10\000IC-C-11\000IC-C-12\000IC-C-13\000IC-C-14\000IC-C-15\000IC-C-16\000IC-C-17\000IC-C-31\000IC-C-32\000";
-struct QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_Entry { uint8_t id; uint16_t offset; uint16_t len; };
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_POOL[] = "1\0002\0003\0004\0005\0006\0007\0008\0009\0000\0001\0002\0003\0004\0005\0006\0007\00031\00032\000";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_PARENT_POOL[] = "IC-C-\000IC-C-0\000IC-C-1\000";
+struct QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_PARENT_Entry { uint16_t offset; };
+static const QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_PARENT_Entry QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_PARENT_TABLE[] AZARAC_PROGMEM = {
+    {0u},
+    {6u},
+    {13u},
+};
+struct QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_Entry { uint8_t id; uint8_t parent; uint16_t offset; };
 static const QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_Entry QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_TABLE[] AZARAC_PROGMEM = {
-    {0u, 0u, 7u},
-    {1u, 8u, 7u},
-    {2u, 16u, 7u},
-    {3u, 24u, 7u},
-    {4u, 32u, 7u},
-    {5u, 40u, 7u},
-    {6u, 48u, 7u},
-    {7u, 56u, 7u},
-    {8u, 64u, 7u},
-    {9u, 72u, 7u},
-    {10u, 80u, 7u},
-    {11u, 88u, 7u},
-    {12u, 96u, 7u},
-    {13u, 104u, 7u},
-    {14u, 112u, 7u},
-    {15u, 120u, 7u},
-    {16u, 128u, 7u},
-    {30u, 136u, 7u},
-    {31u, 144u, 7u},
+    {0u, 1u, 0u},
+    {1u, 1u, 2u},
+    {2u, 1u, 4u},
+    {3u, 1u, 6u},
+    {4u, 1u, 8u},
+    {5u, 1u, 10u},
+    {6u, 1u, 12u},
+    {7u, 1u, 14u},
+    {8u, 1u, 16u},
+    {9u, 2u, 18u},
+    {10u, 2u, 20u},
+    {11u, 2u, 22u},
+    {12u, 2u, 24u},
+    {13u, 2u, 26u},
+    {14u, 2u, 28u},
+    {15u, 2u, 30u},
+    {16u, 2u, 32u},
+    {30u, 0u, 34u},
+    {31u, 0u, 37u},
 };
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_c10_instruction_library_for_second_ellipse_code_lookup(uint8_t id) noexcept {
     uint8_t lo = 0, hi = 19;
     while (lo < hi) {
         uint8_t mid = static_cast<uint8_t>(lo + (hi - lo) / 2);
-        const char* AZARAC_PROGMEM ep = reinterpret_cast<const char*>(&QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_TABLE[mid]);
-        uint8_t eid = static_cast<uint8_t>(pgm_read_byte(ep + offsetof(QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_Entry, id)));
+        azarac_pgm_ptr ep = AZARAC_PGM_PTR(QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_TABLE) + static_cast<size_t>(mid) * sizeof(QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_Entry);
+        uint8_t eid = static_cast<uint8_t>(azarac_read_byte(ep, offsetof(QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_Entry, id)));
         if (eid == id) {
-            uint16_t off = pgm_read_word(ep + offsetof(QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_Entry, offset));
-            uint16_t n = pgm_read_word(ep + offsetof(QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_Entry, len));
-            return azarac_pgm_view(QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_POOL + off, n);
+            uint16_t off = azarac_read_word(ep, offsetof(QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_Entry, offset));
+            uint8_t pi = azarac_read_byte(ep, offsetof(QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_Entry, parent));
+            if (pi == 255u) return azarac_pgm_view_z(AZARAC_PGM_PTR(QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_POOL) + off);
+            azarac_pgm_ptr pp = AZARAC_PGM_PTR(QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_PARENT_TABLE) + static_cast<size_t>(pi) * sizeof(QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_PARENT_Entry);
+            uint16_t poff = azarac_read_word(pp, offsetof(QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_PARENT_Entry, offset));
+            return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_PARENT_POOL) + poff, AZARAC_PGM_PTR(QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_POOL) + off);
         }
         if (eid < id) lo = static_cast<uint8_t>(mid + 1); else hi = mid;
     }

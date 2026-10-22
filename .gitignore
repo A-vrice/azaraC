@@ -54,7 +54,12 @@ test/cppcheck_stderr.log
 test/coverage_report.json
 test/macro_sizes.txt
 test/no_alloc_tests
+test/time_irq_test
 
 # bench のビルド生成物（autoresearch.sh / bench_dedup.cpp は追跡する）
 test/bench/bench_dedup
-test/bench/*.cc
+test/bench/*.cxxid
+# AVR 定義テーブル計測（autoresearch.sh）のビルド生成物
+test/bench/avr/out/
+test/bench/avr/*.log
+.mega/

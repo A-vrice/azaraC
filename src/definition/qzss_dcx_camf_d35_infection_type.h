@@ -1,12 +1,7 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.17.1 with CI-CD
-// Source module : azarashi.definitions.camf.d_fields
-// Variable      : qzss_dcx_camf_d35_infection_type
-// Entries       : 63
-// Strategy      : array
-
-// NOTE: This function may return nullptr for unknown IDs.
-// Callers MUST perform a null-check before using the result.
+// AUTO-GENERATED from azarashi 0.17.1 — do not edit
+// azarashi.definitions.camf.d_fields → qzss_dcx_camf_d35_infection_type: 63 entries, strategy array
+// Unknown id returns nullptr — callers MUST null-check.
 
 #if defined(__AVR__)
 #include "../internal/avr_std/cstdint"
@@ -28,79 +23,92 @@ namespace def {
 inline constexpr uint8_t QZSS_DCX_CAMF_D35_INFECTION_TYPE_BASE = 0;
 inline constexpr uint8_t QZSS_DCX_CAMF_D35_INFECTION_TYPE_SIZE = 63;
 #if defined(__AVR__)
-static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D35_INFECTION_TYPE_POOL[] = "Anthrax\000Avian influenza in humans\000Botulism\000Brucellosis\000Campylobacteriosis\000Chikungunya virus disease\000Chlamydia infections\000Cholera\000COVID - 19\000Creutzfeldt - Jakob Disease - variant(vCJD)\000Cryptosporidiosis\000Dengue\000Diphtheria\000Echinococcosis\000Giardiasis\000Gonorrhoea\000Hepatitis A\000Hepatitis B\000Hepatitis C\000HIV infection and AIDS\000Infections with haemophilus influenza group B\000Influenza including Influenza A(H1N1)\000Invasive meningococcal disease\000Invasive pneumococcal disease\000Legionnaires' disease\000Leptospirosis\000Listeriosis\000Lyme neuroborreliosis\000Malaria\000Measles\000Meningococcal disease, invasive\000Mumps\000Pertussis\000Plague\000Pneumococcal invasive diseases\000Poliomyelitis\000Q fever\000Rabies\000Rubella\000Rubella, congenital\000Salmonellosis\000Severe Acute Respiratory Syndrome (SARS)\000Shiga toxin /verocytotoxin -producing Escherichia coli (STEC/VTEC)\000Shigellosis\000Smallpox\000Syphilis\000Syphilis, congenital\000Tetanus\000Tick-borne encephalitis\000Toxoplasmosis, congenital\000Trichinellosis\000Tuberculosis\000Tularaemia\000Typhoid and paratyphoid fevers\000Viral haemorrhagic fevers\000West Nile virus infection\000Yellow fever\000Yersinosis\000Zika virus disease\000Zika virus disease, congenital\000Nosocomial infections\000Antimicrobial resistance\000unidentified infection\000";
-struct QZSS_DCX_CAMF_D35_INFECTION_TYPE_Entry { uint16_t offset; uint16_t len; };
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D35_INFECTION_TYPE_POOL[] = "Anthrax\000Avian influenza in humans\000Botulism\000Bruc\000Campylobacter\000Chikungunya virus\000Chlamydia infections\000Cholera\000COVID - 19\000Creutzfeldt - Jakob Disease - variant(vCJD)\000Cryptosporid\000Dengue\000Diphtheria\000Echinococc\000Giardiasis\000Gonorrhoea\000Hepatitis A\000Hepatitis B\000Hepatitis C\000HIV infection and AIDS\000Infections with haemophilus influenza group B\000Influenza including Influenza A(H1N1)\000Invasive meningococcal\000Invasive pneumococcal\000Legionnaires'\000Leptospir\000Lister\000Lyme neuroborrel\000Malaria\000Measles\000Meningococcal disease, invasive\000Mumps\000Pertussis\000Plague\000Pneumococcal invasive diseases\000Poliomyelitis\000Q fever\000Rabies\000Rubella\000Rubella\000Salmon\000Severe Acute Respiratory Syndrome (SARS)\000Shiga toxin /verocytotoxin -producing Escherichia coli (STEC/VTEC)\000Shig\000Smallpox\000Syphilis\000Syphilis\000Tetanus\000Tick-borne encephalitis\000Toxoplasmosis\000Trichin\000Tubercu\000Tularaemia\000Typhoid and paratyphoid fevers\000Viral haemorrhagic fevers\000West Nile virus infection\000Yellow fever\000Yersin\000Zika virus\000Zika virus disease\000Nosocomial infections\000Antimicrobial resistance\000unidentified infection\000";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D35_INFECTION_TYPE_PARENT_POOL[] = " disease\000, congenital\000ellosis\000iosis\000losis\000osis\000";
+struct QZSS_DCX_CAMF_D35_INFECTION_TYPE_PARENT_Entry { uint16_t offset; };
+static const QZSS_DCX_CAMF_D35_INFECTION_TYPE_PARENT_Entry QZSS_DCX_CAMF_D35_INFECTION_TYPE_PARENT_TABLE[] AZARAC_PROGMEM = {
+    {0u},
+    {9u},
+    {22u},
+    {30u},
+    {36u},
+    {42u},
+};
+struct QZSS_DCX_CAMF_D35_INFECTION_TYPE_Entry { uint16_t offset; uint8_t parent; };
 static const QZSS_DCX_CAMF_D35_INFECTION_TYPE_Entry QZSS_DCX_CAMF_D35_INFECTION_TYPE_TABLE[] AZARAC_PROGMEM = {
-    {0u, 7u},
-    {8u, 25u},
-    {34u, 8u},
-    {43u, 11u},
-    {55u, 18u},
-    {74u, 25u},
-    {100u, 20u},
-    {121u, 7u},
-    {129u, 10u},
-    {140u, 43u},
-    {184u, 17u},
-    {202u, 6u},
-    {209u, 10u},
-    {220u, 14u},
-    {235u, 10u},
-    {246u, 10u},
-    {257u, 11u},
-    {269u, 11u},
-    {281u, 11u},
-    {293u, 22u},
-    {316u, 45u},
-    {362u, 37u},
-    {400u, 30u},
-    {431u, 29u},
-    {461u, 21u},
-    {483u, 13u},
-    {497u, 11u},
-    {509u, 21u},
-    {531u, 7u},
-    {539u, 7u},
-    {547u, 31u},
-    {579u, 5u},
-    {585u, 9u},
-    {595u, 6u},
-    {602u, 30u},
-    {633u, 13u},
-    {647u, 7u},
-    {655u, 6u},
-    {662u, 7u},
-    {670u, 19u},
-    {690u, 13u},
-    {704u, 40u},
-    {745u, 66u},
-    {812u, 11u},
-    {824u, 8u},
-    {833u, 8u},
-    {842u, 20u},
-    {863u, 7u},
-    {871u, 23u},
-    {895u, 25u},
-    {921u, 14u},
-    {936u, 12u},
-    {949u, 10u},
-    {960u, 30u},
-    {991u, 25u},
-    {1017u, 25u},
-    {1043u, 12u},
-    {1056u, 10u},
-    {1067u, 18u},
-    {1086u, 30u},
-    {1117u, 21u},
-    {1139u, 24u},
-    {1164u, 22u}
+    {0u, 255u},
+    {8u, 255u},
+    {34u, 255u},
+    {43u, 2u},
+    {48u, 3u},
+    {62u, 0u},
+    {80u, 255u},
+    {101u, 255u},
+    {109u, 255u},
+    {120u, 255u},
+    {164u, 3u},
+    {177u, 255u},
+    {184u, 255u},
+    {195u, 5u},
+    {206u, 255u},
+    {217u, 255u},
+    {228u, 255u},
+    {240u, 255u},
+    {252u, 255u},
+    {264u, 255u},
+    {287u, 255u},
+    {333u, 255u},
+    {371u, 0u},
+    {394u, 0u},
+    {416u, 0u},
+    {430u, 5u},
+    {440u, 3u},
+    {447u, 3u},
+    {464u, 255u},
+    {472u, 255u},
+    {480u, 255u},
+    {512u, 255u},
+    {518u, 255u},
+    {528u, 255u},
+    {535u, 255u},
+    {566u, 255u},
+    {580u, 255u},
+    {588u, 255u},
+    {595u, 255u},
+    {603u, 1u},
+    {611u, 2u},
+    {618u, 255u},
+    {659u, 255u},
+    {726u, 2u},
+    {731u, 255u},
+    {740u, 255u},
+    {749u, 1u},
+    {758u, 255u},
+    {766u, 255u},
+    {790u, 1u},
+    {804u, 2u},
+    {812u, 4u},
+    {820u, 255u},
+    {831u, 255u},
+    {862u, 255u},
+    {888u, 255u},
+    {914u, 255u},
+    {927u, 5u},
+    {934u, 0u},
+    {945u, 1u},
+    {964u, 255u},
+    {986u, 255u},
+    {1011u, 255u}
 };
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_d35_infection_type_lookup(uint8_t id) noexcept {
     if (id < QZSS_DCX_CAMF_D35_INFECTION_TYPE_BASE || id >= QZSS_DCX_CAMF_D35_INFECTION_TYPE_BASE + QZSS_DCX_CAMF_D35_INFECTION_TYPE_SIZE) return std::nullopt;
-    const char* AZARAC_PROGMEM p = reinterpret_cast<const char*>(&QZSS_DCX_CAMF_D35_INFECTION_TYPE_TABLE[id - 0u]);
-    uint16_t off = pgm_read_word(p + offsetof(QZSS_DCX_CAMF_D35_INFECTION_TYPE_Entry, offset));
-    uint16_t n = pgm_read_word(p + offsetof(QZSS_DCX_CAMF_D35_INFECTION_TYPE_Entry, len));
-    return azarac_pgm_view(QZSS_DCX_CAMF_D35_INFECTION_TYPE_POOL + off, n);
+    azarac_pgm_ptr p = AZARAC_PGM_PTR(QZSS_DCX_CAMF_D35_INFECTION_TYPE_TABLE) + static_cast<size_t>(id - 0u) * sizeof(QZSS_DCX_CAMF_D35_INFECTION_TYPE_Entry);
+    uint16_t off = azarac_read_word(p, offsetof(QZSS_DCX_CAMF_D35_INFECTION_TYPE_Entry, offset));
+    uint8_t pi = azarac_read_byte(p, offsetof(QZSS_DCX_CAMF_D35_INFECTION_TYPE_Entry, parent));
+    if (pi == 255u) return azarac_pgm_view_z(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D35_INFECTION_TYPE_POOL) + off);
+    azarac_pgm_ptr pp = AZARAC_PGM_PTR(QZSS_DCX_CAMF_D35_INFECTION_TYPE_PARENT_TABLE) + static_cast<size_t>(pi) * sizeof(QZSS_DCX_CAMF_D35_INFECTION_TYPE_PARENT_Entry);
+    uint16_t poff = azarac_read_word(pp, offsetof(QZSS_DCX_CAMF_D35_INFECTION_TYPE_PARENT_Entry, offset));
+    return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D35_INFECTION_TYPE_POOL) + off, AZARAC_PGM_PTR(QZSS_DCX_CAMF_D35_INFECTION_TYPE_PARENT_POOL) + poff);
 }
 #else
 inline constexpr const char* QZSS_DCX_CAMF_D35_INFECTION_TYPE_TABLE[] = {

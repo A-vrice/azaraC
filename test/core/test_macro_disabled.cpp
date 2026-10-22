@@ -1,21 +1,14 @@
 // test/core/test_macro_disabled.cpp
-// AZARAC_ENABLE_* マクロ無効化時のランタイムテスト
-//
-// 各テストは #if !(AZARAC_ENABLE_XXX) ガードで囲まれている。
-// マクロ有効時は TEST_CASE 定義ごと消える（恒常 PASS する空テストを残さない）。
-//
-// このファイルを個別のマクロ無効化ビルドでコンパイルすることで、無効化されたデコーダが正しくエラーを返すことを検証する。
-//
-// 全 13 マクロの一括テスト make macro
+// AZARAC_ENABLE_* 無効化時にデコーダが正しくエラーを返すことのランタイムテスト。
+// 各テストは #if !(AZARAC_ENABLE_XXX) ガードで囲み、マクロ有効時は TEST_CASE ごと消える（恒常 PASS する空テストを残さない）。無効化ビルドでコンパイルして検証する（全 13 マクロ一括は make macro）。
 
 #include "../test_helpers.h"
 #include "doctest.h"
 
 using namespace azaraC;
 
-// ヘルパー: 無効マクロテスト共通パターン
 
-// DCR カテゴリメッセージを生成し、マクロ無効化時に拒否されることを検証 disaster_category: DCR の災害カテゴリ（1-14）
+// DCR の災害カテゴリ（1-14）メッセージを生成し、マクロ無効化時の拒否を検証する。
 // [[maybe_unused]]: デフォルトビルド（全マクロ有効）では参照されないため
 [[maybe_unused]] static void testDisabledDcrCategory(uint8_t disaster_category) {
     uint8_t bits[32] = {};
@@ -34,16 +27,15 @@ using namespace azaraC;
     Message msg{};
     bool ok = dec.decode(frame, msg, 0);
 
-    // マクロ無効化時: 拒否されるべき
     CHECK_FALSE(ok);
     CHECK_FALSE(msg.valid);
     CHECK(msg.msg_type == 43);
     CHECK(msg.unsupported_reason == UnsupportedReason::DisabledAtCompileTime);
-    // ペイロードは Empty でなければならない（メタデータ設定なし）
+    // 拒否時はペイロードを Empty のまま（メタデータ未設定）
     CHECK(msg.payload_type == MsgPayloadType::Empty);
 }
 
-// DCX (MT=44) メッセージを生成し、マクロ無効化時に拒否されることを検証
+// DCX (MT=44) メッセージを生成し、マクロ無効化時の拒否を検証する。
 // [[maybe_unused]]: デフォルトビルド（全マクロ有効）では参照されないため
 [[maybe_unused]] static void testDisabledDcx() {
     uint8_t bits[32] = {};
@@ -64,18 +56,15 @@ using namespace azaraC;
     Message msg{};
     bool ok = dec.decode(frame, msg, 0);
 
-    // マクロ無効化時: 拒否されるべき
     CHECK_FALSE(ok);
     CHECK_FALSE(msg.valid);
     CHECK(msg.msg_type == 44);
     CHECK(msg.unsupported_reason == UnsupportedReason::DisabledAtCompileTime);
-    // ペイロードは Empty でなければならない
+    // 拒否時はペイロードを Empty のまま
     CHECK(msg.payload_type == MsgPayloadType::Empty);
 }
 
-// DCR カテゴリマクロ無効化テスト（13 個中 12 個）
-// 各テストは #if !(AZARAC_ENABLE_XXX) でガードされる。
-// マクロ有効時は定義ごと消える（SKIP の空テストは残さない）。
+// DCR カテゴリの無効化テスト（13 個中 12 個）。
 
 #if !(AZARAC_ENABLE_EEW)
 TEST_CASE("Macro: Disabled EEW (dc=1) rejected") {
@@ -157,11 +146,11 @@ TEST_CASE("Macro: Disabled DCX CAMF (MT=44) rejected") {
 }
 #endif
 
-// 全マクロ無効化時の動作確認（マクロの有無に依存しない共通テスト）
+// マクロの有無に依存しない共通動作確認。
 
 TEST_CASE("Macro: Disabled all macros - invalid preamble still rejected") {
     uint8_t bits[32] = {};
-    // bits[0] = 0x00 (不正プリアンブル)
+    // 不正プリアンブル（bits[0] = 0x00）
     setBits(bits, 8, 6, 43);         // msg_type = 43
     uint32_t crc = crc24qRef(bits, 226);
     setBits(bits, 226, 24, crc);

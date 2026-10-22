@@ -1,7 +1,6 @@
 #pragma once
 // azaraC - src/internal/avr_std/cstddef
-// Minimal <cstddef> shim for the Arduino AVR toolchain (no libstdc++).
-// GCC's freestanding headers provide <stddef.h> (size_t, NULL, offsetof).
+// Arduino AVR ツールチェーン（libstdc++ なし）向けの最小限の <cstddef> shim。freestanding な <stddef.h> が size_t・NULL・offsetof を提供する。
 
 #if defined(AZARAC_AVR_STUB)
 #include <cstddef>

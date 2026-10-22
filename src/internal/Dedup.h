@@ -1,15 +1,16 @@
 #pragma once
 // Duplicate suppression per アプリケーションノートv2 (手順③④', 原PDF p.23–25).
 //
-// 同一性は MT～VN（フレーム bit 8..219 = 212 bit）の CRC-24Q。付属フローチャートも「MT～Vnの212bitについて比較する」と明記する。鍵に含めないもの:
-//   - プリアンブル（bit 0..7）と Reserved（bit 220..225）。放送で巡回する（A→B→C、Reserved は 16 値）ため、含めると 1 情報が分裂する。
-//   - svid。250 bit のフレームに衛星 ID は無く（NMEA/UBX ヘッダ由来の別レイヤ）、含めると中継衛星ごとに同じ情報を再通知する。
-//   - MT=44 の SD（SDMT bit 14 + SDM bit 15..23）。QZS 事務局回答の照合範囲は「MT および CAMF〜EM」で SD を含まないため、ゼロにしてから digest を取る（Decoder::messageIdentity）。
+// 同一性は MT～VN（フレーム bit 8..219 = 212 bit）の CRC-24Q（付属フローチャートも「MT～Vnの212bitについて比較する」と明記）。鍵に含めないもの:
+//   - プリアンブル（bit 0..7）と Reserved（bit 220..225）: 放送で巡回する（A→B→C、Reserved は 16 値）ため、含めると 1 情報が分裂する。
+//   - svid: 250 bit のフレームに衛星 ID は無く（NMEA/UBX ヘッダ由来の別レイヤ）、含めると中継衛星ごとに同じ情報を再通知する。
+//   - MT=44 の SD（SDMT bit 14 + SDM bit 15..23）: QZS 事務局回答の照合範囲「MT および CAMF〜EM」に含まれないため、ゼロにしてから digest を取る（Decoder::messageIdentity）。
 // Callers pass the digest of MT～VN as `identity` — see Parser::handleFrame.
 //
-// 履歴は手順④' のとおり有効時間で失効する。窓は災害種別ごと（原PDF p.26–27、 internal/DedupWindow.h）で、表に無いカテゴリは AZARAC_DEDUP_WINDOW_MS。
-//
-// 満杯時は最終受信が最も古い 1 件を追い出す。窓内で生きている情報は自身の再受信で時刻が更新されるため押し出されず、容量不足は「再通知」として現れる（警報は落ちない）。
+// 履歴は手順④' のとおり有効時間で失効し、窓は災害種別ごと（原PDF p.26–27、internal/DedupWindow.h）。
+// 表に無いカテゴリは AZARAC_DEDUP_WINDOW_MS。
+// 満杯時は最終受信が最も古い 1 件を追い出す。
+// 窓内の情報は再受信で時刻が更新されるため押し出されず、容量不足は「再通知」として現れる（警報は落ちない）。
 
 #include "../azaraC_config.h"  // single source of truth for AZARAC_DEDUP_SLOTS
 #include "MtCommonTypes.h"      // shared integer types (cstdint AVR switch lives here)
@@ -23,15 +24,16 @@ static_assert(AZARAC_DEDUP_SLOTS > 0, "AZARAC_DEDUP_SLOTS must be > 0");
 namespace azaraC {
 namespace internal {
 
-// Identity of one information: msg_type (6 bit) and the digest of MT～VN (24 bit) — exactly one word. Receiving satellite and reception time are not part of it. 8 B per slot (identity 4 B + last-seen 4 B).
-// 合成鍵の payload は bits 0..29。bit 30 が合成判別子、bit 31 は VALID なので、実鍵（bits 24..29 が msg_type、bit 30 は常に 0）とは値が一致しても衝突しない。
+// 1 情報の identity: msg_type (6 bit) + MT～VN の digest (24 bit) で 1 ワード（スロット 8 B = identity 4 B + last-seen 4 B）。
+// 受信衛星・受信時刻は含まない。
+// 合成鍵の payload は bits 0..29。
+// bit 30 が合成判別子、bit 31 は VALID なので、実鍵（bits 24..29 が msg_type、bit 30 は常に 0）とは値が一致しても衝突しない。
 constexpr uint32_t kSyntheticPayloadMask = 0x3FFFFFFFu;
 
 struct DedupKey {
     uint8_t  msg_type;
-    uint32_t identity;   // MT～VN (bit 8..219) の CRC-24Q。プリアンブルを含まない。
-    // 情報そのものが持つ identity（電文の CRC ではない）であることの印。集約した南海トラフメッセージは多数の電文から組み立てられ、Message が引き継ぐのはページ集合を完成させた電文のヘッダなので、その CRC は情報を識別しない。
-    // タグ付きの鍵は電文鍵と決して一致しない。
+    uint32_t identity;   // MT～VN (bit 8..219) の CRC-24Q
+    // 集約後の南海トラフは情報自身のトークンで識別する（Message が手渡す電文 CRC は、ページ集合を完成させただけの電文のヘッダ由来で情報を識別しない）。タグ付きの鍵は電文鍵と一致しない。
     bool     synthetic = false;
 
     constexpr uint32_t packed() const {
@@ -44,12 +46,13 @@ private:
     static constexpr uint32_t SYNTHETIC = 0x40000000u;  // bit 30（msg_type は bits 24-29）
 };
 
-// 電文の CRC ではなく情報自身のトークンで識別する情報の DedupKey — 南海トラフ地震（identity = {info_code, information_type, report time}、NankaiPageKey 参照）。
+// 情報自身のトークンで識別する情報（南海トラフ地震）の鍵。identity = {info_code, information_type, report time}（NankaiPageKey 参照）。
 constexpr inline DedupKey dedupEventKey(uint32_t token) {
     return DedupKey{0, token & kSyntheticPayloadMask, true};
 }
 
-// 事象（NankaiPageKey）の 26 ビットをそのまま鍵にする: Is 4 + It 2 + month 4 + day 5 + hour 5 + minute 6 = 26。各フィールド幅は電文のビット幅と同じなので、6 フィールドが揃えば衝突しない。
+// 事象（NankaiPageKey）の 26 ビットをそのまま鍵にする: Is 4 + It 2 + month 4 + day 5 + hour 5 + minute 6 = 26。
+// フィールド幅は電文と同じなので 6 つ揃えば衝突しない。
 // It を含めるのは NankaiPageKey と同じ理由（発表と取消を同一事象に潰さない）。
 constexpr inline uint32_t dedupEventToken(uint8_t info_code, uint8_t information_type, uint8_t month,
                                           uint8_t day, uint8_t hour, uint8_t minute) {
@@ -61,7 +64,9 @@ constexpr inline uint32_t dedupEventToken(uint8_t info_code, uint8_t information
          | ((uint32_t)(minute & 0x3Fu));
 }
 
-// Fixed-size set-associative table: WAYS entries per set, sets selected by a cheap hash of the content. Cost per decision is bounded by WAYS, not by AZARAC_DEDUP_SLOTS (a flat scan walks the whole capacity even when only a few informations are live — the throughput path the benchmark reports as CHURN_NANOS_PER_OP). Victim selection inside a set is least-recently-seen.
+// 固定長のセット連想テーブル: 1 セット WAYS エントリで、セットは内容の安価なハッシュで選ぶ。
+// 1 判定のコストは高々 WAYS で、AZARAC_DEDUP_SLOTS には比例しない（平坦走査は生きた情報が少数でも全容量を歩く — benchmark が CHURN_NANOS_PER_OP として報告する経路）。
+// セット内の追い出し対象は最終受信が最も古いもの。
 static constexpr uint8_t  DEDUP_WAYS = AZARAC_DEDUP_WAYS;
 static constexpr uint16_t DEDUP_SETS = AZARAC_DEDUP_SLOTS / DEDUP_WAYS;
 static_assert(AZARAC_DEDUP_SLOTS % DEDUP_WAYS == 0,
@@ -73,14 +78,13 @@ class DedupFilter {
 public:
     DedupFilter() { reset(); }
 
-    // True when this information was already received within window_ms.
-    // Refreshes the entry's last-seen time either way, per 手順④' (情報有効時間は、重複した場合にも更新され、最後に同情報を受信してから一定時間有効とする).
+    // window_ms 以内に受信済みなら true。手順④' のとおり、どちらの場合も last-seen を更新する（情報有効時間は重複した場合にも更新され、最後に同情報を受信してから一定時間有効）。
     bool isDuplicate(const DedupKey& key, uint32_t now_ms, uint32_t window_ms);
 
     void reset();
 
 private:
-    // Bit 31 marks a valid entry: msg_type only occupies bits 24-29, so a real content never sets it and an all-zero table is "empty".
+    // bit 31 が有効エントリの印: msg_type は bits 24-29 しか使わないので実鍵がこれを立てることはなく、全ゼロの表は空として読める。
     static constexpr uint32_t VALID = 0x80000000u;
 
     struct Entry {
@@ -88,7 +92,7 @@ private:
         uint32_t last_seen_ms;   // reception time of the newest frame carrying it
     };
 
-    // RAM 予算はここで決まる（AZARAC_DEDUP_SLOTS × 8 B）。鍵を広げる・svid を足す・窓を保存するといった変更は必ずこの assert に当たるので、黙って増えない。
+    // RAM 予算はここで決まる（AZARAC_DEDUP_SLOTS × 8 B）。鍵を広げる・svid を足す・窓を保存する変更は必ずこの assert に当たるので、黙って増えない。
     static_assert(sizeof(Entry) == 8,
                   "DedupFilter::Entry must stay 8 bytes: identity 4 B + last_seen 4 B. "
                   "A wider key (e.g. storing svid) multiplies the RAM of every slot.");

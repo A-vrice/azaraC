@@ -1,12 +1,7 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.17.1 with CI-CD
-// Source module : azarashi.definitions.qzss.dcr.report_classification
-// Variable      : qzss_dcr_jma_report_classification_en
-// Entries       : 4
-// Strategy      : switch
-
-// NOTE: This function may return nullptr for unknown IDs.
-// Callers MUST perform a null-check before using the result.
+// AUTO-GENERATED from azarashi 0.17.1 — do not edit
+// azarashi.definitions.qzss.dcr.report_classification → qzss_dcr_jma_report_classification_en: 4 entries, strategy switch
+// Unknown id returns nullptr — callers MUST null-check.
 
 #if defined(__AVR__)
 #include "../internal/avr_std/cstdint"
@@ -26,12 +21,16 @@ namespace def {
 #if (AZARAC_LANG_EN)
 
 #if defined(__AVR__)
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_REPORT_CLASSIFICATION_EN_C1[] = "Maximum Priority";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_REPORT_CLASSIFICATION_EN_C2[] = "Priority";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_REPORT_CLASSIFICATION_EN_C3[] = "Regular";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_REPORT_CLASSIFICATION_EN_C7[] = "Training/Test";
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_report_classification_en_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 1: { static const char AZARAC_PROGMEM s[] = "Maximum Priority"; return azarac_pgm_view(s, 16); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "Priority"; return azarac_pgm_view(s, 8); }
-        case 3: { static const char AZARAC_PROGMEM s[] = "Regular"; return azarac_pgm_view(s, 7); }
-        case 7: { static const char AZARAC_PROGMEM s[] = "Training/Test"; return azarac_pgm_view(s, 13); }
+        case 1: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_REPORT_CLASSIFICATION_EN_C1), 16);
+        case 2: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_REPORT_CLASSIFICATION_EN_C2), 8);
+        case 3: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_REPORT_CLASSIFICATION_EN_C3), 7);
+        case 7: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_REPORT_CLASSIFICATION_EN_C7), 13);
         default: return std::nullopt;
     }
 }

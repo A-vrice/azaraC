@@ -1,6 +1,7 @@
 // DCX MT44 decode helpers
 // Based on IS-QZSS-DCX-004 / EWSS CAMF v1.2
 #include "DcxHelper.h"
+#include "../azaraC_config.h"   // AZARAC_PROGMEM_NEAR / AZARAC_PGM_READ_*
 
 namespace azaraC {
 namespace internal {
@@ -33,50 +34,46 @@ int32_t decodeLongitude17_45_225(uint32_t code) {
     );
 }
 
-// Radius decoding (5-bit code)
-// IS-QZSS-DCX-003 Table 4.2-17 / 4.2-18
-// Radius[m] = 10^(log10(MinRadius) + a * (log10(MaxRadius) - log10(MinRadius)) / Max_a)
-// MinRadius = 216.20, MaxRadius = 2500000, Max_a = 31
+// 半径の復号（5 bit コード）: IS-QZSS-DCX-003 Table 4.2-17 / 4.2-18、Radius[m] = 10^(log10(216.20) + a * (log10(2500000) - log10(216.20)) / 31)
+// Flash に置く: avr-libc のリンカスクリプトは .rodata を .data（SRAM）へ含めるので、属性の無い const 配列はそのまま SRAM を食う（実測 128 B）。
+static const int32_t RADIUS_TABLE[32] AZARAC_PROGMEM_NEAR = {
+        216,
+        292,
+        395,
+        535,
+        723,
+        978,
+        1322,
+        1788,
+        2418,
+        3269,
+        4421,
+        5979,
+        8085,
+        10933,
+        14784,
+        19992,
+        27035,
+        36559,
+        49439,
+        66855,
+        90407,
+        122255,
+        165324,
+        223564,
+        302322,
+        408824,
+        552846,
+        747603,
+        1010970,
+        1367116,
+        1848727,
+        2500000
+};
 
 int32_t decodeRadiusCode(uint8_t code) {
-    // Radius[m] = table lookup, 0.001km precision (1 m)
-    static constexpr int32_t radius_table_m[32] = {
-        216,    // 0
-        292,    // 1
-        395,    // 2
-        535,    // 3
-        723,    // 4
-        978,    // 5
-        1322,   // 6
-        1788,   // 7
-        2418,   // 8
-        3269,   // 9
-        4421,   // 10
-        5979,   // 11
-        8085,   // 12
-        10933,  // 13
-        14784,  // 14
-        19992,  // 15
-        27035,  // 16
-        36559,  // 17
-        49439,  // 18
-        66855,  // 19
-        90407,  // 20
-        122255, // 21
-        165324, // 22
-        223564, // 23
-        302322, // 24
-        408824, // 25
-        552846, // 26
-        747603, // 27
-        1010970,// 28
-        1367116,// 29
-        1848727,// 30
-        2500000 // 31
-    };
-
     if (code < 32) {
-        return radius_table_m[code];
+        return static_cast<int32_t>(AZARAC_PGM_READ_DWORD(&RADIUS_TABLE[code]));
     }
     return 0;
 }
@@ -102,14 +99,13 @@ int32_t decodeAzimuth7(uint8_t code) {
 uint8_t decodePrefectureBitmask(uint64_t ex9, uint8_t* out_positions) {
     uint8_t count = 0;
 
-    // EX8=0: EX9 = [47-bit prefecture][17-bit reserved]; prefecture = ex9[63:17] (stream bits 147..193); reserved = ex9[16:0] (bits 194..210).
-    // Bit 0 (LSB) = Hokkaido (JIS 1), bit 46 (MSB) = Okinawa (JIS 47).
+    // EX8=0: prefecture = ex9[63:17]（ストリーム bit 147..193）、ex9[16:0]（bit 194..210）は Reserved。
 
-    uint64_t pref = ex9 >> 17;  // Extract 47-bit prefecture field
+    uint64_t pref = ex9 >> 17;
 
     for (uint8_t i = 0; i < 47; ++i) {
         if (pref & (1ULL << i)) {
-            // i+1 = JIS code (1=Hokkaido … 47=Okinawa)
+            // i+1 = JIS コード
             out_positions[count++] = i + 1;
         }
     }
@@ -120,7 +116,7 @@ uint8_t decodePrefectureBitmask(uint64_t ex9, uint8_t* out_positions) {
 uint8_t decodeCityCodeList(uint64_t ex9, uint16_t* out_codes) {
     uint8_t count = 0;
 
-    // EX8=1: four 16-bit codes at bits {0..15, 16..31, 32..47, 48..63}
+    // EX8=1: 16 bit コードを 4 個、LSB 先頭。
 
     for (uint8_t i = 0; i < 4; ++i) {
         uint16_t code = static_cast<uint16_t>((ex9 >> (i * 16)) & 0xFFFF);
@@ -132,18 +128,14 @@ uint8_t decodeCityCodeList(uint64_t ex9, uint16_t* out_codes) {
     return count;
 }
 
-// B1 (A17=00) - Improved Resolution of Main Ellipse (EWSS CAMF v1.1 §3.7.1)
-// A18 bit[14]=MSB (spec bit 131), bit[0]=LSB (spec bit 145); getBits() reads MSB-first.
-// C1: spec 131-133 → a18[14:12]; C2: spec 134-136 → a18[11:9]; C3: spec 137-139 → a18[8:6]
-// C4: spec 140-142 → a18[5:3]; Reserved: spec 143-145 → a18[2:0]
+// B1 (A17=00) - Improved Resolution of Main Ellipse (EWSS CAMF v1.2 §3.7.1)。A18 は MSB 先頭（a18[14] = 仕様 bit 131）: C1..C4 = 仕様 131-133/134-136/137-139/140-142 → a18[14:12]/[11:9]/[8:6]/[5:3]（各 3b）、a18[2:0] は Reserved。
 
 B1Refinement decodeB1Refinement(uint16_t a18) {
     B1Refinement b1;
-    b1.c1 = (a18 >> 12) & 0x07;  // spec[131:133] → a18[14:12]
-    b1.c2 = (a18 >> 9)  & 0x07;  // spec[134:136] → a18[11:9]
-    b1.c3 = (a18 >> 6)  & 0x07;  // spec[137:139] → a18[8:6]
-    b1.c4 = (a18 >> 3)  & 0x07;  // spec[140:142] → a18[5:3]
-    // a18[2:0] reserved (spec bits 143-145)
+    b1.c1 = (a18 >> 12) & 0x07;
+    b1.c2 = (a18 >> 9)  & 0x07;
+    b1.c3 = (a18 >> 6)  & 0x07;
+    b1.c4 = (a18 >> 3)  & 0x07;
     return b1;
 }
 
@@ -172,13 +164,14 @@ int32_t b1RefinedRadiusM(uint8_t code, int32_t base_radius_m, uint8_t original_r
     return base_radius_m - (delta_m * code + 4) / 8;
 }
 
-// B2 (A17=01) - Position of the Centre of the Hazard (EWSS CAMF v1.1 §3.7.2)
+// B2 (A17=01) - Position of the Centre of the Hazard (EWSS CAMF v1.2 §3.7.2)
 
 B2HazardCenter decodeB2HazardCenter(uint8_t c5, uint8_t c6) {
     B2HazardCenter r{};
     r.c5 = c5;
     r.c6 = c6;
-    // delta = -10 + 20 * code / 128 → microdegrees; code 64..127 rounds up (+1) gives exact +10,000,000 at code=127 Matches EWSS-CAMF v1.2 §3.7.2 C5/C6 table exactly for all visible entries (e.g. code 0 → -10°, 43 → -3.28125°, 86 → +3.59375°, 107 → +6.875°, 127 → +10°).
+    // delta = -10 + 20 * code / 128（マイクロ度）。code 64..127 は切り上げ（+1）するので code 127 でちょうど +10,000,000 になる。
+    // EWSS-CAMF v1.2 §3.7.2 の C5/C6 表と可視エントリすべてで一致する（例: 0 → -10°、127 → +10°）。
     if (c5 <= 63) r.delta_lat_microdeg = -10000000 + 156250 * c5;
     else          r.delta_lat_microdeg = -10000000 + 156250 * (c5 + 1);
     if (c6 <= 63) r.delta_lon_microdeg = -10000000 + 156250 * c6;
@@ -187,9 +180,7 @@ B2HazardCenter decodeB2HazardCenter(uint8_t c5, uint8_t c6) {
 }
 
 
-// B4 field layout table
-// Each A4 hazard code maps to up to 4 D-field specs (d_idx=0xFF terminates).
-// Fields are ordered MSB→LSB within A18[15:0] per EWSS CAMF v1.2 §3.7.4.
+// B4 のフィールド配置: A4 のハザードコード → 最大 4 個の D フィールド仕様。EWSS CAMF v1.2 §3.7.4 に従い A18[15:0] 内で MSB→LSB の順（d_idx=0xFF で終端）。
 
 namespace {
 
@@ -201,11 +192,16 @@ struct DFieldSpec {
 
 struct HazardB4Layout {
     uint8_t a4_code;
-    DFieldSpec fields[4];  // d_idx=0xFF terminates
+    DFieldSpec fields[4];
 };
 
-// Sorted by a4_code; linear scan is fast enough for ~45 entries.
-static const HazardB4Layout B4_LAYOUTS[] = {
+// Flash に置く（avr-libc のリンカスクリプトは .rodata を .data に含めるため、属性の無い const 配列は SRAM を食う — 実測 45 行 = 585 B）。
+// 行はパディング無しの 13 B であることが前提で、下の読み出しがバイト単位でオフセットを組む。
+static_assert(sizeof(DFieldSpec) == 3, "DFieldSpec must stay padding-free");
+static_assert(sizeof(HazardB4Layout) == 13, "HazardB4Layout must stay padding-free");
+
+// a4_code 昇順。45 件程度なら線形走査で十分速い。
+static const HazardB4Layout B4_LAYOUT_TABLE[] AZARAC_PROGMEM_NEAR = {
     {4  , {{31,13,2}, {32,11,2}, {255,0,0}, {255,0,0}}},
     {5  , {{30,11,4}, {255,0,0}, {255,0,0}, {255,0,0}}},
     {6  , {{33,13,2}, {255,0,0}, {255,0,0}, {255,0,0}}},
@@ -260,16 +256,21 @@ void decodeB4DetailedInfo(uint16_t a18, uint8_t a4_code, B4DetailedInfo& out) {
     out.present = true;
     out.a4_code = a4_code;
 
-    for (uint8_t i = 0; i < sizeof(B4_LAYOUTS) / sizeof(B4_LAYOUTS[0]); ++i) {
-        if (B4_LAYOUTS[i].a4_code == a4_code) {
-            for (uint8_t j = 0; j < 4; ++j) {
-                const DFieldSpec& f = B4_LAYOUTS[i].fields[j];
-                if (f.d_idx == 0xFF) break;
-                out.d_values[f.d_idx] = static_cast<uint8_t>((a18 >> f.shift) & ((1u << f.bits) - 1));
-                out.d_present[f.d_idx] = true;
-            }
-            return;
+    // 表は Flash にある: 行全体を RAM へ写さず、必要なバイトだけ AZARAC_PGM_READ_BYTE で読む（host では通常のロード）。
+    const uint8_t* rows = reinterpret_cast<const uint8_t*>(B4_LAYOUT_TABLE);
+    constexpr uint8_t ROW_BYTES = sizeof(HazardB4Layout);
+    for (uint8_t i = 0; i < sizeof(B4_LAYOUT_TABLE) / sizeof(B4_LAYOUT_TABLE[0]); ++i) {
+        if (AZARAC_PGM_READ_BYTE(rows + i * ROW_BYTES) != a4_code) continue;
+        for (uint8_t j = 0; j < 4; ++j) {
+            const uint8_t* f = rows + i * ROW_BYTES + 1 + j * sizeof(DFieldSpec);
+            const uint8_t d_idx = AZARAC_PGM_READ_BYTE(f);
+            if (d_idx == 0xFF) break;
+            const uint8_t shift = AZARAC_PGM_READ_BYTE(f + 1);
+            const uint8_t bits  = AZARAC_PGM_READ_BYTE(f + 2);
+            out.d_values[d_idx] = static_cast<uint8_t>((a18 >> shift) & ((1u << bits) - 1u));
+            out.d_present[d_idx] = true;
         }
+        return;
     }
 }
 

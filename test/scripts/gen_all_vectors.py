@@ -137,13 +137,11 @@ def main():
         print("\nDone!")
         return
 
-    # DCR vectors from log
     dcr_log = os.path.join(base, '..', '..', '..', 'azarashi', 'tests', 'qzqsm_220307.log')
     if os.path.exists(dcr_log):
         print("Processing DCR log...")
         process_log(dcr_log, os.path.join(data_dir, 'dcr_vectors.json'))
 
-    # DCX vectors from log
     dcx_log = os.path.join(base, '..', '..', '..', 'azarashi', 'tests', 'qzqsm_dcx_240604.log')
     if os.path.exists(dcx_log):
         print("Processing DCX log...")

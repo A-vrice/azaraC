@@ -1,12 +1,7 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.17.1 with CI-CD
-// Source module : azarashi.definitions.camf.d_fields
-// Variable      : qzss_dcx_camf_d4_vector_length_between_centre_of_main_ellipse_and_epicentre
-// Entries       : 16
-// Strategy      : array
-
-// NOTE: This function may return nullptr for unknown IDs.
-// Callers MUST perform a null-check before using the result.
+// AUTO-GENERATED from azarashi 0.17.1 — do not edit
+// azarashi.definitions.camf.d_fields → qzss_dcx_camf_d4_vector_length_between_centre_of_main_ellipse_and_epicentre: 16 entries, strategy array
+// Unknown id returns nullptr — callers MUST null-check.
 
 #if defined(__AVR__)
 #include "../internal/avr_std/cstdint"
@@ -29,31 +24,30 @@ inline constexpr uint8_t QZSS_DCX_CAMF_D4_VECTOR_LENGTH_BETWEEN_CENTRE_OF_MAIN_E
 inline constexpr uint8_t QZSS_DCX_CAMF_D4_VECTOR_LENGTH_BETWEEN_CENTRE_OF_MAIN_ELLIPSE_AND_EPICENTRE_SIZE = 16;
 #if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D4_VECTOR_LENGTH_BETWEEN_CENTRE_OF_MAIN_ELLIPSE_AND_EPICENTRE_POOL[] = "0.25\0000.5\0000.75\0001\0002\0003\0005\00010\00020\00030\00040\00050\00070\000100\000150\000200\000";
-struct QZSS_DCX_CAMF_D4_VECTOR_LENGTH_BETWEEN_CENTRE_OF_MAIN_ELLIPSE_AND_EPICENTRE_Entry { uint16_t offset; uint16_t len; };
+struct QZSS_DCX_CAMF_D4_VECTOR_LENGTH_BETWEEN_CENTRE_OF_MAIN_ELLIPSE_AND_EPICENTRE_Entry { uint16_t offset; };
 static const QZSS_DCX_CAMF_D4_VECTOR_LENGTH_BETWEEN_CENTRE_OF_MAIN_ELLIPSE_AND_EPICENTRE_Entry QZSS_DCX_CAMF_D4_VECTOR_LENGTH_BETWEEN_CENTRE_OF_MAIN_ELLIPSE_AND_EPICENTRE_TABLE[] AZARAC_PROGMEM = {
-    {0u, 4u},
-    {5u, 3u},
-    {9u, 4u},
-    {14u, 1u},
-    {16u, 1u},
-    {18u, 1u},
-    {20u, 1u},
-    {22u, 2u},
-    {25u, 2u},
-    {28u, 2u},
-    {31u, 2u},
-    {34u, 2u},
-    {37u, 2u},
-    {40u, 3u},
-    {44u, 3u},
-    {48u, 3u}
+    {0u},
+    {5u},
+    {9u},
+    {14u},
+    {16u},
+    {18u},
+    {20u},
+    {22u},
+    {25u},
+    {28u},
+    {31u},
+    {34u},
+    {37u},
+    {40u},
+    {44u},
+    {48u}
 };
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_d4_vector_length_between_centre_of_main_ellipse_and_epicentre_lookup(uint8_t id) noexcept {
     if (id < QZSS_DCX_CAMF_D4_VECTOR_LENGTH_BETWEEN_CENTRE_OF_MAIN_ELLIPSE_AND_EPICENTRE_BASE || id >= QZSS_DCX_CAMF_D4_VECTOR_LENGTH_BETWEEN_CENTRE_OF_MAIN_ELLIPSE_AND_EPICENTRE_BASE + QZSS_DCX_CAMF_D4_VECTOR_LENGTH_BETWEEN_CENTRE_OF_MAIN_ELLIPSE_AND_EPICENTRE_SIZE) return std::nullopt;
-    const char* AZARAC_PROGMEM p = reinterpret_cast<const char*>(&QZSS_DCX_CAMF_D4_VECTOR_LENGTH_BETWEEN_CENTRE_OF_MAIN_ELLIPSE_AND_EPICENTRE_TABLE[id - 0u]);
-    uint16_t off = pgm_read_word(p + offsetof(QZSS_DCX_CAMF_D4_VECTOR_LENGTH_BETWEEN_CENTRE_OF_MAIN_ELLIPSE_AND_EPICENTRE_Entry, offset));
-    uint16_t n = pgm_read_word(p + offsetof(QZSS_DCX_CAMF_D4_VECTOR_LENGTH_BETWEEN_CENTRE_OF_MAIN_ELLIPSE_AND_EPICENTRE_Entry, len));
-    return azarac_pgm_view(QZSS_DCX_CAMF_D4_VECTOR_LENGTH_BETWEEN_CENTRE_OF_MAIN_ELLIPSE_AND_EPICENTRE_POOL + off, n);
+    azarac_pgm_ptr p = AZARAC_PGM_PTR(QZSS_DCX_CAMF_D4_VECTOR_LENGTH_BETWEEN_CENTRE_OF_MAIN_ELLIPSE_AND_EPICENTRE_TABLE) + static_cast<size_t>(id - 0u) * sizeof(QZSS_DCX_CAMF_D4_VECTOR_LENGTH_BETWEEN_CENTRE_OF_MAIN_ELLIPSE_AND_EPICENTRE_Entry);
+    uint16_t off = azarac_read_word(p, offsetof(QZSS_DCX_CAMF_D4_VECTOR_LENGTH_BETWEEN_CENTRE_OF_MAIN_ELLIPSE_AND_EPICENTRE_Entry, offset));
+    return azarac_pgm_view_z(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D4_VECTOR_LENGTH_BETWEEN_CENTRE_OF_MAIN_ELLIPSE_AND_EPICENTRE_POOL) + off);
 }
 #else
 inline constexpr const char* QZSS_DCX_CAMF_D4_VECTOR_LENGTH_BETWEEN_CENTRE_OF_MAIN_ELLIPSE_AND_EPICENTRE_TABLE[] = {

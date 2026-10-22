@@ -24,8 +24,6 @@ import xml.etree.ElementTree as ET
 from collections import OrderedDict
 from pathlib import Path
 
-# 設定
-
 # 重要度 → ラベル / 絵文字 マッピング（表示順を制御するため OrderedDict を使用）
 SEVERITY_ORDER = OrderedDict([
     ("error",       ("error",       "🚨")),
@@ -52,25 +50,23 @@ CPPCHECK_BASE_ARGS = [
     "test",
 ]
 
-REPO_ROOT = Path(__file__).resolve().parent.parent  # リポジトリルート
+REPO_ROOT = Path(__file__).resolve().parent.parent
 
-
-# メイン処理
 
 def run_cppcheck(check_level: str = "exhaustive") -> str:
     """cppcheck を XML モードで実行し、標準出力を文字列として返す。"""
-    cmd = CPPCHECK_BASE_ARGS[:1]  # ["cppcheck"]
+    cmd = CPPCHECK_BASE_ARGS[:1]
     cmd += ["--check-level=" + check_level]
-    cmd += CPPCHECK_BASE_ARGS[1:]  # 残りの引数
+    cmd += CPPCHECK_BASE_ARGS[1:]
 
     result = subprocess.run(
         cmd,
         capture_output=True,
         text=True,
         cwd=REPO_ROOT,
-        check=False,  # 終了コード 1 は所見ありの正常系（XML は stdout に出る）
+        check=False,
     )
-    # cppcheck は issue があると exit code 1 になるが、XML は stdout に出力される
+    # cppcheck は所見があると exit code 1 になる（XML は stdout に出る）
     xml_output = result.stdout.strip()
     if not xml_output:
         print("[cppcheck_summary] WARNING: cppcheck produced no XML output.",
@@ -111,7 +107,7 @@ def parse_cppcheck_xml(xml_str: str) -> dict:
             file_path = "(unknown)"
             line = "0"
 
-        # Skip issues from third-party test framework (doctest.h)
+        # サードパーティ（doctest.h）の所見は除外
         if "doctest.h" in file_path:
             continue
 
@@ -146,7 +142,6 @@ def generate_markdown(issues: dict) -> str:
         if key not in display_order:
             display_order.append(key)
 
-    # 件数テーブル
     lines.append("| Severity | Count |")
     lines.append("|----------|-------|")
     for sev_key in display_order:
@@ -179,8 +174,7 @@ def generate_markdown(issues: dict) -> str:
             lines.append("| File | Line | Message |")
             lines.append("|------|------|---------|")
             for iss in sev_issues:
-                # ファイルパスをリポジトリルートからの相対パスとして表示
-                # | や改行を含むメッセージでもテーブルが崩れないようエスケープ
+                # | や改行でテーブルが崩れないようエスケープ
                 file_display = f"`{_escape_md_table(iss['file'])}`"
                 lines.append(f"| {file_display} | {iss['line']} | {_escape_md_table(iss['message'])} |")
             lines.append("")
@@ -230,7 +224,7 @@ def main() -> int:
                 xml_str = f.read()
             issues = parse_cppcheck_xml(xml_str)
     else:
-        # 後方互換性: 引数なしの場合は従来通り cppcheck を実行
+        # --input-xml 未指定時は cppcheck を実行（後方互換）
         xml_str = run_cppcheck(check_level=args.check_level)
         issues = parse_cppcheck_xml(xml_str)
 

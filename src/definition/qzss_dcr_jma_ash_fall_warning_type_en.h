@@ -1,12 +1,7 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.17.1 with CI-CD
-// Source module : azarashi.definitions.qzss.dcr.ash_fall_warning_type
-// Variable      : qzss_dcr_jma_ash_fall_warning_type_en
-// Entries       : 2
-// Strategy      : switch
-
-// NOTE: This function may return nullptr for unknown IDs.
-// Callers MUST perform a null-check before using the result.
+// AUTO-GENERATED from azarashi 0.17.1 — do not edit
+// azarashi.definitions.qzss.dcr.ash_fall_warning_type → qzss_dcr_jma_ash_fall_warning_type_en: 2 entries, strategy switch
+// Unknown id returns nullptr — callers MUST null-check.
 
 #if defined(__AVR__)
 #include "../internal/avr_std/cstdint"
@@ -26,10 +21,12 @@ namespace def {
 #if (AZARAC_ENABLE_ASH_FALL) && (AZARAC_LANG_EN)
 
 #if defined(__AVR__)
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_ASH_FALL_WARNING_TYPE_EN_C1[] = "Preliminary";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_ASH_FALL_WARNING_TYPE_EN_C2[] = "Detailed";
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_ash_fall_warning_type_en_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 1: { static const char AZARAC_PROGMEM s[] = "Preliminary"; return azarac_pgm_view(s, 11); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "Detailed"; return azarac_pgm_view(s, 8); }
+        case 1: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_ASH_FALL_WARNING_TYPE_EN_C1), 11);
+        case 2: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_ASH_FALL_WARNING_TYPE_EN_C2), 8);
         default: return std::nullopt;
     }
 }

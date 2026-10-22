@@ -1,12 +1,7 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.17.1 with CI-CD
-// Source module : azarashi.definitions.camf.a6_hazard_onset_week
-// Variable      : qzss_dcx_camf_a6_hazard_onset_week
-// Entries       : 2
-// Strategy      : switch
-
-// NOTE: This function may return nullptr for unknown IDs.
-// Callers MUST perform a null-check before using the result.
+// AUTO-GENERATED from azarashi 0.17.1 — do not edit
+// azarashi.definitions.camf.a6_hazard_onset_week → qzss_dcx_camf_a6_hazard_onset_week: 2 entries, strategy switch
+// Unknown id returns nullptr — callers MUST null-check.
 
 #if defined(__AVR__)
 #include "../internal/avr_std/cstdint"
@@ -26,10 +21,12 @@ namespace def {
 #if (AZARAC_ENABLE_DCX_CAMF)
 
 #if defined(__AVR__)
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_A6_HAZARD_ONSET_WEEK_C0[] = "Current";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_A6_HAZARD_ONSET_WEEK_C1[] = "Next";
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_a6_hazard_onset_week_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 0: { static const char AZARAC_PROGMEM s[] = "Current"; return azarac_pgm_view(s, 7); }
-        case 1: { static const char AZARAC_PROGMEM s[] = "Next"; return azarac_pgm_view(s, 4); }
+        case 0: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCX_CAMF_A6_HAZARD_ONSET_WEEK_C0), 7);
+        case 1: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCX_CAMF_A6_HAZARD_ONSET_WEEK_C1), 4);
         default: return std::nullopt;
     }
 }

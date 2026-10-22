@@ -1,12 +1,7 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.17.1 with CI-CD
-// Source module : azarashi.definitions.qzss.dcr.weather_forecast_region
-// Variable      : qzss_dcr_jma_weather_forecast_region_en
-// Entries       : 75
-// Strategy      : binary_search
-
-// NOTE: This function may return nullptr for unknown IDs.
-// Callers MUST perform a null-check before using the result.
+// AUTO-GENERATED from azarashi 0.17.1 — do not edit
+// azarashi.definitions.qzss.dcr.weather_forecast_region → qzss_dcr_jma_weather_forecast_region_en: 75 entries, strategy binary_search
+// Unknown id returns nullptr — callers MUST null-check.
 
 #if defined(__AVR__)
 #include "../internal/avr_std/cstdint"
@@ -26,95 +21,105 @@ namespace def {
 #if (AZARAC_ENABLE_WEATHER) && (AZARAC_LANG_EN)
 
 #if defined(__AVR__)
-static const char AZARAC_PROGMEM QZSS_DCR_JMA_WEATHER_FORECAST_REGION_EN_POOL[] = "Soya Region\000Kamikawa and Rumoi Region\000Kamikawa Region\000Rumoi Region\000Abashiri · Kitami · Mombetsu Region\000Nemuro Region\000Kushiro Region\000Tokachi Region\000Kushiro and Nemuro Region\000Iburi and Hidaka Region\000Iburi Region\000Hidaka Region\000Region of Ishikari/Sorachi/Shiribeshi\000Ishikari Region\000Sorachi Region\000Shiribeshi Region\000Region of Ishikari and Sorachi\000Region of Oshima and Hiyama\000Oshima Region\000Hiyama Region\000Aomori Prefecture\000Iwate Prefecture\000Miyagi Prefecture\000Akita Prefecture\000Yamagata Prefecture\000Fukushima Prefecture\000Ibaraki Prefecture\000Tochigi Prefecture\000Gunma Prefecture\000Saitama Prefecture\000Chiba Prefecture\000Tokyo\000Tokyo Region\000Northern Izu Islands\000Southern Izu Islands\000Kanagawa Prefecture\000Niigata Prefecture\000Toyama Prefecture\000Ishikawa Prefecture\000Fukui Prefecture\000Yamanashi Prefecture\000Nagano Prefecture\000Gifu Prefecture\000Shizuoka Prefecture\000Aichi Prefecture\000Mie Prefecture\000Shiga Prefecture\000Kyoto Prefecture\000Osaka Prefecture\000Hyogo Prefecture\000Nara Prefecture\000Wakayama Prefecture\000Tottori Prefecture\000Shimane Prefecture\000Okayama Prefecture\000Hiroshima Prefecture\000Yamaguchi Prefecture\000Tokushima Prefecture\000Kagawa Prefecture\000Ehime Prefecture\000Kochi Prefecture\000Fukuoka Prefecture\000Saga Prefecture\000Nagasaki Prefecture\000Kumamoto Prefecture\000Oita Prefecture\000Miyazaki Prefecture\000Kagoshima Prefecture\000Amami Region\000Kagoshima Prefecture (excluding Amami Region)\000Okinawa Main Island Region\000Daitojima Region\000Miyakojima Region\000Yaeyama Region\000Other Prefectural Forecast Region\000";
-struct QZSS_DCR_JMA_WEATHER_FORECAST_REGION_EN_Entry { uint32_t id; uint16_t offset; uint16_t len; };
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_WEATHER_FORECAST_REGION_EN_POOL[] = "Soya\000Kamikawa and Rumoi\000Kamikawa\000Rumoi\000Abashiri · Kitami · Mombetsu\000Nemuro\000Kushiro\000Tokachi\000Kushiro and Nemuro\000Iburi and Hidaka\000Iburi\000Hidaka\000Region of Ishikari/Sorachi/Shiribeshi\000Ishikari\000Sorachi\000Shiribeshi\000Region of Ishikari and Sorachi\000Region of Oshima and Hiyama\000Oshima\000Hiyama\000Aomori\000Iwate\000Miyagi\000Akit\000Yamagat\000Fukushim\000Ibaraki\000Tochigi\000Gunm\000Saitam\000Chib\000Tokyo\000Tokyo\000Northern Izu Islands\000Southern Izu Islands\000Kanagaw\000Niigat\000Toyam\000Ishikaw\000Fukui\000Yamanashi\000Nagano\000Gifu\000Shizuok\000Aichi\000Mie\000Shig\000Kyoto\000Osak\000Hyogo\000Nar\000Wakayam\000Tottori\000Shimane\000Okayam\000Hiroshim\000Yamaguchi\000Tokushim\000Kagaw\000Ehime\000Kochi\000Fukuok\000Sag\000Nagasaki\000Kumamoto\000Oit\000Miyazaki\000Kagoshim\000Amami\000Kagoshima Prefecture (excluding Amami Region)\000Okinawa Main Island\000Daitojima\000Miyakojima\000Yaeyama\000Other Prefectural Forecast\000";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_WEATHER_FORECAST_REGION_EN_PARENT_POOL[] = " Prefecture\000 Region\000a Prefecture\000";
+struct QZSS_DCR_JMA_WEATHER_FORECAST_REGION_EN_PARENT_Entry { uint16_t offset; };
+static const QZSS_DCR_JMA_WEATHER_FORECAST_REGION_EN_PARENT_Entry QZSS_DCR_JMA_WEATHER_FORECAST_REGION_EN_PARENT_TABLE[] AZARAC_PROGMEM = {
+    {0u},
+    {12u},
+    {20u},
+};
+struct QZSS_DCR_JMA_WEATHER_FORECAST_REGION_EN_Entry { uint32_t id; uint8_t parent; uint16_t offset; };
 static const QZSS_DCR_JMA_WEATHER_FORECAST_REGION_EN_Entry QZSS_DCR_JMA_WEATHER_FORECAST_REGION_EN_TABLE[] AZARAC_PROGMEM = {
-    {11000u, 0u, 11u},
-    {12000u, 12u, 25u},
-    {12010u, 38u, 15u},
-    {12020u, 54u, 12u},
-    {13000u, 67u, 37u},
-    {14010u, 105u, 13u},
-    {14020u, 119u, 14u},
-    {14030u, 134u, 14u},
-    {14100u, 149u, 25u},
-    {15000u, 175u, 23u},
-    {15010u, 199u, 12u},
-    {15020u, 212u, 13u},
-    {16000u, 226u, 37u},
-    {16010u, 264u, 15u},
-    {16020u, 280u, 14u},
-    {16030u, 295u, 17u},
-    {16100u, 313u, 30u},
-    {17000u, 344u, 27u},
-    {17010u, 372u, 13u},
-    {17020u, 386u, 13u},
-    {20000u, 400u, 17u},
-    {30000u, 418u, 16u},
-    {40000u, 435u, 17u},
-    {50000u, 453u, 16u},
-    {60000u, 470u, 19u},
-    {70000u, 490u, 20u},
-    {80000u, 511u, 18u},
-    {90000u, 530u, 18u},
-    {100000u, 549u, 16u},
-    {110000u, 566u, 18u},
-    {120000u, 585u, 16u},
-    {130000u, 602u, 5u},
-    {130010u, 608u, 12u},
-    {130020u, 621u, 20u},
-    {130030u, 642u, 20u},
-    {140000u, 663u, 19u},
-    {150000u, 683u, 18u},
-    {160000u, 702u, 17u},
-    {170000u, 720u, 19u},
-    {180000u, 740u, 16u},
-    {190000u, 757u, 20u},
-    {200000u, 778u, 17u},
-    {210000u, 796u, 15u},
-    {220000u, 812u, 19u},
-    {230000u, 832u, 16u},
-    {240000u, 849u, 14u},
-    {250000u, 864u, 16u},
-    {260000u, 881u, 16u},
-    {270000u, 898u, 16u},
-    {280000u, 915u, 16u},
-    {290000u, 932u, 15u},
-    {300000u, 948u, 19u},
-    {310000u, 968u, 18u},
-    {320000u, 987u, 18u},
-    {330000u, 1006u, 18u},
-    {340000u, 1025u, 20u},
-    {350000u, 1046u, 20u},
-    {360000u, 1067u, 20u},
-    {370000u, 1088u, 17u},
-    {380000u, 1106u, 16u},
-    {390000u, 1123u, 16u},
-    {400000u, 1140u, 18u},
-    {410000u, 1159u, 15u},
-    {420000u, 1175u, 19u},
-    {430000u, 1195u, 19u},
-    {440000u, 1215u, 15u},
-    {450000u, 1231u, 19u},
-    {460000u, 1251u, 20u},
-    {460040u, 1272u, 12u},
-    {460100u, 1285u, 45u},
-    {471000u, 1331u, 26u},
-    {472000u, 1358u, 16u},
-    {473000u, 1375u, 17u},
-    {474000u, 1393u, 14u},
-    {500000u, 1408u, 33u},
+    {11000u, 1u, 0u},
+    {12000u, 1u, 5u},
+    {12010u, 1u, 24u},
+    {12020u, 1u, 33u},
+    {13000u, 1u, 39u},
+    {14010u, 1u, 70u},
+    {14020u, 1u, 77u},
+    {14030u, 1u, 85u},
+    {14100u, 1u, 93u},
+    {15000u, 1u, 112u},
+    {15010u, 1u, 129u},
+    {15020u, 1u, 135u},
+    {16000u, 255u, 142u},
+    {16010u, 1u, 180u},
+    {16020u, 1u, 189u},
+    {16030u, 1u, 197u},
+    {16100u, 255u, 208u},
+    {17000u, 255u, 239u},
+    {17010u, 1u, 267u},
+    {17020u, 1u, 274u},
+    {20000u, 0u, 281u},
+    {30000u, 0u, 288u},
+    {40000u, 0u, 294u},
+    {50000u, 2u, 301u},
+    {60000u, 2u, 306u},
+    {70000u, 2u, 314u},
+    {80000u, 0u, 323u},
+    {90000u, 0u, 331u},
+    {100000u, 2u, 339u},
+    {110000u, 2u, 344u},
+    {120000u, 2u, 351u},
+    {130000u, 255u, 356u},
+    {130010u, 1u, 362u},
+    {130020u, 255u, 368u},
+    {130030u, 255u, 389u},
+    {140000u, 2u, 410u},
+    {150000u, 2u, 418u},
+    {160000u, 2u, 425u},
+    {170000u, 2u, 431u},
+    {180000u, 0u, 439u},
+    {190000u, 0u, 445u},
+    {200000u, 0u, 455u},
+    {210000u, 0u, 462u},
+    {220000u, 2u, 467u},
+    {230000u, 0u, 475u},
+    {240000u, 0u, 481u},
+    {250000u, 2u, 485u},
+    {260000u, 0u, 490u},
+    {270000u, 2u, 496u},
+    {280000u, 0u, 501u},
+    {290000u, 2u, 507u},
+    {300000u, 2u, 511u},
+    {310000u, 0u, 519u},
+    {320000u, 0u, 527u},
+    {330000u, 2u, 535u},
+    {340000u, 2u, 542u},
+    {350000u, 0u, 551u},
+    {360000u, 2u, 561u},
+    {370000u, 2u, 570u},
+    {380000u, 0u, 576u},
+    {390000u, 0u, 582u},
+    {400000u, 2u, 588u},
+    {410000u, 2u, 595u},
+    {420000u, 0u, 599u},
+    {430000u, 0u, 608u},
+    {440000u, 2u, 617u},
+    {450000u, 0u, 621u},
+    {460000u, 2u, 630u},
+    {460040u, 1u, 639u},
+    {460100u, 255u, 645u},
+    {471000u, 1u, 691u},
+    {472000u, 1u, 711u},
+    {473000u, 1u, 721u},
+    {474000u, 1u, 732u},
+    {500000u, 1u, 740u},
 };
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_weather_forecast_region_en_lookup(uint32_t id) noexcept {
     uint8_t lo = 0, hi = 75;
     while (lo < hi) {
         uint8_t mid = static_cast<uint8_t>(lo + (hi - lo) / 2);
-        const char* AZARAC_PROGMEM ep = reinterpret_cast<const char*>(&QZSS_DCR_JMA_WEATHER_FORECAST_REGION_EN_TABLE[mid]);
-        uint32_t eid = pgm_read_dword(ep + offsetof(QZSS_DCR_JMA_WEATHER_FORECAST_REGION_EN_Entry, id));
+        azarac_pgm_ptr ep = AZARAC_PGM_PTR(QZSS_DCR_JMA_WEATHER_FORECAST_REGION_EN_TABLE) + static_cast<size_t>(mid) * sizeof(QZSS_DCR_JMA_WEATHER_FORECAST_REGION_EN_Entry);
+        uint32_t eid = azarac_read_dword(ep, offsetof(QZSS_DCR_JMA_WEATHER_FORECAST_REGION_EN_Entry, id));
         if (eid == id) {
-            uint16_t off = pgm_read_word(ep + offsetof(QZSS_DCR_JMA_WEATHER_FORECAST_REGION_EN_Entry, offset));
-            uint16_t n = pgm_read_word(ep + offsetof(QZSS_DCR_JMA_WEATHER_FORECAST_REGION_EN_Entry, len));
-            return azarac_pgm_view(QZSS_DCR_JMA_WEATHER_FORECAST_REGION_EN_POOL + off, n);
+            uint16_t off = azarac_read_word(ep, offsetof(QZSS_DCR_JMA_WEATHER_FORECAST_REGION_EN_Entry, offset));
+            uint8_t pi = azarac_read_byte(ep, offsetof(QZSS_DCR_JMA_WEATHER_FORECAST_REGION_EN_Entry, parent));
+            if (pi == 255u) return azarac_pgm_view_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_WEATHER_FORECAST_REGION_EN_POOL) + off);
+            azarac_pgm_ptr pp = AZARAC_PGM_PTR(QZSS_DCR_JMA_WEATHER_FORECAST_REGION_EN_PARENT_TABLE) + static_cast<size_t>(pi) * sizeof(QZSS_DCR_JMA_WEATHER_FORECAST_REGION_EN_PARENT_Entry);
+            uint16_t poff = azarac_read_word(pp, offsetof(QZSS_DCR_JMA_WEATHER_FORECAST_REGION_EN_PARENT_Entry, offset));
+            return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_WEATHER_FORECAST_REGION_EN_POOL) + off, AZARAC_PGM_PTR(QZSS_DCR_JMA_WEATHER_FORECAST_REGION_EN_PARENT_POOL) + poff);
         }
         if (eid < id) lo = static_cast<uint8_t>(mid + 1); else hi = mid;
     }

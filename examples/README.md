@@ -54,7 +54,7 @@ CFG-UART1-BAUDRATE              = 9600
 
 Arduino Uno 用の最小例です。Uno には Serial1 が無いため、GNSS モジュールを Serial (pin 0=RX) に接続し、JSON も同一の Serial に出力します（ボーレート 9600）。
 
-**対応ハードウェア**: Arduino Uno (AVR)。`azaraC_config.h` の AVR プリセットにより SEISMIC/TSUNAMI のみ有効化され、32KB Flash に収まります。
+**対応ハードウェア**: Arduino Uno (AVR)。`azaraC_config.h` の AVR プリセットにより SEISMIC/TSUNAMI のみ有効化され、32KB Flash に収まります。ATmega2560（Mega）でも既定は同じ SEISMIC/TSUNAMI のみで、DCX/CAMF を使う場合は `-DAZARAC_ENABLE_DCX_CAMF=1`（または `-DAZARAC_AVR_LARGE_FLASH=1`）を明示します（DCX/CAMF 入りは日本語でフラッシュ148KB / RAM 892B を実測。Arduino コアの実ビルド（`-flto`）でも RAM 892B で同じ — switch 戦略のリテラルは LTO の section 属性落ちを避けるため名前空間スコープに置いている）。
 
 **配線 (Arduino Uno)**:
 
@@ -76,7 +76,7 @@ Wi-FiとSNTPを使用してUNIX時刻を取得し、DCR/DCXメッセージの年
 
 - Wi-Fi接続
 - SNTP時刻同期
-- EEW (disaster_category=1) フィルタリング
+- EEW (disaster_category=1) と DCX の詳細ログ表示（JSON は全メッセージを出力）
 - DCXメッセージのサービス種別表示
 
 **必要な設定**:
@@ -93,6 +93,8 @@ Wi-FiとSNTPを使用してUNIX時刻を取得し、DCR/DCXメッセージの年
 ### filter_by_category - カテゴリ別フィルタリング
 
 MT=43メッセージを災害カテゴリ別にフィルタリングして出力します。
+
+カテゴリ 1（EEW）と 2（震源）の詳細出力は `#if (AZARAC_ENABLE_EEW)` / `#if (AZARAC_ENABLE_HYPOCENTER)` で囲んであり、そのカテゴリを無効にしたビルド（AVR プリセットの既定）では型ごと消えるため case も出力されません。フィルタの `eew` / `hypocenter` フラグ自体は残るので、有効にしたビルドではそのまま効きます。
 
 **対応カテゴリ**:
 
@@ -128,27 +130,28 @@ filter.weather = false;    // 気象警報を出力しない
 
 **機能**:
 
-- メッセージ妥当性チェック (`msg.valid`)
+- メッセージ妥当性チェック（`feed()` が `true` を返した時点で `msg.valid` は保証されるため、スケッチ側では `msg.valid` を再チェックしない）
 - SVID範囲チェック (QZSS L1S PRN: 181-191)
 - `disaster_category` 範囲チェック (MT=43)
 - `service_kind` チェック (MT=44)
 - 日付・時刻の妥当性チェック
 - 受信統計の定期表示
-- ハートビート出力（受信がない場合）
+- 5 秒間隔のハートビート出力
 
 **バリデーション関数**:
 
 ```cpp
-// 基本的な妥当性チェック
+// SVID とメッセージタイプのチェック
 bool validateMessage(const azaraC::Message& msg) {
-    if (!msg.valid) {
-        Serial.println(F("[WARN] Invalid message flag"));
-        return false;
-    }
     // SVIDの範囲チェック (QZSS L1S PRN: 181-191)
-    if (msg.svid < 181 || msg.svid > 191) {
+    if (msg.svid < QZSS_SVID_MIN || msg.svid > QZSS_SVID_MAX) {
         Serial.print(F("[WARN] Unexpected SVID: "));
         Serial.println(msg.svid);
+    }
+    if (msg.msg_type != MSG_TYPE_MT43 && msg.msg_type != MSG_TYPE_MT44) {
+        Serial.print(F("[ERROR] Unknown msg_type: "));
+        Serial.println(msg.msg_type);
+        return false;
     }
     return true;
 }
@@ -176,15 +179,12 @@ bool validateMt44(const azaraC::Message& msg) {
 ```
 === azaraC Statistics ===
 Total messages:    50
-Valid messages:    48
-Duplicate skipped: 2
 MT=43 (QZQSM):     30
 MT=44 (DCX):       18
 Last SVID:         184
-Valid ratio:       96%
 ========================
 
-[INFO] Heartbeat - Total: 50 Valid: 48
+[INFO] Heartbeat - Total: 50
 ```
 
 ---
@@ -240,7 +240,7 @@ ESP32 で UART RX タスクと出力タスクを分離し、キューでメッ�
 | ------------------ | ------------- | ---------------------- | ------------------ |
 | basic_nmea         | NMEA $QZQSM   | Serial JSON            | 最もシンプル       |
 | basic_ubx          | UBX-RXM-SFRBX | Serial JSON            | u-bloxバイナリ     |
-| with_sntp          | NMEA $QZQSM   | Serial JSON + フィルタ | SNTP時刻解決       |
+| with_sntp          | NMEA $QZQSM   | Serial JSON + 詳細ログ | SNTP時刻解決       |
 | filter_by_category | NMEA/UBX      | Serial JSON            | カテゴリフィルタ   |
 | error_handling     | NMEA/UBX      | Serial JSON + 統計     | エラーハンドリング |
 | wifi_client        | NMEA/UBX      | Serial + TCP           | ネットワーク出力   |
@@ -286,7 +286,7 @@ Serial1.begin(9600, SERIAL_8N1, 10, 11);
 
 ### コンパイルエラーが発生する場合
 
-1. **C++17を有効化**: Arduino IDE → ツール → C++ Standard → C++17
+1. **C++17を有効化**: arduino-cli なら `--build-property "compiler.cpp.extra_flags=-std=gnu++17"`、PlatformIO なら `build_flags = -std=gnu++17`（[`platformio.ini.example`](../platformio.ini.example)）。Arduino IDE 2.x にはコンパイルフラグの設定項目が無いため、C++17 が既定のコアを使うか PlatformIO を使ってください
 2. **ボードサポートを確認**: 推奨環境はESP32 コア ≥ 3.x
 3. **ライブラリのインストール**: azaraCがlibrariesフォルダにあるか確認
 

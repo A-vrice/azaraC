@@ -1,12 +1,7 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.17.1 with CI-CD
-// Source module : azarashi.definitions.camf.d_fields
-// Variable      : qzss_dcx_camf_d5_wave_height
-// Entries       : 8
-// Strategy      : switch
-
-// NOTE: This function may return nullptr for unknown IDs.
-// Callers MUST perform a null-check before using the result.
+// AUTO-GENERATED from azarashi 0.17.1 — do not edit
+// azarashi.definitions.camf.d_fields → qzss_dcx_camf_d5_wave_height: 8 entries, strategy switch
+// Unknown id returns nullptr — callers MUST null-check.
 
 #if defined(__AVR__)
 #include "../internal/avr_std/cstdint"
@@ -26,16 +21,24 @@ namespace def {
 #if (AZARAC_ENABLE_DCX_CAMF)
 
 #if defined(__AVR__)
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D5_WAVE_HEIGHT_C0[] = "H ≤ 0.5m";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D5_WAVE_HEIGHT_C1[] = "0.5m < H ≤ 1.0m";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D5_WAVE_HEIGHT_C2[] = "1.0m < H ≤ 1.5m";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D5_WAVE_HEIGHT_C3[] = "1.5m < H ≤ 2.0m";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D5_WAVE_HEIGHT_C4[] = "2.0m < H ≤ 3.0m";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D5_WAVE_HEIGHT_C5[] = "3.0m < H ≤ 5.0m";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D5_WAVE_HEIGHT_C6[] = "5.0m < H ≤ 10.0m";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D5_WAVE_HEIGHT_C7[] = "H > 10.0m";
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_d5_wave_height_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 0: { static const char AZARAC_PROGMEM s[] = "H ≤ 0.5m"; return azarac_pgm_view(s, 10); }
-        case 1: { static const char AZARAC_PROGMEM s[] = "0.5m < H ≤ 1.0m"; return azarac_pgm_view(s, 17); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "1.0m < H ≤ 1.5m"; return azarac_pgm_view(s, 17); }
-        case 3: { static const char AZARAC_PROGMEM s[] = "1.5m < H ≤ 2.0m"; return azarac_pgm_view(s, 17); }
-        case 4: { static const char AZARAC_PROGMEM s[] = "2.0m < H ≤ 3.0m"; return azarac_pgm_view(s, 17); }
-        case 5: { static const char AZARAC_PROGMEM s[] = "3.0m < H ≤ 5.0m"; return azarac_pgm_view(s, 17); }
-        case 6: { static const char AZARAC_PROGMEM s[] = "5.0m < H ≤ 10.0m"; return azarac_pgm_view(s, 18); }
-        case 7: { static const char AZARAC_PROGMEM s[] = "H > 10.0m"; return azarac_pgm_view(s, 9); }
+        case 0: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D5_WAVE_HEIGHT_C0), 10);
+        case 1: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D5_WAVE_HEIGHT_C1), 17);
+        case 2: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D5_WAVE_HEIGHT_C2), 17);
+        case 3: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D5_WAVE_HEIGHT_C3), 17);
+        case 4: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D5_WAVE_HEIGHT_C4), 17);
+        case 5: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D5_WAVE_HEIGHT_C5), 17);
+        case 6: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D5_WAVE_HEIGHT_C6), 18);
+        case 7: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D5_WAVE_HEIGHT_C7), 9);
         default: return std::nullopt;
     }
 }

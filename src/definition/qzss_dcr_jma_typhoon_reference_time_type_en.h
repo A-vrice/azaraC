@@ -1,12 +1,7 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.17.1 with CI-CD
-// Source module : azarashi.definitions.qzss.dcr.typhoon_reference_time_type
-// Variable      : qzss_dcr_jma_typhoon_reference_time_type_en
-// Entries       : 3
-// Strategy      : switch
-
-// NOTE: This function may return nullptr for unknown IDs.
-// Callers MUST perform a null-check before using the result.
+// AUTO-GENERATED from azarashi 0.17.1 — do not edit
+// azarashi.definitions.qzss.dcr.typhoon_reference_time_type → qzss_dcr_jma_typhoon_reference_time_type_en: 3 entries, strategy switch
+// Unknown id returns nullptr — callers MUST null-check.
 
 #if defined(__AVR__)
 #include "../internal/avr_std/cstdint"
@@ -26,11 +21,14 @@ namespace def {
 #if (AZARAC_ENABLE_TYPHOON) && (AZARAC_LANG_EN)
 
 #if defined(__AVR__)
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_TYPHOON_REFERENCE_TIME_TYPE_EN_C1[] = "Analysis";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_TYPHOON_REFERENCE_TIME_TYPE_EN_C2[] = "Estimate";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_TYPHOON_REFERENCE_TIME_TYPE_EN_C3[] = "Forecast";
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_typhoon_reference_time_type_en_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 1: { static const char AZARAC_PROGMEM s[] = "Analysis"; return azarac_pgm_view(s, 8); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "Estimate"; return azarac_pgm_view(s, 8); }
-        case 3: { static const char AZARAC_PROGMEM s[] = "Forecast"; return azarac_pgm_view(s, 8); }
+        case 1: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_TYPHOON_REFERENCE_TIME_TYPE_EN_C1), 8);
+        case 2: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_TYPHOON_REFERENCE_TIME_TYPE_EN_C2), 8);
+        case 3: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_TYPHOON_REFERENCE_TIME_TYPE_EN_C3), 8);
         default: return std::nullopt;
     }
 }

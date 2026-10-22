@@ -9,6 +9,17 @@
 
 using namespace azaraC;
 
+// payload 領域は Mt44Data（uint64_t を含む）を配置できる境界を持つこと。
+// alignas(uint64_t) はホストで 8、AVR で 1 に解決されるので、どちらでもこの条件は満たされる。
+static_assert(alignof(azaraC::Message) >= alignof(azaraC::Mt44Data),
+              "Message payload storage must be aligned for Mt44Data");
+// その境界を決めるのは payload 型の側: `alignas(uint64_t)` の枠に載る型は alignof(uint64_t) を超えてはならない。
+// 超えた型（メンバに alignas(16) の配列を持つ等）を足すと枠が足りなくなるので、Message の他のメンバに救われて通る書き方ではなくこちらで固定する。
+static_assert(alignof(azaraC::Mt43Data) <= alignof(uint64_t),
+              "Mt43Data over-aligns the alignas(uint64_t) payload buffer");
+static_assert(alignof(azaraC::Mt44Data) <= alignof(uint64_t),
+              "Mt44Data over-aligns the alignas(uint64_t) payload buffer");
+
 // Message構造体のテスト
 
 TEST_CASE("Message: デフォルトコンストラクタ") {
@@ -116,6 +127,7 @@ TEST_CASE("Mt43Data: デフォルトコンストラクタ") {
     CHECK(data.active_type == Mt43Data::ActiveType::None);
 }
 
+#if (AZARAC_ENABLE_EEW)
 TEST_CASE("Mt43Data: EewDataの初期化とアクセス") {
     Mt43Data data;
     data.initAs<EewData>();
@@ -134,12 +146,15 @@ TEST_CASE("Mt43Data: EewDataの初期化とアクセス") {
     CHECK(eew->intensity_upper == 0);
     CHECK(eew->region_count == 0);
 
+#if (AZARAC_ENABLE_HYPOCENTER)
     CHECK(data.getHypocenter() == nullptr);
+#endif
     CHECK(data.getSeismic() == nullptr);
 #if (AZARAC_ENABLE_NANKAI)
     CHECK(data.getNankai() == nullptr);
 #endif
 }
+#endif // AZARAC_ENABLE_EEW
 
 #if (AZARAC_ENABLE_NANKAI)
 TEST_CASE("Mt43Data: NankaiDataの初期化とアクセス") {
@@ -176,6 +191,7 @@ TEST_CASE("Mt43Data: TyphoonDataの初期化とアクセス") {
     CHECK(typh->max_gust == 0);
 }
 
+#if (AZARAC_ENABLE_EEW)
 TEST_CASE("Mt43Data: 型の切り替え") {
     Mt43Data data;
 
@@ -190,6 +206,7 @@ TEST_CASE("Mt43Data: 型の切り替え") {
     CHECK(data.getEew() == nullptr);
 #endif
 }
+#endif // AZARAC_ENABLE_EEW
 
 #if (AZARAC_ENABLE_NANKAI)
 TEST_CASE("Mt43Data: コピーコンストラクタ") {
@@ -221,11 +238,15 @@ TEST_CASE("Mt43Data: コピー代入演算子") {
 }
 
 TEST_CASE("Mt43Data: コピーコンストラクタ - 全12型") {
-    // 各 ActiveType に対してコピーコンストラクタが正しく動作することを検証コピー先の型が正しく、nullptr が適切に返ることを確認（型安全性）
+    // 全 ActiveType でコピー後の型が一致し、他型アクセスのみ nullptr を返す（型安全性）
     struct TypeInfo { Mt43Data::ActiveType type; const char* name; };
     TypeInfo types[] = {
+#if (AZARAC_ENABLE_EEW)
         {Mt43Data::ActiveType::Eew,          "Eew"},
+#endif
+#if (AZARAC_ENABLE_HYPOCENTER)
         {Mt43Data::ActiveType::Hypocenter,   "Hypocenter"},
+#endif
         {Mt43Data::ActiveType::Seismic,      "Seismic"},
 #if (AZARAC_ENABLE_NANKAI)
         {Mt43Data::ActiveType::Nankai,       "Nankai"},
@@ -242,10 +263,13 @@ TEST_CASE("Mt43Data: コピーコンストラクタ - 全12型") {
 
     for (auto t : types) {
         Mt43Data orig;
-        // initAs を使って適切な型で初期化
         switch (t.type) {
+#if (AZARAC_ENABLE_EEW)
             case Mt43Data::ActiveType::Eew:          orig.initAs<EewData>(); break;
+#endif
+#if (AZARAC_ENABLE_HYPOCENTER)
             case Mt43Data::ActiveType::Hypocenter:   orig.initAs<HypocenterData>(); break;
+#endif
             case Mt43Data::ActiveType::Seismic:      orig.initAs<SeismicData>(); break;
 #if (AZARAC_ENABLE_NANKAI)
             case Mt43Data::ActiveType::Nankai:       orig.initAs<NankaiData>(); break;
@@ -262,14 +286,16 @@ TEST_CASE("Mt43Data: コピーコンストラクタ - 全12型") {
         }
         CHECK(orig.active_type == t.type);
 
-        // コピー構築
         Mt43Data copied(orig);
         CHECK(copied.active_type == t.type);
 
-        // コピー先の正しい型へのアクセスが非nullであること
         switch (t.type) {
+#if (AZARAC_ENABLE_EEW)
             case Mt43Data::ActiveType::Eew:          CHECK(copied.get<EewData>()          != nullptr); break;
+#endif
+#if (AZARAC_ENABLE_HYPOCENTER)
             case Mt43Data::ActiveType::Hypocenter:   CHECK(copied.get<HypocenterData>()   != nullptr); break;
+#endif
             case Mt43Data::ActiveType::Seismic:      CHECK(copied.get<SeismicData>()      != nullptr); break;
 #if (AZARAC_ENABLE_NANKAI)
             case Mt43Data::ActiveType::Nankai:       CHECK(copied.get<NankaiData>()       != nullptr); break;
@@ -285,9 +311,12 @@ TEST_CASE("Mt43Data: コピーコンストラクタ - 全12型") {
             default: break;
         }
 
-        // 異なる型へのアクセスは nullptr（型安全性の確認）
+#if (AZARAC_ENABLE_EEW)
         if (t.type != Mt43Data::ActiveType::Eew)          CHECK(copied.get<EewData>()          == nullptr);
+#endif
+#if (AZARAC_ENABLE_HYPOCENTER)
         if (t.type != Mt43Data::ActiveType::Hypocenter)   CHECK(copied.get<HypocenterData>()   == nullptr);
+#endif
         if (t.type != Mt43Data::ActiveType::Seismic)      CHECK(copied.get<SeismicData>()      == nullptr);
 #if (AZARAC_ENABLE_NANKAI)
         if (t.type != Mt43Data::ActiveType::Nankai)       CHECK(copied.get<NankaiData>()       == nullptr);
@@ -303,6 +332,7 @@ TEST_CASE("Mt43Data: コピーコンストラクタ - 全12型") {
     }
 }
 
+#if (AZARAC_ENABLE_HYPOCENTER)
 TEST_CASE("Mt43Data: コピーコンストラクタ - 深いコピー") {
     // コピー先を変更しても元データに影響しないことの確認
     Mt43Data orig;
@@ -320,12 +350,12 @@ TEST_CASE("Mt43Data: コピーコンストラクタ - 深いコピー") {
     CHECK(h2->magnitude == 70);
     CHECK(h2->epicenter == 12345);
 
-    // コピー先を変更
     h2->depth = 999;
-    // 元データは影響を受けない
     CHECK(h->depth == 500);
 }
+#endif // AZARAC_ENABLE_HYPOCENTER
 
+#if (AZARAC_ENABLE_EEW)
 TEST_CASE("Mt43Data: コピー代入演算子 - 代入先の元データが破棄される") {
     Mt43Data eew;
     eew.initAs<EewData>();
@@ -341,12 +371,17 @@ TEST_CASE("Mt43Data: コピー代入演算子 - 代入先の元データが破�
     CHECK(eew.active_type == Mt43Data::ActiveType::Typhoon);
     CHECK(eew.getTyphoon() != nullptr);
 }
+#endif // AZARAC_ENABLE_EEW
 
 TEST_CASE("Mt43Data: ムーブコンストラクタ - 全12型") {
     struct TypeInfo { Mt43Data::ActiveType type; const char* name; };
     TypeInfo types[] = {
+#if (AZARAC_ENABLE_EEW)
         {Mt43Data::ActiveType::Eew,          "Eew"},
+#endif
+#if (AZARAC_ENABLE_HYPOCENTER)
         {Mt43Data::ActiveType::Hypocenter,   "Hypocenter"},
+#endif
         {Mt43Data::ActiveType::Seismic,      "Seismic"},
 #if (AZARAC_ENABLE_NANKAI)
         {Mt43Data::ActiveType::Nankai,       "Nankai"},
@@ -364,8 +399,12 @@ TEST_CASE("Mt43Data: ムーブコンストラクタ - 全12型") {
     for (auto t : types) {
         Mt43Data orig;
         switch (t.type) {
+#if (AZARAC_ENABLE_EEW)
             case Mt43Data::ActiveType::Eew:          orig.initAs<EewData>(); break;
+#endif
+#if (AZARAC_ENABLE_HYPOCENTER)
             case Mt43Data::ActiveType::Hypocenter:   orig.initAs<HypocenterData>(); break;
+#endif
             case Mt43Data::ActiveType::Seismic:      orig.initAs<SeismicData>(); break;
 #if (AZARAC_ENABLE_NANKAI)
             case Mt43Data::ActiveType::Nankai:       orig.initAs<NankaiData>(); break;
@@ -382,17 +421,19 @@ TEST_CASE("Mt43Data: ムーブコンストラクタ - 全12型") {
         }
         CHECK(orig.active_type == t.type);
 
-        // ムーブ構築
         Mt43Data moved(std::move(orig));
         CHECK(moved.active_type == t.type);
 
-        // ムーブ元は None になっている
+        // ムーブ元は None
         CHECK(orig.active_type == Mt43Data::ActiveType::None);
 
-        // ムーブ先の正しい型へのアクセスが非nullであること
         switch (t.type) {
+#if (AZARAC_ENABLE_EEW)
             case Mt43Data::ActiveType::Eew:          CHECK(moved.get<EewData>()          != nullptr); break;
+#endif
+#if (AZARAC_ENABLE_HYPOCENTER)
             case Mt43Data::ActiveType::Hypocenter:   CHECK(moved.get<HypocenterData>()   != nullptr); break;
+#endif
             case Mt43Data::ActiveType::Seismic:      CHECK(moved.get<SeismicData>()      != nullptr); break;
 #if (AZARAC_ENABLE_NANKAI)
             case Mt43Data::ActiveType::Nankai:       CHECK(moved.get<NankaiData>()       != nullptr); break;
@@ -408,9 +449,12 @@ TEST_CASE("Mt43Data: ムーブコンストラクタ - 全12型") {
             default: break;
         }
 
-        // ムーブ先の異なる型は nullptr
+#if (AZARAC_ENABLE_EEW)
         if (t.type != Mt43Data::ActiveType::Eew)          CHECK(moved.get<EewData>()          == nullptr);
+#endif
+#if (AZARAC_ENABLE_HYPOCENTER)
         if (t.type != Mt43Data::ActiveType::Hypocenter)   CHECK(moved.get<HypocenterData>()   == nullptr);
+#endif
         if (t.type != Mt43Data::ActiveType::Seismic)      CHECK(moved.get<SeismicData>()      == nullptr);
 #if (AZARAC_ENABLE_NANKAI)
         if (t.type != Mt43Data::ActiveType::Nankai)       CHECK(moved.get<NankaiData>()       == nullptr);
@@ -418,6 +462,7 @@ TEST_CASE("Mt43Data: ムーブコンストラクタ - 全12型") {
     }
 }
 
+#if (AZARAC_ENABLE_EEW)
 TEST_CASE("Mt43Data: ムーブ代入演算子") {
     Mt43Data eew;
     eew.initAs<EewData>();
@@ -433,19 +478,19 @@ TEST_CASE("Mt43Data: ムーブ代入演算子") {
     // ムーブ元は None
     CHECK(typhoon.active_type == Mt43Data::ActiveType::None);
 }
+#endif // AZARAC_ENABLE_EEW
 
 TEST_CASE("Mt43Data: 型切り替えでデストラクタが呼ばれる") {
     Mt43Data data;
     data.initAs<TyphoonData>();
     CHECK(data.getTyphoon() != nullptr);
 
-    // 別の型に切り替え → Typhoon のデストラクタが呼ばれる (destroyActive経由)
+    // destroyActive 経由で旧型のデストラクタが呼ばれる
     data.initAs<VolcanoData>();
     CHECK(data.active_type == Mt43Data::ActiveType::Volcano);
     CHECK(data.getVolcano() != nullptr);
     CHECK(data.getTyphoon() == nullptr);
 
-    // もう一度切り替え
     data.initAs<MarineData>();
     CHECK(data.active_type == Mt43Data::ActiveType::Marine);
     CHECK(data.getMarine() != nullptr);
@@ -456,11 +501,9 @@ TEST_CASE("Mt43Data: None のコピー/ムーブは安全") {
     Mt43Data empty;
     CHECK(empty.active_type == Mt43Data::ActiveType::None);
 
-    // None からのコピー
     Mt43Data copied(empty);
     CHECK(copied.active_type == Mt43Data::ActiveType::None);
 
-    // None からのムーブ
     Mt43Data moved(std::move(empty));
     CHECK(moved.active_type == Mt43Data::ActiveType::None);
 }

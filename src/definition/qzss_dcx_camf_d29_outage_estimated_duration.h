@@ -1,12 +1,7 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.17.1 with CI-CD
-// Source module : azarashi.definitions.camf.d_fields
-// Variable      : qzss_dcx_camf_d29_outage_estimated_duration
-// Entries       : 13
-// Strategy      : array
-
-// NOTE: This function may return nullptr for unknown IDs.
-// Callers MUST perform a null-check before using the result.
+// AUTO-GENERATED from azarashi 0.17.1 — do not edit
+// azarashi.definitions.camf.d_fields → qzss_dcx_camf_d29_outage_estimated_duration: 13 entries, strategy array
+// Unknown id returns nullptr — callers MUST null-check.
 
 #if defined(__AVR__)
 #include "../internal/avr_std/cstdint"
@@ -29,28 +24,27 @@ inline constexpr uint8_t QZSS_DCX_CAMF_D29_OUTAGE_ESTIMATED_DURATION_BASE = 0;
 inline constexpr uint8_t QZSS_DCX_CAMF_D29_OUTAGE_ESTIMATED_DURATION_SIZE = 13;
 #if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D29_OUTAGE_ESTIMATED_DURATION_POOL[] = "0 < duration < 30 min\00030 min ≤ duration < 45 min\00045 min ≤ duration < 1 h\0001 h ≤ duration < 1 h 30 min\0001 h 30 min ≤ duration < 2 h\0002 h ≤ duration < 3 h\0003 h ≤ duration < 4 h\0004 h ≤ duration < 5 h\0005 h ≤ duration < 10 h\00010 h ≤ duration < 24 h\00024 h ≤ duration < 2 days\0002 days ≤ duration < 7 days\0007 days ≤ duration\000";
-struct QZSS_DCX_CAMF_D29_OUTAGE_ESTIMATED_DURATION_Entry { uint16_t offset; uint16_t len; };
+struct QZSS_DCX_CAMF_D29_OUTAGE_ESTIMATED_DURATION_Entry { uint16_t offset; };
 static const QZSS_DCX_CAMF_D29_OUTAGE_ESTIMATED_DURATION_Entry QZSS_DCX_CAMF_D29_OUTAGE_ESTIMATED_DURATION_TABLE[] AZARAC_PROGMEM = {
-    {0u, 21u},
-    {22u, 28u},
-    {51u, 25u},
-    {77u, 29u},
-    {107u, 29u},
-    {137u, 22u},
-    {160u, 22u},
-    {183u, 22u},
-    {206u, 23u},
-    {230u, 24u},
-    {255u, 26u},
-    {282u, 28u},
-    {311u, 19u}
+    {0u},
+    {22u},
+    {51u},
+    {77u},
+    {107u},
+    {137u},
+    {160u},
+    {183u},
+    {206u},
+    {230u},
+    {255u},
+    {282u},
+    {311u}
 };
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_d29_outage_estimated_duration_lookup(uint8_t id) noexcept {
     if (id < QZSS_DCX_CAMF_D29_OUTAGE_ESTIMATED_DURATION_BASE || id >= QZSS_DCX_CAMF_D29_OUTAGE_ESTIMATED_DURATION_BASE + QZSS_DCX_CAMF_D29_OUTAGE_ESTIMATED_DURATION_SIZE) return std::nullopt;
-    const char* AZARAC_PROGMEM p = reinterpret_cast<const char*>(&QZSS_DCX_CAMF_D29_OUTAGE_ESTIMATED_DURATION_TABLE[id - 0u]);
-    uint16_t off = pgm_read_word(p + offsetof(QZSS_DCX_CAMF_D29_OUTAGE_ESTIMATED_DURATION_Entry, offset));
-    uint16_t n = pgm_read_word(p + offsetof(QZSS_DCX_CAMF_D29_OUTAGE_ESTIMATED_DURATION_Entry, len));
-    return azarac_pgm_view(QZSS_DCX_CAMF_D29_OUTAGE_ESTIMATED_DURATION_POOL + off, n);
+    azarac_pgm_ptr p = AZARAC_PGM_PTR(QZSS_DCX_CAMF_D29_OUTAGE_ESTIMATED_DURATION_TABLE) + static_cast<size_t>(id - 0u) * sizeof(QZSS_DCX_CAMF_D29_OUTAGE_ESTIMATED_DURATION_Entry);
+    uint16_t off = azarac_read_word(p, offsetof(QZSS_DCX_CAMF_D29_OUTAGE_ESTIMATED_DURATION_Entry, offset));
+    return azarac_pgm_view_z(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D29_OUTAGE_ESTIMATED_DURATION_POOL) + off);
 }
 #else
 inline constexpr const char* QZSS_DCX_CAMF_D29_OUTAGE_ESTIMATED_DURATION_TABLE[] = {

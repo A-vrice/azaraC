@@ -1,12 +1,7 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.17.1 with CI-CD
-// Source module : azarashi.definitions.qzss.dcr.eew_forecast_region
-// Variable      : qzss_dcr_jma_eew_forecast_region_en
-// Entries       : 71
-// Strategy      : binary_search
-
-// NOTE: This function may return nullptr for unknown IDs.
-// Callers MUST perform a null-check before using the result.
+// AUTO-GENERATED from azarashi 0.17.1 — do not edit
+// azarashi.definitions.qzss.dcr.eew_forecast_region → qzss_dcr_jma_eew_forecast_region_en: 71 entries, strategy binary_search
+// Unknown id returns nullptr — callers MUST null-check.
 
 #if defined(__AVR__)
 #include "../internal/avr_std/cstdint"
@@ -27,90 +22,89 @@ namespace def {
 
 #if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_EEW_FORECAST_REGION_EN_POOL[] = "Central Area of Hokkaido (Do'o)\000Southern Area of Hokkaido (Donan)\000Northern Area of Hokkaido (Dohoku)\000Eastern Area of Hokkaido (Doto)\000Aomori\000Iwate\000Miyagi\000Akita\000Yamagata\000Fukushima\000Ibaraki\000Tochigi\000Gunma\000Saitama\000Chiba\000Tokyo\000Izu Islands\000Ogasawara\000Kanagawa\000Niigata\000Toyama\000Ishikawa\000Fukui\000Yamanashi\000Nagano\000Gifu\000Shizuoka\000Aichi\000Mie\000Shiga\000Kyoto\000Osaka\000Hyogo\000Nara\000Wakayama\000Tottori\000Shimane\000Okayama\000Hiroshima\000Yamaguchi\000Tokushima\000Kagawa\000Ehime\000Kochi\000Fukuoka\000Saga\000Nagasaki\000Kumamoto\000Oita\000Miyazaki\000Kagoshima\000Amami (Islands)\000Okinawa Main Island\000Daitojima Island\000Miyakojima Island\000Yaeyama\000Hokkaido\000Tohoku\000Kanto\000Izu Islands\000Ogasawara\000Hokuriku\000Koshin\000Tokai\000Kinki\000Chugoku\000Shikoku\000Kyushu\000Amami (Islands)\000Okinawa\000Other Forecast Region (Earthquake Early Warning)\000";
-struct QZSS_DCR_JMA_EEW_FORECAST_REGION_EN_Entry { uint8_t id; uint16_t offset; uint16_t len; };
+struct QZSS_DCR_JMA_EEW_FORECAST_REGION_EN_Entry { uint8_t id; uint16_t offset; };
 static const QZSS_DCR_JMA_EEW_FORECAST_REGION_EN_Entry QZSS_DCR_JMA_EEW_FORECAST_REGION_EN_TABLE[] AZARAC_PROGMEM = {
-    {1u, 0u, 31u},
-    {2u, 32u, 33u},
-    {3u, 66u, 34u},
-    {4u, 101u, 31u},
-    {5u, 133u, 6u},
-    {6u, 140u, 5u},
-    {7u, 146u, 6u},
-    {8u, 153u, 5u},
-    {9u, 159u, 8u},
-    {10u, 168u, 9u},
-    {11u, 178u, 7u},
-    {12u, 186u, 7u},
-    {13u, 194u, 5u},
-    {14u, 200u, 7u},
-    {15u, 208u, 5u},
-    {16u, 214u, 5u},
-    {17u, 220u, 11u},
-    {18u, 232u, 9u},
-    {19u, 242u, 8u},
-    {20u, 251u, 7u},
-    {21u, 259u, 6u},
-    {22u, 266u, 8u},
-    {23u, 275u, 5u},
-    {24u, 281u, 9u},
-    {25u, 291u, 6u},
-    {26u, 298u, 4u},
-    {27u, 303u, 8u},
-    {28u, 312u, 5u},
-    {29u, 318u, 3u},
-    {30u, 322u, 5u},
-    {31u, 328u, 5u},
-    {32u, 334u, 5u},
-    {33u, 340u, 5u},
-    {34u, 346u, 4u},
-    {35u, 351u, 8u},
-    {36u, 360u, 7u},
-    {37u, 368u, 7u},
-    {38u, 376u, 7u},
-    {39u, 384u, 9u},
-    {40u, 394u, 9u},
-    {41u, 404u, 9u},
-    {42u, 414u, 6u},
-    {43u, 421u, 5u},
-    {44u, 427u, 5u},
-    {45u, 433u, 7u},
-    {46u, 441u, 4u},
-    {47u, 446u, 8u},
-    {48u, 455u, 8u},
-    {49u, 464u, 4u},
-    {50u, 469u, 8u},
-    {51u, 478u, 9u},
-    {52u, 488u, 15u},
-    {53u, 504u, 19u},
-    {54u, 524u, 16u},
-    {55u, 541u, 17u},
-    {56u, 559u, 7u},
-    {57u, 567u, 8u},
-    {58u, 576u, 6u},
-    {59u, 583u, 5u},
-    {60u, 589u, 11u},
-    {61u, 601u, 9u},
-    {62u, 611u, 8u},
-    {63u, 620u, 6u},
-    {64u, 627u, 5u},
-    {65u, 633u, 5u},
-    {66u, 639u, 7u},
-    {67u, 647u, 7u},
-    {68u, 655u, 6u},
-    {69u, 662u, 15u},
-    {70u, 678u, 7u},
-    {80u, 686u, 48u},
+    {1u, 0u},
+    {2u, 32u},
+    {3u, 66u},
+    {4u, 101u},
+    {5u, 133u},
+    {6u, 140u},
+    {7u, 146u},
+    {8u, 153u},
+    {9u, 159u},
+    {10u, 168u},
+    {11u, 178u},
+    {12u, 186u},
+    {13u, 194u},
+    {14u, 200u},
+    {15u, 208u},
+    {16u, 214u},
+    {17u, 220u},
+    {18u, 232u},
+    {19u, 242u},
+    {20u, 251u},
+    {21u, 259u},
+    {22u, 266u},
+    {23u, 275u},
+    {24u, 281u},
+    {25u, 291u},
+    {26u, 298u},
+    {27u, 303u},
+    {28u, 312u},
+    {29u, 318u},
+    {30u, 322u},
+    {31u, 328u},
+    {32u, 334u},
+    {33u, 340u},
+    {34u, 346u},
+    {35u, 351u},
+    {36u, 360u},
+    {37u, 368u},
+    {38u, 376u},
+    {39u, 384u},
+    {40u, 394u},
+    {41u, 404u},
+    {42u, 414u},
+    {43u, 421u},
+    {44u, 427u},
+    {45u, 433u},
+    {46u, 441u},
+    {47u, 446u},
+    {48u, 455u},
+    {49u, 464u},
+    {50u, 469u},
+    {51u, 478u},
+    {52u, 488u},
+    {53u, 504u},
+    {54u, 524u},
+    {55u, 541u},
+    {56u, 559u},
+    {57u, 567u},
+    {58u, 576u},
+    {59u, 583u},
+    {60u, 589u},
+    {61u, 601u},
+    {62u, 611u},
+    {63u, 620u},
+    {64u, 627u},
+    {65u, 633u},
+    {66u, 639u},
+    {67u, 647u},
+    {68u, 655u},
+    {69u, 662u},
+    {70u, 678u},
+    {80u, 686u},
 };
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_eew_forecast_region_en_lookup(uint8_t id) noexcept {
     uint8_t lo = 0, hi = 71;
     while (lo < hi) {
         uint8_t mid = static_cast<uint8_t>(lo + (hi - lo) / 2);
-        const char* AZARAC_PROGMEM ep = reinterpret_cast<const char*>(&QZSS_DCR_JMA_EEW_FORECAST_REGION_EN_TABLE[mid]);
-        uint8_t eid = static_cast<uint8_t>(pgm_read_byte(ep + offsetof(QZSS_DCR_JMA_EEW_FORECAST_REGION_EN_Entry, id)));
+        azarac_pgm_ptr ep = AZARAC_PGM_PTR(QZSS_DCR_JMA_EEW_FORECAST_REGION_EN_TABLE) + static_cast<size_t>(mid) * sizeof(QZSS_DCR_JMA_EEW_FORECAST_REGION_EN_Entry);
+        uint8_t eid = static_cast<uint8_t>(azarac_read_byte(ep, offsetof(QZSS_DCR_JMA_EEW_FORECAST_REGION_EN_Entry, id)));
         if (eid == id) {
-            uint16_t off = pgm_read_word(ep + offsetof(QZSS_DCR_JMA_EEW_FORECAST_REGION_EN_Entry, offset));
-            uint16_t n = pgm_read_word(ep + offsetof(QZSS_DCR_JMA_EEW_FORECAST_REGION_EN_Entry, len));
-            return azarac_pgm_view(QZSS_DCR_JMA_EEW_FORECAST_REGION_EN_POOL + off, n);
+            uint16_t off = azarac_read_word(ep, offsetof(QZSS_DCR_JMA_EEW_FORECAST_REGION_EN_Entry, offset));
+            return azarac_pgm_view_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_EEW_FORECAST_REGION_EN_POOL) + off);
         }
         if (eid < id) lo = static_cast<uint8_t>(mid + 1); else hi = mid;
     }

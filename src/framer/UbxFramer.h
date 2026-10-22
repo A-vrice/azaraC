@@ -24,7 +24,7 @@ private:
     uint16_t _len  = 0;
     uint16_t _pos  = 0;
     uint8_t  _ck_a = 0, _ck_b = 0;
-    uint8_t  _buf[64] = {};   // SFRBX max payload = 8(header) + 4*10(words) = 48 bytes; 64 for safety margin
+    uint8_t  _buf[64] = {};   // SFRBX payload = 8(header) + 4*words (8/9 words -> 40/44 B); 64 for safety margin
 
     bool parse(Frame& out);
 };

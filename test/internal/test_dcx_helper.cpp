@@ -1,4 +1,4 @@
-// test/internal/test_dcx_helper.cpp — DcxHelper 境界値単体テスト decodeLatitude16, decodeLongitude17, decodeRadiusCode, decodeAzimuth6/7 の境界値および既知値を検証する。
+// DcxHelper 各デコーダの境界値・既知値の単体テスト。
 
 #define ARDUINO 0
 #include "../src/internal/DcxHelper.h"
@@ -32,7 +32,7 @@ TEST_CASE("decodeRadiusCode: boundary and OOB") {
     // Out-of-bounds (≥32) → 0
     CHECK(decodeRadiusCode(32) == 0);
     CHECK(decodeRadiusCode(255) == 0);
-    // Verify monotonicity: each entry must be larger than the previous
+    // テーブルは単調増加（各エントリが前より大きい）
     for (uint8_t i = 1; i < 32; ++i) {
         CAPTURE(i);
         CHECK(decodeRadiusCode(i) > decodeRadiusCode(i - 1));
@@ -58,7 +58,7 @@ TEST_CASE("decodeAzimuth7: boundary and known values") {
 }
 
 TEST_CASE("decodeLatitude17: boundary and known values") {
-    // EX3: same formula as A12 but 17-bit, microdegrees
+    // EX3: A12 と同じ式、17 ビット、マイクロ度
     CHECK(decodeLatitude17(0) == -90000000);
     CHECK(decodeLatitude17(131071) == 90000000);
     CHECK(decodeLatitude17(32767) == -45001030);
@@ -74,13 +74,11 @@ TEST_CASE("decodeLongitude17_45_225: boundary and known values") {
 }
 
 TEST_CASE("decodeB2HazardCenter: C5/C6 table and >63 rounding branch") {
-    // EWSS CAMF v1.1 §3.7.2: delta = -10 + 20*code/128 deg.
-    // code <= 63 uses code directly; code > 63 adds +1 (the +1 rounding branch).
+    // EWSS CAMF v1.1 §3.7.2: delta = -10 + 20*code/128 度。code <=63 は code をそのまま使い、code >63 は +1 の丸め分岐に入る。
     CHECK(decodeB2HazardCenter(0, 0).delta_lat_microdeg == -10000000);
     CHECK(decodeB2HazardCenter(0, 0).delta_lon_microdeg == -10000000);
     CHECK(decodeB2HazardCenter(43, 16).delta_lat_microdeg == -3281250);
     CHECK(decodeB2HazardCenter(63, 63).delta_lat_microdeg == -156250);
-    // > 63: the +1 rounding branch
     CHECK(decodeB2HazardCenter(64, 64).delta_lat_microdeg == 156250);
     CHECK(decodeB2HazardCenter(127, 127).delta_lon_microdeg == 10000000);
 

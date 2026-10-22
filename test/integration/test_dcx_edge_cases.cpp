@@ -1,6 +1,6 @@
 // test/integration/test_dcx_edge_cases.cpp
 // DCX (MT=44) デコーダ異常系・境界値テスト
-// 「テストは通すためのものではなく誤った実装を落とすもの」に基づき、誤った実装が混入した場合に確実に失敗するテストケースを網羅する。
+// 方針: テストは通すためのものではなく誤った実装を落とすもの（誤実装混入時に失敗するケースを網羅）
 
 #include "../test_helpers.h"
 #include "../src/internal/DcxHelper.h"
@@ -13,7 +13,7 @@ using namespace azaraC;
 // DCX NullMessage 境界値テスト
 
 TEST_CASE("DCX Edge: NullMessage with A1-A18 zero but extended non-zero") {
-    // A1-A18 がすべてゼロでも、拡張フィールドが非ゼロなら NullMessage ではない
+    // A1-A18 がすべてゼロでも拡張フィールドが非ゼロなら NullMessage ではない
     // IS-QZSS-DCX-003 §4.3: extended message fields (bits 146..219) must also be 0
     uint8_t bits[32] = {};
     setBits(bits, 0, 8, 0x53);     // PAB=A
@@ -21,8 +21,8 @@ TEST_CASE("DCX Edge: NullMessage with A1-A18 zero but extended non-zero") {
     setBits(bits, 14, 1, 0);       // SDMT
     setBits(bits, 15, 9, 0);       // SDM
     setBits(bits, 26, 9, 111);     // A2=111 (Japan) — NullMessage チェック条件を満たす
-    // A1-A18 are all zero (bits 24..145 except A2 not set)
-    // Extended field EX1 at bit 146 is non-zero → NullMessage チェック失敗
+    // A1-A18 are all zero (bits 24..145, A2=111 のみ設定)
+    // EX1 (bit 146) のみ非ゼロ → NullMessage チェック失敗
     setBits(bits, 146, 16, 1101);
     setBits(bits, 214, 6, 1);      // vn=1
 
@@ -45,10 +45,9 @@ TEST_CASE("DCX Edge: NullMessage with A1-A18 zero but extended non-zero") {
 }
 
 TEST_CASE("DCX Edge: NullMessage with correct conditions") {
-    // A1=0, A2=111(Japan), A3=0 かつ全 CAMF/拡張フィールド 0 → NullMessage
-    // IS-QZSS-DCX-003 §4.3: A2 は Japan(111) である必要があり、
-    // A1=0, A3=0 かつ残りの全フィールドが 0 でなければならない
-    // vn フィールド (bit 214) は拡張フィールド (bit 210..219) に含まれるため、0 必須
+    // A1=0, A2=111(Japan), A3=0 かつ CAMF/拡張フィールドが全て 0 で NullMessage
+    // IS-QZSS-DCX-003 §4.3: A2 は Japan(111) 必須
+    // vn (bit 214) は拡張フィールド (bit 210..219) に含まれるため 0 必須
     uint8_t bits[32] = {};
     setBits(bits, 0, 8, 0x53);     // PAB
     setBits(bits, 8, 6, 44);       // MT=44
@@ -56,8 +55,7 @@ TEST_CASE("DCX Edge: NullMessage with correct conditions") {
     setBits(bits, 15, 9, 0);       // SDM=0
     setBits(bits, 24, 2, 0);       // A1=0 (bit 24-25, MSB first → first bit of 2)
     setBits(bits, 26, 9, 111);     // A2=111 (Japan) ← NullMessage 検出に必須
-    // A3-A18 = 0 (未設定)
-    // 拡張フィールド = 0 (未設定, vn 含む)
+    // A3-A18 と拡張フィールド（vn 含む）は未設定 = 0
 
     uint32_t crc = crc24qRef(bits, 226);
     setBits(bits, 226, 24, crc);
@@ -133,7 +131,6 @@ TEST_CASE("DCX Edge: A2=0 (unknown country) → OutsideJapan") {
 }
 
 TEST_CASE("DCX Edge: A2=110 (Japan-1) → OutsideJapan") {
-    // A2=110 は Japan ではない
     uint8_t bits[32] = {};
     setBits(bits, 0, 8, 0x53);
     setBits(bits, 8, 6, 44);
@@ -241,7 +238,7 @@ TEST_CASE("DCX Edge: A3=31 (max) with Japan → LocalGovernment") {
 // B1-B4 と has_main_ellipse の分離テスト
 
 TEST_CASE("DCX Edge: B4 (A17=3) without main ellipse") {
-    // B4 は A12-A16（主楕円）の有無とは独立してデコードされる（DecoderDcx.cpp:259-267）
+    // B4 は A12-A16（主楕円）の有無と独立にデコードされる
     uint8_t bits[32] = {};
     setBits(bits, 0, 8, 0x53);
     setBits(bits, 8, 6, 44);
@@ -269,11 +266,9 @@ TEST_CASE("DCX Edge: B4 (A17=3) without main ellipse") {
 
     const Mt44Data* mt44 = msg.getMt44();
     REQUIRE(mt44 != nullptr);
-    // main_ellipse は存在しない
+    // A17=3 の B4 処理は has_main_ellipse ブロックの外（DecoderDcx.cpp:259-267）
     CHECK(mt44->mt44_decoded.main_ellipse_present == false);
-    // B4 は A17=3 なので independent check が必要
-    // 実際には A17=3 の B4 処理は has_main_ellipse ブロックの外にある（259-267行）そのため has_main_ellipse=false でも b4_present=true になる
-    // → このテストでバグがないことを確認
+    // → main_ellipse 不在でも b4_present=true になることを確認
     CHECK(mt44->camf.b4_present == true);
 }
 
@@ -320,7 +315,6 @@ TEST_CASE("DCX Edge: OutsideJapan with all-zero extended fields") {
     setBits(bits, 24, 2, 1);
     setBits(bits, 26, 9, 5);       // a2=5 (Outside Japan)
     setBits(bits, 35, 5, 1);
-    // Extended fields all zero (default)
     setBits(bits, 214, 6, 1);
     uint32_t crc = crc24qRef(bits, 226);
     setBits(bits, 226, 24, crc);

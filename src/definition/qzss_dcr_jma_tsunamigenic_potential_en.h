@@ -1,12 +1,7 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.17.1 with CI-CD
-// Source module : azarashi.definitions.qzss.dcr.tsunamigenic_potential
-// Variable      : qzss_dcr_jma_tsunamigenic_potential_en
-// Entries       : 6
-// Strategy      : switch
-
-// NOTE: This function may return nullptr for unknown IDs.
-// Callers MUST perform a null-check before using the result.
+// AUTO-GENERATED from azarashi 0.17.1 — do not edit
+// azarashi.definitions.qzss.dcr.tsunamigenic_potential → qzss_dcr_jma_tsunamigenic_potential_en: 6 entries, strategy switch
+// Unknown id returns nullptr — callers MUST null-check.
 
 #if defined(__AVR__)
 #include "../internal/avr_std/cstdint"
@@ -26,14 +21,21 @@ namespace def {
 #if (AZARAC_ENABLE_NW_PAC_TSUNAMI)
 
 #if defined(__AVR__)
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_TSUNAMIGENIC_POTENTIAL_EN_C0[] = "No Possibility of a Tsunami";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_TSUNAMIGENIC_POTENTIAL_EN_C1[] = "Possibility of a Destructive Ocean-Wide Tsunami";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_TSUNAMIGENIC_POTENTIAL_EN_C2[] = "Possibility of a Destructive Regional Tsunami";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_TSUNAMIGENIC_POTENTIAL_EN_C3[] = "Possibility of a Destructive Local Tsunami Near the Epicenter";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_TSUNAMIGENIC_POTENTIAL_EN_C4[] = "Very Small Possibility of a Destructive Local Tsunami";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_TSUNAMIGENIC_POTENTIAL_EN_C7[] = "Other Tsunamigenic Potential";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_TSUNAMIGENIC_POTENTIAL_EN_PARENT_POOL[] = "There is \000There is a \000";
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_tsunamigenic_potential_en_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 0: { static const char AZARAC_PROGMEM s[] = "There is No Possibility of a Tsunami"; return azarac_pgm_view(s, 36); }
-        case 1: { static const char AZARAC_PROGMEM s[] = "There is a Possibility of a Destructive Ocean-Wide Tsunami"; return azarac_pgm_view(s, 58); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "There is a Possibility of a Destructive Regional Tsunami"; return azarac_pgm_view(s, 56); }
-        case 3: { static const char AZARAC_PROGMEM s[] = "There is a Possibility of a Destructive Local Tsunami Near the Epicenter"; return azarac_pgm_view(s, 72); }
-        case 4: { static const char AZARAC_PROGMEM s[] = "There is a Very Small Possibility of a Destructive Local Tsunami"; return azarac_pgm_view(s, 64); }
-        case 7: { static const char AZARAC_PROGMEM s[] = "Other Tsunamigenic Potential"; return azarac_pgm_view(s, 28); }
+        case 0: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_TSUNAMIGENIC_POTENTIAL_EN_PARENT_POOL) + 0u, AZARAC_PGM_PTR(QZSS_DCR_JMA_TSUNAMIGENIC_POTENTIAL_EN_C0));
+        case 1: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_TSUNAMIGENIC_POTENTIAL_EN_PARENT_POOL) + 10u, AZARAC_PGM_PTR(QZSS_DCR_JMA_TSUNAMIGENIC_POTENTIAL_EN_C1));
+        case 2: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_TSUNAMIGENIC_POTENTIAL_EN_PARENT_POOL) + 10u, AZARAC_PGM_PTR(QZSS_DCR_JMA_TSUNAMIGENIC_POTENTIAL_EN_C2));
+        case 3: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_TSUNAMIGENIC_POTENTIAL_EN_PARENT_POOL) + 10u, AZARAC_PGM_PTR(QZSS_DCR_JMA_TSUNAMIGENIC_POTENTIAL_EN_C3));
+        case 4: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_TSUNAMIGENIC_POTENTIAL_EN_PARENT_POOL) + 10u, AZARAC_PGM_PTR(QZSS_DCR_JMA_TSUNAMIGENIC_POTENTIAL_EN_C4));
+        case 7: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_TSUNAMIGENIC_POTENTIAL_EN_C7), 28);
         default: return std::nullopt;
     }
 }

@@ -1,5 +1,5 @@
 // test/integration/test_parser_integration.cpp — Parser統合テスト
-// NOTE: Most tests use EEW (disaster_category=1) and are guarded by AZARAC_ENABLE_EEW
+// 注: ほとんどのテストは EEW (dc=1) を使う。AZARAC_ENABLE_EEW でガード。
 
 #include <string>
 #include "doctest.h"
@@ -149,8 +149,7 @@ TEST_CASE("Parser reset clears state") {
     CHECK(output2);
 }
 
-// Parser handles mixed NMEA and UBX messages: NMEA part uses EEW (dc=1),
-// UBX part uses DCX (MT=44). Guarded by both macros.
+// NMEA 部は EEW (dc=1)、UBX 部は DCX (MT=44) を使う。両マクロが必要。
 #if (AZARAC_ENABLE_DCX_CAMF)
 TEST_CASE("Parser handles mixed NMEA and UBX messages") {
     Parser parser;
@@ -198,7 +197,6 @@ TEST_CASE("Parser handles mixed NMEA and UBX messages") {
 }
 #endif // AZARAC_ENABLE_DCX_CAMF
 
-// Parser 再入安全性テスト
 
 TEST_CASE("Parser: long garbage between valid frames recovers") {
     azaraC::Parser parser;
@@ -214,7 +212,6 @@ TEST_CASE("Parser: long garbage between valid frames recovers") {
     setBits(bits, 226, 24, crc);
     std::string nmea = makeNmeaQzqsm(58, bits);
 
-    // 1000 バイトのランダムデータ挿入後、QZQSM が正常にデコードされる
     std::string garbage;
     for (int i = 0; i < 1000; ++i) {
         garbage += static_cast<char>(0x41 + (i % 26));
@@ -237,7 +234,6 @@ TEST_CASE("Parser: rapid consecutive resets still decode") {
     azaraC::Parser parser;
     azaraC::Message msg;
 
-    // 未完了フレームを保持した状態で繰り返しリセット
     const std::string partial = "$QZQSM,58,9AAF";
     for (int r = 0; r < 10; ++r) {
         for (char c : partial) {
@@ -271,7 +267,6 @@ TEST_CASE("Parser: mode switch NMEA to UBX after partial frame") {
     azaraC::Parser parser;
     azaraC::Message msg;
 
-    // NMEA の途中で UBX データが混入 → リセット後 UBX を正しく処理
     std::string nmea_partial = "$QZQSM,58,9AAF";
     uint8_t nav_bits[32] = {};
     setBits(nav_bits, 0, 8, 0x53);
@@ -282,12 +277,10 @@ TEST_CASE("Parser: mode switch NMEA to UBX after partial frame") {
     setBits(nav_bits, 226, 24, crc);
     auto ubx = makeUbxSfrbx(193, nav_bits);
 
-    // 部分 NMEA を feed
     for (char c : nmea_partial) {
         parser.feed((uint8_t)c, msg, 0);
     }
 
-    // UBX データを feed（この時点で内部フレーマーが NMEA→UBX に切り替わるはず）
     bool ubx_found = false;
     for (auto b : ubx) {
         if (parser.feed(b, msg, 0)) {
@@ -295,7 +288,6 @@ TEST_CASE("Parser: mode switch NMEA to UBX after partial frame") {
             break;
         }
     }
-    // UBX データは正しくデコードされるべき
     CHECK(ubx_found);
     CHECK(msg.valid);
     CHECK(msg.payload_type == azaraC::MsgPayloadType::Mt43);
@@ -305,13 +297,11 @@ TEST_CASE("Parser: stale NMEA partial data doesn't leak") {
     azaraC::Parser parser;
     azaraC::Message msg;
 
-    // 不正 NMEA 開始（非 QZQSM のスタブ）
     std::string stale_prefix = "$GPGGA,1234";
     for (char c : stale_prefix) {
         parser.feed((uint8_t)c, msg, 0);
     }
 
-    // その後、有効な QZQSM を流す — 前の部分データが悪影響しない
     uint8_t bits[32] = {};
     setBits(bits, 0, 8, 0x53);
     setBits(bits, 8, 6, 43);
@@ -331,20 +321,19 @@ TEST_CASE("Parser: stale NMEA partial data doesn't leak") {
     }
     CHECK(output);
     CHECK(msg.valid);
-    // 正しい disaster_category が取れていること（古いデータが混入していない）
     const azaraC::Mt43Data* mt43 = msg.getMt43();
     REQUIRE(mt43 != nullptr);
     CHECK(mt43->disaster_category == 1);
 }
 
-// 手順③ の照合対象は MT～VN（フレーム bit 8..219 = 212 bit）で、付属フローチャートも「MT～Vnの212bitについて比較する」と明記する。プリアンブル（bit 0..7）は放送で A(0x53)→B(0x9A)→C(0xC6) と巡回し、Reserved（bit 220..225）も 16 値が巡回する。
-// どちらを含めても 1 情報が分裂するので、両方について 1 回通知を固定する。
+// 手順③ の照合対象は MT～VN（bit 8..219 = 212 bit。
+// 付属フローチャートも「MT～Vnの212bit」と明記）。
+// プリアンブル（bit 0..7）は A(0x53)→B(0x9A)→C(0xC6)、Reserved（bit 220..225）は 16 値で巡回するため、どちらも含めず 1 情報 1 通知に固定する。
 TEST_CASE("Parser: プリアンブル/Reserved が違っても同一 MT～VN は 1 回だけ通知される") {
     Parser parser;
     Message msg;
 
-    // minute: MT～VN の内側にある唯一の「内容」マーカー（bit 35..40）。
-    // preamble と reserved は MT～VN の外側なので identity を変えない。
+    // minute: MT～VN 内の唯一の内容マーカー（bit 35..40）。preamble/reserved は MT～VN 外で identity を変えない。
     auto feedFrame = [&](uint8_t preamble, uint8_t minute, uint8_t reserved) -> int {
         uint8_t bits[32] = {};
         setBits(bits, 0, 8, preamble);
@@ -373,8 +362,7 @@ TEST_CASE("Parser: プリアンブル/Reserved が違っても同一 MT～VN は
 #endif // AZARAC_ENABLE_EEW
 
 #if (AZARAC_ENABLE_DCX_CAMF)
-// QZS 事務局回答: 照合範囲「MT および CAMF〜EM」に SDMT（bit 14）・SDM（bit 15..23）を含めない。
-// SD だけが違う同一内容は同一情報として 1 回だけ通知する。
+// QZS 事務局回答: 照合範囲「MT および CAMF〜EM」に SDMT（bit 14）・SDM（bit 15..23）を含めず、SD だけが違う同一内容は 1 回だけ通知する。
 TEST_CASE("Parser: MT44 は SDMT/SDM が違っても同一内容を 1 回だけ通知する") {
     Parser parser;
     Message msg;

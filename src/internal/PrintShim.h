@@ -23,7 +23,7 @@ public:
     virtual void print(const void* s)  { if (s) fputs(static_cast<const char*>(s), stdout); }
 };
 
-// ホストテスト用: 動的バッファ（オーバーフローフリー）
+// 動的バッファ（オーバーフローフリー）
 class StringPrint : public Print {
     std::string _buf;
 

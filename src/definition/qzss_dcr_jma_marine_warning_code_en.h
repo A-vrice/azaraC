@@ -1,12 +1,7 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.17.1 with CI-CD
-// Source module : azarashi.definitions.qzss.dcr.marine_warning_code
-// Variable      : qzss_dcr_jma_marine_warning_code_en
-// Entries       : 9
-// Strategy      : switch
-
-// NOTE: This function may return nullptr for unknown IDs.
-// Callers MUST perform a null-check before using the result.
+// AUTO-GENERATED from azarashi 0.17.1 — do not edit
+// azarashi.definitions.qzss.dcr.marine_warning_code → qzss_dcr_jma_marine_warning_code_en: 9 entries, strategy switch
+// Unknown id returns nullptr — callers MUST null-check.
 
 #if defined(__AVR__)
 #include "../internal/avr_std/cstdint"
@@ -26,17 +21,27 @@ namespace def {
 #if (AZARAC_ENABLE_MARINE) && (AZARAC_LANG_EN)
 
 #if defined(__AVR__)
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_MARINE_WARNING_CODE_EN_C0[] = "Marine Warning Lifted";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_MARINE_WARNING_CODE_EN_C10[] = "Ice Accretion";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_MARINE_WARNING_CODE_EN_C11[] = "Fog";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_MARINE_WARNING_CODE_EN_C12[] = "Swell";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_MARINE_WARNING_CODE_EN_C20[] = "Wind";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_MARINE_WARNING_CODE_EN_C21[] = "Gale";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_MARINE_WARNING_CODE_EN_C22[] = "Storm";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_MARINE_WARNING_CODE_EN_C23[] = "Typhoon";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_MARINE_WARNING_CODE_EN_C31[] = "Other Marine";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_MARINE_WARNING_CODE_EN_PARENT_POOL[] = " Warning\000";
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_marine_warning_code_en_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 0: { static const char AZARAC_PROGMEM s[] = "Marine Warning Lifted"; return azarac_pgm_view(s, 21); }
-        case 10: { static const char AZARAC_PROGMEM s[] = "Ice Accretion Warning"; return azarac_pgm_view(s, 21); }
-        case 11: { static const char AZARAC_PROGMEM s[] = "Fog Warning"; return azarac_pgm_view(s, 11); }
-        case 12: { static const char AZARAC_PROGMEM s[] = "Swell Warning"; return azarac_pgm_view(s, 13); }
-        case 20: { static const char AZARAC_PROGMEM s[] = "Wind Warning"; return azarac_pgm_view(s, 12); }
-        case 21: { static const char AZARAC_PROGMEM s[] = "Gale Warning"; return azarac_pgm_view(s, 12); }
-        case 22: { static const char AZARAC_PROGMEM s[] = "Storm Warning"; return azarac_pgm_view(s, 13); }
-        case 23: { static const char AZARAC_PROGMEM s[] = "Typhoon Warning"; return azarac_pgm_view(s, 15); }
-        case 31: { static const char AZARAC_PROGMEM s[] = "Other Marine Warning"; return azarac_pgm_view(s, 20); }
+        case 0: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_WARNING_CODE_EN_C0), 21);
+        case 10: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_WARNING_CODE_EN_C10), AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_WARNING_CODE_EN_PARENT_POOL) + 0u);
+        case 11: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_WARNING_CODE_EN_C11), AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_WARNING_CODE_EN_PARENT_POOL) + 0u);
+        case 12: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_WARNING_CODE_EN_C12), AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_WARNING_CODE_EN_PARENT_POOL) + 0u);
+        case 20: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_WARNING_CODE_EN_C20), AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_WARNING_CODE_EN_PARENT_POOL) + 0u);
+        case 21: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_WARNING_CODE_EN_C21), AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_WARNING_CODE_EN_PARENT_POOL) + 0u);
+        case 22: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_WARNING_CODE_EN_C22), AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_WARNING_CODE_EN_PARENT_POOL) + 0u);
+        case 23: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_WARNING_CODE_EN_C23), AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_WARNING_CODE_EN_PARENT_POOL) + 0u);
+        case 31: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_WARNING_CODE_EN_C31), AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_WARNING_CODE_EN_PARENT_POOL) + 0u);
         default: return std::nullopt;
     }
 }

@@ -268,8 +268,7 @@ TEST_CASE("Nankai E2E: Page tracking with single page") {
     CHECK(nankai->info_code == 5);
 }
 
-// Nankai 27ページ完全集約 E2E テスト (integration_e2e.md #1)
-// nankai_vectors.json の実データテキストを使用
+// Nankai 27ページ完全集約 E2E テスト (integration_e2e.md #1)。テキストは nankai_vectors.json の実データ。
 
 // Helper: build a Nankai page message with specific page number and text
 static void buildNankaiPage(uint8_t page_num, uint8_t total_pages, uint8_t info_code,
@@ -301,8 +300,7 @@ static void buildNankaiPage(uint8_t page_num, uint8_t total_pages, uint8_t info_
 }
 
 // 18-byte page payloads generated from azarashi via test/scripts/gen_all_vectors.py.
-// Source of truth: test/data/nankai_vectors.json (emitted as nankai_pages_generated.h).
-// Do not hand-edit page data — regenerate the header instead.
+// 唯一の正は test/data/nankai_vectors.json（nankai_pages_generated.h として生成される）。ページデータを手で編集せず、ヘッダを再生成すること。
 #include "../data/nankai_pages_generated.h"
 
 // Per-page text length up to the first NUL, mirroring NankaiPageBuffer::compactText().
@@ -333,13 +331,12 @@ TEST_CASE("Nankai E2E: 27-page full aggregation with real text data") {
     azaraC::Message msg;
     uint8_t bits[32];
 
-    // Build the expected body exactly like NankaiPageBuffer::compactText(): per-page text up to the first NUL. The real final page is NUL-padded, so the body is shorter than 27*18 bytes.
+    // 期待する本文は NankaiPageBuffer::compactText() と同じ: 各ページの本文を最初の NUL まで。よって NUL 埋めされた最終ページの分だけ 27*18 バイトより短くなる。
     uint8_t expected_body[27 * NankaiPageBuffer::TEXT_PER_PAGE];
     const uint16_t EXPECTED_AGG_LEN = compactPages(nankai_page_data, 27, expected_body);
     CHECK(EXPECTED_AGG_LEN < 27 * NankaiPageBuffer::TEXT_PER_PAGE);  // final page is short
 
-    // Feed all 27 pages in order
-    // Pages 1..26 won't produce output (aggregation in progress), only page 27 completes the aggregation and produces output.
+    // ページ 1..26 では出力なし。ページ 27 で集約が完了する。
     for (uint8_t page = 1; page <= 27; ++page) {
         buildNankaiPage(page, 27, 5,
                         nankai_page_data[page - 1], NankaiPageBuffer::TEXT_PER_PAGE, bits);
@@ -354,10 +351,8 @@ TEST_CASE("Nankai E2E: 27-page full aggregation with real text data") {
         }
         INFO("page=", page);
         if (page < 27) {
-            // Intermediate pages: no output yet (aggregation in progress)
             CHECK_FALSE(output);
         } else {
-            // Final page: aggregation complete, output produced
             CHECK(output);
             CHECK(msg.valid);
             CHECK(msg.payload_type == azaraC::MsgPayloadType::Mt43);
@@ -372,12 +367,10 @@ TEST_CASE("Nankai E2E: 27-page full aggregation with real text data") {
             CHECK(nankai->aggregated_len == EXPECTED_AGG_LEN);
             // 既定構成で実メッセージが打ち切られないことを固定
             CHECK(nankai->truncated == false);
-            // Full exact match of the aggregated body
             CHECK(memcmp(nankai->aggregated_text_ptr, expected_body, EXPECTED_AGG_LEN) == 0);
         }
     }
 
-    // After all 27 pages, the last message should be aggregated
     const azaraC::Mt43Data* mt43 = msg.getMt43();
     REQUIRE(mt43 != nullptr);
     const azaraC::NankaiData* nankai = mt43->getNankai();
@@ -397,7 +390,6 @@ TEST_CASE("Nankai E2E: 27-page full aggregation with real text data") {
                      nankai_page_data[26], last) == 0);
     }
 
-    // Verify JSON output contains text_utf8
     StringPrint sp;
     internal::JsonSerializer::serialize(msg, sp);
     const auto& s = sp.str();
@@ -465,12 +457,10 @@ TEST_CASE("Nankai E2E: 同一 info_code + 報告時刻でも発表と取消は�
 }
 #endif
 
-// Nankai NUL バイト打ち切り リグレッションテスト
-// ページ内に 0x00 が埋め込まれた場合、NUL 以降のデータが aggregated_text に含まれず aggregated_len が短縮されることを検証する。
+// Nankai NUL 打ち切りリグレッション: ページ内の 0x00 以降は aggregated_text に含まれず aggregated_len が短縮される。
 
 TEST_CASE("Nankai E2E: NUL byte mid-page stops aggregation at null") {
-    // 3 ページ構成。page 2 の 9 バイト目に 0x00 を埋め込む。
-    // NankaiPageBuffer::getTextLength/getText の stop-at-NUL を直接検証する。
+    // 3 ページ構成。page 2 の 9 バイト目に 0x00。NankaiPageBuffer::getTextLength/getText の stop-at-NUL を検証する。
     constexpr uint8_t TOTAL = 3;
 
     // Page 1: 18 × 'A' (0x41)
@@ -532,14 +522,12 @@ TEST_CASE("Nankai E2E: NUL byte mid-page stops aggregation at null") {
             REQUIRE(nankai != nullptr);
             CHECK(nankai->is_aggregated == true);
 
-            // compact 後の [ptr, ptr+len) は NUL ホールなしの連続テキスト
             CHECK(nankai->aggregated_len == EXPECTED_LEN);
             CHECK(nankai->aggregated_text_ptr != nullptr);
             CHECK(memcmp(nankai->aggregated_text_ptr, expected_compact, EXPECTED_LEN) == 0);
         }
     }
 
-    // 集約完了後の最終確認
     const azaraC::Mt43Data* mt43 = msg.getMt43();
     REQUIRE(mt43 != nullptr);
     const azaraC::NankaiData* nankai = mt43->getNankai();
@@ -549,7 +537,7 @@ TEST_CASE("Nankai E2E: NUL byte mid-page stops aggregation at null") {
     CHECK(nankai->aggregated_text_ptr != nullptr);
     CHECK(memcmp(nankai->aggregated_text_ptr, expected_compact, EXPECTED_LEN) == 0);
 
-    // JSON 出力に text_utf8 が使われること (compact 済みのため embedded NUL なし)
+    // compact 済みで embedded NUL がないため JSON は text_utf8 を使う
     StringPrint sp;
     internal::JsonSerializer::serialize(msg, sp);
     const auto& s = sp.str();
@@ -562,7 +550,6 @@ TEST_CASE("Nankai E2E: NUL byte mid-page stops aggregation at null") {
 
 #if AZARAC_NANKAI_MAX_PAGES >= 27
 TEST_CASE("Nankai E2E: Page missing prevents aggregation") {
-    // Uses shared nankai_page_data[] defined above (18-byte fixed payloads)
 
     azaraC::Parser parser;
     azaraC::Message msg;
@@ -584,12 +571,10 @@ TEST_CASE("Nankai E2E: Page missing prevents aggregation") {
                 break;
             }
         }
-        // Intermediate pages should not produce output
         CHECK_FALSE(output);
     }
 
-    // Phase 2: After 26 pages (page 14 missing), aggregation should NOT be complete
-    // Re-feed the last page (27) to get a callback and check state
+    // フェーズ 2: ページ 14 が欠けたままでは集約は未完了（コールバックを得るにはページ 27 を再投入する）。
     {
         buildNankaiPage(27, 27, 5,
                         nankai_page_data[26], NankaiPageBuffer::TEXT_PER_PAGE, bits);
@@ -602,11 +587,10 @@ TEST_CASE("Nankai E2E: Page missing prevents aggregation") {
                 break;
             }
         }
-        // Should NOT output because page 14 is missing
         CHECK_FALSE(output);
     }
 
-    // Phase 3: Feed the missing page 14 — aggregation should now complete
+    // フェーズ 3: 欠けていたページ 14 を投入すると集約が完了する。
     {
         buildNankaiPage(SKIP_PAGE, 27, 5,
                         nankai_page_data[SKIP_PAGE - 1], NankaiPageBuffer::TEXT_PER_PAGE, bits);
@@ -619,7 +603,6 @@ TEST_CASE("Nankai E2E: Page missing prevents aggregation") {
                 break;
             }
         }
-        // NOW aggregation should complete
         CHECK(output);
         CHECK(msg.valid);
         CHECK(msg.payload_type == azaraC::MsgPayloadType::Mt43);
@@ -695,7 +678,6 @@ TEST_CASE("Nankai E2E: key uses raw report_time, not the normalized date") {
             buildNankaiPage(page, TOTAL, 5, text, NankaiPageBuffer::TEXT_PER_PAGE, bits,
                             cases[c][0], cases[c][1], /*rt_hour=*/12, /*rt_minute=*/30);
             std::string nmea = makeNmeaQzqsm(58, bits);
-            // 1ページ目は基準時刻なし、2ページ目以降は有効な report_unix が付く。
             const uint32_t report_unix = (page == 1) ? 0u : 1700000000u;
 
             output = false;
@@ -717,9 +699,7 @@ TEST_CASE("Nankai E2E: key uses raw report_time, not the normalized date") {
     }
 }
 
-// 打ち切り（total_pages > MAX_PAGES）E2E テスト
-// 既定値非依存: MAX_PAGES は NankaiPageBuffer から取得する。
-// 6bit フィールドに収まる範囲（MAX_PAGES+2 <= 63）でのみ成立するため、 MAX_PAGES=63（仕様最大）では電文上打ち切りが発生せずガードで除外される。
+// 打ち切り（total_pages > MAX_PAGES）E2E テスト。MAX_PAGES は NankaiPageBuffer から取得（既定値非依存）。 6bit フィールド（<=63）に収まる MAX_PAGES+2 でのみ成立し、MAX_PAGES=63（仕様最大）では打ち切りが起きず #if で除外される。
 
 #if AZARAC_NANKAI_MAX_PAGES + 2 <= 63
 TEST_CASE("Nankai E2E: pages beyond MAX_PAGES are dropped and flagged truncated") {
@@ -771,9 +751,7 @@ TEST_CASE("Nankai E2E: pages beyond MAX_PAGES are dropped and flagged truncated"
 }
 #endif // AZARAC_NANKAI_MAX_PAGES + 2 <= 63
 
-// Nankai 63ページ最大集約 E2E テスト
-// total_page は6ビットフィールド（最大値63）。63ページ×18バイト=1134バイトは aggregated_text[1135] の上限（1134バイト+ヌル終端）にちょうど収まる。
-// ページ1-27はazarashi検証済みデータ、ページ28-63は合成データを使用。
+// Nankai 63ページ最大集約 E2E テスト。total_page は6ビット（最大63）で、63ページ×18バイト=1134バイトは aggregated_text[1135]（1134+ヌル終端）にちょうど収まる。ページ1-27はazarashi検証済みデータ、ページ28-63は合成データを使用。
 
 #if AZARAC_NANKAI_MAX_PAGES >= 63
 TEST_CASE("Nankai E2E: 63-page maximum aggregation (protocol limit)") {
@@ -796,11 +774,9 @@ TEST_CASE("Nankai E2E: 63-page maximum aggregation (protocol limit)") {
         memcpy(pages63[p], src, NankaiPageBuffer::TEXT_PER_PAGE);
     }
 
-    // Same compaction as compactText(): the real page 27 is NUL-padded, so the aggregated body is shorter than 63*18 bytes.
     uint8_t expected_body_63[TOTAL * NankaiPageBuffer::TEXT_PER_PAGE];
     const uint16_t EXPECTED_AGG_LEN_63 = compactPages(pages63, TOTAL, expected_body_63);
 
-    // Feed all 63 pages in order
     for (uint8_t page = 1; page <= TOTAL; ++page) {
         const uint8_t* text_src = (page <= 27)
             ? nankai_page_data[page - 1]
@@ -832,12 +808,10 @@ TEST_CASE("Nankai E2E: 63-page maximum aggregation (protocol limit)") {
             REQUIRE(nankai != nullptr);
             CHECK(nankai->is_aggregated == true);
             CHECK(nankai->aggregated_len == EXPECTED_AGG_LEN_63);
-            // Full exact match
             CHECK(memcmp(nankai->aggregated_text_ptr, expected_body_63, EXPECTED_AGG_LEN_63) == 0);
         }
     }
 
-    // Final verification on the completed aggregation
     const azaraC::Mt43Data* mt43 = msg.getMt43();
     REQUIRE(mt43 != nullptr);
     const azaraC::NankaiData* nankai = mt43->getNankai();
@@ -852,7 +826,6 @@ TEST_CASE("Nankai E2E: 63-page maximum aggregation (protocol limit)") {
     CHECK(memcmp(nankai->aggregated_text_ptr + EXPECTED_AGG_LEN_63 - NankaiPageBuffer::TEXT_PER_PAGE,
                  filler, NankaiPageBuffer::TEXT_PER_PAGE) == 0);
 
-    // Verify JSON output contains text_utf8
     StringPrint sp;
     internal::JsonSerializer::serialize(msg, sp);
     const auto& s = sp.str();

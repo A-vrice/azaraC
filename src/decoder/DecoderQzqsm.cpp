@@ -5,7 +5,6 @@
 namespace azaraC {
 namespace internal {
 
-// MT=43 QZQSM / DC Report (IS-QZSS-DCR-017)
 // Outer frame layout (offsets 0-indexed from preamble):
 //   [14..16]  report_classification (3b)
 //   [17..20]  disaster_category     (4b)
@@ -17,7 +16,7 @@ namespace internal {
 //   [43..46]  reserved / sub-type start
 //   [214..219] version (6b) — must be 1
 // Sub-type layouts per IS-QZSS-DCR-017 §4.1.2.3.
-// Single authoritative category table: X(code, enable_macro, sub_decoder) drives the support check, known-category classification, and dispatch in decodeQzqsm().
+// 唯一の正となるカテゴリ表: X(code, enable_macro, sub_decoder) が対応判定・既知カテゴリ判定・ディスパッチを駆動する。
 // Change categories here only.
 #define AZARAC_DC_CATEGORIES(X) \
     X(1,  AZARAC_ENABLE_EEW,          decodeEEW)        \
@@ -39,7 +38,7 @@ bool Decoder::decodeQzqsm(const uint8_t* bits, Message& out, uint32_t report_uni
         return false;
     }
 
-    // Support check from AZARAC_DC_CATEGORIES; each guard is a constant (0/1), so a disabled category reads category_supported = false.
+    // 各ガードは定数 (0/1) なので、無効カテゴリでは category_supported = false になる。
     uint8_t dc_probe = getBits(bits, 17, 4);
     bool category_supported = false;
     bool decoded = false;
@@ -51,7 +50,7 @@ bool Decoder::decodeQzqsm(const uint8_t* bits, Message& out, uint32_t report_uni
         default: break;
     }
     if (!category_supported) {
-        // Recognized-but-disabled or unknown; known codes share the table (guard-independent).
+        // 既知だが無効、または未知。既知判定はガードに依存しない。
         bool known = false;
         switch (dc_probe) {
 #define AZARAC_DC_KNOWN_CASE(code, enable, decoder) case code:
@@ -86,7 +85,7 @@ bool Decoder::decodeQzqsm(const uint8_t* bits, Message& out, uint32_t report_uni
     uint32_t event_unix = d->event_time.unix_time;
     uint32_t sub_base = (event_unix > 0) ? event_unix : report_unix;
 
-    // Dispatch via same table; guard is a constant → disabled categories are dead branches.
+    // 同じ表で振り分ける。ガードが定数なので無効カテゴリは到達しない枝になる。
     switch (dc_probe) {
 #define AZARAC_DC_DISPATCH_CASE(code, enable, decoder) \
         case code: \
@@ -135,7 +134,7 @@ void Decoder::decodeEEW(const uint8_t* b, Message& out, uint32_t report_unix) {
     eew->intensity_lower = getBits(b, 122, 4);
     eew->intensity_upper = getBits(b, 126, 4);
 
-    // EEW forecast regions: 80-bit bitmask at [130..209], bit i set = region (i+1) alerted
+    // EEW 予報区: [130..209] の 80 bit ビットマップ。bit i が立っていれば区 (i+1) が対象
     eew->region_count = 0;
     for (uint8_t i = 0; i < 80 && eew->region_count < 80; ++i) {
         if (getBits(b, 130 + i, 1)) {
@@ -213,12 +212,12 @@ void Decoder::decodeNankai(const uint8_t* b, Message& out, uint32_t report_unix)
     nankai->info_code   = getBits(b, 53, 4);
     nankai->page        = getBits(b, 201, 6);
     nankai->total_page  = getBits(b, 207, 6);
-    // decodeQzqsm() が event_time に使うビット位置と同じ。NankaiPageKey 用に生値で保持する。
+    // decodeQzqsm() の event_time と同じビット位置。NankaiPageKey 用に生値で保持する。
     nankai->report_month  = getBits(b, 21, 4);
     nankai->report_day    = getBits(b, 25, 5);
     nankai->report_hour   = getBits(b, 30, 5);
     nankai->report_minute = getBits(b, 35, 6);
-    // 18 bytes of text: bits [57..200] = 18×8 = 144 bits
+    // text: 18 バイト = bit [57..200]
     for (uint8_t i = 0; i < 18; ++i)
         nankai->text[i] = getBits(b, 57 + i * 8, 8);
 }
@@ -243,11 +242,10 @@ void Decoder::decodeTsunami(const uint8_t* b, Message& out, uint32_t report_unix
     tsunami->count = 0;
     for (uint8_t i = 0; i < 5; ++i) {
         uint16_t off = 84 + i * 26;
-        // IS-QZSS-DCR-017 Figure 4.1.2-5, Table 4.1.2-21:
+        // IS-QZSS-DCR-017 Figure 4.1.2-5, Table 4.1.2-21 — 終端判定は Pl のみ（Pl=0 でリスト終端）:
         //   Ta(12): Expected Tsunami Arrival Time
         //   Th(4):  Tsunami Height
         //   Pl(10): Tsunami Forecast Region (100–1000)
-        // Terminal decision by Pl only (Pl=0 means end)
         uint16_t region = getBits(b, off + 16, 10);
         if (region == 0) break;
         TsunamiEntry& e = tsunami->entries[tsunami->count++];
@@ -277,11 +275,10 @@ void Decoder::decodeNwPacTsu(const uint8_t* b, Message& out, uint32_t report_uni
     nw_pac->count = 0;
     for (uint8_t i = 0; i < 5; ++i) {
         uint16_t off = 56 + i * 28;
-        // IS-QZSS-DCR-017 Figure 4.1.2-6, Table 4.1.2-26:
+        // IS-QZSS-DCR-017 Figure 4.1.2-6, Table 4.1.2-26 — 終端判定は Pl のみ（Pl=0 でリスト終端）:
         //   Ta(12): Expected Tsunami Arrival Time
         //   Th(9):  Tsunami Height (Table 4.1.2-27a)
         //   Pl(7):  Coastal Region (Table 4.1.2-28, 1–100)
-        // Terminal decision by Pl only (Pl=0 means end)
         uint16_t region = getBits(b, off + 21, 7);
         if (region == 0) break;
         NwPacTsunamiEntry& e = nw_pac->entries[nw_pac->count++];
@@ -390,8 +387,7 @@ void Decoder::decodeFlood(const uint8_t* b, Message& out, uint32_t report_unix) 
     flood->count = 0;
     for (uint8_t i = 0; i < 3; ++i) {
         uint16_t off = 53 + i * 44;
-        // 44-bit zero means no entry (Region1 Lv range 1-15, 0=unused);
-        // getBits64 reads all 44 bits (getBits only returns uint32_t).
+        // 44 bit すべて 0 ならエントリなし（Region1 Lv の範囲は 1-15 で、0 は未使用）。44 bit > 32 なので getBits64 を使う。
         if (getBits64(b, off, 44) == 0) break;
         flood->entries[flood->count].warning_level = getBits(b, off, 4);
         // 40-bit region code — read as two 20-bit halves
@@ -460,22 +456,17 @@ void Decoder::decodeTyphoon(const uint8_t* b, Message& out, uint32_t report_unix
     
     typh->reference_time = extractDHM(b, 53, report_unix);
     typh->ref_type  = getBits(b,  69, 3);
-    // Skip Spare2 [72..79] (8 bits)
     typh->elapsed   = getBits(b,  80, 7);
     typh->number    = getBits(b,  87, 7);
     typh->scale     = getBits(b,  94, 4);
     typh->intensity = getBits(b,  98, 4);
 
-    // LatLon: 41 bits at [102..142]
     typh->coords = extractLatLon(b, 102);
 
-    // Central Pressure: 11 bits at [143..153]
     typh->pressure = getBits(b, 143, 11);
 
-    // Maximum wind speed: 7 bits at [154..160]
     typh->max_wind = getBits(b, 154, 7);
 
-    // Maximum wind gust speed: 7 bits at [161..167]
     typh->max_gust = getBits(b, 161, 7);
 }
 #endif // AZARAC_ENABLE_TYPHOON

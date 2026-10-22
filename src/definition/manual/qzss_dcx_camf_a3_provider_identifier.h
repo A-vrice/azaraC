@@ -1,22 +1,26 @@
 #pragma once
-// AUTO-GENERATED from azarashi: qzss_dcx_camf_a3_provider_identifier
+// HAND-MAINTAINED（手書き）— 自動生成ではない。scripts/gen/gen_definitions.py はこの表を SKIP_MODULES に
+// 挙げ、_index.h の extra_headers リストでもそのまま保持するため、決して書き換えられない。
+// 生成器は表ごとに単一キーの引き当てを出力するが、CAMF A3 は (country, provider) を鍵とし、
+// 呼び出し側は std::optional を必要とするため、下の引き当ては手書きにしている。azarashi の
+// qzss_dcx_camf_a3_provider_identifier と手作業で同期させること（出所: azarashi 0.17.1）。
 #if defined(__AVR__)
-#include "../internal/avr_std/cstdint"
+#include "../../internal/avr_std/cstdint"
 #else
 #include <cstdint>
 #endif
 #if defined(__AVR__)
-#include "../internal/avr_std/optional"
+#include "../../internal/avr_std/optional"
 #else
 #include <optional>
 #endif
 #if defined(__AVR__)
-#include "../internal/avr_std/string_view"
+#include "../../internal/avr_std/string_view"
 #else
 #include <string_view>
 #endif
-#include "../azaraC_config.h"
-#include "../internal/FlashString.h"
+#include "../../azaraC_config.h"
+#include "../../internal/FlashString.h"
 
 namespace azaraC {
 namespace def {
@@ -25,7 +29,7 @@ namespace def {
 
 #if defined(__AVR__)
 
-// AVR: string pool + offset table stored in Flash (PROGMEM)
+// AVR: 文字列プール + オフセット表を Flash に置く（PROGMEM）
 static const char AZARAC_PROGMEM QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_POOL[] =
     "National Emergency Management Agency\0Bureau of Meteorology\0Australian Climate Service\0Geoscience Australia\0Commonwealth Scientific and Industrial Research Organisation\0Australian Bureau of Statistics\0Resilience New South Wales\0State Emergency Service New South Wales\0New South Wales Rural Fire Service\0Joint Australian Tsunami Warning Centre\0Flood Knowledge Centre\0Australian Broadcasting Corporation\0National Disaster Management Office\0Fiji Meteorological Service\0Hydrology Section, Fiji Water Authority\0Mineral Resources Department\0Fiji Broadcasting Corporation\0Foundation for MultiMedia Communications\0Fire and Disaster Management Agency\0Related Ministries\0Local Government\0Department of Disaster Prevention and Mitigation\0Thai Meteorological Department\0National Disaster Warning Center\0Department of Mineral Resources\0Navy Hydrographic Department, Royal Thai Navy\0Department of Water Resources\0Royal Irrigation Department\0Department of Pollution Control\0Geo-Informatics and Space Technology Development Agency\0Electricity Generating Authority of Thailand\0Royal Forest Department\0Department of Parks, Wildlife and Plant Conservation\0Water Crisis Prevention Center\0";
 
@@ -81,16 +85,13 @@ qzss_dcx_camf_a3_provider_identifier_lookup(uint16_t country, uint8_t provider) 
                                     sizeof(QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_TABLE[0]));
   while (lo < hi) {
     uint8_t mid = static_cast<uint8_t>(lo + (hi - lo) / 2);
-    const char* AZARAC_PROGMEM ep =
-        reinterpret_cast<const char*>(&QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_TABLE[mid]);
-    uint16_t ekey = pgm_read_word(
-        ep + offsetof(QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_Entry, key));
+    azarac_pgm_ptr ep = AZARAC_PGM_PTR(QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_TABLE)
+        + static_cast<size_t>(mid) * sizeof(QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_Entry);
+    uint16_t ekey = azarac_read_word(ep, offsetof(QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_Entry, key));
     if (ekey == key) {
-      uint16_t off = pgm_read_word(
-          ep + offsetof(QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_Entry, offset));
-      uint16_t n = pgm_read_word(
-          ep + offsetof(QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_Entry, len));
-      return azarac_pgm_view(QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_POOL + off, n);
+      uint16_t off = azarac_read_word(ep, offsetof(QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_Entry, offset));
+      uint16_t n = azarac_read_word(ep, offsetof(QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_Entry, len));
+      return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_POOL) + off, n);
     }
     if (ekey < key) lo = mid + 1;
     else hi = mid;

@@ -1,12 +1,7 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.17.1 with CI-CD
-// Source module : azarashi.definitions.qzss.dcr.coastal_region
-// Variable      : qzss_dcr_jma_coastal_region_en
-// Entries       : 63
-// Strategy      : binary_search
-
-// NOTE: This function may return nullptr for unknown IDs.
-// Callers MUST perform a null-check before using the result.
+// AUTO-GENERATED from azarashi 0.17.1 — do not edit
+// azarashi.definitions.qzss.dcr.coastal_region → qzss_dcr_jma_coastal_region_en: 63 entries, strategy binary_search
+// Unknown id returns nullptr — callers MUST null-check.
 
 #if defined(__AVR__)
 #include "../internal/avr_std/cstdint"
@@ -26,83 +21,101 @@ namespace def {
 #if (AZARAC_ENABLE_NW_PAC_TSUNAMI)
 
 #if defined(__AVR__)
-static const char AZARAC_PROGMEM QZSS_DCR_JMA_COASTAL_REGION_EN_POOL[] = "Ust-Kamchatsk (East Coasts of Kamchatka Peninsula)\000Petropavlovsk-K (East Coasts of Kamchatka Peninsula)\000Severo Kurilsk (Kuril Islands)\000Urup Islands (Kuril Islands)\000Busan (South Coasts of Korean Peninsula)\000Nohwa (South Coasts of Korean Peninsula)\000Seogwipo (South Coasts of Korean Peninsula)\000Hualien (Taiwan)\000Basco (East Coasts of Philippines)\000Palanan (East Coasts of Philippines)\000Legaspi (East Coasts of Philippines)\000Laoang (East Coasts of Philippines)\000Madrid (East Coasts of Philippines)\000Davao (East Coasts of Philippines)\000Berebere (North Coasts of Irian Jaya)\000Patani (North Coasts of Irian Jaya)\000Sorong (North Coasts of Irian Jaya)\000Manokwari (North Coasts of Irian Jaya)\000Warsa (North Coasts of Irian Jaya)\000Jayapura (North Coasts of Irian Jaya)\000Vanimo (North Coasts of Papua New Guinea)\000Wewak (North Coasts of Papua New Guinea)\000Madang (North Coasts of Papua New Guinea)\000Manus Islands (North Coasts of Papua New Guinea)\000Rabaul (North Coasts of Papua New Guinea)\000Kavieng (North Coasts of Papua New Guinea)\000Kimbe (North Coasts of Papua New Guinea)\000Kieta (North Coasts of Papua New Guinea)\000Guam (Mariana Islands)\000Saipan (Mariana Islands)\000Malakal (Palau)\000Yap Island (Micronesia)\000Chuuk Island (Micronesia)\000Pohnpei Island (Micronesia)\000Kosrae Island (Micronesia)\000Eniwetok Island (Marshall Islands)\000Panggoe (North Coasts of Solomon Islands)\000Auki (North Coasts of Solomon Islands)\000Kirakira (North Coasts of Solomon Islands)\000Munda (Solomon Sea)\000Honiara (Solomon Sea)\000Ostrov-Karaginskiy (East Coasts of Kamchatka Peninsula)\000Nikolskoya (East Coasts of Kamchatka Peninsula)\000Tongyeong (South Coasts of Korean Peninsula)\000Heuksando (South Coasts of Korean Peninsula)\000Cheju-Island (South Coasts of Korean Peninsula)\000Chilung (Taiwan)\000Taitung (Taiwan)\000Homel (Taiwan)\000Geme (North Coasts of Irian Jaya)\000Ulamona (North Coasts of Papua New Guinea)\000Ghatere (North Coasts of Solomon Islands)\000Amun (Solomon Sea)\000Falamae (Solomon Sea)\000Misima (Solomon Sea)\000Alotau (Solomon Sea)\000Lae (Solomon Sea)\000Port-Moresby (Coral Sea)\000Shanghai (Coasts of East China Sea)\000Zhoushan (Coasts of East China Sea)\000Wenzhou (Coasts of East China Sea)\000Unknown\000Other region\000";
-struct QZSS_DCR_JMA_COASTAL_REGION_EN_Entry { uint8_t id; uint16_t offset; uint16_t len; };
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_COASTAL_REGION_EN_POOL[] = "Ust-Kamchatsk\000Petropavlovsk-K\000Severo Kurilsk (Kuril\000Urup Islands (Kuril\000Busan\000Nohwa\000Seogwipo\000Hualien\000Basco\000Palanan\000Legaspi\000Laoang\000Madrid\000Davao\000Berebere\000Patani\000Sorong\000Manokwari\000Warsa\000Jayapura\000Vanimo\000Wewak\000Madang\000Manus Islands\000Rabaul\000Kavieng\000Kimbe\000Kieta\000Guam (Mariana\000Saipan (Mariana\000Malakal (Palau)\000Yap\000Chuuk\000Pohnpei\000Kosrae\000Eniwetok Island (Marshall\000Panggoe\000Auki\000Kirakira\000Munda\000Honiara\000Ostrov-Karaginskiy\000Nikolskoya\000Tongyeong\000Heuksando\000Cheju-Island\000Chilung\000Taitung\000Homel\000Geme\000Ulamona\000Ghatere\000Amun\000Falamae\000Misima\000Alotau\000Lae\000Port-Moresby (Coral\000Shanghai (Coasts of East China\000Zhoushan (Coasts of East China\000Wenzhou (Coasts of East China\000Unknown\000Other region\000";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_COASTAL_REGION_EN_PARENT_POOL[] = " (East Coasts of Kamchatka Peninsula)\000 (East Coasts of Philippines)\000 (North Coasts of Irian Jaya)\000 (North Coasts of Papua New Guinea)\000 (North Coasts of Solomon Islands)\000 (Solomon Sea)\000 (South Coasts of Korean Peninsula)\000 (Taiwan)\000 Island (Micronesia)\000 Islands)\000 Sea)\000";
+struct QZSS_DCR_JMA_COASTAL_REGION_EN_PARENT_Entry { uint16_t offset; };
+static const QZSS_DCR_JMA_COASTAL_REGION_EN_PARENT_Entry QZSS_DCR_JMA_COASTAL_REGION_EN_PARENT_TABLE[] AZARAC_PROGMEM = {
+    {0u},
+    {38u},
+    {68u},
+    {98u},
+    {134u},
+    {169u},
+    {184u},
+    {220u},
+    {230u},
+    {251u},
+    {261u},
+};
+struct QZSS_DCR_JMA_COASTAL_REGION_EN_Entry { uint8_t id; uint8_t parent; uint16_t offset; };
 static const QZSS_DCR_JMA_COASTAL_REGION_EN_Entry QZSS_DCR_JMA_COASTAL_REGION_EN_TABLE[] AZARAC_PROGMEM = {
-    {1u, 0u, 50u},
-    {2u, 51u, 52u},
-    {3u, 104u, 30u},
-    {4u, 135u, 28u},
-    {5u, 164u, 40u},
-    {6u, 205u, 40u},
-    {7u, 246u, 43u},
-    {8u, 290u, 16u},
-    {9u, 307u, 34u},
-    {10u, 342u, 36u},
-    {11u, 379u, 36u},
-    {12u, 416u, 35u},
-    {13u, 452u, 35u},
-    {14u, 488u, 34u},
-    {15u, 523u, 37u},
-    {16u, 561u, 35u},
-    {17u, 597u, 35u},
-    {18u, 633u, 38u},
-    {19u, 672u, 34u},
-    {20u, 707u, 37u},
-    {21u, 745u, 41u},
-    {22u, 787u, 40u},
-    {23u, 828u, 41u},
-    {24u, 870u, 48u},
-    {25u, 919u, 41u},
-    {26u, 961u, 42u},
-    {27u, 1004u, 40u},
-    {28u, 1045u, 40u},
-    {29u, 1086u, 22u},
-    {30u, 1109u, 24u},
-    {31u, 1134u, 15u},
-    {32u, 1150u, 23u},
-    {33u, 1174u, 25u},
-    {34u, 1200u, 27u},
-    {35u, 1228u, 26u},
-    {36u, 1255u, 34u},
-    {37u, 1290u, 41u},
-    {38u, 1332u, 38u},
-    {39u, 1371u, 42u},
-    {40u, 1414u, 19u},
-    {41u, 1434u, 21u},
-    {66u, 1456u, 55u},
-    {67u, 1512u, 47u},
-    {68u, 1560u, 44u},
-    {69u, 1605u, 44u},
-    {70u, 1650u, 47u},
-    {71u, 1698u, 16u},
-    {72u, 1715u, 16u},
-    {74u, 1732u, 14u},
-    {75u, 1747u, 33u},
-    {76u, 1781u, 42u},
-    {77u, 1824u, 41u},
-    {78u, 1866u, 18u},
-    {79u, 1885u, 21u},
-    {80u, 1907u, 20u},
-    {81u, 1928u, 20u},
-    {82u, 1949u, 17u},
-    {83u, 1967u, 24u},
-    {84u, 1992u, 35u},
-    {85u, 2028u, 35u},
-    {86u, 2064u, 34u},
-    {99u, 2099u, 7u},
-    {100u, 2107u, 12u},
+    {1u, 0u, 0u},
+    {2u, 0u, 14u},
+    {3u, 9u, 30u},
+    {4u, 9u, 52u},
+    {5u, 6u, 72u},
+    {6u, 6u, 78u},
+    {7u, 6u, 84u},
+    {8u, 7u, 93u},
+    {9u, 1u, 101u},
+    {10u, 1u, 107u},
+    {11u, 1u, 115u},
+    {12u, 1u, 123u},
+    {13u, 1u, 130u},
+    {14u, 1u, 137u},
+    {15u, 2u, 143u},
+    {16u, 2u, 152u},
+    {17u, 2u, 159u},
+    {18u, 2u, 166u},
+    {19u, 2u, 176u},
+    {20u, 2u, 182u},
+    {21u, 3u, 191u},
+    {22u, 3u, 198u},
+    {23u, 3u, 204u},
+    {24u, 3u, 211u},
+    {25u, 3u, 225u},
+    {26u, 3u, 232u},
+    {27u, 3u, 240u},
+    {28u, 3u, 246u},
+    {29u, 9u, 252u},
+    {30u, 9u, 266u},
+    {31u, 255u, 282u},
+    {32u, 8u, 298u},
+    {33u, 8u, 302u},
+    {34u, 8u, 308u},
+    {35u, 8u, 316u},
+    {36u, 9u, 323u},
+    {37u, 4u, 349u},
+    {38u, 4u, 357u},
+    {39u, 4u, 362u},
+    {40u, 5u, 371u},
+    {41u, 5u, 377u},
+    {66u, 0u, 385u},
+    {67u, 0u, 404u},
+    {68u, 6u, 415u},
+    {69u, 6u, 425u},
+    {70u, 6u, 435u},
+    {71u, 7u, 448u},
+    {72u, 7u, 456u},
+    {74u, 7u, 464u},
+    {75u, 2u, 470u},
+    {76u, 3u, 475u},
+    {77u, 4u, 483u},
+    {78u, 5u, 491u},
+    {79u, 5u, 496u},
+    {80u, 5u, 504u},
+    {81u, 5u, 511u},
+    {82u, 5u, 518u},
+    {83u, 10u, 522u},
+    {84u, 10u, 542u},
+    {85u, 10u, 573u},
+    {86u, 10u, 604u},
+    {99u, 255u, 634u},
+    {100u, 255u, 642u},
 };
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_coastal_region_en_lookup(uint8_t id) noexcept {
     uint8_t lo = 0, hi = 63;
     while (lo < hi) {
         uint8_t mid = static_cast<uint8_t>(lo + (hi - lo) / 2);
-        const char* AZARAC_PROGMEM ep = reinterpret_cast<const char*>(&QZSS_DCR_JMA_COASTAL_REGION_EN_TABLE[mid]);
-        uint8_t eid = static_cast<uint8_t>(pgm_read_byte(ep + offsetof(QZSS_DCR_JMA_COASTAL_REGION_EN_Entry, id)));
+        azarac_pgm_ptr ep = AZARAC_PGM_PTR(QZSS_DCR_JMA_COASTAL_REGION_EN_TABLE) + static_cast<size_t>(mid) * sizeof(QZSS_DCR_JMA_COASTAL_REGION_EN_Entry);
+        uint8_t eid = static_cast<uint8_t>(azarac_read_byte(ep, offsetof(QZSS_DCR_JMA_COASTAL_REGION_EN_Entry, id)));
         if (eid == id) {
-            uint16_t off = pgm_read_word(ep + offsetof(QZSS_DCR_JMA_COASTAL_REGION_EN_Entry, offset));
-            uint16_t n = pgm_read_word(ep + offsetof(QZSS_DCR_JMA_COASTAL_REGION_EN_Entry, len));
-            return azarac_pgm_view(QZSS_DCR_JMA_COASTAL_REGION_EN_POOL + off, n);
+            uint16_t off = azarac_read_word(ep, offsetof(QZSS_DCR_JMA_COASTAL_REGION_EN_Entry, offset));
+            uint8_t pi = azarac_read_byte(ep, offsetof(QZSS_DCR_JMA_COASTAL_REGION_EN_Entry, parent));
+            if (pi == 255u) return azarac_pgm_view_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_COASTAL_REGION_EN_POOL) + off);
+            azarac_pgm_ptr pp = AZARAC_PGM_PTR(QZSS_DCR_JMA_COASTAL_REGION_EN_PARENT_TABLE) + static_cast<size_t>(pi) * sizeof(QZSS_DCR_JMA_COASTAL_REGION_EN_PARENT_Entry);
+            uint16_t poff = azarac_read_word(pp, offsetof(QZSS_DCR_JMA_COASTAL_REGION_EN_PARENT_Entry, offset));
+            return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_COASTAL_REGION_EN_POOL) + off, AZARAC_PGM_PTR(QZSS_DCR_JMA_COASTAL_REGION_EN_PARENT_POOL) + poff);
         }
         if (eid < id) lo = static_cast<uint8_t>(mid + 1); else hi = mid;
     }

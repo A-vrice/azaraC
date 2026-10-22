@@ -13,7 +13,6 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # バージョン整合性チェック
   version-sync:
     name: Version sync check
     runs-on: ubuntu-latest
@@ -47,31 +46,38 @@ jobs:
       - name: Build & run (reduced page budget, AZARAC_NANKAI_MAX_PAGES=8)
         run: make -C test run-small-pages
 
+      - name: Build & run (LTO, -O2 -flto)
+        run: make -C test run-lto
+
       - name: Build & run (JA-only and EN-only language configs)
         run: make -C test run-lang-defaults
 
       - name: Build & run (no dynamic allocation check)
         run: make -C test test-no-alloc
 
+      # dedup ベンチ（test/bench/run_dedup_bench.sh）: NEW_RECALL / DUP_SUPPRESS / NANKAI_KEY_STABLE / PREAMBLE_KEY_STABLE をゲート。host の g++ だけで動く。
       - name: Dedup benchmark (gates)
+        run: make -C test bench-dedup
+
+      # 定義テーブルの AVR フットプリント計測（autoresearch.sh は avr-gcc/avr-size/avr-nm を使う）。
+      - name: Install AVR toolchain
+        run: sudo apt-get update && sudo apt-get install -y gcc-avr binutils-avr avr-libc
+
+      - name: Definition-table footprint benchmark (gates)
         run: make -C test bench
 
       - name: AVR-style stub build (PROGMEM, 16-bit int)
         run: make -C test pgm-stub
 
-  # 生成フィクスチャのドリフト検査
-  # nankai_pages_generated.h は azarashi から生成される。生成器を直したのに
-  # 生成物を更新し忘れる（またはその逆）と、テストは古いフィクスチャのまま緑になる。
-  # dcr/dcx はリポジトリ外ログ由来、test_realdata.cpp は gitignore 済み realdata/
-  # 由来なので CI では再現できない。
+      - name: Arduino interrupt-state test (ARDUINO=1, AVR branch)
+        run: make -C test test-time-irq
+
+  # 生成フィクスチャのドリフト検査: nankai_pages_generated.h は azarashi 生成物なので、生成器と生成物を片方だけ直すとテストは古いフィクスチャのまま緑になる。
+  # dcr/dcx はリポジトリ外ログ由来、test/data/test_realdata_generated.cpp は gitignore 済み realdata/ 由来で CI では再現できない。
   #
-  # nankai_vectors.json は検査しない: azarashi が params に壁時計の timestamp を
-  # 埋めるため、git diff は常に非空になりゲートとして機能しない。C++ が読むのは
-  # ヘッダ（ページ本文のみで決定論的）なので、そちらだけを見る。
-  #
-  # ピンは検査対象のヘッダに合わせる: nankai_pages_generated.h は 0.17.0 と 0.17.1 で
-  # バイト単位で同一。一方 dcr/dcx/nankai_vectors.json は 0.17.1 で形（v2）が変わり、
-  # パリティテストが読む参照 JSON のまま使えなくなるため再生成しない（検査もしない）。
+  # nankai_vectors.json は検査しない: azarashi が params に壁時計 timestamp を埋めるため git diff は常に非空でゲートにならない。
+  # C++ が読むのはページ本文のみのヘッダなのでそちらだけ見る。
+  # ピンは検査対象に合わせ、0.17.0/0.17.1 でバイト同一の nankai_pages_generated.h のみ再生成する（0.17.1 で形が変わった dcr/dcx と vectors はパリティテストの参照 JSON のまま使えないため再生成も検査もしない）。
   fixture-drift:
     name: Generated fixture drift
     runs-on: ubuntu-latest
@@ -90,7 +96,6 @@ jobs:
       - name: Verify committed fixtures match the generator
         run: git diff --exit-code -- test/data/nankai_pages_generated.h
 
-  # ファジングテスト
   fuzz-test:
     name: Fuzz testing
     runs-on: ubuntu-latest
@@ -104,7 +109,6 @@ jobs:
       - name: Run fuzz test
         run: make -C test fuzz FUZZ_ITERATIONS=1000000
 
-  # Arduino Lint
   arduino-lint:
     name: Arduino Lint
     runs-on: ubuntu-latest
@@ -117,13 +121,12 @@ jobs:
       - name: Run Arduino Lint
         uses: arduino/arduino-lint-action@9a3603836c75e41753e531167395edeb90ba5dae # v3.0.0
         with:
-          library-manager: submit
+          library-manager: update
           compliance: strict
 
-  # 必須コンパイルチェック（リリースゲート）
-  # アーキテクチャ代表 1 台ずつが必須: ARM Cortex-M (RP2040 Pico) /
-  # Xtensa (ESP32-C3) / AVR (Arduino Uno)。失敗で CI が赤くなる。
-  # その他のプラットフォームは compile-extended（ベストエフォート）。
+  # 必須コンパイルチェック（リリースゲート）: アーキテクチャ代表が必須 — ARM Cortex-M (RP2040 Pico) / Xtensa (ESP32-C3) / AVR (Arduino Uno, Arduino Mega 2560)。
+  # 失敗で CI が赤くなる。
+  # その他は compile-extended（ベストエフォート）。
   arduino-compile-required:
     name: compile required (${{ matrix.name }})
     runs-on: ubuntu-latest
@@ -150,10 +153,15 @@ jobs:
             core: arduino:avr
             fqbn: arduino:avr:uno
             additional_urls: ""
-            # Uno (32 KB Flash / 2 KB SRAM) cannot hold all definition pools
-            # (all-category tables are ~248 KB; see docs/architecture.md). The
-            # AVR preset in azaraC_config.h keeps SEISMIC/TSUNAMI only
-            # (~3.4 KB tables) so the sketches fit.
+            # Uno (32 KB Flash / 2 KB SRAM) cannot hold all definition pools (~248 KB all-category; docs/architecture.md): the AVR preset in azaraC_config.h keeps SEISMIC/TSUNAMI only (~3.4 KB tables) so the sketches fit.
+            build_flags: ""
+
+          - name: Arduino Mega 2560
+            core: arduino:avr
+            fqbn: arduino:avr:mega
+            additional_urls: ""
+            # 256 KB Flash, but the AVR preset keeps the Uno's categories — DCX/CAMF is opt-in (azaraC_config.h) — so this gate is the default AVR configuration on a large part.
+            # The far-Flash DCX/CAMF image is gated by `make -C test bench` (autoresearch.sh stage 5, real avr-gcc) instead of a sketch build here.
             build_flags: ""
 
     steps:
@@ -169,12 +177,9 @@ jobs:
       - name: Configure board manager
         run: |
           # 'config init'自体がindex更新を行い、一時的な取得失敗でexit 1になる
-          # (例: #92 Nano 33 BLEで2連続 "Some indexes could not be updated")。
-          # config作成が目的なので失敗許容し、update-index側でリトライする。
+          # (例: #92 Nano 33 BLEで2連続 "Some indexes could not be updated")。 config作成が目的なので失敗許容し、update-index側でリトライする。
           arduino-cli config init --overwrite || true
-          # Boards with a built-in core (e.g. arduino:avr) have no additional
-          # index URL; an empty URL makes 'core update-index' fail with
-          # "Invalid index URL".
+          # Boards with a built-in core (e.g. arduino:avr) have no additional index URL; an empty URL makes 'core update-index' fail with "Invalid index URL".
           if [[ -n "${{ matrix.additional_urls }}" ]]; then
             arduino-cli config add board_manager.additional_urls "${{ matrix.additional_urls }}"
           fi
@@ -196,16 +201,14 @@ jobs:
           for sketch in examples/*/; do
             echo "--- $sketch ---"
             sketch_name=$(basename "$sketch")
-            # Arduino Uno: only the basic examples are AVR-aware (they use
-            # Serial instead of Serial1 and the AVR preset reduces the
-            # enabled categories). The other examples need Serial1 or more
-            # flash/RAM than the Uno has.
+            # Arduino Uno: only the basic examples are AVR-aware (they use Serial instead of Serial1 and the AVR preset reduces the enabled categories).
+            # The other examples need Serial1 or more flash/RAM than the Uno has.
             if [[ "${{ matrix.name }}" == "Arduino Uno" && "$sketch_name" != "basic_ubx" && "$sketch_name" != "basic_nmea" && "$sketch_name" != "basic_uno" ]]; then
               echo "skip $sketch_name on ${{ matrix.name }} (not AVR-aware)"
               continue
             fi
             # Skip WiFi examples on boards without WiFi (requires WiFi.h)
-            if [[ "${{ matrix.name }}" == "RP2040 Pico" && ("$sketch_name" == "wifi_client" || "$sketch_name" == "with_sntp") ]]; then
+            if [[ ("${{ matrix.name }}" == "RP2040 Pico" || "${{ matrix.name }}" == "Arduino Mega 2560") && ("$sketch_name" == "wifi_client" || "$sketch_name" == "with_sntp") ]]; then
               echo "skip $sketch_name on ${{ matrix.name }} because WiFi.h is unavailable"
               continue
             fi
@@ -219,10 +222,8 @@ jobs:
             arduino-cli compile --clean --fqbn "${{ matrix.fqbn }}" "$sketch" --build-property "compiler.cpp.extra_flags=$CPP_EXTRA_FLAGS"
           done
 
-  # 拡張コンパイルチェック（ベストエフォート）
-  # required 以外の追加プラットフォーム。continue-on-error なので失敗して
-  # も CI は赤くならない（警告扱い）。主要アーキテクチャの代表は
-  # compile-required（リリースゲート）で検証される。
+  # 拡張コンパイルチェック（ベストエフォート、continue-on-error）: required 以外の
+  # 追加プラットフォームを試す。失敗しても CI は赤くならない（警告扱い）。
   arduino-compile-extended:
     name: compile extended (${{ matrix.name }})
     runs-on: ubuntu-latest
@@ -304,12 +305,9 @@ jobs:
       - name: Configure board manager
         run: |
           # 'config init'自体がindex更新を行い、一時的な取得失敗でexit 1になる
-          # (例: #92 Nano 33 BLEで2連続 "Some indexes could not be updated")。
-          # config作成が目的なので失敗許容し、update-index側でリトライする。
+          # (例: #92 Nano 33 BLEで2連続 "Some indexes could not be updated")。 config作成が目的なので失敗許容し、update-index側でリトライする。
           arduino-cli config init --overwrite || true
-          # Boards with a built-in core (e.g. arduino:avr) have no additional
-          # index URL; an empty URL makes 'core update-index' fail with
-          # "Invalid index URL".
+          # Boards with a built-in core (e.g. arduino:avr) have no additional index URL; an empty URL makes 'core update-index' fail with "Invalid index URL".
           if [[ -n "${{ matrix.additional_urls }}" ]]; then
             arduino-cli config add board_manager.additional_urls "${{ matrix.additional_urls }}"
           fi
@@ -381,10 +379,8 @@ jobs:
           name: extended-outcome-${{ matrix.slug }}
           path: extended_outcome.txt
 
-  # PlatformIO コンパイルテスト
-  # test/platformio の lib_deps = ../.. でリポジトリ作業ツリーを uno/esp32dev
-  # でコンパイルすることを検証する（Registry の A-vrice/azaraC@^1.0.0 は
-  # 解決しない。公開確認後に Registry 解決テストを別途追加）。
+  # PlatformIO コンパイルテスト: test/platformio の lib_deps = ../.. で作業ツリーを uno/esp32dev でコンパイルすることを検証する。
+  # Registry には 2.0.0 が公開済み（2026-10-15）なので、Registry からの解決を確かめるテストは別途追加できる。
   platformio-compile:
     name: PlatformIO compile
     runs-on: ubuntu-latest
@@ -402,7 +398,6 @@ jobs:
       - name: Compile (uno, esp32dev)
         run: pio run -d test/platformio
 
-  # マクロサイズ計測
   macro-size-check:
     name: Macro size check
     runs-on: ubuntu-latest
@@ -427,7 +422,6 @@ jobs:
           cat test/macro_sizes.txt >> $GITHUB_STEP_SUMMARY
           exit $status
 
-  # マクロ無効化ランタイムテスト
   macro-runtime-test:
     name: Macro disable runtime tests
     runs-on: ubuntu-latest
@@ -441,7 +435,6 @@ jobs:
       - name: Run all 13 individual macro-disabled runtime tests
         run: make -C test macro
 
-  # 静的解析
   static-analysis:
     name: Static analysis (cppcheck)
     runs-on: ubuntu-latest
@@ -474,7 +467,6 @@ jobs:
           name: cppcheck-report
           path: test/cppcheck_report.xml
 
-  # カバレッジ測定
   coverage:
     name: Coverage (gcovr)
     runs-on: ubuntu-latest
@@ -519,7 +511,6 @@ jobs:
           coverage-reports: test/coverage.xml
           language: cpp
 
-  # 結果集約
   summary:
     name: CI Summary
     runs-on: ubuntu-latest

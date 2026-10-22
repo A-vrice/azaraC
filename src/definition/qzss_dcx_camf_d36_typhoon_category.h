@@ -1,12 +1,7 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.17.1 with CI-CD
-// Source module : azarashi.definitions.camf.d_fields
-// Variable      : qzss_dcx_camf_d36_typhoon_category
-// Entries       : 5
-// Strategy      : switch
-
-// NOTE: This function may return nullptr for unknown IDs.
-// Callers MUST perform a null-check before using the result.
+// AUTO-GENERATED from azarashi 0.17.1 — do not edit
+// azarashi.definitions.camf.d_fields → qzss_dcx_camf_d36_typhoon_category: 5 entries, strategy switch
+// Unknown id returns nullptr — callers MUST null-check.
 
 #if defined(__AVR__)
 #include "../internal/avr_std/cstdint"
@@ -26,13 +21,19 @@ namespace def {
 #if (AZARAC_ENABLE_DCX_CAMF)
 
 #if defined(__AVR__)
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D36_TYPHOON_CATEGORY_C0[] = "1 and Intensity 1";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D36_TYPHOON_CATEGORY_C1[] = "1 and Intensity 2";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D36_TYPHOON_CATEGORY_C2[] = "1 and Intensity 3";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D36_TYPHOON_CATEGORY_C3[] = "2 and Intensity 1";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D36_TYPHOON_CATEGORY_C4[] = "2 and Intensity 2";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D36_TYPHOON_CATEGORY_PARENT_POOL[] = "Scale \000";
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_d36_typhoon_category_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 0: { static const char AZARAC_PROGMEM s[] = "Scale 1 and Intensity 1"; return azarac_pgm_view(s, 23); }
-        case 1: { static const char AZARAC_PROGMEM s[] = "Scale 1 and Intensity 2"; return azarac_pgm_view(s, 23); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "Scale 1 and Intensity 3"; return azarac_pgm_view(s, 23); }
-        case 3: { static const char AZARAC_PROGMEM s[] = "Scale 2 and Intensity 1"; return azarac_pgm_view(s, 23); }
-        case 4: { static const char AZARAC_PROGMEM s[] = "Scale 2 and Intensity 2"; return azarac_pgm_view(s, 23); }
+        case 0: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D36_TYPHOON_CATEGORY_PARENT_POOL) + 0u, AZARAC_PGM_PTR(QZSS_DCX_CAMF_D36_TYPHOON_CATEGORY_C0));
+        case 1: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D36_TYPHOON_CATEGORY_PARENT_POOL) + 0u, AZARAC_PGM_PTR(QZSS_DCX_CAMF_D36_TYPHOON_CATEGORY_C1));
+        case 2: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D36_TYPHOON_CATEGORY_PARENT_POOL) + 0u, AZARAC_PGM_PTR(QZSS_DCX_CAMF_D36_TYPHOON_CATEGORY_C2));
+        case 3: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D36_TYPHOON_CATEGORY_PARENT_POOL) + 0u, AZARAC_PGM_PTR(QZSS_DCX_CAMF_D36_TYPHOON_CATEGORY_C3));
+        case 4: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D36_TYPHOON_CATEGORY_PARENT_POOL) + 0u, AZARAC_PGM_PTR(QZSS_DCX_CAMF_D36_TYPHOON_CATEGORY_C4));
         default: return std::nullopt;
     }
 }

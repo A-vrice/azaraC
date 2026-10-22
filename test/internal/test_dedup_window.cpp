@@ -1,9 +1,8 @@
 // test/internal/test_dedup_window.cpp — 情報有効時間（手順④）のカテゴリ別窓
 //
-// DedupWindow.h の条件表は「その情報がまだ配信中か」を決める唯一の場所で、窓を短くする誤りは生きた警報の再通知（dedup の重複除去が効かない）に直結する。
-// 表の値をカテゴリ・副条件ごとに固定し、payload を渡さない経路（該当型が無効/未設定）でもクラッシュせず fallback に落ちることを確かめる。
+// DedupWindow.h の条件表は「その情報がまだ配信中か」を決める唯一の場所。カテゴリ・副条件ごとに窓の値を固定し、payload を渡さない経路もクラッシュせず fallback に落ちることを確かめる。
 //
-// Parser::handleFrame も併せて検証する。custom framer 経路（feed が false）とデコード失敗経路は、out に前回の有効メッセージが残ったままにならない契約（decode 失敗時は空の Message を丸ごとコピーする）を負っている。
+// Parser::handleFrame も検証する。custom framer 経路（feed が false）とデコード失敗経路は out に前回値が残らない契約（decode 失敗時は空の Message を丸ごとコピーする）。
 
 #define ARDUINO 0
 #include "../src/Parser.h"
@@ -22,12 +21,12 @@ constexpr uint32_t DAY = 24UL * HR;
 
 constexpr uint32_t FALLBACK = 12345UL;  // 表に無いカテゴリの目印
 
-// payload を渡さない（該当型が無効・未設定）経路
+// payload 未設定経路（該当型が無効・未設定）
 uint32_t windowNoPayload(uint8_t dc, uint8_t info = 0) {
     return dedupWindowMs(FALLBACK, dc, info, nullptr);
 }
 
-// Message 版の経路（Parser が実際に使う）
+// Message 版（Parser が実際に使う経路）
 uint32_t windowViaMessage(uint8_t dc, uint8_t info, Mt43Data::ActiveType type) {
     Message m{};
     m.svid = 186;
@@ -109,7 +108,7 @@ TEST_CASE("dedup window: weather (dc=10) needs Ar=1 and a special Ww") {
     CHECK(dedupWindowMs(FALLBACK, 10, 0, &w) == 3UL * HR);
     w.warning_state = 2;
     CHECK(dedupWindowMs(FALLBACK, 10, 0, &w) == 3UL * HR);
-    // Ww が 7 番目以降は見ない: count は配列長 6 を超えても走査側でクランプされる
+    // Ww は 7 番目以降を見ない: count は配列長 6 を超えても走査側でクランプされる
     w.warning_state = 1;
     w.count = 6;                      // 配列長ちょうど（7 以上は entries[] 外を指す）
     w.entries[0].sub_category = 21;
@@ -184,7 +183,7 @@ TEST_CASE("dedup window: Message overload routes MT43 payload and MT44 A8 window
 #endif
     // Mt43 でも payload 未設定の型は nullptr 経由（クラッシュせず 10 時間）
     CHECK(windowViaMessage(5, 0, Mt43Data::ActiveType::None) == 10UL * HR);
-    // Weather/Flood/Marine は payload を実際に埋めて条件分岐を通す（active_type だけ設定した経路は payload が未設定＝nullptr で表の既定値が返るため、条件が壊れていても検出できない）。
+    // Weather/Flood/Marine は payload を実際に埋めて条件分岐を通す（active_type だけでは payload が未設定で既定値が返り、条件の破壊を検出できない）。
 #if AZARAC_ENABLE_WEATHER
     {   // Weather: payload を実際に埋め、条件成立で DAY に伸びることを確認
         Message m{};
@@ -289,6 +288,26 @@ private:
     bool _deliver;
 };
 
+// 1 回目に Frame を汚して false を返し、2 回目の Frame がゼロ初期化されているかを見る。
+class StaleFrameFramer : public azaraC::internal::IFramer {
+public:
+    bool saw_stale = false;
+    bool feed(uint8_t, azaraC::internal::Frame& out) override {
+        if (!_touched) {
+            _touched = true;
+            out.bits[0] = 0xAA;
+            return false;
+        }
+        for (uint8_t b : out.bits) {
+            if (b != 0) saw_stale = true;
+        }
+        return false;
+    }
+    void reset() override {}
+private:
+    bool _touched = false;
+};
+
 } // namespace
 
 TEST_CASE("Parser: custom framer with no frame keeps out untouched") {
@@ -307,6 +326,16 @@ TEST_CASE("Parser: custom framer with no frame keeps out untouched") {
     CHECK(m.msg_type == 43);
 }
 
+TEST_CASE("Parser: custom framer starts each call with a zeroed Frame") {
+    StaleFrameFramer framer;
+    Parser p(framer);
+    Message m{};
+
+    CHECK_FALSE(p.feed(0x00, m));   // 1 回目: Frame を汚す
+    CHECK_FALSE(p.feed(0x00, m));   // 2 回目: 前回の値が残っていないこと
+    CHECK_FALSE(framer.saw_stale);
+}
+
 TEST_CASE("Parser: custom framer decode failure clears the previous payload") {
     azaraC::internal::Frame bad{};
     bad.svid = 186;
@@ -321,8 +350,7 @@ TEST_CASE("Parser: custom framer decode failure clears the previous payload") {
     m.crc24 = 0xABCDEF;
 
     CHECK_FALSE(p.feed(0x00, m));
-    // 失敗時は decode() がクリアした Message を丸ごとコピーする契約。
-    // svid は decode() が frame から書き戻すので残るが、payload は残らない。
+    // 失敗時は decode() がクリアした Message を丸ごとコピーする契約（svid は frame から書き戻されるが payload は残らない）。
     CHECK_FALSE(m.valid);
     CHECK(m.msg_type == 0);
     CHECK(m.svid == 186);

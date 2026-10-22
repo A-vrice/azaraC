@@ -1,6 +1,5 @@
 // test/integration/test_time_resolution.cpp
-// report_unix 時刻解決の統合テスト
-// decodeNmea ヘルパーに report_unix を渡し、resolveTime が正しく unix_time を解決することを検証する。
+// report_unix を渡し、resolveTime / event_time の unix_time 解決を検証する統合テスト。
 
 #include "../test_helpers.h"
 #include "doctest.h"
@@ -18,7 +17,6 @@ TEST_CASE("Time: resolveTime with valid report_unix (2024-06-15)") {
     CHECK(t.hour == 12);
     CHECK(t.minute == 30);
     CHECK(t.unix_time != 0);
-    // unix_time should be 2024-06-15 12:30:00
     CHECK(t.unix_time == now + 30 * 60);
 }
 
@@ -31,8 +29,7 @@ TEST_CASE("Time: resolveTime with year boundary crossing") {
 }
 
 TEST_CASE("Time: resolveTime DHM month-end event (base Jan 31, day 15)") {
-    // extractDHM は過去のイベント時刻専用。base = 2024-01-31。
-    // day=15 の最寄りは Feb 15（15日後）だが、マージン(3日)を超えるため stale → 過去の直近発生 Jan 15 にフォールバック。旧 ±15 は Feb 15 と誤判定していた。
+    // extractDHM は過去イベント専用。base 2024-01-31 で day=15 の最寄り Feb 15 はマージン(3日)超 → stale → 過去の直近 Jan 15。旧 ±15 は Feb 15 と誤判定。
     uint32_t now = daysFromCivil(2024, 1, 31) * 86400u;
     TimeFields t = TestDecoder::testResolveTime(0, 15, 0, 0, now);
     CHECK(t.month == 1);
@@ -49,7 +46,7 @@ TEST_CASE("Time: resolveTime DHM same-day event (base Jan 31, day 31)") {
 }
 
 TEST_CASE("Time: resolveTime DHM future-in-month steps back (base Mar 1, day 15)") {
-    // base = 2024-03-01。day=15 の最寄りは Mar 15（14日後）だがマージン(3日)を超える → stale → 過去の直近 February 15 にフォールバック。
+    // base 2024-03-01。day=15 の最寄り Mar 15 (14日後) はマージン(3日)超 → stale → 過去の直近 Feb 15。
     uint32_t now = daysFromCivil(2024, 3, 1) * 86400u;
     TimeFields t = TestDecoder::testResolveTime(0, 15, 0, 0, now);
     CHECK(t.month == 2);
@@ -66,7 +63,7 @@ TEST_CASE("Time: resolveTime DHM mid-month (base Mar 15, day 15)") {
 }
 
 TEST_CASE("Time: resolveTime DHM day/month boundary (report 1/31 23:00, day 1 02:00)") {
-    // イベントが翌月1日02:00、報告が1/31 23:00（3時間後）。closest は Feb 1 02:00 （3時間差）でマージン内 → 正しく February に解決。pure past-bias は Jan 1 と誤る。
+    // 報告 1/31 23:00、イベント 2/1 02:00（未来側 3 時間）はマージン内 → Feb 1 に解決。pure past-bias は Jan 1 と誤る。
     uint32_t now = daysFromCivil(2024, 1, 31) * 86400u + 23 * 3600u;
     TimeFields t = TestDecoder::testResolveTime(0, 1, 2, 0, now);
     CHECK(t.month == 2);
@@ -75,7 +72,6 @@ TEST_CASE("Time: resolveTime DHM day/month boundary (report 1/31 23:00, day 1 02
 }
 
 TEST_CASE("Time: resolveTime with month wrap-around (MDHM)") {
-    // report_unix = 2024-05-15 00:00:00 UTC (5月)
     uint32_t now = daysFromCivil(2024, 5, 15) * 86400u;
     // Month=12, day=15 → 12-5=7 > 6 → 前年にラップアラウンド → 2023-12-15
     TimeFields t = TestDecoder::testResolveTime(12, 15, 0, 0, now);
@@ -107,7 +103,7 @@ TEST_CASE("Time: resolveTime with report_unix=0 returns unix_time=0") {
     CHECK(t.day == 15);    // DHM fields are still populated
     CHECK(t.hour == 12);
     CHECK(t.minute == 0);
-    CHECK(t.unix_time == 0);  // unix_time is unresolved
+    CHECK(t.unix_time == 0);
 }
 
 TEST_CASE("Time: resolveTime report_unix < 2000-01-01 returns unix_time=0") {
@@ -119,11 +115,10 @@ TEST_CASE("Time: resolveTime report_unix < 2000-01-01 returns unix_time=0") {
 
 #if (AZARAC_ENABLE_TSUNAMI)
 TEST_CASE("Time: Tsunami arrival_time unix resolved with valid report_unix") {
-    // 津波メッセージに report_unix を指定して decode
     // report_unix = 2024-01-01 12:00:00 UTC
     const char* nmea = "$QZQSM,57,9AACA884EB0001E4F47B31E833C07C8D6920035C8800E087FF355011DDFED1C*09";
     Message msg{};
-    REQUIRE(decodeNmea(nmea, msg, 1704105600u));  // report_unix 指定
+    REQUIRE(decodeNmea(nmea, msg, 1704105600u));
     CHECK(msg.msg_type == 43);
     CHECK(msg.payload_type == MsgPayloadType::Mt43);
 
@@ -134,27 +129,24 @@ TEST_CASE("Time: Tsunami arrival_time unix resolved with valid report_unix") {
     const TsunamiData* tsunami = mt43->getTsunami();
     REQUIRE(tsunami != nullptr);
 
-    // event_time.unix_time が解決されていること
     CHECK(mt43->event_time.unix_time != 0);
 
-    // arrival_time.unix_time が解決されていること（基地局の event_time から計算）
+    // arrival_time は基地局の event_time から計算
     for (uint8_t i = 0; i < tsunami->count; ++i) {
         INFO("tsunami entry ", i);
         // 到達済み (hour=31, min=63) のエントリをスキップ
         if (tsunami->entries[i].arrival_time.hour <= 23 &&
             tsunami->entries[i].arrival_time.minute <= 59 &&
             tsunami->entries[i].arrival_time_raw != 2047) {
-            // 到達済みでないエントリは unix_time が解決されている
             CHECK(tsunami->entries[i].arrival_time.unix_time != 0);
         }
     }
 }
 
 TEST_CASE("Time: Tsunami arrival_time unix=0 with report_unix=0") {
-    // report_unix=0 の場合、arrival_time.unix_time は解決されない
     const char* nmea = "$QZQSM,57,9AACA884EB0001E4F47B31E833C07C8D6920035C8800E087FF355011DDFED1C*09";
     Message msg{};
-    REQUIRE(decodeNmea(nmea, msg, 0));  // report_unix=0
+    REQUIRE(decodeNmea(nmea, msg, 0));
     CHECK(msg.msg_type == 43);
     CHECK(msg.payload_type == MsgPayloadType::Mt43);
 
@@ -165,11 +157,9 @@ TEST_CASE("Time: Tsunami arrival_time unix=0 with report_unix=0") {
     const TsunamiData* tsunami = mt43->getTsunami();
     REQUIRE(tsunami != nullptr);
 
-    // report_unix=0 では event_time が解決されない
-    // event_time.unix_time = 0 または報告時に解決されていない
-    CHECK(tsunami->entries[0].arrival_time.hour == 7);  // DHM は解決される
+    // report_unix=0 では unix_time は未解決（DHM フィールドは設定される）
+    CHECK(tsunami->entries[0].arrival_time.hour == 7);
     CHECK(tsunami->entries[0].arrival_time.minute == 40);
-    // しかし unix_time は 0
     CHECK(tsunami->entries[0].arrival_time.unix_time == 0);
 }
 #endif // AZARAC_ENABLE_TSUNAMI
@@ -178,10 +168,10 @@ TEST_CASE("Time: Tsunami arrival_time unix=0 with report_unix=0") {
 // DCX onset_time 解決 E2E テスト
 
 TEST_CASE("Time: DCX onset_time resolved with valid report_unix") {
-    // DCX メッセージ: a6=0 (current week), a7=2 (Monday 00:01)
+    // DCX a6=0（今週）、a7=2（月曜 00:01）
     // IS-QZSS-DCX-004 §4.2.3.6, Table 4.2-9: A6=0 → current week, A6=1 → next week
     // EWSS CAMF v1.1 §3.3: Week starts Monday 00:00 UTC
-    // report_unix = 2024-05-20 00:00:00 UTC (Monday → current week start)
+    // report_unix = 2024-05-20 00:00:00 UTC (Monday = 週の起点)
     uint8_t bits[32] = {};
     setBits(bits, 0, 8, 0x53);
     setBits(bits, 8, 6, 44);
@@ -204,7 +194,7 @@ TEST_CASE("Time: DCX onset_time resolved with valid report_unix") {
     frame.svid = 193;
     Decoder dec;
     Message msg{};
-    // 2024-05-20 00:00:00 UTC (Monday) — Monday-based week starts same day a6=0 (current week) かつ report_unix が週の開始 (Monday 00:00) のため onset_time = report_unix + 60 = Monday 00:01 UTC となる
+    // a6=0 の週の起点 (Monday 00:00) と report_unix が同日 → onset_time = report_unix + 60
     uint32_t report_unix = static_cast<uint32_t>(daysFromCivil(2024, 5, 20) * 86400u);
     bool ok = dec.decode(frame, msg, report_unix);
     REQUIRE(ok);
@@ -213,13 +203,57 @@ TEST_CASE("Time: DCX onset_time resolved with valid report_unix") {
     REQUIRE(mt44 != nullptr);
     CHECK(mt44->onset_time.unix_time != 0);
     CHECK(mt44->onset_time.unix_time == report_unix + 60);
-    // a7=2 → Monday 00:01 UTC
     CHECK(mt44->onset_time.minute == 1);
     CHECK(mt44->onset_time.hour == 0);
 }
 
+TEST_CASE("Time: DCX onset_time A7 boundary (16-bit overflow guard)") {
+    // A7 は 1..10080（週頭からの分）。16 bit の unsigned int では (a7-1)*60 が 65535 を超えた時点で
+    // 週内の別時刻へ折り返す（a7=1094 が最初の外れ値、a7=10080 が上限）。ここでは境界の意味
+    // （週頭 + (a7-1) 分）を固定する。
+    struct Case { uint16_t a6, a7; uint32_t offset_s; uint8_t hour, minute; };
+    const Case cases[] = {
+        {0, 1094,  65580u, 18, 13},   // 16 bit で最初に折り返す値
+        {1, 10080, 604740u, 23, 59},  // A7 の上限 = 翌週の日曜 23:59
+    };
+
+    // 2024-05-20 は月曜 00:00 UTC（週の起点）
+    const uint32_t report_unix = static_cast<uint32_t>(daysFromCivil(2024, 5, 20) * 86400u);
+
+    for (const Case& c : cases) {
+        uint8_t bits[32] = {};
+        setBits(bits, 0, 8, 0x53);
+        setBits(bits, 8, 6, 44);
+        setBits(bits, 14, 1, 0);
+        setBits(bits, 15, 9, 0x1FF);
+        setBits(bits, 24, 2, 1);
+        setBits(bits, 26, 9, 111);
+        setBits(bits, 35, 5, 1);
+        setBits(bits, 40, 7, 10);
+        setBits(bits, 47, 2, 3);
+        setBits(bits, 49, 1, c.a6);
+        setBits(bits, 50, 14, c.a7);
+        setBits(bits, 214, 6, 1);
+        setBits(bits, 226, 24, crc24qRef(bits, 226));
+
+        Frame frame{};
+        memcpy(frame.bits, bits, 32);
+        frame.svid = 193;
+        Decoder dec;
+        Message msg{};
+        REQUIRE(dec.decode(frame, msg, report_unix));
+
+        const Mt44Data* mt44 = msg.getMt44();
+        REQUIRE(mt44 != nullptr);
+        // a6=1 は翌週の月曜が起点
+        const uint32_t week_start = report_unix + (c.a6 ? 7u * 86400u : 0u);
+        CHECK(mt44->onset_time.unix_time == week_start + c.offset_s);
+        CHECK(mt44->onset_time.hour == c.hour);
+        CHECK(mt44->onset_time.minute == c.minute);
+    }
+}
+
 TEST_CASE("Time: DCX onset_time NOT resolved with report_unix=0") {
-    // report_unix=0 の場合、DCX の onset_time は解決されない
     uint8_t bits[32] = {};
     setBits(bits, 0, 8, 0x53);
     setBits(bits, 8, 6, 44);
@@ -242,12 +276,11 @@ TEST_CASE("Time: DCX onset_time NOT resolved with report_unix=0") {
     frame.svid = 193;
     Decoder dec;
     Message msg{};
-    bool ok = dec.decode(frame, msg, 0);  // report_unix=0
+    bool ok = dec.decode(frame, msg, 0);
     REQUIRE(ok);
 
     const Mt44Data* mt44 = msg.getMt44();
     REQUIRE(mt44 != nullptr);
-    // report_unix=0 では onset_time は解決されない
     CHECK(mt44->onset_time.unix_time == 0);
 }
 #endif
@@ -256,7 +289,6 @@ TEST_CASE("Time: DCX onset_time NOT resolved with report_unix=0") {
 
 #if (AZARAC_ENABLE_EEW)
 TEST_CASE("Time: EEW event_time resolved with real report_unix") {
-    // 実データに report_unix を指定して event_time が解決されることを確認
     Message msg{};
     const char* nmea = "$QZQSM,57,9AAC8884E3009324000009C60539619DC0000100000000010000001065F294C*08";
     REQUIRE(decodeNmea(nmea, msg, 1704067200u));  // 2024-01-01 00:00:00 UTC
@@ -266,7 +298,6 @@ TEST_CASE("Time: EEW event_time resolved with real report_unix") {
     REQUIRE(mt43 != nullptr);
     CHECK(mt43->disaster_category == 1);
 
-    // event_time.unix_time が解決されていること
     CHECK(mt43->event_time.unix_time != 0);
 }
 #endif // AZARAC_ENABLE_EEW

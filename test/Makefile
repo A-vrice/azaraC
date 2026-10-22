@@ -76,7 +76,7 @@ TEST_SRCS = \
 	integration/test_dcx_edge_cases.cpp \
 	integration/test_azarashi_dcr.cpp \
 	integration/test_azarashi_dcx.cpp \
-	integration/test_realdata.cpp
+	data/test_realdata_generated.cpp
 
 # Library sources (src/ 配下の実装ファイル)
 LIB_SRCS = \
@@ -101,7 +101,7 @@ OBJS = $(TEST_OBJS) $(LIB_OBJS)
 # VPATH for library sources
 VPATH = ../src:../src/decoder:../src/framer:../src/json:../src/internal
 
-.PHONY: all clean run run-small-pages run-lang-defaults fuzz decode dedup-realday bench compare-realdata check check-xml check-strict-compile coverage test-no-alloc pgm-stub
+.PHONY: all clean run run-small-pages run-lto run-lang-defaults fuzz decode dedup-realday bench bench-dedup compare-realdata check check-xml check-strict-compile coverage test-no-alloc pgm-stub test-time-irq
 
 all: $(TEST_BIN)
 
@@ -123,6 +123,16 @@ run: all
 # check-strict-compile 後に混在リンクして落ちる。必ず clean する。
 run-small-pages:
 	$(MAKE) -B CXXFLAGS_EXTRA="-DAZARAC_NANKAI_MAX_PAGES=8" run; status=$$?; $(MAKE) clean; exit $$status
+
+# リンク時最適化（LTO）の検証。-O2 と併用しないと LTO の codegen 経路が
+# ほぼ通らないため -O2 -flto で全体を再ビルドする。CXXFLAGS は依存関係に
+# 載らないので -B を使い、終了後は必ず clean する（既定 -O0 の .o と混在すると
+# 以降の run が再ビルドされない）。LTO は ODR 違反・インライン後の未定義動作を
+# リンク時に顕在化させる。型不一致系は GCC では既定で警告に留まり
+# （例: Dedup.h / Dedup.cpp の配列長不一致）、素の -flto では緑のままなので
+# この 2 つだけ -Werror にする（-Werror 全体だと -O2 由来の無関係な警告で落ちる）。
+run-lto:
+	$(MAKE) -B CXXFLAGS="$(CXXFLAGS) -O2 -flto -Werror=lto-type-mismatch -Werror=odr" run; status=$$?; $(MAKE) clean; exit $$status
 
 # 言語構成の検証。ライブラリ既定は JA=1 / EN=0 で、テスト既定（JA=1 / EN=1）とは
 # 出力が変わる: 日本語版を持たない英語専用表が EN=0 で消える回帰は、テスト既定では
@@ -178,9 +188,16 @@ endif
 $(DEDUP_REALDAY_BIN): $(DEDUP_REALDAY_OBJS) $(LIB_OBJS)
 	$(CXX) $(CXXFLAGS) $(CXXFLAGS_EXTRA) $^ -o $@ $(LDFLAGS)
 
-# dedup ベンチ（autoresearch.sh）。入力は test/data/*.json のみで realdata は不要。
+# 定義テーブルの AVR フットプリント計測（test/bench/avr/autoresearch.sh）。avr-gcc / avr-libc と
+# ホストの g++ / python が必要。入力は追跡済みの src/definition/*.h のみ。
 bench:
-	@bash ../autoresearch.sh
+	@bash bench/avr/autoresearch.sh
+
+# dedup ベンチ（test/bench/run_dedup_bench.sh）。host の g++ だけで動き、入力は
+# test/data/*.json のみ。NEW_RECALL / DUP_SUPPRESS / NANKAI_KEY_STABLE /
+# PREAMBLE_KEY_STABLE をゲートし、失敗時は非 0 で終了する。
+bench-dedup:
+	@bash bench/run_dedup_bench.sh
 
 # --- Static Analysis ---
 # 静的解析 (時間をかけた厳格なチェック)
@@ -402,7 +419,7 @@ endif
 -include $(TEST_OBJS:.o=.d) $(LIB_OBJS:.o=.d) $(FUZZ_OBJS:.o=.d) $(DECODE_OBJS:.o=.d) $(DEDUP_REALDAY_OBJS:.o=.d)
 
 clean:
-	-@$(RM) *.o *.exe *.d *.gcno *.gcda cppcheck_report.xml cppcheck_stderr.log coverage.xml coverage_report.json macro_sizes.txt
+	-@$(RM) *.o *.exe *.d *.gcno *.gcda cppcheck_report.xml cppcheck_stderr.log coverage.xml coverage_report.json macro_sizes.txt time_irq_test
 	-@$(RM) $(NOALLOC_BIN)
 	-@rm -rf $(NOALLOC_TMP)
 	-@$(RM) core/*.o core/*.d core/*.gcno core/*.gcda
@@ -410,10 +427,12 @@ clean:
 	-@$(RM) framer/*.o framer/*.d framer/*.gcno framer/*.gcda
 	-@$(RM) json/*.o json/*.d json/*.gcno json/*.gcda
 	-@$(RM) integration/*.o integration/*.d integration/*.gcno integration/*.gcda
+	-@$(RM) data/*.o data/*.d data/*.gcno data/*.gcda
 	-@$(RM) internal/*.o internal/*.d internal/*.gcno internal/*.gcda
 	-@$(RM) fuzz/*.o fuzz/*.d fuzz/*.gcno fuzz/*.gcda
 	-@$(RM) tools/*.o tools/*.d tools/*.gcno tools/*.gcda
 	-@$(RM) scripts/*.o scripts/*.d scripts/*.gcno scripts/*.gcda
+	-@$(RM) bench/*.o bench/*.cxxid bench/bench_dedup
 
 # ---- PROGMEM stub (AVR branch semantics test on host) ----
 # Compiles all tests with __AVR__ defined and a stub avr/pgmspace.h so the
@@ -432,3 +451,11 @@ clean:
 pgm-stub:
 	$(MAKE) clean
 	$(MAKE) CXXFLAGS="-std=c++17 -Wall -Wextra -Istub -I../src -I. -DARDUINO=0 -D__AVR__ -DAZARAC_AVR_STUB -DAZARAC_LANG_JA=1 -DAZARAC_LANG_EN=1 -DAZARAC_NANKAI_MAX_PAGES=63 -DAZARAC_NANKAI_BUFFERS=4 -DAZARAC_DEDUP_SLOTS=64 -DAZARAC_ENABLE_EEW=1 -DAZARAC_ENABLE_HYPOCENTER=1 -DAZARAC_ENABLE_SEISMIC=1 -DAZARAC_ENABLE_NANKAI=1 -DAZARAC_ENABLE_TSUNAMI=1 -DAZARAC_ENABLE_NW_PAC_TSUNAMI=1 -DAZARAC_ENABLE_VOLCANO=1 -DAZARAC_ENABLE_ASH_FALL=1 -DAZARAC_ENABLE_WEATHER=1 -DAZARAC_ENABLE_FLOOD=1 -DAZARAC_ENABLE_TYPHOON=1 -DAZARAC_ENABLE_MARINE=1 -DAZARAC_ENABLE_DCX_CAMF=1 -MMD -MP -g" $(TEST_BIN); b=$$?; if [ $$b -ne 0 ]; then $(MAKE) clean; exit $$b; fi; ./$(TEST_BIN); t=$$?; $(MAKE) clean; exit $$t
+
+# ---- Arduino の割り込み状態テスト（ARDUINO=1、host 上で AVR 分岐） ----
+# 通常のスイートは ARDUINO=0 なので、TimeFields.h の Arduino 分岐はコンパイルされない。
+# このターゲットは __AVR__ と stub_arduino のヘッダでそれをコンパイルし、
+# getMillis() が呼び出し側の SREG 状態を保存することを確認する。
+test-time-irq:
+	$(CXX) -std=c++17 -Wall -Wextra -Istub_arduino -I../src -DARDUINO=1 -D__AVR__ -DAZARAC_AVR_STUB internal/test_time_irq.cpp -o time_irq_test
+	./time_irq_test; t=$$?; $(RM) time_irq_test time_irq_test.exe; exit $$t

@@ -1,12 +1,7 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.17.1 with CI-CD
-// Source module : azarashi.definitions.qzss.dcr.tsunami_height
-// Variable      : qzss_dcr_jma_tsunami_height
-// Entries       : 9
-// Strategy      : switch
-
-// NOTE: This function may return nullptr for unknown IDs.
-// Callers MUST perform a null-check before using the result.
+// AUTO-GENERATED from azarashi 0.17.1 — do not edit
+// azarashi.definitions.qzss.dcr.tsunami_height → qzss_dcr_jma_tsunami_height: 9 entries, strategy switch
+// Unknown id returns nullptr — callers MUST null-check.
 
 #if defined(__AVR__)
 #include "../internal/avr_std/cstdint"
@@ -26,17 +21,26 @@ namespace def {
 #if (AZARAC_ENABLE_TSUNAMI) && (AZARAC_LANG_JA)
 
 #if defined(__AVR__)
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_TSUNAMI_HEIGHT_C1[] = "0.2m未満";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_TSUNAMI_HEIGHT_C2[] = "1m";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_TSUNAMI_HEIGHT_C3[] = "3m";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_TSUNAMI_HEIGHT_C4[] = "5m";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_TSUNAMI_HEIGHT_C5[] = "10m";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_TSUNAMI_HEIGHT_C6[] = "10m超";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_TSUNAMI_HEIGHT_C13[] = "該当情報なし";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_TSUNAMI_HEIGHT_C14[] = "不明";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_TSUNAMI_HEIGHT_C15[] = "その他の津波の高さ";
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_tsunami_height_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 1: { static const char AZARAC_PROGMEM s[] = "0.2m未満"; return azarac_pgm_view(s, 10); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "1m"; return azarac_pgm_view(s, 2); }
-        case 3: { static const char AZARAC_PROGMEM s[] = "3m"; return azarac_pgm_view(s, 2); }
-        case 4: { static const char AZARAC_PROGMEM s[] = "5m"; return azarac_pgm_view(s, 2); }
-        case 5: { static const char AZARAC_PROGMEM s[] = "10m"; return azarac_pgm_view(s, 3); }
-        case 6: { static const char AZARAC_PROGMEM s[] = "10m超"; return azarac_pgm_view(s, 6); }
-        case 13: { static const char AZARAC_PROGMEM s[] = "該当情報なし"; return azarac_pgm_view(s, 18); }
-        case 14: { static const char AZARAC_PROGMEM s[] = "不明"; return azarac_pgm_view(s, 6); }
-        case 15: { static const char AZARAC_PROGMEM s[] = "その他の津波の高さ"; return azarac_pgm_view(s, 27); }
+        case 1: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_TSUNAMI_HEIGHT_C1), 10);
+        case 2: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_TSUNAMI_HEIGHT_C2), 2);
+        case 3: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_TSUNAMI_HEIGHT_C3), 2);
+        case 4: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_TSUNAMI_HEIGHT_C4), 2);
+        case 5: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_TSUNAMI_HEIGHT_C5), 3);
+        case 6: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_TSUNAMI_HEIGHT_C6), 6);
+        case 13: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_TSUNAMI_HEIGHT_C13), 18);
+        case 14: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_TSUNAMI_HEIGHT_C14), 6);
+        case 15: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_TSUNAMI_HEIGHT_C15), 27);
         default: return std::nullopt;
     }
 }

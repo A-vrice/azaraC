@@ -21,9 +21,21 @@
 
 MT=44 の B フィールド（B1–B4）と C10 は [EWSS CAMF Issue 1.2](https://www.gsc-europa.eu/electronic-library/programme-reference-documents/galileo-in-force/ewss) に基づきます。
 
+AVR（Uno・Mega を含む）では既定で SEISMIC/TSUNAMI のみ有効です。無効にしたカテゴリは定義テーブルがコンパイルされず、payload 型も `EewData` / `HypocenterData` / `NankaiData` は型ごと除外されます（`SeismicData` / `TsunamiData` など残りの型は、そのカテゴリを無効にしても定義は残ります）。その結果 `Message` は 89B（全カテゴリ有効時は 127B。ATmega328P の `sizeof` 実測）です。EEW と震源は AVR プリセットでは無効なので `EewData` / `getEew()` / `HypocenterData` / `getHypocenter()` は存在しません（使う場合は `-DAZARAC_ENABLE_EEW=1` / `-DAZARAC_ENABLE_HYPOCENTER=1`）。MT=44 を使うには `-DAZARAC_AVR_LARGE_FLASH=1` または `-DAZARAC_ENABLE_DCX_CAMF=1` を指定してください（Flash が 64KB を超えるボードが対象）。
+
 ## インストール
 
-git clone で直接導入できます:
+パッケージマネージャーから導入できます:
+
+```bash
+# Arduino Library Manager（Arduino IDE / arduino-cli）
+arduino-cli lib install azaraC
+
+# PlatformIO
+pio pkg install --library "a-vrice/azaraC"
+```
+
+開発版は git clone でも導入できます:
 
 ```bash
 # Arduino IDE
@@ -33,8 +45,6 @@ git clone https://github.com/A-vrice/azaraC <PROJECT_DIR>/libraries/azaraC
 git clone https://github.com/A-vrice/azaraC <PROJECT_DIR>/.pio/libdeps/<TARGET_BOARD>/azaraC
 ```
 
-> **注:** Library Manager / `pio pkg install` は未申請のため現時点で利用できません。
->
 > **注:** 本ライブラリは C++17 必須です。Arduino IDE / PlatformIO のビルドで `-std=gnu++17` を指定してください（設定例は [`platformio.ini.example`](platformio.ini.example) を参照）。
 
 ## ドキュメント

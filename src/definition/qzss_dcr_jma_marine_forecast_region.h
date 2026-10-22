@@ -1,12 +1,7 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.17.1 with CI-CD
-// Source module : azarashi.definitions.qzss.dcr.marine_forecast_region
-// Variable      : qzss_dcr_jma_marine_forecast_region
-// Entries       : 49
-// Strategy      : binary_search
-
-// NOTE: This function may return nullptr for unknown IDs.
-// Callers MUST perform a null-check before using the result.
+// AUTO-GENERATED from azarashi 0.17.1 — do not edit
+// azarashi.definitions.qzss.dcr.marine_forecast_region → qzss_dcr_jma_marine_forecast_region: 49 entries, strategy binary_search
+// Unknown id returns nullptr — callers MUST null-check.
 
 #if defined(__AVR__)
 #include "../internal/avr_std/cstdint"
@@ -26,69 +21,82 @@ namespace def {
 #if (AZARAC_ENABLE_MARINE) && (AZARAC_LANG_JA)
 
 #if defined(__AVR__)
-static const char AZARAC_PROGMEM QZSS_DCR_JMA_MARINE_FORECAST_REGION_POOL[] = "日本海北部及びオホーツク海南部\000サハリン東方海上\000サハリン西方海上\000網走沖\000宗谷海峡\000北海道西方海上\000北海道南方及び東方海上\000北海道東方海上\000釧路沖\000日高沖\000津軽海峡\000檜山津軽沖\000三陸沖\000三陸沖東部\000三陸沖西部\000関東海域\000関東海域北部\000関東海域南部\000日本海中部\000沿海州南部沖\000秋田沖\000佐渡沖\000能登沖\000東海海域\000東海海域東部\000東海海域西部\000東海海域南部\000四国沖及び瀬戸内海\000瀬戸内海\000四国沖北部\000四国沖南部\000日本海西部\000日本海北西部\000山陰沖東部及び若狭湾付近\000山陰沖西部\000対馬海峡\000九州西方海上\000済州島西海上\000長崎西海上\000女島南西海上\000九州南方海上及び日向灘\000日向灘\000鹿児島海域\000奄美海域\000沖縄海域\000東シナ海南部\000沖縄東方海上\000沖縄南方海上\000その他の地方海上予報区\000";
-struct QZSS_DCR_JMA_MARINE_FORECAST_REGION_Entry { uint16_t id; uint16_t offset; uint16_t len; };
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_MARINE_FORECAST_REGION_POOL[] = "日本海北部及びオホーツク海南部\000サハリン\000サハリン西\000網走沖\000宗谷海峡\000北海道西\000北海道南方及び\000北海道\000釧路沖\000日高沖\000津軽海峡\000檜山津軽沖\000三陸沖\000三陸沖東部\000三陸沖\000関東\000関東海域北部\000関東海域\000日本海中部\000沿海州南部沖\000秋田沖\000佐渡沖\000能登沖\000東海海域\000東海海域東部\000東海海域西部\000東海海域南部\000四国沖及び瀬戸内海\000瀬戸内海\000四国沖北部\000四国沖\000日本海西部\000日本海北西部\000山陰沖東部及び若狭湾付近\000山陰沖\000対馬海峡\000九州西\000済州島西\000長崎西\000女島南西\000九州南方海上及び日向灘\000日向灘\000鹿児島\000奄美\000沖縄\000東シナ海\000沖縄\000沖縄南\000その他の地方海上予報区\000";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_MARINE_FORECAST_REGION_PARENT_POOL[] = "南部\000方海上\000東方海上\000海上\000海域\000西部\000";
+struct QZSS_DCR_JMA_MARINE_FORECAST_REGION_PARENT_Entry { uint16_t offset; };
+static const QZSS_DCR_JMA_MARINE_FORECAST_REGION_PARENT_Entry QZSS_DCR_JMA_MARINE_FORECAST_REGION_PARENT_TABLE[] AZARAC_PROGMEM = {
+    {0u},
+    {7u},
+    {17u},
+    {30u},
+    {37u},
+    {44u},
+};
+struct QZSS_DCR_JMA_MARINE_FORECAST_REGION_Entry { uint16_t id; uint8_t parent; uint16_t offset; };
 static const QZSS_DCR_JMA_MARINE_FORECAST_REGION_Entry QZSS_DCR_JMA_MARINE_FORECAST_REGION_TABLE[] AZARAC_PROGMEM = {
-    {1000u, 0u, 45u},
-    {1010u, 46u, 24u},
-    {1020u, 71u, 24u},
-    {1030u, 96u, 9u},
-    {1040u, 106u, 12u},
-    {1050u, 119u, 21u},
-    {1100u, 141u, 33u},
-    {1110u, 175u, 21u},
-    {1120u, 197u, 9u},
-    {1130u, 207u, 9u},
-    {1140u, 217u, 12u},
-    {1150u, 230u, 15u},
-    {2000u, 246u, 9u},
-    {2010u, 256u, 15u},
-    {2020u, 272u, 15u},
-    {3000u, 288u, 12u},
-    {3010u, 301u, 18u},
-    {3020u, 320u, 18u},
-    {3100u, 339u, 15u},
-    {3110u, 355u, 18u},
-    {3120u, 374u, 9u},
-    {3130u, 384u, 9u},
-    {3140u, 394u, 9u},
-    {3200u, 404u, 12u},
-    {3210u, 417u, 18u},
-    {3220u, 436u, 18u},
-    {3230u, 455u, 18u},
-    {4000u, 474u, 27u},
-    {4010u, 502u, 12u},
-    {4020u, 515u, 15u},
-    {4030u, 531u, 15u},
-    {4100u, 547u, 15u},
-    {4110u, 563u, 18u},
-    {4120u, 582u, 36u},
-    {4130u, 619u, 15u},
-    {5000u, 635u, 12u},
-    {5100u, 648u, 18u},
-    {5110u, 667u, 18u},
-    {5120u, 686u, 15u},
-    {5130u, 702u, 18u},
-    {5200u, 721u, 33u},
-    {5210u, 755u, 9u},
-    {5220u, 765u, 15u},
-    {5230u, 781u, 12u},
-    {6000u, 794u, 12u},
-    {6010u, 807u, 18u},
-    {6020u, 826u, 18u},
-    {6030u, 845u, 18u},
-    {10000u, 864u, 33u},
+    {1000u, 255u, 0u},
+    {1010u, 2u, 46u},
+    {1020u, 1u, 59u},
+    {1030u, 255u, 75u},
+    {1040u, 255u, 85u},
+    {1050u, 1u, 98u},
+    {1100u, 2u, 111u},
+    {1110u, 2u, 133u},
+    {1120u, 255u, 143u},
+    {1130u, 255u, 153u},
+    {1140u, 255u, 163u},
+    {1150u, 255u, 176u},
+    {2000u, 255u, 192u},
+    {2010u, 255u, 202u},
+    {2020u, 5u, 218u},
+    {3000u, 4u, 228u},
+    {3010u, 255u, 235u},
+    {3020u, 0u, 254u},
+    {3100u, 255u, 267u},
+    {3110u, 255u, 283u},
+    {3120u, 255u, 302u},
+    {3130u, 255u, 312u},
+    {3140u, 255u, 322u},
+    {3200u, 255u, 332u},
+    {3210u, 255u, 345u},
+    {3220u, 255u, 364u},
+    {3230u, 255u, 383u},
+    {4000u, 255u, 402u},
+    {4010u, 255u, 430u},
+    {4020u, 255u, 443u},
+    {4030u, 0u, 459u},
+    {4100u, 255u, 469u},
+    {4110u, 255u, 485u},
+    {4120u, 255u, 504u},
+    {4130u, 5u, 541u},
+    {5000u, 255u, 551u},
+    {5100u, 1u, 564u},
+    {5110u, 3u, 574u},
+    {5120u, 3u, 587u},
+    {5130u, 3u, 597u},
+    {5200u, 255u, 610u},
+    {5210u, 255u, 644u},
+    {5220u, 4u, 654u},
+    {5230u, 4u, 664u},
+    {6000u, 4u, 671u},
+    {6010u, 0u, 678u},
+    {6020u, 2u, 691u},
+    {6030u, 1u, 698u},
+    {10000u, 255u, 708u},
 };
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_marine_forecast_region_lookup(uint16_t id) noexcept {
     uint8_t lo = 0, hi = 49;
     while (lo < hi) {
         uint8_t mid = static_cast<uint8_t>(lo + (hi - lo) / 2);
-        const char* AZARAC_PROGMEM ep = reinterpret_cast<const char*>(&QZSS_DCR_JMA_MARINE_FORECAST_REGION_TABLE[mid]);
-        uint16_t eid = pgm_read_word(ep + offsetof(QZSS_DCR_JMA_MARINE_FORECAST_REGION_Entry, id));
+        azarac_pgm_ptr ep = AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_FORECAST_REGION_TABLE) + static_cast<size_t>(mid) * sizeof(QZSS_DCR_JMA_MARINE_FORECAST_REGION_Entry);
+        uint16_t eid = azarac_read_word(ep, offsetof(QZSS_DCR_JMA_MARINE_FORECAST_REGION_Entry, id));
         if (eid == id) {
-            uint16_t off = pgm_read_word(ep + offsetof(QZSS_DCR_JMA_MARINE_FORECAST_REGION_Entry, offset));
-            uint16_t n = pgm_read_word(ep + offsetof(QZSS_DCR_JMA_MARINE_FORECAST_REGION_Entry, len));
-            return azarac_pgm_view(QZSS_DCR_JMA_MARINE_FORECAST_REGION_POOL + off, n);
+            uint16_t off = azarac_read_word(ep, offsetof(QZSS_DCR_JMA_MARINE_FORECAST_REGION_Entry, offset));
+            uint8_t pi = azarac_read_byte(ep, offsetof(QZSS_DCR_JMA_MARINE_FORECAST_REGION_Entry, parent));
+            if (pi == 255u) return azarac_pgm_view_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_FORECAST_REGION_POOL) + off);
+            azarac_pgm_ptr pp = AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_FORECAST_REGION_PARENT_TABLE) + static_cast<size_t>(pi) * sizeof(QZSS_DCR_JMA_MARINE_FORECAST_REGION_PARENT_Entry);
+            uint16_t poff = azarac_read_word(pp, offsetof(QZSS_DCR_JMA_MARINE_FORECAST_REGION_PARENT_Entry, offset));
+            return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_FORECAST_REGION_POOL) + off, AZARAC_PGM_PTR(QZSS_DCR_JMA_MARINE_FORECAST_REGION_PARENT_POOL) + poff);
         }
         if (eid < id) lo = static_cast<uint8_t>(mid + 1); else hi = mid;
     }

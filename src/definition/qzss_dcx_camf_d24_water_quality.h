@@ -1,12 +1,7 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.17.1 with CI-CD
-// Source module : azarashi.definitions.camf.d_fields
-// Variable      : qzss_dcx_camf_d24_water_quality
-// Entries       : 6
-// Strategy      : switch
-
-// NOTE: This function may return nullptr for unknown IDs.
-// Callers MUST perform a null-check before using the result.
+// AUTO-GENERATED from azarashi 0.17.1 — do not edit
+// azarashi.definitions.camf.d_fields → qzss_dcx_camf_d24_water_quality: 6 entries, strategy switch
+// Unknown id returns nullptr — callers MUST null-check.
 
 #if defined(__AVR__)
 #include "../internal/avr_std/cstdint"
@@ -26,14 +21,21 @@ namespace def {
 #if (AZARAC_ENABLE_DCX_CAMF)
 
 #if defined(__AVR__)
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D24_WATER_QUALITY_C0[] = "Excellent";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D24_WATER_QUALITY_C1[] = "Good";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D24_WATER_QUALITY_C2[] = "Poor";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D24_WATER_QUALITY_C3[] = "Very poor";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D24_WATER_QUALITY_C4[] = "Suitable for drinking purposes";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D24_WATER_QUALITY_C5[] = "Unsuitable for drinking purposes";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D24_WATER_QUALITY_PARENT_POOL[] = " water quality\000";
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_d24_water_quality_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 0: { static const char AZARAC_PROGMEM s[] = "Excellent water quality"; return azarac_pgm_view(s, 23); }
-        case 1: { static const char AZARAC_PROGMEM s[] = "Good water quality"; return azarac_pgm_view(s, 18); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "Poor water quality"; return azarac_pgm_view(s, 18); }
-        case 3: { static const char AZARAC_PROGMEM s[] = "Very poor water quality"; return azarac_pgm_view(s, 23); }
-        case 4: { static const char AZARAC_PROGMEM s[] = "Suitable for drinking purposes"; return azarac_pgm_view(s, 30); }
-        case 5: { static const char AZARAC_PROGMEM s[] = "Unsuitable for drinking purposes"; return azarac_pgm_view(s, 32); }
+        case 0: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D24_WATER_QUALITY_C0), AZARAC_PGM_PTR(QZSS_DCX_CAMF_D24_WATER_QUALITY_PARENT_POOL) + 0u);
+        case 1: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D24_WATER_QUALITY_C1), AZARAC_PGM_PTR(QZSS_DCX_CAMF_D24_WATER_QUALITY_PARENT_POOL) + 0u);
+        case 2: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D24_WATER_QUALITY_C2), AZARAC_PGM_PTR(QZSS_DCX_CAMF_D24_WATER_QUALITY_PARENT_POOL) + 0u);
+        case 3: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D24_WATER_QUALITY_C3), AZARAC_PGM_PTR(QZSS_DCX_CAMF_D24_WATER_QUALITY_PARENT_POOL) + 0u);
+        case 4: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D24_WATER_QUALITY_C4), 30);
+        case 5: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D24_WATER_QUALITY_C5), 32);
         default: return std::nullopt;
     }
 }

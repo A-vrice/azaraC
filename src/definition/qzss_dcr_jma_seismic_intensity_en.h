@@ -1,12 +1,7 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.17.1 with CI-CD
-// Source module : azarashi.definitions.qzss.dcr.seismic_intensity
-// Variable      : qzss_dcr_jma_seismic_intensity_en
-// Entries       : 7
-// Strategy      : switch
-
-// NOTE: This function may return nullptr for unknown IDs.
-// Callers MUST perform a null-check before using the result.
+// AUTO-GENERATED from azarashi 0.17.1 — do not edit
+// azarashi.definitions.qzss.dcr.seismic_intensity → qzss_dcr_jma_seismic_intensity_en: 7 entries, strategy switch
+// Unknown id returns nullptr — callers MUST null-check.
 
 #if defined(__AVR__)
 #include "../internal/avr_std/cstdint"
@@ -26,15 +21,22 @@ namespace def {
 #if (AZARAC_ENABLE_SEISMIC) && (AZARAC_LANG_EN)
 
 #if defined(__AVR__)
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_SEISMIC_INTENSITY_EN_C1[] = "Less than 4";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_SEISMIC_INTENSITY_EN_C2[] = "4";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_SEISMIC_INTENSITY_EN_C3[] = "5-lower";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_SEISMIC_INTENSITY_EN_C4[] = "5-upper";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_SEISMIC_INTENSITY_EN_C5[] = "6-lower";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_SEISMIC_INTENSITY_EN_C6[] = "6-upper";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_SEISMIC_INTENSITY_EN_C7[] = "7";
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_seismic_intensity_en_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 1: { static const char AZARAC_PROGMEM s[] = "Less than 4"; return azarac_pgm_view(s, 11); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "4"; return azarac_pgm_view(s, 1); }
-        case 3: { static const char AZARAC_PROGMEM s[] = "5-lower"; return azarac_pgm_view(s, 7); }
-        case 4: { static const char AZARAC_PROGMEM s[] = "5-upper"; return azarac_pgm_view(s, 7); }
-        case 5: { static const char AZARAC_PROGMEM s[] = "6-lower"; return azarac_pgm_view(s, 7); }
-        case 6: { static const char AZARAC_PROGMEM s[] = "6-upper"; return azarac_pgm_view(s, 7); }
-        case 7: { static const char AZARAC_PROGMEM s[] = "7"; return azarac_pgm_view(s, 1); }
+        case 1: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_SEISMIC_INTENSITY_EN_C1), 11);
+        case 2: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_SEISMIC_INTENSITY_EN_C2), 1);
+        case 3: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_SEISMIC_INTENSITY_EN_C3), 7);
+        case 4: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_SEISMIC_INTENSITY_EN_C4), 7);
+        case 5: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_SEISMIC_INTENSITY_EN_C5), 7);
+        case 6: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_SEISMIC_INTENSITY_EN_C6), 7);
+        case 7: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_SEISMIC_INTENSITY_EN_C7), 1);
         default: return std::nullopt;
     }
 }

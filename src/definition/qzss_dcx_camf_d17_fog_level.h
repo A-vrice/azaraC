@@ -1,12 +1,7 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.17.1 with CI-CD
-// Source module : azarashi.definitions.camf.d_fields
-// Variable      : qzss_dcx_camf_d17_fog_level
-// Entries       : 5
-// Strategy      : switch
-
-// NOTE: This function may return nullptr for unknown IDs.
-// Callers MUST perform a null-check before using the result.
+// AUTO-GENERATED from azarashi 0.17.1 — do not edit
+// azarashi.definitions.camf.d_fields → qzss_dcx_camf_d17_fog_level: 5 entries, strategy switch
+// Unknown id returns nullptr — callers MUST null-check.
 
 #if defined(__AVR__)
 #include "../internal/avr_std/cstdint"
@@ -26,13 +21,19 @@ namespace def {
 #if (AZARAC_ENABLE_DCX_CAMF)
 
 #if defined(__AVR__)
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D17_FOG_LEVEL_C0[] = "1 of 5: Slight fog or Mist. On land, object appear hazy or blurry. Road and rail traffic are unhindered. On sea, horizon cannot be seen. Lights and landmarks can be seen at working distances.";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D17_FOG_LEVEL_C1[] = "2 of 5: Slight fog. On land, railroad traffic takes additional caution. On sea, Lights on passing vessel are generally not distinct at distances under 1 mile. Fog signals are sounded.";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D17_FOG_LEVEL_C2[] = "3 of 5: Moderate fog. On land, rail and road traffic is obstructed. On sea, Lights on passing vessels are generally not distinct at distances under 1 mile. Fog signals are sounded. On river, navigation is unhindered but extra caution is required.";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D17_FOG_LEVEL_C3[] = "4 of 5: Moderate fog. On land, rail and road traffic impeded. On sea, lights on ships and other vessels cannot be seen at distances of 4 miles or less. On river, navigation is suspended.";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D17_FOG_LEVEL_C4[] = "5 of 5: Thick fog. On land, all traffic is impeded and totally disorganised. On sea, lights on ships and other vessels cannot be seen at distances of 4 miles or less. On river, navigation is suspended.";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D17_FOG_LEVEL_PARENT_POOL[] = "Level \000";
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_d17_fog_level_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 0: { static const char AZARAC_PROGMEM s[] = "Level 1 of 5: Slight fog or Mist. On land, object appear hazy or blurry. Road and rail traffic are unhindered. On sea, horizon cannot be seen. Lights and landmarks can be seen at working distances."; return azarac_pgm_view(s, 197); }
-        case 1: { static const char AZARAC_PROGMEM s[] = "Level 2 of 5: Slight fog. On land, railroad traffic takes additional caution. On sea, Lights on passing vessel are generally not distinct at distances under 1 mile. Fog signals are sounded."; return azarac_pgm_view(s, 189); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "Level 3 of 5: Moderate fog. On land, rail and road traffic is obstructed. On sea, Lights on passing vessels are generally not distinct at distances under 1 mile. Fog signals are sounded. On river, navigation is unhindered but extra caution is required."; return azarac_pgm_view(s, 252); }
-        case 3: { static const char AZARAC_PROGMEM s[] = "Level 4 of 5: Moderate fog. On land, rail and road traffic impeded. On sea, lights on ships and other vessels cannot be seen at distances of 4 miles or less. On river, navigation is suspended."; return azarac_pgm_view(s, 192); }
-        case 4: { static const char AZARAC_PROGMEM s[] = "Level 5 of 5: Thick fog. On land, all traffic is impeded and totally disorganised. On sea, lights on ships and other vessels cannot be seen at distances of 4 miles or less. On river, navigation is suspended."; return azarac_pgm_view(s, 207); }
+        case 0: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D17_FOG_LEVEL_PARENT_POOL) + 0u, AZARAC_PGM_PTR(QZSS_DCX_CAMF_D17_FOG_LEVEL_C0));
+        case 1: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D17_FOG_LEVEL_PARENT_POOL) + 0u, AZARAC_PGM_PTR(QZSS_DCX_CAMF_D17_FOG_LEVEL_C1));
+        case 2: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D17_FOG_LEVEL_PARENT_POOL) + 0u, AZARAC_PGM_PTR(QZSS_DCX_CAMF_D17_FOG_LEVEL_C2));
+        case 3: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D17_FOG_LEVEL_PARENT_POOL) + 0u, AZARAC_PGM_PTR(QZSS_DCX_CAMF_D17_FOG_LEVEL_C3));
+        case 4: return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D17_FOG_LEVEL_PARENT_POOL) + 0u, AZARAC_PGM_PTR(QZSS_DCX_CAMF_D17_FOG_LEVEL_C4));
         default: return std::nullopt;
     }
 }

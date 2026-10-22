@@ -34,8 +34,7 @@ int32_t decodeAzimuth7(uint8_t code);
 // J-Alert EX9 decoding
 
 // EX8=0: EX9 = [47-bit prefecture][17-bit reserved]; prefecture = ex9[63:17].
-// Bit 0 (LSB) = Hokkaido (JIS 1) … bit 46 (MSB) = Okinawa (JIS 47).
-// Fills out_positions (≥47 bytes); returns count written.
+// bit 0 (LSB) = 北海道 (JIS 1) … bit 46 (MSB) = 沖縄 (JIS 47)。out_positions（47 バイト以上）を埋め、書いた件数を返す。
 uint8_t decodePrefectureBitmask(uint64_t ex9, uint8_t* out_positions);
 
 // EX8=1: four 16-bit codes; fills out_codes (≥4 elements); returns count written.
@@ -43,9 +42,7 @@ uint8_t decodeCityCodeList(uint64_t ex9, uint16_t* out_codes);
 
 // B1 (A17=00) - Improved Resolution of Main Ellipse (EWSS CAMF v1.2 §3.7.1)
 
-// Decode B1 refinement from A18 (15-bit field)
-// C1 = a18[14:12] (3b), C2 = a18[11:9] (3b), C3 = a18[8:6] (3b),
-// C4 = a18[5:3] (3b), Reserved = a18[2:0] (3b)
+// A18（15 bit フィールド）から B1 の精細化値を復号する。C1..C4 = a18[14:12]/[11:9]/[8:6]/[5:3]（各 3b）、a18[2:0] は Reserved（3b）。
 struct B1Refinement {
     uint8_t c1; // latitude refinement (0-7)
     uint8_t c2; // longitude refinement (0-7)

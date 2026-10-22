@@ -26,7 +26,7 @@ bool UbxFramer::feed(uint8_t b, Frame& out) {
         // else: keep SYNC2 (this 0xB5 may start a frame)
         break;
     case St::CLASS:
-        // SFRBX header is fixed 02 13 28 00: 0xB5 here cannot belong to SFRBX, so treat it as a fresh sync candidate instead of losing the frame.
+        // SFRBX のヘッダは 02 13 28 00 固定なので、ここに来た 0xB5 は新たな同期候補。フレームを捨てずに取り直す。
         if (b == 0xB5) { _st = St::SYNC2; break; }
         _class = b; _ck_a = _ck_b = 0;
         _ck_a += b; _ck_b += _ck_a;
@@ -80,10 +80,13 @@ bool UbxFramer::parse(Frame& out) {
     // QZSS gnssId=5, L1S sigId=0 or 1
     if (gnssId != 5)  return false;
     if (sigId != 0 && sigId != 1) return false;
-    if (numWords < 8) return false;  // L1S subframe = 8 words × 32 bits = 256 bits (250 data bits)
+    // L1S サブフレーム = 8 ワード × 32 bit = 256 bit（データは 250 bit）。u-blox は詰め物のワードを
+    // 1 個足すことがある（numWords=9。実機の azarashi フィクスチャは 8/9 の両方）。それ以外は拒否し、
+    // 長すぎるフレームが 250 bit の詰めループを越えて余分なワードを持ち込めないようにする。
+    if (numWords != 8 && numWords != 9) return false;
     if (_len != 8u + static_cast<uint16_t>(numWords) * 4u) return false;
 
-    // Pack 250 nav bits MSB-first into out.bits[32]: 8 words × 32 bits (256 total), first 250 are data, last 6 of word 8 are zero-filled padding.
+    // 航法ビットを MSB-first で out.bits[32] へ詰める: 8 ワード × 32 bit = 256、先頭 250 がデータで残りはゼロ詰め。
     memset(out.bits, 0, sizeof(out.bits));
     uint16_t bit_pos = 0;
     for (uint8_t w = 0; w < numWords && bit_pos < 250; ++w) {
@@ -99,7 +102,6 @@ bool UbxFramer::parse(Frame& out) {
             }
         }
     }
-    // Convert ublox svId to L1S PRN if possible, else keep original
     auto prn_str = def::ublox_qzss_svid_prn_map_lookup(svId);
     if (prn_str.has_value()) {
         out.svid = 0;

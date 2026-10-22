@@ -1,12 +1,7 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.17.1 with CI-CD
-// Source module : azarashi.definitions.qzss.dcr.information_type
-// Variable      : qzss_dcr_jma_information_type_en
-// Entries       : 3
-// Strategy      : switch
-
-// NOTE: This function may return nullptr for unknown IDs.
-// Callers MUST perform a null-check before using the result.
+// AUTO-GENERATED from azarashi 0.17.1 — do not edit
+// azarashi.definitions.qzss.dcr.information_type → qzss_dcr_jma_information_type_en: 3 entries, strategy switch
+// Unknown id returns nullptr — callers MUST null-check.
 
 #if defined(__AVR__)
 #include "../internal/avr_std/cstdint"
@@ -26,11 +21,14 @@ namespace def {
 #if (AZARAC_LANG_EN)
 
 #if defined(__AVR__)
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_INFORMATION_TYPE_EN_C0[] = "Issue";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_INFORMATION_TYPE_EN_C1[] = "Correction";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_INFORMATION_TYPE_EN_C2[] = "Cancellation";
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_information_type_en_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 0: { static const char AZARAC_PROGMEM s[] = "Issue"; return azarac_pgm_view(s, 5); }
-        case 1: { static const char AZARAC_PROGMEM s[] = "Correction"; return azarac_pgm_view(s, 10); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "Cancellation"; return azarac_pgm_view(s, 12); }
+        case 0: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_INFORMATION_TYPE_EN_C0), 5);
+        case 1: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_INFORMATION_TYPE_EN_C1), 10);
+        case 2: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_INFORMATION_TYPE_EN_C2), 12);
         default: return std::nullopt;
     }
 }

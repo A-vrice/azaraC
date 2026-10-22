@@ -1,12 +1,7 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.17.1 with CI-CD
-// Source module : azarashi.definitions.camf.a11_international_library
-// Variable      : qzss_dcx_camf_a11_international_library
-// Entries       : 32
-// Strategy      : array
-
-// NOTE: This function may return nullptr for unknown IDs.
-// Callers MUST perform a null-check before using the result.
+// AUTO-GENERATED from azarashi 0.17.1 — do not edit
+// azarashi.definitions.camf.a11_international_library → qzss_dcx_camf_a11_international_library: 32 entries, strategy array
+// Unknown id returns nullptr — callers MUST null-check.
 
 #if defined(__AVR__)
 #include "../internal/avr_std/cstdint"
@@ -28,48 +23,57 @@ namespace def {
 inline constexpr uint8_t QZSS_DCX_CAMF_A11_INTERNATIONAL_LIBRARY_BASE = 0;
 inline constexpr uint8_t QZSS_DCX_CAMF_A11_INTERNATIONAL_LIBRARY_SIZE = 32;
 #if defined(__AVR__)
-static const char AZARAC_PROGMEM QZSS_DCX_CAMF_A11_INTERNATIONAL_LIBRARY_POOL[] = "\000You are in the danger zone, leave the area immediately. Listen to radio or media for directions and information.\000You are in the danger zone, leave the area immediately and reach the evacuation point indicated by the area plotted in yellow. Listen to radio or media for directions and information.\000Seek shelter in a building immediately. Stay under cover and stay informed.\000Seek out a cellar or interior rooms on lower floors.\000If you are in an alpine terrain, start descending immediately and seek for shelter.\000Quickly move into interior rooms. If you are in a vehicle: Stop driving immediately on the edge of the road. If a building is nearby, seek shelter in that building.\000If you are in open terrain and you cannot find shelter, lie face-down on the ground and protect your head and neck with your hands, in a hollow where possible.\000Prepare for evacuation. Take only the essentials with you, especially ID cards, passport, credit cards and cash. Evacuate only after the instruction of the emergency authorities.\000Prepare emergency food and relief material: Check and restock your equipment and supplies of water, food, medicine, cash and batteries.\000Stay away from glass surfaces such as windows and glass doors. There is a risk of injury from glass splinters.\000Reduce your power consumption to a minimum.\000Reduce your water consumption to a minimum.\000Boil water before drinking it or using it in the kitchen.\000Keep at least one metre away from any conversation partners. Avoid physical contact with other people such as kissing and shaking hands. Wash your hands regularly and thoroughly.\000Do not drink any tap water. Avoid any skin contact with tap water. Only drink mineral water from a bottle. Turn off the water supply to your house.\000Watch out for escaping gas. This can be indicated by hissing noises or a typical gas odour. Do not use matches, lighters or the like: naked flames in combination with leaking gas can lead to explosions and fires.\000Do not go outside and do not use your car.\000Do not touch any objects that seem suspicious to you. Debris can cause additional hazards such as fires and explosions. Inform the emergency services about damage and debris.\000Do not enter smoke-filled rooms. Deadly gases can form there.\000Do not enter cellars or underground car parks.\000Do not leave pets or livestock outside.\000Do not touch any dead animals. Report any findings of dead wild animals to the authorities.\000Avoid driving.\000Avoid all items with metal parts such as umbrellas and bicycles. Do not bathe or shower during a thunderstorm. Bathing and showering can be life-threatening.\000Avoid rooms directly underneath the roof truss. Avoid very large rooms, such as halls, in which the ceiling is not supported by pillars.\000Avoid going outdoors. Keep away from trees, towers and masts. Keep at least 20 m away from power lines. Watch out for flying objects and falling objects.\000Avoid the danger area.\000Avoid going out when it is not necessary.\000This is only a test. You do not have to take any action or to adopt any particular sheltering behaviour.\000This replaces the warning previously in effect for this area.\000Conditions have improved and are no longer expected to meet alert criteria.\000";
-struct QZSS_DCX_CAMF_A11_INTERNATIONAL_LIBRARY_Entry { uint16_t offset; uint16_t len; };
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_A11_INTERNATIONAL_LIBRARY_POOL[] = "\000You are in the danger zone, leave the area immediately. Listen to radio or media for directions and information.\000You are in the danger zone, leave the area immediately and reach the evacuation point indicated by the area plotted in yellow. Listen to radio or media for directions and information.\000Seek shelter in a building immediately. Stay under cover and stay informed.\000Seek out a cellar or interior rooms on lower floors.\000If you are in an alpine terrain, start descending immediately and seek for shelter.\000Quickly move into interior rooms. If you are in a vehicle: Stop driving immediately on the edge of the road. If a building is nearby, seek shelter in that building.\000If you are in open terrain and you cannot find shelter, lie face-down on the ground and protect your head and neck with your hands, in a hollow where possible.\000Prepare for evacuation. Take only the essentials with you, especially ID cards, passport, credit cards and cash. Evacuate only after the instruction of the emergency authorities.\000Prepare emergency food and relief material: Check and restock your equipment and supplies of water, food, medicine, cash and batteries.\000Stay away from glass surfaces such as windows and glass doors. There is a risk of injury from glass splinters.\000Reduce your power consumption to a minimum.\000Reduce your water consumption to a minimum.\000Boil water before drinking it or using it in the kitchen.\000Keep at least one metre away from any conversation partners. Avoid physical contact with other people such as kissing and shaking hands. Wash your hands regularly and thoroughly.\000drink any tap water. Avoid any skin contact with tap water. Only drink mineral water from a bottle. Turn off the water supply to your house.\000Watch out for escaping gas. This can be indicated by hissing noises or a typical gas odour. Do not use matches, lighters or the like: naked flames in combination with leaking gas can lead to explosions and fires.\000go outside and do not use your car.\000touch any objects that seem suspicious to you. Debris can cause additional hazards such as fires and explosions. Inform the emergency services about damage and debris.\000enter smoke-filled rooms. Deadly gases can form there.\000enter cellars or underground car parks.\000leave pets or livestock outside.\000touch any dead animals. Report any findings of dead wild animals to the authorities.\000driving.\000all items with metal parts such as umbrellas and bicycles. Do not bathe or shower during a thunderstorm. Bathing and showering can be life-threatening.\000rooms directly underneath the roof truss. Avoid very large rooms, such as halls, in which the ceiling is not supported by pillars.\000going outdoors. Keep away from trees, towers and masts. Keep at least 20 m away from power lines. Watch out for flying objects and falling objects.\000the danger area.\000going out when it is not necessary.\000This is only a test. You do not have to take any action or to adopt any particular sheltering behaviour.\000This replaces the warning previously in effect for this area.\000Conditions have improved and are no longer expected to meet alert criteria.\000";
+static const char AZARAC_PROGMEM QZSS_DCX_CAMF_A11_INTERNATIONAL_LIBRARY_PARENT_POOL[] = "Avoid \000Do not \000";
+struct QZSS_DCX_CAMF_A11_INTERNATIONAL_LIBRARY_PARENT_Entry { uint16_t offset; };
+static const QZSS_DCX_CAMF_A11_INTERNATIONAL_LIBRARY_PARENT_Entry QZSS_DCX_CAMF_A11_INTERNATIONAL_LIBRARY_PARENT_TABLE[] AZARAC_PROGMEM = {
+    {0u},
+    {7u},
+};
+struct QZSS_DCX_CAMF_A11_INTERNATIONAL_LIBRARY_Entry { uint16_t offset; uint8_t parent; };
 static const QZSS_DCX_CAMF_A11_INTERNATIONAL_LIBRARY_Entry QZSS_DCX_CAMF_A11_INTERNATIONAL_LIBRARY_TABLE[] AZARAC_PROGMEM = {
-    {0u, 0u},
-    {1u, 112u},
-    {114u, 183u},
-    {298u, 75u},
-    {374u, 52u},
-    {427u, 83u},
-    {511u, 164u},
-    {676u, 159u},
-    {836u, 178u},
-    {1015u, 135u},
-    {1151u, 110u},
-    {1262u, 43u},
-    {1306u, 43u},
-    {1350u, 57u},
-    {1408u, 178u},
-    {1587u, 147u},
-    {1735u, 212u},
-    {1948u, 42u},
-    {1991u, 174u},
-    {2166u, 61u},
-    {2228u, 46u},
-    {2275u, 39u},
-    {2315u, 91u},
-    {2407u, 14u},
-    {2422u, 157u},
-    {2580u, 136u},
-    {2717u, 153u},
-    {2871u, 22u},
-    {2894u, 41u},
-    {2936u, 104u},
-    {3041u, 61u},
-    {3103u, 75u}
+    {0u, 255u},
+    {1u, 255u},
+    {114u, 255u},
+    {298u, 255u},
+    {374u, 255u},
+    {427u, 255u},
+    {511u, 255u},
+    {676u, 255u},
+    {836u, 255u},
+    {1015u, 255u},
+    {1151u, 255u},
+    {1262u, 255u},
+    {1306u, 255u},
+    {1350u, 255u},
+    {1408u, 255u},
+    {1587u, 1u},
+    {1728u, 255u},
+    {1941u, 1u},
+    {1977u, 1u},
+    {2145u, 1u},
+    {2200u, 1u},
+    {2240u, 1u},
+    {2273u, 1u},
+    {2358u, 0u},
+    {2367u, 0u},
+    {2519u, 0u},
+    {2650u, 0u},
+    {2798u, 0u},
+    {2815u, 0u},
+    {2851u, 255u},
+    {2956u, 255u},
+    {3018u, 255u}
 };
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_a11_international_library_lookup(uint8_t id) noexcept {
     if (id < QZSS_DCX_CAMF_A11_INTERNATIONAL_LIBRARY_BASE || id >= QZSS_DCX_CAMF_A11_INTERNATIONAL_LIBRARY_BASE + QZSS_DCX_CAMF_A11_INTERNATIONAL_LIBRARY_SIZE) return std::nullopt;
-    const char* AZARAC_PROGMEM p = reinterpret_cast<const char*>(&QZSS_DCX_CAMF_A11_INTERNATIONAL_LIBRARY_TABLE[id - 0u]);
-    uint16_t off = pgm_read_word(p + offsetof(QZSS_DCX_CAMF_A11_INTERNATIONAL_LIBRARY_Entry, offset));
-    uint16_t n = pgm_read_word(p + offsetof(QZSS_DCX_CAMF_A11_INTERNATIONAL_LIBRARY_Entry, len));
-    return azarac_pgm_view(QZSS_DCX_CAMF_A11_INTERNATIONAL_LIBRARY_POOL + off, n);
+    azarac_pgm_ptr p = AZARAC_PGM_PTR(QZSS_DCX_CAMF_A11_INTERNATIONAL_LIBRARY_TABLE) + static_cast<size_t>(id - 0u) * sizeof(QZSS_DCX_CAMF_A11_INTERNATIONAL_LIBRARY_Entry);
+    uint16_t off = azarac_read_word(p, offsetof(QZSS_DCX_CAMF_A11_INTERNATIONAL_LIBRARY_Entry, offset));
+    uint8_t pi = azarac_read_byte(p, offsetof(QZSS_DCX_CAMF_A11_INTERNATIONAL_LIBRARY_Entry, parent));
+    if (pi == 255u) return azarac_pgm_view_z(AZARAC_PGM_PTR(QZSS_DCX_CAMF_A11_INTERNATIONAL_LIBRARY_POOL) + off);
+    azarac_pgm_ptr pp = AZARAC_PGM_PTR(QZSS_DCX_CAMF_A11_INTERNATIONAL_LIBRARY_PARENT_TABLE) + static_cast<size_t>(pi) * sizeof(QZSS_DCX_CAMF_A11_INTERNATIONAL_LIBRARY_PARENT_Entry);
+    uint16_t poff = azarac_read_word(pp, offsetof(QZSS_DCX_CAMF_A11_INTERNATIONAL_LIBRARY_PARENT_Entry, offset));
+    return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCX_CAMF_A11_INTERNATIONAL_LIBRARY_PARENT_POOL) + poff, AZARAC_PGM_PTR(QZSS_DCX_CAMF_A11_INTERNATIONAL_LIBRARY_POOL) + off);
 }
 #else
 inline constexpr const char* QZSS_DCX_CAMF_A11_INTERNATIONAL_LIBRARY_TABLE[] = {

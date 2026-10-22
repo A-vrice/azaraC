@@ -1,12 +1,7 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.17.1 with CI-CD
-// Source module : azarashi.definitions.qzss.dcr.northwest_pacific_tsunami_height
-// Variable      : qzss_dcr_jma_northwest_pacific_tsunami_height_en
-// Entries       : 8
-// Strategy      : switch
-
-// NOTE: This function may return nullptr for unknown IDs.
-// Callers MUST perform a null-check before using the result.
+// AUTO-GENERATED from azarashi 0.17.1 — do not edit
+// azarashi.definitions.qzss.dcr.northwest_pacific_tsunami_height → qzss_dcr_jma_northwest_pacific_tsunami_height_en: 8 entries, strategy switch
+// Unknown id returns nullptr — callers MUST null-check.
 
 #if defined(__AVR__)
 #include "../internal/avr_std/cstdint"
@@ -26,16 +21,24 @@ namespace def {
 #if (AZARAC_ENABLE_NW_PAC_TSUNAMI)
 
 #if defined(__AVR__)
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_NORTHWEST_PACIFIC_TSUNAMI_HEIGHT_EN_C1[] = "0.3m~1m";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_NORTHWEST_PACIFIC_TSUNAMI_HEIGHT_EN_C2[] = "1m~3m";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_NORTHWEST_PACIFIC_TSUNAMI_HEIGHT_EN_C3[] = "3m~5m";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_NORTHWEST_PACIFIC_TSUNAMI_HEIGHT_EN_C4[] = "5m~10m";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_NORTHWEST_PACIFIC_TSUNAMI_HEIGHT_EN_C508[] = "More than 10m";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_NORTHWEST_PACIFIC_TSUNAMI_HEIGHT_EN_C509[] = "Huge";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_NORTHWEST_PACIFIC_TSUNAMI_HEIGHT_EN_C510[] = "High";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_NORTHWEST_PACIFIC_TSUNAMI_HEIGHT_EN_C511[] = "Unknown";
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_northwest_pacific_tsunami_height_en_lookup(uint16_t id) noexcept {
     switch (id) {
-        case 1: { static const char AZARAC_PROGMEM s[] = "0.3m~1m"; return azarac_pgm_view(s, 7); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "1m~3m"; return azarac_pgm_view(s, 5); }
-        case 3: { static const char AZARAC_PROGMEM s[] = "3m~5m"; return azarac_pgm_view(s, 5); }
-        case 4: { static const char AZARAC_PROGMEM s[] = "5m~10m"; return azarac_pgm_view(s, 6); }
-        case 508: { static const char AZARAC_PROGMEM s[] = "More than 10m"; return azarac_pgm_view(s, 13); }
-        case 509: { static const char AZARAC_PROGMEM s[] = "Huge"; return azarac_pgm_view(s, 4); }
-        case 510: { static const char AZARAC_PROGMEM s[] = "High"; return azarac_pgm_view(s, 4); }
-        case 511: { static const char AZARAC_PROGMEM s[] = "Unknown"; return azarac_pgm_view(s, 7); }
+        case 1: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_NORTHWEST_PACIFIC_TSUNAMI_HEIGHT_EN_C1), 7);
+        case 2: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_NORTHWEST_PACIFIC_TSUNAMI_HEIGHT_EN_C2), 5);
+        case 3: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_NORTHWEST_PACIFIC_TSUNAMI_HEIGHT_EN_C3), 5);
+        case 4: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_NORTHWEST_PACIFIC_TSUNAMI_HEIGHT_EN_C4), 6);
+        case 508: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_NORTHWEST_PACIFIC_TSUNAMI_HEIGHT_EN_C508), 13);
+        case 509: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_NORTHWEST_PACIFIC_TSUNAMI_HEIGHT_EN_C509), 4);
+        case 510: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_NORTHWEST_PACIFIC_TSUNAMI_HEIGHT_EN_C510), 4);
+        case 511: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_NORTHWEST_PACIFIC_TSUNAMI_HEIGHT_EN_C511), 7);
         default: return std::nullopt;
     }
 }

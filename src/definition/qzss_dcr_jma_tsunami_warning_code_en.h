@@ -1,12 +1,7 @@
 #pragma once
-// AUTO-GENERATED from azarashi 0.17.1 with CI-CD
-// Source module : azarashi.definitions.qzss.dcr.tsunami_warning_code
-// Variable      : qzss_dcr_jma_tsunami_warning_code_en
-// Entries       : 6
-// Strategy      : switch
-
-// NOTE: This function may return nullptr for unknown IDs.
-// Callers MUST perform a null-check before using the result.
+// AUTO-GENERATED from azarashi 0.17.1 — do not edit
+// azarashi.definitions.qzss.dcr.tsunami_warning_code → qzss_dcr_jma_tsunami_warning_code_en: 6 entries, strategy switch
+// Unknown id returns nullptr — callers MUST null-check.
 
 #if defined(__AVR__)
 #include "../internal/avr_std/cstdint"
@@ -26,14 +21,20 @@ namespace def {
 #if (AZARAC_ENABLE_TSUNAMI) && (AZARAC_LANG_EN)
 
 #if defined(__AVR__)
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_TSUNAMI_WARNING_CODE_EN_C1[] = "No Tsunami";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_TSUNAMI_WARNING_CODE_EN_C2[] = "Warning Lifted";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_TSUNAMI_WARNING_CODE_EN_C3[] = "Tsunami Warning";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_TSUNAMI_WARNING_CODE_EN_C4[] = "Major Tsunami Warning";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_TSUNAMI_WARNING_CODE_EN_C5[] = "Major Tsunami Warning: Issued";
+static const char AZARAC_PROGMEM QZSS_DCR_JMA_TSUNAMI_WARNING_CODE_EN_C15[] = "Other Warning";
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_tsunami_warning_code_en_lookup(uint8_t id) noexcept {
     switch (id) {
-        case 1: { static const char AZARAC_PROGMEM s[] = "No Tsunami"; return azarac_pgm_view(s, 10); }
-        case 2: { static const char AZARAC_PROGMEM s[] = "Warning Lifted"; return azarac_pgm_view(s, 14); }
-        case 3: { static const char AZARAC_PROGMEM s[] = "Tsunami Warning"; return azarac_pgm_view(s, 15); }
-        case 4: { static const char AZARAC_PROGMEM s[] = "Major Tsunami Warning"; return azarac_pgm_view(s, 21); }
-        case 5: { static const char AZARAC_PROGMEM s[] = "Major Tsunami Warning: Issued"; return azarac_pgm_view(s, 29); }
-        case 15: { static const char AZARAC_PROGMEM s[] = "Other Warning"; return azarac_pgm_view(s, 13); }
+        case 1: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_TSUNAMI_WARNING_CODE_EN_C1), 10);
+        case 2: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_TSUNAMI_WARNING_CODE_EN_C2), 14);
+        case 3: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_TSUNAMI_WARNING_CODE_EN_C3), 15);
+        case 4: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_TSUNAMI_WARNING_CODE_EN_C4), 21);
+        case 5: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_TSUNAMI_WARNING_CODE_EN_C5), 29);
+        case 15: return azarac_pgm_view(AZARAC_PGM_PTR(QZSS_DCR_JMA_TSUNAMI_WARNING_CODE_EN_C15), 13);
         default: return std::nullopt;
     }
 }
