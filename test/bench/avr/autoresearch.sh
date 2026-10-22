@@ -87,14 +87,14 @@ MAX_OBJECT_BYTES=32768
 
 # AVR 経路が RAM と引き換えに使える Flash は、既に持っている SRAM（internal/FlashString.h の共有 800 B ラベルバッファ）の範囲だけ。SRAM を増やして Flash を減らすのは損失なので、リンクした Uno イメージの RAM はゲートする。
 # 圧縮前のベースラインで 702 B（data 626 + bss 76）、JSON キーを Flash へ移す前が 640 B、移した後が 204 B（data 88 + bss 116）、payload のアラインメント修正前が 146 B、現在 142 B（data 30 + bss 112）: キーと補助テーブルが .data を出た（avr-libc のリンカスクリプトは .rodata を SRAM にコピーする）ためで、bss の 36 B は共有キーバッファ（AZARAC_KEY_BUF_SIZE）。Flash は +730 B（13,546 → 14,276）。
-# 残り 58 B は .data を出た固定文字列: NmeaFramer の "QZQSM,"（7）と、AZARAC_KEY 経由になった JSON 値 arrival_estimated（18）、no_information（15）、unrecognized_code（18）。.data に残るのはアロケータのグローバルと 2 つのフレーマ vtable だけで、Flash は +194 B（14,276 → 14,470）。（"null" は以前からコストゼロ: 7 か所の呼び出しはバイト単位で同一だった。）
-# プローブの不透明シンク（serialize 経路をイメージに残す write()）がさらに 132 B を足す: d55cb12 時点で 14,602 B、HEAD で 14,622 B（その間の parser/UBX 修正分）、現在 14,702 B。
+# 残り 58 B は .data を出た固定文字列: NmeaFramer の "QZQSM,"（7）と、AZARAC_KEY 経由になった JSON 値 arrival_estimated（18）、no_information（15）、unrecognized_code（18）。.data に残るのはアロケータのグローバルと 2 つのフレーマ vtable だけで、Flash は +194 B（14,276 → 14,470）。
+# プローブの不透明シンク（serialize 経路をイメージに残す write()）がさらに 132 B を足す: d55cb12 時点で 14,602 B、HEAD で 14,622 B（その間の parser/UBX 修正分）。その後、シムの print()→write() で writeUint32 などの数値整形経路が画像に残り、JSON の区切り・null・エスケープ列も Flash へ移した結果、現在 15,738 B。
 # 最後の 80 B の Flash が 4 B の SRAM を買う: AVR では alignas(8) が純粋なパディングだった（avr-gcc の __alignof__(unsigned long long) は 1）ので、payload のストレージは alignas(uint64_t) にした — sizeof(Mt43Data) 88 → 80 B、sizeof(Message) 104 → 89 B（スケッチが自前で持つグローバル Message も同じだけ縮む）。host は 8 バイト境界とレイアウトを維持する。JSON キーバッファは 40 → 36 B（最長キーは 35 B）。差分はテーブルではなくレイアウト: AVR_TABLE_BYTES は不変。
 MAX_UNO_RAM_BYTES=142
 
 # stage 5 の DCX/CAMF イメージも同じ上限: Mega の 8,192 B のうち実測 3,714 B（data 2,902 + bss 812）— その大半がキー約 1.8 KB だった — が、キーを移して 1,086 B（data 234 + bss 852）、Flash は +1,712 B（144,806 → 146,518）。テーブルは Flash を消費してよく、SRAM は決して使わない。
 # bss の 36 B は Flash のキーをコピーして通す共有キーバッファ。
-# payload アラインメント修正前が 896 B、現在 892 B（data 44 + bss 848）: DCX の値リテラル（invalid_mt44、NULL/L_ALERT/J_ALERT/LOCAL_GOV/OUTSIDE_JAPAN/UNKNOWN、unsupported_*）も同様に .data を出て、Flash は +154 B（146,518 → 146,672）。プローブの不透明シンクが 18 B を足す: d55cb12 時点で 146,690 B、HEAD で 146,700 B、現在 146,550 B。
+# payload アラインメント修正前が 896 B、現在 892 B（data 44 + bss 848）: DCX の値リテラル（invalid_mt44、NULL/L_ALERT/J_ALERT/LOCAL_GOV/OUTSIDE_JAPAN/UNKNOWN、unsupported_*）も同様に .data を出て、Flash は +154 B（146,518 → 146,672）。プローブの不透明シンクが 18 B を足す: d55cb12 時点で 146,690 B、HEAD で 146,700 B。その後、シムの print()→write() で数値整形経路が画像に残り、現在 148,552 B。
 # キーバッファはここでも 36 B で、payload のストレージは alignas(uint64_t): AVR ではそれはアラインメントにならない（avr-gcc の __alignof__(unsigned long long) は 1）ので、純粋なパディングを削っただけ。host は 8 バイト境界を維持する。
 # この上限に余裕はない: 892 B が現在の実測値なので、SRAM が回帰すればここで落ちる（SRAM を増やして Flash を減らすのが、これが存在する理由の失敗）。
 MAX_MEGA_RAM_BYTES=892

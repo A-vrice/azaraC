@@ -37,7 +37,7 @@
 // A8 の窓は最短でも 6 時間なので常に効く。
 #define AZARAC_DEDUP_MT44_MAX_WINDOW_MS 300000UL  // 5 min
 #endif
-// DCX/CAMF は表だけで約 100 KB、decoder がさらに約 20 KB なので 256 KB の品（ATmega2560、DCX/CAMF + SEISMIC/TSUNAMI、JA: 144,804 B のイメージ — test/bench/avr 参照）にしか載らない。
+// DCX/CAMF は表だけで約 100 KB、decoder がさらに約 20 KB なので 256 KB の品（ATmega2560、DCX/CAMF + SEISMIC/TSUNAMI、JA: 148,552 B のイメージ — test/bench/avr 参照）にしか載らない。
 // チップ名で何かが有効になることはない: すべての AVR 品は Uno と同じ SEISMIC/TSUNAMI から始まり、ユーザーがビルドフラグで有効化する — -DAZARAC_AVR_LARGE_FLASH=1（この preset が想定する名前）または -DAZARAC_ENABLE_DCX_CAMF=1。ライブラリは別の翻訳単位なので、スケッチに置いた #define は届かない。
 // 64 KiB を超える表は internal/FlashString.h の far Flash アドレッシングも必要で、該当デバイスは自動でそれを選ぶ（FLASHEND > 0xFFFF）。
 // 残りのカテゴリは大型品でも既定 off のまま（全部同時なら約 242 KiB）。必要に応じて同じ要領で有効化する（-DAZARAC_ENABLE_EEW=1 …）。
