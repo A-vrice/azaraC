@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # azaraC - scripts/gen/gen_definitions.py
-# Generates src/definition/*.h from azarashi (installed in current env).
-# Usage: pip install azarashi==<version>; python scripts/gen/gen_definitions.py [--out-dir src/definition]
+# azarashi（現在の環境にインストール済み）から src/definition/*.h を生成する。
+# 使い方: pip install azarashi==<version>; python scripts/gen/gen_definitions.py [--out-dir src/definition]
 
 import argparse
 import importlib
@@ -108,7 +108,7 @@ GUARD_MAP = {
     "qzss_dcx_ex1_target_area_code_en": "AZARAC_ENABLE_DCX_CAMF",
     "qzss_dcx_ex1_target_area_code_ja": "AZARAC_ENABLE_DCX_CAMF",
 
-    # azarashi 0.17 additions: an *_en table with a JA sibling inherits that sibling's guard (see category_guard_for), so only JA-less tables are listed.
+    # azarashi 0.17 で追加。JA 兄弟を持つ *_en テーブルはその兄弟のガードを引き継ぐ（category_guard_for 参照）ので、ここには JA 兄弟のないものだけを書く。
     "qzss_dcr_jma_ambiguity_of_activity_time_en": "(AZARAC_ENABLE_VOLCANO || AZARAC_ENABLE_ASH_FALL)",
     "qzss_dcr_jma_ash_fall_warning_type": "AZARAC_ENABLE_ASH_FALL",
     "qzss_dcr_jma_depth_of_hypocenter": (
@@ -123,7 +123,7 @@ GUARD_MAP = {
     "qzss_dcr_jma_typhoon_number": "AZARAC_ENABLE_TYPHOON",
 }
 
-# Modules/variables to skip during generation (hand-written, or not scalar); matched against both the source module name and the generated variable name.
+# 生成時に飛ばすモジュール/変数（手書き、またはスカラーでないもの）。コピー元モジュール名と生成変数名の両方で照合する。
 SKIP_MODULES = {
     # hand-written: the lookup must stay std::optional (see developer-guide.md)
     "ublox_qzss_svid_prn_map",
@@ -179,7 +179,7 @@ def category_guard_for(varname):
                 return GUARD_MAP[candidate]
     return None
 
-# Modules whose tables reuse azaraC's existing C++ variable names: azarashi 0.17 dropped the spec prefix and moved the module, so these are the names that differ.
+# テーブルが azaraC 既存の C++ 変数名を再利用するモジュール: azarashi 0.17 が仕様プレフィックスを外してモジュールを移したので、その差分の名前。
 NAME_OVERRIDE = {
     "preambles": "qzss_dcr_preamble",
     "message_types": "qzss_dcr_message_type",
@@ -249,13 +249,13 @@ def c_str_literal(s):
     escaped = escape(s)
     return f'"{escaped}"'
 
-# AVR label storage
-# A pool-backed AVR table stores its labels as one NUL-separated literal plus {key, offset} rows: the pool delimits each entry, so the lookup takes the length from the pool itself (azarac_pgm_len) instead of a byte per row.
-# Labels that repeat a region on every row (target_area_code, local_government — "Sapporo City, Hokkaido Prefecture", "北海道札幌市") are split by factor_parents (strategy.py) into a child + shared parent, and the halves are joined in FlashString's shared RAM buffer, so SRAM does not grow.
-# The plain layout stays the default: it is preferred whenever factoring does not actually save bytes.
+# AVR ラベル格納
+# プール方式の AVR テーブルは、ラベルを NUL 区切りの 1 リテラルと {key, offset} 行で持つ: プールが各エントリの区切りになるので、長さは行ごとの 1 バイトではなくプール自身から取る（azarac_pgm_len）。
+# 行ごとに同じ地域を繰り返すラベル（target_area_code、local_government — "Sapporo City, Hokkaido Prefecture"、"北海道札幌市"）は factor_parents（strategy.py）が子 + 共有親に分割し、両半分を FlashString の共有 RAM バッファで連結するので SRAM は増えない。
+# 素のレイアウトが既定のまま: 分割が実際にバイト数を減らすときだけそちらを選ぶ。
 
 def _pool_decl(guard, name, strings):
-    """The NUL-separated pool literal, plus the {offset, len} of each label."""
+    """NUL 区切りのプールリテラルと、各ラベルの {offset, len}。"""
     parts, offsets, cur = [], {}, 0
     for key, s in strings:
         b = s.encode('utf-8')
@@ -265,20 +265,20 @@ def _pool_decl(guard, name, strings):
     return f'static const char AZARAC_PROGMEM {guard}_{name}[] = "{"".join(parts)}";', offsets
 
 def _read(struct, field, ptr, ltype):
-    """Read a struct field from the row at Flash address `ptr`."""
+    """Flash アドレス `ptr` にある行から構造体フィールドを読む。"""
     fn = "azarac_read_byte" if ltype == "uint8_t" else "azarac_read_word"
     return f"{fn}({ptr}, offsetof({struct}, {field}))"
 
-# The second level also adds a branch and a three-part join to every call site, so it must save more than that code costs (~60-130 B of AVR code per site, measured on the shipped preset).
+# 2 段目は各呼び出し箇所に分岐と 3 分割の連結も足すので、そのコード分（出荷プリセットで実測 1 箇所あたり AVR コード ~60-130 B）以上を節約できなければならない。
 GRAND_MIN_GAIN = 128
 
 def _grand_fragments(guard, parents):
-    """Second-level fragments for a table's parent pool (or None).
+    """テーブルの親プールに対する 2 段目の断片（不要なら None）。
 
-    A parent name may itself repeat a part — " City, Aichi Prefecture" over and
-    over — so the parent list is factored again. That costs a byte per parent row
-    (the grand index) and a small grand table, so it is only returned when it
-    pays for both. Returns (decls, plan, pool_name).
+    親名自体が部分を繰り返すことがある — " City, Aichi Prefecture" が延々と続く
+    ように — ので、親リストをもう一度分割する。これは親行あたり 1 バイト（grand
+    インデックス）と小さな grand テーブルを要するので、両方を賄えるときだけ返す。
+    戻り値は (decls, plan, pool_name)。
     """
     plan = factor_parents({i: s for i, s in enumerate(parents)})
     if not plan:
@@ -297,17 +297,16 @@ def _grand_fragments(guard, parents):
     return decls, plan, f"{guard}_GRAND_POOL"
 
 def _fragment_section(guard, plan, positional, kt, ptr):
-    """Parent/grand pools, their row structs and rows, plus the code that resolves
-    a row's parent index into the label's remaining fragments.
+    """親/grand プール、その行構造体と行、および行の親インデックスをラベルの
+    残りの断片へ解決するコード。
 
-    Both levels are single-direction, so the fragment order is fixed per table:
-    ("parent", "literal") or ("literal", "parent"), and with a grand either
-    grand+parent+literal, parent+grand+literal, literal+grand+parent or
-    literal+parent+grand.
+    どちらの段も単方向なので、断片順はテーブルごとに固定: ("parent", "literal")
+    か ("literal", "parent")、grand がある場合は grand+parent+literal、
+    parent+grand+literal、literal+grand+parent、literal+parent+grand のいずれか。
 
-    Returns (decls, setup, fragments, order2, order3). `setup` is emitted after
-    the "no parent" guard: it reads pp/poff and then, when there is a grand
-    level, gi and goff — the caller puts the "no grand" guard in between.
+    戻り値は (decls, setup, fragments, order2, order3)。`setup` は「親なし」ガードの
+    後に出力する: pp/poff を読み、grand 段があれば続けて gi と goff を読む — その間に
+    呼び出し側が「grand なし」ガードを挟む。
     """
     entry = f"{guard}_Entry"
     parent = f"{guard}_PARENT_Entry"
@@ -315,7 +314,7 @@ def _fragment_section(guard, plan, positional, kt, ptr):
     order2 = {"pre": ("parent", "literal"), "post": ("literal", "parent")}[plan["order"]]
     if grand:
         gdecls, gplan, gpool = grand
-        # With a grand level the parent pool holds the fragments' children (" City, ") and the grand pool the rest ("Hokkaido Prefecture").
+        # grand 段があるとき、親プールは断片の子（" City, "）を持ち、grand プールが残り（"Hokkaido Prefecture"）を持つ。
         middle = [gplan["children"][i] for i in range(len(plan["parents"]))]
         gsel = [(gplan["sel"][i] if gplan["sel"][i] is not None else PARENT_NONE)
                 for i in range(len(plan["parents"]))]
@@ -352,23 +351,23 @@ def _fragment_section(guard, plan, positional, kt, ptr):
     return decls, setup, fragments, order2, order3
 
 def _shift(order2, outer):
-    """Where the grand fragment joins a two-fragment order."""
+    """2 断片の順序に grand 断片がどこで結合するか。"""
     if order2 == ("parent", "literal"):
         return (("grand", "parent", "literal") if outer == "pre"
                 else ("parent", "grand", "literal"))
     return (("literal", "grand", "parent") if outer == "pre" else ("literal", "parent", "grand"))
 
 def _join(fragments, order, ret):
-    """The concatenation expression for a fragment order."""
+    """断片順に対する連結式。"""
     if len(order) == 3:
         return f"azarac_pgm_join3({', '.join(fragments[t] for t in order)}){ret}"
     return f"azarac_pgm_join_z({', '.join(fragments[t] for t in order)}){ret}"
 
 def _fragment_fetch(setup, fragments, order2, order3, plain, ret):
-    """The label-producing fetch lines: guards, then 2- or 3-part join."""
+    """ラベルを返す取得行: ガード、続いて 2 分割または 3 分割の連結。"""
     lines = [f"if (pi == {PARENT_NONE}u) return {plain};", setup[0], setup[1]]
     if order3:
-        # gi is read from the parent row, so its guard comes after that read.
+        # gi は親行から読むので、そのガードはこの読み出しの後に置く。
         lines += [setup[2],
                   f"if (gi == {PARENT_NONE}u) return {_join(fragments, order2, ret)};",
                   setup[3], setup[4],
@@ -378,13 +377,12 @@ def _fragment_fetch(setup, fragments, order2, order3, plain, ret):
     return lines
 
 def avr_label_storage(guard, kt, keys, entries, ptr, as_cstr=False):
-    """AVR storage for a key-indexed label table.
+    """キー索引付きラベルテーブルの AVR 格納。
 
-    Returns (decls, fetch). `decls` holds the pool, the shared-fragment pools
-    when they pay off, the row structs and the row arrays, in dependency order.
-    `fetch` turns the row at pointer `ptr` into a label (and returns it): a
-    std::string_view, or the same buffer as a NUL-terminated const char* when
-    `as_cstr`.
+    戻り値は (decls, fetch)。`decls` はプール、元が取れるときの共有断片プール、
+    行構造体、行配列を依存順に持つ。`fetch` はポインタ `ptr` の行をラベルにして
+    返す: std::string_view、または `as_cstr` なら同じバッファを NUL 終端の
+    const char* として返す。
     """
     plan = factor_parents(entries)
     children = plan["children"] if plan else entries
@@ -413,9 +411,9 @@ def avr_label_storage(guard, kt, keys, entries, ptr, as_cstr=False):
     return decls, fetch
 
 def avr_positional_label_storage(guard, table, ptr):
-    """AVR storage for an array-strategy table: rows are addressed by `id - BASE`,
-    so they carry no id column. `table[i]` is the label at that id (None = the id
-    is not defined). Returns (decls, fetch) like avr_label_storage.
+    """array 方式のテーブルの AVR 格納: 行は `id - BASE` で指すので id 列を持たない。
+    `table[i]` がその id のラベル（None = その id は未定義）。戻り値は
+    avr_label_storage と同じ (decls, fetch)。
     """
     labels = {i: v for i, v in enumerate(table) if v is not None}
     plan = factor_parents(labels)
@@ -443,23 +441,22 @@ def avr_positional_label_storage(guard, table, ptr):
     return decls, fetch
 
 def switch_labels(guard, entries, as_cstr, missing=None):
-    """Per-case label storage for a `switch` table (AVR branch only).
+    """`switch` テーブルの case ごとのラベル格納（AVR 分岐のみ）。
 
-    A switch table emits one literal per case, so a shared fragment costs no row,
-    no parent index and no length: the fragment's pool offset is a compile-time
-    constant inside that case's body (and, unlike the pooled tables, each case
-    may join in either direction). Returns (pool_decl, cases) — the pool is None
-    when nothing is shared, and `missing` is the expression a None entry emits.
+    switch テーブルは case ごとに 1 リテラルを出すので、共有断片は行も親インデックスも
+    長さも要らない: 断片のプールオフセットはその case 本体の中でコンパイル時定数に
+    なる（またプール方式と違い、case ごとにどちら向きの連結でもよい）。戻り値は
+    (pool_decl, cases) — 何も共有しないときプールは None、`missing` は None エントリが
+    出力する式。
 
-    The case literals are namespace-scope arrays, not function-local statics:
-    under the Arduino core's LTO build (`-flto -fno-fat-lto-objects`) GCC drops
-    the `__section__` attribute of an inline function's local static (it is a
-    one-only symbol), so the label lands in .rodata — which avr-libc's script
-    puts in .data, i.e. SRAM. Measured on a bare __attribute__((__section__))
-    const array: flash without LTO, RAM with it; the same attribute on a
-    namespace-scope array survives both. Nothing else changes: one array per
-    case keeps the per-declaration section (and hence the --gc-sections
-    granularity) the function-local form had.
+    case リテラルは関数ローカルの static ではなく名前空間スコープの配列にする:
+    Arduino コアの LTO ビルド（`-flto -fno-fat-lto-objects`）では、GCC が inline 関数の
+    ローカル static から `__section__` 属性を落とす（one-only シンボルだから）ため、
+    ラベルは .rodata に落ちる — avr-libc のリンカスクリプトはそれを .data、つまり
+    SRAM に置く。素の __attribute__((__section__)) const 配列で実測: LTO なしなら
+    flash、LTO ありなら RAM。同じ属性を名前空間スコープの配列に付ければどちらでも残る。
+    他は変わらない: case ごとに 1 配列なので宣言ごとのセクション（ひいては
+    --gc-sections の粒度）は関数ローカル形式と同じまま。
     """
     plan = factor_parents(entries)
     decl, offsets = (None, {})
@@ -475,7 +472,7 @@ def switch_labels(guard, entries, as_cstr, missing=None):
         child = plan["children"][key] if plan else value
         sel = plan["sel"][key] if plan else None
         lit = c_str_literal(child)
-        # A case key is a uint8_t id, but keep the name valid for any int.
+        # case の key は uint8_t の id だが、任意の int でも妥当な名前にしておく。
         name = f"{guard}_C{key}" if key >= 0 else f"{guard}_Cm{-key}"
         decls.append(f"static const char AZARAC_PROGMEM {name}[] = {lit};")
         ptr = f"AZARAC_PGM_PTR({name})"
@@ -565,7 +562,7 @@ def emit_array(varname, entries, guard, kt):
     pool_str = "".join(pool_parts)
     avr_body = "\n".join([
         f'static const char AZARAC_PROGMEM {guard}_POOL[] = "{pool_str}";',
-        # The copy-based lookup stops at each row's NUL, so the rows need only offset — a len field (as in the string_view tables) would be dead weight.
+        # copy 方式の lookup は各行の NUL で止まるので、行に必要なのは offset だけ。len フィールド（string_view 系テーブルのもの）は無駄になる。
         f"struct {guard}_Entry {{ uint16_t offset; }};",
         f"static const {guard}_Entry {guard}_TABLE[] AZARAC_PROGMEM = {{",
         ",\n".join(f"    {{{off}u}}" for off, _ in offsets),
@@ -577,7 +574,7 @@ def emit_array(varname, entries, guard, kt):
         f"    return azarac_pgm_copy(AZARAC_PGM_PTR({guard}_POOL) + off);",
         "}",
     ])
-    # Non-AVR: constexpr table + lookup.
+    # 非 AVR: constexpr テーブル + lookup。
     rows = ",\n    ".join(
         c_str_literal(v) if v is not None else "nullptr" for v in table)
     non_avr_body = "\n".join([
@@ -611,8 +608,8 @@ def emit_array_optional(varname, entries, guard, kt):
         *[f"    {line}" for line in fetch],
         "}",
     ])
-    # Non-AVR: const char* payload (4 B on 32-bit targets vs 12 B for a std::optional<std::string_view> entry).
-    # The lookup still returns optional, so absent (nullptr) and defined-but-empty ("") stay distinguishable.
+    # 非 AVR: ペイロードは const char*（32 ビット環境で 4 B、std::optional<std::string_view> のエントリなら 12 B）。
+    # lookup は optional を返すので、不在（nullptr）と定義済みの空文字列（""）は呼び出し側で区別したまま。
     rows = ",\n    ".join(
         c_str_literal(v) if v is not None else "nullptr" for v in table)
     non_avr_body = "\n".join([
@@ -638,7 +635,7 @@ def emit_bsearch(varname, entries, guard, kt):
     keys = sorted(entries.keys())
     n = len(keys)
     idx_type = "uint8_t" if n <= 255 else ("uint16_t" if n <= 65535 else "uint32_t")
-    # AVR: string pool + id/offset/len entries + manual bsearch. The id field uses the same type as the key (kt) to avoid narrowing.
+    # AVR: 文字列プール + id/offset/len エントリ + 手書き bsearch。id フィールドは切り詰めを避けるため key と同じ型（kt）にする。
     if kt == "uint8_t":
         read_id = f"static_cast<{kt}>(azarac_read_byte(ep, offsetof({guard}_Entry, id)))"
     elif kt == "uint16_t":
@@ -665,7 +662,7 @@ def emit_bsearch(varname, entries, guard, kt):
         "    return nullptr;",
         "}",
     ])
-    # Non-AVR: constexpr table + binary search.
+    # 非 AVR: constexpr テーブル + 二分探索。
     rows = "\n".join(f'    {{{k}u, {c_str_literal(entries[k])}}},' for k in keys)
     non_avr_body = "\n".join([
         f"struct {guard}_Entry {{ {kt} id; const char* label; }};",
@@ -688,7 +685,7 @@ def emit_bsearch_optional(varname, entries, guard, kt):
     keys = sorted(entries.keys())
     n = len(keys)
     idx_type = "uint8_t" if n <= 255 else ("uint16_t" if n <= 65535 else "uint32_t")
-    # AVR: string pool + id/offset/len entries + manual bsearch. The id field uses the same type as the key (kt) to avoid narrowing.
+    # AVR: 文字列プール + id/offset/len エントリ + 手書き bsearch。id フィールドは切り詰めを避けるため key と同じ型（kt）にする。
     if kt == "uint8_t":
         read_id = f"static_cast<{kt}>(azarac_read_byte(ep, offsetof({guard}_Entry, id)))"
     elif kt == "uint16_t":
@@ -715,8 +712,8 @@ def emit_bsearch_optional(varname, entries, guard, kt):
         "    return std::nullopt;",
         "}",
     ])
-    # Non-AVR: const char* payload, same width as emit_bsearch.  The lookup
-    # still returns std::optional<std::string_view>; a missing key is the absent signal for binary search, so no nullptr row is needed.
+    # 非 AVR: ペイロードは const char* で、幅は emit_bsearch と同じ。lookup は
+    # 引き続き std::optional<std::string_view> を返す。二分探索では「鍵が無い」自体が不在の合図なので nullptr 行は要らない。
     rows = "\n".join(f'    {{{k}u, {c_str_literal(entries[k])}}},' for k in keys)
     non_avr_body = "\n".join([
         f"struct {guard}_Entry {{ {kt} id; const char* label; }};",
@@ -746,7 +743,7 @@ def build_header(modname, varname, entries, ver, all_varnames, obj=None, use_opt
     kt    = key_type(keys)
     strat = choose(keys)
     
-    # Optional-returning table: the object's `undefined` attribute, or an explicit override.
+    # optional を返すテーブル: オブジェクトの `undefined` 属性、または明示的な上書き指定による。
     use_optional = False
     if use_optional_override is not None:
         use_optional = use_optional_override
@@ -765,8 +762,8 @@ def build_header(modname, varname, entries, ver, all_varnames, obj=None, use_opt
     category_guard = category_guard_for(varname)
     lang_guard = None
     if varname.endswith("_en"):
-        # Only an _en table with a JA counterpart is a language variant.
-        # A lone _en table (the spec is English, as with the CAMF tables) is that data's only source, so gating it on AZARAC_LANG_EN would compile it to a nullopt stub in the library default (LANG_JA=1 / LANG_EN=0).
+        # JA 対応表がある _en テーブルだけが言語版。
+        # 単独の _en テーブル（CAMF テーブルのように仕様自体が英語）はそのデータの唯一の供給元なので、AZARAC_LANG_EN でガードするとライブラリ既定（LANG_JA=1 / LANG_EN=0）で nullopt スタブにコンパイルされ、ラベルごと消える。
         if varname[:-3] in all_varnames or f"{varname[:-3]}_ja" in all_varnames:
             lang_guard = "AZARAC_LANG_EN"
     elif varname.endswith("_ja") or f"{varname}_en" in all_varnames:
@@ -788,7 +785,7 @@ def build_header(modname, varname, entries, ver, all_varnames, obj=None, use_opt
         full_guard = " && ".join(guards)
         wrapped_body = f"#if {full_guard}\n\n{body}\n\n#else\n\n"
         if use_optional:
-            # The AVR shim optional is not a literal type, so the stub cannot be constexpr.
+            # AVR シムの optional はリテラル型でないので、スタブは constexpr にできない。
             wrapped_body += "#if defined(__AVR__)\n"
             wrapped_body += (
                 f"[[nodiscard]] inline std::optional<std::string_view> {varname}_lookup({kt} id)"
@@ -829,14 +826,13 @@ def build_header(modname, varname, entries, ver, all_varnames, obj=None, use_opt
     )
 
 def write_file(path, text):
-    """Write `text` to `path`, tolerating a transient Windows sharing error.
+    """`text` を `path` に書く。Windows の一時的な共有エラーは許容する。
 
-    A file scanner (Defender, an indexer) can hold a freshly written header open
-    for a moment; on Windows that surfaces as OSError(EINVAL) rather than a
-    sharing violation, which aborts the whole generation and leaves the tree
-    half-updated. CI is Linux and never sees it, but a half-generated tree is
-    indistinguishable from a real drift failure, so retry briefly before giving
-    up.
+    ファイルスキャナ（Defender、インデクサ）が書き出したばかりのヘッダを一瞬
+    掴むことがあり、Windows ではそれが共有違反ではなく OSError(EINVAL) として
+    現れる。そのまま生成全体が中断し、ツリーが中途半端に更新された状態で残る。
+    CI は Linux なので起きないが、中途半端なツリーは本物のドリフト失敗と区別
+    できないため、諦める前に短くリトライする。
     """
     for attempt in range(5):
         try:
@@ -853,7 +849,7 @@ def run(out_dir):
     base_path = find_def_path()
     ver = get_azarashi_version()
 
-    # Pass 1: every generated variable name, so build_header can spot an _en sibling.
+    # パス 1: 生成される変数名をすべて集め、build_header が _en 兄弟を見つけられるようにする。
     modules = list(iter_definition_modules(base_path))
     tables = []
     for modname in modules:
@@ -873,8 +869,8 @@ def run(out_dir):
         write_file(os.path.join(out_dir, f"{varname}.h"), hdr)
         generated.append(varname)
 
-    # _index.h: hand-written headers go last, so the generated set stays alphabetical.
-    # They live in manual/ so that "everything directly under src/definition/ is generated" holds.
+    # _index.h: 手書きヘッダを最後に置き、生成分はアルファベット順のまま保つ。
+    # 手書きは manual/ に置き、「src/definition/ 直下はすべて生成物」を成り立たせる。
     extra_headers = [
         "manual/ublox_qzss_svid_prn_map.h",
         "manual/qzss_dcx_camf_a3_provider_identifier.h",
@@ -885,8 +881,8 @@ def run(out_dir):
             extra_includes += f'#include "{h}"\n'
         else:
             print(f"[WARN] Extra header not found: {h}", file=sys.stderr)
-    # A stale .h for a table with no consumer must not linger: it would still compile and silently ship.
-    # The scan is top-level only, so a stale copy of a manual/ header is removed too.
+    # 消費者がいないテーブルの古い .h を残してはいけない: そのままコンパイルが通り、黙って出荷されてしまう。
+    # 走査は直下のみなので、manual/ ヘッダの古いコピーもここで消える。
     keep = set(generated)
     for name in os.listdir(out_dir):
         if name == "_index.h" or not name.endswith(".h"):

@@ -1,6 +1,6 @@
 // azaraC - test/internal/test_avr_std_shim.cpp
-// Host validation of the real minimal AVR C++ stdlib shims (src/internal/avr_std/) that the Arduino AVR toolchain uses, WITHOUT AZARAC_AVR_STUB.
-// Only optional / string_view / placement-new are exercised; the trivial utility/algorithm/iterator shims (move / max / size) are excluded because doctest may pull the real <utility>/<algorithm> and they would clash.
+// Arduino AVR ツールチェーンが使う実際の最小 AVR C++ stdlib シム（src/internal/avr_std/）を、AZARAC_AVR_STUB なしで host 上で検証する。
+// 対象は optional / string_view / placement-new のみ。自明な utility/algorithm/iterator シム（move / max / size）は除外する — doctest が本物の <utility>/<algorithm> を引き込むと衝突するため。
 // NOTE: this TU must not include the azaraC library — the shim defines the same std::optional/std::string_view names as the real standard library.
 
 #define DOCTEST_CONFIG_IMPLEMENT_WITHOUT_MAIN
@@ -59,7 +59,7 @@ TEST_CASE("avr_std optional basic operations") {
 }
 
 TEST_CASE("avr_std optional string_view integration") {
-    // lookup-style: optional<string_view> over a buffer
+    // lookup 形式: バッファ上の optional<string_view>
     char buf[] = "北海道札幌市";
     std::optional<std::string_view> r = std::string_view(buf, 18);
     CHECK(r.has_value());

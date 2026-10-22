@@ -9,9 +9,8 @@ bool Parser::feed(uint8_t byte, Message& out, uint32_t report_unix) {
 
     // カスタムフレーマ（排他モード）
     if (_custom) {
-        // A custom framer may return true without filling every field. Give it a deterministic
-        // zero baseline, but only on this opt-in path: zeroing 33 B on every byte would add cost
-        // to the built-in framers, which always fill Frame on success.
+        // カスタムフレーマは全フィールドを埋めずに true を返し得る。決定的なゼロ基準を与えるが、このオプトイン経路に限る:
+        // 毎バイト 33 B をゼロ化すると、成功時に必ず Frame を埋める組み込みフレーマにコストが乗る。
         frame = internal::Frame{};
         if (!_custom->feed(byte, frame)) return false;
         return handleFrame(frame, out, report_unix);
@@ -35,9 +34,9 @@ bool Parser::handleFrame(internal::Frame& frame, Message& out, uint32_t report_u
 }
 
 bool Parser::postDecode(const Message& decoded, Message& out, uint32_t identity) {
-    // Reception time for the dedup validity window (手順④').
-    // The Nankai aggregation below uses the same clock, so both stages agree on "now".
-    // Keep the full 64 bits: NankaiPageBuffer's timeout is uint64 and the 32-bit dedup window wraps every ~49.7 days — truncating here underflows its unsigned age comparison.
+    // dedup 有効期間の受信時刻（手順④'）。
+    // 下の Nankai 集約も同じ時計を使うので、両段階で「現在」が一致する。
+    // 64 bit を丸ごと保持する: NankaiPageBuffer のタイムアウトは uint64 で、32 bit の dedup 窓は約 49.7 日ごとに巻き戻るため、ここで切り詰めると符号なしの経過時間比較がアンダーフローする。
     const uint64_t now_ms64 = internal::getMillis();
     const uint32_t now_ms = static_cast<uint32_t>(now_ms64);
     const uint32_t window_ms = internal::dedupWindowMs(decoded);
@@ -117,8 +116,8 @@ bool Parser::processNankaiAggregation(const Message& decoded, Message& out, cons
 
                 uint16_t textLen = completed->compactText();
                 if (textLen > 0) {
-                    // Zero-copy: point into NankaiPageBuffer's internal storage.
-                    // VALID ONLY until next feed() or reset() (see NankaiData docs) — aggregated_text_ptr dangles after that.
+                    // ゼロコピー: NankaiPageBuffer の内部ストレージを指す。
+                    // 次の feed() または reset() までのみ有効（NankaiData の説明参照）— 以降 aggregated_text_ptr は宙に浮く。
                     outNankai->aggregated_text_ptr = completed->aggregated_text;
                     outNankai->aggregated_len = textLen;
                     outNankai->is_aggregated = true;

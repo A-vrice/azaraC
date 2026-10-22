@@ -59,6 +59,8 @@ static QueueHandle_t g_messageQueue = nullptr;
 
 // Serial は RX タスク（集約済み南海トラフ）と Output タスク（キュー・統計）の両方から書く。
 // 1 レコードが途中で混ざらないよう、JSON 1 通・統計行・起動行を丸ごとミューテックスで囲む。
+// ヒープ確保禁止のため、FreeRTOS のヒープを消費しない静的確保のミューテックスを使う。
+static StaticSemaphore_t g_serialMutexBuffer;
 static SemaphoreHandle_t g_serialMutex = nullptr;
 
 // パーサー (NMEA/UBX共用)
@@ -189,7 +191,7 @@ void setup() {
     Serial.print(F("[INIT] GNSS UART on RX="));
     Serial.println(RX_PIN);
 
-    g_serialMutex = xSemaphoreCreateMutex();
+    g_serialMutex = xSemaphoreCreateMutexStatic(&g_serialMutexBuffer);
     if (g_serialMutex == nullptr) {
         Serial.println(F("[ERROR] Failed to create serial mutex!"));
         for (;;) {

@@ -1,54 +1,50 @@
 #!/usr/bin/env bash
-# autoresearch.sh — AVR definition-table footprint benchmark.
+# autoresearch.sh — AVR 定義テーブルのフットプリント計測。
 #
-# Goal (issue #35): the generated target-area string pools repeat parent region names, so one pool costs ~63 KB on the English side alone.
-# On AVR that is not just expensive, it is unbuildable: avr-gcc rejects any single object above 32,767 bytes ("size of variable is too large"; verified — 32,767 compiles, 32,768 does not), which is why the AVR preset in azaraC_config.h leaves DCX/CAMF (and the volcano/ash-fall families) off entirely.
+# 目的 (issue #35): 生成される target-area 文字列プールが親リージョン名を重複して持つため、プール 1 つで英語側だけで約 63 KB かかる。
+# AVR ではそれが高コストなだけでなくビルド不能になる: avr-gcc は 32,767 バイトを超える単一オブジェクトを拒否する（"size of variable is too large"。32,767 は通り 32,768 は通らないことを確認済み）。azaraC_config.h の AVR プリセットが DCX/CAMF（および volcano/ash-fall 系）を完全に外しているのはこのため。
 #
-# Primary metric   AVR_TABLE_BYTES — every byte the enabled configuration asks the
-#                  AVR linker for: the string literals of the definition tables (the
-#                  pools plus the `switch` tables' per-case literals) and the entry
-#                  arrays, measured from `avr-gcc -E` output. Stage 3 cross-checks it
-#                  against avr-gcc's own object sizes, which keeps struct layout honest.
-# Reported         AVR_STRING_BYTES (the issue's "63 KB pool" number),
-#                  AVR_ENTRY_BYTES/ROWS/ROW_BYTES, AVR_LARGEST_LITERAL, the four
-#                  large pools, UNO_*/MEGA_* sizes of two real linked images,
-#                  AVR_TABLES_IN_RAM, MEGA_DCX_TABLES, MEGA_FAR_OPS, AVR_COMPILE_OK,
-#                  AVR_TABLE_CROSSCHECK, FLASH_BUF_OK, MEGA_NEAR_SYM_ADDR/MEGA_CORE_PGM_ADDR
-#                  (the near-Flash tables read through a 16-bit pointer must stay in the window).
+# 主要指標 AVR_TABLE_BYTES — 有効な設定が AVR リンカに要求する全バイト数:
+#                定義テーブルの文字列リテラル（プールと `switch` テーブルの
+#                case ごとのリテラル）とエントリ配列を `avr-gcc -E` の出力から
+#                計測する。stage 3 が avr-gcc 自身のオブジェクトサイズと突き合わせる
+#                ので、構造体レイアウトも正しく保たれる。
+# 報告値        AVR_STRING_BYTES（issue の「63 KB プール」の数値）、
+#                AVR_ENTRY_BYTES/ROWS/ROW_BYTES、AVR_LARGEST_LITERAL、4 つの
+#                大きなプール、実リンクした 2 イメージの UNO_*/MEGA_* サイズ、
+#                AVR_TABLES_IN_RAM、MEGA_DCX_TABLES、MEGA_FAR_OPS、AVR_COMPILE_OK、
+#                AVR_TABLE_CROSSCHECK、FLASH_BUF_OK、MEGA_NEAR_SYM_ADDR/MEGA_CORE_PGM_ADDR
+#                （16 ビットポインタで読む near-Flash テーブルは窓内に収まること）。
 #
-# Gates (non-zero exit)
-#   labels    every id of every table must render byte-identical labels in all three
-#             modes (AVR far Flash, AVR 16-bit progmem, host) against the golden
-#             hashes in test/bench/avr/labels.golden.
-#   buffer    AZARAC_FLASH_BUF_SIZE (src/azaraC_config.h) must hold the longest label
-#             of every enabled category: internal/FlashString.h clamps the copy at
-#             size - 1, so a category missing from the size chain would truncate its
-#             labels silently (check_flash_buf.py sweeps all combinations, both
-#             languages, both presets).
-#   build     every TU must compile for ATmega2560 with all categories enabled *once*
-#             no single pool is over the per-object limit. While a pool is oversized
-#             the failure is the expected baseline, reported but not gated — that is
-#             the bug this metric fixes.
-#   crosscheck the primary metric must equal what avr-gcc reports for the symbols it placed.
-#   uno       the default AVR configuration must still compile and link.
-#   mega      the DCX/CAMF configuration (opted in, as on a 256 KB part) must still compile
-#             and link, enable the DCX/CAMF tables, keep every table in Flash and use far
-#             Flash reads (elpm/RAMPZ) — without them the tables above 64 KB would garble.
-#             The tables read through the *near* 16-bit pointer (CRC24Q, radius, B4 layout)
-#             must stay below 0xFFFF, or those reads return garbage in silence.
-#   ram       SRAM must not grow (UNO_RAM_BYTES and MEGA_RAM_BYTES <= baseline) and no table
-#             may live in RAM instead of Flash: shrinking Flash by spending SRAM is a loss, and
-#             the AVR path can only join labels in the shared 800 B buffer it already owns.
-#   mega-lto  the same DCX/CAMF configuration under the Arduino recipe (-flto, the build a Mega
-#             sketch really gets) must link and fit the ATmega2560's SRAM.
-#   path      every linked image must still hold the decode path, the serializer and the
-#             definition tables: if LTO ever drops them, the flash numbers stop meaning
-#             "what a sketch pays".
+# ゲート (違反時は非ゼロ終了)
+#   labels    各テーブルの全 id が 3 つのモード（AVR far Flash、AVR 16-bit progmem、host）で
+#             バイト単位に同一のラベルを返すこと（比較先は test/bench/avr/labels.golden のハッシュ）。
+#   buffer    AZARAC_FLASH_BUF_SIZE (src/azaraC_config.h) が有効な全カテゴリの最長ラベルを
+#             保持できること: internal/FlashString.h は size - 1 でコピーを打ち切るため、
+#             サイズ連鎖から漏れたカテゴリはラベルを黙って切り詰める
+#             （check_flash_buf.py が両言語・両プリセットの全組み合わせを走査する）。
+#   build     全カテゴリ有効の全 TU が ATmega2560 向けにコンパイルできること *ただし*
+#             単一プールがオブジェクト上限を超えていないとき。プールが過大な間の失敗は
+#             想定内のベースラインで、報告のみ（ゲートしない）— それがこの指標が直すバグ。
+#   crosscheck 主要指標が、avr-gcc が実際に配置したシンボルのサイズと一致すること。
+#   uno       既定の AVR 設定がコンパイル・リンクできること。
+#   mega      DCX/CAMF 設定（256 KB 品と同じく有効化したもの）がコンパイル・リンクでき、
+#             DCX/CAMF テーブルを有効にし、全テーブルを Flash に置き、far Flash 読み出し
+#             (elpm/RAMPZ) を使うこと — なければ 64 KB 超のテーブルが壊れる。
+#             *near* 16 ビットポインタで読むテーブル（CRC24Q、radius、B4 レイアウト）は
+#             0xFFFF 未満に収まること。超えると黙ってゴミを返す。
+#   ram       SRAM が増えないこと（UNO_RAM_BYTES と MEGA_RAM_BYTES <= ベースライン）、
+#             かつテーブルが Flash ではなく RAM に住まないこと: SRAM を食って Flash を
+#             減らすのは損失で、AVR 経路は既に持つ共有 800 B バッファでしかラベルを連結できない。
+#   mega-lto  同じ DCX/CAMF 設定を Arduino のレシピ（-flto。Mega スケッチが実際に受けるビルド）
+#             でリンクでき、ATmega2560 の SRAM に収まること。
+#   path      リンクした各イメージが decode 経路・シリアライザ・定義テーブルを保持していること:
+#             LTO がそれらを落とすと flash の数値は「スケッチが払う額」を意味しなくなる。
 #
-# Deterministic: fixed toolchain flags, locked inputs, no network, no clock; requires avr-gcc/avr-size/avr-nm and g++ on PATH.
-# The Uno image links with the Arduino AVR core's `-flto -fuse-linker-plugin` (AVR_LTO). The Mega image links LTO-free in stage 5 and with the Arduino recipe in stage 5b; stage 5b's image is gated (it must link and fit the part's SRAM).
+# 決定的: ツールチェーンフラグ固定、入力固定、ネットワーク・時計なし。avr-gcc/avr-size/avr-nm と g++ が PATH に必要。
+# Uno イメージは Arduino AVR コアの `-flto -fuse-linker-plugin`（AVR_LTO）でリンクする。Mega イメージは stage 5 で LTO なし、stage 5b で Arduino レシピでリンクし、stage 5b のイメージはゲート対象（リンクでき、品の SRAM に収まること）。
 #
-# `bash test/bench/avr/autoresearch.sh --bless-labels` re-records the golden label hashes — only after confirming the label change was intended.
+# `bash test/bench/avr/autoresearch.sh --bless-labels` は golden のラベルハッシュを再記録する — ラベル変更が意図どおりだと確認した後のみ。
 
 set -uo pipefail
 
@@ -68,17 +64,17 @@ HOST_CXX="${HOST_CXX:-g++}"
 PYTHON="${PYTHON:-python}"
 command -v "$PYTHON" >/dev/null 2>&1 || PYTHON=python3
 
-# Recipe for the Arduino-core stand-in (see $BENCH/shim/Arduino.h): ARDUINO=1 makes azaraC.h include <Print.h> and TimeFields.h use millis(), as in a real AVR build.
+# Arduino コア代替（$BENCH/shim/Arduino.h）用のレシピ: ARDUINO=1 で azaraC.h は <Print.h> を include し、TimeFields.h は実 AVR ビルド同様 millis() を使う。
 AVR_BUILD=(-mmcu="$MCU" -Os -std=gnu++17 -fno-exceptions
            -ffunction-sections -fdata-sections -Werror=overflow
            -I src -I "$BENCH/shim" -DARDUINO=1)
 
-# The Arduino AVR core compiles and links with `-flto -fuse-linker-plugin` (platform.txt), so stage 4's Uno image — the configuration a sketch actually ships — uses them too.
-# Stage 3 keeps its own LTO-free recipe on purpose: an LTO object carries no sizes for symbols, which would leave nothing for the avr-gcc crosscheck to compare against.
-# Stage 5 stays LTO-free for a different reason; see the note there.
+# Arduino AVR コアは `-flto -fuse-linker-plugin` でコンパイル・リンクする（platform.txt）ので、stage 4 の Uno イメージ — スケッチが実際に配布される設定 — もこれを使う。
+# stage 3 は意図的に LTO なしのレシピを使う: LTO オブジェクトはシンボルのサイズを持たず、avr-gcc との突き合わせに何も残らないため。
+# stage 5 も別の理由で LTO なしのまま。その箇所の注記を参照。
 AVR_LTO=(-flto -fuse-linker-plugin)
 
-# Worst case for the tables: every category, both languages.
+# テーブルの最悪ケース: 全カテゴリ・両言語。
 CATS=(-DAZARAC_LANG_JA=1 -DAZARAC_LANG_EN=1
       -DAZARAC_ENABLE_EEW=1 -DAZARAC_ENABLE_HYPOCENTER=1 -DAZARAC_ENABLE_SEISMIC=1
       -DAZARAC_ENABLE_NANKAI=1 -DAZARAC_ENABLE_TSUNAMI=1 -DAZARAC_ENABLE_NW_PAC_TSUNAMI=1
@@ -86,31 +82,31 @@ CATS=(-DAZARAC_LANG_JA=1 -DAZARAC_LANG_EN=1
       -DAZARAC_ENABLE_FLOOD=1 -DAZARAC_ENABLE_TYPHOON=1 -DAZARAC_ENABLE_MARINE=1
       -DAZARAC_ENABLE_DCX_CAMF=1)
 
-# avr-gcc per-object ceiling: 2**15 is the compiler's limit.
+# avr-gcc のオブジェクト上限: 2**15 がコンパイラの限界。
 MAX_OBJECT_BYTES=32768
 
-# The AVR path trades Flash for RAM only within the SRAM it already owns (the shared 800 B label buffer in internal/FlashString.h); growing SRAM to shrink Flash is a loss, so the linked Uno image's RAM is gated.
-# Measured 702 B (data 626 + bss 76) at the pre-compression baseline, 640 B before the JSON keys moved to Flash, 204 B once they did (data 88 + bss 116), 146 B before the payload alignment fix, 142 B now (data 30 + bss 112): the keys and the helper tables left .data (avr-libc's script copies .rodata into SRAM) and the 36 B of bss is the shared key buffer (AZARAC_KEY_BUF_SIZE), for +730 B of Flash (13,546 → 14,276).
-# The last 58 B are the fixed strings that left .data: "QZQSM," (7) from NmeaFramer plus the JSON values arrival_estimated (18), no_information (15) and unrecognized_code (18), which now go through AZARAC_KEY; .data is down to the allocator's globals and the two framer vtables, for +194 B of Flash (14,276 → 14,470). ("null" cost nothing even before: the seven call sites measured byte-identical.)
-# The probe's opaque sink (the write() that keeps the serialize path in the image) adds 132 B on top: 14,602 B as recorded at d55cb12, 14,622 B at HEAD (the parser/UBX fixes in between), 14,702 B now.
-# The last 80 B of Flash buy the 4 B of SRAM: alignas(8) was pure padding on AVR (avr-gcc's __alignof__(unsigned long long) is 1), so the payload storages now say alignas(uint64_t) — sizeof(Mt43Data) 88 → 80 B, sizeof(Message) 104 → 89 B (a sketch's own global Message shrinks the same way), while the host keeps its 8-byte boundary and its layout. The JSON key buffer went 40 → 36 B (the longest key is 35 B). The delta is layout, not tables: AVR_TABLE_BYTES is unchanged.
+# AVR 経路が RAM と引き換えに使える Flash は、既に持っている SRAM（internal/FlashString.h の共有 800 B ラベルバッファ）の範囲だけ。SRAM を増やして Flash を減らすのは損失なので、リンクした Uno イメージの RAM はゲートする。
+# 圧縮前のベースラインで 702 B（data 626 + bss 76）、JSON キーを Flash へ移す前が 640 B、移した後が 204 B（data 88 + bss 116）、payload のアラインメント修正前が 146 B、現在 142 B（data 30 + bss 112）: キーと補助テーブルが .data を出た（avr-libc のリンカスクリプトは .rodata を SRAM にコピーする）ためで、bss の 36 B は共有キーバッファ（AZARAC_KEY_BUF_SIZE）。Flash は +730 B（13,546 → 14,276）。
+# 残り 58 B は .data を出た固定文字列: NmeaFramer の "QZQSM,"（7）と、AZARAC_KEY 経由になった JSON 値 arrival_estimated（18）、no_information（15）、unrecognized_code（18）。.data に残るのはアロケータのグローバルと 2 つのフレーマ vtable だけで、Flash は +194 B（14,276 → 14,470）。（"null" は以前からコストゼロ: 7 か所の呼び出しはバイト単位で同一だった。）
+# プローブの不透明シンク（serialize 経路をイメージに残す write()）がさらに 132 B を足す: d55cb12 時点で 14,602 B、HEAD で 14,622 B（その間の parser/UBX 修正分）、現在 14,702 B。
+# 最後の 80 B の Flash が 4 B の SRAM を買う: AVR では alignas(8) が純粋なパディングだった（avr-gcc の __alignof__(unsigned long long) は 1）ので、payload のストレージは alignas(uint64_t) にした — sizeof(Mt43Data) 88 → 80 B、sizeof(Message) 104 → 89 B（スケッチが自前で持つグローバル Message も同じだけ縮む）。host は 8 バイト境界とレイアウトを維持する。JSON キーバッファは 40 → 36 B（最長キーは 35 B）。差分はテーブルではなくレイアウト: AVR_TABLE_BYTES は不変。
 MAX_UNO_RAM_BYTES=142
 
-# The same ceiling for stage 5's DCX/CAMF image: measured 3,714 B (data 2,902 + bss 812) of the Mega's 8,192 B — the keys alone were ~1.8 KB of it — and 1,086 B once they moved (data 234 + bss 852) for +1,712 B of Flash (144,806 → 146,518), so the tables may cost Flash but never SRAM.
-# The 36 B of bss is the shared key buffer the Flash keys are copied through.
-# 896 B before the payload alignment fix, 892 B now (data 44 + bss 848): the DCX value literals (invalid_mt44, NULL/L_ALERT/J_ALERT/LOCAL_GOV/OUTSIDE_JAPAN/UNKNOWN, unsupported_*) left .data the same way, for +154 B of Flash (146,518 → 146,672). The probe's opaque sink adds 18 B: 146,690 B as recorded at d55cb12, 146,700 B at HEAD, 146,550 B now.
-# The key buffer is 36 B here too, and the payload storages say alignas(uint64_t): on AVR that is no alignment at all (avr-gcc's __alignof__(unsigned long long) is 1), so it is pure padding removed; the host keeps its 8-byte boundary.
-# The ceiling keeps no slack: 892 B is the current measurement, so any SRAM regression fails here (growing SRAM to shrink Flash is the failure this exists for).
+# stage 5 の DCX/CAMF イメージも同じ上限: Mega の 8,192 B のうち実測 3,714 B（data 2,902 + bss 812）— その大半がキー約 1.8 KB だった — が、キーを移して 1,086 B（data 234 + bss 852）、Flash は +1,712 B（144,806 → 146,518）。テーブルは Flash を消費してよく、SRAM は決して使わない。
+# bss の 36 B は Flash のキーをコピーして通す共有キーバッファ。
+# payload アラインメント修正前が 896 B、現在 892 B（data 44 + bss 848）: DCX の値リテラル（invalid_mt44、NULL/L_ALERT/J_ALERT/LOCAL_GOV/OUTSIDE_JAPAN/UNKNOWN、unsupported_*）も同様に .data を出て、Flash は +154 B（146,518 → 146,672）。プローブの不透明シンクが 18 B を足す: d55cb12 時点で 146,690 B、HEAD で 146,700 B、現在 146,550 B。
+# キーバッファはここでも 36 B で、payload のストレージは alignas(uint64_t): AVR ではそれはアラインメントにならない（avr-gcc の __alignof__(unsigned long long) は 1）ので、純粋なパディングを削っただけ。host は 8 バイト境界を維持する。
+# この上限に余裕はない: 892 B が現在の実測値なので、SRAM が回帰すればここで落ちる（SRAM を増やして Flash を減らすのが、これが存在する理由の失敗）。
 MAX_MEGA_RAM_BYTES=892
 
-# The part's SRAM, for the image a sketch really gets (stage 5b, the Arduino recipe): the LTO
-# build must link and fit the ATmega2560, or the configuration is not shippable at all.
+# 品の SRAM。スケッチが実際に受けるイメージ（stage 5b、Arduino レシピ）向け: LTO
+# ビルドがリンクでき ATmega2560 に収まらなければ、その設定は出荷できない。
 ATMEGA2560_SRAM_BYTES=8192
 
 mkdir -p "$OUT"
 
 # stage 1
-# The enabled tables, as the AVR preprocessor sees them.
+# AVR プリプロセッサから見た有効なテーブル。
 "$AVR_CC" -E -x c++ -std=gnu++17 -mmcu="$MCU" -DARDUINO=1 \
     -I src -I "$BENCH/shim" "${CATS[@]}" "$BENCH/tables.cpp" -o "$OUT/tables.i" \
     || { echo "autoresearch: preprocessing failed" >&2; exit 3; }
@@ -128,21 +124,21 @@ largest="$(metric AVR_LARGEST_LITERAL)"
     || { echo "autoresearch: metrics missing" >&2; exit 3; }
 
 # stage 1b
-# The shared label buffer must hold the longest label of every enabled category: internal/FlashString.h clamps the copy at AZARAC_FLASH_BUF_SIZE - 1, so a category the size chain misses would truncate its labels silently (mid-UTF-8).
-# Swept over every category combination, both languages, both presets; the size chain is read from azaraC_config.h and cross-checked against the AVR preprocessor.
+# 共有ラベルバッファは有効な全カテゴリの最長ラベルを保持できること: internal/FlashString.h は AZARAC_FLASH_BUF_SIZE - 1 でコピーを打ち切るため、サイズ連鎖から漏れたカテゴリはラベルを黙って（UTF-8 の途中で）切り詰める。
+# 全カテゴリの組み合わせ・両言語・両プリセットで走査する。サイズ連鎖は azaraC_config.h から読み、AVR プリプロセッサと突き合わせる。
 buf_status=0
 "$PYTHON" "$BENCH/check_flash_buf.py" --avr-gcc "$AVR_CC" || buf_status=$?
 echo "METRIC FLASH_BUF_OK=$(( buf_status == 0 ? 1 : 0 ))"
 
 # stage 2
-# Label equivalence: the AVR branch (PROGMEM string views) and the host branch must keep rendering the labels they rendered at the baseline.
+# ラベルの等価性: AVR 分岐（PROGMEM 文字列ビュー）と host 分岐が、ベースラインで返していたラベルを返し続けること。
 "$PYTHON" "$BENCH/gen_label_dump.py" "$OUT/dump_labels.cpp" || exit 4
 GOLDEN="$BENCH/labels.golden"
 
-run_dump() {   # $1 = binary; prints "<hash> <calls> <labels>"
+run_dump() {   # $1 = バイナリ; "<hash> <calls> <labels>" を出力
     "$1" | sed -n 's/^LABELHASH \([0-9a-f]*\) calls=\([0-9]*\) labels=\([0-9]*\)$/\1 \2 \3/p'
 }
-build_dump() {  # $1 = label, rest = extra flags
+build_dump() {  # $1 = ラベル、残りは追加フラグ
     local label="$1"; shift
     "$HOST_CXX" -std=c++17 -O1 -I src -DARDUINO=0 "$@" "${CATS[@]}" \
         "$OUT/dump_labels.cpp" -o "$OUT/dump_$label" || return 1
@@ -150,8 +146,8 @@ build_dump() {  # $1 = label, rest = extra flags
 
 build_dump avr -I test/stub -D__AVR__ -DAZARAC_AVR_STUB \
     || { echo "autoresearch: AVR label dump did not build" >&2; exit 4; }
-# The same tables through the other addressing mode: parts with <= 64 KiB of Flash (the Uno) use 16-bit progmem pointers, larger ones the far accessors.
-# The stub stands in for a large part by default, so pin FLASHEND down for this build.
+# 同じテーブルを別のアドレッシングモードで: Flash 64 KiB 以下の品（Uno）は 16 ビット progmem ポインタを使い、それより大きい品は far アクセサを使う。
+# スタブは既定で大型品を模すので、このビルドでは FLASHEND を固定する。
 build_dump avr_short -I test/stub -D__AVR__ -DAZARAC_AVR_STUB -DFLASHEND=0x7FFF \
     || { echo "autoresearch: short-Flash AVR label dump did not build" >&2; exit 4; }
 build_dump host || { echo "autoresearch: host label dump did not build" >&2; exit 4; }
@@ -164,7 +160,7 @@ host_labels="$(run_dump "$OUT/dump_host")"
 
 if [[ "${1:-}" == "--bless-labels" ]]; then
     {
-        echo "# Definition-label hashes: <hash> <lookups> <labels>. Re-record with"
+        echo "# Definition-label のハッシュ: <hash> <lookups> <labels>。再記録は"
         echo "#   bash autoresearch.sh --bless-labels"
         echo "AVR $avr_labels"
         echo "HOST $host_labels"
@@ -177,7 +173,7 @@ if [[ ! -f "$GOLDEN" ]]; then
     echo "autoresearch: $GOLDEN missing — run 'bash autoresearch.sh --bless-labels'" >&2
     label_status=1
 else
-    # AVR_SHORT uses 16-bit progmem pointers; it is compared against the AVR golden.
+    # AVR_SHORT は 16 ビット progmem ポインタを使う。AVR の golden と比較する。
     for path in AVR AVR_SHORT HOST; do
         want="$(sed -n "s/^${path%%_SHORT} //p" "$GOLDEN")"
         case "$path" in
@@ -198,7 +194,7 @@ else
 fi
 
 # stage 3
-# Every TU must compile for the real target once no pool exceeds the per-object ceiling; below it the build is the gate, above it failure is the expected baseline.
+# 単一プールがオブジェクト上限を超えていない状態で、全 TU が実ターゲット向けにコンパイルできること。上限を超えている間はビルド自体がゲートで、超えた状態の失敗は想定内のベースライン。
 rm -rf "$OUT/obj"
 mkdir -p "$OUT/obj"
 build_failed=0
@@ -209,7 +205,7 @@ done
 build_ok=$((1 - build_failed))
 echo "METRIC AVR_COMPILE_OK=$build_ok"
 
-# The primary metric is only honest if it agrees with the sizes avr-gcc reports for the symbols it actually placed.
+# 主要指標は、avr-gcc が実際に配置したシンボルのサイズと一致して初めて信用できる。
 if [[ -f "$OUT/pools.txt" ]]; then
     cross="$("$AVR_NM" --print-size --radix=d -C "$OUT"/obj/*.o 2>/dev/null | tr -d '\r' \
         | "$PYTHON" "$BENCH/crosscheck_tables.py" "$OUT/pools.txt")"
@@ -219,7 +215,7 @@ if [[ -f "$OUT/pools.txt" ]]; then
 fi
 
 # stage 4
-# The configuration the library actually ships for AVR (preset: seismic and tsunami only, Japanese labels); it must stay buildable and small.
+# ライブラリが AVR 向けに実際に出荷する設定（プリセット: seismic と tsunami のみ、日本語ラベル）。ビルド可能で小さいままであること。
 uno_ok=0
 uno_flash=""
 uno_build=(-mmcu="$UNO_MCU" -Os -std=gnu++17 -fno-exceptions "${AVR_LTO[@]}"
@@ -241,7 +237,7 @@ if [[ ${#uno_objs[@]} -gt 0 ]] && "$AVR_CC" "${uno_build[@]}" "${uno_objs[@]}" -
     uno_ok=1
     uno_flash="$("$AVR_SIZE" "$OUT/uno.elf" | awk 'NR == 2 { print $1 + $2 }')"
     uno_ram="$("$AVR_SIZE" "$OUT/uno.elf" | awk 'NR == 2 { print $2 + $3 }')"
-    # A definition table in .data/.bss is no longer in Flash: all must be PROGMEM.
+    # .data/.bss にある定義テーブルはもう Flash にない: すべて PROGMEM であること。
     tables_in_ram="$("$AVR_NM" -C "$OUT/uno.elf" 2>/dev/null \
         | awk '$2 ~ /^[dDbB]$/ && $NF ~ /(_POOL|_TABLE)$/ { n++ } END { print n + 0 }')"
 fi
@@ -251,10 +247,10 @@ echo "METRIC UNO_COMPILE_OK=$uno_ok"
 [[ -n "${tables_in_ram:-}" ]] && echo "METRIC AVR_TABLES_IN_RAM=$tables_in_ram"
 
 # stage 5
-# The large-flash image: a 256 KB part with DCX/CAMF opted in (the preset no longer flips it on by chip name, so this stage defines it, as a Mega user would).
-# Its tables land above 64 KB, which is what makes this stage able to prove the far addressing on a real device.
+# 大容量フラッシュのイメージ: DCX/CAMF を明示的に有効化した 256 KB 品（プリセットはもうチップ名で有効化しないので、Mega ユーザーがするようにこの stage で定義する）。
+# テーブルが 64 KB 超に置かれるため、この stage は実デバイス上で far アドレッシングを証明できる。
 #
-# No ${AVR_LTO[@]} here, unlike stage 4: this stage records the numbers the gates below compare against (MAX_MEGA_RAM_BYTES, the near-symbol window, the far reads), so it keeps the plain recipe. Stage 5b links the same preset with the Arduino recipe and reports the result; a gap between the two is a warning, not a gate.
+# stage 4 と違いここでは ${AVR_LTO[@]} を付けない: この stage は下のゲートが比較する数値（MAX_MEGA_RAM_BYTES、near シンボルの窓、far 読み出し）を記録するので、素のレシピのままにする。stage 5b が同じプリセットを Arduino レシピでリンクして結果を報告し、両者の差はゲートではなく警告。
 mega_ok=0
 mega_build=(-mmcu="$MCU" -Os -std=gnu++17 -fno-exceptions
             -ffunction-sections -fdata-sections -Wl,--gc-sections -Werror=overflow
@@ -278,20 +274,20 @@ if [[ ${#mega_objs[@]} -gt 0 ]] && "$AVR_CC" "${mega_build[@]}" "${mega_objs[@]}
     mega_ram="$("$AVR_SIZE" "$OUT/mega.elf" | awk 'NR == 2 { print $2 + $3 }')"
     mega_tables_in_ram="$("$AVR_NM" -C "$OUT/mega.elf" 2>/dev/null \
         | awk '$2 ~ /^[dDbB]$/ && $NF ~ /(_POOL|_TABLE)$/ { n++ } END { print n + 0 }')"
-    # The preset must actually carry the DCX/CAMF tables on a 256 KB part.
+    # プリセットは 256 KB 品で実際に DCX/CAMF テーブルを有効にしていること。
     mega_tables="$("$AVR_NM" -C "$OUT/mega.elf" 2>/dev/null \
         | awk '$3 ~ /QZSS_DCX_/ && $3 ~ /(_POOL|_TABLE)$/ { n++ } END { print n + 0 }')"
-    # Far Flash addressing must be in use: without RAMPZ/elpm the tables above 64 KB (138 of 195 symbols in the all-category build) would be unreadable.
+    # far Flash アドレッシングが使われていること: RAMPZ/elpm がなければ 64 KB 超のテーブル（全カテゴリビルドで 195 シンボル中 138）は読めない。
     mega_far_ops="$("$AVR_OBJDUMP" -d "$OUT/mega.elf" 2>/dev/null \
         | grep -c -e 'elpm' -e 'out.*0x3b')"
-    # The `*(.progmem.*)` cluster at the front of .text is the one spot a large image pushes past 0xFFFF, and every table read through a 16-bit Flash pointer lives there: the CRC24Q nibbles (crc24q's pgm_read_byte) and the radius/B4 tables (AZARAC_PROGMEM_NEAR). One of them above the window decodes garbage in silence — a wrong CRC rejects every frame without a word — so the highest address among them is gated.
-    # avr-nm pads addresses to one width for the whole file (8 hex digits here), so the string compare below is a numeric one; $NF because a demangled name in an anonymous namespace spans extra fields.
+    # .text 先頭の `*(.progmem.*)` クラスタが、大きなイメージで 0xFFFF を越える唯一の場所で、16 ビット Flash ポインタで読むテーブルはすべてそこに住む: CRC24Q のニブル（crc24q の pgm_read_byte）と radius/B4 テーブル（AZARAC_PROGMEM_NEAR）。どれか 1 つでも窓を越えると黙ってゴミをデコードする — CRC が違えば全フレームを無言で捨てる — ので、その中の最大アドレスをゲートする。
+    # avr-nm はファイル全体で 1 つの幅にアドレスを揃える（ここでは 8 桁の 16 進）ので、下の文字列比較は数値比較になる。$NF なのは、無名名前空間の demangle 名が余分なフィールドを持つため。
     near_sym_addr="$("$AVR_NM" -C "$OUT/mega.elf" 2>/dev/null \
         | awk 'NF >= 3 && $NF ~ /(CRC24Q_T4B[0-2]|RADIUS_TABLE|B4_LAYOUT_TABLE)$/ && $1 > m { m = $1 } END { print m }')"
 
-    # What the core pays for our tables. core.a is linked last, so its own PROGMEM (digital_pin_to_port_PGM …) lands after every progmem-cluster input section — after ours.
-    # Above 0xFFFF the core's 16-bit `pgm_read_byte(&digital_pin_to_port_PGM[pin])` cannot reach it and pinMode/digitalWrite read the wrong port, which is why AZARAC_PROGMEM moves the tables to the .text.azaraC.* cluster on parts with more than 64 KiB of Flash.
-    # See test/bench/avr/core_progmem.c.
+    # コアが我々のテーブルに対して払うもの。core.a は最後にリンクされるので、コア自身の PROGMEM（digital_pin_to_port_PGM …）は progmem クラスタの全入力セクションより後 — 我々の後 — に置かれる。
+    # 0xFFFF を越えるとコアの 16 ビット `pgm_read_byte(&digital_pin_to_port_PGM[pin])` は届かず、pinMode/digitalWrite が誤ったポートを読む。64 KiB 超の Flash を持つ品で AZARAC_PROGMEM がテーブルを .text.azaraC.* クラスタへ移すのはこのため。
+    # test/bench/avr/core_progmem.c を参照。
     core_build=(-mmcu="$MCU" -Os -std=gnu11 -fno-exceptions
                 -ffunction-sections -fdata-sections)
     if "$AVR_CC" "${core_build[@]}" -c "$BENCH/core_progmem.c" -o "$OUT/obj_mega_core.o" \
@@ -310,12 +306,12 @@ echo "METRIC MEGA_COMPILE_OK=$mega_ok"
 [[ -n "${mega_core_pgm:-}" ]] && echo "METRIC MEGA_CORE_PGM_ADDR=0x$mega_core_pgm"
 
 # --------------------------------------------------------------- stage 5b ---
-# The same preset under the recipe a sketch is actually built with: the Arduino AVR
-# core compiles and links with `-flto` (${AVR_LTO[@]}). This is the number the board
-# sees, so the image itself is gated below (it must link and fit the ATmega2560's SRAM).
-# It must also track the LTO-free stage-5 figure — the generator hoists the
-# switch-strategy literals to namespace scope so LTO keeps them in Flash, and a gap
-# means they fell back into .data.
+# スケッチが実際にビルドされるレシピでの同じプリセット: Arduino AVR
+# コアは `-flto`（${AVR_LTO[@]}）でコンパイル・リンクする。これがボードの見る
+# 数値なので、下でイメージ自体をゲートする（リンクでき ATmega2560 の SRAM に収まること）。
+# LTO なしの stage 5 の値も追従すること — ジェネレータは switch 方式の
+# リテラルを名前空間スコープに持ち上げて LTO でも Flash に残すので、差が
+# 出るのはそれらが .data に落ちたとき。
 mega_lto_ok=0
 mega_lto_build=(-mmcu="$MCU" -Os -std=gnu++17 -fno-exceptions "${AVR_LTO[@]}"
                 -ffunction-sections -fdata-sections -Wl,--gc-sections -Werror=overflow
@@ -343,10 +339,10 @@ echo "METRIC MEGA_LTO_COMPILE_OK=$mega_lto_ok"
 [[ -n "${mega_lto_flash:-}" ]] && echo "METRIC MEGA_LTO_FLASH_BYTES=$mega_lto_flash"
 [[ -n "${mega_lto_ram:-}" ]] && echo "METRIC MEGA_LTO_RAM_BYTES=$mega_lto_ram"
 
-# The probe exists to keep the decode + serialize path — and the definition tables it reads —
-# in the linked image. This is the check that it stayed there: if LTO ever drops them, the
-# flash numbers above stop meaning "what a sketch pays". avr-nm prints CRLF on Windows, so
-# the patterns are not anchored to the line end.
+# プローブは decode + serialize 経路 — そしてそれが読む定義テーブル — を
+# リンク済みイメージに残すために存在する。これがそれが残ったことの確認で、
+# LTO が落とすと上の flash 数値は「スケッチが払う額」を意味しなくなる。
+# avr-nm は Windows で CRLF を出すので、パターンは行末に固定しない。
 image_has_path() {  # $1 = elf
     "$AVR_NM" -C "$1" 2>/dev/null | awk '
         /Decoder::decode/ { d++ }
@@ -355,7 +351,7 @@ image_has_path() {  # $1 = elf
         END { exit !(d > 0 && s > 0 && t > 0) }'
 }
 
-# gates
+# ゲート
 status=0
 
 if [[ -n "${cross_checked:-}" ]] && [[ "$cross_checked" != "0" && "$cross_matched" != "$cross_checked" ]]; then
@@ -387,11 +383,10 @@ if [[ -n "${mega_ram:-}" ]] && (( mega_ram > MAX_MEGA_RAM_BYTES )); then
     status=15
 fi
 
-# Stage 5b's image is the one a Mega sketch really gets (the core applies -flto), so it is
-# gated: it must link, and it must fit the part. The gap to the LTO-free figure is warned
-# about rather than gated — it matches while every generated literal survives LTO (the
-# generator emits the switch-strategy literals at namespace scope for exactly that reason),
-# and the gap itself depends on the toolchain.
+# stage 5b のイメージは Mega スケッチが実際に受け取るもの（コアが -flto を付ける）なので、
+# ゲートする: リンクでき、品に収まること。LTO なしの値との差はゲートせず警告に留める
+# — 生成リテラルがすべて LTO を生き残る間は一致し（ジェネレータが switch 方式の
+# リテラルを名前空間スコープに出すのはまさにそのため）、差自体がツールチェーン依存だから。
 if (( mega_lto_ok == 0 )); then
     echo "autoresearch: the DCX/CAMF configuration no longer builds with the Arduino recipe (-flto)" >&2
     status=16
@@ -405,8 +400,8 @@ if [[ -n "${mega_lto_ram:-}" && -n "${mega_ram:-}" ]] \
     echo "autoresearch: the Arduino recipe (-flto) makes the Mega image cost $mega_lto_ram B of SRAM against the LTO-free $mega_ram B — generated literals are landing in .data instead of Flash (not gated: the fix is the generator emitting namespace-scope literals)" >&2
 fi
 
-# The probe must still keep the decode + serialize path and the definition tables in every
-# linked image; otherwise the flash numbers above measure an image a sketch never runs.
+# プローブはリンク済みの各イメージで decode + serialize 経路と定義テーブルを
+# 保持し続けなければならない。でなければ上の flash 数値はスケッチが決して走らせないイメージを測っている。
 for img in "$OUT/uno.elf" "$OUT/mega.elf" "$OUT/mega_lto.elf"; do
     if [[ -f "$img" ]] && ! image_has_path "$img"; then
         echo "autoresearch: $(basename "$img") lost the decode path, the serializer or the definition tables — its flash number no longer reflects a sketch" >&2
@@ -435,7 +430,7 @@ else
         echo "autoresearch: the Mega image uses no far Flash reads (elpm/RAMPZ) — tables above 64 KB would garble" >&2
         status=12
     }
-    # The tables must not sit in the low-progmem cluster: they would push the core's own PROGMEM past the 16-bit window the core reads it through.
+    # テーブルは低アドレスの progmem クラスタに置いてはいけない: コア自身の PROGMEM を、コアが読む 16 ビット窓の外へ押し出してしまう。
     if [[ -z "${mega_core_pgm:-}" ]]; then
         echo "autoresearch: the core PROGMEM stand-in did not link — placement is unverified" >&2
         status=13
@@ -443,7 +438,7 @@ else
         echo "autoresearch: the core's PROGMEM landed at 0x$mega_core_pgm, past the 16-bit progmem window — pinMode/digitalWrite would read the wrong port" >&2
         status=13
     fi
-    # Same window, our own side: every AZARAC_PROGMEM_NEAR table is read through 16-bit `pgm_read_*`.
+    # 同じ窓を我々の側でも: AZARAC_PROGMEM_NEAR の各テーブルは 16 ビットの `pgm_read_*` で読む。
     if [[ -z "${near_sym_addr:-}" ]]; then
         echo "autoresearch: none of the near-Flash tables (CRC24Q_T4B0-2, RADIUS_TABLE, B4_LAYOUT_TABLE) are in the Mega link — the symbols were renamed or moved to another section" >&2
         status=13

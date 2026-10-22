@@ -1,6 +1,6 @@
 #pragma once
-// Minimal Arduino shim for the host-side ARDUINO>=1 / __AVR__ test of internal/TimeFields.h.
-// Only the symbols that TimeFields.h needs are provided; see test/stub_arduino/avr/io.h.
+// internal/TimeFields.h の host 側 ARDUINO>=1 / __AVR__ テスト用の最小 Arduino シム。
+// TimeFields.h が必要とするシンボルだけを提供する。test/stub_arduino/avr/io.h を参照。
 #include <stdint.h>
 #include <avr/io.h>
 

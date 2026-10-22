@@ -1,7 +1,7 @@
 #pragma once
 // Nankai Trough Earthquake multi-page aggregation buffer
 //
-// Pages write directly into aggregated_text[] at (page_num-1)*TEXT_PER_PAGE; a 64-bit bitmap tracks received pages — no PageData array (saves ~1KB at MAX_PAGES=63), no sorting, O(1) dedup. total_pages > MAX_PAGES truncates.
+// ページは aggregated_text[] の (page_num-1)*TEXT_PER_PAGE へ直接書き、受信済みページは 64 bit の bitmap で管理する — PageData 配列を持たず（MAX_PAGES=63 で約 1 KB 節約）、ソートもせず、重複判定は O(1)。total_pages > MAX_PAGES なら打ち切る。
 
 #if defined(__AVR__)
 #include "avr_std/cstdint"
@@ -18,9 +18,9 @@
 namespace azaraC {
 namespace internal {
 
-// Event key. svid は除外（複数衛星が同一電文を中継するため重複する）。
-// Identity = {info_code, information_type, raw report_time DHM}。
-// DHM は正規化前の生プロトコルビット（NankaiData::report_*）: Mt43Data::event_time は resolveTime() が 2/30→3/1 を書き換え月 0 を補完するため、report_unix の有無でハッシュが割れ1事象が複数バッファに分かれる。
+// 事象の鍵。svid は除外（複数衛星が同一電文を中継するため重複する）。
+// identity = {info_code, information_type, 生の report_time DHM}。
+// DHM は正規化前の生プロトコルビット（NankaiData::report_*）: Mt43Data::event_time は resolveTime() が 2/30→3/1 を書き換え、月 0 を補完するため、report_unix の有無でハッシュが割れ、1 事象が複数バッファに分かれる。
 // information_type（It: 0=発表 / 2=取消）も鍵に必要（無いと発表と取消が同じ Pn を先着優先で潰し合い文面が混ざる）。
 // dedup 側も同じ 6 フィールドを使う（Dedup.h dedupEventToken）。
 struct NankaiPageKey {
@@ -61,8 +61,8 @@ struct NankaiPageKey {
 // 6 バイト（パディングなし）を固定する: 鍵はページ受信のたびにコピーされ、バッファごとに 1 個常駐する。
 static_assert(sizeof(NankaiPageKey) == 6, "NankaiPageKey must stay 6 bytes");
 
-// Page aggregation buffer for a single event.
-// Truncation: total_pages > MAX_PAGES なら pages 1..MAX_PAGES を残して truncated を立て、残りは静かに破棄する。
+// 1 事象分のページ集約バッファ。
+// 打ち切り: total_pages > MAX_PAGES なら pages 1..MAX_PAGES を残して truncated を立て、残りは静かに破棄する。
 // ページ数上限・バッファ数は azaraC_config.h の AZARAC_NANKAI_MAX_PAGES / AZARAC_NANKAI_BUFFERS が唯一の定義元（範囲は spec の Pn/Pm: 1-63, 6bit）。
 
 // MAX_PAGES は 64-bit bitmap に収まる 63 まで（spec の Pn/Pm 上限）
@@ -89,7 +89,7 @@ struct NankaiPageBuffer {
         clearAll();
     }
 
-    // Add a page (page_num 1-based, total_pages_in from Pm, text_data 18 bytes); true if added.
+    // ページを追加する（page_num は 1 始まり、total_pages_in は Pm 由来、text_data は 18 バイト）。追加できたら true。
     bool addPage(uint8_t page_num, uint8_t total_pages_in, const uint8_t* text_data, uint64_t current_ms) {
         // Pn は 1-63 (spec)
         if (page_num == 0 || page_num > SPEC_MAX_PAGES) {
@@ -139,7 +139,7 @@ struct NankaiPageBuffer {
         return received_count >= total_pages;
     }
 
-    // Text length excluding NUL; stops at the first 0x00 per page (UTF-8 has no NUL). Safe on incomplete buffers (only received pages are read).
+    // NUL を除いたテキスト長。ページごとに最初の 0x00 で止まる（UTF-8 に NUL は無い）。未完成のバッファでも安全（受信済みページしか読まない）。
     uint16_t getTextLength() const {
         uint16_t len = 0;
 
@@ -158,8 +158,8 @@ struct NankaiPageBuffer {
     }
 
     // Compact received pages into a contiguous C string (call only when complete).
-    // Non-final pages may be short (NUL hole) — serialize emits [ptr, ptr+len) contiguously, so holes would leak NULs.
-    // In-place is safe: w <= p*TEXT_PER_PAGE, and writes never reach past the next source page.
+    // 最終ページ以外は短いことがある（NUL の穴）— serialize は [ptr, ptr+len) を連続で出力するので、穴があると NUL が漏れる。
+    // その場での圧縮は安全: 常に w <= p*TEXT_PER_PAGE で、書き込みが次のソースページに達することはない。
     uint16_t compactText() {
         uint16_t w = 0;
         for (uint8_t p = 0; p < total_pages; ++p) {
@@ -211,7 +211,7 @@ private:
     }
 };
 
-// Manages multiple page buffers with bitmap tracking + LRU eviction; buffer count = AZARAC_NANKAI_BUFFERS (azaraC_config.h).
+// 複数のページバッファを bitmap 追跡 + LRU 追い出しで管理する。バッファ数 = AZARAC_NANKAI_BUFFERS（azaraC_config.h）。
 
 static_assert(AZARAC_NANKAI_BUFFERS > 0 && AZARAC_NANKAI_BUFFERS <= 32,
               "AZARAC_NANKAI_BUFFERS must be in range 1-32");

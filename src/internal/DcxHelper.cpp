@@ -34,7 +34,7 @@ int32_t decodeLongitude17_45_225(uint32_t code) {
     );
 }
 
-// Radius decoding (5-bit code): IS-QZSS-DCX-003 Table 4.2-17 / 4.2-18 Radius[m] = 10^(log10(216.20) + a * (log10(2500000) - log10(216.20)) / 31)
+// 半径の復号（5 bit コード）: IS-QZSS-DCX-003 Table 4.2-17 / 4.2-18、Radius[m] = 10^(log10(216.20) + a * (log10(2500000) - log10(216.20)) / 31)
 // Flash に置く: avr-libc のリンカスクリプトは .rodata を .data（SRAM）へ含めるので、属性の無い const 配列はそのまま SRAM を食う（実測 128 B）。
 static const int32_t RADIUS_TABLE[32] AZARAC_PROGMEM_NEAR = {
         216,
@@ -99,13 +99,13 @@ int32_t decodeAzimuth7(uint8_t code) {
 uint8_t decodePrefectureBitmask(uint64_t ex9, uint8_t* out_positions) {
     uint8_t count = 0;
 
-    // EX8=0: prefecture = ex9[63:17] (stream bits 147..193); ex9[16:0] (bits 194..210) reserved.
+    // EX8=0: prefecture = ex9[63:17]（ストリーム bit 147..193）、ex9[16:0]（bit 194..210）は Reserved。
 
     uint64_t pref = ex9 >> 17;
 
     for (uint8_t i = 0; i < 47; ++i) {
         if (pref & (1ULL << i)) {
-            // i+1 = JIS code
+            // i+1 = JIS コード
             out_positions[count++] = i + 1;
         }
     }
@@ -116,7 +116,7 @@ uint8_t decodePrefectureBitmask(uint64_t ex9, uint8_t* out_positions) {
 uint8_t decodeCityCodeList(uint64_t ex9, uint16_t* out_codes) {
     uint8_t count = 0;
 
-    // EX8=1: four 16-bit codes, LSB-first.
+    // EX8=1: 16 bit コードを 4 個、LSB 先頭。
 
     for (uint8_t i = 0; i < 4; ++i) {
         uint16_t code = static_cast<uint16_t>((ex9 >> (i * 16)) & 0xFFFF);
@@ -128,7 +128,7 @@ uint8_t decodeCityCodeList(uint64_t ex9, uint16_t* out_codes) {
     return count;
 }
 
-// B1 (A17=00) - Improved Resolution of Main Ellipse (EWSS CAMF v1.2 §3.7.1) A18 is MSB-first (a18[14] = spec bit 131): C1..C4 = spec 131-133/134-136/137-139/140-142 → a18[14:12]/[11:9]/[8:6]/[5:3] (3b each); a18[2:0] reserved.
+// B1 (A17=00) - Improved Resolution of Main Ellipse (EWSS CAMF v1.2 §3.7.1)。A18 は MSB 先頭（a18[14] = 仕様 bit 131）: C1..C4 = 仕様 131-133/134-136/137-139/140-142 → a18[14:12]/[11:9]/[8:6]/[5:3]（各 3b）、a18[2:0] は Reserved。
 
 B1Refinement decodeB1Refinement(uint16_t a18) {
     B1Refinement b1;
@@ -170,8 +170,8 @@ B2HazardCenter decodeB2HazardCenter(uint8_t c5, uint8_t c6) {
     B2HazardCenter r{};
     r.c5 = c5;
     r.c6 = c6;
-    // delta = -10 + 20 * code / 128 (microdegrees); code 64..127 rounds up (+1) so code 127 gives exactly +10,000,000.
-    // Matches the EWSS-CAMF v1.2 §3.7.2 C5/C6 table for all visible entries (e.g. 0 → -10°, 127 → +10°).
+    // delta = -10 + 20 * code / 128（マイクロ度）。code 64..127 は切り上げ（+1）するので code 127 でちょうど +10,000,000 になる。
+    // EWSS-CAMF v1.2 §3.7.2 の C5/C6 表と可視エントリすべてで一致する（例: 0 → -10°、127 → +10°）。
     if (c5 <= 63) r.delta_lat_microdeg = -10000000 + 156250 * c5;
     else          r.delta_lat_microdeg = -10000000 + 156250 * (c5 + 1);
     if (c6 <= 63) r.delta_lon_microdeg = -10000000 + 156250 * c6;
@@ -180,7 +180,7 @@ B2HazardCenter decodeB2HazardCenter(uint8_t c5, uint8_t c6) {
 }
 
 
-// B4 field layout: A4 hazard code → up to 4 D-field specs, ordered MSB→LSB within A18[15:0] per EWSS CAMF v1.2 §3.7.4 (d_idx=0xFF terminates).
+// B4 のフィールド配置: A4 のハザードコード → 最大 4 個の D フィールド仕様。EWSS CAMF v1.2 §3.7.4 に従い A18[15:0] 内で MSB→LSB の順（d_idx=0xFF で終端）。
 
 namespace {
 
@@ -200,7 +200,7 @@ struct HazardB4Layout {
 static_assert(sizeof(DFieldSpec) == 3, "DFieldSpec must stay padding-free");
 static_assert(sizeof(HazardB4Layout) == 13, "HazardB4Layout must stay padding-free");
 
-// Sorted by a4_code; linear scan over ~45 entries is fast enough.
+// a4_code 昇順。45 件程度なら線形走査で十分速い。
 static const HazardB4Layout B4_LAYOUT_TABLE[] AZARAC_PROGMEM_NEAR = {
     {4  , {{31,13,2}, {32,11,2}, {255,0,0}, {255,0,0}}},
     {5  , {{30,11,4}, {255,0,0}, {255,0,0}, {255,0,0}}},

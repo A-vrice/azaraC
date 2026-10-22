@@ -1,10 +1,9 @@
 #pragma once
-// HAND-MAINTAINED — NOT auto-generated. scripts/gen/gen_definitions.py lists this
-// table in SKIP_MODULES and preserves it in the _index.h extra_headers list; it is
-// never rewritten. The generator emits a single-key lookup per table, while CAMF A3
-// is keyed by (country, provider) and the caller needs std::optional, so the lookup
-// below is written by hand. Keep in sync by hand with azarashi's
-// qzss_dcx_camf_a3_provider_identifier (provenance: azarashi 0.17.1).
+// HAND-MAINTAINED（手書き）— 自動生成ではない。scripts/gen/gen_definitions.py はこの表を SKIP_MODULES に
+// 挙げ、_index.h の extra_headers リストでもそのまま保持するため、決して書き換えられない。
+// 生成器は表ごとに単一キーの引き当てを出力するが、CAMF A3 は (country, provider) を鍵とし、
+// 呼び出し側は std::optional を必要とするため、下の引き当ては手書きにしている。azarashi の
+// qzss_dcx_camf_a3_provider_identifier と手作業で同期させること（出所: azarashi 0.17.1）。
 #if defined(__AVR__)
 #include "../../internal/avr_std/cstdint"
 #else
@@ -30,7 +29,7 @@ namespace def {
 
 #if defined(__AVR__)
 
-// AVR: string pool + offset table stored in Flash (PROGMEM)
+// AVR: 文字列プール + オフセット表を Flash に置く（PROGMEM）
 static const char AZARAC_PROGMEM QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_POOL[] =
     "National Emergency Management Agency\0Bureau of Meteorology\0Australian Climate Service\0Geoscience Australia\0Commonwealth Scientific and Industrial Research Organisation\0Australian Bureau of Statistics\0Resilience New South Wales\0State Emergency Service New South Wales\0New South Wales Rural Fire Service\0Joint Australian Tsunami Warning Centre\0Flood Knowledge Centre\0Australian Broadcasting Corporation\0National Disaster Management Office\0Fiji Meteorological Service\0Hydrology Section, Fiji Water Authority\0Mineral Resources Department\0Fiji Broadcasting Corporation\0Foundation for MultiMedia Communications\0Fire and Disaster Management Agency\0Related Ministries\0Local Government\0Department of Disaster Prevention and Mitigation\0Thai Meteorological Department\0National Disaster Warning Center\0Department of Mineral Resources\0Navy Hydrographic Department, Royal Thai Navy\0Department of Water Resources\0Royal Irrigation Department\0Department of Pollution Control\0Geo-Informatics and Space Technology Development Agency\0Electricity Generating Authority of Thailand\0Royal Forest Department\0Department of Parks, Wildlife and Plant Conservation\0Water Crisis Prevention Center\0";
 

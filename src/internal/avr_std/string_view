@@ -2,7 +2,7 @@
 // azaraC - src/internal/avr_std/string_view
 // Minimal std::string_view shim for the Arduino AVR toolchain (no libstdc++).
 //
-// Only what azaraC uses: construction from (ptr, len) and C strings, data()/size()/empty(), operator[], begin()/end(), comparisons.
+// azaraC が使う範囲のみ: (ptr, len) と C 文字列からの構築、data()/size()/empty()、operator[]、begin()/end()、比較。
 // No exceptions (AVR has no runtime).
 
 #include <stddef.h>
@@ -57,7 +57,7 @@ private:
     const char* data_;
     size_type size_;
 
-    // constexpr strlen replacement (strlen is not usable in constexpr contexts); nullptr is handled by the caller.
+    // strlen の constexpr 代替（strlen は constexpr 文脈で使えない）。nullptr は呼び出し側で処理済み。
     static constexpr size_type cstrLen(const char* s) noexcept {
         size_type n = 0;
         while (s[n] != '\0') ++n;

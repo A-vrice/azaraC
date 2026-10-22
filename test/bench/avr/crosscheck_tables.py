@@ -1,32 +1,29 @@
 #!/usr/bin/env python3
-"""Cross-check the primary metric against avr-gcc itself (autoresearch.sh stage 3).
+"""主要指標を avr-gcc 自身と突き合わせる（autoresearch.sh stage 3）。
 
-stdin: `avr-nm --print-size --radix=d -C` output for the objects stage 3 built.
-argv[1]: the `NAME BYTES` detail file written by measure_tables.py.
+stdin: stage 3 がビルドしたオブジェクトに対する `avr-nm --print-size --radix=d -C` の出力。
+argv[1]: measure_tables.py が書く `NAME BYTES` の詳細ファイル。
 
-Every `*_POOL` / `*_TABLE` symbol avr-gcc actually placed must measure exactly
-what measure_tables.py parsed from the preprocessed source; otherwise the metric
-is measuring something other than what the compiler stores. This is what keeps
-the entry-struct layout model honest: if a compressed encoding changes the
-struct, the model and avr-gcc disagree and the run fails instead of quietly
-reporting a wrong number.
+avr-gcc が実際に配置した各 `*_POOL` / `*_TABLE` シンボルは、measure_tables.py が
+プリプロセス済みソースから解析した値と完全に一致すること。でなければ指標は
+コンパイラが格納するもの以外を測っている。これがエントリ構造体のレイアウトモデルを
+正しく保つ: 圧縮エンコーディングで構造体が変われば、モデルと avr-gcc が食い違い、
+誤った数値を黙って報告せずに実行が失敗する。
 
-Coverage is partial by construction: a table lives in the translation units that
-reference it, and one too large to compile is in no object at all — so the count
-is reported (the harness gates only on the ones that were checked).
-azaraC's own hand-written tables (HAND_WRITTEN_TABLES) share the `_TABLE` suffix so
-that the RAM gate in autoresearch.sh sees them; they are not parsed here and are
-excluded from the count.
+網羅性は構造上部分的: テーブルはそれを参照する翻訳単位に住み、コンパイルできない
+大きさのものはどのオブジェクトにもない — なので件数を報告する（ハーネスは検査した
+ものだけをゲートする）。
+azaraC 自身の手書きテーブル（HAND_WRITTEN_TABLES）は `_TABLE` 接尾辞を共有し、
+autoresearch.sh の RAM ゲートに見えるようにしている。ここでは解析せず、件数から除外する。
 """
 
 import sys
 
 SUFFIXES = ('_POOL', '_TABLE')
 
-# azaraC's own small Flash tables (internal/DcxHelper.cpp) follow the same name
-# convention as the generated definition tables so that the "not in RAM" gate picks
-# them up, but measure_tables.py does not parse them: they are hand-written, not
-# generated. Their placement is gated by MEGA_NEAR_SYM_ADDR instead.
+# azaraC 自身の小さな Flash テーブル（internal/DcxHelper.cpp）は、生成定義テーブルと
+# 同じ命名規約に従って「RAM にない」ゲートに拾われるようにしているが、measure_tables.py は
+# 解析しない: 生成物ではなく手書きだから。これらの配置は MEGA_NEAR_SYM_ADDR でゲートする。
 HAND_WRITTEN_TABLES = {'RADIUS_TABLE', 'B4_LAYOUT_TABLE'}
 
 
@@ -43,8 +40,8 @@ def main(pools_path: str) -> int:
         parts = line.split()
         if len(parts) < 4 or len(parts[2]) != 1 or not parts[2].isalpha():
             continue
-        # A demangled name in an anonymous namespace contains spaces, so the name is
-        # everything after the type field, not just parts[3].
+        # 無名名前空間の demangle 名は空白を含むので、名前は型フィールドより後ろ全部であり、
+        # parts[3] だけではない。
         name = ' '.join(parts[3:]).rsplit('::', 1)[-1]
         if name in HAND_WRITTEN_TABLES:
             continue

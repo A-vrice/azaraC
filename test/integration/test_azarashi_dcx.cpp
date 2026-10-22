@@ -11,7 +11,7 @@ using namespace azaraC;
 
 #if (AZARAC_ENABLE_DCX_CAMF)
 
-// Null Message
+// Null メッセージ
 
 TEST_CASE("DCX: Null Message") {
     Message msg{};
@@ -26,7 +26,7 @@ TEST_CASE("DCX: Null Message") {
     CHECK(mt44->is_null_message == true);
 }
 
-// Outside Japan — Fiji Tsunami
+// 日本国外 — フィジーの津波
 // azarashi: a2=71(Fiji), a4=44(GEO/Tsunami), a5=3(Extreme), vn=16
 
 TEST_CASE("DCX: Outside Japan - Fiji Tsunami") {
@@ -45,7 +45,7 @@ TEST_CASE("DCX: Outside Japan - Fiji Tsunami") {
     CHECK(mt44->ex_outside.vn == 16); // version 16
 }
 
-// L-Alert
+// LAlert
 // azarashi: a2=111(Japan), a3=1(Foundation for MultiMedia Communications), a4=1(CBRNE/Air strike), a5=0(Unknown), ex1=1101(札幌市中央区), vn=1
 
 TEST_CASE("DCX: L-Alert - CBRNE Air Strike") {
@@ -64,7 +64,7 @@ TEST_CASE("DCX: L-Alert - CBRNE Air Strike") {
     CHECK(mt44->ex_lalert_local.vn == 1);
 }
 
-// J-Alert
+// JAlert
 // azarashi: a2=111(Japan), a3=3(Related Ministries), a4=8(CBRNE/Missile attack), a5=3(Extreme), vn=1, ex9=全47都道府県
 
 TEST_CASE("DCX: J-Alert - Missile Attack") {
@@ -90,7 +90,7 @@ TEST_CASE("DCX: J-Alert - Missile Attack") {
     }
 }
 
-// Local Government a3 boundary (4..31): a3=4(min)/31(max) → LocalGovernment, a2=111(Japan), non-JAlert path locked in.
+// Local Government の a3 境界（4..31）: a3=4(最小)/31(最大) → LocalGovernment、a2=111(日本)、非 JAlert 経路を固定。
 
 namespace {
 Message decodeDcxHelper(uint8_t* bits) {
@@ -152,7 +152,7 @@ TEST_CASE("DCX: Local Government a3=31 (boundary max)") {
     CHECK(mt44->mt44_decoded.prefecture_count == 0);
 }
 
-// J-Alert a3 ∈ {0,2,3} — Non-null message
+// JAlert a3 ∈ {0,2,3} — 非 null メッセージ
 // a3=0(FDMA), 2(Cabinet Office), 3(FDMA) はいずれも JAlert に分岐 (IS-QZSS-DCX-003 §4.2.1.2, DecoderDcx.cpp:196) a2=111(Japan), a4=8(Missile attack) を設定し、NullMessage（全フィールドゼロ）判定を避ける
 
 TEST_CASE("DCX: J-Alert a3={0,2,3} (FDMA/Cabinet Office) - Non-null message") {

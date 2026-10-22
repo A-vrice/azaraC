@@ -16,7 +16,7 @@ namespace internal {
 //   [43..46]  reserved / sub-type start
 //   [214..219] version (6b) — must be 1
 // Sub-type layouts per IS-QZSS-DCR-017 §4.1.2.3.
-// Single authoritative category table: X(code, enable_macro, sub_decoder) drives the support check, the known-category classification and the dispatch.
+// 唯一の正となるカテゴリ表: X(code, enable_macro, sub_decoder) が対応判定・既知カテゴリ判定・ディスパッチを駆動する。
 // Change categories here only.
 #define AZARAC_DC_CATEGORIES(X) \
     X(1,  AZARAC_ENABLE_EEW,          decodeEEW)        \
@@ -38,7 +38,7 @@ bool Decoder::decodeQzqsm(const uint8_t* bits, Message& out, uint32_t report_uni
         return false;
     }
 
-    // Each guard is a constant (0/1), so a disabled category reads category_supported = false.
+    // 各ガードは定数 (0/1) なので、無効カテゴリでは category_supported = false になる。
     uint8_t dc_probe = getBits(bits, 17, 4);
     bool category_supported = false;
     bool decoded = false;
@@ -50,7 +50,7 @@ bool Decoder::decodeQzqsm(const uint8_t* bits, Message& out, uint32_t report_uni
         default: break;
     }
     if (!category_supported) {
-        // Recognized-but-disabled or unknown; the known check is guard-independent.
+        // 既知だが無効、または未知。既知判定はガードに依存しない。
         bool known = false;
         switch (dc_probe) {
 #define AZARAC_DC_KNOWN_CASE(code, enable, decoder) case code:
@@ -85,7 +85,7 @@ bool Decoder::decodeQzqsm(const uint8_t* bits, Message& out, uint32_t report_uni
     uint32_t event_unix = d->event_time.unix_time;
     uint32_t sub_base = (event_unix > 0) ? event_unix : report_unix;
 
-    // Dispatch via the same table; constant guards make disabled categories dead branches.
+    // 同じ表で振り分ける。ガードが定数なので無効カテゴリは到達しない枝になる。
     switch (dc_probe) {
 #define AZARAC_DC_DISPATCH_CASE(code, enable, decoder) \
         case code: \
@@ -134,7 +134,7 @@ void Decoder::decodeEEW(const uint8_t* b, Message& out, uint32_t report_unix) {
     eew->intensity_lower = getBits(b, 122, 4);
     eew->intensity_upper = getBits(b, 126, 4);
 
-    // EEW forecast regions: 80-bit bitmask at [130..209]; bit i set = region (i+1) alerted
+    // EEW 予報区: [130..209] の 80 bit ビットマップ。bit i が立っていれば区 (i+1) が対象
     eew->region_count = 0;
     for (uint8_t i = 0; i < 80 && eew->region_count < 80; ++i) {
         if (getBits(b, 130 + i, 1)) {
@@ -217,7 +217,7 @@ void Decoder::decodeNankai(const uint8_t* b, Message& out, uint32_t report_unix)
     nankai->report_day    = getBits(b, 25, 5);
     nankai->report_hour   = getBits(b, 30, 5);
     nankai->report_minute = getBits(b, 35, 6);
-    // text: 18 bytes = bits [57..200]
+    // text: 18 バイト = bit [57..200]
     for (uint8_t i = 0; i < 18; ++i)
         nankai->text[i] = getBits(b, 57 + i * 8, 8);
 }
@@ -242,7 +242,7 @@ void Decoder::decodeTsunami(const uint8_t* b, Message& out, uint32_t report_unix
     tsunami->count = 0;
     for (uint8_t i = 0; i < 5; ++i) {
         uint16_t off = 84 + i * 26;
-        // IS-QZSS-DCR-017 Figure 4.1.2-5, Table 4.1.2-21 — terminal decision by Pl only (Pl=0 ends the list):
+        // IS-QZSS-DCR-017 Figure 4.1.2-5, Table 4.1.2-21 — 終端判定は Pl のみ（Pl=0 でリスト終端）:
         //   Ta(12): Expected Tsunami Arrival Time
         //   Th(4):  Tsunami Height
         //   Pl(10): Tsunami Forecast Region (100–1000)
@@ -275,7 +275,7 @@ void Decoder::decodeNwPacTsu(const uint8_t* b, Message& out, uint32_t report_uni
     nw_pac->count = 0;
     for (uint8_t i = 0; i < 5; ++i) {
         uint16_t off = 56 + i * 28;
-        // IS-QZSS-DCR-017 Figure 4.1.2-6, Table 4.1.2-26 — terminal decision by Pl only (Pl=0 ends the list):
+        // IS-QZSS-DCR-017 Figure 4.1.2-6, Table 4.1.2-26 — 終端判定は Pl のみ（Pl=0 でリスト終端）:
         //   Ta(12): Expected Tsunami Arrival Time
         //   Th(9):  Tsunami Height (Table 4.1.2-27a)
         //   Pl(7):  Coastal Region (Table 4.1.2-28, 1–100)
@@ -387,7 +387,7 @@ void Decoder::decodeFlood(const uint8_t* b, Message& out, uint32_t report_unix) 
     flood->count = 0;
     for (uint8_t i = 0; i < 3; ++i) {
         uint16_t off = 53 + i * 44;
-        // All 44 bits zero = no entry (Region1 Lv range 1-15, 0 = unused). Needs getBits64: 44 bits > 32.
+        // 44 bit すべて 0 ならエントリなし（Region1 Lv の範囲は 1-15 で、0 は未使用）。44 bit > 32 なので getBits64 を使う。
         if (getBits64(b, off, 44) == 0) break;
         flood->entries[flood->count].warning_level = getBits(b, off, 4);
         // 40-bit region code — read as two 20-bit halves

@@ -96,24 +96,24 @@ bool NmeaFramer::parse(Frame& out) {
     while (*p && ((*p >= '0' && *p <= '9') || (*p >= 'A' && *p <= 'F') || (*p >= 'a' && *p <= 'f'))) {
         if (hex_count >= 64) return false;
         uint8_t val = hexVal(*p++);
-        if (val == 0xFF) return false;      // defensive: loop filter already excludes this
+        if (val == 0xFF) return false;      // 保険: ループ条件で既に弾いている
         hex_count++;
-        if (byte_idx >= 32) continue;       // keep counting: hex_count still validates total length
+        if (byte_idx >= 32) continue;       // 数えるのは続ける: 総長の検証は hex_count が行う
         nibble = (nibble << 4) | val;
         if ((hex_count & 1) == 0) {
             out.bits[byte_idx++] = nibble;
             nibble = 0;
         }
     }
-    // QZSS L1S = 252 bits (250 data + 2-bit padding, spec Table 4.3.1-1) = 63 hex chars, but some receivers emit 64, so accept both.
-    // Trailing bytes before '*' (NUL-terminated by feed) are garbage -> reject.
+    // QZSS L1S = 252 bit（250 bit データ + 2 bit 詰め物、仕様 Table 4.3.1-1）= 63 hex 文字だが、64 文字で送る受信機もあるので両方受ける。
+    // '*' より前の余分なバイト（feed が NUL 終端済み）はゴミなので拒否する。
     if (hex_count != 63 && hex_count != 64) return false;
     if (*p != '\0') return false;
 
     if ((hex_count & 1) && byte_idx < 32) {
         out.bits[byte_idx++] = nibble << 4;
     }
-    // 64 hex chars (32 bytes): mask bits 252-255; bits 250-251 are spec-guaranteed 0
+    // 64 hex 文字（32 バイト）: bit 252-255 をマスクする。bit 250-251 は仕様上 0 が保証される
     if (hex_count >= 63) {
         out.bits[31] &= 0xC0;
     }

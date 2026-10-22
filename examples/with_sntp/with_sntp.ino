@@ -2,7 +2,7 @@
 //
 // Wi-Fi + SNTP で UNIX 時刻を取得し DCR/DCX の「年」を解決する例。すべてのメッセージを JSON で出力し、EEW と MT=44 DCX は詳細ログも出す。
 
-// (AZARAC_DEDUP_SLOTS: no override — the default is sized from 30 QZSS archive days; see src/azaraC_config.h.)
+// (AZARAC_DEDUP_SLOTS: 上書き不要 — 既定値は QZSS アーカイブ 30 日分から決めている。src/azaraC_config.h を参照。)
 #include <azaraC.h>
 #include <WiFi.h>
 #include <time.h>

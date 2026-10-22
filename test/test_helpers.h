@@ -180,7 +180,7 @@ inline std::string makeNmeaQzqsmHex(int num_hex_chars) {
 // テスト用デコーダー（protected関数を公開）
 
 struct TestDecoder : Decoder {
-    // One shared instance: the OOB flag and getBits/getBits64 state must persist across calls
+    // 単一の共有インスタンス: OOB フラグと getBits/getBits64 の状態が呼び出しをまたいで残る必要がある
     static TestDecoder& inst() {
         static TestDecoder t;
         return t;
@@ -204,19 +204,19 @@ struct TestDecoder : Decoder {
         return inst().oob_;
     }
 
-    // getBits64 is non-static: call through the instance
+    // getBits64 は非 static: インスタンス経由で呼ぶ
     static uint64_t extractBits64(const uint8_t* b, uint16_t s, uint8_t l) {
         return inst().getBits64(b, s, l);
     }
 
-    // extractDHM is non-static: call through the instance
+    // extractDHM は非 static: インスタンス経由で呼ぶ
     static TimeFields testExtractDHM(const uint8_t* b, uint16_t start, uint32_t report_unix = 0) {
         static TestDecoder t;
         t.oob_ = false;
         return t.extractDHM(b, start, report_unix);
     }
 
-    // readNotifications is non-static: call through the instance
+    // readNotifications は非 static: インスタンス経由で呼ぶ
     static uint8_t testReadNotifications(const uint8_t* b, uint16_t start, uint16_t* out) {
         static TestDecoder t;
         return t.readNotifications(b, start, out);
@@ -230,7 +230,7 @@ struct TestDecoder : Decoder {
     }
 #endif
 
-    // protected static in the base class: callable directly
+    // 基底クラスで protected static: 直接呼べる
     static TimeFields testResolveArrivalTime(uint16_t raw, uint32_t base_unix) {
         return resolveArrivalTime(raw, base_unix);
     }

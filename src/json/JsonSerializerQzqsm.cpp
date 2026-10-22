@@ -53,13 +53,13 @@ static void writeHeightBounds(Print& out, uint16_t code, bool nwpac) {
     }
     // どちらの呼び出し元でも後ろに region が続くので、常にカンマを打つ（last=false）。
     if (lower) wf_deg(out, AZARAC_KEY("height_lower"), 10, lower, /*last=*/false);
-    else       { wk(out, AZARAC_KEY("height_lower")); out.print("null"); writeChar(out, ','); }
+    else       { wk(out, AZARAC_KEY("height_lower")); writeRaw(out, AZARAC_KEY("null")); writeChar(out, ','); }
     if (upper) wf_deg(out, AZARAC_KEY("height_upper"), 10, upper, /*last=*/false);
-    else       { wk(out, AZARAC_KEY("height_upper")); out.print("null"); writeChar(out, ','); }
+    else       { wk(out, AZARAC_KEY("height_upper")); writeRaw(out, AZARAC_KEY("null")); writeChar(out, ','); }
 }
 #endif  // AZARAC_ENABLE_TSUNAMI || AZARAC_ENABLE_NW_PAC_TSUNAMI
 
-// MT=43 sub-type serializers (each ends by writing its last field with last=true)
+// MT=43 サブタイプのシリアライザ（いずれも最後のフィールドを last=true で書いて終わる）
 
 #if (AZARAC_ENABLE_EEW)
 bool serializeEEW(const Mt43Data* d, Print& out) {
@@ -85,7 +85,7 @@ bool serializeEEW(const Mt43Data* d, Print& out) {
         wf_s(out, AZARAC_KEY("label"), AZARAC_LOOKUP_LANG(qzss_dcr_jma_notification_on_disaster_prevention_lookup, qzss_dcr_jma_notification_on_disaster_prevention_en_lookup, code), /*last=*/true);
         out.print('}');
     }
-    out.print("],");
+    writeRaw(out, AZARAC_KEY("],"));
     writeDHM(out, AZARAC_KEY("quake_time"), eew->quake_time);
     wf_u(out, AZARAC_KEY("depth"), eew->depth);
     AZARAC_LABEL(out, "depth_label",
@@ -151,7 +151,7 @@ bool serializeHypocenter(const Mt43Data* d, Print& out) {
         wf_s(out, AZARAC_KEY("label"), AZARAC_LOOKUP_LANG(qzss_dcr_jma_notification_on_disaster_prevention_lookup, qzss_dcr_jma_notification_on_disaster_prevention_en_lookup, code), /*last=*/true);
         out.print('}');
     }
-    out.print("],");
+    writeRaw(out, AZARAC_KEY("],"));
     writeLatLon(out, AZARAC_KEY("coords"), hypo->coords, /*last=*/true);
     return true;
 }
@@ -195,7 +195,7 @@ bool serializeNankai(const Mt43Data* d, Print& out) {
     wf_s(out, AZARAC_KEY("info_code_label"),
         qzss_dcr_jma_information_serial_code_lookup(nankai->info_code));
     
-    // Aggregated text if available, else per-page info + hex
+    // 集約済みテキストがあればそれ、なければページ単位の情報 + hex
     if (nankai->is_aggregated && nankai->aggregated_len > 0) {
         wf_u(out, AZARAC_KEY("truncated"), nankai->truncated ? 1u : 0u);
         wf_u(out, AZARAC_KEY("page"), nankai->page);
@@ -237,7 +237,7 @@ bool serializeTsunami(const Mt43Data* d, Print& out) {
         wf_u(out, AZARAC_KEY("arrival_time_raw"), raw);
         if (st.p) {
             wf_s(out, AZARAC_KEY("arrival_status"), st);
-            wk(out, AZARAC_KEY("arrival_time")); out.print("null"); writeChar(out, ',');
+            wk(out, AZARAC_KEY("arrival_time")); writeRaw(out, AZARAC_KEY("null")); writeChar(out, ',');
         } else {
             writeDHM(out, AZARAC_KEY("arrival_time"), e.arrival_time);
         }
@@ -276,7 +276,7 @@ bool serializeNwPacTsu(const Mt43Data* d, Print& out) {
         wf_u(out, AZARAC_KEY("arrival_time_raw"), raw);
         if (st.p) {
             wf_s(out, AZARAC_KEY("arrival_status"), st);
-            wk(out, AZARAC_KEY("arrival_time")); out.print("null"); writeChar(out, ',');
+            wk(out, AZARAC_KEY("arrival_time")); writeRaw(out, AZARAC_KEY("null")); writeChar(out, ',');
         } else {
             writeDHM(out, AZARAC_KEY("arrival_time"), e.arrival_time);
         }

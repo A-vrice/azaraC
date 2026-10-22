@@ -414,7 +414,7 @@ TEST_CASE("b1RefinedLongitudeOffset: 計算値検証") {
 
 TEST_CASE("b1RefinedRadiusM: 計算値検証 (EWSS CAMF v1.1 §3.7.1.3/4)") {
     // Returns meters. 実装は四捨五入: base - (delta*code + 4) / 8
-    // delta: a14_code=0 → decodeRadiusCode(0) = 216, a14_code=1 → 292 - 216 = 76, a14_code=3 → 535 - 395 = 140
+    // delta: a14_code=0 → decodeRadiusCode(0) = 216、a14_code=1 → 292 - 216 = 76、a14_code=3 → 535 - 395 = 140
     CHECK(azaraC::internal::b1RefinedRadiusM(0, 216, 0) == 216);
     CHECK(azaraC::internal::b1RefinedRadiusM(4, 216, 0) == 108);
     CHECK(azaraC::internal::b1RefinedRadiusM(7, 216, 0) == 27);
@@ -513,7 +513,7 @@ TEST_CASE("DCX B2: ハザード中心オフセットが主楕円座標に反映�
     setBits(bits, 123, 6, 32);
 
     setBits(bits, 129, 2, 1);
-    // MSB-first: C5=a18[14:8], C6=a18[7:1]
+    // MSB ファースト: C5=a18[14:8]、C6=a18[7:1]
     uint16_t a18_b2 = ((63u & 0x7Fu) << 8) | ((63u & 0x7Fu) << 1);
     setBits(bits, 131, 15, a18_b2);
 
@@ -569,7 +569,7 @@ TEST_CASE("DCX B3: 副楕円パラメータが camf に反映される") {
     setBits(bits, 118, 5, 8);
     setBits(bits, 123, 6, 32);
 
-    // MSB-first: C7=a18[14:13], C8=a18[12:10], C9=a18[9:5], C10=a18[4:0]
+    // MSB ファースト: C7=a18[14:13]、C8=a18[12:10]、C9=a18[9:5]、C10=a18[4:0]
     uint16_t a18_b3 = ((3u & 0x03u) << 13) | ((7u & 0x07u) << 10) | ((31u & 0x1Fu) << 5) | (0u & 0x1Fu);
     setBits(bits, 129, 2, 2);
     setBits(bits, 131, 15, a18_b3);

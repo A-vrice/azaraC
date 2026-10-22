@@ -1,29 +1,25 @@
 #!/usr/bin/env python3
-"""Gate: the shared label buffer must hold the longest label a build can return.
+"""ゲート: 共有ラベルバッファが、ビルドが返し得る最長ラベルを保持できること。
 
-`AZARAC_FLASH_BUF_SIZE` is selected from the enabled categories in
-src/azaraC_config.h, but the labels live in tables that are enabled by
-*independent* guard macros (src/definition/*.h). When a category whose longest
-label is bigger than the buffer it selects is turned on, `azarac_pgm_view` clamps
-the copy at `AZARAC_FLASH_BUF_SIZE - 1` (internal/FlashString.h) and the label is
-silently truncated — the cut lands mid-UTF-8, so JSON output carries a mangled
-label instead of an error. The AVR presets never hit it (SEISMIC/TSUNAMI labels
-are 45 B at most) but any other category enabled with `-D` does, which is the
-documented way to configure this library.
+`AZARAC_FLASH_BUF_SIZE` は src/azaraC_config.h で有効なカテゴリから選ばれるが、
+ラベルは *独立した* ガードマクロ（src/definition/*.h）で有効になるテーブルにある。
+最長ラベルがそのバッファより大きいカテゴリを有効にすると、`azarac_pgm_view` は
+コピーを `AZARAC_FLASH_BUF_SIZE - 1` で打ち切り（internal/FlashString.h）、ラベルは
+黙って切り詰められる — 切れ目は UTF-8 の途中に落ちるので、JSON 出力はエラーではなく
+壊れたラベルを載せる。AVR プリセットでは起きない（SEISMIC/TSUNAMI のラベルは最大 45 B）
+が、`-D` で有効にした他のカテゴリでは起きる。`-D` が文書化された設定方法だからだ。
 
-What this checks, for every combination of category flags, both languages and
-both shipped presets (Uno/atmega328p and Mega/atmega2560):
+カテゴリフラグの全組み合わせ・両言語・出荷する 2 プリセット（Uno/atmega328p と
+Mega/atmega2560）について次を検査する:
 
-    AZARAC_FLASH_BUF_SIZE - 1  >=  longest label of every enabled table
+    AZARAC_FLASH_BUF_SIZE - 1  >=  有効な全テーブルの最長ラベル
 
-The tables come from the generated headers (the uncompressed host branch of each
-guard block is the label set the AVR side reproduces), the ladder from the
-`#if`/`#elif` chain in azaraC_config.h. A handful of configurations are
-cross-checked against the real AVR preprocessor so the ladder parser cannot
-drift from the macro.
+テーブルは生成ヘッダから取る（各ガードブロックの非圧縮 host 分岐が、AVR 側が再現する
+ラベル集合）。サイズ連鎖は azaraC_config.h の `#if`/`#elif` 連鎖から読む。いくつかの
+設定は実 AVR プリプロセッサと突き合わせ、連鎖パーサがマクロからずれないようにする。
 
-Run: python test/bench/avr/check_flash_buf.py [--avr-gcc avr-gcc] [--quiet]
-Exit: 0 = every configuration fits, 1 = at least one truncates, 2 = usage/setup.
+実行: python test/bench/avr/check_flash_buf.py [--avr-gcc avr-gcc] [--quiet]
+終了: 0 = 全設定が収まる、1 = 少なくとも 1 つが切り詰める、2 = 使用方法/準備の誤り。
 """
 
 import argparse
@@ -37,7 +33,7 @@ CATEGORIES = (
     "EEW", "HYPOCENTER", "SEISMIC", "NANKAI", "TSUNAMI", "NW_PAC_TSUNAMI",
     "VOLCANO", "ASH_FALL", "WEATHER", "FLOOD", "TYPHOON", "MARINE", "DCX_CAMF",
 )
-# Flags a user may set; the ones the AVR preset fixes are handled separately.
+# ユーザーが設定できるフラグ。AVR プリセットが固定するものは別途扱う。
 TUNABLE = [c for c in CATEGORIES if c not in ("SEISMIC", "TSUNAMI")]
 
 # test/bench/avr/check_flash_buf.py -> repository root
@@ -50,7 +46,7 @@ GUARD = re.compile(r'#\s*if\s+(.*)')
 
 
 def unescape(text):
-    """Bytes of a C string literal's body (UTF-8 stays byte-for-byte)."""
+    """C 文字列リテラル本体のバイト列（UTF-8 はバイト単位でそのまま）。"""
     try:
         return text.encode("utf-8").decode("unicode_escape").encode("latin-1")
     except (UnicodeDecodeError, UnicodeEncodeError):
@@ -58,7 +54,7 @@ def unescape(text):
 
 
 def parse_condition(expr):
-    """(categories, language) for a generated guard: '(A || B) && (AZARAC_LANG_JA)'."""
+    """生成ガードの (categories, language)。例: '(A || B) && (AZARAC_LANG_JA)'。"""
     cats = frozenset(re.findall(r'AZARAC_ENABLE_(\w+)', expr))
     lang = None
     if "AZARAC_LANG_EN" in expr:
@@ -69,26 +65,25 @@ def parse_condition(expr):
 
 
 def scan_tables():
-    """Longest label per guard condition: {(frames, languages): (bytes, file)}.
+    """ガード条件ごとの最長ラベル: {(frames, languages): (bytes, file)}。
 
-    `frames` holds one frozenset of categories per open `#if`. A guard groups
-    categories with OR inside a frame (`(A || B) && (LANG_JA)`) and ANDs the
-    frames, so the groups stay separate: merging them would demand every
-    category of an OR group and skip the tables a one-of-them build selects.
+    `frames` は開いている `#if` ごとに 1 つのカテゴリ frozenset を持つ。ガードは
+    フレーム内でカテゴリを OR でまとめ（`(A || B) && (LANG_JA)`）、フレーム同士を
+    AND で繋ぐので、OR の組は分けたままにする: まとめてしまうと OR 組の全カテゴリを
+    要求し、どれか 1 つで有効になるテーブルを取りこぼす。
 
-    One entry per label would be re-scanned for every configuration; only the
-    longest per condition can matter, and the conditions are few, so they are
-    folded here instead.
+    ラベルごとに 1 エントリ持つと設定のたびに再走査になるが、効き得るのは条件ごとの
+    最長だけであり条件も少ないので、ここで畳み込む。
     """
     out = {}
-    # Walk (not listdir): hand-written tables live in definition/manual/, and they
-    # return labels through the same shared buffer, so they must be scanned too.
+    # listdir でなく os.walk: 手書きテーブルは definition/manual/ にあり、同じ共有
+    # バッファ経由でラベルを返すので、これらも走査対象にする。
     paths = []
     for root, _dirs, files in os.walk(DEFS):
         paths.extend(os.path.join(root, f) for f in files if f.endswith(".h"))
     for path in sorted(paths):
         name = os.path.relpath(path, DEFS).replace(os.sep, "/")
-        stack = []  # [(categories, language)], one entry per open #if
+        stack = []  # [(categories, language)]、開いている #if ごとに 1 エントリ
         for line in open(path, encoding="utf-8"):
             stripped = line.lstrip()
             if stripped.startswith("#if"):
@@ -99,14 +94,14 @@ def scan_tables():
                     stack.pop()
                 continue
             if stripped.startswith("#"):
-                continue  # #include "..." is not a label
+                continue  # #include "..." はラベルではない
             if '"' not in line:
                 continue
             frames = tuple(frozenset(c) for c, _ in stack)
             langs = tuple(l for _, l in stack if l)
             for body in LITERAL.findall(line):
                 if "\\0" in body:
-                    continue  # a NUL-separated pool, not one label
+                    continue  # NUL 区切りのプールであり、単一ラベルではない
                 data = unescape(body)
                 if not data:
                     continue
@@ -117,10 +112,10 @@ def scan_tables():
 
 
 def parse_ladder():
-    """[(categories, language|None, size)] from the AZARAC_FLASH_BUF_SIZE chain.
+    """AZARAC_FLASH_BUF_SIZE の連鎖から [(categories, language|None, size)] を返す。
 
-    The chain is ours (machine-sized, one branch per category group), so a plain
-    substitution is enough; `crosscheck_ladder` proves it against avr-gcc.
+    連鎖は自前のもの（機械的に大小比較でき、カテゴリ群ごとに 1 分岐）なので、
+    素直な置換で足りる。正しさは `crosscheck_ladder` が avr-gcc と突き合わせて示す。
     """
     text = open(CONFIG_H, encoding="utf-8").read()
     chain = re.search(r'#ifndef AZARAC_FLASH_BUF_SIZE\n(.*?)\n#endif', text, re.S)
@@ -142,7 +137,7 @@ def parse_ladder():
 
 
 def picks(chain, flags):
-    """Size the ladder selects for `flags` (a dict of category -> 0/1)."""
+    """`flags`（カテゴリ → 0/1 の dict）に対して連鎖が選ぶサイズ。"""
     for cats, lang, size in chain:
         if lang is not None and not flags.get("LANG_" + lang, True):
             continue
@@ -152,7 +147,7 @@ def picks(chain, flags):
 
 
 def needed(tables, flags):
-    """(bytes, file) of the longest label the configuration can return."""
+    """その設定が返し得る最長ラベルの (bytes, file)。"""
     worst = (0, "")
     for (frames, langs), (size, name) in tables.items():
         if any(l and not flags.get("LANG_" + l, True) for l in langs):
@@ -165,7 +160,7 @@ def needed(tables, flags):
 
 
 def crosscheck_ladder(chain, avr_gcc, configs):
-    """Compare the parsed ladder against avr-gcc -dM for a few configurations."""
+    """いくつかの設定について、解析した連鎖を avr-gcc -dM と比較する。"""
     bad = 0
     for mcu, flags in configs:
         args = [avr_gcc, "-E", "-dM", "-mmcu=" + mcu, "-I", os.path.join(REPO, "src"), "-x", "c++",
@@ -193,7 +188,7 @@ def crosscheck_ladder(chain, avr_gcc, configs):
 
 
 def configurations():
-    """Every preset + category combination, both languages, both shipped MCUs."""
+    """全プリセット + 全カテゴリの組み合わせ、両言語、出荷する 2 MCU。"""
     for mcu, large in (("atmega328p", 0), ("atmega2560", 1)):
         for lang_ja, lang_en in ((1, 0), (0, 1), (1, 1)):
             for combo in itertools.product((0, 1), repeat=len(TUNABLE)):

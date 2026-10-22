@@ -170,7 +170,7 @@ TEST_CASE("JSON DCX B4: detailed info fields") {
     CHECK(has(s, "\"d4_vector_length\":9,\"d4_vector_length_label\":\"30\""));
 }
 
-// B4 message (hazard code + A18 bit-field) as JSON.
+// B4 メッセージ（ハザードコード + A18 ビットフィールド）を JSON で。
 static std::string b4Json(uint8_t a4, uint16_t a18) {
     Message m{};
     m.svid = 193;
@@ -192,7 +192,7 @@ static std::string b4Json(uint8_t a4, uint16_t a18) {
 }
 
 TEST_CASE("JSON DCX B4: multi-field layouts emit the correct raw values") {
-    // Each A18 is assembled from the layout's (shift, width); a wrong mapping changes the emitted raw value. a4=64: D8(11,4) D9(8,3) D16(5,3) D11(2,3)
+    // 各 A18 はレイアウトの (shift, width) から組み立てる。対応が誤れば出力の生値が変わる。a4=64: D8(11,4) D9(8,3) D16(5,3) D11(2,3)
     {
         const std::string s = b4Json(64, (15u << 11) | (7u << 8) | (5u << 5) | (3u << 2));
         CHECK(has(s, "\"d8_wind_speed\":15"));
@@ -328,7 +328,7 @@ TEST_CASE("JSON DCX EX1 city codes with labels") {
     // City codes mode (EX8=1)
     mt44->ex_jalert.ex8 = 1;
     mt44->ex_jalert.vn = 1;
-    // known city code 1101 = "Chuo-ku, Sapporo-shi"
+    // 既知の市区町村コード 1101 = "Chuo-ku, Sapporo-shi"
     mt44->mt44_decoded.jalert_prefecture_mode = false;
     mt44->mt44_decoded.city_code_count = 1;
     mt44->mt44_decoded.city_codes[0] = 1101;
@@ -343,7 +343,7 @@ TEST_CASE("JSON DCX EX1 city codes with labels") {
     CHECK(s.find("\"cities\":[{\"code\":1101,\"label\":null}]") == std::string::npos);
     CHECK(s.find("city_codes") == std::string::npos);
     CHECK(s.find("city_labels") == std::string::npos);
-    // Regression: array close followed by a comma then ex_vn (was "]\"ex_vn\"" — invalid JSON)
+    // 回帰: array の閉じ括弧の後にカンマ、その後に ex_vn（以前は "]\"ex_vn\"" で不正 JSON）
     CHECK(s.find("],\"ex_vn\"") != std::string::npos);
     CHECK(s.find("]\"ex_vn\"") == std::string::npos);
 }

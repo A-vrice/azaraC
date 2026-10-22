@@ -1,7 +1,7 @@
 #pragma once
-// MT=43 (QZQSM/DCR) data structures and tagged union. Bit offsets derived from azarashi (IS-QZSS-DCR-017).
+// MT=43 (QZQSM/DCR) のデータ構造とタグ付き union。ビット位置は azarashi (IS-QZSS-DCR-017) 由来。
 //
-// CONTRACT: every payload type (EewData, …, MarineData) MUST stay trivially copyable/destructible (scalars, fixed arrays, POD only, no owning pointers), so copy/move/destroy reduce to memcpy / tag reset.
+// 規約: payload の全型（EewData … MarineData）は trivially copyable/destructible のまま維持すること（スカラ・固定長配列・POD のみ、所有ポインタ禁止）。それによりコピー/ムーブ/破棄は memcpy とタグのリセットで済む。
 
 #if defined(__AVR__)
 #include "internal/avr_std/cstdint"
@@ -106,7 +106,7 @@ struct SeismicData {
 
 #if AZARAC_ENABLE_NANKAI
 // Nankai Trough page aggregation.
-// LIFETIME: with is_aggregated, aggregated_text_ptr borrows the Parser's statically-held NankaiPageBuffer::aggregated_text[] and dies on the next feed()/reset() or on slot reuse (the buffer may then hold a different event) — caller MUST copy/serialize immediately (zero-copy: avoids up to AZARAC_NANKAI_MAX_PAGES*18 B per Message).
+// 生存期間: is_aggregated のとき aggregated_text_ptr は Parser が静的保持する NankaiPageBuffer::aggregated_text[] を借り、次の feed()/reset() またはスロット再利用で無効になる（その時バッファは別の事象を保持し得る）。呼び出し側は直ちにコピー/シリアライズすること（ゼロコピー: Message ごとに AZARAC_NANKAI_MAX_PAGES*18 B までのコピーを避ける）。
 struct NankaiData {
     uint8_t info_code;
     uint8_t text[18];

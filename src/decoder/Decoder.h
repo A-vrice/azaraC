@@ -34,10 +34,10 @@ protected:
     LatLon  extractLatLon(const uint8_t* buf, uint16_t start);
 
     // day(5)+hour(5)+min(6)=16 bit sub-field -> TimeFields
-    // report_unix: GPS/SNTP UNIX time; 0 = unresolved.
+    // report_unix: GPS/SNTP の UNIX 時刻。0 は未解決。
     TimeFields extractDHM(const uint8_t* buf, uint16_t start, uint32_t report_unix);
 
-    // Resolve using report_unix as baseline; if invalid (< 2000-01-01) unix_time = 0.
+    // report_unix を基準に解決する。無効（< 2000-01-01）なら unix_time = 0。
     static TimeFields resolveTime(uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint32_t report_unix);
 
     // Resolve 12-bit arrival time (day_offset:1, hour:5, min:6) into TimeFields
@@ -52,11 +52,11 @@ protected:
 
     bool decodeQzqsm(const uint8_t* bits, Message& out, uint32_t report_unix);
 
-    // OOB flag: set by getBits/getBits64 on reads outside the 256-bit frame. decode() clears it per call and fails when set.
+    // OOB フラグ: 256 bit のフレーム外を読むと getBits/getBits64 が立てる。decode() は呼び出しごとにクリアし、立っていれば失敗させる。
     bool oob_ = false;
 
-    // MT=43 JMA sub-decoders.
-    // Declarations are unconditional (guards on the definitions control code size); decodeQzqsm() dispatches via the shared AZARAC_DC_CATEGORIES table, so disabled categories are never called.
+    // MT=43 JMA サブデコーダ。
+    // 宣言は無条件（コードサイズを抑えるガードは定義側に置く）。decodeQzqsm() は共有の AZARAC_DC_CATEGORIES 表で振り分けるので、無効カテゴリは呼ばれない。
     void decodeEEW(const uint8_t* b, Message& out, uint32_t report_unix);
     void decodeHypocenter(const uint8_t* b, Message& out, uint32_t report_unix);
     void decodeSeismic(const uint8_t* b, Message& out, uint32_t report_unix);

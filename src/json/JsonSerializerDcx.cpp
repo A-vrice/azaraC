@@ -81,7 +81,7 @@ void serializeDcx(const Message& m, Print& out) {
     wf_s(out, AZARAC_KEY("a10_library_version_label"),
         qzss_dcx_camf_a10_library_version_lookup(d->camf.a10));
 
-    // A11 Guidance to react library (IS-QZSS-DCX-004 §4.2.3.9 Table 4.2-12 / EWSS CAMF v1.2 §3.5.3, §11): A11 は List A 5bit (a11 >> 5) と List B 5bit (a11 & 0x1F) の2コード。
+    // A11 対応動作ライブラリのガイダンス（IS-QZSS-DCX-004 §4.2.3.9 Table 4.2-12 / EWSS CAMF v1.2 §3.5.3, §11）。List A 5bit (a11 >> 5) と List B 5bit (a11 & 0x1F) の2コード。
     // 国際表 (A9=0) は両者を別々に引く。
     // 日本の表は 10bit を鍵にした結合表なので 1 本で足りる（List B は null）。
     wf_u(out, AZARAC_KEY("a11_guidance"), d->camf.a11);
@@ -182,7 +182,7 @@ void serializeDcx(const Message& m, Print& out) {
             beginDetailField();
             wf_v(out, name, value, lookup(static_cast<uint8_t>(value)), /*last=*/true);
         };
-        // All 36 D-fields go through writeDField; index [0]=D1 … [3]=D4, [4..35]=D5..D36
+        // 36 個の D フィールドはすべて writeDField を通す。添字 [0]=D1 … [3]=D4、[4..35]=D5..D36
         writeDField(AZARAC_KEY("d3_azimuth"),       b4.d_values[2], b4.d_present[2],
                     qzss_dcx_camf_d3_azimuth_from_centre_of_main_ellipse_to_epicentre_lookup);
         writeDField(AZARAC_KEY("d4_vector_length"), b4.d_values[3], b4.d_present[3],
@@ -234,7 +234,7 @@ void serializeDcx(const Message& m, Print& out) {
             qzss_dcx_ex1_target_area_code_ja_lookup,
             qzss_dcx_ex1_target_area_code_en_lookup, d->ex_lalert_local.ex1, false);
 
-        // Decoded target area code (main ellipse absent)
+        // 復号済みの対象地域コード（主楕円なしの場合）
         if (dec.target_area_code_present) {
             wf_u(out, AZARAC_KEY("target_area_code"), dec.target_area_code);
         }
@@ -273,7 +273,7 @@ void serializeDcx(const Message& m, Print& out) {
                     /*last=*/true);
                 out.print('}');
             }
-            out.print("],");
+            writeRaw(out, AZARAC_KEY("],"));
         } else {
             wk(out, AZARAC_KEY("cities")); out.print('[');
             for (uint8_t i = 0; i < dec.city_code_count; ++i) {
@@ -287,13 +287,13 @@ void serializeDcx(const Message& m, Print& out) {
                     /*last=*/true);
                 out.print('}');
             }
-            out.print("],");
+            writeRaw(out, AZARAC_KEY("],"));
         }
         wf_u(out, AZARAC_KEY("ex_vn"), d->ex_jalert.vn, /*last=*/true);
         out.print('}');
         writeChar(out, ',');
     } else if (d->ex_kind == ExtendedKind::OutsideJapan) {
-        // EX11 raw data (68 bits) as hex string
+        // EX11 の生データ（68 bit）を hex 文字列で
         wk(out, AZARAC_KEY("ex11_raw"));
         writeChar(out, '"');
         for (uint8_t i = 0; i < 8; ++i) {

@@ -1,3 +1,3 @@
 // test/bench/avr/tables.cpp
-// Preprocessed (never compiled) by autoresearch.sh to dump the AVR branch of every generated definition header: the AVR preprocessor selects the enabled tables, so measure_tables.py needs no model of the guard macros.
+// autoresearch.sh が（コンパイルせずに）プリプロセスし、生成定義ヘッダの AVR 分岐をすべて吐き出す: 有効なテーブルを選ぶのは AVR プリプロセッサなので、measure_tables.py はガードマクロのモデルを持たなくてよい。
 #include "definition/_index.h"

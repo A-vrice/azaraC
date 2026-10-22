@@ -1,6 +1,6 @@
 #pragma once
-// Main message struct: tagged union over raw aligned storage; copy/destroy use placement-new + explicit destructor.
-// Payload sub-objects MUST stay trivially copyable (Mt43Data::copyFrom memcpy's the storage).
+// メッセージ本体: raw な整列ストレージ上のタグ付き union。コピー/破棄は placement-new と明示的デストラクタで行う。
+// payload の各型は trivially copyable のまま維持すること（Mt43Data::copyFrom はストレージを memcpy する）。
 
 #if defined(__AVR__)
 #include "internal/avr_std/cstdint"
@@ -45,7 +45,7 @@ struct Message {
     UnsupportedReason unsupported_reason = UnsupportedReason::None;
     MsgPayloadType payload_type = MsgPayloadType::Empty;
 
-    // Size of the largest enabled payload (DCX off: Mt44 never decoded, so its ~280 B/Message are dropped; Uno has 2 KB).
+    // 有効な payload の最大サイズ（DCX off では Mt44 を復号しないのでその ~280 B/Message を削る。Uno は 2 KB）。
     // Ternary instead of std::max: Arduino.h defines `max` as a macro.
 #if AZARAC_ENABLE_DCX_CAMF
     static constexpr size_t payload_size_ =

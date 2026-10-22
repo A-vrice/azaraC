@@ -300,7 +300,7 @@ static void buildNankaiPage(uint8_t page_num, uint8_t total_pages, uint8_t info_
 }
 
 // 18-byte page payloads generated from azarashi via test/scripts/gen_all_vectors.py.
-// Source of truth: test/data/nankai_vectors.json (emitted as nankai_pages_generated.h). Do not hand-edit page data — regenerate the header instead.
+// 唯一の正は test/data/nankai_vectors.json（nankai_pages_generated.h として生成される）。ページデータを手で編集せず、ヘッダを再生成すること。
 #include "../data/nankai_pages_generated.h"
 
 // Per-page text length up to the first NUL, mirroring NankaiPageBuffer::compactText().
@@ -331,12 +331,12 @@ TEST_CASE("Nankai E2E: 27-page full aggregation with real text data") {
     azaraC::Message msg;
     uint8_t bits[32];
 
-    // Expected body mirrors NankaiPageBuffer::compactText(): per-page text up to the first NUL, so the NUL-padded final page makes it shorter than 27*18 bytes.
+    // 期待する本文は NankaiPageBuffer::compactText() と同じ: 各ページの本文を最初の NUL まで。よって NUL 埋めされた最終ページの分だけ 27*18 バイトより短くなる。
     uint8_t expected_body[27 * NankaiPageBuffer::TEXT_PER_PAGE];
     const uint16_t EXPECTED_AGG_LEN = compactPages(nankai_page_data, 27, expected_body);
     CHECK(EXPECTED_AGG_LEN < 27 * NankaiPageBuffer::TEXT_PER_PAGE);  // final page is short
 
-    // Pages 1..26 produce no output; page 27 completes the aggregation.
+    // ページ 1..26 では出力なし。ページ 27 で集約が完了する。
     for (uint8_t page = 1; page <= 27; ++page) {
         buildNankaiPage(page, 27, 5,
                         nankai_page_data[page - 1], NankaiPageBuffer::TEXT_PER_PAGE, bits);
@@ -574,7 +574,7 @@ TEST_CASE("Nankai E2E: Page missing prevents aggregation") {
         CHECK_FALSE(output);
     }
 
-    // Phase 2: with page 14 missing aggregation stays incomplete (re-feed page 27 to get a callback).
+    // フェーズ 2: ページ 14 が欠けたままでは集約は未完了（コールバックを得るにはページ 27 を再投入する）。
     {
         buildNankaiPage(27, 27, 5,
                         nankai_page_data[26], NankaiPageBuffer::TEXT_PER_PAGE, bits);
@@ -590,7 +590,7 @@ TEST_CASE("Nankai E2E: Page missing prevents aggregation") {
         CHECK_FALSE(output);
     }
 
-    // Phase 3: feeding the missing page 14 completes the aggregation.
+    // フェーズ 3: 欠けていたページ 14 を投入すると集約が完了する。
     {
         buildNankaiPage(SKIP_PAGE, 27, 5,
                         nankai_page_data[SKIP_PAGE - 1], NankaiPageBuffer::TEXT_PER_PAGE, bits);

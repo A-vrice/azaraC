@@ -669,7 +669,7 @@ TEST_CASE("JSON Serialization: MT=43 NW Pacific Tsunami height bounds (全コー
         {2,   "\"height_lower\":1.0,\"height_upper\":3.0"},
         {3,   "\"height_lower\":3.0,\"height_upper\":5.0"},
         {4,   "\"height_lower\":5.0,\"height_upper\":10.0"},
-        {508, "\"height_lower\":10.0,\"height_upper\":null"},  // More than 10m
+        {508, "\"height_lower\":10.0,\"height_upper\":null"},  // 10m 超
     };
     for (const auto& c : cases) {
         Message m{};

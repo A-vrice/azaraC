@@ -1,5 +1,5 @@
 // test/integration/test_parser_integration.cpp — Parser統合テスト
-// NOTE: Most tests use EEW (dc=1); guarded by AZARAC_ENABLE_EEW
+// 注: ほとんどのテストは EEW (dc=1) を使う。AZARAC_ENABLE_EEW でガード。
 
 #include <string>
 #include "doctest.h"
@@ -149,7 +149,7 @@ TEST_CASE("Parser reset clears state") {
     CHECK(output2);
 }
 
-// NMEA part uses EEW (dc=1), UBX part uses DCX (MT=44); needs both macros.
+// NMEA 部は EEW (dc=1)、UBX 部は DCX (MT=44) を使う。両マクロが必要。
 #if (AZARAC_ENABLE_DCX_CAMF)
 TEST_CASE("Parser handles mixed NMEA and UBX messages") {
     Parser parser;

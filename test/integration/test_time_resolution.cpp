@@ -168,7 +168,7 @@ TEST_CASE("Time: Tsunami arrival_time unix=0 with report_unix=0") {
 // DCX onset_time 解決 E2E テスト
 
 TEST_CASE("Time: DCX onset_time resolved with valid report_unix") {
-    // DCX a6=0 (current week), a7=2 (Monday 00:01)
+    // DCX a6=0（今週）、a7=2（月曜 00:01）
     // IS-QZSS-DCX-004 §4.2.3.6, Table 4.2-9: A6=0 → current week, A6=1 → next week
     // EWSS CAMF v1.1 §3.3: Week starts Monday 00:00 UTC
     // report_unix = 2024-05-20 00:00:00 UTC (Monday = 週の起点)

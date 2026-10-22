@@ -1,5 +1,5 @@
 #pragma once
-// MT=44 (DCX/CAMF) data structures. Bit offsets derived from azarashi (IS-QZSS-DCX-004).
+// MT=44 (DCX/CAMF) のデータ構造。ビット位置は azarashi (IS-QZSS-DCX-004) 由来。
 
 #include "internal/MtCommonTypes.h"  // shared integer types (cstdint AVR switch lives here)
 

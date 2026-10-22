@@ -1,9 +1,9 @@
 #pragma once
-// Platform-independent, overflow-safe millis(), no external dependencies.
-// - Arduino: millis() (~49.7-day wrap) extended to uint64_t with a volatile counter, so no <atomic> (avoids libatomic link issues on 32-bit MCUs).
-// - Host: std::chrono::steady_clock.
-// The volatile + read-compute-write is unsynchronized: multi-core callers may see non-monotonic values, single-task use is safe.
-// On AVR and Cortex-M the update saves and restores the caller's interrupt state instead of unconditionally enabling IRQs.
+// プラットフォーム非依存のオーバーフロー安全な millis()。外部依存なし。
+// - Arduino: millis()（約 49.7 日で巻き戻る）を volatile カウンタで uint64_t へ拡張する。<atomic> を使わない（32 bit MCU の libatomic リンク問題を避ける）。
+// - ホスト: std::chrono::steady_clock。
+// volatile + read-compute-write は同期していない: マルチコアの呼び出し側では非単調な値を見得るが、単一タスクでの使用は安全。
+// AVR と Cortex-M では、割り込みを無条件に許可するのではなく、呼び出し側の割り込み状態を保存して復元する。
 #if defined(__AVR__)
 #include "avr_std/cstdint"
 #else
@@ -18,31 +18,31 @@
 namespace azaraC {
 namespace internal {
 
-// Current time in milliseconds (uint64_t, wrap-safe).
+// 現在時刻（ミリ秒、uint64_t、巻き戻し安全）。
 static inline uint64_t getMillis() {
 #if defined(ARDUINO) && ARDUINO >= 1
-    // Upper 32 bits = wrap count, lower 32 = last raw millis().
-    // The unsynchronized read-compute-write can go backwards on multi-core / FreeRTOS; acceptable for coarse timing from a single task.
+    // 上位 32 bit = 巻き戻り回数、下位 32 bit = 直近の生の millis() 値。
+    // 同期しない read-compute-write はマルチコア / FreeRTOS で逆行し得るが、単一タスクの粗い計時には十分。
     static volatile uint64_t s_last = 0;
 
     uint32_t raw;
 #if defined(__AVR__)
-    // Save SREG instead of calling interrupts(): getMillis() may be called from the
-    // caller's critical section or an ISR, and re-enabling IRQs there would break its atomicity.
+    // interrupts() を呼ばず SREG を保存する: getMillis() は呼び出し側のクリティカルセクションや
+    // ISR から呼ばれ得るため、そこで割り込みを許可し直すとその原子性を壊す。
     uint8_t irq_state = SREG;
     cli();
 #elif defined(__arm__)
-    // Cortex-M: restore PRIMASK rather than unconditionally enabling IRQs.
-    // Use mrs/msr directly: CMSIS intrinsics are not in scope on every Arduino
-    // ARM core (rp2040, Teensy), and every Cortex-M supports these instructions.
+    // Cortex-M: 割り込みを無条件に許可するのではなく PRIMASK を復元する。
+    // mrs/msr を直接使う: CMSIS intrinsic は一部の Arduino ARM コア（rp2040、Teensy）で見えず、
+    // どの Cortex-M もこの命令を備えている。
     uint32_t irq_state;
     __asm__ volatile("mrs %0, primask" : "=r"(irq_state));
     __asm__ volatile("cpsid i" ::: "memory");
 #else
-    // No portable save/restore API on this core (e.g. Xtensa). Keep the previous behaviour.
+    // このコア（Xtensa など）には可搬な保存/復元 API が無い。従来の挙動のまま。
     noInterrupts();
 #endif
-    // Read millis() inside the critical section so the extension below observes one consistent value.
+    // 下の拡張が一貫した値を 1 つ見るよう、クリティカルセクション内で millis() を読む。
     raw = millis();
     uint64_t prev = s_last;
     uint32_t prev_low = static_cast<uint32_t>(prev);

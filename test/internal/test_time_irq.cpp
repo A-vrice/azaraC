@@ -1,6 +1,6 @@
-// Host-side check for the Arduino branch of internal/TimeFields.h.
-// Built with -D__AVR__ so the SREG save/restore path is exercised; the stubs in
-// test/stub_arduino provide SREG, cli()/sei() and millis().
+// internal/TimeFields.h の Arduino 分岐の host 側チェック。
+// -D__AVR__ でビルドし、SREG の退避・復帰経路を通す。スタブは
+// test/stub_arduino が SREG、cli()/sei()、millis() を提供する。
 #include "internal/TimeFields.h"
 
 #include <cstdint>
@@ -13,7 +13,7 @@ int failures = 0;
 } // namespace
 
 unsigned long millis() {
-    // getMillis() must have masked interrupts before reading the counter.
+    // getMillis() はカウンタを読む前に割り込みをマスクしていなければならない。
     if (SREG & 0x80) g_millisSawInterrupts = true;
     return g_millis;
 }
@@ -27,14 +27,14 @@ unsigned long millis() {
     } while (0)
 
 int main() {
-    // Interrupts disabled before the call: getMillis() must leave them disabled.
+    // 呼び出し前に割り込み禁止: getMillis() は禁止のまま返さなければならない。
     SREG = 0x00;
     g_millis = 1000;
     uint64_t a = azaraC::internal::getMillis();
     CHECK(SREG == 0x00);
 
-    // Interrupts enabled before the call: getMillis() must leave them enabled,
-    // and must read millis() only after masking interrupts.
+    // 呼び出し前に割り込み許可: getMillis() は許可のまま返し、
+    // millis() の読み出しは割り込みをマスクした後でなければならない。
     SREG = 0x80;
     g_millis = 2000;
     g_millisSawInterrupts = false;
@@ -43,7 +43,7 @@ int main() {
     CHECK(SREG == 0x80);
     CHECK(b > a);
 
-    // The whole SREG byte is restored, not only the I-bit. Non-I bits must survive.
+    // 復帰するのは I ビットだけでなく SREG 全体。I 以外のビットも残らなければならない。
     SREG = 0x81;
     g_millis = 2500;
     g_millisSawInterrupts = false;
@@ -52,7 +52,7 @@ int main() {
     CHECK(SREG == 0x81);
     CHECK(c0 > b);
 
-    // 32-bit millis() wrap is still extended to a monotonically increasing 64-bit value.
+    // 32 ビット millis() の折り返しも、単調増加する 64 ビット値へ拡張される。
     SREG = 0x80;
     g_millis = 0xFFFFFF00UL;
     uint64_t c = azaraC::internal::getMillis();

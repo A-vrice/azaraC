@@ -1,7 +1,7 @@
-// test/bench/bench_dedup.cpp — deterministic duplicate-suppression benchmark + spec conformance check.
+// test/bench/bench_dedup.cpp — 決定的な重複抑止ベンチマーク + 仕様適合チェック。
 //
-// Inputs are tracked captures only (no network/clock input, fixed 32-bit LCG seed):
-//   test/data/{dcr,dcx,nankai}_vectors.json — 2022 MT43 / 2024 MT44 (3 satellites) / Nankai multi-page event.
+// 入力は追跡済みのキャプチャのみ（ネットワーク・時計入力なし、固定 32-bit LCG シード）:
+//   test/data/{dcr,dcx,nankai}_vectors.json — 2022 MT43 / 2024 MT44（3 衛星）/ 南海トラフの複数ページ事象。
 //
 // Spec model (qzss-specs/アプリケーションノートv2.md, 原PDF p.23–27):
 //   ① 複数衛星からの受信 — 照合対象は MT～VN（フレーム bit 8..219 = 212 bit）。プリアンブル(bit 0..7)も

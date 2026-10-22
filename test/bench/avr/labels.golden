@@ -1,4 +1,4 @@
-# Definition-label hashes: <hash> <lookups> <labels>. Re-record with
+# Definition-label のハッシュ: <hash> <lookups> <labels>。再記録は
 #   bash autoresearch.sh --bless-labels
 AVR 4040d8b1d302a140 1409708 16096
 HOST 4040d8b1d302a140 1409708 16096

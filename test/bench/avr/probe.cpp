@@ -1,20 +1,20 @@
 // test/bench/avr/probe.cpp
-// Flash-footprint probe for autoresearch.sh: linked, never executed.
+// autoresearch.sh 用の Flash フットプリント・プローブ: リンクするだけで実行はしない。
 //
-// Built with the whole library for the real AVR target; it is what keeps the decode + serialize path (hence every definition table the serializers look up) reachable, so the linked image is a meaningful "flash a sketch pays" number under --gc-sections.
-// The body touches the public API only (Parser::feed + toJson).
+// 実 AVR ターゲット向けにライブラリ全体とともにビルドされ、decode + serialize 経路（ひいてはシリアライザが引く全定義テーブル）を到達可能に保つ。これによりリンク済みイメージが --gc-sections 下でも「スケッチが払う flash」として意味を持つ数値になる。
+// 本体は公開 API（Parser::feed + toJson）だけに触れる。
 //
-// Both ends are opaque on purpose:
-//   - the input byte is volatile, so the compiler cannot fold feed() into "no frame yet" and drop the decode path;
-//   - the sink's write() keeps the bytes it is handed alive (an empty asm with input operands), so the labels and the definition tables they come from stay in the image.
-// A sink that swallowed everything would let LTO delete the serialize path and the tables it reads, and the flash number would stop meaning what a sketch pays.
+// 両端を意図的に不透明にしている:
+//   - 入力バイトは volatile。コンパイラが feed() を「まだフレームなし」に畳んで decode 経路を落とせないようにする。
+//   - シンクの write() は渡されたバイトを生かし続ける（入力オペランド付きの空 asm）。これでラベルと、その元になる定義テーブルがイメージに残る。
+// 何でも飲み込むシンクだと LTO が serialize 経路とそれが読むテーブルを削除でき、flash 数値はスケッチが払う額を意味しなくなる。
 
 #include "azaraC.h"
 
 #include <stddef.h>
 #include <stdlib.h>
 
-// Supplied by the Arduino core: the AVR toolchain ships no C++ runtime of its own.
+// Arduino コアが提供するもの: AVR ツールチェーンは自前の C++ ランタイムを持たない。
 
 unsigned long millis(void) { return 0; }
 void noInterrupts(void) {}
@@ -28,9 +28,9 @@ void operator delete(void* p, size_t) { free(p); }
 void operator delete[](void* p, size_t) { free(p); }
 
 namespace {
-// The sink. write() is the path the library uses for keys and labels (out.write(s.data(), s.size())),
-// so overriding it is what ties the tables to the image. The asm keeps the pointer and the length
-// live without storing anything: no SRAM is spent on a counter.
+// シンク。write() はライブラリがキーとラベルに使う経路（out.write(s.data(), s.size())）なので、
+// これを上書きすることがテーブルをイメージに結びつける。asm はポインタと長さを生かしたまま
+// 何も格納しない: カウンタに SRAM を使わない。
 class ProbePrint : public Print {
 public:
     size_t write(uint8_t) override {

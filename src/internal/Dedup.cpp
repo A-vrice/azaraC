@@ -3,8 +3,8 @@
 namespace azaraC {
 namespace internal {
 
-// Set index from the packed content: DEDUP_SETS is a power of two, so the index is the low log2(DEDUP_SETS) bits after folding the CRC onto itself.
-// Both shifts stay below 24 (shifting by DEDUP_SETS/2 was undefined once DEDUP_SETS >= 64).
+// 詰めた内容からセット番号を決める: DEDUP_SETS は 2 の冪なので、CRC を自分自身へ fold した後の下位 log2(DEDUP_SETS) bit が index になる。
+// どちらのシフトも 24 未満に収まる（DEDUP_SETS/2 だけのシフトは DEDUP_SETS >= 64 で未定義だった）。
 //
 // ponytail: `& 0xFFFFFF` は SETS ≤ 2^12（SLOTS ≤ 32768）では no-op。
 // fold は各ビットを最大 12 しか下げないので、低 log2(SETS) bit しか採らない構成では元の bit 24 以上（It 合成鍵 bits 24-25、msg_type 実鍵 bits 24-29）が index に届かず、セット選択に効かない。
@@ -29,8 +29,8 @@ bool DedupFilter::isDuplicate(const DedupKey& key, uint32_t now_ms, uint32_t win
             if (!free_slot) free_slot = &e;
             continue;
         }
-        // Age = now - last_seen as unsigned: correct across the 49.7-day millis() rollover.
-        // Comparing last_seen values wraps once two entries are >24.8 days apart and then evicts the live one.
+        // 経過 = now - last_seen を符号なしで取る: millis() の 49.7 日巻き戻りをまたいでも正しい。
+        // last_seen 同士の比較は 2 件が 24.8 日以上離れると巻き戻り、生きている方を追い出してしまう。
         if ((uint32_t)(now_ms - e.last_seen_ms) > (uint32_t)(now_ms - oldest->last_seen_ms)) oldest = &e;
         if (e.content != content) continue;
         if ((uint32_t)(now_ms - e.last_seen_ms) <= window_ms) {
@@ -41,7 +41,7 @@ bool DedupFilter::isDuplicate(const DedupKey& key, uint32_t now_ms, uint32_t win
         return false;
     }
 
-    // Not tracked: take a free way, else evict the least recently seen one (a uniform ring would drop the newest information instead, re-announcing a live alert and keeping a stale one).
+    // 未追跡: 空き way があれば使い、無ければ最終受信が最も古いものを追い出す（一様リングだと最新の情報を落として、生きている警報を再通知し古い情報を残すことになる）。
     Entry& e = free_slot ? *free_slot : *oldest;
     e.content = content;
     e.last_seen_ms = now_ms;

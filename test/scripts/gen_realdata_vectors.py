@@ -343,7 +343,7 @@ def _collect_marine_fields(decoded: dict) -> dict:
     }
 
 
-# dc → (type_name, getter, varname, collector)
+# dc → (型名, getter, 変数名, collector)
 DC_INFO = {
     1:  ('EewData', 'getEew', 'eew', _collect_eew_fields),
     2:  ('HypocenterData', 'getHypocenter', 'hypo', _collect_hypo_fields),

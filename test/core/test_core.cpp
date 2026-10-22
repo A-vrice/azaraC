@@ -74,13 +74,13 @@ TEST_CASE("CRC-24Q: bit_len=1") {
 
 TEST_CASE("CRC-24Q: known-answer check value (72-bit)") {
     // CRC-24Q standard check value for ASCII "123456789"
-    // RevEng CRC catalogue: poly=0x1864CFB init=0 refin=0 refout=0 xorout=0
+    // RevEng CRC カタログ: poly=0x1864CFB init=0 refin=0 refout=0 xorout=0
     uint8_t buf[9] = {'1','2','3','4','5','6','7','8','9'};
     CHECK(TestDecoder::calcCRC(buf, 72) == 0xCDE703);
 }
 
 TEST_CASE("CRC-24Q: known-answer 226-bit messages") {
-    // Expected values from an independent bit-wise LFSR CRC-24Q, cross-checked with azarashi and crc24qRef.
+    // 期待値は独立実装のビット単位 LFSR CRC-24Q によるもので、azarashi と crc24qRef で照合済み。
     {
         INFO("all-zero 226-bit");
         uint8_t buf[29] = {};

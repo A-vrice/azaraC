@@ -1,36 +1,34 @@
 #!/usr/bin/env bash
-# test/bench/run_dedup_bench.sh — dedup benchmark entrypoint (`make -C test bench-dedup`).
+# test/bench/run_dedup_bench.sh — dedup ベンチマークの入口（`make -C test bench-dedup`）。
 #
-#   primary    : NANOS_PER_OP   ns per dedup decision over the scored streams
+#   primary    : NANOS_PER_OP   scored ストリームの 1 判定あたりの ns
 #   gates      : NEW_RECALL (NEW_CORRECT >= 118), DUP_SUPPRESS >= 0.99,
-#                NANKAI_KEY_STABLE == 1, PREAMBLE_KEY_STABLE == 1  (exit non-zero)
-#   reported   : CAPACITY_DISTINCT, SRAM_*_BYTES, ACCURACY_P*, CORPUS_* (printed,
-#                not gated — read them in the diff when they move)
+#                NANKAI_KEY_STABLE == 1, PREAMBLE_KEY_STABLE == 1  (違反で非ゼロ終了)
+#   reported   : CAPACITY_DISTINCT, SRAM_*_BYTES, ACCURACY_P*, CORPUS_*（表示のみで
+#                ゲートしない — 動いたら diff で読む）
 #
-# The scored streams are spec-model traffic (qzss-specs/アプリケーションノートv2.md
-# 原PDF p.23–27): the same information relayed by several satellites, rebroadcast
-# every 4 s, and repeated after its validity window. Accuracy alone is NOT the
-# objective: 2200 of the 2238 scored decisions expect "duplicate", so a filter
-# that answers "always duplicate" would top any accuracy-derived metric while
-# suppressing every alert. NEW_RECALL is therefore included in the objective
-# (DUP_SUPPRESS × NEW_RECALL / NANOS_PER_OP) and also gated: a run that reports
-# any fewer new informations than the baseline is rejected.
+# scored ストリームは仕様モデルのトラフィック（qzss-specs/アプリケーションノートv2.md
+# 原PDF p.23–27）: 同じ情報が複数衛星で中継され、4 秒ごとに再放送され、有効窓の後に
+# 繰り返される。ACCURACY 単独は目的ではない: 2238 判定のうち 2200 が "duplicate" を
+# 期待するので、「常に重複」と答えるフィルタは全警報を抑止しながら精度由来の指標を
+# 制覇してしまう。そこで NEW_RECALL を目的関数に含め
+# (DUP_SUPPRESS × NEW_RECALL / NANOS_PER_OP)、ゲートにもする: ベースラインより
+# 新規情報の通知が少ない実行は棄却する。
 #
-# Deterministic inputs (test/data/*.json), fixed LCG seed, no network, no
-# wall-clock input. Exit 0 on success; non-zero when the harness or a
-# guardrail fails.
+# 決定的な入力（test/data/*.json）、固定 LCG シード、ネットワークなし、
+# 実時計入力なし。成功時 exit 0、ハーネスやガードレールが失敗すると非ゼロ。
 
 set -uo pipefail
 
-# Paths below are repository-relative, so run from the repository root whether
-# the script sits in test/bench/ and the caller does not cd there.
+# 下のパスはリポジトリ相対なので、スクリプトが test/bench/ にあり呼び出し側が
+# cd していなくても、リポジトリルートから実行する。
 cd "$(dirname "$0")/../.."
 
-# Baseline NEW_RECALL count (informations reported) — deterministic; raise when it improves.
+# ベースラインの NEW_RECALL 数（通知した情報数）— 決定的。改善したら上げる。
 MIN_NEW_CORRECT=118
 
-# Duplicate suppression must not be traded for speed: shrinking the table below the
-# committed capacity (32 slots x 8 ways measures 0.9797) shows up here, not in NANOS_PER_OP.
+# 速度と引き換えに重複抑止を落としてはならない: テーブルをコミット済み容量より
+# 小さくすると（32 スロット x 8 ウェイは 0.9797）NANOS_PER_OP ではなくここに出る。
 MIN_DUP_SUPPRESS=0.99
 
 CXX="${CXX:-g++}"
@@ -45,16 +43,16 @@ LIBS=(src/Parser.cpp src/decoder/Decoder.cpp src/decoder/DecoderDcx.cpp
       src/json/JsonWriter.cpp src/json/JsonSerializer.cpp src/json/JsonSerializerDcx.cpp
       src/json/JsonSerializerQzqsm.cpp src/internal/DcxHelper.cpp src/internal/Dedup.cpp)
 
-# Headers drive both the library and the header-only bench target, so the newest
-# header (src or test — bench_dedup.cpp includes test_helpers.h) is part of every
-# object's dependency set (-MMD would be tighter, but this has to stay dependency-free).
+# ヘッダはライブラリとヘッダオンリーのベンチ対象の両方を駆動するので、最新の
+# ヘッダ（src か test — bench_dedup.cpp は test_helpers.h を include する）を
+# 全オブジェクトの依存に含める（-MMD の方が厳密だが、依存なしのままにしておく必要がある）。
 NEWEST_HEADER="$(ls -t src/*.h src/*/*.h test/*.h test/*/*.h 2>/dev/null | head -1)"
-needs_rebuild() {   # $1 = source, $2 = object
+needs_rebuild() {   # $1 = ソース、$2 = オブジェクト
     [[ ! -f "$2" ]] && return 0
     [[ "$1" -nt "$2" ]] && return 0
     [[ -n "$NEWEST_HEADER" && "$NEWEST_HEADER" -nt "$2" ]] && return 0
-    # The compiler is part of the build state: a CXX switch must invalidate the
-    # objects, or a CXX=clang++ rerun would just relink g++-built objects.
+    # コンパイラもビルド状態の一部: CXX の切り替えでオブジェクトを無効化しないと、
+    # CXX=clang++ で再実行しても g++ 製オブジェクトを再リンクするだけになる。
     [[ "$(cat "${2%.o}.cxxid" 2>/dev/null)" != "$CXX" ]] && return 0
     return 1
 }
@@ -91,8 +89,8 @@ scored="$(metric DECISIONS_SCORED)"
 [[ -n "$nanos" && -n "$dup" && -n "$recall" && -n "$new_ok" && -n "$scored" ]] \
     || { echo "bench: metrics missing" >&2; exit 5; }
 
-# Guardrail: informational coverage must not regress, or the loop would happily
-# trade every alert away for speed.
+# ガードレール: 通知の網羅性が回帰してはいけない。でないとループは速度と引き換えに
+# 全警報を喜んで捨てる。
 if (( new_ok < MIN_NEW_CORRECT )); then
     echo "bench: NEW_RECALL regressed (NEW_CORRECT=$new_ok < $MIN_NEW_CORRECT, NEW_RECALL=$recall)" >&2
     exit 6
@@ -103,17 +101,17 @@ if [[ "$(awk -v d="$dup" -v m="$MIN_DUP_SUPPRESS" 'BEGIN { print (d + 0 < m + 0)
     exit 7
 fi
 
-# Guardrail: the two behavioural identity checks must report "stable" (1). They
-# are the only thing that catches a key widened back to the whole 250-bit frame
-# (PREAMBLE_KEY_STABLE: the preamble cycles A→B→C, so a widened key announces one
-# information three times) or a Nankai event identified by its completing page
-# (NANKAI_KEY_STABLE). NEW_RECALL and DUP_SUPPRESS both stay green under those
-# bugs, so without this gate the regression ships silently.
-# A non-1 value has two very different causes, so they get different messages:
-#   0        — the key is wrong (debug the identity, 手順③: MT～VN)
-#   missing  — the metric was not printed (bench did not run that check)
-#   -1       — the fixture is unusable (e.g. nankai_vectors.json lost its 27
-#              pages) — debug test/data/*.json, NOT the hash
+# ガードレール: 2 つの挙動同一性チェックは "stable"（1）を報告すること。鍵が
+# 250-bit フレーム全体に広がり直した場合（PREAMBLE_KEY_STABLE: プリアンブルは
+# A→B→C と巡回するので、広がった鍵は 1 情報を 3 回通知する）や、南海トラフ事象を
+# 完成ページで識別してしまった場合（NANKAI_KEY_STABLE）を捕まえる唯一の手段。
+# どちらのバグでも NEW_RECALL と DUP_SUPPRESS は緑のままなので、このゲートがないと
+# 回帰が黙って出荷される。
+# 1 以外の値には大きく異なる 2 つの原因があり、メッセージも分ける:
+#   0        — 鍵が誤り（同一性をデバッグ、手順③: MT～VN）
+#   missing  — 指標が出力されていない（ベンチがその検査を実行していない）
+#   -1       — フィクスチャが使用不能（例: nankai_vectors.json が 27 ページを失った）
+#              — test/data/*.json をデバッグする。ハッシュではない
 for name in NANKAI_KEY_STABLE PREAMBLE_KEY_STABLE; do
     got="$(metric "$name")"
     case "${got:-missing}" in
@@ -129,8 +127,8 @@ for name in NANKAI_KEY_STABLE PREAMBLE_KEY_STABLE; do
     esac
 done
 
-# Reported objective: cost per decision, penalised for lost duplicate
-# suppression. Constant NEW_RECALL terms cancel in comparisons.
+# 報告する目的関数: 1 判定あたりのコストに、失った重複抑止のペナルティを掛けたもの。
+# NEW_RECALL の定数項は比較で打ち消える。
 objective="$(awk -v n="$nanos" -v d="$dup" 'BEGIN { printf "%.6f", (d > 0 ? n / d : 1e18) }')"
 
 echo "bench: ok (NANOS_PER_OP=$nanos DUP_SUPPRESS=$dup NEW_RECALL=$recall OBJECTIVE=$objective)"

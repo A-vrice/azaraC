@@ -10,7 +10,7 @@
 
 using namespace azaraC::internal;
 
-// Current time in ms (non-Arduino).
+// 現在時刻（ms、非 Arduino）。
 static uint32_t currentMillis() {
     auto now = std::chrono::steady_clock::now();
     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -47,7 +47,7 @@ TEST_CASE("NankaiPageKey equality") {
     }
 
     SUBCASE("Identity depends only on report_time, not resolution") {
-        // No resolved UNIX time in the key: same message yields the same key with or without report_unix.
+        // 鍵に解決済み UNIX 時刻は入らない: report_unix の有無にかかわらず同じ電文は同じ鍵になる。
         NankaiPageKey from_unresolved = {1, 4, 10, 30, 15};
         NankaiPageKey from_resolved   = {1, 4, 10, 30, 15};
         CHECK(from_resolved == from_unresolved);
@@ -125,8 +125,8 @@ TEST_CASE("NankaiPageBuffer basic operations") {
 }
 
 TEST_CASE("NankaiPageBuffer truncation") {
-    // total_pages > MAX_PAGES caps total_pages to MAX_PAGES (library default, overridable) and sets the truncated flag.
-    // SPEC_MAX_PAGES=63, so only total_pages>63 can exceed a MAX_PAGES=63 build; page_num must stay <= SPEC_MAX_PAGES.
+    // total_pages > MAX_PAGES なら total_pages を MAX_PAGES（ライブラリ既定、上書き可）に丸め、truncated フラグを立てる。
+    // SPEC_MAX_PAGES=63 なので MAX_PAGES=63 のビルドを超え得るのは total_pages>63 のみ。page_num は SPEC_MAX_PAGES 以下でなければならない。
     NankaiPageBuffer buffer;
     uint32_t now = currentMillis();
     
@@ -264,7 +264,7 @@ TEST_CASE("NankaiPageBufferManager buffer limit") {
             manager.addPage(key, 1, 1, text, now);
         }
         
-        // Adding one more evicts the oldest buffer.
+        // もう 1 つ追加すると最も古いバッファが追い出される。
         NankaiPageKey key_new = {static_cast<uint8_t>(NankaiPageBufferManager::MAX_BUFFERS + 1)};
         uint8_t text[18] = {'N', 'e', 'w', 0};
         manager.addPage(key_new, 1, 1, text, now);

@@ -452,10 +452,10 @@ pgm-stub:
 	$(MAKE) clean
 	$(MAKE) CXXFLAGS="-std=c++17 -Wall -Wextra -Istub -I../src -I. -DARDUINO=0 -D__AVR__ -DAZARAC_AVR_STUB -DAZARAC_LANG_JA=1 -DAZARAC_LANG_EN=1 -DAZARAC_NANKAI_MAX_PAGES=63 -DAZARAC_NANKAI_BUFFERS=4 -DAZARAC_DEDUP_SLOTS=64 -DAZARAC_ENABLE_EEW=1 -DAZARAC_ENABLE_HYPOCENTER=1 -DAZARAC_ENABLE_SEISMIC=1 -DAZARAC_ENABLE_NANKAI=1 -DAZARAC_ENABLE_TSUNAMI=1 -DAZARAC_ENABLE_NW_PAC_TSUNAMI=1 -DAZARAC_ENABLE_VOLCANO=1 -DAZARAC_ENABLE_ASH_FALL=1 -DAZARAC_ENABLE_WEATHER=1 -DAZARAC_ENABLE_FLOOD=1 -DAZARAC_ENABLE_TYPHOON=1 -DAZARAC_ENABLE_MARINE=1 -DAZARAC_ENABLE_DCX_CAMF=1 -MMD -MP -g" $(TEST_BIN); b=$$?; if [ $$b -ne 0 ]; then $(MAKE) clean; exit $$b; fi; ./$(TEST_BIN); t=$$?; $(MAKE) clean; exit $$t
 
-# ---- Arduino interrupt-state test (ARDUINO=1, AVR branch on host) ----
-# The normal suite sets ARDUINO=0, so TimeFields.h's Arduino branch is never
-# compiled. This target compiles it with __AVR__ plus the stub_arduino headers
-# and checks that getMillis() preserves the caller's SREG state.
+# ---- Arduino の割り込み状態テスト（ARDUINO=1、host 上で AVR 分岐） ----
+# 通常のスイートは ARDUINO=0 なので、TimeFields.h の Arduino 分岐はコンパイルされない。
+# このターゲットは __AVR__ と stub_arduino のヘッダでそれをコンパイルし、
+# getMillis() が呼び出し側の SREG 状態を保存することを確認する。
 test-time-irq:
 	$(CXX) -std=c++17 -Wall -Wextra -Istub_arduino -I../src -DARDUINO=1 -D__AVR__ -DAZARAC_AVR_STUB internal/test_time_irq.cpp -o time_irq_test
 	./time_irq_test; t=$$?; $(RM) time_irq_test time_irq_test.exe; exit $$t

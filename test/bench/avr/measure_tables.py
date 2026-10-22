@@ -1,34 +1,34 @@
 #!/usr/bin/env python3
-"""AVR flash cost of the generated definition tables (autoresearch.sh stage 1).
+"""生成定義テーブルの AVR flash コスト（autoresearch.sh stage 1）。
 
-Input: the translation unit emitted by `avr-gcc -E` for ATmega2560 with every
-category and both languages enabled ("tables.i"). Because the *real* AVR
-preprocessor selects the branch, the text holds exactly the tables an AVR build
-compiles — no duplicate model of the AZARAC_ENABLE_* / AZARAC_LANG_* guards.
+入力: 全カテゴリ・両言語を有効にした ATmega2560 向け `avr-gcc -E` の出力
+（"tables.i"）。分岐を選ぶのは *本物の* AVR プリプロセッサなので、テキストには
+AVR ビルドがコンパイルするテーブルがそのまま入る — AZARAC_ENABLE_* /
+AZARAC_LANG_* ガードのモデルを二重に持たなくてよい。
 
-Counted here (all of it lands in Flash on AVR):
+ここで数えるもの（AVR ではすべて Flash に載る）:
 
-  AVR_STRING_BYTES   every `[] = "..."` initializer: the string pools proper
-                     plus the per-case literals of `switch` strategy tables.
-                     GCC places len+1 bytes for a literal of len bytes (implicit
-                     terminating NUL).
-  AVR_ENTRY_BYTES    every `..._TABLE[]` array, as rows x sizeof(the header's
-                     own `..._Entry`), laid out with natural alignment the way
-                     AVR-GCC lays it out.
+  AVR_STRING_BYTES   `[] = "..."` の全初期化子: 文字列プール本体と、
+                     `switch` 方式テーブルの case ごとのリテラル。
+                     GCC は len バイトのリテラルに len+1 バイトを置く（暗黙の
+                     終端 NUL）。
+  AVR_ENTRY_BYTES    各 `..._TABLE[]` 配列を rows x sizeof(ヘッダ自身の
+                     `..._Entry`) として、AVR-GCC の自然アラインメントどおりに
+                     並べたサイズ。
 
-  AVR_TABLE_BYTES    the sum — the primary metric.
+  AVR_TABLE_BYTES    上記の合計 — 主要指標。
 
-Both terms are cross-checked against the sizes avr-gcc reports for the same
-symbols (crosscheck_tables.py).
+両項は、同じシンボルについて avr-gcc が報告するサイズと突き合わせる
+(crosscheck_tables.py)。
 
-Every line of output is a `METRIC <name>=<value>` line.
+出力の各行は `METRIC <name>=<value>` 行。
 """
 
 import re
 import sys
 
-# Preprocessed output splits declarations across `# 12 "file.h"` markers and hoists __attribute__((__progmem__)) onto its own line; only the declaration bodies matter, so that is stripped first.
-# With more than 64 KiB of Flash AZARAC_PROGMEM expands to an inline `__attribute__((__section__(".text.azaraC.<n>")))` instead — same attribute, one more parenthesis level — so the pattern accepts both (the text is parsed, not compiled).
+# プリプロセス出力は宣言を `# 12 "file.h"` マーカーで分割し、__attribute__((__progmem__)) を独立した行へ持ち上げる。意味があるのは宣言本体だけなので、まずそれを取り除く。
+# Flash が 64 KiB を超えると AZARAC_PROGMEM はインラインの `__attribute__((__section__(".text.azaraC.<n>")))` に展開される — 同じ属性で括弧が 1 段深いだけ — ので、パターンは両方を受ける（テキストは解析するだけでコンパイルしない）。
 MARKER = re.compile(r'^# \d+ "[^"]*"(?: \d+)*$', re.M)
 ATTR = re.compile(r'__attribute__\s*\(\((?:[^()]|\([^()]*\))*\)\)')
 LITERAL_START = re.compile(r'\[\]\s*=\s*"')
@@ -37,14 +37,14 @@ TABLE = re.compile(r'(\w+_TABLE)\[\]\s*=\s*\{(.*?)\n\s*\};', re.S)
 ROW = re.compile(r'\{\s*[0-9][0-9a-fA-FxXuUlL]*(?:\s*,\s*[0-9][0-9a-fA-FxXuUlL]*)*\s*\}')
 NAME = re.compile(r'(\w+)\s*$')
 
-# AVR-GCC gives these fields byte alignment (measured on avr-gcc 7.3.0: a `{uint8_t id; uint16_t offset; uint16_t len;}` entry is 5 bytes, not the 6 a 2-byte alignment would give, and alignof(uint64_t) is 1), so an entry is the plain sum of its fields.
-# An unknown field means the layout model must be revisited, not guessed; crosscheck_tables.py checks the result against avr-gcc either way.
+# AVR-GCC はこれらのフィールドにバイト境界のアラインメントを与える（avr-gcc 7.3.0 で実測: `{uint8_t id; uint16_t offset; uint16_t len;}` のエントリは 5 バイトで、2 バイト境界なら 6 バイトになるところ。alignof(uint64_t) は 1）。よってエントリはフィールドの単純合計。
+# 未知のフィールドはレイアウトモデルを見直すべき合図で、推測してはいけない。いずれにせよ crosscheck_tables.py が結果を avr-gcc と照合する。
 SCALARS = {'uint8_t': 1, 'int8_t': 1, 'char': 1, 'bool': 1,
            'uint16_t': 2, 'int16_t': 2, 'uint32_t': 4, 'int32_t': 4,
            'uint64_t': 8, 'int64_t': 8,
            'const char*': 2, 'char*': 2}
 
-# Pools the issue tracks individually (issue #35). Reported only.
+# issue が個別に追跡するプール (issue #35)。報告のみ。
 TRACKED = (
     'QZSS_DCX_EX1_TARGET_AREA_CODE_EN_POOL',
     'QZSS_DCX_EX1_TARGET_AREA_CODE_JA_POOL',
@@ -54,7 +54,7 @@ TRACKED = (
 
 
 def literal_bytes(lit: str) -> int:
-    """Bytes the compiler stores for a string literal body (escapes decoded)."""
+    """コンパイラが文字列リテラル本体に格納するバイト数（エスケープは展開済み）。"""
     n = 0
     i = 0
     while i < len(lit):
@@ -91,8 +91,8 @@ def literal_bytes(lit: str) -> int:
 
 
 def scan_literal(text: str, quote: int):
-    """Bytes of the string literal starting at `text[quote] == '"'` (plus any
-    adjacent literals the compiler would concatenate) and the index after it."""
+    """`text[quote] == '"'` から始まる文字列リテラルのバイト数（コンパイラが連結する
+    隣接リテラルも含む）と、その直後の位置。"""
     total = 0
     i = quote
     while True:
@@ -112,11 +112,11 @@ def scan_literal(text: str, quote: int):
         if k < len(text) and text[k] == '"':
             i = k
             continue
-        return total + 1, j          # +1: the implicit terminating NUL
+        return total + 1, j          # +1: 暗黙の終端 NUL
 
 
 def struct_size(body: str) -> int:
-    """sizeof an `{ type field; ... }` entry struct as AVR-GCC lays it out."""
+    """AVR-GCC の配置どおりの `{ type field; ... }` エントリ構造体の sizeof。"""
     size = 0
     for decl in body.split(';'):
         decl = decl.strip()
@@ -174,7 +174,7 @@ def main(path: str, detail_path=None) -> int:
         if pool in pools:
             print(f'METRIC {pool}={pools[pool]}')
     if detail_path:
-        # Every measured symbol, so the harness can compare these bytes with avr-gcc's.
+        # 計測した全シンボル。ハーネスがこのバイト数を avr-gcc 側と比較できるようにする。
         with open(detail_path, 'w', encoding='utf-8', newline='\n') as fh:
             for name in sorted(list(pools) + list(entries)):
                 fh.write(f'{name} {pools.get(name, entries.get(name))}\n')

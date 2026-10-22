@@ -1,10 +1,9 @@
 #pragma once
 // 情報有効時間（手順④ 配信終了条件）: アプリケーションノートv2 原PDF p.26–27。
-// MT=44 (DCX/CAMF) は同表を持たないため、A8-Hazard Duration のカテゴリ上限を窓にする（DCX §4.2.3.8 Table 4.2-11 / EWSS-CAMF §3.3.2、A8=00 の 1 週間は DCX §5.4。
-// QZS 事務局回答）。
-// AVR はスロットが 64 と少ないので `AZARAC_DEDUP_MT44_MAX_WINDOW_MS`で頭打ちにする。
+// MT=44 (DCX/CAMF) は同表を持たないため、A8-Hazard Duration のカテゴリ上限を窓にする（DCX §4.2.3.8 Table 4.2-11 / EWSS-CAMF §3.3.2、A8=00 の 1 週間は DCX §5.4。QZS 事務局回答）。
+// AVR はスロットが 64 と少ないので `AZARAC_DEDUP_MT44_MAX_WINDOW_MS` で頭打ちにする。
 //
-// Header-only so Parser, benchmark and test/tools/dedup_realday.cpp share one table; a second copy would drift silently, and the realday tool measures the false re-notifications the Parser's windows produce.
+// header-only にして Parser・benchmark・test/tools/dedup_realday.cpp で 1 つの表を共有する。2 つ目の写しは黙って食い違う（realday ツールは Parser の窓が生む誤再通知を測る）。
 
 #include "../azaraC_config.h"
 #include "../Message.h"

@@ -1,28 +1,27 @@
 /* test/bench/avr/core_progmem.c
-   Stand-in for the Arduino core's own PROGMEM tables, linked LAST like core.a.
+   Arduino コア自身の PROGMEM テーブルの代替。core.a と同じく最後にリンクされる。
 
-   The mirrored hazard: the core reads its pin tables through 16-bit pointers —
-   `pgm_read_byte(&digital_pin_to_port_PGM[pin])` in wiring_digital.c — which
-   reach only the first 64 KiB of Flash. avr-libc's linker script puts the
-   progmem cluster (`*(.progmem.gcc*)` / `*(.progmem*)`) at the START of .text in
-   link order, and the Arduino recipe puts core.a last, so any PROGMEM library
-   linked before it pushes the core's tables up. Once they sit above 0xFFFF the
-   truncated pointer reads a wrong address: pinMode/digitalWrite drive the wrong
-   port.
+   鏡像の危険: コアはピンテーブルを 16 ビットポインタで読む —
+   wiring_digital.c の `pgm_read_byte(&digital_pin_to_port_PGM[pin])` は Flash の
+   先頭 64 KiB にしか届かない。avr-libc のリンカスクリプトは progmem クラスタ
+   （`*(.progmem.gcc*)` / `*(.progmem*)`）をリンク順で .text の先頭に置き、
+   Arduino レシピは core.a を最後に置くので、その前にリンクされた PROGMEM ライブラリが
+   コアのテーブルを押し上げる。0xFFFF を越えると切り詰められたポインタは誤った
+   アドレスを読み、pinMode/digitalWrite が誤ったポートを駆動する。
 
-   autoresearch.sh links this object after the library objects and gates that
-   `core_probe_pin_to_port_PGM` stays inside the 16-bit window. It is kept by
-   `-Wl,--undefined=core_probe_read_pin`, the reason the core's copy survives
-   --gc-sections: the core's own code calls it.
+   autoresearch.sh はこのオブジェクトをライブラリのオブジェクトの後にリンクし、
+   `core_probe_pin_to_port_PGM` が 16 ビット窓内に収まることをゲートする。この
+   オブジェクトが残るのは `-Wl,--undefined=core_probe_read_pin` による（コアの
+   コードがこれを呼ぶので、コア側のコピーが --gc-sections を生き残る理由でもある）。
 
-   Only the addressing width matters here, so this is deliberately a small
-   table, not the real pins_arduino.h layout. */
+   ここで問題になるのはアドレス幅だけなので、意図的に小さなテーブルにしており、
+   pins_arduino.h の実レイアウトではない。 */
 
 #include <avr/pgmspace.h>
 #include <stdint.h>
 
-// cppcheck sees no avr/pgmspace.h (it is not on its include path), so PROGMEM
-// and pgm_read_byte read as unknown names — the same macros the core uses.
+// cppcheck は avr/pgmspace.h を見ない（include パスにない）ため、PROGMEM と
+// pgm_read_byte を未知の名前として扱う — コアが使うのと同じマクロ。
 // cppcheck-suppress unknownMacro
 const uint8_t core_probe_pin_to_port_PGM[16] PROGMEM = {
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,

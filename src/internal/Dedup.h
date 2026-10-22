@@ -64,9 +64,9 @@ constexpr inline uint32_t dedupEventToken(uint8_t info_code, uint8_t information
          | ((uint32_t)(minute & 0x3Fu));
 }
 
-// Fixed-size set-associative table: WAYS entries per set, the set picked by a cheap hash of the content.
-// One decision costs at most WAYS, not AZARAC_DEDUP_SLOTS (a flat scan walks the whole capacity even with few live informations — the CHURN_NANOS_PER_OP path).
-// Victim inside a set = least-recently-seen.
+// 固定長のセット連想テーブル: 1 セット WAYS エントリで、セットは内容の安価なハッシュで選ぶ。
+// 1 判定のコストは高々 WAYS で、AZARAC_DEDUP_SLOTS には比例しない（平坦走査は生きた情報が少数でも全容量を歩く — benchmark が CHURN_NANOS_PER_OP として報告する経路）。
+// セット内の追い出し対象は最終受信が最も古いもの。
 static constexpr uint8_t  DEDUP_WAYS = AZARAC_DEDUP_WAYS;
 static constexpr uint16_t DEDUP_SETS = AZARAC_DEDUP_SLOTS / DEDUP_WAYS;
 static_assert(AZARAC_DEDUP_SLOTS % DEDUP_WAYS == 0,
@@ -84,7 +84,7 @@ public:
     void reset();
 
 private:
-    // Bit 31 marks a valid entry: msg_type occupies only bits 24-29, so a real key never sets it and an all-zero table reads as empty.
+    // bit 31 が有効エントリの印: msg_type は bits 24-29 しか使わないので実鍵がこれを立てることはなく、全ゼロの表は空として読める。
     static constexpr uint32_t VALID = 0x80000000u;
 
     struct Entry {

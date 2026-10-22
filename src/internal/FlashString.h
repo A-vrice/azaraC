@@ -1,11 +1,11 @@
 #pragma once
-// Definition-table string access with AVR PROGMEM support.
-// On AVR, label strings live in Flash, which std::string_view cannot address, so lookups copy into a shared RAM buffer; the returned view/pointer is valid only until the NEXT definition lookup call.
-// Non-AVR: passthrough.
+// 定義表の文字列アクセス（AVR の PROGMEM 対応）。
+// AVR ではラベル文字列が Flash にあり std::string_view では指せないため、引き当て時に共有 RAM バッファへコピーする。返り値の view/ポインタは次の定義引き当て呼び出しまでのみ有効。
+// 非 AVR: 素通し。
 //
-// AVR addresses: tables on a >64 KiB Flash device link above 0xFFFF, where a 16-bit progmem pointer cannot reach, so addresses and reads go through the far accessors (plain progmem pointers below that).
-// Rows remain {id, parent, offset} — offsets are 16-bit within a pool, each far below 64 KiB.
-// This also keeps the tables out of the low-Flash progmem cluster shared with the Arduino core's tables (AZARAC_PROGMEM in azaraC_config.h).
+// AVR のアドレス: 64 KiB 超の Flash の品では表が 0xFFFF より上にリンクされ、16 bit の progmem ポインタでは届かない。そのためアドレスと読み出しは far アクセサ経由にする（それ未満では素の progmem ポインタ）。
+// 行は {id, parent, offset} のまま — オフセットはプール内の 16 bit で、どれも 64 KiB より遥かに小さい。
+// これにより表は Arduino コアの表と共有する低 Flash の progmem クラスタからも外れる（azaraC_config.h の AZARAC_PROGMEM）。
 
 #include "../azaraC_config.h"
 #if defined(__AVR__)
@@ -35,14 +35,14 @@ namespace def {
 #include <avr/io.h>          // FLASHEND
 #endif
 
-// A pool is addressed by `azarac_pgm_ptr`: a Flash address on far devices, a plain progmem pointer otherwise.
-// Read at an *offset into* such an address with the accessors below, and take an array's address with AZARAC_PGM_PTR — a bare pointer would be truncated on the far devices.
+// プールは `azarac_pgm_ptr` で指す: far の品では Flash アドレス、それ以外では素の progmem ポインタ。
+// 読み出しは下のアクセサでそのアドレスへの *オフセット* を指定し、配列のアドレスは AZARAC_PGM_PTR で取る — 素のポインタは far の品では切り詰められる。
 #if FLASHEND > 0xFFFF
 #if defined(AZARAC_AVR_STUB)
-// Host validation build: a "Flash address" is a host pointer, as wide as one (test/stub/avr/pgmspace.h).
+// ホスト検証ビルド: 「Flash アドレス」はホストのポインタで、ポインタと同じ幅（test/stub/avr/pgmspace.h）。
 using azarac_pgm_ptr = uintptr_t;
 #else
-using azarac_pgm_ptr = uint32_t;     // a 24-bit Flash address
+using azarac_pgm_ptr = uint32_t;     // 24 bit の Flash アドレス
 #endif
 #define AZARAC_PGM_PTR(flash_array) (pgm_get_far_address(flash_array))
 inline uint8_t azarac_read_byte(azarac_pgm_ptr p, size_t i) { return pgm_read_byte_far(p + i); }
@@ -60,7 +60,7 @@ inline void azarac_read_block(char* dst, azarac_pgm_ptr src, size_t n) { memcpy_
 inline void azarac_copy_string(char* dst, azarac_pgm_ptr src, size_t n) { strncpy_P(dst, src, n); }
 #endif
 
-// One shared RAM buffer: two 800 B buffers would overflow the Uno's 2 KB SRAM. Valid until the next lookup.
+// 共有 RAM バッファは 1 本: 800 B を 2 本持つと Uno の 2 KB SRAM を溢れる。次の引き当てまで有効。
 inline char* azarac_flash_buf() {
     static char buf[AZARAC_FLASH_BUF_SIZE];
     return buf;
@@ -72,8 +72,8 @@ inline std::string_view azarac_pgm_view(azarac_pgm_ptr src, size_t n) {
     buf[n] = '\0';
     return std::string_view(buf, n);
 }
-// Pool entries are NUL-separated, so a row stores no length — 1 byte saved per row over ~17,000 rows.
-// Bounded by the buffer size so a malformed pool cannot walk off the end.
+// プールのエントリは NUL 区切りなので行に長さを持たない — 約 17,000 行で 1 行 1 バイトの節約。
+// バッファサイズで上限を切り、壊れたプールでも末尾を越えて走査しない。
 inline size_t azarac_pgm_len(azarac_pgm_ptr src) {
     size_t n = 0;
     while (n < AZARAC_FLASH_BUF_SIZE - 1 && azarac_read_byte(src, n) != '\0') ++n;
@@ -82,8 +82,8 @@ inline size_t azarac_pgm_len(azarac_pgm_ptr src) {
 inline std::string_view azarac_pgm_view_z(azarac_pgm_ptr src) {
     return azarac_pgm_view(src, azarac_pgm_len(src));
 }
-// Two-part labels: a table may store a shared region name once and join it to the child at lookup time (scripts/gen/strategy.py, factor_parents).
-// Both halves are in Flash, so the join costs no extra SRAM.
+// 2 分割ラベル: 表が共有の地域名を 1 回だけ持ち、引き当て時に子と連結する（scripts/gen/strategy.py、factor_parents）。
+// 両方とも Flash にあるので、連結に SRAM は要らない。
 inline size_t azarac_pgm_append(char* buf, size_t at, azarac_pgm_ptr src) {
     size_t n = azarac_pgm_len(src);
     if (n > AZARAC_FLASH_BUF_SIZE - 1 - at) n = AZARAC_FLASH_BUF_SIZE - 1 - at;
@@ -97,8 +97,8 @@ inline std::string_view azarac_pgm_join_z(azarac_pgm_ptr a, azarac_pgm_ptr b) {
     buf[n] = '\0';
     return std::string_view(buf, n);
 }
-// Three-part labels: the same idea one level deeper, where a shared fragment itself repeats (" City, Aichi Prefecture" over " City, " + "Aichi Prefecture").
-// Still one copy into the same buffer.
+// 3 分割ラベル: 同じ考えを 1 段深くし、共有断片自体が繰り返す場合に使う（" City, Aichi Prefecture" を " City, " + "Aichi Prefecture" で表す）。
+// コピーは同じバッファへの 1 回分のまま。
 inline std::string_view azarac_pgm_join3(azarac_pgm_ptr a, azarac_pgm_ptr b, azarac_pgm_ptr c) {
     char* buf = azarac_flash_buf();
     size_t n = azarac_pgm_append(buf, 0, a);

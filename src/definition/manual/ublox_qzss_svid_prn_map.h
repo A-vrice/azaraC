@@ -1,13 +1,12 @@
 #pragma once
-// HAND-MAINTAINED — NOT auto-generated. scripts/gen/gen_definitions.py lists this
-// table in SKIP_MODULES (extra_headers) and never overwrites it, so nothing here
-// tracks azarashi automatically. Keep in sync by hand with azarashi's
-// azarashi.definitions.qzss.ubx.svid_to_prn (verified equal to azarashi 0.17.1:
-// {1: 183, 2: 184, 3: 185, 4: 186, 7: 189}).
-// Source module : ublox_qzss_svid_prn_map
-// Variable      : ublox_qzss_svid_prn_map
-// Entries       : 5
-// Strategy      : switch
+// HAND-MAINTAINED（手書き）— 自動生成ではない。scripts/gen/gen_definitions.py はこの表を SKIP_MODULES
+// (extra_headers) に挙げて決して上書きしないため、ここは azarashi を自動追跡しない。
+// azarashi の azarashi.definitions.qzss.ubx.svid_to_prn と手作業で同期させること
+// （azarashi 0.17.1 と一致を確認済み: {1: 183, 2: 184, 3: 185, 4: 186, 7: 189}）。
+// モジュール : ublox_qzss_svid_prn_map
+// 変数       : ublox_qzss_svid_prn_map
+// エントリ数 : 5
+// 方式       : switch
 
 #if defined(__AVR__)
 #include "../../internal/avr_std/cstdint"
@@ -32,10 +31,10 @@ namespace def {
 
 #if defined(__AVR__)
 
-// Labels are namespace-scope arrays, not function-local statics: the Arduino core
-// builds with LTO, which drops the `__section__` attribute of an inline function's
-// local static (a one-only symbol), so such a label lands in .rodata — i.e. in
-// SRAM. Same shape as the generated tables (see gen_definitions.py, switch_labels).
+// ラベルは関数ローカル static ではなく名前空間スコープの配列にする: Arduino コアは LTO で
+// ビルドされ、inline 関数のローカル static（one-only シンボル）では `__section__` 属性が落ちるため、
+// そのラベルは .rodata（= SRAM）に置かれてしまう。生成表と同じ形にしている
+// （gen_definitions.py の switch_labels 参照）。
 static const char AZARAC_PROGMEM UBLOX_QZSS_SVID_PRN_MAP_C1[] = "183";
 static const char AZARAC_PROGMEM UBLOX_QZSS_SVID_PRN_MAP_C2[] = "184";
 static const char AZARAC_PROGMEM UBLOX_QZSS_SVID_PRN_MAP_C3[] = "185";

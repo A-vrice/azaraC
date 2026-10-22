@@ -88,6 +88,8 @@ inline char hexDigit(uint8_t nibble) {
 
 // Primitive writers
 void writeChar(Print& out, char c);
+// 固定リテラル（区切り・null・エスケープ列）を書く。AVR では生の文字列リテラルが .rodata → .data（SRAM）に載るため、キーと同じく AZARAC_KEY で Flash に置く。
+void writeRaw(Print& out, JsonKey k);
 void writeUint32(Print& out, uint32_t v);
 void writeUint64(Print& out, uint64_t v);
 void writeStr(Print& out, std::string_view s);

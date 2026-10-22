@@ -309,7 +309,7 @@ TEST_CASE("Decoder: MT=44 EX8=1 (city code list mode)") {
     setBits(bits, 47, 2, 3);         // a5=3
     // EX8 at bit 146 (1 bit) = 1 (city code list mode)
     setBits(bits, 146, 1, 1);
-    // EX9 at bit 147 (64 bits) = 4 city codes (each 16 bits); ex9 = (ex9_hi << 32) | ex9_lo, ex9_hi = bits 147..178, ex9_lo = bits 179..210: code1 = ex9[0:15] = bits 179..194, code2 = ex9[16:31] = bits 195..210, code3 = ex9[32:47] = bits 147..162, code4 = ex9[48:63] = bits 163..178
+    // EX9 は bit 147 から（64 ビット）= 4 つの市区町村コード（各 16 ビット）。ex9 = (ex9_hi << 32) | ex9_lo, ex9_hi = bit 147..178, ex9_lo = bit 179..210: code1 = ex9[0:15] = bit 179..194, code2 = ex9[16:31] = bit 195..210, code3 = ex9[32:47] = bit 147..162, code4 = ex9[48:63] = bit 163..178
     setBits(bits, 179, 16, 1100);    // city 1 (ex9[0:15])
     setBits(bits, 195, 16, 1101);    // city 2 (ex9[16:31])
     setBits(bits, 147, 16, 1102);    // city 3 (ex9[32:47])
@@ -330,7 +330,7 @@ TEST_CASE("Decoder: MT=44 EX8=1 (city code list mode)") {
     REQUIRE(mt44 != nullptr);
     CHECK(mt44->mt44_decoded.jalert_prefecture_mode == false);
     CHECK(mt44->mt44_decoded.city_code_count == 4);
-    // city_codes[] follows the ex9 bit order (ex9[0:15], [16:31], [32:47], [48:63]); this fixture yields [1101, 1100, 1103, 1102].
+    // city_codes[] は ex9 のビット順（ex9[0:15], [16:31], [32:47], [48:63]）に従う。このフィクスチャでは [1101, 1100, 1103, 1102] になる。
     CHECK(mt44->mt44_decoded.city_codes[0] == 1101);
     CHECK(mt44->mt44_decoded.city_codes[1] == 1100);
     CHECK(mt44->mt44_decoded.city_codes[2] == 1103);
@@ -399,7 +399,7 @@ TEST_CASE("Decoder: MT=44 A17/A18 specific settings output") {
 }
 
 TEST_CASE("Decoder: MT=44 D36 typhoon category output") {
-    // D36 (typhoon category) = A18[14:12] (A18 starts at bit 131 → bits 131..133). DcxHelper.cpp: r.d36 = (a18 >> 12) & 0x07;
+    // D36（台風カテゴリ）= A18[14:12]（A18 は bit 131 開始 → bit 131..133）。DcxHelper.cpp: r.d36 = (a18 >> 12) & 0x07;
     for (uint8_t d36_val = 0; d36_val <= 7; ++d36_val) {
         uint8_t bits[32] = {};
         setBits(bits, 0, 8, 0x53);
@@ -412,7 +412,7 @@ TEST_CASE("Decoder: MT=44 D36 typhoon category output") {
         setBits(bits, 129, 2, 3);        // A17=3 (B4 detailed info)
         // d36 = a18[14:12]
         setBits(bits, 131, 3, d36_val);
-        // d8 = a18[11:8] = spec bits 134..137, d9 = a18[7:5] = spec bits 138..140
+        // d8 = a18[11:8] = 仕様 bit 134..137、d9 = a18[7:5] = 仕様 bit 138..140
         setBits(bits, 134, 4, 5);        // d8=5
         setBits(bits, 138, 3, 2);        // d9=2
         setBits(bits, 214, 6, 1);        // version

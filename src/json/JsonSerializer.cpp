@@ -59,7 +59,7 @@ bool serializeTyphoon(const Mt43Data* d, Print& out);
 bool serializeMarine(const Mt43Data* d, Print& out);
 #endif
 
-// Dispatch by msg_type
+// msg_type による振り分け
 void JsonSerializer::serialize(const Message& msg, Print& out) {
     using namespace azaraC::def;
     out.print('{');

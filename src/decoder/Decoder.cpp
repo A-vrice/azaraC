@@ -115,7 +115,7 @@ uint32_t Decoder::messageIdentity(uint8_t* bits) {
 }
 
 uint32_t Decoder::getBits(const uint8_t* buf, uint16_t start, uint8_t len) {
-    // OOB: return 0 and set oob_ so decode() rejects (embedded, no assert). Limit 256 (not 250): Frame::bits is 256 bits wide; bits 250-255 are padding.
+    // OOB は 0 を返して oob_ を立て、decode() 側で弾く（組込みなので assert は使わない）。上限は 250 ではなく 256: Frame::bits は 256 bit 幅で、bit 250-255 は詰め物。
     if (start + len > 256) { oob_ = true; return 0; }
     uint32_t val = 0;
     for (uint8_t i = 0; i < len; ++i) {
@@ -125,7 +125,7 @@ uint32_t Decoder::getBits(const uint8_t* buf, uint16_t start, uint8_t len) {
     return val;
 }
 
-// 64-bit extraction (MSB-first, 0-indexed) — for fields > 32 bits
+// 64 bit 抽出（MSB-first, 0 始まり）— 32 bit を超えるフィールド用
 uint64_t Decoder::getBits64(const uint8_t* buf, uint16_t start, uint8_t len) {
     // Same silent-zero-with-oob-flag policy as getBits()
     if (start + len > 256) { oob_ = true; return 0; }
@@ -186,7 +186,7 @@ TimeFields Decoder::resolveTime(uint8_t month, uint8_t day, uint8_t hour, uint8_
         return t;
     }
 
-    // Skip year resolution if baseline invalid (< 2000-01-01); unix_time stays 0.
+    // 基準時刻が無効（< 2000-01-01）なら年解決を飛ばす。unix_time は 0 のまま。
     if (report_unix < 946684800u) {
         return t;
     }
@@ -198,9 +198,9 @@ TimeFields Decoder::resolveTime(uint8_t month, uint8_t day, uint8_t hour, uint8_
     civil_from_days(base_days, y, m, d);
 
     if (month == 0) {
-        // No month (DHM only): pick the (day,hour,minute) closest to report_unix.
-        // The few-day margin absorbs clock drift and the month boundary (01/31 23:00 report + 02/01 02:00 event → Feb).
-        // Beyond the margin the message is stale: fall back to the most recent past occurrence.
+        // 月なし（DHM のみ）: report_unix に最も近い (day,hour,minute) を選ぶ。
+        // 数日の余裕は時計のずれと月境界を吸収する（01/31 23:00 の通報 + 02/01 02:00 の事象 → 2 月）。
+        // 余裕を超えたら古い通報とみなし、直近の過去の出現へ落とす。
         static constexpr uint32_t MARGIN_SEC = 3u * 86400u;
         uint32_t best_y = y, best_m = m;
         uint32_t best_diff = 0xFFFFFFFFu;
@@ -227,7 +227,7 @@ TimeFields Decoder::resolveTime(uint8_t month, uint8_t day, uint8_t hour, uint8_
             }
         }
     } else {
-        // Month provided (MDHM): resolve the year from the baseline with month-wrap correction.
+        // 月あり（MDHM）: 基準時刻から年を決め、月跨ぎを補正する。
         uint32_t cur_m = m;
         m = month;
         int32_t diff = (int32_t)month - (int32_t)cur_m;
@@ -235,7 +235,7 @@ TimeFields Decoder::resolveTime(uint8_t month, uint8_t day, uint8_t hour, uint8_
         else if (diff < -6) y++;
     }
 
-    // Normalize the date (e.g. Feb 29 in a non-leap year resolves to Mar 1).
+    // 日付を正規化する（例: 平年の 2 月 29 日は 3 月 1 日になる）。
     uint32_t resolved_days = days_from_civil(y, m, day);
     civil_from_days(resolved_days, y, m, d);
 
@@ -255,7 +255,7 @@ TimeFields Decoder::resolveArrivalTime(uint16_t raw, uint32_t base_unix) {
 
     if (hour > 23 || min > 59) return t;
 
-    // Skip year/month resolution if base_unix is invalid (< 2000-01-01); unix_time, month, day stay 0.
+    // 基準時刻が無効（< 2000-01-01）なら年・月の解決を飛ばす。unix_time, month, day は 0 のまま。
     if (base_unix < 946684800u) {
         t.hour = hour;
         t.minute = min;

@@ -1,19 +1,17 @@
 #!/usr/bin/env python3
-"""Generate the exhaustive definition-label dump (autoresearch.sh stage 2).
+"""定義ラベルを網羅的にダンプする C++ を生成する（autoresearch.sh stage 2）。
 
-Writes a C++ program that calls *every* `*_lookup()` in the included definition
-headers over its whole id domain and hashes the `(lookup, id, label)` stream.
-autoresearch.sh builds it twice — AVR branch (`-D__AVR__` + the PROGMEM stub of
-test/stub) and host branch — and compares both hashes against
-test/bench/avr/labels.golden.
+include した定義ヘッダの `*_lookup()` を *すべて* その id 全域にわたって呼び、
+`(lookup, id, label)` のストリームをハッシュする C++ プログラムを書き出す。
+autoresearch.sh がこれを 2 通りにビルドし — AVR 分岐（`-D__AVR__` + test/stub の
+PROGMEM スタブ）と host 分岐 — 両方のハッシュを test/bench/avr/labels.golden と比較する。
 
-Why the whole domain and not the table rows: the AVR pools are about to be
-re-encoded (issue #35), so the tables must be free to change shape. Probing
-`lookup(id)` for every id in the domain pins the *contract* (what a caller
-gets) instead of the storage, and catches a label lost to a bad offset/length
-just as well as one lost to a bad join.
+テーブルの行ではなく全域を回す理由: AVR のプールはこれから再エンコードされる
+(issue #35) ので、テーブルは形を変えられなければならない。id 全域の `lookup(id)` を
+叩けば、格納形式ではなく *契約*（呼び出し側が受け取るもの）を固定でき、悪い
+offset/length で失うラベルも、悪い連結で失うラベルも同じように捕まえられる。
 
-Usage: gen_label_dump.py <output.cpp>
+実行: gen_label_dump.py <output.cpp>
 """
 
 import os
@@ -27,11 +25,11 @@ LOOKUP = re.compile(r'(\w+_lookup)\s*\(([^)]*)\)')
 TABLE = re.compile(r'(\w+_TABLE)\[\]\s*(?:AZARAC_PROGMEM\s*)?=\s*\{(.*?)\n\s*\};', re.S)
 TABLE_FIRST_FIELD = re.compile(r'\{\s*(\d+)[uUlL]*\s*[,}]')
 
-# *_PARENT_TABLE / *_GRAND_TABLE hold pool offsets, so their first field is a byte offset, not a key.
+# *_PARENT_TABLE / *_GRAND_TABLE はプールのオフセットを持つので、先頭フィールドは key ではなくバイトオフセット。
 NOT_ID_TABLES = re.compile(r'_(PARENT|GRAND)_TABLE$')
 
-# id domains probed per signature.
-# `uint32_t`/`uint64_t` keys are not enumerable, so those probe the ids the header declares (plus 0..max when that range is small enough).
+# シグネチャごとに叩く id の範囲。
+# `uint32_t`/`uint64_t` の key は列挙できないので、ヘッダが宣言する id を叩く（その範囲が十分小さければ 0..max も）。
 U8_IDS = 256
 U16_IDS = 1 << 16
 DENSE_LIMIT = 1 << 18
@@ -105,7 +103,7 @@ def main(out_path: str) -> int:
                 calls.append(f'      for (unsigned long long i : ids) '
                              f'probe("{name}", i, {name}(static_cast<{types[0]}>(i))); }}')
         elif types == ['uint16_t', 'uint8_t']:
-            # Hand-written a3 provider table: key = (country << 4) | (provider & 0xF).
+            # 手書きの a3 プロバイダテーブル: key = (country << 4) | (provider & 0xF)。
             calls.append(f'    for (unsigned c = 0; c < {U16_IDS // PROVIDER_FACTOR}; ++c)')
             calls.append(f'        for (unsigned p = 0; p < {PROVIDER_FACTOR}; ++p)')
             calls.append(f'            probe("{name}", (c << 4) | p, '
