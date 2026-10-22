@@ -30,9 +30,11 @@ void writeChar(Print& out, char c) { out.print(c); }
 // 共有キーバッファは使わない: writeEscaped の途中で呼ばれると、書き出し中のキー/ラベルを壊す。
 void writeRaw(Print& out, JsonKey k) {
 #if defined(__AVR__)
-    for (uint8_t i = 0; i < k.len; ++i) {
-        out.write(static_cast<uint8_t>(AZARAC_PGM_READ_BYTE(k.p + i)));
-    }
+    // 共有キーバッファは使わない: writeEscaped の途中で呼ばれると、書き出し中のキー/ラベルを壊す。
+    // スタックへ 1 度写して 1 回の write() で出す（実コアの print(const char*) と同じ経路）。
+    char buf[AZARAC_KEY_BUF_SIZE];
+    for (uint8_t i = 0; i < k.len; ++i) buf[i] = static_cast<char>(AZARAC_PGM_READ_BYTE(k.p + i));
+    out.write(buf, k.len);
 #else
     out.write(k.p, k.len);
 #endif
