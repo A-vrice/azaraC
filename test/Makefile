@@ -101,7 +101,7 @@ OBJS = $(TEST_OBJS) $(LIB_OBJS)
 # VPATH for library sources
 VPATH = ../src:../src/decoder:../src/framer:../src/json:../src/internal
 
-.PHONY: all clean run run-small-pages run-lto run-lang-defaults fuzz decode dedup-realday bench bench-dedup compare-realdata check check-xml check-strict-compile coverage test-no-alloc pgm-stub test-time-irq
+.PHONY: all clean run run-small-pages run-lto run-lang-defaults fuzz decode dedup-realday bench bench-dedup bench-decode compare-realdata check check-xml check-strict-compile coverage test-no-alloc pgm-stub test-time-irq
 
 all: $(TEST_BIN)
 
@@ -198,6 +198,12 @@ bench:
 # PREAMBLE_KEY_STABLE をゲートし、失敗時は非 0 で終了する。
 bench-dedup:
 	@bash bench/run_dedup_bench.sh
+
+# decode ベンチ（test/bench/run_decode_bench.sh）。host の g++ だけで動き、入力は
+# test/data/*.json のみ。グループ別 DECODE_CYCLES_*（フレーミング＋デコード込みの
+# 1 文あたりサイクル）を出力する。値そのものはゲートせず、METRIC の diff で追跡する。
+bench-decode:
+	@bash bench/run_decode_bench.sh
 
 # --- Static Analysis ---
 # 静的解析 (時間をかけた厳格なチェック)
@@ -432,7 +438,7 @@ clean:
 	-@$(RM) fuzz/*.o fuzz/*.d fuzz/*.gcno fuzz/*.gcda
 	-@$(RM) tools/*.o tools/*.d tools/*.gcno tools/*.gcda
 	-@$(RM) scripts/*.o scripts/*.d scripts/*.gcno scripts/*.gcda
-	-@$(RM) bench/*.o bench/*.cxxid bench/bench_dedup
+	-@$(RM) bench/*.o bench/*.cxxid bench/bench_dedup bench/bench_decode
 
 # ---- PROGMEM stub (AVR branch semantics test on host) ----
 # Compiles all tests with __AVR__ defined and a stub avr/pgmspace.h so the
