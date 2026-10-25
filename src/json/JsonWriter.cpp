@@ -4,26 +4,9 @@ namespace azaraC {
 namespace internal {
 
 #if defined(__AVR__)
-// キーを書き出すときの 1 次コピー先。ラベルの共有バッファ (def::azarac_flash_buf) とは別に持つ: wf_s はキーを書いた後にラベルを書くが、ラベルは呼び出し側で既にそのバッファへ展開済みなので、同じバッファへキーを写すとラベルを壊す。
-static char* keyBuf() {
-    static char buf[AZARAC_KEY_BUF_SIZE];
-    return buf;
-}
+// AVR ではキーが Flash にある。下の writeEscapedKey は Flash から直接走査してスタックへ
+// 1 回写すので、キー引き当て用の静的 RAM バッファ（旧 keyBuf の 36B）は存在しない。
 #endif
-
-// キーを書き出せる形にする。AVR ではキーが Flash にあるので、sizeof で分かっている長さぶんだけ RAM へ写す。
-static std::string_view keyView(JsonKey k) {
-#if defined(__AVR__)
-    char* buf = keyBuf();
-    for (uint8_t i = 0; i < k.len; ++i) {
-        buf[i] = static_cast<char>(AZARAC_PGM_READ_BYTE(k.p + i));
-    }
-    buf[k.len] = '\0';
-    return std::string_view(buf, k.len);
-#else
-    return std::string_view(k.p, k.len);
-#endif
-}
 
 void writeChar(Print& out, char c) { out.print(c); }
 
@@ -41,17 +24,17 @@ void writeRaw(Print& out, JsonKey k) {
 }
 
 void writeUint32(Print& out, uint32_t v) {
-    char buf[11]; int8_t i = 10; buf[i] = '\0';
-    if (v == 0) { out.print('0'); return; }
+    char buf[10]; int8_t i = 10;
+    if (v == 0) { out.write("0", 1); return; }
     while (v) { buf[--i] = '0' + (v % 10); v /= 10; }
-    out.print(buf + i);
+    out.write(buf + i, 10 - i);   // 長さ既知の write（print(const char*) の strlen 走査を避ける）
 }
 
 void writeUint64(Print& out, uint64_t v) {
-    char buf[21]; int8_t i = 20; buf[i] = '\0';
-    if (v == 0) { out.print('0'); return; }
+    char buf[20]; int8_t i = 20;
+    if (v == 0) { out.write("0", 1); return; }
     while (v) { buf[--i] = '0' + (v % 10); v /= 10; }
-    out.print(buf + i);
+    out.write(buf + i, 20 - i);
 }
 
 // JSON 文字列をエスケープする（キーと値の両方で使う）
@@ -94,22 +77,42 @@ void writeStr(Print& out, std::string_view s) {
     out.print('"'); writeEscaped(out, s); out.print('"');
 }
 
+// キー（JsonKey）をエスケープ付きで書く。AVR では Flash から直接走査し、エスケープ不要なら
+// スタックへ 1 回写して 1 回の write で出す（キー引き当て用の静的 RAM バッファを持たない）。
+static void writeEscapedKey(Print& out, JsonKey k) {
+#if defined(__AVR__)
+    char buf[AZARAC_KEY_BUF_SIZE];
+    bool plain = true;
+    for (uint8_t i = 0; i < k.len; ++i) {
+        const uint8_t c = static_cast<uint8_t>(AZARAC_PGM_READ_BYTE(k.p + i));
+        buf[i] = static_cast<char>(c);
+        if (c == '"' || c == '\\' || c < 0x20) plain = false;
+    }
+    if (plain) { out.write(buf, k.len); return; }
+    // AZARAC_KEY は文字列リテラル専用なので通常ここへは来ないが、契約は string_view 版と同じにする
+    writeEscaped(out, std::string_view(buf, k.len));
+#else
+    writeEscaped(out, std::string_view(k.p, k.len));
+#endif
+}
+
 void writeOptStr(Print& out, std::optional<std::string_view> s) {
     if (!s) { writeRaw(out, AZARAC_KEY("null")); return; }
     writeStr(out, *s);
 }
 
 void writeHex(Print& out, uint8_t v) {
-    char buf[5] = "\"00\"";
+    char buf[4] = { '"', '0', '0', '"' };
     buf[1] = hexDigit(v >> 4);
     buf[2] = hexDigit(v);
-    out.print(buf);
+    out.write(buf, 4);
 }
 
-// `"key":`。keyView の戻りは次のキー書き出しまでしか有効でない（AVR では共有のキーバッファを指す）。
+// `"key":`。キーは Flash から直接書き出す（旧実装のような「戻りは次のキー書き出しまで有効」契約は無い）。
 static void writeKey(Print& out, JsonKey k) {
-    const std::string_view name = keyView(k);
-    out.print('"'); writeEscaped(out, name); writeRaw(out, AZARAC_KEY("\":"));
+    out.print('"');
+    writeEscapedKey(out, k);
+    writeRaw(out, AZARAC_KEY("\":"));
 }
 
 void wk(Print& out, JsonKey k) {
@@ -126,14 +129,13 @@ void wf_u64(Print& out, JsonKey k, uint64_t v, bool last) {
 
 void wf_x(Print& out, JsonKey k, uint32_t v, bool last) {
     writeKey(out, k);
-    char buf[11];
+    char buf[10];
     buf[0] = '0'; buf[1] = 'x';
     for (int i = 0; i < 8; ++i) {
         buf[2 + i] = hexDigit(v >> (28 - i * 4));
     }
-    buf[10] = '\0';
     out.print('"');
-    out.print(buf);
+    out.write(buf, 10);
     out.print('"');
     if (!last) writeChar(out, ',');
 }
@@ -179,16 +181,19 @@ void wf_s(Print& out, JsonKey k, const char* v, bool last) {
 }
 
 void wf_s(Print& out, JsonKey k, JsonKey v, bool last) {
-    writeKey(out, k); writeStr(out, keyView(v)); if (!last) writeChar(out, ',');
+    writeKey(out, k);
+    out.print('"');
+    writeEscapedKey(out, v);
+    out.print('"');
+    if (!last) writeChar(out, ',');
 }
 
 void wf_v(Print& out, JsonKey field, uint32_t value,
           std::optional<std::string_view> label, bool last) {
-    // 名前は 1 度だけ取り出す（`"d1_magnitude":1,"d1_magnitude_label":"…"`）: AVR では Flash からのコピーが 1 回で済む。
-    const std::string_view name = keyView(field);
-    out.print('"'); writeEscaped(out, name); writeRaw(out, AZARAC_KEY("\":"));
+    // `"d1_magnitude":1,"d1_magnitude_label":"…"`: キー名は Flash から 2 回直接書く。
+    out.print('"'); writeEscapedKey(out, field); writeRaw(out, AZARAC_KEY("\":"));
     writeUint32(out, value); writeChar(out, ',');
-    out.print('"'); writeEscaped(out, name); writeRaw(out, AZARAC_KEY("_label\":"));
+    out.print('"'); writeEscapedKey(out, field); writeRaw(out, AZARAC_KEY("_label\":"));
     writeOptStr(out, label);
     if (!last) writeChar(out, ',');
 }

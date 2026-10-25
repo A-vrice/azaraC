@@ -109,7 +109,7 @@ void wf_deg(Print& out, JsonKey k, int32_t denominator, int32_t v, bool last = f
 void wf_s(Print& out, JsonKey k, std::optional<std::string_view> v, bool last = false);
 void wf_s(Print& out, JsonKey k, const char* v, bool last = false);
 // "key":"value"。値も固定リテラルなら AZARAC_KEY で包む（SRAM に置かない）。
-// AVR では k と v が同じ 1 次コピー先を共有するので、キーを書き終えてから値の keyView を取る（この順序が契約）。
+// キー・値とも Flash から直接書き出すので、書き出し順序の制約は無い。
 void wf_s(Print& out, JsonKey k, JsonKey v, bool last = false);
 // "field":value,"field_label":label|null
 void wf_v(Print& out, JsonKey field, uint32_t value,
