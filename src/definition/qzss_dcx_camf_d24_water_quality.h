@@ -20,7 +20,6 @@ namespace def {
 
 #if (AZARAC_ENABLE_DCX_CAMF)
 
-#if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D24_WATER_QUALITY_C0[] = "Excellent";
 static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D24_WATER_QUALITY_C1[] = "Good";
 static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D24_WATER_QUALITY_C2[] = "Poor";
@@ -39,19 +38,6 @@ static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D24_WATER_QUALITY_PARENT_POOL[] =
         default: return std::nullopt;
     }
 }
-#else
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_d24_water_quality_lookup(uint8_t id) noexcept {
-    switch (id) {
-        case 0: return std::string_view{"Excellent water quality", 23};
-        case 1: return std::string_view{"Good water quality", 18};
-        case 2: return std::string_view{"Poor water quality", 18};
-        case 3: return std::string_view{"Very poor water quality", 23};
-        case 4: return std::string_view{"Suitable for drinking purposes", 30};
-        case 5: return std::string_view{"Unsuitable for drinking purposes", 32};
-        default: return std::nullopt;
-    }
-}
-#endif
 
 #else
 

@@ -20,7 +20,6 @@ namespace def {
 
 #if (AZARAC_ENABLE_DCX_CAMF)
 
-#if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_POOL[] = "1\0002\0003\0004\0005\0006\0007\0008\0009\0000\0001\0002\0003\0004\0005\0006\0007\00031\00032\000";
 static const char AZARAC_PROGMEM QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_PARENT_POOL[] = "IC-C-\000IC-C-0\000IC-C-1\000";
 struct QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_PARENT_Entry { uint16_t offset; };
@@ -69,42 +68,6 @@ static const QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_Entry
     }
     return std::nullopt;
 }
-#else
-struct QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_Entry { uint8_t id; const char* label; };
-inline constexpr QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_Entry QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_TABLE[] = {
-    {0u, "IC-C-01"},
-    {1u, "IC-C-02"},
-    {2u, "IC-C-03"},
-    {3u, "IC-C-04"},
-    {4u, "IC-C-05"},
-    {5u, "IC-C-06"},
-    {6u, "IC-C-07"},
-    {7u, "IC-C-08"},
-    {8u, "IC-C-09"},
-    {9u, "IC-C-10"},
-    {10u, "IC-C-11"},
-    {11u, "IC-C-12"},
-    {12u, "IC-C-13"},
-    {13u, "IC-C-14"},
-    {14u, "IC-C-15"},
-    {15u, "IC-C-16"},
-    {16u, "IC-C-17"},
-    {30u, "IC-C-31"},
-    {31u, "IC-C-32"},};
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_c10_instruction_library_for_second_ellipse_code_lookup(uint8_t id) noexcept {
-    uint8_t lo = 0, hi = 19;
-    while (lo < hi) {
-        uint8_t mid = static_cast<uint8_t>(lo + (hi - lo) / 2);
-        if (QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_TABLE[mid].id == id) {
-            const char* s = QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_TABLE[mid].label;
-            return s ? std::optional<std::string_view>(std::string_view{s}) : std::nullopt;
-        }
-        if (QZSS_DCX_CAMF_C10_INSTRUCTION_LIBRARY_FOR_SECOND_ELLIPSE_CODE_TABLE[mid].id < id) lo = mid + 1;
-        else hi = mid;
-    }
-    return std::nullopt;
-}
-#endif
 
 #else
 

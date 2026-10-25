@@ -20,7 +20,6 @@ namespace def {
 
 #if (AZARAC_ENABLE_EEW) && (AZARAC_LANG_EN)
 
-#if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_SEISMIC_INTENSITY_UPPER_LIMIT_EN_POOL[] = "0\0001\0002\0003\0004\0005-lower\0005-upper\0006-lower\0006-upper\0007\000or greater\000None\000Unknown\000";
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_SEISMIC_INTENSITY_UPPER_LIMIT_EN_PARENT_POOL[] = "Seismic intensity of \000";
 struct QZSS_DCR_JMA_SEISMIC_INTENSITY_UPPER_LIMIT_EN_PARENT_Entry { uint16_t offset; };
@@ -61,36 +60,6 @@ static const QZSS_DCR_JMA_SEISMIC_INTENSITY_UPPER_LIMIT_EN_Entry QZSS_DCR_JMA_SE
     }
     return std::nullopt;
 }
-#else
-struct QZSS_DCR_JMA_SEISMIC_INTENSITY_UPPER_LIMIT_EN_Entry { uint8_t id; const char* label; };
-inline constexpr QZSS_DCR_JMA_SEISMIC_INTENSITY_UPPER_LIMIT_EN_Entry QZSS_DCR_JMA_SEISMIC_INTENSITY_UPPER_LIMIT_EN_TABLE[] = {
-    {1u, "Seismic intensity of 0"},
-    {2u, "Seismic intensity of 1"},
-    {3u, "Seismic intensity of 2"},
-    {4u, "Seismic intensity of 3"},
-    {5u, "Seismic intensity of 4"},
-    {6u, "Seismic intensity of 5-lower"},
-    {7u, "Seismic intensity of 5-upper"},
-    {8u, "Seismic intensity of 6-lower"},
-    {9u, "Seismic intensity of 6-upper"},
-    {10u, "Seismic intensity of 7"},
-    {11u, "or greater"},
-    {14u, "None"},
-    {15u, "Unknown"},};
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_seismic_intensity_upper_limit_en_lookup(uint8_t id) noexcept {
-    uint8_t lo = 0, hi = 13;
-    while (lo < hi) {
-        uint8_t mid = static_cast<uint8_t>(lo + (hi - lo) / 2);
-        if (QZSS_DCR_JMA_SEISMIC_INTENSITY_UPPER_LIMIT_EN_TABLE[mid].id == id) {
-            const char* s = QZSS_DCR_JMA_SEISMIC_INTENSITY_UPPER_LIMIT_EN_TABLE[mid].label;
-            return s ? std::optional<std::string_view>(std::string_view{s}) : std::nullopt;
-        }
-        if (QZSS_DCR_JMA_SEISMIC_INTENSITY_UPPER_LIMIT_EN_TABLE[mid].id < id) lo = mid + 1;
-        else hi = mid;
-    }
-    return std::nullopt;
-}
-#endif
 
 #else
 

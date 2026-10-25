@@ -20,7 +20,6 @@ namespace def {
 
 #if (AZARAC_ENABLE_NW_PAC_TSUNAMI)
 
-#if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_COASTAL_REGION_EN_POOL[] = "Ust-Kamchatsk\000Petropavlovsk-K\000Severo Kurilsk (Kuril\000Urup Islands (Kuril\000Busan\000Nohwa\000Seogwipo\000Hualien\000Basco\000Palanan\000Legaspi\000Laoang\000Madrid\000Davao\000Berebere\000Patani\000Sorong\000Manokwari\000Warsa\000Jayapura\000Vanimo\000Wewak\000Madang\000Manus Islands\000Rabaul\000Kavieng\000Kimbe\000Kieta\000Guam (Mariana\000Saipan (Mariana\000Malakal (Palau)\000Yap\000Chuuk\000Pohnpei\000Kosrae\000Eniwetok Island (Marshall\000Panggoe\000Auki\000Kirakira\000Munda\000Honiara\000Ostrov-Karaginskiy\000Nikolskoya\000Tongyeong\000Heuksando\000Cheju-Island\000Chilung\000Taitung\000Homel\000Geme\000Ulamona\000Ghatere\000Amun\000Falamae\000Misima\000Alotau\000Lae\000Port-Moresby (Coral\000Shanghai (Coasts of East China\000Zhoushan (Coasts of East China\000Wenzhou (Coasts of East China\000Unknown\000Other region\000";
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_COASTAL_REGION_EN_PARENT_POOL[] = " (East Coasts of Kamchatka Peninsula)\000 (East Coasts of Philippines)\000 (North Coasts of Irian Jaya)\000 (North Coasts of Papua New Guinea)\000 (North Coasts of Solomon Islands)\000 (Solomon Sea)\000 (South Coasts of Korean Peninsula)\000 (Taiwan)\000 Island (Micronesia)\000 Islands)\000 Sea)\000";
 struct QZSS_DCR_JMA_COASTAL_REGION_EN_PARENT_Entry { uint16_t offset; };
@@ -121,86 +120,6 @@ static const QZSS_DCR_JMA_COASTAL_REGION_EN_Entry QZSS_DCR_JMA_COASTAL_REGION_EN
     }
     return std::nullopt;
 }
-#else
-struct QZSS_DCR_JMA_COASTAL_REGION_EN_Entry { uint8_t id; const char* label; };
-inline constexpr QZSS_DCR_JMA_COASTAL_REGION_EN_Entry QZSS_DCR_JMA_COASTAL_REGION_EN_TABLE[] = {
-    {1u, "Ust-Kamchatsk (East Coasts of Kamchatka Peninsula)"},
-    {2u, "Petropavlovsk-K (East Coasts of Kamchatka Peninsula)"},
-    {3u, "Severo Kurilsk (Kuril Islands)"},
-    {4u, "Urup Islands (Kuril Islands)"},
-    {5u, "Busan (South Coasts of Korean Peninsula)"},
-    {6u, "Nohwa (South Coasts of Korean Peninsula)"},
-    {7u, "Seogwipo (South Coasts of Korean Peninsula)"},
-    {8u, "Hualien (Taiwan)"},
-    {9u, "Basco (East Coasts of Philippines)"},
-    {10u, "Palanan (East Coasts of Philippines)"},
-    {11u, "Legaspi (East Coasts of Philippines)"},
-    {12u, "Laoang (East Coasts of Philippines)"},
-    {13u, "Madrid (East Coasts of Philippines)"},
-    {14u, "Davao (East Coasts of Philippines)"},
-    {15u, "Berebere (North Coasts of Irian Jaya)"},
-    {16u, "Patani (North Coasts of Irian Jaya)"},
-    {17u, "Sorong (North Coasts of Irian Jaya)"},
-    {18u, "Manokwari (North Coasts of Irian Jaya)"},
-    {19u, "Warsa (North Coasts of Irian Jaya)"},
-    {20u, "Jayapura (North Coasts of Irian Jaya)"},
-    {21u, "Vanimo (North Coasts of Papua New Guinea)"},
-    {22u, "Wewak (North Coasts of Papua New Guinea)"},
-    {23u, "Madang (North Coasts of Papua New Guinea)"},
-    {24u, "Manus Islands (North Coasts of Papua New Guinea)"},
-    {25u, "Rabaul (North Coasts of Papua New Guinea)"},
-    {26u, "Kavieng (North Coasts of Papua New Guinea)"},
-    {27u, "Kimbe (North Coasts of Papua New Guinea)"},
-    {28u, "Kieta (North Coasts of Papua New Guinea)"},
-    {29u, "Guam (Mariana Islands)"},
-    {30u, "Saipan (Mariana Islands)"},
-    {31u, "Malakal (Palau)"},
-    {32u, "Yap Island (Micronesia)"},
-    {33u, "Chuuk Island (Micronesia)"},
-    {34u, "Pohnpei Island (Micronesia)"},
-    {35u, "Kosrae Island (Micronesia)"},
-    {36u, "Eniwetok Island (Marshall Islands)"},
-    {37u, "Panggoe (North Coasts of Solomon Islands)"},
-    {38u, "Auki (North Coasts of Solomon Islands)"},
-    {39u, "Kirakira (North Coasts of Solomon Islands)"},
-    {40u, "Munda (Solomon Sea)"},
-    {41u, "Honiara (Solomon Sea)"},
-    {66u, "Ostrov-Karaginskiy (East Coasts of Kamchatka Peninsula)"},
-    {67u, "Nikolskoya (East Coasts of Kamchatka Peninsula)"},
-    {68u, "Tongyeong (South Coasts of Korean Peninsula)"},
-    {69u, "Heuksando (South Coasts of Korean Peninsula)"},
-    {70u, "Cheju-Island (South Coasts of Korean Peninsula)"},
-    {71u, "Chilung (Taiwan)"},
-    {72u, "Taitung (Taiwan)"},
-    {74u, "Homel (Taiwan)"},
-    {75u, "Geme (North Coasts of Irian Jaya)"},
-    {76u, "Ulamona (North Coasts of Papua New Guinea)"},
-    {77u, "Ghatere (North Coasts of Solomon Islands)"},
-    {78u, "Amun (Solomon Sea)"},
-    {79u, "Falamae (Solomon Sea)"},
-    {80u, "Misima (Solomon Sea)"},
-    {81u, "Alotau (Solomon Sea)"},
-    {82u, "Lae (Solomon Sea)"},
-    {83u, "Port-Moresby (Coral Sea)"},
-    {84u, "Shanghai (Coasts of East China Sea)"},
-    {85u, "Zhoushan (Coasts of East China Sea)"},
-    {86u, "Wenzhou (Coasts of East China Sea)"},
-    {99u, "Unknown"},
-    {100u, "Other region"},};
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_coastal_region_en_lookup(uint8_t id) noexcept {
-    uint8_t lo = 0, hi = 63;
-    while (lo < hi) {
-        uint8_t mid = static_cast<uint8_t>(lo + (hi - lo) / 2);
-        if (QZSS_DCR_JMA_COASTAL_REGION_EN_TABLE[mid].id == id) {
-            const char* s = QZSS_DCR_JMA_COASTAL_REGION_EN_TABLE[mid].label;
-            return s ? std::optional<std::string_view>(std::string_view{s}) : std::nullopt;
-        }
-        if (QZSS_DCR_JMA_COASTAL_REGION_EN_TABLE[mid].id < id) lo = mid + 1;
-        else hi = mid;
-    }
-    return std::nullopt;
-}
-#endif
 
 #else
 

@@ -20,7 +20,6 @@ namespace def {
 
 #if (AZARAC_ENABLE_WEATHER) && (AZARAC_LANG_EN)
 
-#if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_WEATHER_FORECAST_REGION_EN_POOL[] = "Soya\000Kamikawa and Rumoi\000Kamikawa\000Rumoi\000Abashiri · Kitami · Mombetsu\000Nemuro\000Kushiro\000Tokachi\000Kushiro and Nemuro\000Iburi and Hidaka\000Iburi\000Hidaka\000Region of Ishikari/Sorachi/Shiribeshi\000Ishikari\000Sorachi\000Shiribeshi\000Region of Ishikari and Sorachi\000Region of Oshima and Hiyama\000Oshima\000Hiyama\000Aomori\000Iwate\000Miyagi\000Akit\000Yamagat\000Fukushim\000Ibaraki\000Tochigi\000Gunm\000Saitam\000Chib\000Tokyo\000Tokyo\000Northern Izu Islands\000Southern Izu Islands\000Kanagaw\000Niigat\000Toyam\000Ishikaw\000Fukui\000Yamanashi\000Nagano\000Gifu\000Shizuok\000Aichi\000Mie\000Shig\000Kyoto\000Osak\000Hyogo\000Nar\000Wakayam\000Tottori\000Shimane\000Okayam\000Hiroshim\000Yamaguchi\000Tokushim\000Kagaw\000Ehime\000Kochi\000Fukuok\000Sag\000Nagasaki\000Kumamoto\000Oit\000Miyazaki\000Kagoshim\000Amami\000Kagoshima Prefecture (excluding Amami Region)\000Okinawa Main Island\000Daitojima\000Miyakojima\000Yaeyama\000Other Prefectural Forecast\000";
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_WEATHER_FORECAST_REGION_EN_PARENT_POOL[] = " Prefecture\000 Region\000a Prefecture\000";
 struct QZSS_DCR_JMA_WEATHER_FORECAST_REGION_EN_PARENT_Entry { uint16_t offset; };
@@ -125,98 +124,6 @@ static const QZSS_DCR_JMA_WEATHER_FORECAST_REGION_EN_Entry QZSS_DCR_JMA_WEATHER_
     }
     return std::nullopt;
 }
-#else
-struct QZSS_DCR_JMA_WEATHER_FORECAST_REGION_EN_Entry { uint32_t id; const char* label; };
-inline constexpr QZSS_DCR_JMA_WEATHER_FORECAST_REGION_EN_Entry QZSS_DCR_JMA_WEATHER_FORECAST_REGION_EN_TABLE[] = {
-    {11000u, "Soya Region"},
-    {12000u, "Kamikawa and Rumoi Region"},
-    {12010u, "Kamikawa Region"},
-    {12020u, "Rumoi Region"},
-    {13000u, "Abashiri · Kitami · Mombetsu Region"},
-    {14010u, "Nemuro Region"},
-    {14020u, "Kushiro Region"},
-    {14030u, "Tokachi Region"},
-    {14100u, "Kushiro and Nemuro Region"},
-    {15000u, "Iburi and Hidaka Region"},
-    {15010u, "Iburi Region"},
-    {15020u, "Hidaka Region"},
-    {16000u, "Region of Ishikari/Sorachi/Shiribeshi"},
-    {16010u, "Ishikari Region"},
-    {16020u, "Sorachi Region"},
-    {16030u, "Shiribeshi Region"},
-    {16100u, "Region of Ishikari and Sorachi"},
-    {17000u, "Region of Oshima and Hiyama"},
-    {17010u, "Oshima Region"},
-    {17020u, "Hiyama Region"},
-    {20000u, "Aomori Prefecture"},
-    {30000u, "Iwate Prefecture"},
-    {40000u, "Miyagi Prefecture"},
-    {50000u, "Akita Prefecture"},
-    {60000u, "Yamagata Prefecture"},
-    {70000u, "Fukushima Prefecture"},
-    {80000u, "Ibaraki Prefecture"},
-    {90000u, "Tochigi Prefecture"},
-    {100000u, "Gunma Prefecture"},
-    {110000u, "Saitama Prefecture"},
-    {120000u, "Chiba Prefecture"},
-    {130000u, "Tokyo"},
-    {130010u, "Tokyo Region"},
-    {130020u, "Northern Izu Islands"},
-    {130030u, "Southern Izu Islands"},
-    {140000u, "Kanagawa Prefecture"},
-    {150000u, "Niigata Prefecture"},
-    {160000u, "Toyama Prefecture"},
-    {170000u, "Ishikawa Prefecture"},
-    {180000u, "Fukui Prefecture"},
-    {190000u, "Yamanashi Prefecture"},
-    {200000u, "Nagano Prefecture"},
-    {210000u, "Gifu Prefecture"},
-    {220000u, "Shizuoka Prefecture"},
-    {230000u, "Aichi Prefecture"},
-    {240000u, "Mie Prefecture"},
-    {250000u, "Shiga Prefecture"},
-    {260000u, "Kyoto Prefecture"},
-    {270000u, "Osaka Prefecture"},
-    {280000u, "Hyogo Prefecture"},
-    {290000u, "Nara Prefecture"},
-    {300000u, "Wakayama Prefecture"},
-    {310000u, "Tottori Prefecture"},
-    {320000u, "Shimane Prefecture"},
-    {330000u, "Okayama Prefecture"},
-    {340000u, "Hiroshima Prefecture"},
-    {350000u, "Yamaguchi Prefecture"},
-    {360000u, "Tokushima Prefecture"},
-    {370000u, "Kagawa Prefecture"},
-    {380000u, "Ehime Prefecture"},
-    {390000u, "Kochi Prefecture"},
-    {400000u, "Fukuoka Prefecture"},
-    {410000u, "Saga Prefecture"},
-    {420000u, "Nagasaki Prefecture"},
-    {430000u, "Kumamoto Prefecture"},
-    {440000u, "Oita Prefecture"},
-    {450000u, "Miyazaki Prefecture"},
-    {460000u, "Kagoshima Prefecture"},
-    {460040u, "Amami Region"},
-    {460100u, "Kagoshima Prefecture (excluding Amami Region)"},
-    {471000u, "Okinawa Main Island Region"},
-    {472000u, "Daitojima Region"},
-    {473000u, "Miyakojima Region"},
-    {474000u, "Yaeyama Region"},
-    {500000u, "Other Prefectural Forecast Region"},};
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_weather_forecast_region_en_lookup(uint32_t id) noexcept {
-    uint8_t lo = 0, hi = 75;
-    while (lo < hi) {
-        uint8_t mid = static_cast<uint8_t>(lo + (hi - lo) / 2);
-        if (QZSS_DCR_JMA_WEATHER_FORECAST_REGION_EN_TABLE[mid].id == id) {
-            const char* s = QZSS_DCR_JMA_WEATHER_FORECAST_REGION_EN_TABLE[mid].label;
-            return s ? std::optional<std::string_view>(std::string_view{s}) : std::nullopt;
-        }
-        if (QZSS_DCR_JMA_WEATHER_FORECAST_REGION_EN_TABLE[mid].id < id) lo = mid + 1;
-        else hi = mid;
-    }
-    return std::nullopt;
-}
-#endif
 
 #else
 

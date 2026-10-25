@@ -20,7 +20,6 @@ namespace def {
 
 #if (AZARAC_ENABLE_EEW) && (AZARAC_LANG_EN)
 
-#if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_LONG_PERIOD_GROUND_MOTION_LOWER_LIMIT_EN_C0[] = "No data";
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_LONG_PERIOD_GROUND_MOTION_LOWER_LIMIT_EN_C1[] = "Less than Long-Period Ground Motion class of 1";
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_LONG_PERIOD_GROUND_MOTION_LOWER_LIMIT_EN_C2[] = "1";
@@ -41,20 +40,6 @@ static const char AZARAC_PROGMEM QZSS_DCR_JMA_LONG_PERIOD_GROUND_MOTION_LOWER_LI
         default: return std::nullopt;
     }
 }
-#else
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_long_period_ground_motion_lower_limit_en_lookup(uint8_t id) noexcept {
-    switch (id) {
-        case 0: return std::string_view{"No data", 7};
-        case 1: return std::string_view{"Less than Long-Period Ground Motion class of 1", 46};
-        case 2: return std::string_view{"Long-Period Ground Motion class of 1", 36};
-        case 3: return std::string_view{"Long-Period Ground Motion class of 2", 36};
-        case 4: return std::string_view{"Long-Period Ground Motion class of 3", 36};
-        case 5: return std::string_view{"Long-Period Ground Motion class of 4", 36};
-        case 7: return std::string_view{"Unknown", 7};
-        default: return std::nullopt;
-    }
-}
-#endif
 
 #else
 

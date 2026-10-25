@@ -22,7 +22,6 @@ namespace def {
 
 inline constexpr uint8_t QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_BASE = 0;
 inline constexpr uint8_t QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_SIZE = 16;
-#if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_POOL[] = "Explosives\000gases\000aerosols and aerosols\000Oxidizing gases\000Gases under pressure\000liquids\000solids\000Self-reactive substance/mixture\000Pyrophoric liquids. Pyrophoric materials are often water-reactive as well and will ignite when they contact water or humid air.\000Pyrophoric solids. Pyrophoric materials are often water-reactive as well and will ignite when they contact water or humid air.\000Self-heating substance/mixture\000Water-reactive - emits flammable gases\000Oxidising liquids\000Oxidising solids\000Organic peroxides\000Corrosive to metals\000";
 static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_PARENT_POOL[] = "Flammable \000";
 struct QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_PARENT_Entry { uint16_t offset; };
@@ -58,31 +57,6 @@ static const QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_Entry QZSS_DCX_CAMF_D31_CHEM
     uint16_t poff = azarac_read_word(pp, offsetof(QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_PARENT_Entry, offset));
     return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_PARENT_POOL) + poff, AZARAC_PGM_PTR(QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_POOL) + off);
 }
-#else
-inline constexpr const char* QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_TABLE[] = {
-    "Explosives",
-    "Flammable gases",
-    "Flammable aerosols and aerosols",
-    "Oxidizing gases",
-    "Gases under pressure",
-    "Flammable liquids",
-    "Flammable solids",
-    "Self-reactive substance/mixture",
-    "Pyrophoric liquids. Pyrophoric materials are often water-reactive as well and will ignite when they contact water or humid air.",
-    "Pyrophoric solids. Pyrophoric materials are often water-reactive as well and will ignite when they contact water or humid air.",
-    "Self-heating substance/mixture",
-    "Water-reactive - emits flammable gases",
-    "Oxidising liquids",
-    "Oxidising solids",
-    "Organic peroxides",
-    "Corrosive to metals"
-};
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_d31_chemical_hazard_type_lookup(uint8_t id) noexcept {
-    if (id < QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_BASE || id >= QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_BASE + QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_SIZE) return std::nullopt;
-    const char* s = QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_TABLE[id - QZSS_DCX_CAMF_D31_CHEMICAL_HAZARD_TYPE_BASE];
-    return s ? std::optional<std::string_view>(std::string_view{s}) : std::nullopt;
-}
-#endif
 
 #else
 

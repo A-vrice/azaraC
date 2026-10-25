@@ -20,7 +20,6 @@ namespace def {
 
 #if (AZARAC_ENABLE_FLOOD) && (AZARAC_LANG_JA)
 
-#if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_FLOOD_WARNING_LEVEL_C1[] = "警報解除";
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_FLOOD_WARNING_LEVEL_C2[] = "氾濫警戒情報";
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_FLOOD_WARNING_LEVEL_C3[] = "氾濫危険情報";
@@ -36,18 +35,6 @@ static const char AZARAC_PROGMEM QZSS_DCR_JMA_FLOOD_WARNING_LEVEL_C15[] = "そ�
         default: return std::nullopt;
     }
 }
-#else
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_flood_warning_level_lookup(uint8_t id) noexcept {
-    switch (id) {
-        case 1: return std::string_view{"警報解除", 12};
-        case 2: return std::string_view{"氾濫警戒情報", 18};
-        case 3: return std::string_view{"氾濫危険情報", 18};
-        case 4: return std::string_view{"氾濫発生情報", 18};
-        case 15: return std::string_view{"その他の警戒レベル", 27};
-        default: return std::nullopt;
-    }
-}
-#endif
 
 #else
 

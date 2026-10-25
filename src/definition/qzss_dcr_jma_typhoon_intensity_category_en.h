@@ -20,7 +20,6 @@ namespace def {
 
 #if (AZARAC_ENABLE_TYPHOON) && (AZARAC_LANG_EN)
 
-#if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_TYPHOON_INTENSITY_CATEGORY_EN_C0[] = "None";
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_TYPHOON_INTENSITY_CATEGORY_EN_C1[] = "Strong";
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_TYPHOON_INTENSITY_CATEGORY_EN_C2[] = "Very Strong";
@@ -36,18 +35,6 @@ static const char AZARAC_PROGMEM QZSS_DCR_JMA_TYPHOON_INTENSITY_CATEGORY_EN_C15[
         default: return std::nullopt;
     }
 }
-#else
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_typhoon_intensity_category_en_lookup(uint8_t id) noexcept {
-    switch (id) {
-        case 0: return std::string_view{"None", 4};
-        case 1: return std::string_view{"Strong", 6};
-        case 2: return std::string_view{"Very Strong", 11};
-        case 3: return std::string_view{"Violent", 7};
-        case 15: return std::string_view{"Other Intensity Category", 24};
-        default: return std::nullopt;
-    }
-}
-#endif
 
 #else
 

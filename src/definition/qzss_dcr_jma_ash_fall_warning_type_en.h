@@ -20,7 +20,6 @@ namespace def {
 
 #if (AZARAC_ENABLE_ASH_FALL) && (AZARAC_LANG_EN)
 
-#if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_ASH_FALL_WARNING_TYPE_EN_C1[] = "Preliminary";
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_ASH_FALL_WARNING_TYPE_EN_C2[] = "Detailed";
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_ash_fall_warning_type_en_lookup(uint8_t id) noexcept {
@@ -30,15 +29,6 @@ static const char AZARAC_PROGMEM QZSS_DCR_JMA_ASH_FALL_WARNING_TYPE_EN_C2[] = "D
         default: return std::nullopt;
     }
 }
-#else
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_ash_fall_warning_type_en_lookup(uint8_t id) noexcept {
-    switch (id) {
-        case 1: return std::string_view{"Preliminary", 11};
-        case 2: return std::string_view{"Detailed", 8};
-        default: return std::nullopt;
-    }
-}
-#endif
 
 #else
 

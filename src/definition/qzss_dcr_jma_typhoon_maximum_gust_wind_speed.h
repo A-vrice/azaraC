@@ -20,7 +20,6 @@ namespace def {
 
 #if (AZARAC_ENABLE_TYPHOON) && (AZARAC_LANG_JA)
 
-#if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_TYPHOON_MAXIMUM_GUST_WIND_SPEED_POOL[] = "不明\0001\0001\0001\0001\0001\0002\0002\0002\0002\0002\0002\0002\0002\0002\0002\0003\0003\0003\0003\0003\0003\0003\0003\0003\0003\0004\0004\0004\0004\0004\0004\0004\0004\0004\0004\0005\0005\0005\0005\0005\0005\0005\0005\0005\0005\0006\0006\0006\0006\0006\0006\0006\0006\0006\0006\0007\0007\0007\0007\0007\0007\0007\0007\0007\0007\0008\0008\0008\0008\0008\0008\0008\0008\0008\0008\0009\0009\0009\0009\0009\0009\0009\0009\0009\0009\00010\00010\00010\00010\00010\00010\000";
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_TYPHOON_MAXIMUM_GUST_WIND_SPEED_PARENT_POOL[] = "0m/s\0001m/s\0002m/s\0003m/s\0004m/s\0005m/s\0006m/s\0007m/s\0008m/s\0009m/s\000";
 struct QZSS_DCR_JMA_TYPHOON_MAXIMUM_GUST_WIND_SPEED_PARENT_Entry { uint16_t offset; };
@@ -149,115 +148,6 @@ static const QZSS_DCR_JMA_TYPHOON_MAXIMUM_GUST_WIND_SPEED_Entry QZSS_DCR_JMA_TYP
     }
     return std::nullopt;
 }
-#else
-struct QZSS_DCR_JMA_TYPHOON_MAXIMUM_GUST_WIND_SPEED_Entry { uint8_t id; const char* label; };
-inline constexpr QZSS_DCR_JMA_TYPHOON_MAXIMUM_GUST_WIND_SPEED_Entry QZSS_DCR_JMA_TYPHOON_MAXIMUM_GUST_WIND_SPEED_TABLE[] = {
-    {0u, "不明"},
-    {15u, "15m/s"},
-    {16u, "16m/s"},
-    {17u, "17m/s"},
-    {18u, "18m/s"},
-    {19u, "19m/s"},
-    {20u, "20m/s"},
-    {21u, "21m/s"},
-    {22u, "22m/s"},
-    {23u, "23m/s"},
-    {24u, "24m/s"},
-    {25u, "25m/s"},
-    {26u, "26m/s"},
-    {27u, "27m/s"},
-    {28u, "28m/s"},
-    {29u, "29m/s"},
-    {30u, "30m/s"},
-    {31u, "31m/s"},
-    {32u, "32m/s"},
-    {33u, "33m/s"},
-    {34u, "34m/s"},
-    {35u, "35m/s"},
-    {36u, "36m/s"},
-    {37u, "37m/s"},
-    {38u, "38m/s"},
-    {39u, "39m/s"},
-    {40u, "40m/s"},
-    {41u, "41m/s"},
-    {42u, "42m/s"},
-    {43u, "43m/s"},
-    {44u, "44m/s"},
-    {45u, "45m/s"},
-    {46u, "46m/s"},
-    {47u, "47m/s"},
-    {48u, "48m/s"},
-    {49u, "49m/s"},
-    {50u, "50m/s"},
-    {51u, "51m/s"},
-    {52u, "52m/s"},
-    {53u, "53m/s"},
-    {54u, "54m/s"},
-    {55u, "55m/s"},
-    {56u, "56m/s"},
-    {57u, "57m/s"},
-    {58u, "58m/s"},
-    {59u, "59m/s"},
-    {60u, "60m/s"},
-    {61u, "61m/s"},
-    {62u, "62m/s"},
-    {63u, "63m/s"},
-    {64u, "64m/s"},
-    {65u, "65m/s"},
-    {66u, "66m/s"},
-    {67u, "67m/s"},
-    {68u, "68m/s"},
-    {69u, "69m/s"},
-    {70u, "70m/s"},
-    {71u, "71m/s"},
-    {72u, "72m/s"},
-    {73u, "73m/s"},
-    {74u, "74m/s"},
-    {75u, "75m/s"},
-    {76u, "76m/s"},
-    {77u, "77m/s"},
-    {78u, "78m/s"},
-    {79u, "79m/s"},
-    {80u, "80m/s"},
-    {81u, "81m/s"},
-    {82u, "82m/s"},
-    {83u, "83m/s"},
-    {84u, "84m/s"},
-    {85u, "85m/s"},
-    {86u, "86m/s"},
-    {87u, "87m/s"},
-    {88u, "88m/s"},
-    {89u, "89m/s"},
-    {90u, "90m/s"},
-    {91u, "91m/s"},
-    {92u, "92m/s"},
-    {93u, "93m/s"},
-    {94u, "94m/s"},
-    {95u, "95m/s"},
-    {96u, "96m/s"},
-    {97u, "97m/s"},
-    {98u, "98m/s"},
-    {99u, "99m/s"},
-    {100u, "100m/s"},
-    {101u, "101m/s"},
-    {102u, "102m/s"},
-    {103u, "103m/s"},
-    {104u, "104m/s"},
-    {105u, "105m/s"},};
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_typhoon_maximum_gust_wind_speed_lookup(uint8_t id) noexcept {
-    uint8_t lo = 0, hi = 92;
-    while (lo < hi) {
-        uint8_t mid = static_cast<uint8_t>(lo + (hi - lo) / 2);
-        if (QZSS_DCR_JMA_TYPHOON_MAXIMUM_GUST_WIND_SPEED_TABLE[mid].id == id) {
-            const char* s = QZSS_DCR_JMA_TYPHOON_MAXIMUM_GUST_WIND_SPEED_TABLE[mid].label;
-            return s ? std::optional<std::string_view>(std::string_view{s}) : std::nullopt;
-        }
-        if (QZSS_DCR_JMA_TYPHOON_MAXIMUM_GUST_WIND_SPEED_TABLE[mid].id < id) lo = mid + 1;
-        else hi = mid;
-    }
-    return std::nullopt;
-}
-#endif
 
 #else
 

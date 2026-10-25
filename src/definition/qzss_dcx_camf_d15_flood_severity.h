@@ -20,7 +20,6 @@ namespace def {
 
 #if (AZARAC_ENABLE_DCX_CAMF)
 
-#if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D15_FLOOD_SEVERITY_C0[] = "Minor Flooding - Minimal or no property damage, but possibly some public threat.";
 static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D15_FLOOD_SEVERITY_C1[] = "Moderate Flooding - Some inundation of structures and roads near stream. Some evacuations of people and/or transfer of property to higher elevations.";
 static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D15_FLOOD_SEVERITY_C2[] = "Major Flooding - Extensive inundation of structures and roads. Significant evacuations of people and/or transfer of property to higher elevations.";
@@ -34,17 +33,6 @@ static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D15_FLOOD_SEVERITY_C3[] = "Record
         default: return std::nullopt;
     }
 }
-#else
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_d15_flood_severity_lookup(uint8_t id) noexcept {
-    switch (id) {
-        case 0: return std::string_view{"Minor Flooding - Minimal or no property damage, but possibly some public threat.", 80};
-        case 1: return std::string_view{"Moderate Flooding - Some inundation of structures and roads near stream. Some evacuations of people and/or transfer of property to higher elevations.", 149};
-        case 2: return std::string_view{"Major Flooding - Extensive inundation of structures and roads. Significant evacuations of people and/or transfer of property to higher elevations.", 146};
-        case 3: return std::string_view{"Record Flooding", 15};
-        default: return std::nullopt;
-    }
-}
-#endif
 
 #else
 

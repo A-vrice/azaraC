@@ -22,7 +22,6 @@ namespace def {
 
 inline constexpr uint8_t QZSS_DCR_JMA_TYPHOON_NUMBER_EN_BASE = 1;
 inline constexpr uint8_t QZSS_DCR_JMA_TYPHOON_NUMBER_EN_SIZE = 99;
-#if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_TYPHOON_NUMBER_EN_POOL[] = "1\0002\0003\0004\0005\0006\0007\0008\0009\0000\0001\0002\0003\0004\0005\0006\0007\0008\0009\0000\0001\0002\0003\0004\0005\0006\0007\0008\0009\0000\0001\0002\0003\0004\0005\0006\0007\0008\0009\0000\0001\0002\0003\0004\0005\0006\0007\0008\0009\0000\0001\0002\0003\0004\0005\0006\0007\0008\0009\0000\0001\0002\0003\0004\0005\0006\0007\0008\0009\0000\0001\0002\0003\0004\0005\0006\0007\0008\0009\0000\0001\0002\0003\0004\0005\0006\0007\0008\0009\0000\0001\0002\0003\0004\0005\0006\0007\0008\0009\000";
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_TYPHOON_NUMBER_EN_PARENT_POOL[] = "No. \000No. 1\000No. 2\000No. 3\000No. 4\000No. 5\000No. 6\000No. 7\000No. 8\000No. 9\000";
 struct QZSS_DCR_JMA_TYPHOON_NUMBER_EN_PARENT_Entry { uint16_t offset; };
@@ -150,114 +149,6 @@ static const QZSS_DCR_JMA_TYPHOON_NUMBER_EN_Entry QZSS_DCR_JMA_TYPHOON_NUMBER_EN
     uint16_t poff = azarac_read_word(pp, offsetof(QZSS_DCR_JMA_TYPHOON_NUMBER_EN_PARENT_Entry, offset));
     return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_TYPHOON_NUMBER_EN_PARENT_POOL) + poff, AZARAC_PGM_PTR(QZSS_DCR_JMA_TYPHOON_NUMBER_EN_POOL) + off);
 }
-#else
-inline constexpr const char* QZSS_DCR_JMA_TYPHOON_NUMBER_EN_TABLE[] = {
-    "No. 1",
-    "No. 2",
-    "No. 3",
-    "No. 4",
-    "No. 5",
-    "No. 6",
-    "No. 7",
-    "No. 8",
-    "No. 9",
-    "No. 10",
-    "No. 11",
-    "No. 12",
-    "No. 13",
-    "No. 14",
-    "No. 15",
-    "No. 16",
-    "No. 17",
-    "No. 18",
-    "No. 19",
-    "No. 20",
-    "No. 21",
-    "No. 22",
-    "No. 23",
-    "No. 24",
-    "No. 25",
-    "No. 26",
-    "No. 27",
-    "No. 28",
-    "No. 29",
-    "No. 30",
-    "No. 31",
-    "No. 32",
-    "No. 33",
-    "No. 34",
-    "No. 35",
-    "No. 36",
-    "No. 37",
-    "No. 38",
-    "No. 39",
-    "No. 40",
-    "No. 41",
-    "No. 42",
-    "No. 43",
-    "No. 44",
-    "No. 45",
-    "No. 46",
-    "No. 47",
-    "No. 48",
-    "No. 49",
-    "No. 50",
-    "No. 51",
-    "No. 52",
-    "No. 53",
-    "No. 54",
-    "No. 55",
-    "No. 56",
-    "No. 57",
-    "No. 58",
-    "No. 59",
-    "No. 60",
-    "No. 61",
-    "No. 62",
-    "No. 63",
-    "No. 64",
-    "No. 65",
-    "No. 66",
-    "No. 67",
-    "No. 68",
-    "No. 69",
-    "No. 70",
-    "No. 71",
-    "No. 72",
-    "No. 73",
-    "No. 74",
-    "No. 75",
-    "No. 76",
-    "No. 77",
-    "No. 78",
-    "No. 79",
-    "No. 80",
-    "No. 81",
-    "No. 82",
-    "No. 83",
-    "No. 84",
-    "No. 85",
-    "No. 86",
-    "No. 87",
-    "No. 88",
-    "No. 89",
-    "No. 90",
-    "No. 91",
-    "No. 92",
-    "No. 93",
-    "No. 94",
-    "No. 95",
-    "No. 96",
-    "No. 97",
-    "No. 98",
-    "No. 99"
-};
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_typhoon_number_en_lookup(uint8_t id) noexcept {
-    if (id < QZSS_DCR_JMA_TYPHOON_NUMBER_EN_BASE || id >= QZSS_DCR_JMA_TYPHOON_NUMBER_EN_BASE + QZSS_DCR_JMA_TYPHOON_NUMBER_EN_SIZE) return std::nullopt;
-    const char* s = QZSS_DCR_JMA_TYPHOON_NUMBER_EN_TABLE[id - QZSS_DCR_JMA_TYPHOON_NUMBER_EN_BASE];
-    return s ? std::optional<std::string_view>(std::string_view{s}) : std::nullopt;
-}
-#endif
 
 #else
 

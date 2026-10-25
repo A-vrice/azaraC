@@ -22,7 +22,6 @@ namespace def {
 
 inline constexpr uint8_t QZSS_DCR_JMA_TYPHOON_NUMBER_BASE = 1;
 inline constexpr uint8_t QZSS_DCR_JMA_TYPHOON_NUMBER_SIZE = 99;
-#if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_TYPHOON_NUMBER_POOL[] = "1号\0002号\0003号\0004号\0005号\0006号\0007号\0008号\0009号\0001\0001\0001\0001\0001\0001\0001\0001\0001\0001\0002\0002\0002\0002\0002\0002\0002\0002\0002\0002\0003\0003\0003\0003\0003\0003\0003\0003\0003\0003\0004\0004\0004\0004\0004\0004\0004\0004\0004\0004\0005\0005\0005\0005\0005\0005\0005\0005\0005\0005\0006\0006\0006\0006\0006\0006\0006\0006\0006\0006\0007\0007\0007\0007\0007\0007\0007\0007\0007\0007\0008\0008\0008\0008\0008\0008\0008\0008\0008\0008\0009\0009\0009\0009\0009\0009\0009\0009\0009\0009\000";
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_TYPHOON_NUMBER_PARENT_POOL[] = "0号\0001号\0002号\0003号\0004号\0005号\0006号\0007号\0008号\0009号\000";
 struct QZSS_DCR_JMA_TYPHOON_NUMBER_PARENT_Entry { uint16_t offset; };
@@ -150,114 +149,6 @@ static const QZSS_DCR_JMA_TYPHOON_NUMBER_Entry QZSS_DCR_JMA_TYPHOON_NUMBER_TABLE
     uint16_t poff = azarac_read_word(pp, offsetof(QZSS_DCR_JMA_TYPHOON_NUMBER_PARENT_Entry, offset));
     return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_TYPHOON_NUMBER_POOL) + off, AZARAC_PGM_PTR(QZSS_DCR_JMA_TYPHOON_NUMBER_PARENT_POOL) + poff);
 }
-#else
-inline constexpr const char* QZSS_DCR_JMA_TYPHOON_NUMBER_TABLE[] = {
-    "1号",
-    "2号",
-    "3号",
-    "4号",
-    "5号",
-    "6号",
-    "7号",
-    "8号",
-    "9号",
-    "10号",
-    "11号",
-    "12号",
-    "13号",
-    "14号",
-    "15号",
-    "16号",
-    "17号",
-    "18号",
-    "19号",
-    "20号",
-    "21号",
-    "22号",
-    "23号",
-    "24号",
-    "25号",
-    "26号",
-    "27号",
-    "28号",
-    "29号",
-    "30号",
-    "31号",
-    "32号",
-    "33号",
-    "34号",
-    "35号",
-    "36号",
-    "37号",
-    "38号",
-    "39号",
-    "40号",
-    "41号",
-    "42号",
-    "43号",
-    "44号",
-    "45号",
-    "46号",
-    "47号",
-    "48号",
-    "49号",
-    "50号",
-    "51号",
-    "52号",
-    "53号",
-    "54号",
-    "55号",
-    "56号",
-    "57号",
-    "58号",
-    "59号",
-    "60号",
-    "61号",
-    "62号",
-    "63号",
-    "64号",
-    "65号",
-    "66号",
-    "67号",
-    "68号",
-    "69号",
-    "70号",
-    "71号",
-    "72号",
-    "73号",
-    "74号",
-    "75号",
-    "76号",
-    "77号",
-    "78号",
-    "79号",
-    "80号",
-    "81号",
-    "82号",
-    "83号",
-    "84号",
-    "85号",
-    "86号",
-    "87号",
-    "88号",
-    "89号",
-    "90号",
-    "91号",
-    "92号",
-    "93号",
-    "94号",
-    "95号",
-    "96号",
-    "97号",
-    "98号",
-    "99号"
-};
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_typhoon_number_lookup(uint8_t id) noexcept {
-    if (id < QZSS_DCR_JMA_TYPHOON_NUMBER_BASE || id >= QZSS_DCR_JMA_TYPHOON_NUMBER_BASE + QZSS_DCR_JMA_TYPHOON_NUMBER_SIZE) return std::nullopt;
-    const char* s = QZSS_DCR_JMA_TYPHOON_NUMBER_TABLE[id - QZSS_DCR_JMA_TYPHOON_NUMBER_BASE];
-    return s ? std::optional<std::string_view>(std::string_view{s}) : std::nullopt;
-}
-#endif
 
 #else
 

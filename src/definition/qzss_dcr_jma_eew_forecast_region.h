@@ -20,7 +20,6 @@ namespace def {
 
 #if (AZARAC_ENABLE_EEW) && (AZARAC_LANG_JA)
 
-#if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_EEW_FORECAST_REGION_POOL[] = "北海道道央\000北海道道南\000北海道道北\000北海道道東\000青森\000岩手\000宮城\000秋田\000山形\000福島\000茨城\000栃木\000群馬\000埼玉\000千葉\000東京\000伊豆諸島\000小笠原\000神奈川\000新潟\000富山\000石川\000福井\000山梨\000長野\000岐阜\000静岡\000愛知\000三重\000滋賀\000京都\000大阪\000兵庫\000奈良\000和歌山\000鳥取\000島根\000岡山\000広島\000山口\000徳島\000香川\000愛媛\000高知\000福岡\000佐賀\000長崎\000熊本\000大分\000宮崎\000鹿児島\000奄美(群島)\000沖縄本島\000大東島\000宮古島\000八重山\000北海道\000東北\000関東\000伊豆諸島\000小笠原\000北陸\000甲信\000東海\000近畿\000中国\000四国\000九州\000奄美(群島)\000沖縄\000その他の府県予報区および地方予報区_緊急地震速報(警報)\000";
 struct QZSS_DCR_JMA_EEW_FORECAST_REGION_Entry { uint8_t id; uint16_t offset; };
 static const QZSS_DCR_JMA_EEW_FORECAST_REGION_Entry QZSS_DCR_JMA_EEW_FORECAST_REGION_TABLE[] AZARAC_PROGMEM = {
@@ -110,94 +109,6 @@ static const QZSS_DCR_JMA_EEW_FORECAST_REGION_Entry QZSS_DCR_JMA_EEW_FORECAST_RE
     }
     return std::nullopt;
 }
-#else
-struct QZSS_DCR_JMA_EEW_FORECAST_REGION_Entry { uint8_t id; const char* label; };
-inline constexpr QZSS_DCR_JMA_EEW_FORECAST_REGION_Entry QZSS_DCR_JMA_EEW_FORECAST_REGION_TABLE[] = {
-    {1u, "北海道道央"},
-    {2u, "北海道道南"},
-    {3u, "北海道道北"},
-    {4u, "北海道道東"},
-    {5u, "青森"},
-    {6u, "岩手"},
-    {7u, "宮城"},
-    {8u, "秋田"},
-    {9u, "山形"},
-    {10u, "福島"},
-    {11u, "茨城"},
-    {12u, "栃木"},
-    {13u, "群馬"},
-    {14u, "埼玉"},
-    {15u, "千葉"},
-    {16u, "東京"},
-    {17u, "伊豆諸島"},
-    {18u, "小笠原"},
-    {19u, "神奈川"},
-    {20u, "新潟"},
-    {21u, "富山"},
-    {22u, "石川"},
-    {23u, "福井"},
-    {24u, "山梨"},
-    {25u, "長野"},
-    {26u, "岐阜"},
-    {27u, "静岡"},
-    {28u, "愛知"},
-    {29u, "三重"},
-    {30u, "滋賀"},
-    {31u, "京都"},
-    {32u, "大阪"},
-    {33u, "兵庫"},
-    {34u, "奈良"},
-    {35u, "和歌山"},
-    {36u, "鳥取"},
-    {37u, "島根"},
-    {38u, "岡山"},
-    {39u, "広島"},
-    {40u, "山口"},
-    {41u, "徳島"},
-    {42u, "香川"},
-    {43u, "愛媛"},
-    {44u, "高知"},
-    {45u, "福岡"},
-    {46u, "佐賀"},
-    {47u, "長崎"},
-    {48u, "熊本"},
-    {49u, "大分"},
-    {50u, "宮崎"},
-    {51u, "鹿児島"},
-    {52u, "奄美(群島)"},
-    {53u, "沖縄本島"},
-    {54u, "大東島"},
-    {55u, "宮古島"},
-    {56u, "八重山"},
-    {57u, "北海道"},
-    {58u, "東北"},
-    {59u, "関東"},
-    {60u, "伊豆諸島"},
-    {61u, "小笠原"},
-    {62u, "北陸"},
-    {63u, "甲信"},
-    {64u, "東海"},
-    {65u, "近畿"},
-    {66u, "中国"},
-    {67u, "四国"},
-    {68u, "九州"},
-    {69u, "奄美(群島)"},
-    {70u, "沖縄"},
-    {80u, "その他の府県予報区および地方予報区_緊急地震速報(警報)"},};
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_eew_forecast_region_lookup(uint8_t id) noexcept {
-    uint8_t lo = 0, hi = 71;
-    while (lo < hi) {
-        uint8_t mid = static_cast<uint8_t>(lo + (hi - lo) / 2);
-        if (QZSS_DCR_JMA_EEW_FORECAST_REGION_TABLE[mid].id == id) {
-            const char* s = QZSS_DCR_JMA_EEW_FORECAST_REGION_TABLE[mid].label;
-            return s ? std::optional<std::string_view>(std::string_view{s}) : std::nullopt;
-        }
-        if (QZSS_DCR_JMA_EEW_FORECAST_REGION_TABLE[mid].id < id) lo = mid + 1;
-        else hi = mid;
-    }
-    return std::nullopt;
-}
-#endif
 
 #else
 

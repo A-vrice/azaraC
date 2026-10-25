@@ -20,7 +20,6 @@ namespace def {
 
 #if (AZARAC_ENABLE_VOLCANO) && (AZARAC_LANG_EN)
 
-#if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_VOLCANIC_WARNING_CODE_EN_POOL[] = "1 (Potential for increased activity)\0002 (Restriction on proximity to the crater)\0003 (Restriction on proximity to the volcano)\0004 (Evacuation of the elderly, etc.)\0005 (Evacuation)\000Potential for increased activity\000Caution advised around the crater\000Caution in non-residential areas near the crater\000Extreme caution advised at the foot of mountains concerned\000Extreme caution advised in residential areas and non-residential areas nearer the crater\000Potential for increased activity (Submarine volcano)\000Caution advised for the sea area in the vicinity of the volcano\000Volcanic eruptions\000Possible eruption\000Other Volcanic Warning\000";
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_VOLCANIC_WARNING_CODE_EN_PARENT_POOL[] = "Level \000";
 struct QZSS_DCR_JMA_VOLCANIC_WARNING_CODE_EN_PARENT_Entry { uint16_t offset; };
@@ -63,38 +62,6 @@ static const QZSS_DCR_JMA_VOLCANIC_WARNING_CODE_EN_Entry QZSS_DCR_JMA_VOLCANIC_W
     }
     return std::nullopt;
 }
-#else
-struct QZSS_DCR_JMA_VOLCANIC_WARNING_CODE_EN_Entry { uint8_t id; const char* label; };
-inline constexpr QZSS_DCR_JMA_VOLCANIC_WARNING_CODE_EN_Entry QZSS_DCR_JMA_VOLCANIC_WARNING_CODE_EN_TABLE[] = {
-    {11u, "Level 1 (Potential for increased activity)"},
-    {12u, "Level 2 (Restriction on proximity to the crater)"},
-    {13u, "Level 3 (Restriction on proximity to the volcano)"},
-    {14u, "Level 4 (Evacuation of the elderly, etc.)"},
-    {15u, "Level 5 (Evacuation)"},
-    {21u, "Potential for increased activity"},
-    {22u, "Caution advised around the crater"},
-    {23u, "Caution in non-residential areas near the crater"},
-    {24u, "Extreme caution advised at the foot of mountains concerned"},
-    {25u, "Extreme caution advised in residential areas and non-residential areas nearer the crater"},
-    {35u, "Potential for increased activity (Submarine volcano)"},
-    {36u, "Caution advised for the sea area in the vicinity of the volcano"},
-    {52u, "Volcanic eruptions"},
-    {62u, "Possible eruption"},
-    {127u, "Other Volcanic Warning"},};
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_volcanic_warning_code_en_lookup(uint8_t id) noexcept {
-    uint8_t lo = 0, hi = 15;
-    while (lo < hi) {
-        uint8_t mid = static_cast<uint8_t>(lo + (hi - lo) / 2);
-        if (QZSS_DCR_JMA_VOLCANIC_WARNING_CODE_EN_TABLE[mid].id == id) {
-            const char* s = QZSS_DCR_JMA_VOLCANIC_WARNING_CODE_EN_TABLE[mid].label;
-            return s ? std::optional<std::string_view>(std::string_view{s}) : std::nullopt;
-        }
-        if (QZSS_DCR_JMA_VOLCANIC_WARNING_CODE_EN_TABLE[mid].id < id) lo = mid + 1;
-        else hi = mid;
-    }
-    return std::nullopt;
-}
-#endif
 
 #else
 

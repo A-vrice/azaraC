@@ -20,7 +20,6 @@ namespace def {
 
 #if (AZARAC_ENABLE_EEW || AZARAC_ENABLE_HYPOCENTER) && (AZARAC_LANG_EN)
 
-#if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_NOTIFICATION_ON_DISASTER_PREVENTION_EN_POOL[] = "None\000There may be slight sea-level changes from now on\000There may be slight sea-level changes from now on, but no damage is expected\000Sea-level changes may be observed.\000Pay attention when fishing, swimm\000Pay attention when fish\000No Major Tsunami Warnings, Tsunami Warnings or Advisories are currently in effect.\000Exercise extreme caution if a tsunami arrives at high tide, as this boosts the height of waves.\000Pay full attention if a tsunami arrives at high tide, as this boosts the height of waves\000In some coastal regions, tsunami waves higher than those recorded may have arrived.\000Tsunami heights may become even higher from now on\000Along the coasts where the tsunami is estimated from offshore observations, it is estimated to have already arrived at the earliest places\000The maximum wave may be observed a few hours or more after a tsunami-driven change in sea level is first observed\000These values were observed offshore. The tsunami will be higher on the coast\000<Major Tsunami Warning>\nA huge tsunami is expected to hit and cause serious damage.\nEvacuate immediately from coastal regions and riverside areas to a safer place such as high ground or an evacuation building.\nTsunami waves are expected to hit repeatedly. Do not leave safe ground until the warning is lif\000<Tsunami Warning>\nDamage due to tsunami waves is expected.\nEvacuate immediately from coastal regions and riverside areas to a safer place such as high ground or an evacuation building.\nTsunami waves are expected to hit repeatedly. Do not leave safe ground until the warning is lif\000<Tsunami Advisory>\nA marine threat is present.\nGet out of the water and leave coastal regions immediately.\nDue to the risk of ongoing strong currents, do not enter the sea or approach coastal regions until the advisory is lif\000<Tsunami Forecast (Slight sea-level change)>\nSlight sea-level changes may be observed in coastal regions, but no tsunami damage is expec\000Evacuate immediately from coastal regions and riverside areas where the warning is issued to a safer place such as high ground or an evacuation building.\nEstimated tsunami arrival times show the earliest expected strikes for each tsunami forecast region. In some coastal regions, tsunami waves may hit after this time.\nAs tsunami waves may reach their maximum height a few hours or more after the estimated arrival time, do not leave safe ground until the warning is lifted regardless of recorded tsunami heights.\000Actual tsunami heights may exceed estimations in some coastal regions.\000A gigantic tsunami is expected to hit.\000Upgrade to Major Tsunami Warnings/Tsunami Warnings implemented in response to high tsunami waves observed\000Major Tsunami Warnings/Tsunami Warnings updated,\000Upgrade to Major Tsunami Warnings implemented in response to high tsunami waves observed\000Major Tsunami Warnings updated,\000Upgrade to Tsunami Warnings implemented high tsunami waves observed\000Tsunami Warnings updated,\000Estimated tsunami heights updated\000Evacuate immediately\000Nankai Trough Earthquake Extra Information is in effect.\000Watch out for strong tremors.\000Tsunami warnings or advisories are currently in effect.\000Although there may be slight sea-level changes in coastal regions/ this earthquake has caused no damage to Japan.\000Pay attention when fishing, swimm\000Pay attention when fish\000This earthquake poses no tsunami risk.\000If the hypocenter is beneath the sea floor, a tsunami may be generated\000Check the information which will be issued from now on.\000There is a possiblity of a destructive ocean-wide tsunami in the Pacific Ocean.\000There is a possiblity of a destructive regional tsunami in the Pacific Ocean.\000There is a possiblity of a destructive regional tsunami in the Northwest Pacific Ocean.\000There is a possiblity of a destructive ocean-wide tsunami in the Indian Ocean.\000There is a possiblity of a destructive regional tsunami in the Indian Ocean.\000There is a possibility of a destructive local tsunami near the epicenter.\000Minor local tsunami may occur near the epicenter, but no tsunami damage is expec\000A shallow earthquake with the same magnitude in a sea area may generate a tsunami.\000The possibility of tsunami generation toward Japan in currently under evaluation.\000This earthquake poses no tsunami risk to Japan.\000Earthquake Early Warning is in effect for this earthquake.\000Earthquake Early Warning is in effect for this earthquake. Its maximum seismic intensity was 2.\000Earthquake Early Warning is in effect for this earthquake. Its maximum seismic intensity was 1.\000Earthquake Early Warning is in effect for this earthquake. There was no observation of seismic intensity 1 or above.\000Earthquake Early Warning was issued for this earthquake, however no strong tremors were observed.\000Information related to the hypocenter has been correc\000Other Notes on Disaster Prevention\000";
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_NOTIFICATION_ON_DISASTER_PREVENTION_EN_PARENT_POOL[] = " in response to high tsunami waves offshore\000 offshore\000. (Translated by azarashi)\000ing or engaging in other marine activities, as there may still be slight sea-level changes.\000ted.\000";
 struct QZSS_DCR_JMA_NOTIFICATION_ON_DISASTER_PREVENTION_EN_PARENT_Entry { uint16_t offset; };
@@ -107,78 +106,6 @@ static const QZSS_DCR_JMA_NOTIFICATION_ON_DISASTER_PREVENTION_EN_Entry QZSS_DCR_
     }
     return std::nullopt;
 }
-#else
-struct QZSS_DCR_JMA_NOTIFICATION_ON_DISASTER_PREVENTION_EN_Entry { uint16_t id; const char* label; };
-inline constexpr QZSS_DCR_JMA_NOTIFICATION_ON_DISASTER_PREVENTION_EN_Entry QZSS_DCR_JMA_NOTIFICATION_ON_DISASTER_PREVENTION_EN_TABLE[] = {
-    {0u, "None"},
-    {101u, "There may be slight sea-level changes from now on. (Translated by azarashi)"},
-    {102u, "There may be slight sea-level changes from now on, but no damage is expected. (Translated by azarashi)"},
-    {103u, "Sea-level changes may be observed."},
-    {104u, "Pay attention when fishing, swimming or engaging in other marine activities, as there may still be slight sea-level changes."},
-    {105u, "Pay attention when fishing or engaging in other marine activities, as there may still be slight sea-level changes."},
-    {107u, "No Major Tsunami Warnings, Tsunami Warnings or Advisories are currently in effect."},
-    {109u, "Exercise extreme caution if a tsunami arrives at high tide, as this boosts the height of waves."},
-    {110u, "Pay full attention if a tsunami arrives at high tide, as this boosts the height of waves. (Translated by azarashi)"},
-    {111u, "In some coastal regions, tsunami waves higher than those recorded may have arrived."},
-    {112u, "Tsunami heights may become even higher from now on. (Translated by azarashi)"},
-    {113u, "Along the coasts where the tsunami is estimated from offshore observations, it is estimated to have already arrived at the earliest places. (Translated by azarashi)"},
-    {114u, "The maximum wave may be observed a few hours or more after a tsunami-driven change in sea level is first observed. (Translated by azarashi)"},
-    {115u, "These values were observed offshore. The tsunami will be higher on the coast. (Translated by azarashi)"},
-    {121u, "<Major Tsunami Warning>\nA huge tsunami is expected to hit and cause serious damage.\nEvacuate immediately from coastal regions and riverside areas to a safer place such as high ground or an evacuation building.\nTsunami waves are expected to hit repeatedly. Do not leave safe ground until the warning is lifted."},
-    {122u, "<Tsunami Warning>\nDamage due to tsunami waves is expected.\nEvacuate immediately from coastal regions and riverside areas to a safer place such as high ground or an evacuation building.\nTsunami waves are expected to hit repeatedly. Do not leave safe ground until the warning is lifted."},
-    {123u, "<Tsunami Advisory>\nA marine threat is present.\nGet out of the water and leave coastal regions immediately.\nDue to the risk of ongoing strong currents, do not enter the sea or approach coastal regions until the advisory is lifted."},
-    {124u, "<Tsunami Forecast (Slight sea-level change)>\nSlight sea-level changes may be observed in coastal regions, but no tsunami damage is expected."},
-    {131u, "Evacuate immediately from coastal regions and riverside areas where the warning is issued to a safer place such as high ground or an evacuation building.\nEstimated tsunami arrival times show the earliest expected strikes for each tsunami forecast region. In some coastal regions, tsunami waves may hit after this time.\nAs tsunami waves may reach their maximum height a few hours or more after the estimated arrival time, do not leave safe ground until the warning is lifted regardless of recorded tsunami heights."},
-    {132u, "Actual tsunami heights may exceed estimations in some coastal regions."},
-    {141u, "A gigantic tsunami is expected to hit."},
-    {142u, "Upgrade to Major Tsunami Warnings/Tsunami Warnings implemented in response to high tsunami waves observed offshore"},
-    {143u, "Major Tsunami Warnings/Tsunami Warnings updated, in response to high tsunami waves offshore"},
-    {144u, "Upgrade to Major Tsunami Warnings implemented in response to high tsunami waves observed offshore"},
-    {145u, "Major Tsunami Warnings updated, in response to high tsunami waves offshore"},
-    {146u, "Upgrade to Tsunami Warnings implemented high tsunami waves observed offshore"},
-    {147u, "Tsunami Warnings updated, in response to high tsunami waves offshore"},
-    {148u, "Estimated tsunami heights updated in response to high tsunami waves offshore"},
-    {149u, "Evacuate immediately"},
-    {150u, "Nankai Trough Earthquake Extra Information is in effect."},
-    {201u, "Watch out for strong tremors."},
-    {211u, "Tsunami warnings or advisories are currently in effect."},
-    {212u, "Although there may be slight sea-level changes in coastal regions/ this earthquake has caused no damage to Japan."},
-    {213u, "Pay attention when fishing, swimming or engaging in other marine activities, as there may still be slight sea-level changes."},
-    {214u, "Pay attention when fishing or engaging in other marine activities, as there may still be slight sea-level changes."},
-    {215u, "This earthquake poses no tsunami risk."},
-    {216u, "If the hypocenter is beneath the sea floor, a tsunami may be generated. (Translated by azarashi)"},
-    {217u, "Check the information which will be issued from now on."},
-    {221u, "There is a possiblity of a destructive ocean-wide tsunami in the Pacific Ocean."},
-    {222u, "There is a possiblity of a destructive regional tsunami in the Pacific Ocean."},
-    {223u, "There is a possiblity of a destructive regional tsunami in the Northwest Pacific Ocean."},
-    {224u, "There is a possiblity of a destructive ocean-wide tsunami in the Indian Ocean."},
-    {225u, "There is a possiblity of a destructive regional tsunami in the Indian Ocean."},
-    {226u, "There is a possibility of a destructive local tsunami near the epicenter."},
-    {227u, "Minor local tsunami may occur near the epicenter, but no tsunami damage is expected."},
-    {228u, "A shallow earthquake with the same magnitude in a sea area may generate a tsunami."},
-    {229u, "The possibility of tsunami generation toward Japan in currently under evaluation."},
-    {230u, "This earthquake poses no tsunami risk to Japan."},
-    {241u, "Earthquake Early Warning is in effect for this earthquake."},
-    {242u, "Earthquake Early Warning is in effect for this earthquake. Its maximum seismic intensity was 2."},
-    {243u, "Earthquake Early Warning is in effect for this earthquake. Its maximum seismic intensity was 1."},
-    {244u, "Earthquake Early Warning is in effect for this earthquake. There was no observation of seismic intensity 1 or above."},
-    {245u, "Earthquake Early Warning was issued for this earthquake, however no strong tremors were observed."},
-    {256u, "Information related to the hypocenter has been corrected."},
-    {500u, "Other Notes on Disaster Prevention"},};
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_notification_on_disaster_prevention_en_lookup(uint16_t id) noexcept {
-    uint8_t lo = 0, hi = 55;
-    while (lo < hi) {
-        uint8_t mid = static_cast<uint8_t>(lo + (hi - lo) / 2);
-        if (QZSS_DCR_JMA_NOTIFICATION_ON_DISASTER_PREVENTION_EN_TABLE[mid].id == id) {
-            const char* s = QZSS_DCR_JMA_NOTIFICATION_ON_DISASTER_PREVENTION_EN_TABLE[mid].label;
-            return s ? std::optional<std::string_view>(std::string_view{s}) : std::nullopt;
-        }
-        if (QZSS_DCR_JMA_NOTIFICATION_ON_DISASTER_PREVENTION_EN_TABLE[mid].id < id) lo = mid + 1;
-        else hi = mid;
-    }
-    return std::nullopt;
-}
-#endif
 
 #else
 

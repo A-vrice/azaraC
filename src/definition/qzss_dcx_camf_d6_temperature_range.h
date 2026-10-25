@@ -22,7 +22,6 @@ namespace def {
 
 inline constexpr uint8_t QZSS_DCX_CAMF_D6_TEMPERATURE_RANGE_BASE = 0;
 inline constexpr uint8_t QZSS_DCX_CAMF_D6_TEMPERATURE_RANGE_SIZE = 16;
-#if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D6_TEMPERATURE_RANGE_POOL[] = "T ≤ -3\000-30°C < T ≤ -2\000-25°C < T ≤ -2\000-20°C < T ≤ -1\000-15°C < T ≤ -1\000-10°C < T ≤ -\000-5°C < T ≤ \0000°C < T ≤ \0005°C < T ≤ 1\00010°C < T ≤ 1\00015°C < T ≤ 2\00020°C < T ≤ 2\00025°C < T ≤ 3\00030°C < T ≤ 3\00035°C < T ≤ 4\000T > 4\000";
 static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D6_TEMPERATURE_RANGE_PARENT_POOL[] = "0°C\0005°C\000";
 struct QZSS_DCX_CAMF_D6_TEMPERATURE_RANGE_PARENT_Entry { uint16_t offset; };
@@ -59,31 +58,6 @@ static const QZSS_DCX_CAMF_D6_TEMPERATURE_RANGE_Entry QZSS_DCX_CAMF_D6_TEMPERATU
     uint16_t poff = azarac_read_word(pp, offsetof(QZSS_DCX_CAMF_D6_TEMPERATURE_RANGE_PARENT_Entry, offset));
     return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D6_TEMPERATURE_RANGE_POOL) + off, AZARAC_PGM_PTR(QZSS_DCX_CAMF_D6_TEMPERATURE_RANGE_PARENT_POOL) + poff);
 }
-#else
-inline constexpr const char* QZSS_DCX_CAMF_D6_TEMPERATURE_RANGE_TABLE[] = {
-    "T ≤ -30°C",
-    "-30°C < T ≤ -25°C",
-    "-25°C < T ≤ -20°C",
-    "-20°C < T ≤ -15°C",
-    "-15°C < T ≤ -10°C",
-    "-10°C < T ≤ -5°C",
-    "-5°C < T ≤ 0°C",
-    "0°C < T ≤ 5°C",
-    "5°C < T ≤ 10°C",
-    "10°C < T ≤ 15°C",
-    "15°C < T ≤ 20°C",
-    "20°C < T ≤ 25°C",
-    "25°C < T ≤ 30°C",
-    "30°C < T ≤ 35°C",
-    "35°C < T ≤ 45°C",
-    "T > 45°C"
-};
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_d6_temperature_range_lookup(uint8_t id) noexcept {
-    if (id < QZSS_DCX_CAMF_D6_TEMPERATURE_RANGE_BASE || id >= QZSS_DCX_CAMF_D6_TEMPERATURE_RANGE_BASE + QZSS_DCX_CAMF_D6_TEMPERATURE_RANGE_SIZE) return std::nullopt;
-    const char* s = QZSS_DCX_CAMF_D6_TEMPERATURE_RANGE_TABLE[id - QZSS_DCX_CAMF_D6_TEMPERATURE_RANGE_BASE];
-    return s ? std::optional<std::string_view>(std::string_view{s}) : std::nullopt;
-}
-#endif
 
 #else
 

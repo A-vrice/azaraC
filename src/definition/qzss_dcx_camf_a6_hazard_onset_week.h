@@ -20,7 +20,6 @@ namespace def {
 
 #if (AZARAC_ENABLE_DCX_CAMF)
 
-#if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCX_CAMF_A6_HAZARD_ONSET_WEEK_C0[] = "Current";
 static const char AZARAC_PROGMEM QZSS_DCX_CAMF_A6_HAZARD_ONSET_WEEK_C1[] = "Next";
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_a6_hazard_onset_week_lookup(uint8_t id) noexcept {
@@ -30,15 +29,6 @@ static const char AZARAC_PROGMEM QZSS_DCX_CAMF_A6_HAZARD_ONSET_WEEK_C1[] = "Next
         default: return std::nullopt;
     }
 }
-#else
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_a6_hazard_onset_week_lookup(uint8_t id) noexcept {
-    switch (id) {
-        case 0: return std::string_view{"Current", 7};
-        case 1: return std::string_view{"Next", 4};
-        default: return std::nullopt;
-    }
-}
-#endif
 
 #else
 

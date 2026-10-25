@@ -22,7 +22,6 @@ namespace def {
 
 inline constexpr uint8_t QZSS_DCX_CAMF_D14_SNOW_DEPTH_BASE = 0;
 inline constexpr uint8_t QZSS_DCX_CAMF_D14_SNOW_DEPTH_SIZE = 31;
-#if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D14_SNOW_DEPTH_POOL[] = "0cm < daily snow depth ≤ \00020cm < daily snow depth ≤ \00040cm < daily snow depth ≤ \00060cm < daily snow depth ≤ \00080cm < daily snow depth ≤ 1\000100cm < daily snow depth ≤ 1\000120cm < daily snow depth ≤ 1\000140cm < daily snow depth ≤ 1\000160cm < daily snow depth ≤ 1\000180cm < daily snow depth ≤ 2\000200cm < daily snow depth ≤ 2\000220cm < daily snow depth ≤ 2\000240cm < daily snow depth ≤ 2\000260cm < daily snow depth ≤ 2\000280cm < daily snow depth ≤ 3\000300cm < daily snow depth ≤ 3\000320cm < daily snow depth ≤ 3\000340cm < daily snow depth ≤ 3\000360cm < daily snow depth ≤ 3\000380cm < daily snow depth ≤ 4\000400cm < daily snow depth ≤ 4\000420cm < daily snow depth ≤ 4\000440cm < daily snow depth ≤ 4\000460cm < daily snow depth ≤ 4\000480cm < daily snow depth ≤ 5\000500cm < daily snow depth ≤ 5\000520cm < daily snow depth ≤ 5\000540cm < daily snow depth ≤ 5\000560cm < daily snow depth ≤ 5\000580cm < daily snow depth ≤ 6\000daily snow depth > 6\000";
 static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D14_SNOW_DEPTH_PARENT_POOL[] = "00cm\00020cm\00040cm\00060cm\00080cm\000";
 struct QZSS_DCX_CAMF_D14_SNOW_DEPTH_PARENT_Entry { uint16_t offset; };
@@ -77,46 +76,6 @@ static const QZSS_DCX_CAMF_D14_SNOW_DEPTH_Entry QZSS_DCX_CAMF_D14_SNOW_DEPTH_TAB
     uint16_t poff = azarac_read_word(pp, offsetof(QZSS_DCX_CAMF_D14_SNOW_DEPTH_PARENT_Entry, offset));
     return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D14_SNOW_DEPTH_POOL) + off, AZARAC_PGM_PTR(QZSS_DCX_CAMF_D14_SNOW_DEPTH_PARENT_POOL) + poff);
 }
-#else
-inline constexpr const char* QZSS_DCX_CAMF_D14_SNOW_DEPTH_TABLE[] = {
-    "0cm < daily snow depth ≤ 20cm",
-    "20cm < daily snow depth ≤ 40cm",
-    "40cm < daily snow depth ≤ 60cm",
-    "60cm < daily snow depth ≤ 80cm",
-    "80cm < daily snow depth ≤ 100cm",
-    "100cm < daily snow depth ≤ 120cm",
-    "120cm < daily snow depth ≤ 140cm",
-    "140cm < daily snow depth ≤ 160cm",
-    "160cm < daily snow depth ≤ 180cm",
-    "180cm < daily snow depth ≤ 200cm",
-    "200cm < daily snow depth ≤ 220cm",
-    "220cm < daily snow depth ≤ 240cm",
-    "240cm < daily snow depth ≤ 260cm",
-    "260cm < daily snow depth ≤ 280cm",
-    "280cm < daily snow depth ≤ 300cm",
-    "300cm < daily snow depth ≤ 320cm",
-    "320cm < daily snow depth ≤ 340cm",
-    "340cm < daily snow depth ≤ 360cm",
-    "360cm < daily snow depth ≤ 380cm",
-    "380cm < daily snow depth ≤ 400cm",
-    "400cm < daily snow depth ≤ 420cm",
-    "420cm < daily snow depth ≤ 440cm",
-    "440cm < daily snow depth ≤ 460cm",
-    "460cm < daily snow depth ≤ 480cm",
-    "480cm < daily snow depth ≤ 500cm",
-    "500cm < daily snow depth ≤ 520cm",
-    "520cm < daily snow depth ≤ 540cm",
-    "540cm < daily snow depth ≤ 560cm",
-    "560cm < daily snow depth ≤ 580cm",
-    "580cm < daily snow depth ≤ 600cm",
-    "daily snow depth > 600cm"
-};
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_d14_snow_depth_lookup(uint8_t id) noexcept {
-    if (id < QZSS_DCX_CAMF_D14_SNOW_DEPTH_BASE || id >= QZSS_DCX_CAMF_D14_SNOW_DEPTH_BASE + QZSS_DCX_CAMF_D14_SNOW_DEPTH_SIZE) return std::nullopt;
-    const char* s = QZSS_DCX_CAMF_D14_SNOW_DEPTH_TABLE[id - QZSS_DCX_CAMF_D14_SNOW_DEPTH_BASE];
-    return s ? std::optional<std::string_view>(std::string_view{s}) : std::nullopt;
-}
-#endif
 
 #else
 

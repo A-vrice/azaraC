@@ -22,7 +22,6 @@ namespace def {
 
 inline constexpr uint8_t QZSS_DCX_CAMF_D35_INFECTION_TYPE_BASE = 0;
 inline constexpr uint8_t QZSS_DCX_CAMF_D35_INFECTION_TYPE_SIZE = 63;
-#if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D35_INFECTION_TYPE_POOL[] = "Anthrax\000Avian influenza in humans\000Botulism\000Bruc\000Campylobacter\000Chikungunya virus\000Chlamydia infections\000Cholera\000COVID - 19\000Creutzfeldt - Jakob Disease - variant(vCJD)\000Cryptosporid\000Dengue\000Diphtheria\000Echinococc\000Giardiasis\000Gonorrhoea\000Hepatitis A\000Hepatitis B\000Hepatitis C\000HIV infection and AIDS\000Infections with haemophilus influenza group B\000Influenza including Influenza A(H1N1)\000Invasive meningococcal\000Invasive pneumococcal\000Legionnaires'\000Leptospir\000Lister\000Lyme neuroborrel\000Malaria\000Measles\000Meningococcal disease, invasive\000Mumps\000Pertussis\000Plague\000Pneumococcal invasive diseases\000Poliomyelitis\000Q fever\000Rabies\000Rubella\000Rubella\000Salmon\000Severe Acute Respiratory Syndrome (SARS)\000Shiga toxin /verocytotoxin -producing Escherichia coli (STEC/VTEC)\000Shig\000Smallpox\000Syphilis\000Syphilis\000Tetanus\000Tick-borne encephalitis\000Toxoplasmosis\000Trichin\000Tubercu\000Tularaemia\000Typhoid and paratyphoid fevers\000Viral haemorrhagic fevers\000West Nile virus infection\000Yellow fever\000Yersin\000Zika virus\000Zika virus disease\000Nosocomial infections\000Antimicrobial resistance\000unidentified infection\000";
 static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D35_INFECTION_TYPE_PARENT_POOL[] = " disease\000, congenital\000ellosis\000iosis\000losis\000osis\000";
 struct QZSS_DCX_CAMF_D35_INFECTION_TYPE_PARENT_Entry { uint16_t offset; };
@@ -110,78 +109,6 @@ static const QZSS_DCX_CAMF_D35_INFECTION_TYPE_Entry QZSS_DCX_CAMF_D35_INFECTION_
     uint16_t poff = azarac_read_word(pp, offsetof(QZSS_DCX_CAMF_D35_INFECTION_TYPE_PARENT_Entry, offset));
     return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCX_CAMF_D35_INFECTION_TYPE_POOL) + off, AZARAC_PGM_PTR(QZSS_DCX_CAMF_D35_INFECTION_TYPE_PARENT_POOL) + poff);
 }
-#else
-inline constexpr const char* QZSS_DCX_CAMF_D35_INFECTION_TYPE_TABLE[] = {
-    "Anthrax",
-    "Avian influenza in humans",
-    "Botulism",
-    "Brucellosis",
-    "Campylobacteriosis",
-    "Chikungunya virus disease",
-    "Chlamydia infections",
-    "Cholera",
-    "COVID - 19",
-    "Creutzfeldt - Jakob Disease - variant(vCJD)",
-    "Cryptosporidiosis",
-    "Dengue",
-    "Diphtheria",
-    "Echinococcosis",
-    "Giardiasis",
-    "Gonorrhoea",
-    "Hepatitis A",
-    "Hepatitis B",
-    "Hepatitis C",
-    "HIV infection and AIDS",
-    "Infections with haemophilus influenza group B",
-    "Influenza including Influenza A(H1N1)",
-    "Invasive meningococcal disease",
-    "Invasive pneumococcal disease",
-    "Legionnaires' disease",
-    "Leptospirosis",
-    "Listeriosis",
-    "Lyme neuroborreliosis",
-    "Malaria",
-    "Measles",
-    "Meningococcal disease, invasive",
-    "Mumps",
-    "Pertussis",
-    "Plague",
-    "Pneumococcal invasive diseases",
-    "Poliomyelitis",
-    "Q fever",
-    "Rabies",
-    "Rubella",
-    "Rubella, congenital",
-    "Salmonellosis",
-    "Severe Acute Respiratory Syndrome (SARS)",
-    "Shiga toxin /verocytotoxin -producing Escherichia coli (STEC/VTEC)",
-    "Shigellosis",
-    "Smallpox",
-    "Syphilis",
-    "Syphilis, congenital",
-    "Tetanus",
-    "Tick-borne encephalitis",
-    "Toxoplasmosis, congenital",
-    "Trichinellosis",
-    "Tuberculosis",
-    "Tularaemia",
-    "Typhoid and paratyphoid fevers",
-    "Viral haemorrhagic fevers",
-    "West Nile virus infection",
-    "Yellow fever",
-    "Yersinosis",
-    "Zika virus disease",
-    "Zika virus disease, congenital",
-    "Nosocomial infections",
-    "Antimicrobial resistance",
-    "unidentified infection"
-};
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_d35_infection_type_lookup(uint8_t id) noexcept {
-    if (id < QZSS_DCX_CAMF_D35_INFECTION_TYPE_BASE || id >= QZSS_DCX_CAMF_D35_INFECTION_TYPE_BASE + QZSS_DCX_CAMF_D35_INFECTION_TYPE_SIZE) return std::nullopt;
-    const char* s = QZSS_DCX_CAMF_D35_INFECTION_TYPE_TABLE[id - QZSS_DCX_CAMF_D35_INFECTION_TYPE_BASE];
-    return s ? std::optional<std::string_view>(std::string_view{s}) : std::nullopt;
-}
-#endif
 
 #else
 

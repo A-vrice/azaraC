@@ -20,7 +20,6 @@ namespace def {
 
 #if (AZARAC_ENABLE_VOLCANO || AZARAC_ENABLE_ASH_FALL)
 
-#if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_AMBIGUITY_OF_ACTIVITY_TIME_EN_C0[] = "No ambiguity";
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_AMBIGUITY_OF_ACTIVITY_TIME_EN_C1[] = "equivalent to Approximate time (minute))";
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_AMBIGUITY_OF_ACTIVITY_TIME_EN_C2[] = "second)";
@@ -43,21 +42,6 @@ static const char AZARAC_PROGMEM QZSS_DCR_JMA_AMBIGUITY_OF_ACTIVITY_TIME_EN_PARE
         default: return std::nullopt;
     }
 }
-#else
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_ambiguity_of_activity_time_en_lookup(uint8_t id) noexcept {
-    switch (id) {
-        case 0: return std::string_view{"No ambiguity", 12};
-        case 1: return std::string_view{"Approximate time (equivalent to Approximate time (minute))", 58};
-        case 2: return std::string_view{"Approximate time (second)", 25};
-        case 3: return std::string_view{"Approximate time (minute)", 25};
-        case 4: return std::string_view{"Approximate time (hour)", 23};
-        case 5: return std::string_view{"Approximate time (day)", 22};
-        case 6: return std::string_view{"Approximate time (month)", 24};
-        case 7: return std::string_view{"Approximate time (year)", 23};
-        default: return std::nullopt;
-    }
-}
-#endif
 
 #else
 

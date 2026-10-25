@@ -20,7 +20,6 @@ namespace def {
 
 #if (AZARAC_ENABLE_ASH_FALL) && (AZARAC_LANG_EN)
 
-#if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_ASH_FALL_WARNING_CODE_EN_C1[] = "Low ash fall";
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_ASH_FALL_WARNING_CODE_EN_C2[] = "Moderate ash fall";
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_ASH_FALL_WARNING_CODE_EN_C3[] = "Heavy ash fall";
@@ -36,18 +35,6 @@ static const char AZARAC_PROGMEM QZSS_DCR_JMA_ASH_FALL_WARNING_CODE_EN_C7[] = "O
         default: return std::nullopt;
     }
 }
-#else
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_ash_fall_warning_code_en_lookup(uint8_t id) noexcept {
-    switch (id) {
-        case 1: return std::string_view{"Low ash fall", 12};
-        case 2: return std::string_view{"Moderate ash fall", 17};
-        case 3: return std::string_view{"Heavy ash fall", 14};
-        case 4: return std::string_view{"Falling debris", 14};
-        case 7: return std::string_view{"Other Ash Fall Warning", 22};
-        default: return std::nullopt;
-    }
-}
-#endif
 
 #else
 

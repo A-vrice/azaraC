@@ -20,7 +20,6 @@ namespace def {
 
 #if (AZARAC_ENABLE_WEATHER) && (AZARAC_LANG_JA)
 
-#if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_WEATHER_WARNING_STATE_C1[] = "発表";
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_WEATHER_WARNING_STATE_C2[] = "解除";
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcr_jma_weather_warning_state_lookup(uint8_t id) noexcept {
@@ -30,15 +29,6 @@ static const char AZARAC_PROGMEM QZSS_DCR_JMA_WEATHER_WARNING_STATE_C2[] = "解�
         default: return std::nullopt;
     }
 }
-#else
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_weather_warning_state_lookup(uint8_t id) noexcept {
-    switch (id) {
-        case 1: return std::string_view{"発表", 6};
-        case 2: return std::string_view{"解除", 6};
-        default: return std::nullopt;
-    }
-}
-#endif
 
 #else
 

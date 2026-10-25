@@ -114,10 +114,69 @@ inline const char* azarac_pgm_copy(azarac_pgm_ptr src) {
     return buf;
 }
 #else
-inline std::string_view azarac_pgm_view(const char* src, size_t n) {
+// 非 AVR: ラベルの実体は .rodata（Flash 側）に落ちる。定義テーブルの生成コード
+// (scripts/gen/gen_definitions.py) は AVR と同一テキストを両アーキテクチャへ出すため、
+// AVR 側のアクセサ一式（byte offset 読み出し・NUL 区切りプール走査・共有バッファ連結）を
+// 同一署名で用意する。これにより非 AVR も factor_parents による共有断片プールの恩恵を受け、
+// フルラベル保持よりフラッシュが減る（local_government で ja 約 14KB / en 約 39KB、
+// target_area_code で ja 約 15KB / en 約 42KB）。join 系のみ RAM バッファへ 1 回コピーし、
+// 切り詰めは AVR と同じ AZARAC_FLASH_BUF_SIZE に揃える。view 系は従来どおりゼロコピー。
+using azarac_pgm_ptr = const char*;
+#define AZARAC_PGM_PTR(flash_array) (reinterpret_cast<const char*>(flash_array))
+inline uint8_t azarac_read_byte(azarac_pgm_ptr p, size_t i) { return static_cast<uint8_t>(p[i]); }
+inline uint16_t azarac_read_word(azarac_pgm_ptr p, size_t i) {
+    uint16_t v;
+    __builtin_memcpy(&v, p + i, sizeof(v));
+    return v;
+}
+inline uint32_t azarac_read_dword(azarac_pgm_ptr p, size_t i) {
+    uint32_t v;
+    __builtin_memcpy(&v, p + i, sizeof(v));
+    return v;
+}
+inline void azarac_read_block(char* dst, azarac_pgm_ptr src, size_t n) { __builtin_memcpy(dst, src, n); }
+inline void azarac_copy_string(char* dst, azarac_pgm_ptr src, size_t n) {
+    size_t i = 0;
+    while (i + 1 < n && src[i] != '\0') { dst[i] = src[i]; ++i; }
+    dst[i] = '\0';
+}
+inline size_t azarac_pgm_len(azarac_pgm_ptr src) {
+    size_t n = 0;
+    while (n < AZARAC_FLASH_BUF_SIZE - 1 && src[n] != '\0') ++n;
+    return n;
+}
+inline std::string_view azarac_pgm_view(azarac_pgm_ptr src, size_t n) {
     return std::string_view(src, n);
 }
-inline const char* azarac_pgm_copy(const char* src) { return src; }
+inline std::string_view azarac_pgm_view_z(azarac_pgm_ptr src) {
+    return std::string_view(src, azarac_pgm_len(src));
+}
+inline size_t azarac_pgm_append(char* buf, size_t at, azarac_pgm_ptr src) {
+    size_t n = azarac_pgm_len(src);
+    if (n > AZARAC_FLASH_BUF_SIZE - 1 - at) n = AZARAC_FLASH_BUF_SIZE - 1 - at;
+    azarac_read_block(buf + at, src, n);
+    return at + n;
+}
+inline char* azarac_flash_buf() {
+    static char buf[AZARAC_FLASH_BUF_SIZE];
+    return buf;
+}
+inline std::string_view azarac_pgm_join_z(azarac_pgm_ptr a, azarac_pgm_ptr b) {
+    char* buf = azarac_flash_buf();
+    size_t n = azarac_pgm_append(buf, 0, a);
+    n = azarac_pgm_append(buf, n, b);
+    buf[n] = '\0';
+    return std::string_view(buf, n);
+}
+inline std::string_view azarac_pgm_join3(azarac_pgm_ptr a, azarac_pgm_ptr b, azarac_pgm_ptr c) {
+    char* buf = azarac_flash_buf();
+    size_t n = azarac_pgm_append(buf, 0, a);
+    n = azarac_pgm_append(buf, n, b);
+    n = azarac_pgm_append(buf, n, c);
+    buf[n] = '\0';
+    return std::string_view(buf, n);
+}
+inline const char* azarac_pgm_copy(azarac_pgm_ptr src) { return src; }
 #endif
 
 }  // namespace def

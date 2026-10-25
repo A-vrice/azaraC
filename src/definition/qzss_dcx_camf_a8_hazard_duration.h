@@ -20,7 +20,6 @@ namespace def {
 
 #if (AZARAC_ENABLE_DCX_CAMF)
 
-#if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCX_CAMF_A8_HAZARD_DURATION_C0[] = "Unknown";
 static const char AZARAC_PROGMEM QZSS_DCX_CAMF_A8_HAZARD_DURATION_C1[] = "Duration < 6H";
 static const char AZARAC_PROGMEM QZSS_DCX_CAMF_A8_HAZARD_DURATION_C2[] = "6H <= Duration < 12H";
@@ -34,17 +33,6 @@ static const char AZARAC_PROGMEM QZSS_DCX_CAMF_A8_HAZARD_DURATION_C3[] = "12H <=
         default: return std::nullopt;
     }
 }
-#else
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_a8_hazard_duration_lookup(uint8_t id) noexcept {
-    switch (id) {
-        case 0: return std::string_view{"Unknown", 7};
-        case 1: return std::string_view{"Duration < 6H", 13};
-        case 2: return std::string_view{"6H <= Duration < 12H", 20};
-        case 3: return std::string_view{"12H <= Duration < 24H", 21};
-        default: return std::nullopt;
-    }
-}
-#endif
 
 #else
 

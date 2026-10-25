@@ -20,7 +20,6 @@ namespace def {
 
 #if (AZARAC_ENABLE_TSUNAMI) && (AZARAC_LANG_EN)
 
-#if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_TSUNAMI_WARNING_CODE_EN_C1[] = "No Tsunami";
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_TSUNAMI_WARNING_CODE_EN_C2[] = "Warning Lifted";
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_TSUNAMI_WARNING_CODE_EN_C3[] = "Tsunami Warning";
@@ -38,19 +37,6 @@ static const char AZARAC_PROGMEM QZSS_DCR_JMA_TSUNAMI_WARNING_CODE_EN_C15[] = "O
         default: return std::nullopt;
     }
 }
-#else
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_tsunami_warning_code_en_lookup(uint8_t id) noexcept {
-    switch (id) {
-        case 1: return std::string_view{"No Tsunami", 10};
-        case 2: return std::string_view{"Warning Lifted", 14};
-        case 3: return std::string_view{"Tsunami Warning", 15};
-        case 4: return std::string_view{"Major Tsunami Warning", 21};
-        case 5: return std::string_view{"Major Tsunami Warning: Issued", 29};
-        case 15: return std::string_view{"Other Warning", 13};
-        default: return std::nullopt;
-    }
-}
-#endif
 
 #else
 

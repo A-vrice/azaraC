@@ -20,7 +20,6 @@ namespace def {
 
 #if (AZARAC_ENABLE_VOLCANO) && (AZARAC_LANG_JA)
 
-#if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_VOLCANIC_WARNING_CODE_POOL[] = "1(活火山であることに留意)\0002(火口周辺規制)\0003(入山規制)\0004(高齢者等避難)\0005(避難)\000活火山であることに留意\000火口周辺危険\000入山危険\000山麓厳重警戒\000居住地域厳重警戒\000活火山であることに留意(海底火山)\000周辺海域警戒\000噴火\000噴火したもよう\000その他の防災気象情報要素\000";
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_VOLCANIC_WARNING_CODE_PARENT_POOL[] = "レベル\000";
 struct QZSS_DCR_JMA_VOLCANIC_WARNING_CODE_PARENT_Entry { uint16_t offset; };
@@ -63,38 +62,6 @@ static const QZSS_DCR_JMA_VOLCANIC_WARNING_CODE_Entry QZSS_DCR_JMA_VOLCANIC_WARN
     }
     return std::nullopt;
 }
-#else
-struct QZSS_DCR_JMA_VOLCANIC_WARNING_CODE_Entry { uint8_t id; const char* label; };
-inline constexpr QZSS_DCR_JMA_VOLCANIC_WARNING_CODE_Entry QZSS_DCR_JMA_VOLCANIC_WARNING_CODE_TABLE[] = {
-    {11u, "レベル1(活火山であることに留意)"},
-    {12u, "レベル2(火口周辺規制)"},
-    {13u, "レベル3(入山規制)"},
-    {14u, "レベル4(高齢者等避難)"},
-    {15u, "レベル5(避難)"},
-    {21u, "活火山であることに留意"},
-    {22u, "火口周辺危険"},
-    {23u, "入山危険"},
-    {24u, "山麓厳重警戒"},
-    {25u, "居住地域厳重警戒"},
-    {35u, "活火山であることに留意(海底火山)"},
-    {36u, "周辺海域警戒"},
-    {52u, "噴火"},
-    {62u, "噴火したもよう"},
-    {127u, "その他の防災気象情報要素"},};
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_volcanic_warning_code_lookup(uint8_t id) noexcept {
-    uint8_t lo = 0, hi = 15;
-    while (lo < hi) {
-        uint8_t mid = static_cast<uint8_t>(lo + (hi - lo) / 2);
-        if (QZSS_DCR_JMA_VOLCANIC_WARNING_CODE_TABLE[mid].id == id) {
-            const char* s = QZSS_DCR_JMA_VOLCANIC_WARNING_CODE_TABLE[mid].label;
-            return s ? std::optional<std::string_view>(std::string_view{s}) : std::nullopt;
-        }
-        if (QZSS_DCR_JMA_VOLCANIC_WARNING_CODE_TABLE[mid].id < id) lo = mid + 1;
-        else hi = mid;
-    }
-    return std::nullopt;
-}
-#endif
 
 #else
 

@@ -20,7 +20,6 @@ namespace def {
 
 #if (AZARAC_LANG_EN)
 
-#if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_REPORT_CLASSIFICATION_EN_C1[] = "Maximum Priority";
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_REPORT_CLASSIFICATION_EN_C2[] = "Priority";
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_REPORT_CLASSIFICATION_EN_C3[] = "Regular";
@@ -34,17 +33,6 @@ static const char AZARAC_PROGMEM QZSS_DCR_JMA_REPORT_CLASSIFICATION_EN_C7[] = "T
         default: return std::nullopt;
     }
 }
-#else
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_report_classification_en_lookup(uint8_t id) noexcept {
-    switch (id) {
-        case 1: return std::string_view{"Maximum Priority", 16};
-        case 2: return std::string_view{"Priority", 8};
-        case 3: return std::string_view{"Regular", 7};
-        case 7: return std::string_view{"Training/Test", 13};
-        default: return std::nullopt;
-    }
-}
-#endif
 
 #else
 

@@ -20,7 +20,6 @@ namespace def {
 
 #if (AZARAC_ENABLE_DCX_CAMF)
 
-#if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D36_TYPHOON_CATEGORY_C0[] = "1 and Intensity 1";
 static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D36_TYPHOON_CATEGORY_C1[] = "1 and Intensity 2";
 static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D36_TYPHOON_CATEGORY_C2[] = "1 and Intensity 3";
@@ -37,18 +36,6 @@ static const char AZARAC_PROGMEM QZSS_DCX_CAMF_D36_TYPHOON_CATEGORY_PARENT_POOL[
         default: return std::nullopt;
     }
 }
-#else
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_d36_typhoon_category_lookup(uint8_t id) noexcept {
-    switch (id) {
-        case 0: return std::string_view{"Scale 1 and Intensity 1", 23};
-        case 1: return std::string_view{"Scale 1 and Intensity 2", 23};
-        case 2: return std::string_view{"Scale 1 and Intensity 3", 23};
-        case 3: return std::string_view{"Scale 2 and Intensity 1", 23};
-        case 4: return std::string_view{"Scale 2 and Intensity 2", 23};
-        default: return std::nullopt;
-    }
-}
-#endif
 
 #else
 

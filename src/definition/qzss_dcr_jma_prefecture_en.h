@@ -22,7 +22,6 @@ namespace def {
 
 inline constexpr uint8_t QZSS_DCR_JMA_PREFECTURE_EN_BASE = 1;
 inline constexpr uint8_t QZSS_DCR_JMA_PREFECTURE_EN_SIZE = 47;
-#if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_PREFECTURE_EN_POOL[] = "Hokkaido\000Aomori\000Iwate\000Miyagi\000Akit\000Yamagat\000Fukushim\000Ibaraki\000Tochigi\000Gunm\000Saitam\000Chib\000Tokyo Metropolis\000Kanagaw\000Niigat\000Toyam\000Ishikaw\000Fukui\000Yamanashi\000Nagano\000Gifu\000Shizuok\000Aichi\000Mie\000Shig\000Kyoto\000Osak\000Hyogo\000Nar\000Wakayam\000Tottori\000Shimane\000Okayam\000Hiroshim\000Yamaguchi\000Tokushim\000Kagaw\000Ehime\000Kochi\000Fukuok\000Sag\000Nagasaki\000Kumamoto\000Oit\000Miyazaki\000Kagoshim\000Okinaw\000";
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_PREFECTURE_EN_PARENT_POOL[] = " Prefecture\000a Prefecture\000";
 struct QZSS_DCR_JMA_PREFECTURE_EN_PARENT_Entry { uint16_t offset; };
@@ -90,62 +89,6 @@ static const QZSS_DCR_JMA_PREFECTURE_EN_Entry QZSS_DCR_JMA_PREFECTURE_EN_TABLE[]
     uint16_t poff = azarac_read_word(pp, offsetof(QZSS_DCR_JMA_PREFECTURE_EN_PARENT_Entry, offset));
     return azarac_pgm_join_z(AZARAC_PGM_PTR(QZSS_DCR_JMA_PREFECTURE_EN_POOL) + off, AZARAC_PGM_PTR(QZSS_DCR_JMA_PREFECTURE_EN_PARENT_POOL) + poff);
 }
-#else
-inline constexpr const char* QZSS_DCR_JMA_PREFECTURE_EN_TABLE[] = {
-    "Hokkaido Prefecture",
-    "Aomori Prefecture",
-    "Iwate Prefecture",
-    "Miyagi Prefecture",
-    "Akita Prefecture",
-    "Yamagata Prefecture",
-    "Fukushima Prefecture",
-    "Ibaraki Prefecture",
-    "Tochigi Prefecture",
-    "Gunma Prefecture",
-    "Saitama Prefecture",
-    "Chiba Prefecture",
-    "Tokyo Metropolis",
-    "Kanagawa Prefecture",
-    "Niigata Prefecture",
-    "Toyama Prefecture",
-    "Ishikawa Prefecture",
-    "Fukui Prefecture",
-    "Yamanashi Prefecture",
-    "Nagano Prefecture",
-    "Gifu Prefecture",
-    "Shizuoka Prefecture",
-    "Aichi Prefecture",
-    "Mie Prefecture",
-    "Shiga Prefecture",
-    "Kyoto Prefecture",
-    "Osaka Prefecture",
-    "Hyogo Prefecture",
-    "Nara Prefecture",
-    "Wakayama Prefecture",
-    "Tottori Prefecture",
-    "Shimane Prefecture",
-    "Okayama Prefecture",
-    "Hiroshima Prefecture",
-    "Yamaguchi Prefecture",
-    "Tokushima Prefecture",
-    "Kagawa Prefecture",
-    "Ehime Prefecture",
-    "Kochi Prefecture",
-    "Fukuoka Prefecture",
-    "Saga Prefecture",
-    "Nagasaki Prefecture",
-    "Kumamoto Prefecture",
-    "Oita Prefecture",
-    "Miyazaki Prefecture",
-    "Kagoshima Prefecture",
-    "Okinawa Prefecture"
-};
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_prefecture_en_lookup(uint8_t id) noexcept {
-    if (id < QZSS_DCR_JMA_PREFECTURE_EN_BASE || id >= QZSS_DCR_JMA_PREFECTURE_EN_BASE + QZSS_DCR_JMA_PREFECTURE_EN_SIZE) return std::nullopt;
-    const char* s = QZSS_DCR_JMA_PREFECTURE_EN_TABLE[id - QZSS_DCR_JMA_PREFECTURE_EN_BASE];
-    return s ? std::optional<std::string_view>(std::string_view{s}) : std::nullopt;
-}
-#endif
 
 #else
 

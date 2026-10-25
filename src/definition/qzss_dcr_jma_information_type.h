@@ -20,7 +20,6 @@ namespace def {
 
 #if (AZARAC_LANG_JA)
 
-#if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_INFORMATION_TYPE_C0[] = "発表";
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_INFORMATION_TYPE_C1[] = "訂正";
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_INFORMATION_TYPE_C2[] = "取消";
@@ -32,16 +31,6 @@ static const char AZARAC_PROGMEM QZSS_DCR_JMA_INFORMATION_TYPE_C2[] = "取消";
         default: return std::nullopt;
     }
 }
-#else
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_information_type_lookup(uint8_t id) noexcept {
-    switch (id) {
-        case 0: return std::string_view{"発表", 6};
-        case 1: return std::string_view{"訂正", 6};
-        case 2: return std::string_view{"取消", 6};
-        default: return std::nullopt;
-    }
-}
-#endif
 
 #else
 

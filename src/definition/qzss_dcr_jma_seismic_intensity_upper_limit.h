@@ -20,7 +20,6 @@ namespace def {
 
 #if (AZARAC_ENABLE_EEW) && (AZARAC_LANG_JA)
 
-#if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_SEISMIC_INTENSITY_UPPER_LIMIT_POOL[] = "0\0001\0002\0003\0004\0005弱\0005強\0006弱\0006強\0007\000〜程度以上\000なし\000不明\000";
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_SEISMIC_INTENSITY_UPPER_LIMIT_PARENT_POOL[] = "震度\000";
 struct QZSS_DCR_JMA_SEISMIC_INTENSITY_UPPER_LIMIT_PARENT_Entry { uint16_t offset; };
@@ -61,36 +60,6 @@ static const QZSS_DCR_JMA_SEISMIC_INTENSITY_UPPER_LIMIT_Entry QZSS_DCR_JMA_SEISM
     }
     return std::nullopt;
 }
-#else
-struct QZSS_DCR_JMA_SEISMIC_INTENSITY_UPPER_LIMIT_Entry { uint8_t id; const char* label; };
-inline constexpr QZSS_DCR_JMA_SEISMIC_INTENSITY_UPPER_LIMIT_Entry QZSS_DCR_JMA_SEISMIC_INTENSITY_UPPER_LIMIT_TABLE[] = {
-    {1u, "震度0"},
-    {2u, "震度1"},
-    {3u, "震度2"},
-    {4u, "震度3"},
-    {5u, "震度4"},
-    {6u, "震度5弱"},
-    {7u, "震度5強"},
-    {8u, "震度6弱"},
-    {9u, "震度6強"},
-    {10u, "震度7"},
-    {11u, "〜程度以上"},
-    {14u, "なし"},
-    {15u, "不明"},};
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_seismic_intensity_upper_limit_lookup(uint8_t id) noexcept {
-    uint8_t lo = 0, hi = 13;
-    while (lo < hi) {
-        uint8_t mid = static_cast<uint8_t>(lo + (hi - lo) / 2);
-        if (QZSS_DCR_JMA_SEISMIC_INTENSITY_UPPER_LIMIT_TABLE[mid].id == id) {
-            const char* s = QZSS_DCR_JMA_SEISMIC_INTENSITY_UPPER_LIMIT_TABLE[mid].label;
-            return s ? std::optional<std::string_view>(std::string_view{s}) : std::nullopt;
-        }
-        if (QZSS_DCR_JMA_SEISMIC_INTENSITY_UPPER_LIMIT_TABLE[mid].id < id) lo = mid + 1;
-        else hi = mid;
-    }
-    return std::nullopt;
-}
-#endif
 
 #else
 

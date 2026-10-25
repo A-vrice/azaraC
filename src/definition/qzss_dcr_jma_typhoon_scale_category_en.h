@@ -20,7 +20,6 @@ namespace def {
 
 #if (AZARAC_ENABLE_TYPHOON) && (AZARAC_LANG_EN)
 
-#if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_TYPHOON_SCALE_CATEGORY_EN_C0[] = "None";
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_TYPHOON_SCALE_CATEGORY_EN_C1[] = "Large";
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_TYPHOON_SCALE_CATEGORY_EN_C2[] = "Very large";
@@ -34,17 +33,6 @@ static const char AZARAC_PROGMEM QZSS_DCR_JMA_TYPHOON_SCALE_CATEGORY_EN_C15[] = 
         default: return std::nullopt;
     }
 }
-#else
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_typhoon_scale_category_en_lookup(uint8_t id) noexcept {
-    switch (id) {
-        case 0: return std::string_view{"None", 4};
-        case 1: return std::string_view{"Large", 5};
-        case 2: return std::string_view{"Very large", 10};
-        case 15: return std::string_view{"Other Scale Category", 20};
-        default: return std::nullopt;
-    }
-}
-#endif
 
 #else
 

@@ -20,7 +20,6 @@ namespace def {
 
 #if (AZARAC_ENABLE_TYPHOON) && (AZARAC_LANG_EN)
 
-#if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_TYPHOON_REFERENCE_TIME_TYPE_EN_C1[] = "Analysis";
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_TYPHOON_REFERENCE_TIME_TYPE_EN_C2[] = "Estimate";
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_TYPHOON_REFERENCE_TIME_TYPE_EN_C3[] = "Forecast";
@@ -32,16 +31,6 @@ static const char AZARAC_PROGMEM QZSS_DCR_JMA_TYPHOON_REFERENCE_TIME_TYPE_EN_C3[
         default: return std::nullopt;
     }
 }
-#else
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_typhoon_reference_time_type_en_lookup(uint8_t id) noexcept {
-    switch (id) {
-        case 1: return std::string_view{"Analysis", 8};
-        case 2: return std::string_view{"Estimate", 8};
-        case 3: return std::string_view{"Forecast", 8};
-        default: return std::nullopt;
-    }
-}
-#endif
 
 #else
 

@@ -20,7 +20,6 @@ namespace def {
 
 #if (AZARAC_ENABLE_SEISMIC) && (AZARAC_LANG_JA)
 
-#if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_SEISMIC_INTENSITY_C1[] = "4未満";
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_SEISMIC_INTENSITY_C2[] = "4";
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_SEISMIC_INTENSITY_C3[] = "5弱";
@@ -40,20 +39,6 @@ static const char AZARAC_PROGMEM QZSS_DCR_JMA_SEISMIC_INTENSITY_C7[] = "7";
         default: return std::nullopt;
     }
 }
-#else
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_seismic_intensity_lookup(uint8_t id) noexcept {
-    switch (id) {
-        case 1: return std::string_view{"4未満", 7};
-        case 2: return std::string_view{"4", 1};
-        case 3: return std::string_view{"5弱", 4};
-        case 4: return std::string_view{"5強", 4};
-        case 5: return std::string_view{"6弱", 4};
-        case 6: return std::string_view{"6強", 4};
-        case 7: return std::string_view{"7", 1};
-        default: return std::nullopt;
-    }
-}
-#endif
 
 #else
 

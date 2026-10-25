@@ -509,7 +509,8 @@ def emit_switch(varname, entries, guard, kt):
         "    }",
         "}",
     ])
-    return f"#if defined(__AVR__)\n{avr_body}\n#else\n{non_avr_body}\n#endif"
+    # AVR/非AVR 同一テキスト: FlashString.h が非 AVR にも同一署名のアクセサを用意する。
+    return avr_body
 
 
 def emit_switch_optional(varname, entries, guard, kt):
@@ -537,7 +538,8 @@ def emit_switch_optional(varname, entries, guard, kt):
         "    }",
         "}",
     ])
-    return f"#if defined(__AVR__)\n{avr_body}\n#else\n{non_avr_body}\n#endif"
+    # AVR/非AVR 同一テキスト: FlashString.h が非 AVR にも同一署名のアクセサを用意する。
+    return avr_body
 
 
 def emit_array(varname, entries, guard, kt):
@@ -587,11 +589,7 @@ def emit_array(varname, entries, guard, kt):
     return "\n".join([
         f"inline constexpr {kt} {guard}_BASE = {base};",
         f"inline constexpr {kt} {guard}_SIZE = {n};",
-        "#if defined(__AVR__)",
         avr_body,
-        "#else",
-        non_avr_body,
-        "#endif",
     ])
 
 
@@ -623,11 +621,7 @@ def emit_array_optional(varname, entries, guard, kt):
     return "\n".join([
         f"inline constexpr {kt} {guard}_BASE = {base};",
         f"inline constexpr {kt} {guard}_SIZE = {n};",
-        "#if defined(__AVR__)",
         avr_body,
-        "#else",
-        non_avr_body,
-        "#endif",
     ])
 
 
@@ -678,7 +672,8 @@ def emit_bsearch(varname, entries, guard, kt):
         "    }",
         "    return nullptr;", "}",
     ])
-    return f"#if defined(__AVR__)\n{avr_body}\n#else\n{non_avr_body}\n#endif"
+    # AVR/非AVR 同一テキスト: FlashString.h が非 AVR にも同一署名のアクセサを用意する。
+    return avr_body
 
 
 def emit_bsearch_optional(varname, entries, guard, kt):
@@ -732,7 +727,8 @@ def emit_bsearch_optional(varname, entries, guard, kt):
         "    }",
         "    return std::nullopt;", "}",
     ])
-    return f"#if defined(__AVR__)\n{avr_body}\n#else\n{non_avr_body}\n#endif"
+    # AVR/非AVR 同一テキスト: FlashString.h が非 AVR にも同一署名のアクセサを用意する。
+    return avr_body
 
 def build_header(modname, varname, entries, ver, all_varnames, obj=None, use_optional_override=None):
     keys = [k for k in entries if isinstance(k, int)]

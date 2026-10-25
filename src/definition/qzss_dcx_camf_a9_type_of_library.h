@@ -20,7 +20,6 @@ namespace def {
 
 #if (AZARAC_ENABLE_DCX_CAMF)
 
-#if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCX_CAMF_A9_TYPE_OF_LIBRARY_C0[] = "International library";
 static const char AZARAC_PROGMEM QZSS_DCX_CAMF_A9_TYPE_OF_LIBRARY_C1[] = "Country/region library";
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_a9_type_of_library_lookup(uint8_t id) noexcept {
@@ -30,15 +29,6 @@ static const char AZARAC_PROGMEM QZSS_DCX_CAMF_A9_TYPE_OF_LIBRARY_C1[] = "Countr
         default: return std::nullopt;
     }
 }
-#else
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcx_camf_a9_type_of_library_lookup(uint8_t id) noexcept {
-    switch (id) {
-        case 0: return std::string_view{"International library", 21};
-        case 1: return std::string_view{"Country/region library", 22};
-        default: return std::nullopt;
-    }
-}
-#endif
 
 #else
 

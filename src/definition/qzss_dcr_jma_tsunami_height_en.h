@@ -20,7 +20,6 @@ namespace def {
 
 #if (AZARAC_ENABLE_TSUNAMI) && (AZARAC_LANG_EN)
 
-#if defined(__AVR__)
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_TSUNAMI_HEIGHT_EN_C1[] = "Less than 0.2 m";
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_TSUNAMI_HEIGHT_EN_C2[] = "1 m";
 static const char AZARAC_PROGMEM QZSS_DCR_JMA_TSUNAMI_HEIGHT_EN_C3[] = "3 m";
@@ -44,22 +43,6 @@ static const char AZARAC_PROGMEM QZSS_DCR_JMA_TSUNAMI_HEIGHT_EN_C15[] = "Other T
         default: return std::nullopt;
     }
 }
-#else
-[[nodiscard]] inline constexpr std::optional<std::string_view> qzss_dcr_jma_tsunami_height_en_lookup(uint8_t id) noexcept {
-    switch (id) {
-        case 1: return std::string_view{"Less than 0.2 m", 15};
-        case 2: return std::string_view{"1 m", 3};
-        case 3: return std::string_view{"3 m", 3};
-        case 4: return std::string_view{"5 m", 3};
-        case 5: return std::string_view{"10 m", 4};
-        case 6: return std::string_view{"Over 10 m", 9};
-        case 13: return std::string_view{"No data", 7};
-        case 14: return std::string_view{"Unknown", 7};
-        case 15: return std::string_view{"Other Tsunami Height", 20};
-        default: return std::nullopt;
-    }
-}
-#endif
 
 #else
 
