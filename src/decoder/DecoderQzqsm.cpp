@@ -134,11 +134,15 @@ void Decoder::decodeEEW(const uint8_t* b, Message& out, uint32_t report_unix) {
     eew->intensity_lower = getBits(b, 122, 4);
     eew->intensity_upper = getBits(b, 126, 4);
 
-    // EEW 予報区: [130..209] の 80 bit ビットマップ。bit i が立っていれば区 (i+1) が対象
+    // EEW 予報区: [130..209] の 80 bit ビットマップ。bit i が立っていれば区 (i+1) が対象。
+    // 130 は 2 bit オフセットなので、対象バイト列を 2 bit シフトして 10 バイト分を見る。
     eew->region_count = 0;
-    for (uint8_t i = 0; i < 80 && eew->region_count < 80; ++i) {
-        if (getBits(b, 130 + i, 1)) {
-            eew->regions[eew->region_count++] = i + 1;
+    for (uint8_t byt = 0; byt < 10; ++byt) {
+        const uint8_t v = (uint8_t)((b[16 + byt] << 2) | (b[17 + byt] >> 6));
+        for (uint8_t bit = 0; bit < 8; ++bit) {
+            if (v & (0x80u >> bit)) {
+                eew->regions[eew->region_count++] = (uint8_t)(byt * 8u + bit + 1u);
+            }
         }
     }
 }
@@ -217,9 +221,12 @@ void Decoder::decodeNankai(const uint8_t* b, Message& out, uint32_t report_unix)
     nankai->report_day    = getBits(b, 25, 5);
     nankai->report_hour   = getBits(b, 30, 5);
     nankai->report_minute = getBits(b, 35, 6);
-    // text: 18 バイト = bit [57..200]
-    for (uint8_t i = 0; i < 18; ++i)
-        nankai->text[i] = getBits(b, 57 + i * 8, 8);
+    // text: 18 バイト = bit [57..200]。57 は 1 bit オフセットの固定位置なので
+    // prev<<1 | next>>7 の連続コピーで取り出す（18 回の getBits(8) を 18 回のシフトに）。
+    for (uint8_t i = 0; i < 18; ++i) {
+        const uint8_t p = (uint8_t)(7 + i);   // 57/8 = 7（bit 57 は byte 7 の 1 bit 目）
+        nankai->text[i] = (uint8_t)((b[p] << 1) | (b[p + 1] >> 7));
+    }
 }
 #endif // AZARAC_ENABLE_NANKAI
 
@@ -335,10 +342,11 @@ void Decoder::decodeAshFall(const uint8_t* b, Message& out, uint32_t report_unix
     ash->count = 0;
     for (uint8_t i = 0; i < 4; ++i) {
         uint16_t off = 83 + i * 29;
-        if (getBits(b, off, 29) == 0) break;
-        ash->entries_time[ash->count] = getBits(b, off,      3);
-        ash->entries_code[ash->count] = getBits(b, off +  3, 3);
-        ash->entries_lg  [ash->count] = getBits(b, off +  6, 23);
+        const uint32_t e = getBits(b, off, 29);   // 29 bit 一括 → 3/3/23 に分解（二度読みしない）
+        if (e == 0) break;
+        ash->entries_time[ash->count] = (e >> 26) & 0x7u;
+        ash->entries_code[ash->count] = (e >> 23) & 0x7u;
+        ash->entries_lg  [ash->count] = e & 0x7FFFFFu;
         ++ash->count;
     }
 }
@@ -362,9 +370,10 @@ void Decoder::decodeWeather(const uint8_t* b, Message& out, uint32_t report_unix
     wx->count = 0;
     for (uint8_t i = 0; i < 6; ++i) {
         uint16_t off = 56 + i * 24;
-        if (getBits(b, off, 24) == 0) break;
-        wx->entries[wx->count].sub_category = getBits(b, off,      5);
-        wx->entries[wx->count].region_code  = getBits(b, off +  5, 19);
+        const uint32_t e = getBits(b, off, 24);   // 24 bit 一括 → 5/19 に分解
+        if (e == 0) break;
+        wx->entries[wx->count].sub_category = (e >> 19) & 0x1Fu;
+        wx->entries[wx->count].region_code  = e & 0x7FFFFu;
         ++wx->count;
     }
 }
@@ -388,12 +397,10 @@ void Decoder::decodeFlood(const uint8_t* b, Message& out, uint32_t report_unix) 
     for (uint8_t i = 0; i < 3; ++i) {
         uint16_t off = 53 + i * 44;
         // 44 bit すべて 0 ならエントリなし（Region1 Lv の範囲は 1-15 で、0 は未使用）。44 bit > 32 なので getBits64 を使う。
-        if (getBits64(b, off, 44) == 0) break;
-        flood->entries[flood->count].warning_level = getBits(b, off, 4);
-        // 40-bit region code — read as two 20-bit halves
-        uint64_t hi = getBits(b, off +  4, 20);
-        uint64_t lo = getBits(b, off + 24, 20);
-        flood->entries[flood->count].region_code = (hi << 20) | lo;
+        const uint64_t e = getBits64(b, off, 44);   // 一括 → 4/20/20 に分解
+        if (e == 0) break;
+        flood->entries[flood->count].warning_level = (uint8_t)((e >> 40) & 0xFu);
+        flood->entries[flood->count].region_code   = e & 0xFFFFFFFFFFull;   // 40-bit region code
         ++flood->count;
     }
 }

@@ -117,10 +117,27 @@ uint32_t Decoder::messageIdentity(uint8_t* bits) {
 uint32_t Decoder::getBits(const uint8_t* buf, uint16_t start, uint8_t len) {
     // OOB は 0 を返して oob_ を立て、decode() 側で弾く（組込みなので assert は使わない）。上限は 250 ではなく 256: Frame::bits は 256 bit 幅で、bit 250-255 は詰め物。
     if (start + len > 256) { oob_ = true; return 0; }
+    // 1 bit ずつ詰める代わりに「先頭の中途バイト → フルバイト列 → 末尾の中途バイト」で組み立てる。
+    // AVR は可変シフトが回転ループに展開され 50-60 cycles/bit かかるため、固定シフト数回への置き換えで
+    // 呼び出しごとのコストをビット長にほぼ比例して削減する（出力は旧実装と全 (start,len) 組合せで一致）。
     uint32_t val = 0;
-    for (uint8_t i = 0; i < len; ++i) {
-        uint16_t pos = start + i;
-        val = (val << 1) | ((buf[pos >> 3] >> (7u - (pos & 7u))) & 1u);
+    uint8_t  rem = len;
+    uint16_t pos = start;
+    const uint8_t head_shift = start & 7u;
+    if (head_shift != 0) {
+        const uint8_t take = 8u - head_shift;                 // 先頭バイトから取れる残りビット数
+        const uint8_t avail = rem < take ? rem : take;
+        val = (uint32_t)(buf[pos >> 3] & (0xFFu >> head_shift)) >> (take - avail);
+        rem -= avail;
+        pos += avail;                                          // バイト境界へ
+    }
+    while (rem >= 8) {
+        val = (val << 8) | buf[pos >> 3];
+        rem -= 8;
+        pos += 8;
+    }
+    if (rem != 0) {
+        val = (val << rem) | (uint8_t)(buf[pos >> 3] >> (8u - rem));
     }
     return val;
 }
@@ -130,9 +147,23 @@ uint64_t Decoder::getBits64(const uint8_t* buf, uint16_t start, uint8_t len) {
     // Same silent-zero-with-oob-flag policy as getBits()
     if (start + len > 256) { oob_ = true; return 0; }
     uint64_t val = 0;
-    for (uint8_t i = 0; i < len; ++i) {
-        uint16_t pos = start + i;
-        val = (val << 1) | ((buf[pos >> 3] >> (7u - (pos & 7u))) & 1u);
+    uint8_t  rem = len;
+    uint16_t pos = start;
+    const uint8_t head_shift = start & 7u;
+    if (head_shift != 0) {
+        const uint8_t take = 8u - head_shift;
+        const uint8_t avail = rem < take ? rem : take;
+        val = (uint64_t)(buf[pos >> 3] & (0xFFu >> head_shift)) >> (take - avail);
+        rem -= avail;
+        pos += avail;
+    }
+    while (rem >= 8) {
+        val = (val << 8) | buf[pos >> 3];
+        rem -= 8;
+        pos += 8;
+    }
+    if (rem != 0) {
+        val = (val << rem) | (uint8_t)(buf[pos >> 3] >> (8u - rem));
     }
     return val;
 }

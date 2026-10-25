@@ -87,31 +87,29 @@ bool UbxFramer::parse(Frame& out) {
     if (_len != 8u + static_cast<uint16_t>(numWords) * 4u) return false;
 
     // 航法ビットを MSB-first で out.bits[32] へ詰める: 8 ワード × 32 bit = 256、先頭 250 がデータで残りはゼロ詰め。
+    // ワードはリトルエンディアンで word の bit31 がサブフレームの先頭ビットなので、各ワードのバイトスワップが
+    // そのまま out.bits の該当 4 バイトになる（1 bit ずつの可変シフトループの代わりに直接ストア）。
+    // 先頭 7 ワード = 28 バイトは全域データ。word7 は bit 224..249 がデータで byte28-30 が全域、
+    // byte31 は上位 2 bit のみ（残り 6 bit はゼロ詰めのまま）。numWords=9 の余剰ワードは無視する。
     memset(out.bits, 0, sizeof(out.bits));
-    uint16_t bit_pos = 0;
-    for (uint8_t w = 0; w < numWords && bit_pos < 250; ++w) {
-        // Words are little-endian in the UBX payload
-        uint32_t word = ((uint32_t)_buf[8 + w*4 + 3] << 24) |
-                        ((uint32_t)_buf[8 + w*4 + 2] << 16) |
-                        ((uint32_t)_buf[8 + w*4 + 1] <<  8) |
-                         (uint32_t)_buf[8 + w*4 + 0];
-        // Bit 31 of the first word is the first bit of the subframe.
-        for (int8_t b2 = 31; b2 >= 0 && bit_pos < 250; --b2, ++bit_pos) {
-            if ((word >> b2) & 1u) {
-                out.bits[bit_pos / 8] |= (0x80u >> (bit_pos % 8));
-            }
+    for (uint8_t w = 0; w < numWords && w < 8; ++w) {
+        const uint8_t b0 = _buf[8 + w * 4u + 0], b1 = _buf[8 + w * 4u + 1];
+        const uint8_t b2 = _buf[8 + w * 4u + 2], b3 = _buf[8 + w * 4u + 3];
+        if (w < 7) {
+            out.bits[w * 4u + 0] = b3;
+            out.bits[w * 4u + 1] = b2;
+            out.bits[w * 4u + 2] = b1;
+            out.bits[w * 4u + 3] = b0;
+        } else {
+            out.bits[28] = b3;
+            out.bits[29] = b2;
+            out.bits[30] = b1;
+            out.bits[31] = (uint8_t)(b0 & 0xC0u);
         }
     }
-    auto prn_str = def::ublox_qzss_svid_prn_map_lookup(svId);
-    if (prn_str.has_value()) {
-        out.svid = 0;
-        for (char c : prn_str.value()) {
-            out.svid = out.svid * 10 + (c - '0');
-        }
-    } else {
-        out.svid = svId;
-    }
-    
+    // SVID→PRN 変換は数値参照で直接取る（ラベル経由だと AVR で共有バッファコピー+再パースが発生する）。
+    const auto prn = def::ublox_qzss_svid_prn_map_lookup_num(svId);
+    out.svid = prn.value_or(svId);
     return true;
 }
 
