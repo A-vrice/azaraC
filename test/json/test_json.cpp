@@ -99,8 +99,8 @@ TEST_CASE("JSON Serialization: MT=44 DCX L-Alert") {
     mt44->camf.a1 = 1; mt44->camf.a2 = 111; mt44->camf.a3 = 1;
     mt44->camf.a4 = 10; mt44->camf.a5 = 3; mt44->camf.a8 = 4;
     mt44->camf.a11 = 1;
-    mt44->ex_lalert_local.ex1 = 1100;
-    mt44->ex_lalert_local.vn = 1;
+    mt44->ex.ex_lalert_local.ex1 = 1100;
+    mt44->ex.ex_lalert_local.vn = 1;
     mt44->sd.sdmt = 0; mt44->sd.sdm = 0x1FF;
 
     StringPrint sp;
@@ -128,9 +128,9 @@ TEST_CASE("JSON Serialization: MT=44 DCX J-Alert") {
     mt44->ex_kind = ExtendedKind::JAlert;
     mt44->camf.a1 = 1; mt44->camf.a2 = 111; mt44->camf.a3 = 2;
     mt44->camf.a4 = 5; mt44->camf.a5 = 3;
-    mt44->ex_jalert.ex8 = 0;
-    mt44->ex_jalert.ex9 = 7;
-    mt44->ex_jalert.vn = 1;
+    mt44->ex.ex_jalert.ex8 = 0;
+    mt44->ex.ex_jalert.ex9 = 7;
+    mt44->ex.ex_jalert.vn = 1;
     mt44->mt44_decoded.jalert_prefecture_mode = true;
     mt44->mt44_decoded.prefecture_count = 3;
     mt44->mt44_decoded.prefecture_positions[0] = 47;
@@ -171,14 +171,14 @@ TEST_CASE("JSON Serialization: MT=44 DCX Local Government") {
     mt44->ex_kind = ExtendedKind::LAlertOrLocal;
     mt44->camf.a1 = 1; mt44->camf.a2 = 111; mt44->camf.a3 = 4;
     mt44->camf.a4 = 10; mt44->camf.a5 = 3;
-    mt44->ex_lalert_local.ex1 = 1100;
-    mt44->ex_lalert_local.ex2 = 1;
-    mt44->ex_lalert_local.ex3 = 91522;
-    mt44->ex_lalert_local.ex4 = 68950;
-    mt44->ex_lalert_local.ex5 = 10;
-    mt44->ex_lalert_local.ex6 = 8;
-    mt44->ex_lalert_local.ex7 = 96;
-    mt44->ex_lalert_local.vn = 1;
+    mt44->ex.ex_lalert_local.ex1 = 1100;
+    mt44->ex.ex_lalert_local.ex2 = 1;
+    mt44->ex.ex_lalert_local.ex3 = 91522;
+    mt44->ex.ex_lalert_local.ex4 = 68950;
+    mt44->ex.ex_lalert_local.ex5 = 10;
+    mt44->ex.ex_lalert_local.ex6 = 8;
+    mt44->ex.ex_lalert_local.ex7 = 96;
+    mt44->ex.ex_lalert_local.vn = 1;
     mt44->mt44_decoded.additional_area.present = true;
     mt44->mt44_decoded.additional_area.head_to_area = true;
 
@@ -205,7 +205,7 @@ TEST_CASE("JSON Serialization: MT=44 DCX Outside Japan") {
     mt44->is_null_message = false;
     mt44->ex_kind = ExtendedKind::OutsideJapan;
     mt44->camf.a1 = 1; mt44->camf.a2 = 32; mt44->camf.a3 = 1;
-    mt44->ex_outside.vn = 5;
+    mt44->ex.ex_outside.vn = 5;
 
     StringPrint sp;
     internal::JsonSerializer::serialize(m, sp);
@@ -982,9 +982,9 @@ TEST_CASE("JSON Serialization: Balanced braces/brackets") {
         mt44->ex_kind = ExtendedKind::JAlert;
         mt44->camf.a1 = 1; mt44->camf.a2 = 111; mt44->camf.a3 = 2;
         mt44->camf.a4 = 5; mt44->camf.a5 = 3;
-        mt44->ex_jalert.ex8 = 0;
-        mt44->ex_jalert.ex9 = 7;
-        mt44->ex_jalert.vn = 1;
+        mt44->ex.ex_jalert.ex8 = 0;
+        mt44->ex.ex_jalert.ex9 = 7;
+        mt44->ex.ex_jalert.vn = 1;
         mt44->mt44_decoded.jalert_prefecture_mode = true;
         mt44->mt44_decoded.prefecture_count = 3;
         mt44->mt44_decoded.prefecture_positions[0] = 47;
@@ -1000,9 +1000,9 @@ TEST_CASE("JSON Serialization: Balanced braces/brackets") {
         mt44->ex_kind = ExtendedKind::JAlert;
         mt44->camf.a1 = 1; mt44->camf.a2 = 111; mt44->camf.a3 = 1;
         mt44->camf.a4 = 10; mt44->camf.a5 = 3;
-        mt44->ex_jalert.ex8 = 1;
-        mt44->ex_jalert.ex9 = 7;
-        mt44->ex_jalert.vn = 1;
+        mt44->ex.ex_jalert.ex8 = 1;
+        mt44->ex.ex_jalert.ex9 = 7;
+        mt44->ex.ex_jalert.vn = 1;
         mt44->mt44_decoded.jalert_prefecture_mode = false;
         mt44->mt44_decoded.city_code_count = 3;
         mt44->mt44_decoded.city_codes[0] = 1101;
@@ -1136,8 +1136,8 @@ TEST_CASE("JSON Serialization: MT=44 onset_time output") {
     mt44->camf.a1 = 1; mt44->camf.a2 = 111; mt44->camf.a3 = 1;
     mt44->camf.a4 = 10; mt44->camf.a5 = 3; mt44->camf.a8 = 4;
     mt44->camf.a6 = 0; mt44->camf.a7 = 1;
-    mt44->ex_lalert_local.ex1 = 1100;
-    mt44->ex_lalert_local.vn = 1;
+    mt44->ex.ex_lalert_local.ex1 = 1100;
+    mt44->ex.ex_lalert_local.vn = 1;
     mt44->sd.sdmt = 0; mt44->sd.sdm = 0x1FF;
 
     mt44->onset_time.month = 3;
@@ -1174,8 +1174,8 @@ TEST_CASE("JSON Serialization: MT=44 sd_sdmt=1 output") {
     mt44->ex_kind = ExtendedKind::LAlertOrLocal;
     mt44->camf.a1 = 1; mt44->camf.a2 = 111; mt44->camf.a3 = 1;
     mt44->camf.a4 = 10; mt44->camf.a5 = 3; mt44->camf.a8 = 4;
-    mt44->ex_lalert_local.ex1 = 1100;
-    mt44->ex_lalert_local.vn = 1;
+    mt44->ex.ex_lalert_local.ex1 = 1100;
+    mt44->ex.ex_lalert_local.vn = 1;
     mt44->sd.sdmt = 1;
     mt44->sd.sdm = 0x1FF;
 
@@ -1208,8 +1208,8 @@ TEST_CASE("JSON Serialization: MT=44 zero-value fields output") {
     mt44->camf.a9 = 0;
     mt44->camf.a10 = 0;
     mt44->camf.a11 = 0;
-    mt44->ex_lalert_local.ex1 = 1100;
-    mt44->ex_lalert_local.vn = 1;
+    mt44->ex.ex_lalert_local.ex1 = 1100;
+    mt44->ex.ex_lalert_local.vn = 1;
     mt44->sd.sdmt = 0; mt44->sd.sdm = 0x1FF;
 
     StringPrint sp;
@@ -1242,8 +1242,8 @@ TEST_CASE("JSON Serialization: a11 empty label is present, not absent") {
     mt44->camf.a9 = 1;   // Country/region library (A2=111) -> a11_japanese_library_ja / _en
     mt44->camf.a10 = 1;
     mt44->camf.a11 = 0;  // JA: "指示なし" / EN: "No instruction" (azarashi 0.17.1)
-    mt44->ex_lalert_local.ex1 = 1100;
-    mt44->ex_lalert_local.vn = 1;
+    mt44->ex.ex_lalert_local.ex1 = 1100;
+    mt44->ex.ex_lalert_local.vn = 1;
     mt44->sd.sdmt = 0; mt44->sd.sdm = 0x1FF;
 
     StringPrint sp;
@@ -1276,8 +1276,8 @@ TEST_CASE("JSON Serialization: A9=0 uses the international library") {
         mt44->camf.a9 = 0;   // International library
         mt44->camf.a10 = 1;
         mt44->camf.a11 = a11;
-        mt44->ex_lalert_local.ex1 = 1100;
-        mt44->ex_lalert_local.vn = 1;
+        mt44->ex.ex_lalert_local.ex1 = 1100;
+        mt44->ex.ex_lalert_local.vn = 1;
         mt44->sd.sdmt = 0; mt44->sd.sdm = 0x1FF;
 
         StringPrint sp;
@@ -1329,8 +1329,8 @@ TEST_CASE("JSON Serialization: A9=0 code 0 is an empty international label") {
     mt44->camf.a9 = 0;
     mt44->camf.a10 = 1;
     mt44->camf.a11 = 0;
-    mt44->ex_lalert_local.ex1 = 1100;
-    mt44->ex_lalert_local.vn = 1;
+    mt44->ex.ex_lalert_local.ex1 = 1100;
+    mt44->ex.ex_lalert_local.vn = 1;
     mt44->sd.sdmt = 0; mt44->sd.sdm = 0x1FF;
 
     StringPrint sp;
@@ -1360,8 +1360,8 @@ TEST_CASE("JSON Serialization: A9=1 outside Japan has no country library") {
     mt44->camf.a10 = 1;
     // 1 は International library では「You are in the danger zone…」。A2≠111 で表を引いていないこと（空になること）を区別できるよう、範囲内のコードを使う。
     mt44->camf.a11 = 1;
-    mt44->ex_lalert_local.ex1 = 1100;
-    mt44->ex_lalert_local.vn = 1;
+    mt44->ex.ex_lalert_local.ex1 = 1100;
+    mt44->ex.ex_lalert_local.vn = 1;
     mt44->sd.sdmt = 0; mt44->sd.sdm = 0x1FF;
 
     StringPrint sp;
@@ -1549,8 +1549,8 @@ TEST_CASE("JSON v2: header and data layout") {
         REQUIRE(mt44 != nullptr);
         mt44->service_kind = Mt44ServiceKind::JAlert;
         mt44->ex_kind = ExtendedKind::JAlert;
-        mt44->ex_jalert.ex8 = 0;
-        mt44->ex_jalert.vn = 1;
+        mt44->ex.ex_jalert.ex8 = 0;
+        mt44->ex.ex_jalert.vn = 1;
         mt44->sd.sdmt = 0;
         mt44->sd.sdm = 0;
         mt44->mt44_decoded.jalert_prefecture_mode = true;
@@ -1738,8 +1738,8 @@ TEST_CASE("JSON v2: J-Alert objects") {
         mt44->ex_kind = ExtendedKind::JAlert;
         mt44->camf.a1 = 1; mt44->camf.a2 = 111; mt44->camf.a3 = 2;
         mt44->camf.a4 = 5; mt44->camf.a5 = 3;
-        mt44->ex_jalert.ex8 = prefectureMode ? 0 : 1;
-        mt44->ex_jalert.vn = 1;
+        mt44->ex.ex_jalert.ex8 = prefectureMode ? 0 : 1;
+        mt44->ex.ex_jalert.vn = 1;
         mt44->mt44_decoded.jalert_prefecture_mode = prefectureMode;
         if (prefectureMode) {
             mt44->mt44_decoded.prefecture_count = 1;

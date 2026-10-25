@@ -129,37 +129,34 @@ bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix)
     }
 
     if (d->ex_kind == ExtendedKind::LAlertOrLocal) {
-        d->ex_lalert_local.ex1 = getBits(bits, 146, 16);
-        d->ex_lalert_local.ex2 = getBits(bits, 162, 1);
+        d->ex.ex_lalert_local.ex1 = getBits(bits, 146, 16);
+        d->ex.ex_lalert_local.ex2 = getBits(bits, 162, 1);
         // EX3/EX4: unsigned codes (latitude/longitude formulas, not two's complement)
-        d->ex_lalert_local.ex3 = getBits(bits, 163, 17);
-        d->ex_lalert_local.ex4 = getBits(bits, 180, 17);
-        d->ex_lalert_local.ex5 = getBits(bits, 197, 5);
-        d->ex_lalert_local.ex6 = getBits(bits, 202, 5);
-        d->ex_lalert_local.ex7 = getBits(bits, 207, 7);
-        d->ex_lalert_local.vn  = getBits(bits, 214, 6);
+        d->ex.ex_lalert_local.ex3 = getBits(bits, 163, 17);
+        d->ex.ex_lalert_local.ex4 = getBits(bits, 180, 17);
+        d->ex.ex_lalert_local.ex5 = getBits(bits, 197, 5);
+        d->ex.ex_lalert_local.ex6 = getBits(bits, 202, 5);
+        d->ex.ex_lalert_local.ex7 = getBits(bits, 207, 7);
+        d->ex.ex_lalert_local.vn  = getBits(bits, 214, 6);
     } else if (d->ex_kind == ExtendedKind::JAlert) {
-        d->ex_jalert.ex8  = getBits(bits, 146, 1);
+        d->ex.ex_jalert.ex8  = getBits(bits, 146, 1);
         uint32_t ex9_hi = getBits(bits, 147, 32);
         uint32_t ex9_lo = getBits(bits, 179, 32);
-        d->ex_jalert.ex9  = ((uint64_t)ex9_hi << 32) | ex9_lo;
-        d->ex_jalert.ex10 = getBits(bits, 211, 3);
-        d->ex_jalert.vn   = getBits(bits, 214, 6);
+        d->ex.ex_jalert.ex9  = ((uint64_t)ex9_hi << 32) | ex9_lo;
+        d->ex.ex_jalert.ex10 = getBits(bits, 211, 3);
+        d->ex.ex_jalert.vn   = getBits(bits, 214, 6);
     } else if (d->ex_kind == ExtendedKind::OutsideJapan) {
         for (int i = 0; i < 8; ++i) {
-            d->ex_outside.ex11_raw[i] = getBits(bits, 146 + i * 8, 8);
+            d->ex.ex_outside.ex11_raw[i] = getBits(bits, 146 + i * 8, 8);
         }
-        d->ex_outside.ex11_raw[8] = getBits(bits, 210, 4) << 4; // remaining 4 bits
-        d->ex_outside.vn = getBits(bits, 214, 6);
+        d->ex.ex_outside.ex11_raw[8] = getBits(bits, 210, 4) << 4; // remaining 4 bits
+        d->ex.ex_outside.vn = getBits(bits, 214, 6);
     }
 
     // Populate decoded structures (IS-QZSS-DCX-003 §15.2)
 
     Mt44Decoded& dec = d->mt44_decoded;
-    dec.service_kind = d->service_kind;
-    dec.is_null_message = d->is_null_message;
     dec.main_ellipse_present = false;
-    dec.target_area_code_present = false;
     dec.jalert_prefecture_mode = false;
     dec.prefecture_count = 0;
     dec.city_code_count = 0;
@@ -201,7 +198,6 @@ bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix)
             d->camf.b2_present = true;
             d->camf.b2_c5 = c5;
             d->camf.b2_c6 = c6;
-            dec.b2_hazard_center_present = true;
             dec.b2_hazard_lat_microdeg = dec.main_ellipse.lat_microdeg + b2.delta_lat_microdeg;
             dec.b2_hazard_lon_microdeg = dec.main_ellipse.lon_microdeg + b2.delta_lon_microdeg;
             // dec.main_ellipse is unchanged (keeps original ellipse center)
@@ -226,36 +222,33 @@ bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix)
     }
 
     if (d->ex_kind == ExtendedKind::LAlertOrLocal) {
-        // Target area code (EX1): used when main ellipse is absent
-        if (!has_main_ellipse && d->ex_lalert_local.ex1 != 0) {
-            dec.target_area_code_present = true;
-            dec.target_area_code = d->ex_lalert_local.ex1;
-        }
+        // Target area code (EX1) はミラーしない: JsonSerializerDcx が
+        // 「主楕円なし && ex1 != 0」のとき ex1 をそのまま出す。
 
         // Additional area (local government only): EX2-EX7
         if (d->service_kind == Mt44ServiceKind::LocalGovernment) {
-            bool has_additional = (d->ex_lalert_local.ex2 != 0 ||
-                                   d->ex_lalert_local.ex3 != 0 ||
-                                   d->ex_lalert_local.ex4 != 0 ||
-                                   d->ex_lalert_local.ex5 != 0 ||
-                                   d->ex_lalert_local.ex6 != 0 ||
-                                   d->ex_lalert_local.ex7 != 0);
+            bool has_additional = (d->ex.ex_lalert_local.ex2 != 0 ||
+                                   d->ex.ex_lalert_local.ex3 != 0 ||
+                                   d->ex.ex_lalert_local.ex4 != 0 ||
+                                   d->ex.ex_lalert_local.ex5 != 0 ||
+                                   d->ex.ex_lalert_local.ex6 != 0 ||
+                                   d->ex.ex_lalert_local.ex7 != 0);
             if (has_additional) {
                 dec.additional_area.present = true;
-                dec.additional_area.head_to_area = (d->ex_lalert_local.ex2 != 0);
-                dec.additional_area.ellipse.lat_microdeg = decodeLatitude17(d->ex_lalert_local.ex3);
-                dec.additional_area.ellipse.lon_microdeg = decodeLongitude17_45_225(d->ex_lalert_local.ex4);
-                dec.additional_area.ellipse.semi_major_m = decodeRadiusCode(d->ex_lalert_local.ex5);
-                dec.additional_area.ellipse.semi_minor_m = decodeRadiusCode(d->ex_lalert_local.ex6);
-                dec.additional_area.ellipse.azimuth_decideg = decodeAzimuth7(d->ex_lalert_local.ex7);
+                dec.additional_area.head_to_area = (d->ex.ex_lalert_local.ex2 != 0);
+                dec.additional_area.ellipse.lat_microdeg = decodeLatitude17(d->ex.ex_lalert_local.ex3);
+                dec.additional_area.ellipse.lon_microdeg = decodeLongitude17_45_225(d->ex.ex_lalert_local.ex4);
+                dec.additional_area.ellipse.semi_major_m = decodeRadiusCode(d->ex.ex_lalert_local.ex5);
+                dec.additional_area.ellipse.semi_minor_m = decodeRadiusCode(d->ex.ex_lalert_local.ex6);
+                dec.additional_area.ellipse.azimuth_decideg = decodeAzimuth7(d->ex.ex_lalert_local.ex7);
             }
         }
     } else if (d->ex_kind == ExtendedKind::JAlert) {
-        dec.jalert_prefecture_mode = (d->ex_jalert.ex8 == 0);
+        dec.jalert_prefecture_mode = (d->ex.ex_jalert.ex8 == 0);
         if (dec.jalert_prefecture_mode) {
-            dec.prefecture_count = decodePrefectureBitmask(d->ex_jalert.ex9, dec.prefecture_positions);
+            dec.prefecture_count = decodePrefectureBitmask(d->ex.ex_jalert.ex9, dec.prefecture_positions);
         } else {
-            dec.city_code_count = decodeCityCodeList(d->ex_jalert.ex9, dec.city_codes);
+            dec.city_code_count = decodeCityCodeList(d->ex.ex_jalert.ex9, dec.city_codes);
         }
     }
 

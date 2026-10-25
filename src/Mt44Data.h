@@ -92,12 +92,17 @@ struct Mt44ExOutside {
 
 // MT=44 Decoded structures (IS-QZSS-DCX-004)
 
-struct DecodedEllipse {
+// 楕円の汎用部。追加楕円は B1 精密化を持たない（EWSS CAMF v1.2 の B1 は主楕円のみ）ので
+// b1_* を DecodedEllipse 側に分離し、DecodedAdditionalArea は 16B 小さいコア型を使う。
+struct DecodedEllipseCore {
     int32_t lat_microdeg;              // microdegrees (×1,000,000)
     int32_t lon_microdeg;              // microdegrees (×1,000,000)
     int32_t semi_major_m;              // meters (×1,000 from km)
     int32_t semi_minor_m;              // meters (×1,000 from km)
-    int32_t azimuth_decideg;           // dexadegrees (×100,000)
+    int32_t azimuth_decideg;           // decidegrees (×100,000)
+};
+
+struct DecodedEllipse : DecodedEllipseCore {
     int32_t b1_lat_offset_microdeg;    // microdegrees (×1,000,000)
     int32_t b1_lon_offset_microdeg;    // microdegrees (×1,000,000)
     int32_t b1_refined_semi_major_m;   // meters (×1,000 from km)
@@ -107,20 +112,19 @@ struct DecodedEllipse {
 struct DecodedAdditionalArea {
     bool present;
     bool head_to_area;
-    DecodedEllipse ellipse;
+    DecodedEllipseCore ellipse;
 };
 
+// service_kind / is_null_message（Mt44Data 側と二重管理で読み手がいなかった）、
+// b2_hazard_center_present（serializer は camf.b2_present で分岐）、target_area_code(_present)
+// （常時 ex_lalert_local.ex1 と同値。主楕円なし && ex1!=0 で serializer が再計算する）は
+// ミラーとして保持をやめた。
 struct Mt44Decoded {
-    Mt44ServiceKind service_kind;
-    bool is_null_message;
     bool main_ellipse_present;
-    DecodedEllipse main_ellipse;
-    bool b2_hazard_center_present = false;
-    int32_t b2_hazard_lat_microdeg = 0;   // microdegrees (×1,000,000)
-    int32_t b2_hazard_lon_microdeg = 0;   // microdegrees (×1,000,000)
-    bool target_area_code_present;
-    uint16_t target_area_code;
     bool jalert_prefecture_mode;
+    DecodedEllipse main_ellipse;
+    int32_t b2_hazard_lat_microdeg;    // microdegrees (×1,000,000)
+    int32_t b2_hazard_lon_microdeg;    // microdegrees (×1,000,000)
     uint8_t prefecture_positions[47];
     uint8_t prefecture_count;
     uint16_t city_codes[4];
@@ -137,10 +141,17 @@ struct Mt44Data {
     Mt44CamfRaw     camf = {};
     TimeFields      onset_time = {};
     ExtendedKind        ex_kind = {};
-    Mt44ExLAlertOrLocal ex_lalert_local = {};
-    Mt44ExJAlert        ex_jalert = {};
-    Mt44ExOutside       ex_outside = {};
-    Mt44Decoded      mt44_decoded = {};
+    // 拡張メッセージ部は ex_kind で排他（DecoderDcx は active 枝のみ書き、JsonSerializerDcx も
+    // ex_kind で分岐して active 枝のみ読む）。3 構造体を並列に持つと AVR で 36B 常時消費なので
+    // union にする（最大枝 15B、-21B）。NSDMI は代表枝 1 つのみ（C++17 は複数の variant メンバに
+    // 初期化子を持てない）。非 active 枝は未規定値になるが、ex_kind で排他なので誰も観測しない。
+    union Mt44Extended {
+        Mt44ExLAlertOrLocal ex_lalert_local{};
+        Mt44ExJAlert        ex_jalert;
+        Mt44ExOutside       ex_outside;
+    };
+    Mt44Extended    ex = {};
+    Mt44Decoded     mt44_decoded = {};
 };
 
 } // namespace azaraC

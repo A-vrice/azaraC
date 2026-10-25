@@ -135,8 +135,8 @@ TEST_CASE("decodeDcx: L-Alert メッセージのデコード") {
     CHECK(mt44->camf.a1 == 1);
     CHECK(mt44->camf.a2 == 111);
     CHECK(mt44->camf.a3 == 1);
-    CHECK(mt44->ex_lalert_local.ex1 == 1100);
-    CHECK(mt44->ex_lalert_local.vn == 1);
+    CHECK(mt44->ex.ex_lalert_local.ex1 == 1100);
+    CHECK(mt44->ex.ex_lalert_local.vn == 1);
 
     // Main ellipse (A12-A16) decoded through DcxHelper (wiring check)
     const Mt44Decoded& dec = mt44->mt44_decoded;
@@ -191,9 +191,9 @@ TEST_CASE("decodeDcx: J-Alert メッセージのデコード") {
     CHECK(mt44->service_kind == Mt44ServiceKind::JAlert);
     CHECK(mt44->camf.a2 == 111);
     CHECK(mt44->camf.a3 == 2);
-    CHECK(mt44->ex_jalert.ex8 == 0);
-    CHECK(mt44->ex_jalert.ex9 == 3);
-    CHECK(mt44->ex_jalert.vn == 1);
+    CHECK(mt44->ex.ex_jalert.ex8 == 0);
+    CHECK(mt44->ex.ex_jalert.ex9 == 3);
+    CHECK(mt44->ex.ex_jalert.vn == 1);
 }
 
 TEST_CASE("decodeDcx: Local Government メッセージのデコード") {
@@ -241,14 +241,14 @@ TEST_CASE("decodeDcx: Local Government メッセージのデコード") {
     REQUIRE(mt44 != nullptr);
     CHECK(mt44->service_kind == Mt44ServiceKind::LocalGovernment);
     CHECK(mt44->camf.a3 == 4);
-    CHECK(mt44->ex_lalert_local.ex1 == 1100);
-    CHECK(mt44->ex_lalert_local.ex2 == 1);
-    CHECK(mt44->ex_lalert_local.ex3 == 91522);
-    CHECK(mt44->ex_lalert_local.ex4 == 68950);
-    CHECK(mt44->ex_lalert_local.ex5 == 13);
-    CHECK(mt44->ex_lalert_local.ex6 == 11);
-    CHECK(mt44->ex_lalert_local.ex7 == 96);
-    CHECK(mt44->ex_lalert_local.vn == 1);
+    CHECK(mt44->ex.ex_lalert_local.ex1 == 1100);
+    CHECK(mt44->ex.ex_lalert_local.ex2 == 1);
+    CHECK(mt44->ex.ex_lalert_local.ex3 == 91522);
+    CHECK(mt44->ex.ex_lalert_local.ex4 == 68950);
+    CHECK(mt44->ex.ex_lalert_local.ex5 == 13);
+    CHECK(mt44->ex.ex_lalert_local.ex6 == 11);
+    CHECK(mt44->ex.ex_lalert_local.ex7 == 96);
+    CHECK(mt44->ex.ex_lalert_local.vn == 1);
 
     // Additional area (EX2-EX7) decoded through DcxHelper (wiring check)
     const Mt44Decoded& dec = mt44->mt44_decoded;
@@ -303,7 +303,7 @@ TEST_CASE("decodeDcx: Outside Japan メッセージのデコード") {
     REQUIRE(mt44 != nullptr);
     CHECK(mt44->service_kind == Mt44ServiceKind::OutsideJapan);
     CHECK(mt44->camf.a2 == 32);
-    CHECK(mt44->ex_outside.vn == 5);
+    CHECK(mt44->ex.ex_outside.vn == 5);
 }
 
 TEST_CASE("decodeDcx: NULL Message のデコード") {

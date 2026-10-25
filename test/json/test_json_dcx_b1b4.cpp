@@ -92,7 +92,6 @@ TEST_CASE("JSON DCX B2: hazard center fields") {
     mt44->mt44_decoded.main_ellipse_present = true;
     mt44->mt44_decoded.main_ellipse.lat_microdeg = 35600000; // 35.6°
     mt44->mt44_decoded.main_ellipse.lon_microdeg = 139600000; // 139.6°
-    mt44->mt44_decoded.b2_hazard_center_present = true;
     mt44->mt44_decoded.b2_hazard_lat_microdeg = 35600000;
     mt44->mt44_decoded.b2_hazard_lon_microdeg = 139600000;
 
@@ -326,8 +325,8 @@ TEST_CASE("JSON DCX EX1 city codes with labels") {
     mt44->camf.a8 = 4;
     mt44->camf.a11 = 1;
     // City codes mode (EX8=1)
-    mt44->ex_jalert.ex8 = 1;
-    mt44->ex_jalert.vn = 1;
+    mt44->ex.ex_jalert.ex8 = 1;
+    mt44->ex.ex_jalert.vn = 1;
     // 既知の市区町村コード 1101 = "Chuo-ku, Sapporo-shi"
     mt44->mt44_decoded.jalert_prefecture_mode = false;
     mt44->mt44_decoded.city_code_count = 1;
@@ -366,8 +365,8 @@ TEST_CASE("JSON DCX EX1 city codes multiple entries") {
     mt44->camf.a5 = 3;
     mt44->camf.a8 = 4;
     mt44->camf.a11 = 1;
-    mt44->ex_jalert.ex8 = 1;
-    mt44->ex_jalert.vn = 1;
+    mt44->ex.ex_jalert.ex8 = 1;
+    mt44->ex.ex_jalert.vn = 1;
     mt44->mt44_decoded.jalert_prefecture_mode = false;
     mt44->mt44_decoded.city_code_count = 3;
     mt44->mt44_decoded.city_codes[0] = 1101;  // Chuo-ku, Sapporo

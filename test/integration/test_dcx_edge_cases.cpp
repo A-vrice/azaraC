@@ -329,7 +329,7 @@ TEST_CASE("DCX Edge: OutsideJapan with all-zero extended fields") {
     const Mt44Data* mt44 = msg.getMt44();
     REQUIRE(mt44 != nullptr);
     CHECK(mt44->service_kind == Mt44ServiceKind::OutsideJapan);
-    CHECK(mt44->ex_outside.vn == 1);
+    CHECK(mt44->ex.ex_outside.vn == 1);
 }
 
 // A5 severity 境界値テスト
@@ -473,7 +473,7 @@ TEST_CASE("DCX Edge: Vn=0 (reserved) decoded") {
 
     const Mt44Data* mt44 = msg.getMt44();
     REQUIRE(mt44 != nullptr);
-    CHECK(mt44->ex_lalert_local.vn == 0);  // Vn is stored as-is
+    CHECK(mt44->ex.ex_lalert_local.vn == 0);  // Vn is stored as-is
 }
 
 TEST_CASE("DCX Edge: Vn=63 (max) decoded") {
@@ -499,6 +499,6 @@ TEST_CASE("DCX Edge: Vn=63 (max) decoded") {
 
     const Mt44Data* mt44 = msg.getMt44();
     REQUIRE(mt44 != nullptr);
-    CHECK(mt44->ex_lalert_local.vn == 63);
+    CHECK(mt44->ex.ex_lalert_local.vn == 63);
 }
 #endif

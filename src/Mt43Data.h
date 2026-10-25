@@ -34,10 +34,12 @@ namespace azaraC {
 // repeating record structs (up to 8 each)
 
 struct TsunamiEntry {
-    uint16_t   arrival_time_raw;
+    // Ta(12b)+Th(4b) は 16 bit に収まるのでビットフィールドの共有ユニットに詰める
+    // （AVR: 13→12B/entry。Pl は 10 bit）。
+    uint16_t   arrival_time_raw : 12;
     TimeFields arrival_time;
-    uint8_t    height_code;
-    uint16_t   region_code;
+    uint16_t   height_code      : 4;
+    uint16_t   region_code      : 10;
 };
 
 struct SeismicEntry {
@@ -61,10 +63,11 @@ struct MarineEntry {
 };
 
 struct NwPacTsunamiEntry {
-    uint16_t   arrival_time_raw;
+    // 同様にパック（Th は 9 bit、Pl は 7 bit — 合計 16 bit で 1 ユニットに収まる）。
+    uint16_t   arrival_time_raw : 12;
     TimeFields arrival_time;
-    uint16_t   height_code;
-    uint8_t    region_code;
+    uint16_t   height_code      : 9;
+    uint16_t   region_code      : 7;
 };
 
 // MT=43 Data (QZQSM / DC Report)

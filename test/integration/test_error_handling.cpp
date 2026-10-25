@@ -294,8 +294,9 @@ TEST_CASE("Decoder: MT=44 A12=0 with EX1!=0 target_area_code present") {
 
     const Mt44Data* mt44 = msg.getMt44();
     REQUIRE(mt44 != nullptr);
-    CHECK(mt44->mt44_decoded.target_area_code_present == true);
-    CHECK(mt44->mt44_decoded.target_area_code == 1100);
+    // target_area_code のミラーは廃止: 主楕円なし && ex1!=0 のとき ex1 が対象地域コード
+    CHECK(mt44->ex.ex_lalert_local.ex1 == 1100);
+    CHECK(!mt44->mt44_decoded.main_ellipse_present);
 }
 
 TEST_CASE("Decoder: MT=44 EX8=1 (city code list mode)") {

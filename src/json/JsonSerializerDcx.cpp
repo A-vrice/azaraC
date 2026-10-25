@@ -229,14 +229,14 @@ void serializeDcx(const Message& m, Print& out) {
 
     // Extended Message fields
     if (d->ex_kind == ExtendedKind::LAlertOrLocal) {
-        wf_u(out, AZARAC_KEY("ex1_target_area"), d->ex_lalert_local.ex1);
+        wf_u(out, AZARAC_KEY("ex1_target_area"), d->ex.ex_lalert_local.ex1);
         AZARAC_LABEL(out, "ex1_target_area_label",
             qzss_dcx_ex1_target_area_code_ja_lookup,
-            qzss_dcx_ex1_target_area_code_en_lookup, d->ex_lalert_local.ex1, false);
+            qzss_dcx_ex1_target_area_code_en_lookup, d->ex.ex_lalert_local.ex1, false);
 
-        // 復号済みの対象地域コード（主楕円なしの場合）
-        if (dec.target_area_code_present) {
-            wf_u(out, AZARAC_KEY("target_area_code"), dec.target_area_code);
+        // 復号済みの対象地域コード（主楕円なしの場合）— DecoderDcx と同じ条件で ex1 から出す
+        if (!dec.main_ellipse_present && d->ex.ex_lalert_local.ex1 != 0) {
+            wf_u(out, AZARAC_KEY("target_area_code"), d->ex.ex_lalert_local.ex1);
         }
 
         // EX2-EX7 Additional Ellipse (local government only)
@@ -255,9 +255,9 @@ void serializeDcx(const Message& m, Print& out) {
             out.print('}');
             writeChar(out, ',');
         }
-        wf_u(out, AZARAC_KEY("ex_vn"), d->ex_lalert_local.vn);
+        wf_u(out, AZARAC_KEY("ex_vn"), d->ex.ex_lalert_local.vn);
     } else if (d->ex_kind == ExtendedKind::JAlert) {
-        wf_u(out, AZARAC_KEY("ex8_area_type"), d->ex_jalert.ex8);
+        wf_u(out, AZARAC_KEY("ex8_area_type"), d->ex.ex_jalert.ex8);
 
         wk(out, AZARAC_KEY("jalert_target"));
         out.print('{');
@@ -289,7 +289,7 @@ void serializeDcx(const Message& m, Print& out) {
             }
             writeRaw(out, AZARAC_KEY("],"));
         }
-        wf_u(out, AZARAC_KEY("ex_vn"), d->ex_jalert.vn, /*last=*/true);
+        wf_u(out, AZARAC_KEY("ex_vn"), d->ex.ex_jalert.vn, /*last=*/true);
         out.print('}');
         writeChar(out, ',');
     } else if (d->ex_kind == ExtendedKind::OutsideJapan) {
@@ -297,14 +297,14 @@ void serializeDcx(const Message& m, Print& out) {
         wk(out, AZARAC_KEY("ex11_raw"));
         writeChar(out, '"');
         for (uint8_t i = 0; i < 8; ++i) {
-            const uint8_t v = d->ex_outside.ex11_raw[i];
+            const uint8_t v = d->ex.ex_outside.ex11_raw[i];
             writeChar(out, hexDigit(v >> 4));
             writeChar(out, hexDigit(v));
         }
-        writeChar(out, hexDigit(d->ex_outside.ex11_raw[8] >> 4));
+        writeChar(out, hexDigit(d->ex.ex_outside.ex11_raw[8] >> 4));
         writeChar(out, '"');
         writeChar(out, ',');
-        wf_u(out, AZARAC_KEY("ex_vn"), d->ex_outside.vn);
+        wf_u(out, AZARAC_KEY("ex_vn"), d->ex.ex_outside.vn);
     }
 
     wf_u(out, AZARAC_KEY("sd_sdmt"), d->sd.sdmt);

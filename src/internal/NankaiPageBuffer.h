@@ -77,7 +77,7 @@ struct NankaiPageBuffer {
 
     NankaiPageKey key;                  // 6B
     uint64_t received_bitmap = 0;       // 8B — bitmap: bit (page_num-1) set when received
-    uint64_t last_update_ms = 0;        // 8B
+    uint32_t last_update_ms = 0;        // 4B — TIMEOUT_MS=60s なので 32 bit 差分比較で十分（49.7 日でラップ）
     uint8_t total_pages = 0;            // 1B — Effective total (capped at MAX_PAGES)
     uint8_t original_total_pages = 0;   // 1B — Original total_pages from protocol
     uint8_t received_count = 0;         // 1B — Number of pages received
@@ -129,7 +129,7 @@ struct NankaiPageBuffer {
         memcpy(aggregated_text + offset, text_data, TEXT_PER_PAGE);
         received_bitmap |= mask;
         received_count++;
-        last_update_ms = current_ms;
+        last_update_ms = (uint32_t)current_ms;
 
         return true;
     }
@@ -175,7 +175,7 @@ struct NankaiPageBuffer {
 
     bool isExpired(uint64_t current_ms) const {
         if (total_pages == 0) return false;
-        return (current_ms - last_update_ms) > TIMEOUT_MS;
+        return (uint32_t)(current_ms - last_update_ms) > TIMEOUT_MS;
     }
 
     void clearAll() {
@@ -286,12 +286,12 @@ private:
 
     // LRU eviction: oldest buffer by age (wrap-aware via unsigned subtraction)
     int8_t findOldestBuffer(uint64_t current_ms) {
-        uint64_t max_age = 0;
+        uint32_t max_age = 0;
         int8_t oldest_idx = 0;
 
         for (uint8_t i = 0; i < MAX_BUFFERS; ++i) {
             // 空バッファの age は 0（他に古いものが無い場合のみ選ばれる）
-            uint64_t age = _buffers[i].isEmpty() ? 0 : (current_ms - _buffers[i].last_update_ms);
+            const uint32_t age = _buffers[i].isEmpty() ? 0 : (uint32_t)(current_ms - _buffers[i].last_update_ms);
             if (age > max_age) {
                 max_age = age;
                 oldest_idx = i;
