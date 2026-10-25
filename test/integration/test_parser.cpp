@@ -69,10 +69,10 @@ TEST_CASE("decodeEEW: 基本的なEEWメッセージのデコード") {
     CHECK(eew->epicenter == 25);
     CHECK(eew->intensity_lower == 3);
     CHECK(eew->intensity_upper == 7);
-    CHECK(eew->region_count == 3);
-    CHECK(eew->regions[0] == 1);
-    CHECK(eew->regions[1] == 5);
-    CHECK(eew->regions[2] == 10);
+    CHECK(eew->regionCount() == 3);
+    CHECK(eew->regionAt(0) == 1);
+    CHECK(eew->regionAt(1) == 5);
+    CHECK(eew->regionAt(2) == 10);
 }
 #endif // AZARAC_ENABLE_EEW
 
@@ -412,7 +412,7 @@ TEST_CASE("b1RefinedLongitudeOffset: 計算値検証") {
     CHECK(azaraC::internal::b1RefinedLongitudeOffset(7) == 2403);
 }
 
-TEST_CASE("b1RefinedRadiusM: 計算値検証 (EWSS CAMF v1.1 §3.7.1.3/4)") {
+TEST_CASE("b1RefinedRadiusM: 計算値検証 (EWSS CAMF v1.2 §3.7.1.3/4)") {
     // Returns meters. 実装は四捨五入: base - (delta*code + 4) / 8
     // delta: a14_code=0 → decodeRadiusCode(0) = 216、a14_code=1 → 292 - 216 = 76、a14_code=3 → 535 - 395 = 140
     CHECK(azaraC::internal::b1RefinedRadiusM(0, 216, 0) == 216);

@@ -208,8 +208,9 @@ struct EewData {
     uint16_t epicenter;           // 震央地名コード
     uint8_t  intensity_lower;     // 震度下限 (4bits)
     uint8_t  intensity_upper;     // 震度上限 (4bits)
-    uint8_t  regions[80];         // 地域別フラグ
-    uint8_t  region_count;        // 地域数
+    uint8_t  region_bitmap[10];   // 予報区 80 区のビットマップ（bit i = 予報区 i+1）
+    // アクセサ: regionCount() = 対象予報区数、regionAt(i) = 昇順 i 番目の予報区コード
+    // (1..80、範囲外は 0)、addRegion(code) = テスト等で予報区を追加
 };
 ```
 

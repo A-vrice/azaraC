@@ -135,15 +135,9 @@ void Decoder::decodeEEW(const uint8_t* b, Message& out, uint32_t report_unix) {
     eew->intensity_upper = getBits(b, 126, 4);
 
     // EEW 予報区: [130..209] の 80 bit ビットマップ。bit i が立っていれば区 (i+1) が対象。
-    // 130 は 2 bit オフセットなので、対象バイト列を 2 bit シフトして 10 バイト分を見る。
-    eew->region_count = 0;
+    // 130 は 2 bit オフセットなので、対象バイト列を 2 bit シフトして 10 バイトをそのまま保持する。
     for (uint8_t byt = 0; byt < 10; ++byt) {
-        const uint8_t v = (uint8_t)((b[16 + byt] << 2) | (b[17 + byt] >> 6));
-        for (uint8_t bit = 0; bit < 8; ++bit) {
-            if (v & (0x80u >> bit)) {
-                eew->regions[eew->region_count++] = (uint8_t)(byt * 8u + bit + 1u);
-            }
-        }
+        eew->region_bitmap[byt] = (uint8_t)((b[16 + byt] << 2) | (b[17 + byt] >> 6));
     }
 }
 #endif // AZARAC_ENABLE_EEW

@@ -340,8 +340,7 @@ TEST_CASE("JSON Serialization: MT=43 EEW") {
 
     eew->depth = 60; eew->magnitude = 65; eew->epicenter = 42;
     eew->intensity_lower = 5; eew->intensity_upper = 6;
-    eew->region_count = 2;
-    eew->regions[0] = 1; eew->regions[1] = 12;
+    eew->addRegion(1); eew->addRegion(12);
 
     StringPrint sp;
     internal::JsonSerializer::serialize(m, sp);
@@ -1257,7 +1256,7 @@ TEST_CASE("JSON Serialization: a11 empty label is present, not absent") {
     CHECK(hasField(s, "\"a11_guidance_list_b_label\":null"));
 }
 
-// IS-QZSS-DCX-004 §4.2.3.9 Table 4.2-12 / EWSS CAMF v1.1 §3.5.3, §11: A9=0 は International library。
+// IS-QZSS-DCX-004 §4.2.3.9 Table 4.2-12 / EWSS CAMF v1.2 §3.5.3, §11: A9=0 は International library。
 // A11 は List A 5bit (a11 >> 5) と List B 5bit (a11 & 0x1F) の 2 コードで、それぞれ別の表を引く。
 TEST_CASE("JSON Serialization: A9=0 uses the international library") {
     auto jsonFor = [](uint16_t a11) {

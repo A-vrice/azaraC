@@ -108,9 +108,10 @@ bool serializeEEW(const Mt43Data* d, Print& out) {
         qzss_dcr_jma_seismic_intensity_upper_limit_lookup,
         qzss_dcr_jma_seismic_intensity_upper_limit_en_lookup, eew->intensity_upper, false);
     wk(out, AZARAC_KEY("regions")); out.print('[');
-    for (uint8_t i = 0; i < eew->region_count; ++i) {
+    const uint8_t region_count = eew->regionCount();
+    for (uint8_t i = 0; i < region_count; ++i) {
         if (i) writeChar(out, ',');
-        uint16_t code = eew->regions[i];
+        uint16_t code = eew->regionAt(i);
         out.print('{');
         wf_u(out, AZARAC_KEY("code"), code);
         wf_s(out, AZARAC_KEY("label"),

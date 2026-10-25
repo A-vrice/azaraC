@@ -144,7 +144,7 @@ TEST_CASE("Mt43Data: EewDataの初期化とアクセス") {
     CHECK(eew->epicenter == 0);
     CHECK(eew->intensity_lower == 0);
     CHECK(eew->intensity_upper == 0);
-    CHECK(eew->region_count == 0);
+    CHECK(eew->regionCount() == 0);
 
 #if (AZARAC_ENABLE_HYPOCENTER)
     CHECK(data.getHypocenter() == nullptr);

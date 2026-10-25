@@ -84,8 +84,39 @@ struct EewData {
     uint16_t epicenter;
     uint8_t  intensity_lower;
     uint8_t  intensity_upper;
-    uint8_t  regions[80];
-    uint8_t  region_count;
+    // 予報区 80 区のビットマップ（電文 [130..209] をそのまま保持。bit i = 予報区 i+1）。
+    // 展開配列 regions[80]+region_count は 81B 食うので v2.1 で bitmap に置き換えた。
+    // JSON 出力・昇順列挙はアクセサ経由で旧実装と同一。
+    uint8_t  region_bitmap[10];
+
+    // 対象予報区の個数
+    uint8_t regionCount() const {
+        uint8_t n = 0;
+        for (uint8_t i = 0; i < 10; ++i) {
+            uint8_t v = region_bitmap[i];
+            while (v) { v = (uint8_t)(v & (uint8_t)(v - 1u)); ++n; }
+        }
+        return n;
+    }
+    // 昇順 i 番目 (0 始まり) の対象予報区コード (1..80)。i >= regionCount() は 0。
+    uint8_t regionAt(uint8_t i) const {
+        uint8_t seen = 0;
+        for (uint8_t byt = 0; byt < 10; ++byt) {
+            const uint8_t v = region_bitmap[byt];
+            for (uint8_t bit = 0; bit < 8; ++bit) {
+                if (v & (0x80u >> bit)) {
+                    if (seen == i) return (uint8_t)(byt * 8u + bit + 1u);
+                    ++seen;
+                }
+            }
+        }
+        return 0;
+    }
+    // テスト用: 予報区 code (1..80) を対象にする
+    void addRegion(uint8_t code) {
+        if (code == 0 || code > 80) return;
+        region_bitmap[(code - 1u) >> 3] = (uint8_t)(region_bitmap[(code - 1u) >> 3] | (0x80u >> ((code - 1u) & 7u)));
+    }
 };
 #endif // AZARAC_ENABLE_EEW
 
