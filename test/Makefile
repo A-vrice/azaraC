@@ -55,6 +55,7 @@ TEST_SRCS = \
 	core/test_core.cpp \
 	core/test_boundary_values.cpp \
 	core/test_message_struct.cpp \
+	core/test_time_equivalence.cpp \
 	core/test_macro_disabled.cpp \
 	framer/test_framer.cpp \
 	framer/test_ublox_azarashi.cpp \

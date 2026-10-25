@@ -168,26 +168,51 @@ uint64_t Decoder::getBits64(const uint8_t* buf, uint16_t start, uint8_t len) {
     return val;
 }
 
+// 非AVR: Hinnant era 法 (u32)。定数除算はコンパイラが乗算展開するためこの形が最速。
+// AVR: era (400 年ブロック) の u32 除算だけを引き算ループ (≤24 回) に置き換える。
+// avr-gcc は u32/定数 を __udivmodsi4 呼び出しで実装するため、era 1 回の除去で
+// 呼び出し 2 回分 (era と doe 再計算) が消える。出力は全入力で非AVR版と同一
+// (test/core/test_time_equivalence.cpp が全日スイープで検証)。
 void Decoder::civil_from_days(uint32_t days_since_1970, uint32_t& y, uint32_t& m, uint32_t& d) {
     uint32_t z = days_since_1970 + 719468u;
+#if defined(__AVR__)
+    uint32_t era = 0;
+    while (z >= 146097u) { z -= 146097u; ++era; }
+    uint32_t doe = z;
+#else
     uint32_t era = z / 146097u;
     uint32_t doe = z - era * 146097u;
-    uint32_t yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
-    y = yoe + era * 400;
-    uint32_t doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
-    uint32_t mp = (5 * doy + 2) / 153;
-    d = doy - (153 * mp + 2) / 5 + 1;
-    m = mp + (mp < 10 ? 3 : -9);
-    y += (m <= 2);
+#endif
+    uint32_t yoe = (doe - doe / 1460u + doe / 36524u - doe / 146096u) / 365u;
+    y = yoe + era * 400u;
+    uint32_t doy = doe - (365u * yoe + yoe / 4u - yoe / 100u);
+    uint32_t mp = (5u * doy + 2u) / 153u;
+    d = doy - (153u * mp + 2u) / 5u + 1u;
+    m = mp + (mp < 10u ? 3u : -9u);
+    y += (m <= 2u);
 }
 
 uint32_t Decoder::days_from_civil(uint32_t y, uint32_t m, uint32_t d) {
-    y -= (m <= 2);
-    uint32_t era = y / 400;
-    uint32_t yoe = y - era * 400;
-    uint32_t doy = (153 * (m + (m > 2 ? -3 : 9)) + 2) / 5 + d - 1;
-    uint32_t doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
-    return era * 146097 + doe - 719468;
+    y -= (m <= 2u);
+#if defined(__AVR__)
+    // y ≤ 65535 (実用域) は u16 演算で解く: u16/定数 は乗算展開され __udivmodsi4 を呼ばない。
+    // 除算の被除数はすべて u16 に収まる (y16 ≤ 65535、yoe ≤ 399、153*(m±3)+2 ≤ 1838)。
+    // 実測: この関数の __udivmodsi4 呼び出し 3 → 0。
+    if (y <= 65535u) {
+        const uint16_t y16 = (uint16_t)y;
+        const uint16_t era = (uint16_t)(y16 / 400u);
+        const uint16_t yoe = (uint16_t)(y16 - (uint16_t)(era * 400u));
+        const uint16_t mm = (uint16_t)(m > 2u ? m - 3u : m + 9u);
+        const uint16_t doy = (uint16_t)((153u * mm + 2u) / 5u + d - 1u);
+        return (uint32_t)era * 146097u
+             + ((uint32_t)yoe * 365u + yoe / 4u - yoe / 100u + doy) - 719468u;
+    }
+#endif
+    uint32_t era = y / 400u;
+    uint32_t yoe = y - era * 400u;
+    uint32_t doy = (153u * (m + (m > 2u ? (uint32_t)-3u : 9u)) + 2u) / 5u + d - 1u;
+    uint32_t doe = yoe * 365u + yoe / 4u - yoe / 100u + doy;
+    return era * 146097u + doe - 719468u;
 }
 
 LatLon Decoder::extractLatLon(const uint8_t* buf, uint16_t start) {
