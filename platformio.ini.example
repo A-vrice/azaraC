@@ -6,7 +6,8 @@ board = uno
 framework = arduino
 lib_deps = A-vrice/azaraC@^2.0.0
 build_unflags = -std=gnu++11
-build_flags = -std=gnu++17
+; -flto: ライブラリの inline 展開を畳んで Flash を削る（AVR コアと同じリンク方法）。
+build_flags = -std=gnu++17 -flto -O2
 
 [env:esp32dev]
 platform = espressif32@7.0.1

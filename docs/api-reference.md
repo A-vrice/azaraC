@@ -468,7 +468,7 @@ if (client.connect(server, port)) {
 | `AZARAC_ENABLE_MARINE` | 1 | 海上警報 (カテゴリ14) |
 | `AZARAC_ENABLE_DCX_CAMF` | 1 | DCX/CAMF全般 (MT=44) |
 
-`AZARAC_ENABLE_EEW` / `AZARAC_ENABLE_HYPOCENTER` / `AZARAC_ENABLE_NANKAI` を 0 にすると、定義テーブルだけでなく**payload 型そのもの**（`EewData` / `HypocenterData` / `NankaiData`）と対応する getter（`getEew()` など）もコンパイルから外れ、`Mt43Data` の payload 枠（`storage_size_`）は残ったカテゴリの最大 `sizeof` まで縮みます。AVR プリセットは EEW・震源が既定で 0 なので `sizeof(Mt43Data)` は 80B、`Message` は 89B です（全カテゴリ有効時は 118B / 127B。avr-gcc `-Os`、ATmega328P で実測）。無効にしたカテゴリの型を扱うコードはコンパイルエラーになるので `#if (AZARAC_ENABLE_EEW)` などで囲んでください（`examples/filter_by_category`・`examples/with_sntp` の EEW ブロックがその形です）。
+`AZARAC_ENABLE_EEW` / `AZARAC_ENABLE_HYPOCENTER` / `AZARAC_ENABLE_NANKAI` を 0 にすると、定義テーブルだけでなく**payload 型そのもの**（`EewData` / `HypocenterData` / `NankaiData`）と対応する getter（`getEew()` など）もコンパイルから外れ、`Mt43Data` の payload 枠（`storage_size_`）は残ったカテゴリの最大 `sizeof` まで縮みます。AVR プリセットは EEW・震源が既定で 0 なので `sizeof(Mt43Data)` は 75B、`Message` は 84B です（EEW を有効にしても予報区は `region_bitmap[10]` 保持のため 75B / 84B のまま。全カテゴリ + DCX/CAMF 有効時は `Mt44Data` 190B、`Message` 199B。avr-gcc `-Os`、ATmega328P で実測）。無効にしたカテゴリの型を扱うコードはコンパイルエラーになるので `#if (AZARAC_ENABLE_EEW)` などで囲んでください（`examples/filter_by_category`・`examples/with_sntp` の EEW ブロックがその形です）。
 
 ### リソース制約・AVR 関連
 

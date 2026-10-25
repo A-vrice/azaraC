@@ -304,7 +304,11 @@ TEST_CASE("JSON well-formedness: the checker rejects malformed input") {
         "{\"a\":1}",                 // （これは妥当 — 除外）
     };
     for (const char* s : bad) {
-        JsonCheck jc(s);
+        // JsonCheck は const std::string& を保持する。const char* からの一時 std::string を
+        // 直接渡すとメンバ参照の束縛先が全式の終わりで破壊される（dangling reference。
+        // LTO のヒープレイアウト変化で顕在化）ので、ここで寿命を作る。
+        const std::string input(s);
+        JsonCheck jc(input);
         bool ok = jc.run();
         if (strcmp(s, "{\"a\":1}") == 0) {
             CHECK(ok);               // 妥当なものは通る

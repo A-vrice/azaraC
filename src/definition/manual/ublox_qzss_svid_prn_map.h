@@ -70,7 +70,8 @@ static const char AZARAC_PROGMEM UBLOX_QZSS_SVID_PRN_MAP_C7[] = "189";
 // 数値版: UbxFramer が PRN を数値として使うための直接参照。ラベル（string_view）経由だと
 // AVR では共有 RAM バッファへのコピーと十進パースが入り返るので、呼び出し側はこちらを使う。
 // 上の表と同期を保つこと（azarashi.definitions.qzss.ubx.svid_to_prn）。
-[[nodiscard]] inline constexpr std::optional<uint8_t> ublox_qzss_svid_prn_map_lookup_num(uint8_t id) noexcept {
+// constexpr にできない: AVR シムの std::optional はリテラル型ではない（生成表の stub と同じ理由）。
+[[nodiscard]] inline std::optional<uint8_t> ublox_qzss_svid_prn_map_lookup_num(uint8_t id) noexcept {
     switch (id) {
         case 1: return 183;
         case 2: return 184;
