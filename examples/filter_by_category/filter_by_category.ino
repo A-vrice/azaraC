@@ -182,7 +182,10 @@ void loop() {
                     Serial.print(getCategoryLabel(mt43->disaster_category));
                     Serial.print(F("] SVID="));
                     Serial.print(msg.svid);
+                    Serial.println();
                     printMt43Details(msg);
+                    azaraC::toJson(msg, Serial);
+                    Serial.println();
                 }
             } else if (msg.msg_type == 44) {
                 // DCX (MT=44) はカテゴリフィルタの対象外。フィルタしたい場合は shouldOutput() に分岐を足す。

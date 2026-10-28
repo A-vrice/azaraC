@@ -17,6 +17,8 @@ azaraC::Message msg;
 
 static constexpr uint8_t  QZSS_SVID_MIN  = 181;  // PRN181–191（実データには ID 53/54 = PRN181/182 もある）
 static constexpr uint8_t  QZSS_SVID_MAX  = 191;
+// 注: NMEA の Satellite ID 0–52 は PRN 128–180 に正規化されてライブラリを通る（Frame::svid の契約外。
+// 仕様上の Satellite ID は2桁 = 下位6bit なので 64–99 はフレーマが拒否する）。下の警告は出るが処理は続行する。
 static constexpr uint8_t  MSG_TYPE_MT43  = 43;
 static constexpr uint8_t  MSG_TYPE_MT44  = 44;
 static constexpr uint32_t HEARTBEAT_MS   = 5000;
