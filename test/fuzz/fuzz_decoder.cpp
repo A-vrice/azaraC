@@ -1,9 +1,11 @@
 // test/fuzz/fuzz_decoder.cpp
 // ファジーテスト: ランダム入力に対するデコーダの堅牢性テスト
 //
-// コンパイル: g++ -std=c++17 -I../include -I. -DARDUINO=0 -DAZARAC_LANG_JA=1 -DAZARAC_LANG_EN=1 -g -o fuzz_decoder fuzz_decoder.cpp ../src/Parser.cpp ../src/decoder/Decoder.cpp ../src/decoder/DecoderDcx.cpp ../src/decoder/DecoderQzqsm.cpp ../src/framer/UbxFramer.cpp ../src/framer/NmeaFramer.cpp ../src/json/JsonWriter.cpp ../src/json/JsonSerializer.cpp ../src/json/JsonSerializerDcx.cpp ../src/json/JsonSerializerQzqsm.cpp ../src/internal/DcxHelper.cpp ../src/internal/Dedup.cpp -Wl,--stack,33554432
+// ビルド・実行: `make fuzz`（FUZZ_ITERATIONS でイテレーション数を指定可）。
+// ライブラリ構成（ソース一覧・フラグ）は test/Makefile が唯一の正。
 //
-// 実行: ./fuzz_decoder [イテレーション数]
+// シード: 既定は random_device。FUZZ_SEED で固定すると全テストが決定的になる
+// （クラッシュ時の再現に使う。失敗時の出力に再現コマンドも出る）。
 
 #include <cstdint>
 #include <cstdlib>
@@ -27,6 +29,8 @@
 #include "decoder/Decoder.h"
 #include "framer/NmeaFramer.h"
 #include "framer/UbxFramer.h"
+#include "json/JsonSerializer.h"
+#include "internal/PrintShim.h"
 #include "test_helpers.h"
 
 using namespace azaraC;
@@ -131,6 +135,7 @@ struct FuzzStats {
     uint64_t exceptions = 0;
     uint64_t nmea_frames = 0;
     uint64_t ubx_frames = 0;
+    uint64_t serialized = 0;
 
     // テストごとの例外記録
     ExceptionInfo exception_log[MAX_EXCEPTION_LOG];
@@ -157,6 +162,7 @@ struct FuzzStats {
         printf("  MT=43:             %llu\n", (unsigned long long)mt43_count);
         printf("  MT=44:             %llu\n", (unsigned long long)mt44_count);
         printf("Decode fail:         %llu\n", (unsigned long long)decode_fail);
+        printf("Serialized:          %llu\n", (unsigned long long)serialized);
         printf("Exceptions caught:   %llu\n", (unsigned long long)exceptions);
 
         if (exception_log_count > 0) {
@@ -956,12 +962,74 @@ static void test_memory_stability(FuzzStats& stats, std::mt19937& rng, int itera
     printf("  Completed in %llds.\n", (long long)elapsed);
 }
 
+// テスト17: デコード成功電文の JSON シリアライズ（監査 P2-3）
+// 他のテストは decode まででシリアライザを通さないため、ランダムペイロードが
+// 定義テーブル参照（ラベル引き当て）や数値フォーマット経路に与える入力は
+// ここでしか検証できない。有効 CRC の MT43/MT44 をデコードし、成功したものを
+// そのまま JsonSerializer へ流す（test_azarashi_dcr.cpp と同じ公開経路）。
+static void test_decode_serialize(FuzzStats& stats, std::mt19937& rng, int iterations) {
+    printf("Test 17: Decode -> JSON serialize (%d iterations)...\n", iterations);
+
+    for (int i = 0; i < iterations; i++) {
+        try {
+            uint8_t bits[32];
+            generate_random_nav_bits(bits, sizeof(bits), rng);
+            set_valid_preamble(bits, rng);
+            set_valid_msg_type(bits, rng);
+            set_valid_crc(bits);
+
+            Frame frame;
+            frame.svid = 193;
+            memcpy(frame.bits, bits, 32);
+
+            Decoder decoder;
+            Message msg;
+            if (decoder.decode(frame, msg, 1704067200u)) {
+                StringPrint sp;
+                JsonSerializer::serialize(msg, sp);
+                const std::string& s = sp.str();
+                // 有効電文のシリアライズ結果が空になることはない。空なら破損の兆候。
+                if (s.empty()) {
+                    printf("  FAIL: serializer produced empty output at iteration %d\n", i);
+                    stats.log_exception("test_decode_serialize_empty_output", i);
+                } else {
+                    stats.serialized++;
+                }
+            }
+
+            stats.total_iterations++;
+        } catch (...) {
+            stats.log_exception("test_decode_serialize", i);
+        }
+    }
+    printf("  Completed.\n");
+}
+
 int main(int argc, char* argv[]) {
     printf("=== azaraC Fuzz Testing ===\n");
     printf("Starting fuzz tests...\n\n");
 
-    std::random_device rd;
-    std::mt19937 rng(rd());
+    // シード（監査 P2-2）: 既定は random_device。FUZZ_SEED で固定できる。
+    // mt19937 の seed は uint32 なので、指定値は 32bit に切り詰めた「実効シード」を
+    // 印字する — 印字された値で再現するには FUZZ_SEED に同じ値を渡せばよい。
+    uint32_t seed = 0;
+    const char* env_seed = std::getenv("FUZZ_SEED");
+    if (env_seed && *env_seed) {
+        char* end = nullptr;
+        errno = 0;
+        // base 0: 10 進に加え 0x/0b 接頭辞も受け付ける
+        const unsigned long long v = std::strtoull(env_seed, &end, 0);
+        if (errno != 0 || end == env_seed || *end != '\0') {
+            fprintf(stderr, "FUZZ: invalid FUZZ_SEED: '%s' (expected integer)\n", env_seed);
+            return 2;
+        }
+        seed = static_cast<uint32_t>(v);
+    } else {
+        std::random_device rd;
+        seed = rd();
+    }
+    std::mt19937 rng(seed);
+    printf("Seed: %llu\n", (unsigned long long)seed);
 
     // イテレーション数（環境変数 > コマンドライン引数 > デフォルト）。atoi は不正入力で 0 を返し 0 回の「無検査 PASS」になるため、値域を検証して落とす。
     long long iterations = 10000;
@@ -1022,6 +1090,8 @@ int main(int argc, char* argv[]) {
     mem_tracker.checkpoint();
     test_memory_stability(stats, rng, iterations * 5);
     mem_tracker.checkpoint();
+    test_decode_serialize(stats, rng, iterations / 2);
+    mem_tracker.checkpoint();
 
     // メモリレポートは mem_tracker のデストラクタで自動出力
     stats.print();
@@ -1032,6 +1102,10 @@ int main(int argc, char* argv[]) {
     } else {
         printf("FAIL: %llu exceptions caught during fuzz testing.\n",
                (unsigned long long)stats.exceptions);
+        // catch できないクラッシュ（segfault 等）で死んだ場合も、シードを固定して
+        // 再実行すれば同じ入力列を辿れる。
+        printf("Reproduce with: FUZZ_SEED=%llu <iterations>\n",
+               (unsigned long long)seed);
     }
 
     printf("Fuzz testing completed.\n");
