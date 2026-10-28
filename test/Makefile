@@ -102,6 +102,44 @@ OBJS = $(TEST_OBJS) $(LIB_OBJS)
 # VPATH for library sources
 VPATH = ../src:../src/decoder:../src/framer:../src/json:../src/internal
 
+# --- 同一ツリーでの並行 make 排他（監査 P2-1） ---
+# この Makefile は全構成（既定 / run-lto / pgm-stub / macro / no-alloc）で同じ .o パスを
+# 共有するため、2 つの make が同時に走ると同一名の .o へ同時書き込みになり、リンク時に
+# 「lto1: Cannot open」「illegal relocation type」「file truncated」のような本来の原因と
+# 無関係な失敗になる（実測: 複数セッションの並行実行で再現）。
+#
+# 仕組み: ロック未保持のまま LOCKABLE な目標が呼ばれたら、scripts/with-make-lock.sh が
+# mkdir でロックを取り、AZARAC_LOCK_HELD=1 を付けた make を再帰実行し、終了時に解放する。
+# ロック処理を Make のレシピから外すのは、Windows の native make が複数行・非 ASCII の
+# レシピを MSYS sh に渡す際に引用符を壊すため（make -C test run が起動前に失敗した）。
+# AZARAC_LOCK_HELD はコマンドライン変数で MAKEFLAGS 経由で全ての再帰 make
+# （run-lto / macro / test-no-alloc 等の内部呼び出し）へ自動伝播するため、サブ make
+# がロックを取り直して自己デッドロックすることはない。迂回するなら
+# `make AZARAC_LOCK_HELD=1 <target>`。
+#
+# ロック対象は test/ 直下の .o を書く／消す目標のみ。bench 系は test/bench/ 名前空間、
+# test-time-irq は独自バイナリのみ、test-macro-* は .macro_tmp に隔離されていて共有
+# 状態を持たないため対象外。
+#
+# 残リスク: 強制 kill（SIGKILL/プロセスクラッシュ）では trap を実行できないため
+# ロックが残る。その場合は test/.make-lock を手動で削除する（スクリプトのエラーにも記載）。
+LOCKABLE  := all run run-small-pages run-lto run-lang-defaults clean \
+             test-no-alloc pgm-stub macro fuzz decode dedup-realday \
+             compare-realdata coverage check check-xml check-strict-compile
+USER_GOALS := $(if $(MAKECMDGOALS),$(MAKECMDGOALS),all)
+# 「ロック未保持」かつ「ユーザーが直接 LOCKABLE な目標を指定した」場合のみラップする。
+NEED_LOCK := $(if $(AZARAC_LOCK_HELD),,$(filter $(LOCKABLE),$(USER_GOALS)))
+
+ifneq ($(NEED_LOCK),)
+.PHONY: lockwrap $(USER_GOALS)
+MAKE_CMD := $(MAKE)
+$(USER_GOALS):: lockwrap
+lockwrap:
+	@AZARAC_MAKE="$(MAKE_CMD)" bash scripts/with-make-lock.sh $(USER_GOALS)
+endif
+
+ifeq ($(NEED_LOCK),)
+
 .PHONY: all clean run run-small-pages run-lto run-lang-defaults fuzz decode dedup-realday bench bench-dedup bench-decode compare-realdata check check-xml check-strict-compile coverage test-no-alloc pgm-stub test-time-irq
 
 all: $(TEST_BIN)
@@ -466,3 +504,7 @@ pgm-stub:
 test-time-irq:
 	$(CXX) -std=c++17 -Wall -Wextra -Istub_arduino -I../src -DARDUINO=1 -D__AVR__ -DAZARAC_AVR_STUB internal/test_time_irq.cpp -o time_irq_test
 	./time_irq_test; t=$$?; $(RM) time_irq_test time_irq_test.exe; exit $$t
+
+# 実規則セクション全体の条件の終わり（冒頭の並行 make 排他ロック参照）。
+# NEED_LOCK が空 = ロック保持済みか対象外の目標のときだけここまでパースされる。
+endif
