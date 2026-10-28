@@ -108,15 +108,23 @@ bool serializeEEW(const Mt43Data* d, Print& out) {
         qzss_dcr_jma_seismic_intensity_upper_limit_lookup,
         qzss_dcr_jma_seismic_intensity_upper_limit_en_lookup, eew->intensity_upper, false);
     wk(out, AZARAC_KEY("regions")); out.print('[');
-    const uint8_t region_count = eew->regionCount();
-    for (uint8_t i = 0; i < region_count; ++i) {
-        if (i) writeChar(out, ',');
-        uint16_t code = eew->regionAt(i);
-        out.print('{');
-        wf_u(out, AZARAC_KEY("code"), code);
-        wf_s(out, AZARAC_KEY("label"),
-            AZARAC_LOOKUP_LANG(qzss_dcr_jma_eew_forecast_region_lookup, qzss_dcr_jma_eew_forecast_region_en_lookup, code), /*last=*/true);
-        out.print('}');
+    // regionCount()+regionAt(i) は i ごとに先頭から走査するので O(N²) になる（80 区フルで
+    // AVR 換算 ~25k cycles）。ビットマップを 1 回走査すれば昇順のまま O(80)。
+    bool first = true;
+    for (uint8_t byt = 0; byt < 10; ++byt) {
+        const uint8_t v = eew->region_bitmap[byt];
+        if (!v) continue;
+        for (uint8_t bit = 0; bit < 8; ++bit) {
+            if (!(v & (0x80u >> bit))) continue;
+            if (!first) writeChar(out, ',');
+            first = false;
+            const uint16_t code = byt * 8u + bit + 1u;
+            out.print('{');
+            wf_u(out, AZARAC_KEY("code"), code);
+            wf_s(out, AZARAC_KEY("label"),
+                AZARAC_LOOKUP_LANG(qzss_dcr_jma_eew_forecast_region_lookup, qzss_dcr_jma_eew_forecast_region_en_lookup, code), /*last=*/true);
+            out.print('}');
+        }
     }
     out.print(']');
     return true;
