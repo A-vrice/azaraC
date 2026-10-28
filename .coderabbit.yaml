@@ -21,8 +21,7 @@ reviews:
     drafts: false
     base_branches:
       - "main"
-      - "main-pre"
-  # docstring カバー率のゲートはこのリポジトリのコメント方針（簡潔な日本語のコメント）と噛み合わないので止める。
+  # docstringのゲートはこのライブラリには重すぎる
   pre_merge_checks:
     docstrings:
       mode: "off"
