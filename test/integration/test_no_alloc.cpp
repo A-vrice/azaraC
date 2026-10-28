@@ -1,5 +1,7 @@
-// test/integration/test_no_alloc.cpp — ライブラリが動的確保を行わないことの検証 (--wrap 生カウンタ).公開 API（Parser::feed / toJson）が malloc/calloc/realloc/posix_memalign と operator new/new[] を呼ばないことを--wrap で検証する（Valgrind と違い「ライブラリ自身の確保が 0 か」を直接示せる）。
-// --wrap は未解決参照のみ差し替えるため計測区間（snapshot〜delta）はライブラリ呼び出しの前後にだけ置き、テスト基盤や std::string の確保を混ぜない；該当カテゴリが無効な構成でも空回りしないよう電文を #if で選び、全カテゴリ無効なら JSON 出力確認をスキップする。
+// ライブラリが動的確保を行わないことの検証（--wrap 生カウンタ）。
+// 公開 API（Parser::feed / toJson）が malloc/calloc/realloc/posix_memalign と operator new/new[] を呼ばないことを --wrap で確かめる（Valgrind と違い「ライブラリ自身の確保が 0 か」を直接示せる）。
+// --wrap は未解決参照のみ差し替えるため、計測区間（snapshot〜delta）はライブラリ呼び出しの前後にだけ置く（テスト基盤や std::string の確保を混ぜない）。
+// 該当カテゴリが無効な構成でも空回りしないよう電文を #if で選び、全カテゴリ無効なら JSON 出力確認をスキップする。
 // ホストビルド専用（GNU ld の--wrap、macOS ld64 不可）。
 
 #include "../test_helpers.h"
@@ -58,9 +60,7 @@ struct CountingPrint : Print {
 };
 
 // 実データ由来のベクタ。
-// MT43: test/data/test_realdata_generated.cpp の dc=1 緊急地震速報
-// MT44: test/integration/test_azarashi_dcx.cpp の Outside Japan (Fiji)
-// UBX : test/framer/test_ublox_azarashi.cpp の sv56 pattern1 (Marine)
+// MT43: test/data/test_realdata_generated.cpp の dc=1 緊急地震速報 MT44: test/integration/test_azarashi_dcx.cpp の Outside Japan (Fiji) UBX : test/framer/test_ublox_azarashi.cpp の sv56 pattern1 (Marine)
 const char* const kMt43Cat1 =
     "$QZQSM,57,9AAF8DED25000325BA00DA4A0F5AAC5A8000000008000000200000136DCCFB4*02";
 const char* const kMt44Outside =

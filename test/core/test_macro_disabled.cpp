@@ -1,4 +1,3 @@
-// test/core/test_macro_disabled.cpp
 // AZARAC_ENABLE_* 無効化時にデコーダが正しくエラーを返すことのランタイムテスト。
 // 各テストは #if !(AZARAC_ENABLE_XXX) ガードで囲み、マクロ有効時は TEST_CASE ごと消える（恒常 PASS する空テストを残さない）。無効化ビルドでコンパイルして検証する（全 13 マクロ一括は make macro）。
 

@@ -20,8 +20,7 @@
 #include <avr/pgmspace.h>
 #include <stdint.h>
 
-// cppcheck は avr/pgmspace.h を見ない（include パスにない）ため、PROGMEM と
-// pgm_read_byte を未知の名前として扱う — コアが使うのと同じマクロ。
+// cppcheck は avr/pgmspace.h を見ない（include パスにない）ため、PROGMEM と pgm_read_byte を未知の名前として扱う — コアが使うのと同じマクロ。
 // cppcheck-suppress unknownMacro
 const uint8_t core_probe_pin_to_port_PGM[16] PROGMEM = {
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,

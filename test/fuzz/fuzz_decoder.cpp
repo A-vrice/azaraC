@@ -1,11 +1,7 @@
-// test/fuzz/fuzz_decoder.cpp
-// ファジーテスト: ランダム入力に対するデコーダの堅牢性テスト
-//
-// ビルド・実行: `make fuzz`（FUZZ_ITERATIONS でイテレーション数を指定可）。
+// ファジーテスト: ランダム入力に対するデコーダの堅牢性テストビルド・実行: `make fuzz`（FUZZ_ITERATIONS でイテレーション数を指定可）。
 // ライブラリ構成（ソース一覧・フラグ）は test/Makefile が唯一の正。
 //
-// シード: 既定は random_device。FUZZ_SEED で固定すると全テストが決定的になる
-// （クラッシュ時の再現に使う。失敗時の出力に再現コマンドも出る）。
+// シード: 既定は random_device。FUZZ_SEED で固定すると全テストが決定的になる（クラッシュ時の再現に使う。失敗時の出力に再現コマンドも出る）。
 
 #include <cstdint>
 #include <cstdlib>
@@ -828,7 +824,7 @@ static void test_corrupted_nmea_dollar(FuzzStats& stats, std::mt19937& rng, int 
                 }
             }
 
-            // Should NOT be detected without '$'
+            // '$' が無ければ検出してはならない
             if (found) {
                 printf("  FAIL: NMEA frame detected without '$' at iteration %d\n", i);
                 stats.log_exception("test_corrupted_nmea_dollar_unexpected_found", i);
@@ -962,11 +958,7 @@ static void test_memory_stability(FuzzStats& stats, std::mt19937& rng, int itera
     printf("  Completed in %llds.\n", (long long)elapsed);
 }
 
-// テスト17: デコード成功電文の JSON シリアライズ（監査 P2-3）
-// 他のテストは decode まででシリアライザを通さないため、ランダムペイロードが
-// 定義テーブル参照（ラベル引き当て）や数値フォーマット経路に与える入力は
-// ここでしか検証できない。有効 CRC の MT43/MT44 をデコードし、成功したものを
-// そのまま JsonSerializer へ流す（test_azarashi_dcr.cpp と同じ公開経路）。
+// テスト17: デコード成功電文の JSON シリアライズ（監査 P2-3）他のテストは decode まででシリアライザを通さないため、ランダムペイロードが定義テーブル参照（ラベル引き当て）や数値フォーマット経路に与える入力はここでしか検証できない。有効 CRC の MT43/MT44 をデコードし、成功したものをそのまま JsonSerializer へ流す（test_azarashi_dcr.cpp と同じ公開経路）。
 static void test_decode_serialize(FuzzStats& stats, std::mt19937& rng, int iterations) {
     printf("Test 17: Decode -> JSON serialize (%d iterations)...\n", iterations);
 
@@ -1010,8 +1002,7 @@ int main(int argc, char* argv[]) {
     printf("Starting fuzz tests...\n\n");
 
     // シード（監査 P2-2）: 既定は random_device。FUZZ_SEED で固定できる。
-    // mt19937 の seed は uint32 なので、指定値は 32bit に切り詰めた「実効シード」を
-    // 印字する — 印字された値で再現するには FUZZ_SEED に同じ値を渡せばよい。
+    // mt19937 の seed は uint32 なので、指定値は 32bit に切り詰めた「実効シード」を印字する — 印字された値で再現するには FUZZ_SEED に同じ値を渡せばよい。
     uint32_t seed = 0;
     const char* env_seed = std::getenv("FUZZ_SEED");
     if (env_seed && *env_seed) {
@@ -1102,8 +1093,7 @@ int main(int argc, char* argv[]) {
     } else {
         printf("FAIL: %llu exceptions caught during fuzz testing.\n",
                (unsigned long long)stats.exceptions);
-        // catch できないクラッシュ（segfault 等）で死んだ場合も、シードを固定して
-        // 再実行すれば同じ入力列を辿れる。
+        // catch できないクラッシュ（segfault 等）で死んだ場合も、シードを固定して再実行すれば同じ入力列を辿れる。
         printf("Reproduce with: FUZZ_SEED=%llu <iterations>\n",
                (unsigned long long)seed);
     }

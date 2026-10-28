@@ -1,7 +1,7 @@
-// test/bench/avr/probe.cpp
 // autoresearch.sh 用の Flash フットプリント・プローブ: リンクするだけで実行はしない。
 //
-// 実 AVR ターゲット向けにライブラリ全体とともにビルドされ、decode + serialize 経路（ひいてはシリアライザが引く全定義テーブル）を到達可能に保つ。これによりリンク済みイメージが --gc-sections 下でも「スケッチが払う flash」として意味を持つ数値になる。
+// 実 AVR ターゲット向けにライブラリ全体とともにビルドされ、decode + serialize 経路（ひいてはシリアライザが引く全定義テーブル）を到達可能に保つ。
+// これによりリンク済みイメージが --gc-sections 下でも「スケッチが払う flash」として意味を持つ数値になる。
 // 本体は公開 API（Parser::feed + toJson）だけに触れる。
 //
 // 両端を意図的に不透明にしている:
@@ -28,9 +28,7 @@ void operator delete(void* p, size_t) { free(p); }
 void operator delete[](void* p, size_t) { free(p); }
 
 namespace {
-// シンク。write() はライブラリがキーとラベルに使う経路（out.write(s.data(), s.size())）なので、
-// これを上書きすることがテーブルをイメージに結びつける。asm はポインタと長さを生かしたまま
-// 何も格納しない: カウンタに SRAM を使わない。
+// シンク。write() はライブラリがキーとラベルに使う経路（out.write(s.data(), s.size())）なので、これを上書きすることがテーブルをイメージに結びつける。asm はポインタと長さを生かしたまま何も格納しない: カウンタに SRAM を使わない。
 class ProbePrint : public Print {
 public:
     size_t write(uint8_t) override {

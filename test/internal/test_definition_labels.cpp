@@ -1,6 +1,4 @@
-// test/internal/test_definition_labels.cpp — 定義テーブルのラベル参照テスト
-//
-// 一部のテーブルは id 0 を「定義済みの空文字列」として持つ（国際表 List A など）。
+// 定義テーブルのラベル参照テスト一部のテーブルは id 0 を「定義済みの空文字列」として持つ（国際表 List A など）。
 // AVR と非AVR は同じ値を返さねばならない（存在する長さ0の view であり nullopt ではない）。
 // あわせて非AVR の `const char*` 化した表が内容を保っていることを各 strategy で確認する。
 
@@ -45,7 +43,7 @@ TEST_CASE("Definition lookup: empty label is present, not absent") {
     CHECK(*ja == std::string_view("指示なし"));
 #endif
 #if (AZARAC_LANG_EN)
-    // azarashi 0.17 gave the English library a word for code 0 ("No instruction").
+    // azarashi 0.17 の英語ライブラリは code 0 に語を持たせている（"No instruction"）。
     auto en = def::qzss_dcx_camf_a11_japanese_library_en_lookup(0);
     REQUIRE(en.has_value());
     CHECK(*en == std::string_view("No instruction"));
@@ -286,8 +284,7 @@ TEST_CASE("Definition lookup: JA and EN cover the same codes") {
 
 #endif // AZARAC_LANG_JA && AZARAC_LANG_EN
 
-// 日本語版を持たない _en 表は言語非依存（AZARAC_LANG_EN でガードしない）
-// 仕様自体が英語で日本語版が存在せず、表の唯一の供給元になる。既定構成（JA=1 / EN=0）でガードすると nullopt スタブになり北西太平洋津波のラベルが全滅する。期待値は実ヘッダからの実測。
+// 日本語版を持たない _en 表は言語非依存（AZARAC_LANG_EN でガードしない）仕様自体が英語で日本語版が存在せず、表の唯一の供給元になる。既定構成（JA=1 / EN=0）でガードすると nullopt スタブになり北西太平洋津波のラベルが全滅する。期待値は実ヘッダからの実測。
 
 #if (AZARAC_ENABLE_NW_PAC_TSUNAMI)
 TEST_CASE("Definition lookup: lone _en tables resolve regardless of AZARAC_LANG_EN") {

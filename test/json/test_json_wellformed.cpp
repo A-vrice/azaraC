@@ -1,7 +1,4 @@
-// test/json/test_json_wellformed.cpp — シリアライザ出力が JSON として妥当か
-//
-// `_label_en` の併記は各ラベルサイトを 2 ペアで書き、`last` の受け渡しを誤ると `"a":1"b":2` のカンマ欠落や二重カンマを生む。既存テストの has() 部分一致では検出できないので、全カテゴリを 1 通ずつシリアライズし、
-//   1. 構造が閉じている（括弧・引用符・カンマ）
+// シリアライザ出力が JSON として妥当か`_label_en` の併記は各ラベルサイトを 2 ペアで書き、`last` の受け渡しを誤ると `"a":1"b":2` のカンマ欠落や二重カンマを生む。既存テストの has() 部分一致では検出できないので、全カテゴリを 1 通ずつシリアライズし、 1. 構造が閉じている（括弧・引用符・カンマ）
 //   2. 同じオブジェクト内でキーが重複していない
 // を検証する（重複は数量フィールドに `_label` を足した際などに起こる）。
 
@@ -292,7 +289,7 @@ TEST_CASE("JSON well-formedness: MT44 DCX") {
 }
 #endif // AZARAC_ENABLE_DCX_CAMF
 
-// 検査器自体の回帰: 不正な JSON を検出できること（これが無いと「常に true を返す検査器」で上のテストが無意味になる）。
+// 検査器自体の検証: 不正な JSON を検出できること（無いと「常に true を返す検査器」で上のテストが無意味になる）。
 TEST_CASE("JSON well-formedness: the checker rejects malformed input") {
     const char* bad[] = {
         "{\"a\":1\"b\":2}",          // カンマ欠落（AZARAC_LABEL の last 誤りと同じ形）
@@ -304,8 +301,7 @@ TEST_CASE("JSON well-formedness: the checker rejects malformed input") {
         "{\"a\":1}",                 // （これは妥当 — 除外）
     };
     for (const char* s : bad) {
-        // JsonCheck は const std::string& を保持する。const char* からの一時 std::string を
-        // 直接渡すとメンバ参照の束縛先が全式の終わりで破壊される（dangling reference。
+        // JsonCheck は const std::string& を保持する。const char* からの一時 std::string を直接渡すとメンバ参照の束縛先が全式の終わりで破壊される（dangling reference。
         // LTO のヒープレイアウト変化で顕在化）ので、ここで寿命を作る。
         const std::string input(s);
         JsonCheck jc(input);

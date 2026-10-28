@@ -1,4 +1,3 @@
-// test/tools/dedup_realday.cpp
 // 実日の .l1s アーカイブに対する重複判定の再現計測。
 //
 //   make -C test dedup-realday
@@ -47,10 +46,12 @@ struct FrameRef {
     uint8_t  category;   // disaster_category (MT=44 はカテゴリ番号なし → 0)
 };
 
-// .l1s は 36 B/秒（288 bit）で、フレーム（250 bit）は各秒の bit 40 から始まる。全体を走査し Decoder が受理したフレームだけを採る（無効カテゴリは decode() が false を返すので、固定レコード長にもマクロ構成にも依存しない）。
+// .l1s は 36 B/秒（288 bit）で、フレーム（250 bit）は各秒の bit 40 から始まる。
+// 全体を走査し Decoder が受理したフレームだけを採る（無効カテゴリは decode() が false を返すので、固定レコード長にもマクロ構成にも依存しない）。
 //
 // 南海トラフ(dc=4)は除く: Parser はページを集約し事象トークンで判定するので電文単位の鍵とは軸が違う（集約の同一性は test/bench の NANKAI_KEY_STABLE が見る）。
-// unaligned には「1 秒境界（bit 40 + n*288）に載らない CRC 有効フレーム」の数を返す: slot は受信秒なので、境界にないフレームへ秒を割り当てると隣の秒に化ける（このアーカイブでは 0 だが、別形式の .l1s で黙って壊れた数字を出さないよう数えて除外する）。
+// unaligned は「1 秒境界（bit 40 + n*288）に載らない CRC 有効フレーム」の数を返す。
+// slot は受信秒なので、境界にないフレームへ秒を割り当てると隣の秒に化ける（このアーカイブでは 0 だが、別形式の .l1s で黙って壊れた数字を出さないよう数えて除外する）。
 std::vector<FrameRef> extractFrames(const std::vector<uint8_t>& data, Decoder& decoder,
                                     size_t& unaligned) {
     std::vector<FrameRef> out;

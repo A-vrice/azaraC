@@ -1,7 +1,8 @@
 #pragma once
 // Arduino コアの <Arduino.h> の最小代用。
 //
-// autoresearch.sh は Arduino コアを使わず avr-gcc (ATmega2560) で実ライブラリをリンクし、Flash 使用量を測る。コアはネットワーク取得でオフライン計測に載らないため、azaraC が触れる面（millis と Print）だけを提供する。
+// autoresearch.sh は Arduino コアを使わず avr-gcc (ATmega2560) で実ライブラリをリンクし、Flash 使用量を測る。
+// コアはネットワーク取得でオフライン計測に載らないため、azaraC が触れる面（millis と Print）だけを提供する。
 // -DARDUINO=1 のときだけ到達する（azaraC.h が <Print.h> を取り、internal/TimeFields.h が Arduino 分岐に入る）。ライブラリ本来のビルド経路ではない。
 
 #include <stddef.h>
@@ -9,7 +10,9 @@
 #include <string.h>
 
 #if defined(__AVR__)
-// internal/TimeFields.h は __AVR__ で SREG を退避して cli() を呼ぶ（f41550a）。実コアはどちらも <avr/interrupt.h> から得る。ツールチェーンのヘッダをそのまま使うことで、shim が状態を偽らないようにする（FlashString.h が FLASHEND 用に <avr/io.h> を先に取り込むため、SREG はこの時点でマクロかもしれない）。
+// internal/TimeFields.h は __AVR__ で SREG を退避して cli() を呼ぶ。
+// 実コアはどちらも <avr/interrupt.h> から得るので、ツールチェーンのヘッダをそのまま使う（shim が状態を偽らないようにするため）。
+// FlashString.h が FLASHEND 用に <avr/io.h> を先に取り込むので、SREG はこの時点でマクロかもしれない。
 #include <avr/interrupt.h>
 #include <avr/io.h>
 #endif

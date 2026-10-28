@@ -1,4 +1,4 @@
-// test/test_helpers.h — 複数のテストファイルで共有するヘルパー関数・クラス
+// 複数のテストファイルで共有するヘルパー関数・クラス
 
 #ifndef TEST_HELPERS_H
 #define TEST_HELPERS_H
@@ -40,7 +40,7 @@ inline std::vector<uint8_t> makeUbxSfrbx(uint8_t svId, const uint8_t* nav_bits) 
     out.push_back(len & 0xFF);
     out.push_back(len >> 8);
 
-    // Header
+    // ヘッダ
     out.push_back(5);    // gnssId (QZSS)
     out.push_back(svId); // svId
     out.push_back(0);    // sigId (L1S)
@@ -50,7 +50,7 @@ inline std::vector<uint8_t> makeUbxSfrbx(uint8_t svId, const uint8_t* nav_bits) 
     out.push_back(1);    // version
     out.push_back(0);    // reserved
 
-    // Payload (8 words)
+    // ペイロード（8 ワード）
     for (int w = 0; w < 8; ++w) {
         uint32_t val = 0;
         for (int b = 0; b < 32; ++b) {
@@ -67,7 +67,7 @@ inline std::vector<uint8_t> makeUbxSfrbx(uint8_t svId, const uint8_t* nav_bits) 
         out.push_back(val >> 24);
     }
 
-    // Checksum
+    // チェックサム
     uint8_t cka = 0, ckb = 0;
     for (size_t i = 2; i < out.size(); ++i) {
         cka += out[i];
@@ -79,21 +79,22 @@ inline std::vector<uint8_t> makeUbxSfrbx(uint8_t svId, const uint8_t* nav_bits) 
     return out;
 }
 
-// NMEA QZQSM 文生成
-// 第1引数は PRN（QZS の 183-191）でも生の Satellite ID（下位 6bit、53-63）でもよい: 電文に載るのは下位 7bit の2桁10進だけなので `& 0x7F` に落として書く（FRAME 側は `| 0x80` で PRN に戻す）。受信側は 6bit を超える値（64 以上）を拒否する。
+// NMEA QZQSM 文生成第1引数は PRN（QZS の 183-191）でも生の Satellite ID（下位 6bit、53-63）でもよい。
+// 電文に載るのは下位 7bit の2桁10進だけなので `& 0x7F` に落として書く（FRAME 側は `| 0x80` で PRN に戻す）。
+// 受信側は 6bit を超える値（64 以上）を拒否する。
 inline std::string makeNmeaQzqsm(uint8_t svid, const uint8_t* nav_bits) {
     assert((svid & 0x7F) <= 63);
     char buf[256];
     snprintf(buf, sizeof(buf), "QZQSM,%02u,", static_cast<unsigned>(svid & 0x7F));
     std::string s = "$";
     s += buf;
-    // Output 31 full bytes (62 hex chars)
+    // 31 バイト分（hex 62 文字）を出力
     for (int i = 0; i < 31; ++i) {
         char hex[3];
         snprintf(hex, sizeof(hex), "%02X", nav_bits[i]);
         s += hex;
     }
-    // Output 1 nibble (1 hex char) for the remaining 2 bits
+    // 残り 2 bit を 1 ニブル（hex 1 文字）で出力
     char hex[2];
     snprintf(hex, sizeof(hex), "%01X", (nav_bits[31] >> 4) & 0xF);
     s += hex;
@@ -196,7 +197,7 @@ struct TestDecoder : Decoder {
         return inst().getBits(b, s, l);
     }
 
-    // OOB (out-of-bounds) flag control for getBits/getBits64 tests
+    // getBits/getBits64 テスト用の OOB（範囲外）フラグ操作
     static void clearOob() {
         inst().oob_ = false;
     }

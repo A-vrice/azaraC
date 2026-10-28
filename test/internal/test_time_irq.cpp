@@ -33,8 +33,7 @@ int main() {
     uint64_t a = azaraC::internal::getMillis();
     CHECK(SREG == 0x00);
 
-    // 呼び出し前に割り込み許可: getMillis() は許可のまま返し、
-    // millis() の読み出しは割り込みをマスクした後でなければならない。
+    // 呼び出し前に割り込み許可: getMillis() は許可のまま返し、millis() の読み出しは割り込みをマスクした後でなければならない。
     SREG = 0x80;
     g_millis = 2000;
     g_millisSawInterrupts = false;

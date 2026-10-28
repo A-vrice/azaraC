@@ -1,11 +1,9 @@
-// test/bench/bench_decode.cpp — Parser::feed の 1 文あたりサイクルベンチ（フレーミング込み）。
+// Parser::feed の 1 文あたりサイクルベンチ（フレーミング込み）。
 //
 // 入力は test/data/{dcr,dcx,nankai}_vectors.json の $QZQSM 文のみ（ネットワーク・時計入力なし）。
 // report_unix は固定値（≥2000-01-01 なので日付解決経路も通す）。
 //
-// 測定: 同じ Parser に同じ文を 15 回流し rdtsc 差分の最小値を取り、同一グループ内の
-// 文ごとの中央値を METRIC DECODE_CYCLES_<GROUP> として出力する。重複抑止は 2 回目以降に
-// 通知を抑えるがデコード自体は毎回走るので、測っているのはフレーミング＋デコード＋シリアライズ前処理。
+// 測定: 同じ Parser に同じ文を 15 回流し rdtsc 差分の最小値を取り、同一グループ内の文ごとの中央値を METRIC DECODE_CYCLES_<GROUP> として出力する。重複抑止は 2 回目以降に通知を抑えるがデコード自体は毎回走るので、測っているのはフレーミング＋デコード＋シリアライズ前処理。
 //
 // Harness contract: "METRIC <name>=<value>" を出力し成功時 exit 0（bench_dedup.cpp と同じ）。
 
@@ -62,9 +60,7 @@ struct Sentence {
     const char* group;
 };
 
-// JSON テキストから $QZQSM 文を取り出す。"nmea" と "params.sentence" の両方に同じ文が
-// 入っているので、文全体で重複除去する。型は各 "nmea" の直後の "type": "..." から取る
-// （生成された JSON では nmea が必ず type の前に来る）。
+// JSON テキストから $QZQSM 文を取り出す。"nmea" と "params.sentence" の両方に同じ文が入っているので、文全体で重複除去する。型は各 "nmea" の直後の "type": "..." から取る（生成された JSON では nmea が必ず type の前に来る）。
 static void scanFile(const char* path, std::vector<Sentence>& out) {
     FILE* fp = fopen(path, "rb");
     if (!fp) { fprintf(stderr, "bench: cannot open %s\n", path); exit(2); }

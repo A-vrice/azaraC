@@ -1,4 +1,4 @@
-// test/bench/bench_dedup.cpp — 決定的な重複抑止ベンチマーク + 仕様適合チェック。
+// 決定的な重複抑止ベンチマーク + 仕様適合チェック。
 //
 // 入力は追跡済みのキャプチャのみ（ネットワーク・時計入力なし、固定 32-bit LCG シード）:
 //   test/data/{dcr,dcx,nankai}_vectors.json — 2022 MT43 / 2024 MT44（3 衛星）/ 南海トラフの複数ページ事象。
@@ -38,7 +38,7 @@ using azaraC::Parser;
 using azaraC::internal::DedupFilter;
 using azaraC::internal::DedupKey;
 
-// measurement
+// 計測
 
 static inline uint64_t readCycles() {
 #ifdef BENCH_HAS_RDTSC
@@ -54,7 +54,7 @@ static double nowNanos() {
                std::chrono::steady_clock::now().time_since_epoch()).count();
 }
 
-// corpus scanning
+// コーパス走査
 
 struct CorpusEntry {
     DedupKey    key;     // content identity (msg_type + MT～VN digest)
@@ -75,7 +75,7 @@ static inline uint8_t hexVal(char c) {
     return (uint8_t)(c <= '9' ? c - '0' : (c | 0x20) - 'a' + 10);
 }
 
-// Extracts $QZQSM sentences from any text file (JSON, CSV, syslog dump).
+// テキストファイル（JSON、CSV、syslog ダンプ）から $QZQSM 文を抜き出す。
 // msg_type = bits 8..13; identity = CRC-24Q over bits 8..219 (MT～VN, 手順③).
 static void scanFile(const char* path, Corpus& out) {
     FILE* fp = fopen(path, "rb");
@@ -131,14 +131,14 @@ static void scanFile(const char* path, Corpus& out) {
     }
 }
 
-// stream model
+// ストリームモデル
 
 struct Op {
     DedupKey key;
     uint64_t now_ms;   // receiver clock at reception (手順④' timer basis)
 };
 
-// One scripted stretch of traffic with the spec's validity window applied to the informations that appear in it.
+// 仕様の有効時間を流れ中の情報へ適用した、脚本済みの 1 区間の受信列。
 struct Phase {
     const char* name = "";
     uint64_t    window_ms = 300000;  // 5 min — 緊急地震速報 (原PDF p.25-27)
@@ -158,7 +158,7 @@ static uint32_t lcg(uint32_t& s) {
     return s;
 }
 
-// Single call site facing the filter
+// フィルタと直接向き合う 1 か所の呼び出し
 static bool filterIsDuplicate(DedupFilter& f, const Phase& p, const Op& op) {
     return f.isDuplicate(op.key, op.now_ms, p.window_ms);
 }
@@ -177,7 +177,7 @@ static double medianOf(std::vector<double> v) {
     return v[v.size() / 2];
 }
 
-// Scores the phase against the spec model: a decision is correct when it matches "same content already received within window_ms".
+// 仕様モデルで phase を採点する。判定は「窓内に同一内容の受信済み」と一致すれば正しい。
 static PhaseResult verifyPhase(const Phase& p) {
     PhaseResult r;
     DedupFilter f;
@@ -210,7 +210,7 @@ static PhaseResult verifyPhase(const Phase& p) {
     return r;
 }
 
-// phase builders
+// phase の構築
 
 static const uint32_t MS_SEC = 1000;
 static const uint32_t W_5MIN = 5 * 60 * MS_SEC;         // EEW 発表時刻から5分
@@ -237,7 +237,7 @@ static Phase phaseMultiSat(const Corpus& c) {
     return p;
 }
 
-// P2 — single satellite, 8 concurrent informations, 4 s rebroadcast
+// P2 — 単一衛星、8 情報同時、4 秒で再放送
 static Phase phaseRebroadcast(const Corpus& c) {
     Phase p;
     p.name = "P2_rebroadcast";
@@ -279,7 +279,7 @@ static Phase phaseWindowExpiry(const Corpus& c) {
             p.ops.push_back(op);
         }
     }
-    // Boundary: exactly one window after the first post-gap reception is still inside it ("経過" means elapsed, so the boundary itself is not expired).
+    // 境界: 間隔を挟んだ最初の受信からちょうど 1 窓後はまだ窓内にいる（「経過」は経過時間なので境界自体は失効していない）.
     for (size_t i = 0; i < 4 && i < c.distinct.size(); ++i) {
         Op op;
         op.key = c.distinct[i].key;
@@ -289,7 +289,7 @@ static Phase phaseWindowExpiry(const Corpus& c) {
     return p;
 }
 
-// P4 — 16 informations, each relayed by a second satellite (capacity pressure)
+// P4 — 16 情報、それぞれを第 2 衛星が中継（容量負荷）
 static Phase phaseCapacity(const Corpus& c) {
     Phase p;
     p.name = "P4_two_sv";
@@ -305,7 +305,7 @@ static Phase phaseCapacity(const Corpus& c) {
     for (size_t i = 0; i < 16 && i < c.distinct.size(); ++i) {
         Op op;
         op.key = c.distinct[i].key;
-        // relayed by another PRN: identical content
+        // 別 PRN 中継: 内容は同一
         op.now_ms = start + 60 * MS_SEC + (uint64_t)i * MS_SEC;
         p.ops.push_back(op);
     }
@@ -328,7 +328,7 @@ static Phase phaseReclaim(const Corpus& c) {
             p.ops.push_back(op);
         }
     }
-    // Silence longer than the validity window, then a completely different set.
+    // 有効時間より長い無通信の後、まったく別の集合。
     const uint64_t after = base + (uint64_t)n * 4 * MS_SEC + W_24H + MS_SEC;
     for (int cycle = 0; cycle < 3; ++cycle) {
         for (size_t i = n; i < n + 40 && i < c.distinct.size(); ++i) {
@@ -341,7 +341,7 @@ static Phase phaseReclaim(const Corpus& c) {
     return p;
 }
 
-// P5 — payload-distinct churn, no repeats: throughput only
+// P5 — payload が異なる入れ替わり、重複なし: スループットのみの計測
 static Phase phaseChurn(const Corpus& c) {
     Phase p;
     p.name = "P5_churn";
@@ -359,7 +359,7 @@ static Phase phaseChurn(const Corpus& c) {
     return p;
 }
 
-// spec identity for aggregated Nankai events
+// 集約後の南海トラフ事象の仕様上の identity
 
 // 集約後の Nankai は 1 情報なので、その identity はどのページが集合を完成させたかに依存してはならない（最後のページは到着順の産物）。Parser を通して挙動で測る:
 //   1) event A (27 pages, file order)      → 1 回通知
@@ -370,7 +370,7 @@ static int nankaiKeyStable(const std::vector<std::string>& pages, uint32_t& key_
     key_used = 0;
     if (pages.size() < 2) return -1;
 
-    // Rebuild each sentence: patch the report-minute field so the same page set describes a different event, then re-checksum the frame.
+    // 文を組み直す: 報告分のフィールドを書き換えて同じページ集合を別事象にし、フレームのチェックサムを張り直す。
     auto rewriteAsOtherEvent = [](const std::string& in, std::string& out) {
         const size_t p = in.find(',', 7);
         if (p == std::string::npos) return false;
@@ -416,7 +416,7 @@ static int nankaiKeyStable(const std::vector<std::string>& pages, uint32_t& key_
     const bool b_own  = feedAll(other, false);
     const bool a_again = feedAll(pages, true);
 
-    // Bitmask 1|2|4 of what was reported, so a failure names which step broke.
+    // 何を通したかのビットマスク 1|2|4。失敗時にどの段階で壊れたか名指しできるようにする。
     key_used = (uint32_t)((a_first ? 1u : 0u) | (b_own ? 2u : 0u) | (a_again ? 4u : 0u));
     return (a_first && b_own && !a_again) ? 1 : 0;
 }
@@ -460,9 +460,9 @@ static int preambleKeyStable(const std::string& sentence) {
     return (notified == 1) ? 1 : 0;               // 2 回以上 = 鍵が分裂
 }
 
-// main
+// エントリポイント
 
-// One pass over the given phases, in nanoseconds (used to size the timing loop).
+// 指定 phase を 1 周したナノ秒（タイミングループの反復数を決めるのに使う）。
 static double nanosPerPass(Phase** phases, size_t count, size_t ops) {
     const double t = nowNanos();
     for (size_t i = 0; i < count; ++i) {
@@ -553,7 +553,7 @@ int main() {
     const double nanos_per_op = medianOf(samples);
     churn_nanos /= 9.0;   // averaged: churn stream is long enough to be stable
 
-    // Largest live set answered with zero mistakes (capacity headroom).
+    // 誤りゼロで答えた最大の生存集合（容量の余裕）。
     int capacity = 0;
     {
         const size_t maxK = std::min<size_t>(corpus.distinct.size(), 128);
@@ -583,7 +583,7 @@ int main() {
     uint32_t nk_steps = 0;
     const int nankai_stable = nk_ok ? nankaiKeyStable(nk_pages, nk_steps) : -1;
 
-    // Same shape, MT=43 only: one EEW sentence rebroadcast with each of the three cycling preambles must be announced exactly once.
+    // 同じ形を MT=43 のみ: 巡回する 3 プリアンブルで再送された 1 本の EEW 文はちょうど 1 回だけ通知されるly once.
     int preamble_stable = -1;
     for (const CorpusEntry& e : dcr.distinct) {
         if (e.key.msg_type != 43) continue;
@@ -591,7 +591,7 @@ int main() {
         break;
     }
 
-    // End-to-end sanity: duplicates are still suppressed through Parser.
+    // E2E の妥当性: Parser 経由でも重複は抑止される。
     double parser_nanos = 0;
     size_t parser_out = 0, parser_sent = 0;
     {
