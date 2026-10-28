@@ -12,26 +12,24 @@
 
 namespace azaraC {
 
-// RAM: Parser 実体は約 5.4 KB（静的、既定: Nankai 1 バッファ @63 ページ = 管理部 1,160 B + dedup 4,096 B (512x8) + framer/decoder。ホスト実測 sizeof = 5,456 B）。推奨は約 5.8 KB、最小 712 B（AVR preset: 4 ページ / 1 バッファ、dedup 64x8 = 512 B、Nankai/DCX off）。
-// 2 KB のターゲットでは Nankai/DCX を無効のままにすること。
-// AZARAC_DEDUP_SLOTS を AVR preset の 64 未満へ縮めるのは、実測し直す場合のみ（azaraC_config.h の実測値参照）。
-// スタック: feed() の最悪ケースの静的チェーンは host -Os で 808 B、AVR preset (atmega328p -Os, DCX/Nankai off) で 259 B。
-// 値は -fstack-usage + -fcallgraph-info=su で call graph の最大経路を合計した上限（経路はフレーム内容依存）。
-// JSON 出力側は別チェーン（JsonSerializer::serialize 系、host -Os で 1,600 B 上限）。
+// RAM: Parser 実体は静的確保で約 5.4 KB（既定: dedup 4 KB + Nankai 管理部 1.2 KB + framer/decoder）、推奨 5.8 KB。
+// AVR preset（Nankai/DCX off、dedup 64x8）では約 0.7 KB。2 KB SRAM のターゲットでは Nankai/DCX を無効のままにすること。
+// スタック上限: feed() が host -Os で 808 B / AVR preset で 259 B。JSON 出力は別チェーン（host 1,600 B）。
+// AZARAC_DEDUP_SLOTS を AVR preset の 64 未満へ縮めるのは、再通知を実測し直す場合のみ（azaraC_config.h）。
 class Parser {
 public:
     Parser() = default;
-    // Custom framer (e.g. Sony, Furuno) — caller owns the object
+    // カスタムフレーマ（Sony、Furuno 等）を注入する。オブジェクトの所有は呼び出し側。
     explicit Parser(internal::IFramer& framer) : _custom(&framer) {}
 
-    // コピー/ムーブ禁止: 実体で持つ 4 KB の dedup テーブルと Nankai バッファを二重に食い、_custom （ユーザー所有の framer を指す）も二重に指すため、コンパイル時に落とす。
+    // コピー/ムーブ禁止: dedup テーブル 4 KB と Nankai バッファを二重に確保し、_custom（ユーザー所有のフレーマ）も二重参照になるため。
     Parser(const Parser&) = delete;
     Parser& operator=(const Parser&) = delete;
     Parser(Parser&&) = delete;
     Parser& operator=(Parser&&) = delete;
 
-    // Feed one byte. Returns true when a new, non-duplicate, valid message is in `out`.
-    // report_unix: 時刻解決に使う報告の UNIX epoch（0 = 未解決: DHM フィールドは保持し、unix_time は 0 のまま）
+    // 1 バイト入力し、新規かつ妥当な電文が `out` に揃えば true。
+    // report_unix: 時刻解決に使う報告の UNIX epoch。0 は未解決（DHM フィールドは残るが unix_time は 0 のまま）。
     bool feed(uint8_t byte, Message& out, uint32_t report_unix = 0);
 
     void reset();
@@ -51,11 +49,14 @@ private:
 #endif
     internal::IFramer*               _custom = nullptr;
 
-    // 復号後の共通経路（カスタムフレーマ経路と AUTO 経路）: Nankai 集約 → dedup → out へのコピー。出力すべきなら true（妥当・非重複・集約済み）。
-    // identity: 手順③ の照合範囲（MT～VN）の digest で、ビット範囲と除外対象は呼び出し側に記す。decoded と out は同一オブジェクトでもよく、その場合はコピーしない。
+    // 復号後の共通経路（カスタムフレーマ経路と AUTO 経路）: Nankai 集約 → dedup → out へのコピー。
+    // 妥当・非重複・集約済みで出力すべきなら true。
+    // identity: 手順③ の照合範囲（MT～VN）の digest。ビット範囲と除外対象は呼び出し側に記す。
+    // decoded と out が同一オブジェクトならコピーは行わない。
     bool postDecode(const Message& decoded, Message& out, uint32_t identity);
 
-    // decode → postDecode の共通経路で、`out` 自体へ復号する: decode() が先に out をクリアするため、復号失敗で以前の payload が残らない。frame は非 const（messageIdentity が MT=44 の SD を一時的にゼロにする）。
+    // decode → postDecode を `out` 自体に対して行う。decode() が先に out をクリアするため、復号失敗で前の payload が残らない。
+    // frame が非 const なのは messageIdentity が MT=44 の SD を一時的にゼロにするため。
     bool handleFrame(internal::Frame& frame, Message& out, uint32_t report_unix);
 
 #if AZARAC_ENABLE_NANKAI

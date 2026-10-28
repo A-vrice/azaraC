@@ -1,17 +1,11 @@
-// azaraC — examples/rtos_freertos/rtos_freertos.ino
-//
-// FreeRTOS タスクベースの NMEA / UBX デコーダ
-//
-// このスケッチは loop() を使わず、FreeRTOS タスクで全ての処理を行います。
+// FreeRTOS タスクベースの NMEA / UBX デコーダこのスケッチは loop() を使わず、FreeRTOS タスクで全ての処理を行います。
 // ESP32 系 Arduino コア専用です（xTaskCreatePinnedToCore を使用）。
 //
-// アーキテクチャ: UART RX Task ──(Message Queue)──▶ Output Task
-//
-// Wiring (例:ESP32-C3 DevKitM-1):
+// アーキテクチャ: UART RX Task ──(Message Queue)──▶ Output Task 配線 (例: ESP32-C3 DevKitM-1):
 //   GNSS TX → GPIO20 (Serial1 RX)
 //   GND             → GND
 //
-// config (u-blox):
+// 設定 (u-blox):
 //   CFG-MSGOUT-NMEA_ID_GGA_UART1 = 1 //NMEAの場合
 //   CFG-MSGOUT-UBX_RXM_SFRBX_UART1 = 1 //UBXの場合
 //   CFG-SIGNAL-QZSS_L1S_ENA      = 1
@@ -50,11 +44,7 @@ static constexpr UBaseType_t kOutputTaskPriority = 1;
 #define SERIAL_GNSS Serial1
 
 
-// メッセージキュー (azaraC::Message をやり取り)
-// FreeRTOS のキューはバイトコピーで、Message のコピー ctor/dtor は通らない。payload の
-// サブオブジェクトは trivially copyable で所有ポインタを持たないため、この example では
-// オブジェクト表現のコピーとして扱う（標準のコピー意味論ではない）。Nankai の
-// aggregated_text_ptr は Parser 内部への借用ポインタなのでキューには載せない（processByte を参照）。
+// メッセージキュー (azaraC::Message をやり取り) FreeRTOS のキューはバイトコピーで、Message のコピー ctor/dtor は通らない。payload のサブオブジェクトは trivially copyable で所有ポインタを持たないため、この example ではオブジェクト表現のコピーとして扱う（標準のコピー意味論ではない）。Nankai の aggregated_text_ptr は Parser 内部への借用ポインタなのでキューには載せない（processByte を参照）。
 static QueueHandle_t g_messageQueue = nullptr;
 
 // Serial は RX タスク（集約済み南海トラフ）と Output タスク（キュー・統計）の両方から書く。

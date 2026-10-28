@@ -1,5 +1,5 @@
 #pragma once
-// azaraC — QZSS L1S DCX/CAMF + QZQSM decoder for Arduino
+// azaraC — Arduino 向け QZSS L1S DCX/CAMF + QZQSM デコーダ
 #if __cplusplus < 201703L
 #error "This tool requires C++17 or later"
 #endif
@@ -17,8 +17,7 @@
 #  endif
 #endif
 
-// AZARAC_* overrides defined before this include are honored by azaraC_config.h.
-
+// この include より前に定義した AZARAC_* の上書きは azaraC_config.h で効く。
 #include "azaraC_config.h"
 
 #include "Message.h"
@@ -31,7 +30,7 @@
 
 namespace azaraC {
 
-// Convenience wrapper: serialize msg as JSON to any Print& (Serial, WiFiClient, etc.)
+// msg を JSON 化して任意の Print&（Serial、WiFiClient 等）へ書き出す。
 inline void toJson(const Message& msg, Print& out) {
     internal::JsonSerializer::serialize(msg, out);
 }

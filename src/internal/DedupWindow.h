@@ -3,7 +3,8 @@
 // MT=44 (DCX/CAMF) は同表を持たないため、A8-Hazard Duration のカテゴリ上限を窓にする（DCX §4.2.3.8 Table 4.2-11 / EWSS-CAMF §3.3.2、A8=00 の 1 週間は DCX §5.4。QZS 事務局回答）。
 // AVR はスロットが 64 と少ないので `AZARAC_DEDUP_MT44_MAX_WINDOW_MS` で頭打ちにする。
 //
-// header-only にして Parser・benchmark・test/tools/dedup_realday.cpp で 1 つの表を共有する。2 つ目の写しは黙って食い違う（realday ツールは Parser の窓が生む誤再通知を測る）。
+// header-only にして Parser・benchmark・test/tools/dedup_realday.cpp で 1 つの表を共有する。
+// 2 つ目の写しは黙って食い違う（realday ツールは Parser の窓が生む誤再通知を測る）。
 
 #include "../azaraC_config.h"
 #include "../Message.h"
@@ -11,11 +12,10 @@
 namespace azaraC {
 namespace internal {
 
-// 1 通に複数の副種別（気象の Ww、洪水の Lv、海上の Dw）が入る場合は「条件にて該当する情報の配信が終了する」ので、条件を満たす情報のうち最長の窓を採る。短くする誤りは「まだ生きている情報を新規として再通知する」側に倒れるため、長い側が安全。 fallback_ms は表に無い災害種別（未割当・予約など）に使う。
+// 1 通に複数の副種別（気象の Ww、洪水の Lv、海上の Dw）が入る場合は「条件にて該当する情報の配信が終了する」ので、条件を満たす情報のうち最長の窓を採る。短くする誤りは「まだ生きている情報を新規として再通知する」側に倒れるため、長い側が安全。
+// fallback_ms は表に無い災害種別（未割当・予約など）に使う。
 //
-// 定数は必ず UL を付ける。
-// AVR の unsigned int は 16 bit なので `60u*60u*1000u` は 65536 で剰余を踏み（61056 ms）、`24u*60u*60u*1000u` も同様（23552 ms）で全カテゴリの窓が 20〜61 秒に潰れる。
-// ホストの pgm-stub は int が 32 bit なのでこの欠陥を検出できない。
+// 定数は必ず UL を付ける: AVR の unsigned int は 16 bit なので `60u*60u*1000u` は 65536 で剰余を踏み（61056 ms）、`24u*60u*60u*1000u` も同様（23552 ms）で全カテゴリの窓が 20〜61 秒に潰れる。ホストの pgm-stub は int が 32 bit なので検出できない。
 constexpr uint32_t kMinuteMs = 60UL * 1000UL;
 constexpr uint32_t kHourMs   = 60UL * kMinuteMs;
 constexpr uint32_t kDayMs    = 24UL * kHourMs;
@@ -93,7 +93,8 @@ inline uint32_t dedupWindowMs(const Message& m) {
         const Mt44Data* c = m.getMt44();
         if (!c) return AZARAC_DEDUP_WINDOW_MS;   // DCX 無効時は payload_type=44 にならない（通常は到達しない）
 #if defined(__AVR__)
-        // AVR は 7 日の窓を保持する余裕がないので上限を設ける（azaraC_config.h、issue #34 の実測: 再送間隔は最大 16 秒）。A8 の窓は最短でも 6 時間なので上限が常に効く。
+        // AVR は 7 日の窓を保持する余裕がないので上限を設ける（azaraC_config.h: 再送間隔は最大 16 秒）。
+        // A8 の窓は最短でも 6 時間なので上限が常に効く。
         return AZARAC_DEDUP_MT44_MAX_WINDOW_MS;
 #else
         switch (c->camf.a8) {

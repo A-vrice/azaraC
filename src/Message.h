@@ -1,6 +1,6 @@
 #pragma once
-// メッセージ本体: raw な整列ストレージ上のタグ付き union。コピー/破棄は placement-new と明示的デストラクタで行う。
-// payload の各型は trivially copyable のまま維持すること（Mt43Data::copyFrom はストレージを memcpy する）。
+// メッセージ本体: 整列済みバイトストレージ上のタグ付き union。コピーと破棄は placement-new と明示的デストラクタで行う。
+// payload の各型は trivially copyable のまま維持すること（Mt43Data::copyFrom がストレージを memcpy するため）。
 
 #if defined(__AVR__)
 #include "internal/avr_std/cstdint"
@@ -45,8 +45,8 @@ struct Message {
     UnsupportedReason unsupported_reason = UnsupportedReason::None;
     MsgPayloadType payload_type = MsgPayloadType::Empty;
 
-    // 有効な payload の最大サイズ（DCX off では Mt44 を復号しないのでその ~280 B/Message を削る。Uno は 2 KB）。
-    // Ternary instead of std::max: Arduino.h defines `max` as a macro.
+    // 有効な payload の最大サイズ。DCX off では Mt44 を復号しないのでその分（約 280 B/Message）を削れる。
+    // 三項演算子なのは Arduino.h の `max` マクロと衝突しないため。
 #if AZARAC_ENABLE_DCX_CAMF
     static constexpr size_t payload_size_ =
         (sizeof(Mt43Data) > sizeof(Mt44Data) ? sizeof(Mt43Data) : sizeof(Mt44Data));
@@ -87,7 +87,7 @@ struct Message {
         destroyPayload();
     }
 
-    // Reset scalars and destroy payload without zeroing payload_storage_ (avoids a redundant memset before initPayload()).
+    // スカラーを初期値へ戻し payload を破棄する。payload_storage_ はクリアしない（次に initPayload() が上書きする）。
     void clear() {
         destroyPayload();
         svid = 0;
@@ -95,12 +95,12 @@ struct Message {
         crc24 = 0;
         valid = false;
         unsupported_reason = UnsupportedReason::None;
-        // payload_type is already MsgPayloadType::Empty from destroyPayload()
+        // payload_type は destroyPayload() で Empty 済み
     }
 
     template<typename T>
     void initPayload() {
-        // Compile-time guard: instantiating a disabled payload (e.g. Mt44 with AZARAC_ENABLE_DCX_CAMF=0) fails here instead of overflowing.
+        // 無効化された payload（AZARAC_ENABLE_DCX_CAMF=0 の Mt44 など）は、実行時に溢れさせるのではなくここで静的に失敗させる。
         static_assert(sizeof(T) <= payload_size_,
                       "Payload type exceeds Message storage (disabled at compile time?)");
         destroyPayload();
@@ -137,8 +137,8 @@ struct Message {
     }
 
 private:
-    // 生の payload 領域。生存期間と型は initPayload<T>() / getMt43() / getMt44() だけが決める（公開すると initPayload() 無しで payload_type と不整合に書ける）。
-    // payload には uint64_t を含む型（Mt44Data 等）が入るため境界が必要。AVR の alignof(uint64_t) は 1 なので、この指定は AVR では境界を要求しない（8 の倍数への切り上げが起きない）。ホストは 8 のまま。
+    // 生の payload 領域。型と生存期間は initPayload<T>() / getMt43() / getMt44() だけが決める（public にすると initPayload() 抜きで payload_type と不整合に書ける）。
+    // uint64_t を含む型（Mt44Data 等）が入るため境界指定が必要。AVR の alignof(uint64_t) は 1 なので実質要求なし（8 の倍数への切り上げが起きない）、ホストは 8。
     alignas(uint64_t) unsigned char payload_storage_[payload_size_];
 
     template<typename T> static MsgPayloadType typeForPayload();
@@ -173,7 +173,6 @@ private:
     }
 };
 
-// Type mapping specializations for Message payload
 template<> inline MsgPayloadType Message::typeForPayload<Mt43Data>() { return MsgPayloadType::Mt43; }
 template<> inline MsgPayloadType Message::typeForPayload<Mt44Data>() { return MsgPayloadType::Mt44; }
 

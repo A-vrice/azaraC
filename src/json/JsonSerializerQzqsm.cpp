@@ -1,4 +1,4 @@
-// MT=43 QZQSM JSON serializer
+// MT=43 QZQSM の JSON シリアライザ
 
 #include "azaraC.h"
 #include "JsonWriter.h"
@@ -18,7 +18,8 @@ namespace azaraC {
 namespace internal {
 
 #if (AZARAC_ENABLE_TSUNAMI) || (AZARAC_ENABLE_NW_PAC_TSUNAMI)
-// 12bit Ta → azarashi と同じ語彙の状態（通常時刻は空の JsonKey）。判定順が本質: 範囲外チェックを先に置くと hour==30 の no_information（30 > 23）が到達不能になる。
+// 12bit Ta → azarashi と同じ語彙の状態（通常時刻は空の JsonKey）。
+// 判定順が本質: 範囲外チェックを先に置くと hour==30 の no_information（30 > 23）が到達不能になる。
 // 値も固定文字列なので AZARAC_KEY で Flash に置く（AVR の SRAM を食う .rodata を作らない）。
 static azaraC::internal::JsonKey arrivalStatus(uint16_t raw, bool nwpac) {
     uint8_t day = (raw >> 11) & 1u, hour = (raw >> 6) & 0x1Fu, min = raw & 0x3Fu;
@@ -28,7 +29,8 @@ static azaraC::internal::JsonKey arrivalStatus(uint16_t raw, bool nwpac) {
     return {nullptr, 0};
 }
 // 津波の高さコード → 境界（m。10 分の 1 m 単位の整数で、下端は開・上端は閉。azarashi の PROFILES と同じ区分）。
-// 境界を持たないコード（センチネル・「その他」）と片側だけ無い区分（「0.2m未満」の下側）は 0 で出し、呼び出し側が null を書く。10 の倍数なので wf_deg の整数演算だけで済み、24bit 仮数の AVR でも host と一致する。
+// 境界を持たないコード（センチネル・「その他」）と片側だけ無い区分（「0.2m未満」の下側）は 0 で出し、呼び出し側が null を書く。
+// 10 の倍数なので wf_deg の整数演算だけで済み、24bit 仮数の AVR でも host と一致する。
 static void writeHeightBounds(Print& out, uint16_t code, bool nwpac) {
     int32_t lower = 0, upper = 0;
     if (nwpac) {
@@ -108,8 +110,8 @@ bool serializeEEW(const Mt43Data* d, Print& out) {
         qzss_dcr_jma_seismic_intensity_upper_limit_lookup,
         qzss_dcr_jma_seismic_intensity_upper_limit_en_lookup, eew->intensity_upper, false);
     wk(out, AZARAC_KEY("regions")); out.print('[');
-    // regionCount()+regionAt(i) は i ごとに先頭から走査するので O(N²) になる（80 区フルで
-    // AVR 換算 ~25k cycles）。ビットマップを 1 回走査すれば昇順のまま O(80)。
+    // regionCount()+regionAt(i) は i ごとに先頭から走査して O(N²) になる。
+    // ビットマップを 1 回走査すれば昇順のまま O(80)。
     bool first = true;
     for (uint8_t byt = 0; byt < 10; ++byt) {
         const uint8_t v = eew->region_bitmap[byt];
@@ -486,19 +488,19 @@ bool serializeTyphoon(const Mt43Data* d, Print& out) {
     AZARAC_LABEL(out, "intensity_label",
         qzss_dcr_jma_typhoon_intensity_category_lookup,
         qzss_dcr_jma_typhoon_intensity_category_en_lookup, typh->intensity, false);
-    // Typhoon center coordinates (LatLon: 41-bit DMS format)
+    // 台風中心座標（LatLon: 41 bit の DMS 形式）
     writeLatLon(out, AZARAC_KEY("coords"), typh->coords);
-    // Central pressure (11 bits, hPa)
+    // 中心気圧（11 bit、hPa）
     wf_u(out, AZARAC_KEY("pressure"), typh->pressure);
     AZARAC_LABEL(out, "pressure_label",
         qzss_dcr_jma_typhoon_central_pressure_lookup,
         qzss_dcr_jma_typhoon_central_pressure_en_lookup, typh->pressure, false);
-    // Maximum wind speed (7 bits, m/s)
+    // 最大風速（7 bit、m/s）
     wf_u(out, AZARAC_KEY("max_wind"), typh->max_wind);
     AZARAC_LABEL(out, "max_wind_label",
         qzss_dcr_jma_typhoon_maximum_wind_speed_lookup,
         qzss_dcr_jma_typhoon_maximum_wind_speed_en_lookup, typh->max_wind, false);
-    // Maximum wind gust speed (7 bits, m/s)
+    // 最大瞬間風速（7 bit、m/s）
     wf_u(out, AZARAC_KEY("max_gust"), typh->max_gust);
     AZARAC_LABEL(out, "max_gust_label",
         qzss_dcr_jma_typhoon_maximum_gust_wind_speed_lookup,

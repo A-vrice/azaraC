@@ -1,6 +1,5 @@
 #pragma once
-// azaraC - src/internal/avr_std/cstdint
-// 最小限の <cstdint> shim: Arduino AVR ツールチェーン（avr-gcc 7.3.0、arduino:avr コア）は C++ 標準ライブラリを一切積んでおらず <cstdint> が存在しないため、代わりに avr-libc の <stdint.h> を使う。
+// 最小限の <cstdint> shim: Arduino AVR ツールチェーン（avr-gcc 7.3.0、arduino:avr コア）は C++ 標準ライブラリを一切積んでおらず <cstdint> が存在しないため、avr-libc の <stdint.h> を使う。
 //
 // AZARAC_AVR_STUB: ホスト検証ビルド（make pgm-stub）— 本物の stdlib を使い、それを隠さないようにする。
 

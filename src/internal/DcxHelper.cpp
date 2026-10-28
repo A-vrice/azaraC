@@ -1,22 +1,21 @@
-// DCX MT44 decode helpers
-// Based on IS-QZSS-DCX-004 / EWSS CAMF v1.2
+// DCX MT44 の復号ヘルパ（IS-QZSS-DCX-004 / EWSS CAMF v1.2）
 #include "DcxHelper.h"
 #include "../azaraC_config.h"   // AZARAC_PROGMEM_NEAR / AZARAC_PGM_READ_*
 
 namespace azaraC {
 namespace internal {
 
-// Latitude/Longitude decoding
+// 緯度・経度の復号
 
 int32_t decodeLatitude16(uint16_t code) {
-    // -90,000,000 + 180,000,000 * code / 65535, rounded
+    // -90,000,000 + 180,000,000 * code / 65535（四捨五入）
     return static_cast<int32_t>(
         -90000000LL + (180000000LL * code + 32767) / 65535
     );
 }
 
 int32_t decodeLongitude17(uint32_t code) {
-    // -180,000,000 + 360,000,000 * code / 131071, rounded
+    // -180,000,000 + 360,000,000 * code / 131071（四捨五入）
     return static_cast<int32_t>(
         -180000000LL + (360000000LL * code + 65535) / 131071
     );
@@ -34,8 +33,7 @@ int32_t decodeLongitude17_45_225(uint32_t code) {
     );
 }
 
-// 半径の復号（5 bit コード）: IS-QZSS-DCX-003 Table 4.2-17 / 4.2-18、Radius[m] = 10^(log10(216.20) + a * (log10(2500000) - log10(216.20)) / 31)
-// Flash に置く: avr-libc のリンカスクリプトは .rodata を .data（SRAM）へ含めるので、属性の無い const 配列はそのまま SRAM を食う（実測 128 B）。
+// 半径の復号（5 bit コード）: IS-QZSS-DCX-003 Table 4.2-17 / 4.2-18、Radius[m] = 10^(log10(216.20) + a * (log10(2500000) - log10(216.20)) / 31) Flash に置く: avr-libc のリンカスクリプトは .rodata を .data（SRAM）へ含めるので、属性の無い const 配列はそのまま SRAM を食う。
 static const int32_t RADIUS_TABLE[32] AZARAC_PROGMEM_NEAR = {
         216,
         292,
@@ -78,28 +76,28 @@ int32_t decodeRadiusCode(uint8_t code) {
     return 0;
 }
 
-// Azimuth decoding
+// 方位角の復号
 
 int32_t decodeAzimuth6(uint8_t code) {
-    // -9,000,000 + 18,000,000 * code / 64 (×100,000 scale)
+    // -9,000,000 + 18,000,000 * code / 64（×100,000 単位）
     return static_cast<int32_t>(
         -9000000LL + (18000000LL * code + 32) / 64
     );
 }
 
 int32_t decodeAzimuth7(uint8_t code) {
-    // -9,000,000 + 18,000,000 * code / 128 (×100,000 scale)
+    // -9,000,000 + 18,000,000 * code / 128（×100,000 単位）
     return static_cast<int32_t>(
         -9000000LL + (18000000LL * code + 64) / 128
     );
 }
 
-// J-Alert EX9 decoding
+// J-Alert EX9 の復号
 
 uint8_t decodePrefectureBitmask(uint64_t ex9, uint8_t* out_positions) {
     uint8_t count = 0;
 
-    // EX8=0: prefecture = ex9[63:17]（ストリーム bit 147..193）、ex9[16:0]（bit 194..210）は Reserved。
+    // EX8=0: 都道府県 = ex9[63:17]（ストリーム bit 147..193）、ex9[16:0]（bit 194..210）は Reserved。
 
     uint64_t pref = ex9 >> 17;
 
@@ -128,7 +126,8 @@ uint8_t decodeCityCodeList(uint64_t ex9, uint16_t* out_codes) {
     return count;
 }
 
-// B1 (A17=00) - Improved Resolution of Main Ellipse (EWSS CAMF v1.2 §3.7.1)。A18 は MSB 先頭（a18[14] = 仕様 bit 131）: C1..C4 = 仕様 131-133/134-136/137-139/140-142 → a18[14:12]/[11:9]/[8:6]/[5:3]（各 3b）、a18[2:0] は Reserved。
+// B1 (A17=00) - Improved Resolution of Main Ellipse (EWSS CAMF v1.2 §3.7.1) A18 は MSB 先頭（a18[14] = 仕様 bit 131）:
+// C1..C4 = 仕様 131-133/134-136/137-139/140-142 → a18[14:12]/[11:9]/[8:6]/[5:3]（各 3b）、a18[2:0] は Reserved。
 
 B1Refinement decodeB1Refinement(uint16_t a18) {
     B1Refinement b1;
@@ -140,14 +139,14 @@ B1Refinement decodeB1Refinement(uint16_t a18) {
 }
 
 int32_t b1RefinedLatitudeOffset(uint8_t c1) {
-    // C1 × 180,000,000 / (8 × 65535), microdegrees
+    // C1 × 180,000,000 / (8 × 65535)、単位はマイクロ度
     return static_cast<int32_t>(
         (static_cast<int64_t>(c1) * 180000000LL + 262140) / 524280
     );
 }
 
 int32_t b1RefinedLongitudeOffset(uint8_t c2) {
-    // C2 × 360,000,000 / (8 × 131071), microdegrees
+    // C2 × 360,000,000 / (8 × 131071)、単位はマイクロ度
     return static_cast<int32_t>(
         (static_cast<int64_t>(c2) * 360000000LL + 524284) / 1048568
     );
@@ -179,15 +178,15 @@ B2HazardCenter decodeB2HazardCenter(uint8_t c5, uint8_t c6) {
     return r;
 }
 
-
-// B4 のフィールド配置: A4 のハザードコード → 最大 4 個の D フィールド仕様。EWSS CAMF v1.2 §3.7.4 に従い A18[15:0] 内で MSB→LSB の順（d_idx=0xFF で終端）。
+// B4 のフィールド配置: A4 のハザードコード → 最大 4 個の D フィールド仕様。
+// EWSS CAMF v1.2 §3.7.4 に従い A18[15:0] 内で MSB→LSB の順（d_idx=0xFF で終端）。
 
 namespace {
 
 struct DFieldSpec {
-    uint8_t d_idx;   // 0..35 = D1..D36; 0xFF = terminator
-    uint8_t shift;   // bit shift within A18[15:0]
-    uint8_t bits;    // bit width (1..8)
+    uint8_t d_idx;   // 0..35 = D1..D36、0xFF で終端
+    uint8_t shift;   // A18[15:0] 内のビットシフト
+    uint8_t bits;    // ビット幅 (1..8)
 };
 
 struct HazardB4Layout {
@@ -195,8 +194,8 @@ struct HazardB4Layout {
     DFieldSpec fields[4];
 };
 
-// Flash に置く（avr-libc のリンカスクリプトは .rodata を .data に含めるため、属性の無い const 配列は SRAM を食う — 実測 45 行 = 585 B）。
-// 行はパディング無しの 13 B であることが前提で、下の読み出しがバイト単位でオフセットを組む。
+// Flash に置く（avr-libc のリンカスクリプトは .rodata を .data に含めるため、属性の無い const 配列は SRAM を食う）。
+// 行はパディング無しの 13 B が前提で、下の読み出しがバイト単位でオフセットを組む。
 static_assert(sizeof(DFieldSpec) == 3, "DFieldSpec must stay padding-free");
 static_assert(sizeof(HazardB4Layout) == 13, "HazardB4Layout must stay padding-free");
 

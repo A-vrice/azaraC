@@ -1,6 +1,6 @@
 #pragma once
-// Parses UBX-RXM-SFRBX (class=0x02, id=0x13) from u-blox receivers.
-// Only accepts QZSS L1S subframes (gnssId=5, sigId∈{0,1}).
+// u-blox 受信機の UBX-RXM-SFRBX（class=0x02, id=0x13）を解析する。
+// QZSS L1S のサブフレームのみ受け付ける（gnssId=5、sigId∈{0,1}）。
 
 #include "IFramer.h"
 
@@ -24,7 +24,7 @@ private:
     uint16_t _len  = 0;
     uint16_t _pos  = 0;
     uint8_t  _ck_a = 0, _ck_b = 0;
-    uint8_t  _buf[64] = {};   // SFRBX payload = 8(header) + 4*words (8/9 words -> 40/44 B); 64 for safety margin
+    uint8_t  _buf[64] = {};   // SFRBX payload = ヘッダ 8 B + 4 B × 8/9 word（40/44 B）、余裕を見て 64
 
     bool parse(Frame& out);
 };

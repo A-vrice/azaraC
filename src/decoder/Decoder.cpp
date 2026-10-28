@@ -1,4 +1,4 @@
-// Common decoder utilities (CRC, bit extraction, time resolution)
+// デコーダ共通部（CRC、ビット抽出、時刻解決）
 
 #include "Decoder.h"
 #if defined(__AVR__)
@@ -11,7 +11,8 @@ namespace internal {
 // CRC-24Q  (generator 0x1864CFB, GPS/QZSS standard)
 static constexpr uint32_t CRC24Q_POLY = 0x1864CFBu;
 
-// ニブル表の 1 項目: 4 bit の {i, 0000} を MSB-first, init=0 で取り込んだ結果。 1 ビットずつの `crc <<= 1; if (crc & 0x1000000) crc ^= POLY;` 4 回ぶん。表はこれから生成する（手書き定数を置かない）。
+// ニブル表の 1 項目: 4 bit の {i, 0000} を MSB-first, init=0 で取り込んだ結果。
+// 1 bit ずつの `crc <<= 1; if (crc & 0x1000000) crc ^= POLY;` を 4 回ぶん。表はここから生成する（手書き定数を置かない）。
 static constexpr uint32_t crc24qT4(uint32_t i) {
     uint32_t c = i << 20;
     for (uint8_t k = 0; k < 4; ++k) {
@@ -22,7 +23,8 @@ static constexpr uint32_t crc24qT4(uint32_t i) {
 }
 
 #if defined(__AVR__)
-// AVR: 32 bit の `>> 20` / `<< 4` は LSR/ROR の回転ループに展開されるため（実測: -Os）、 24 bit レジスタを 3 バイトで持ち 8 bit 演算だけで回す。表は Flash に置き 3 分割で読む。
+// AVR: 32 bit の `>> 20` / `<< 4` は -Os でも LSR/ROR の回転ループに展開される。
+// そこで 24 bit レジスタを 3 バイトへ分割して 8 bit 演算だけで回し、ニブル表も Flash へ 3 分割で置く。
 #define AZARAC_CRC24Q_T4B(BYTE) \
     (uint8_t)(crc24qT4(0)  >> (BYTE)), (uint8_t)(crc24qT4(1)  >> (BYTE)), \
     (uint8_t)(crc24qT4(2)  >> (BYTE)), (uint8_t)(crc24qT4(3)  >> (BYTE)), \
@@ -103,7 +105,8 @@ uint32_t Decoder::crc24q(const uint8_t* data, uint16_t bit_len) {
 uint32_t Decoder::messageIdentity(uint8_t* bits) {
     const uint8_t mt = (uint8_t)((bits[1] >> 2) & 0x3Fu);   // MT = frame bit 8..13（byte 1 の上位 6 bit）
     if (mt != 44) return crc24q(bits + 1, 212);
-    // SD（byte 1 の下位 2 bit + byte 2 = frame bit 14..23）だけゼロにして digest を取る。 32 B のフレームをコピーしないよう、対象 2 バイトを外して取ったあと戻す（呼び出し側から見てフレームは不変）。
+    // SD（byte 1 の下位 2 bit + byte 2 = frame bit 14..23）だけゼロにして digest を取る。
+    // 32 B のフレームをコピーしないよう、対象 2 バイトを外して取ったあと戻す（呼び出し側から見てフレームは不変）。
     const uint8_t sd_hi = bits[1];
     const uint8_t sd_lo = bits[2];
     bits[1] &= 0xFCu;
@@ -115,11 +118,11 @@ uint32_t Decoder::messageIdentity(uint8_t* bits) {
 }
 
 uint32_t Decoder::getBits(const uint8_t* buf, uint16_t start, uint8_t len) {
-    // OOB は 0 を返して oob_ を立て、decode() 側で弾く（組込みなので assert は使わない）。上限は 250 ではなく 256: Frame::bits は 256 bit 幅で、bit 250-255 は詰め物。
+    // OOB は 0 を返して oob_ を立て、decode() 側で弾く（組込みなので assert は使わない）。
+    // 上限は 250 ではなく 256: Frame::bits は 256 bit 幅で、bit 250-255 は詰め物。
     if (start + len > 256) { oob_ = true; return 0; }
     // 1 bit ずつ詰める代わりに「先頭の中途バイト → フルバイト列 → 末尾の中途バイト」で組み立てる。
-    // AVR は可変シフトが回転ループに展開され 50-60 cycles/bit かかるため、固定シフト数回への置き換えで
-    // 呼び出しごとのコストをビット長にほぼ比例して削減する（出力は旧実装と全 (start,len) 組合せで一致）。
+    // AVR の可変シフトは回転ループに展開され 50-60 cycles/bit かかるため、固定シフト数回へ置き換えて呼び出しごとのコストをビット長にほぼ比例させる。
     uint32_t val = 0;
     uint8_t  rem = len;
     uint16_t pos = start;
@@ -144,7 +147,7 @@ uint32_t Decoder::getBits(const uint8_t* buf, uint16_t start, uint8_t len) {
 
 // 64 bit 抽出（MSB-first, 0 始まり）— 32 bit を超えるフィールド用
 uint64_t Decoder::getBits64(const uint8_t* buf, uint16_t start, uint8_t len) {
-    // Same silent-zero-with-oob-flag policy as getBits()
+    // getBits() と同じく、範囲外は 0 を返して oob_ を立てる
     if (start + len > 256) { oob_ = true; return 0; }
     uint64_t val = 0;
     uint8_t  rem = len;
@@ -169,8 +172,7 @@ uint64_t Decoder::getBits64(const uint8_t* buf, uint16_t start, uint8_t len) {
 }
 
 namespace {
-// mp は 0..11 (March=0 .. February=11)。AVR の unsigned int は 16-bit なので、
-// `-9u` を式に直接置くと 65527 になり、Jan/Feb が 65537/65538 になる。
+// mp は 0..11 (March=0 .. February=11)。AVR の unsigned int は 16-bit なので、`-9u` を式に直接置くと 65527 になり、Jan/Feb が 65537/65538 になる。
 constexpr uint32_t civilMonth(uint32_t mp) {
     return mp < 10u ? mp + 3u : mp - 9u;
 }
@@ -181,10 +183,9 @@ static_assert(civilMonth(11u) == 2u,  "civilMonth February must not wrap on 16-b
 } // namespace
 
 // 非AVR: Hinnant era 法 (u32)。定数除算はコンパイラが乗算展開するためこの形が最速。
-// AVR: era (400 年ブロック) の u32 除算だけを引き算ループ (≤24 回) に置き換える。
-// avr-gcc は u32/定数 を __udivmodsi4 呼び出しで実装するため、era 1 回の除去で
-// 呼び出し 2 回分 (era と doe 再計算) が消える。出力は全入力で非AVR版と同一
-// (test/core/test_time_equivalence.cpp が全日スイープで検証)。
+// AVR: era（400 年ブロック）の u32 除算だけを引き算ループ（≤24 回）に置き換える。
+// avr-gcc は u32/定数 を __udivmodsi4 呼び出しで実装するので、era 1 回の除算を消すだけで呼び出し 2 回分（era と doe 再計算）が消える。
+// 出力は全入力で非AVR版と同一（test/core/test_time_equivalence.cpp が全日スイープで検証）。
 void Decoder::civil_from_days(uint32_t days_since_1970, uint32_t& y, uint32_t& m, uint32_t& d) {
     uint32_t z = days_since_1970 + 719468u;
 #if defined(__AVR__)
@@ -207,9 +208,8 @@ void Decoder::civil_from_days(uint32_t days_since_1970, uint32_t& y, uint32_t& m
 uint32_t Decoder::days_from_civil(uint32_t y, uint32_t m, uint32_t d) {
     y -= (m <= 2u);
 #if defined(__AVR__)
-    // y ≤ 65535 (実用域) は u16 演算で解く: u16/定数 は乗算展開され __udivmodsi4 を呼ばない。
-    // 除算の被除数はすべて u16 に収まる (y16 ≤ 65535、yoe ≤ 399、153*(m±3)+2 ≤ 1838)。
-    // 実測: この関数の __udivmodsi4 呼び出し 3 → 0。
+    // y ≤ 65535（実用域）は u16 演算で解く: u16/定数 は乗算展開され __udivmodsi4 を呼ばない。
+    // 除算の被除数はすべて u16 に収まる（y16 ≤ 65535、yoe ≤ 399、153*(m±3)+2 ≤ 1838）。
     if (y <= 65535u) {
         const uint16_t y16 = (uint16_t)y;
         const uint16_t era = (uint16_t)(y16 / 400u);
@@ -287,7 +287,7 @@ TimeFields Decoder::resolveTime(uint8_t month, uint8_t day, uint8_t hour, uint8_
             y = best_y;
             m = best_m;
         } else {
-            // Stale: most recent occurrence on/before report_unix (never future).
+            // 古い通報: report_unix 以前の直近の出現へ落とす（未来には置かない）。
             uint32_t cur_ts = days_from_civil(y, m, day) * 86400u
                             + (uint32_t)hour * 3600u + (uint32_t)minute * 60u;
             if (cur_ts > base_unix) {
@@ -359,7 +359,7 @@ bool Decoder::decode(const Frame& frame, Message& out, uint32_t report_unix) {
     out.svid    = frame.svid;
     const uint8_t* bits = frame.bits;
 
-    // L1S subframe: CRC-24Q covers bits [0..225], CRC stored at [226..249]
+    // L1S サブフレーム: CRC-24Q は bit [0..225] を覆い、CRC は [226..249] に格納
     uint32_t calc = crc24q(bits, 226);
     uint32_t recv = getBits(bits, 226, 24);
     if (calc != recv) return false;

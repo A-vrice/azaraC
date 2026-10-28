@@ -10,8 +10,11 @@ namespace azaraC {
 namespace internal {
 
 struct Frame {
-    uint8_t     svid;       // QZSS L1S PRN (spec IDs 53–63 -> 181–191; NMEA 64–99 rejected, 0–52 pass through as 128–180 and are outside the contract; unmapped UBX svId passes through as-is)
-    uint8_t     bits[32];   // 250 bits MSB-first; bits[31] lower 6 = padding zeros
+    // 衛星 ID。NMEA/UBX の生 ID を L1S の PRN へ寄せる（仕様 ID 53–63 → 181–191）。
+    // NMEA は 64–99 を拒否し、0–52 は 128–180 として通す（PRN 契約 181–191 の外なので利用側で絞る）。
+    // UBX は未マッピングの svId をそのまま通す。
+    uint8_t     svid;
+    uint8_t     bits[32];   // 250 bit を MSB-first。bits[31] の下位 6 bit は詰め物のゼロ
 };
 
 } // namespace internal

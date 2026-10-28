@@ -1,9 +1,10 @@
 #pragma once
 // 定義表の文字列アクセス（AVR の PROGMEM 対応）。
-// AVR ではラベル文字列が Flash にあり std::string_view では指せないため、引き当て時に共有 RAM バッファへコピーする。返り値の view/ポインタは次の定義引き当て呼び出しまでのみ有効。
-// 非 AVR: 素通し。
+// AVR ではラベル文字列が Flash にあり std::string_view では指せないため、引き当て時に共有 RAM バッファへコピーする。
+// 返り値の view/ポインタは次の定義引き当て呼び出しまでのみ有効。非 AVR: 素通し。
 //
-// AVR のアドレス: 64 KiB 超の Flash の品では表が 0xFFFF より上にリンクされ、16 bit の progmem ポインタでは届かない。そのためアドレスと読み出しは far アクセサ経由にする（それ未満では素の progmem ポインタ）。
+// AVR のアドレス: 64 KiB 超の Flash の品では表が 0xFFFF より上にリンクされ、16 bit の progmem ポインタでは届かない。
+// そのためアドレスと読み出しは far アクセサ経由にする（それ未満では素の progmem ポインタ）。
 // 行は {id, parent, offset} のまま — オフセットはプール内の 16 bit で、どれも 64 KiB より遥かに小さい。
 // これにより表は Arduino コアの表と共有する低 Flash の progmem クラスタからも外れる（azaraC_config.h の AZARAC_PROGMEM）。
 
@@ -22,7 +23,7 @@
 #endif
 
 #ifndef AZARAC_FLASH_BUF_SIZE
-// Largest generated label is 769 bytes (D20 ash-fall description).
+// 生成される最長ラベルは 769 B（D20 降灰:description）
 #define AZARAC_FLASH_BUF_SIZE 800
 #endif
 
@@ -36,7 +37,7 @@ namespace def {
 #endif
 
 // プールは `azarac_pgm_ptr` で指す: far の品では Flash アドレス、それ以外では素の progmem ポインタ。
-// 読み出しは下のアクセサでそのアドレスへの *オフセット* を指定し、配列のアドレスは AZARAC_PGM_PTR で取る — 素のポインタは far の品では切り詰められる。
+// 読み出しは下のアクセサでそのアドレスへの *オフセット* を指定し、配列のアドレスは AZARAC_PGM_PTR で取る（素のポインタは far の品では切り詰められる）。
 #if FLASHEND > 0xFFFF
 #if defined(AZARAC_AVR_STUB)
 // ホスト検証ビルド: 「Flash アドレス」はホストのポインタで、ポインタと同じ幅（test/stub/avr/pgmspace.h）。
@@ -97,8 +98,8 @@ inline std::string_view azarac_pgm_join_z(azarac_pgm_ptr a, azarac_pgm_ptr b) {
     buf[n] = '\0';
     return std::string_view(buf, n);
 }
-// 3 分割ラベル: 同じ考えを 1 段深くし、共有断片自体が繰り返す場合に使う（" City, Aichi Prefecture" を " City, " + "Aichi Prefecture" で表す）。
-// コピーは同じバッファへの 1 回分のまま。
+// 3 分割ラベル: 同じ考えを 1 段深くし、共有断片自体が繰り返す場合に使う
+// （" City, Aichi Prefecture" を " City, " + "Aichi Prefecture" で表す）。コピーは同じバッファへの 1 回分のまま。
 inline std::string_view azarac_pgm_join3(azarac_pgm_ptr a, azarac_pgm_ptr b, azarac_pgm_ptr c) {
     char* buf = azarac_flash_buf();
     size_t n = azarac_pgm_append(buf, 0, a);
@@ -114,13 +115,11 @@ inline const char* azarac_pgm_copy(azarac_pgm_ptr src) {
     return buf;
 }
 #else
-// 非 AVR: ラベルの実体は .rodata（Flash 側）に落ちる。定義テーブルの生成コード
-// (scripts/gen/gen_definitions.py) は AVR と同一テキストを両アーキテクチャへ出すため、
-// AVR 側のアクセサ一式（byte offset 読み出し・NUL 区切りプール走査・共有バッファ連結）を
-// 同一署名で用意する。これにより非 AVR も factor_parents による共有断片プールの恩恵を受け、
-// フルラベル保持よりフラッシュが減る（local_government で ja 約 14KB / en 約 39KB、
-// target_area_code で ja 約 15KB / en 約 42KB）。join 系のみ RAM バッファへ 1 回コピーし、
-// 切り詰めは AVR と同じ AZARAC_FLASH_BUF_SIZE に揃える。view 系は従来どおりゼロコピー。
+// 非 AVR: ラベルの実体は .rodata（Flash 側）に落ちる。
+// 定義テーブルの生成コード (scripts/gen/gen_definitions.py) は AVR と同一テキストを両アーキテクチャへ出すため、AVR 側のアクセサ一式（byte offset 読み出し・NUL 区切りプール走査・共有バッファ連結）を同一署名で用意する。
+// これで非 AVR も factor_parents による共有断片プールの恩恵を受け、フルラベル保持よりフラッシュが減る（local_government で ja 約 14KB / en 約 39KB、target_area_code で ja 約 15KB / en 約 42KB）。
+// join 系のみ RAM バッファへ 1 回コピーし、切り詰めは AVR と同じ AZARAC_FLASH_BUF_SIZE に揃える。
+// view 系はゼロコピーのまま。
 using azarac_pgm_ptr = const char*;
 #define AZARAC_PGM_PTR(flash_array) (reinterpret_cast<const char*>(flash_array))
 inline uint8_t azarac_read_byte(azarac_pgm_ptr p, size_t i) { return static_cast<uint8_t>(p[i]); }

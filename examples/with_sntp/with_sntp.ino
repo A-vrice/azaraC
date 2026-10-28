@@ -1,5 +1,3 @@
-// azaraC — examples/with_sntp/with_sntp.ino
-//
 // Wi-Fi + SNTP で UNIX 時刻を取得し DCR/DCX の「年」を解決する例。すべてのメッセージを JSON で出力し、EEW と MT=44 DCX は詳細ログも出す。
 
 // (AZARAC_DEDUP_SLOTS: 上書き不要 — 既定値は QZSS アーカイブ 30 日分から決めている。src/azaraC_config.h を参照。)
@@ -55,7 +53,9 @@ void setup() {
 
 void loop() {
     while (Serial1.available()) {
-        // SNTP 同期の現在時刻を UNIX 秒で渡す。未同期で 2000 年以前の値でも、azaraC が年解決をスキップするので電文の生データ (月・日・時・分) は正しく取れる。 time_t は 64-bit 環境で long long のため、負値 (エラー) をガードしてから uint32_t にキャストする。
+        // SNTP 同期の現在時刻を UNIX 秒で渡す。
+        // 未同期で 2000 年以前の値でも、azaraC が年解決をスキップするので電文の生データ（月・日・時・分）は正しく取れる。
+        // time_t は 64-bit 環境で long long のため、負値（エラー）をガードしてから uint32_t にキャストする。
         time_t now_t = time(nullptr);
         uint32_t now = (now_t > 0) ? static_cast<uint32_t>(now_t) : 0;
 

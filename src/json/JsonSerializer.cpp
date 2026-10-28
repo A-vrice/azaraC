@@ -1,4 +1,4 @@
-// Top-level JSON serializer entry point
+// JSON シリアライザのエントリポイント
 
 #include "azaraC.h"
 #include "JsonSerializer.h"
@@ -18,7 +18,7 @@
 namespace azaraC {
 namespace internal {
 
-// Forward declarations (defined in separate files)
+// 前方宣言（実体は別ファイル）
 #if (AZARAC_ENABLE_DCX_CAMF)
 void serializeDcx(const Message& m, Print& out);
 #endif
@@ -98,7 +98,7 @@ void JsonSerializer::serialize(const Message& msg, Print& out) {
         writeDHM(out, AZARAC_KEY("report_time"), d->event_time);
         wk(out, AZARAC_KEY("data")); out.print('{');
 
-        // Dispatch by disaster_category (categories 7/13 undefined in spec)
+        // disaster_category で振り分ける（7/13 は仕様で未定義）
         bool serialized = false;
         switch (d->disaster_category) {
 #if (AZARAC_ENABLE_EEW)

@@ -1,9 +1,4 @@
-// azaraC — examples/filter_by_category/filter_by_category.ino
-//
-// MT=43 防災カテゴリ別フィルタリングの例
-// 特定の災害カテゴリのみをSerialに出力する
-//
-// 対応カテゴリ:
+// MT=43 防災カテゴリ別フィルタリングの例特定の災害カテゴリのみをSerialに出力する対応カテゴリ:
 //   1  = 緊急地震速報 (EEW)
 //   2  = 震源情報 (Hypocenter)
 //   3  = 震度情報 (Seismic Intensity)
@@ -17,7 +12,7 @@
 //   12 = 台風情報 (Typhoon)
 //   14 = 海上警報 (Marine)
 //
-// Wiring (ESP32-C3 DevKitM-1):
+// 配線 (ESP32-C3 DevKitM-1):
 //   GNSS TX → GPIO20 (Serial1 RX)
 //   GNSS RX → GPIO21 (Serial1 TX)
 //   GND     → GND

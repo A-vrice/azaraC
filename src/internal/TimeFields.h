@@ -27,22 +27,18 @@ static inline uint64_t getMillis() {
 
     uint32_t raw;
 #if defined(__AVR__)
-    // interrupts() を呼ばず SREG を保存する: getMillis() は呼び出し側のクリティカルセクションや
-    // ISR から呼ばれ得るため、そこで割り込みを許可し直すとその原子性を壊す。
+    // interrupts() を呼ばず SREG を保存する: getMillis() は呼び出し側のクリティカルセクションや ISR から呼ばれ得るため、そこで割り込みを許可し直すとその原子性を壊す。
     uint8_t irq_state = SREG;
     cli();
 #elif defined(__arm__)
     // Cortex-M: 割り込みを無条件に許可するのではなく PRIMASK を復元する。
-    // mrs/msr を直接使う: CMSIS intrinsic は一部の Arduino ARM コア（rp2040、Teensy）で見えず、
-    // どの Cortex-M もこの命令を備えている。
+    // mrs/msr を直接使う: CMSIS intrinsic は一部の Arduino ARM コア（rp2040、Teensy）で見えず、どの Cortex-M もこの命令を備えている。
     uint32_t irq_state;
     __asm__ volatile("mrs %0, primask" : "=r"(irq_state));
     __asm__ volatile("cpsid i" ::: "memory");
 #else
     // このコア（Xtensa / RISC-V の ESP32 など）には可搬な保存/復元 API が無い。
-    // noInterrupts()/interrupts() は呼び出し側の割り込み状態を保存しないため、
-    // クリティカルセクション中や ISR から getMillis()（および Parser::feed()）を
-    // 呼ばないこと。AVR / Cortex-M は SREG / PRIMASK を退避・復元する。
+    // noInterrupts()/interrupts() は呼び出し側の割り込み状態を保存しないため、クリティカルセクション中や ISR から getMillis()（および Parser::feed()）を呼ばないこと。AVR / Cortex-M は SREG / PRIMASK を退避・復元する。
     noInterrupts();
 #endif
     // 下の拡張が一貫した値を 1 つ見るよう、クリティカルセクション内で millis() を読む。

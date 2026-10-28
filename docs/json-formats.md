@@ -3,7 +3,7 @@
 azaraC の `JsonSerializer`（C++ / `Print&`）が出力する JSON と、参照実装であるazarashi（v0.17.1）の `azarashi.json.to_json_dict()` が出力する JSON は **スキーマが異なる**。
 対象が異なる（組込み向けの最小表現か、Python側の完全レコードか）ため、優劣ではなく用途に応じた選択になる。本ドキュメントは azaraC のスキーマを示し、両者の差分を整理する。
 
-ルートの `schema_version` は現在 `2`。今後の更新等に合わせて変更予定。
+ルートの `schema_version` は `2`。スキーマを変える変更のときのみ上げる。
 
 本書の数値は `test/data/*_vectors.json` の NMEA **228 通**（MT43 98 通 / MT44 130 通）で測る（§2.6）。
 

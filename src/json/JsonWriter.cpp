@@ -4,13 +4,11 @@ namespace azaraC {
 namespace internal {
 
 #if defined(__AVR__)
-// AVR ではキーが Flash にある。下の writeEscapedKey は Flash から直接走査してスタックへ
-// 1 回写すので、キー引き当て用の静的 RAM バッファ（旧 keyBuf の 36B）は存在しない。
+// AVR ではキーが Flash にある。writeEscapedKey は Flash から直接走査してスタックへ 1 回写すため、キー引き当て用の静的 RAM バッファは持たない。
 #endif
 
 void writeChar(Print& out, char c) { out.print(c); }
 
-// 共有キーバッファは使わない: writeEscaped の途中で呼ばれると、書き出し中のキー/ラベルを壊す。
 void writeRaw(Print& out, JsonKey k) {
 #if defined(__AVR__)
     // 共有キーバッファは使わない: writeEscaped の途中で呼ばれると、書き出し中のキー/ラベルを壊す。
@@ -40,7 +38,8 @@ void writeUint64(Print& out, uint64_t v) {
 // JSON 文字列をエスケープする（キーと値の両方で使う）
 static void writeEscaped(Print& out, std::string_view s) {
     if (s.empty()) return;
-    // エスケープ不要な文字列（キーとほぼ全てのラベル）は 1 回の write() で出す。 1 バイト 1 回の print() が文書全体のコストの大半を占めるため（実測 0.92 呼び出し/バイト）。
+    // エスケープ不要な文字列（キーとほぼ全てのラベル）は 1 回の write() で出す。
+    // 1 バイト 1 回の print() が文書全体のコストの大半を占めるため。
     bool plain = true;
     for (size_t i = 0; i < s.size(); ++i) {
         const uint8_t c = static_cast<uint8_t>(s[i]);
@@ -77,8 +76,7 @@ void writeStr(Print& out, std::string_view s) {
     out.print('"'); writeEscaped(out, s); out.print('"');
 }
 
-// キー（JsonKey）をエスケープ付きで書く。AVR では Flash から直接走査し、エスケープ不要なら
-// スタックへ 1 回写して 1 回の write で出す（キー引き当て用の静的 RAM バッファを持たない）。
+// キー（JsonKey）をエスケープ付きで書く。AVR では Flash から直接走査し、エスケープ不要ならスタックへ 1 回写して 1 回の write で出す（キー引き当て用の静的 RAM バッファを持たない）。
 static void writeEscapedKey(Print& out, JsonKey k) {
 #if defined(__AVR__)
     char buf[AZARAC_KEY_BUF_SIZE];
@@ -108,7 +106,7 @@ void writeHex(Print& out, uint8_t v) {
     out.write(buf, 4);
 }
 
-// `"key":`。キーは Flash から直接書き出す（旧実装のような「戻りは次のキー書き出しまで有効」契約は無い）。
+// `"key":`。キーは Flash から直接書き出し、戻り値の寿命契約は持たない。
 static void writeKey(Print& out, JsonKey k) {
     out.print('"');
     writeEscapedKey(out, k);
@@ -151,9 +149,7 @@ void wf_deg(Print& out, JsonKey k, int32_t denominator, int32_t v, bool last) {
 
     // denominator の桁数 = 小数部の桁数（1000000 → 6）
     uint8_t digits = 0;
-    // 上限 9 は uint32 の最大桁数 - 1。明示すると GCC が buf[digits] の範囲を
-    // 証明でき、-O2 -flto の -Wstringop-overflow 偽陽性（digits を [129,255]
-    // と誤認）を出さない。den が 10 桁でも digits=9 のまま。
+    // 上限 9 は uint32 の最大桁数 - 1。明示すると GCC が buf[digits] の範囲を証明でき、-O2 -flto の -Wstringop-overflow 偽陽性（digits を [129,255] と誤認）を避けられる。
     for (uint32_t d = den / 10u; d != 0 && digits < 9; d /= 10u) ++digits;
     if (digits) {
         char buf[12];   // uint32 の denominator は最大 10 桁

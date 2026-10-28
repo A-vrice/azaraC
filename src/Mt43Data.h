@@ -1,7 +1,7 @@
 #pragma once
-// MT=43 (QZQSM/DCR) のデータ構造とタグ付き union。ビット位置は azarashi (IS-QZSS-DCR-017) 由来。
+// MT=43 (QZQSM/DCR) のデータ構造とタグ付き union。ビット位置は IS-QZSS-DCR-017（azarashi の定義表）由来。
 //
-// 規約: payload の全型（EewData … MarineData）は trivially copyable/destructible のまま維持すること（スカラ・固定長配列・POD のみ、所有ポインタ禁止）。それによりコピー/ムーブ/破棄は memcpy とタグのリセットで済む。
+// 規約: payload の全型（EewData … MarineData）は trivially copyable/destructible のまま維持すること（スカラ・固定長配列・POD のみ、所有ポインタ禁止）。コピー/ムーブ/破棄が memcpy とタグのリセットで済む前提。
 
 #if defined(__AVR__)
 #include "internal/avr_std/cstdint"
@@ -31,11 +31,10 @@
 
 namespace azaraC {
 
-// repeating record structs (up to 8 each)
+// 繰返しエントリの要素型（各カテゴリの entries[] に並ぶ）
 
 struct TsunamiEntry {
-    // Ta(12b)+Th(4b) は 16 bit に収まるのでビットフィールドの共有ユニットに詰める
-    // （AVR: 13→12B/entry。Pl は 10 bit）。
+    // Ta(12b)+Th(4b) は 16 bit に収まるので共有ユニットに詰める（Pl は 10 bit）
     uint16_t   arrival_time_raw : 12;
     TimeFields arrival_time;
     uint16_t   height_code      : 4;
@@ -63,14 +62,14 @@ struct MarineEntry {
 };
 
 struct NwPacTsunamiEntry {
-    // 同様にパック（Th は 9 bit、Pl は 7 bit — 合計 16 bit で 1 ユニットに収まる）。
+    // 同様に 16 bit へパック（Th 9 bit + Pl 7 bit）
     uint16_t   arrival_time_raw : 12;
     TimeFields arrival_time;
     uint16_t   height_code      : 9;
     uint16_t   region_code      : 7;
 };
 
-// MT=43 Data (QZQSM / DC Report)
+// MT=43 payload
 
 #if AZARAC_ENABLE_EEW
 struct EewData {
@@ -84,9 +83,7 @@ struct EewData {
     uint16_t epicenter;
     uint8_t  intensity_lower;
     uint8_t  intensity_upper;
-    // 予報区 80 区のビットマップ（電文 [130..209] をそのまま保持。bit i = 予報区 i+1）。
-    // 展開配列 regions[80]+region_count は 81B 食うので v2.1 で bitmap に置き換えた。
-    // JSON 出力・昇順列挙はアクセサ経由で旧実装と同一。
+    // 予報区 80 区を電文 [130..209] のビット配置のまま保持（bit i = 予報区 i+1）。展開配列だと 81 B かかる。
     uint8_t  region_bitmap[10];
 
     // 対象予報区の個数
@@ -139,19 +136,21 @@ struct SeismicData {
 };
 
 #if AZARAC_ENABLE_NANKAI
-// Nankai Trough page aggregation.
-// 生存期間: is_aggregated のとき aggregated_text_ptr は Parser が静的保持する NankaiPageBuffer::aggregated_text[] を借り、次の feed()/reset() またはスロット再利用で無効になる（その時バッファは別の事象を保持し得る）。呼び出し側は直ちにコピー/シリアライズすること（ゼロコピー: Message ごとに AZARAC_NANKAI_MAX_PAGES*18 B までのコピーを避ける）。
+// 南海トラフ前沿のページ集約。
+// aggregated_text_ptr（is_aggregated のとき）は Parser が静的保持する NankaiPageBuffer::aggregated_text[] への借用で、次の feed()/reset() かスロット再利用で無効になる（その頃バッファは別の事象を持ち得る）。
+// 呼び出し側は直ちにコピー/シリアライズすること。Message ごとに AZARAC_NANKAI_MAX_PAGES*18 B のコピーを避けるゼロコピー設計。
 struct NankaiData {
     uint8_t info_code;
     uint8_t text[18];
     uint8_t page;
     uint8_t total_page;
-    // MT=43 ペイロードの report_time（bit 21/25/30/35）を受信そのまま保持し、集約キーの軸にする。 event_time と違い Decoder::resolveTime の正規化を受けないため、放送途中で report_unix が有効/無効になっても鍵がずれない。
+    // 受信した MT=43 の report_time（bit 21/25/30/35）をそのまま保持し、集約キーの軸にする。
+    // event_time と違い Decoder::resolveTime の正規化を受けないので、放送途中で report_unix が有効/無効になっても鍵がずれない。
     uint8_t report_month;   // 1-12 (4b)
     uint8_t report_day;     // 1-31 (5b)
     uint8_t report_hour;    // 0-23 (5b)
     uint8_t report_minute;  // 0-59 (6b)
-    const char* aggregated_text_ptr = nullptr;  // lifetime: until next feed() or reset()
+    const char* aggregated_text_ptr = nullptr;  // 次の feed()/reset() まで
     uint16_t aggregated_len = 0;
     bool is_aggregated = false;
     bool truncated = false;
@@ -218,13 +217,13 @@ struct MarineData {
     uint8_t     count;
 };
 
-// Safe tagged union for MT=43 disaster_category data
+// 災害カテゴリ別 payload の tagged union
 
 struct Mt43Data {
     uint8_t  report_classification;
     uint8_t  disaster_category;
     uint8_t  information_type;
-    uint8_t  version;        // Vn, 6 bits at [214..219]; spec requires 1
+    uint8_t  version;        // Vn: [214..219]、仕様上の値は 1
     TimeFields event_time;
 
     enum class ActiveType : uint8_t {
@@ -270,7 +269,7 @@ struct Mt43Data {
         for (auto x : sizes) if (x > m) m = x;
         return m;
     }();
-    // payload には uint64_t を含む型（FloodEntry 等）が入るため境界が必要。AVR の alignof(uint64_t) は 1 なので、この指定は AVR では境界を要求しない（8 の倍数への切り上げが起きない）。ホストは 8 のまま。
+    // uint64_t を含む型（FloodEntry 等）が入るため境界指定が必要。AVR の alignof(uint64_t) は 1 なので実質要求なし（8 の倍数への切り上げが起きない）、ホストは 8。
     alignas(uint64_t) unsigned char storage_[storage_size_];
 
     Mt43Data()
@@ -403,20 +402,19 @@ private:
     template<typename T> static ActiveType typeFor();
 
     void destroyActive() {
-        active_type = ActiveType::None;  // all payload types are trivially destructible → no-op
+        active_type = ActiveType::None;  // payload 型はすべて trivially destructible なので破棄は不要
     }
 
     void copyFrom(const Mt43Data& other) {
-        memcpy(storage_, other.storage_, storage_size_);  // all payload types are trivially copyable
+        memcpy(storage_, other.storage_, storage_size_);  // payload 型はすべて trivially copyable
     }
 
     void moveFrom(Mt43Data& other) {
-        memcpy(storage_, other.storage_, storage_size_);  // move == copy for trivial types
+        memcpy(storage_, other.storage_, storage_size_);  // trivial なのでムーブはコピーと同じ
         other.active_type = ActiveType::None;
     }
 };
 
-// Type mapping specializations
 #if AZARAC_ENABLE_EEW
 template<> inline Mt43Data::ActiveType Mt43Data::typeFor<EewData>() { return ActiveType::Eew; }
 #endif

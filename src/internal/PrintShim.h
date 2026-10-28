@@ -1,5 +1,5 @@
 #pragma once
-// Minimal Arduino Print shim for host-side unit tests.
+// ホスト側ユニットテスト用の最小限の Arduino Print shim
 
 #if !defined(ARDUINO) || ARDUINO < 1
 #include <cstdio>

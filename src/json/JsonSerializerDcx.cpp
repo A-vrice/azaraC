@@ -1,4 +1,4 @@
-// MT=44 DCX JSON serializer
+// MT=44 DCX の JSON シリアライザ
 
 #include "azaraC.h"
 #include "JsonWriter.h"
@@ -73,7 +73,7 @@ void serializeDcx(const Message& m, Print& out) {
         qzss_dcx_camf_a8_hazard_duration_lookup(d->camf.a8));
     writeDHM(out, AZARAC_KEY("onset_time"), d->onset_time);
 
-    // A9/A10 Library selection
+    // A9/A10: ライブラリ選択
     wf_u(out, AZARAC_KEY("a9_type_of_library"), d->camf.a9);
     wf_s(out, AZARAC_KEY("a9_type_of_library_label"),
         qzss_dcx_camf_a9_type_of_library_lookup(d->camf.a9));
@@ -81,7 +81,8 @@ void serializeDcx(const Message& m, Print& out) {
     wf_s(out, AZARAC_KEY("a10_library_version_label"),
         qzss_dcx_camf_a10_library_version_lookup(d->camf.a10));
 
-    // A11 対応動作ライブラリのガイダンス（IS-QZSS-DCX-004 §4.2.3.9 Table 4.2-12 / EWSS CAMF v1.2 §3.5.3, §11）。List A 5bit (a11 >> 5) と List B 5bit (a11 & 0x1F) の2コード。
+    // A11 対応動作ライブラリのガイダンス（IS-QZSS-DCX-004 §4.2.3.9 Table 4.2-12 / EWSS CAMF v1.2 §3.5.3, §11）。
+    // List A 5bit (a11 >> 5) と List B 5bit (a11 & 0x1F) の 2 コード。
     // 国際表 (A9=0) は両者を別々に引く。
     // 日本の表は 10bit を鍵にした結合表なので 1 本で足りる（List B は null）。
     wf_u(out, AZARAC_KEY("a11_guidance"), d->camf.a11);
@@ -101,13 +102,13 @@ void serializeDcx(const Message& m, Print& out) {
     }
     wf_s(out, AZARAC_KEY("a11_guidance_list_b_label"), a11_b);
 
-    // A17/A18 Specific Settings
+    // A17/A18: 個別設定
     wf_u(out, AZARAC_KEY("a17_type_of_specific_settings"), d->camf.a17);
     wf_s(out, AZARAC_KEY("a17_type_of_specific_settings_label"),
         qzss_dcx_camf_a17_type_of_specific_settings_lookup(d->camf.a17));
     wf_u(out, AZARAC_KEY("a18_specific_settings"), d->camf.a18);
 
-    // Decoded main ellipse (A12-A16)
+    // 復号済みの主楕円 (A12-A16)
     const Mt44Decoded& dec = d->mt44_decoded;
     if (dec.main_ellipse_present) {
         wk(out, AZARAC_KEY("main_ellipse"));
@@ -119,7 +120,7 @@ void serializeDcx(const Message& m, Print& out) {
         // azimuth_decideg は 1e-5 deg 単位。µdeg（×10）扱いにして他と同じ 6 桁で出す（下位は常に 0）。
         wf_deg(out, AZARAC_KEY("azimuth_deg"), 1000000, dec.main_ellipse.azimuth_decideg * 10, /*last=*/!d->camf.b1_present);
 
-        // B1 refinement (EWSS CAMF v1.2 §3.7.1)
+        // B1 による精細化 (EWSS CAMF v1.2 §3.7.1)
         if (d->camf.b1_present) {
             wk(out, AZARAC_KEY("b1_refinement"));
             out.print('{');
@@ -134,13 +135,13 @@ void serializeDcx(const Message& m, Print& out) {
         writeChar(out, ',');
     }
 
-    // B2 (A17=01) - Hazard center offset (EWSS CAMF v1.2 §3.7.2)
+    // B2 (A17=01) - ハザード中心のオフセット (EWSS CAMF v1.2 §3.7.2)
     if (d->camf.b2_present) {
         wk(out, AZARAC_KEY("hazard_center"));
         out.print('{');
         wf_u(out, AZARAC_KEY("c5_raw"), d->camf.b2_c5);
         wf_u(out, AZARAC_KEY("c6_raw"), d->camf.b2_c6);
-        // delta = b2_hazard - main_ellipse (both in microdegrees)
+        // delta = b2_hazard - main_ellipse（どちらもマイクロ度）
         int32_t delta_lat = dec.b2_hazard_lat_microdeg - dec.main_ellipse.lat_microdeg;
         int32_t delta_lon = dec.b2_hazard_lon_microdeg - dec.main_ellipse.lon_microdeg;
         wf_deg(out, AZARAC_KEY("delta_lat_deg"), 1000000, delta_lat, false);
@@ -149,7 +150,7 @@ void serializeDcx(const Message& m, Print& out) {
         writeChar(out, ',');
     }
 
-    // B3 (A17=10) - Secondary ellipse definition (EWSS CAMF v1.2 §3.7.3)
+    // B3 (A17=10) - 副楕円の定義 (EWSS CAMF v1.2 §3.7.3)
     if (d->camf.b3_present) {
         wk(out, AZARAC_KEY("secondary_ellipse"));
         out.print('{');
@@ -165,7 +166,7 @@ void serializeDcx(const Message& m, Print& out) {
         writeChar(out, ',');
     }
 
-    // B4 (A17=11) - Detailed hazard information (EWSS CAMF v1.2 §3.7.4)
+    // B4 (A17=11) - ハザードの詳細情報 (EWSS CAMF v1.2 §3.7.4)
     if (d->camf.b4_present) {
         B4DetailedInfo b4;
         decodeB4DetailedInfo(d->camf.a18, d->camf.a4, b4);
@@ -227,7 +228,7 @@ void serializeDcx(const Message& m, Print& out) {
         writeChar(out, ',');
     }
 
-    // Extended Message fields
+    // 拡張メッセージ部
     if (d->ex_kind == ExtendedKind::LAlertOrLocal) {
         wf_u(out, AZARAC_KEY("ex1_target_area"), d->ex.ex_lalert_local.ex1);
         AZARAC_LABEL(out, "ex1_target_area_label",
@@ -239,7 +240,7 @@ void serializeDcx(const Message& m, Print& out) {
             wf_u(out, AZARAC_KEY("target_area_code"), d->ex.ex_lalert_local.ex1);
         }
 
-        // EX2-EX7 Additional Ellipse (local government only)
+        // EX2-EX7 追加楕円（地方公共団体のみ）
         if (dec.additional_area.present) {
             wk(out, AZARAC_KEY("additional_area"));
             out.print('{');

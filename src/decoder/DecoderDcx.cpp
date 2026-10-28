@@ -1,5 +1,4 @@
-// MT=44 DCX / CAMF decoder (IS-QZSS-DCX-004)
-// EWSS CAMF v1.2 (B1-B4)
+// MT=44 DCX / CAMF デコーダ (IS-QZSS-DCX-004) EWSS CAMF v1.2 (B1-B4)
 
 #include "Decoder.h"
 #include "internal/DcxHelper.h"
@@ -9,7 +8,8 @@ namespace internal {
 
 #if (AZARAC_ENABLE_DCX_CAMF)
 
-// A6/A7（週の先頭からの分、A7 = 1..10080）を週頭からの秒数へ。32 bit で計算する: AVR の unsigned int は 16 bit で、10079*60 = 604,740 は 65,535 を超える（a7 >= 1094 で onset が黙って週内の別時刻になる）。
+// A6/A7（週の先頭からの分、A7 = 1..10080）を週頭からの秒数へ。32 bit で計算する:
+// AVR の unsigned int は 16 bit で、10079*60 = 604,740 は 65,535 を超える（a7 >= 1094 で onset が黙って週内の別時刻になる）。
 // ホストの int は 32 bit なので、この static_assert は AVR ビルドでのみ意味を持つ。
 static constexpr uint32_t onsetOffsetSec(uint16_t a7) {
     return static_cast<uint32_t>(a7 - 1u) * 60u;
@@ -40,7 +40,7 @@ bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix)
     d->camf.a9  = getBits(bits, 66, 1);
     d->camf.a10 = getBits(bits, 67, 3);
     d->camf.a11 = getBits(bits, 70, 10);
-    // A12/A13: unsigned codes decoded via formula (not two's complement)
+    // A12/A13: 式で復号する unsigned コード（2 の補数ではない）
     d->camf.a12 = getBits(bits, 80, 16);
     d->camf.a13 = getBits(bits, 96, 17);
     d->camf.a14 = getBits(bits, 113, 5);
@@ -61,8 +61,8 @@ bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix)
     d->camf.b3_c9 = 0;
     d->camf.b3_c10 = 0;
 
-
-    // Null Message Check (IS-QZSS-DCX-004 §4.3): PAB, MT, SD, Reserved, CRC 以外はすべて 0 でなければならない。A2 は日本 (001101111 = 111)、A3 は 0。
+    // Null Message 検査 (IS-QZSS-DCX-004 §4.3): PAB, MT, SD, Reserved, CRC 以外はすべて 0 でなければならない。
+    // A2 は日本 (001101111 = 111)、A3 は 0。
     if (d->camf.a1 == 0 && d->camf.a2 == DCX_COUNTRY_CODE_JAPAN && d->camf.a3 == 0 &&
         d->camf.a4 == 0 && d->camf.a5 == 0 && d->camf.a6 == 0 &&
         d->camf.a7 == 0 && d->camf.a8 == 0 && d->camf.a9 == 0 &&
@@ -86,13 +86,14 @@ bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix)
     // 発現時刻: A6（0 = 今週, 1 = 翌週）+ A7（14 bit、1 分刻み）で 15 bit を成し、最大 2 週先まで表せる。
     // IS-QZSS-DCX-004 §4.2.3.6, Table 4.2-9 / EWSS CAMF v1.2 §3.3: 週は月曜 00:00 UTC に始まり日曜 23:59 UTC に終わる。
     if (d->camf.a7 > 0 && d->camf.a7 <= 10080 && report_unix >= 946684800u) {
-        // 1970-01-01 は木曜なので (days + 3) % 7 が 0=月 … 6=日になる。report_unix を含む週の月曜 00:00 UTC を求める。
+        // 1970-01-01 は木曜なので (days + 3) % 7 が 0=月 … 6=日になる。
+        // report_unix を含む週の月曜 00:00 UTC を求める。
         uint32_t days        = report_unix / 86400u;
         uint32_t dow         = (days + 3u) % 7u;   // 0=Mon, …, 6=Sun
         uint32_t monday_days = days - dow;
 
         if (d->camf.a6 == 1) {
-            monday_days += 7u; // next week
+            monday_days += 7u;  // 翌週
         }
 
         uint32_t monday_unix = monday_days * 86400u;
@@ -131,7 +132,7 @@ bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix)
     if (d->ex_kind == ExtendedKind::LAlertOrLocal) {
         d->ex.ex_lalert_local.ex1 = getBits(bits, 146, 16);
         d->ex.ex_lalert_local.ex2 = getBits(bits, 162, 1);
-        // EX3/EX4: unsigned codes (latitude/longitude formulas, not two's complement)
+        // EX3/EX4: 式で復号する unsigned コード（緯度・経度。2 の補数ではない）
         d->ex.ex_lalert_local.ex3 = getBits(bits, 163, 17);
         d->ex.ex_lalert_local.ex4 = getBits(bits, 180, 17);
         d->ex.ex_lalert_local.ex5 = getBits(bits, 197, 5);
@@ -149,11 +150,11 @@ bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix)
         for (int i = 0; i < 8; ++i) {
             d->ex.ex_outside.ex11_raw[i] = getBits(bits, 146 + i * 8, 8);
         }
-        d->ex.ex_outside.ex11_raw[8] = getBits(bits, 210, 4) << 4; // remaining 4 bits
+        d->ex.ex_outside.ex11_raw[8] = getBits(bits, 210, 4) << 4;  // 残り 4 bit
         d->ex.ex_outside.vn = getBits(bits, 214, 6);
     }
 
-    // Populate decoded structures (IS-QZSS-DCX-003 §15.2)
+    // 復号済み構造を埋める (IS-QZSS-DCX-003 §15.2)
 
     Mt44Decoded& dec = d->mt44_decoded;
     dec.main_ellipse_present = false;
@@ -162,7 +163,7 @@ bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix)
     dec.city_code_count = 0;
     dec.additional_area.present = false;
 
-    // Main ellipse (A12-A16): present if any of A12..A16 is non-zero
+    // 主楕円 (A12-A16): A12..A16 のいずれかが非 0 なら存在
     bool has_main_ellipse = (d->camf.a12 != 0 || d->camf.a13 != 0 ||
                              d->camf.a14 != 0 || d->camf.a15 != 0 ||
                              d->camf.a16 != 0);
@@ -174,8 +175,7 @@ bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix)
         dec.main_ellipse.semi_minor_m = decodeRadiusCode(d->camf.a15);
         dec.main_ellipse.azimuth_decideg = decodeAzimuth6(d->camf.a16);
 
-        // B1 (A17=00) - Improved Resolution of Main Ellipse (EWSS CAMF v1.2 §3.7.1)
-        // A18 (15bit) = C1(3bit)[12:14] + C2(3bit)[9:11] + C3(3bit)[6:8] + C4(3bit)[3:5] + Reserved(3bit)[0:2]
+        // B1 (A17=00) - Improved Resolution of Main Ellipse (EWSS CAMF v1.2 §3.7.1) A18 (15bit) = C1(3bit)[12:14] + C2(3bit)[9:11] + C3(3bit)[6:8] + C4(3bit)[3:5] + Reserved(3bit)[0:2]
         if (d->camf.a17 == 0) {
             B1Refinement b1 = decodeB1Refinement(d->camf.a18);
             d->camf.b1_present = (b1.c1 != 0 || b1.c2 != 0 || b1.c3 != 0 || b1.c4 != 0);
@@ -189,8 +189,7 @@ bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix)
             dec.main_ellipse.b1_refined_semi_minor_m = b1RefinedRadiusM(
                 b1.c4, dec.main_ellipse.semi_minor_m, d->camf.a15);
         }
-        // B2 (A17=01) - Position of the Centre of the Hazard (EWSS CAMF v1.2 §3.7.2)
-        // C5: spec bits 131-137; C6: spec bits 138-144; Reserved: a18[0]
+        // B2 (A17=01) - Position of the Centre of the Hazard (EWSS CAMF v1.2 §3.7.2) C5: spec bits 131-137; C6: spec bits 138-144; Reserved: a18[0]
         else if (d->camf.a17 == 1) {
             uint8_t c5 = (d->camf.a18 >> 8) & 0x7F;  // spec bits[131:137] → a18[14:8]
             uint8_t c6 = (d->camf.a18 >> 1) & 0x7F;  // spec bits[138:144] → a18[7:1]
@@ -200,10 +199,9 @@ bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix)
             d->camf.b2_c6 = c6;
             dec.b2_hazard_lat_microdeg = dec.main_ellipse.lat_microdeg + b2.delta_lat_microdeg;
             dec.b2_hazard_lon_microdeg = dec.main_ellipse.lon_microdeg + b2.delta_lon_microdeg;
-            // dec.main_ellipse is unchanged (keeps original ellipse center)
+            // dec.main_ellipse は変更しない（元の楕円中心を維持）
         }
-        // B3 (A17=10) - Secondary Ellipse Definition (EWSS CAMF v1.2 §3.7.3)
-        // C7: spec bits 131-132; C8: 133-135; C9: 136-140; C10: 141-145
+        // B3 (A17=10) - Secondary Ellipse Definition (EWSS CAMF v1.2 §3.7.3) C7: spec bits 131-132; C8: 133-135; C9: 136-140; C10: 141-145
         else if (d->camf.a17 == 2) {
             uint8_t c7  = (d->camf.a18 >> 13) & 0x03;  // spec bits[131:132] → a18[14:13]
             uint8_t c8  = (d->camf.a18 >> 10) & 0x07;  // spec bits[133:135] → a18[12:10]
@@ -216,16 +214,14 @@ bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix)
             d->camf.b3_c10 = c10;
         }
     }
-    // B4 (A17=11) - Quantitative and Detailed Information (EWSS CAMF v1.2 §3.7.4)。B4 の詳細 D1–D36 は JsonSerializerDcx.cpp 側で復号する。
+    // B4 (A17=11) - Quantitative and Detailed Information (EWSS CAMF v1.2 §3.7.4)。
+    // B4 の詳細 D1–D36 は JsonSerializerDcx.cpp 側で復号する。
     if (d->camf.a17 == 3) {
         d->camf.b4_present = true;
     }
 
     if (d->ex_kind == ExtendedKind::LAlertOrLocal) {
-        // Target area code (EX1) はミラーしない: JsonSerializerDcx が
-        // 「主楕円なし && ex1 != 0」のとき ex1 をそのまま出す。
-
-        // Additional area (local government only): EX2-EX7
+        // 追加地域（地方公共団体のみ）: EX2-EX7
         if (d->service_kind == Mt44ServiceKind::LocalGovernment) {
             bool has_additional = (d->ex.ex_lalert_local.ex2 != 0 ||
                                    d->ex.ex_lalert_local.ex3 != 0 ||

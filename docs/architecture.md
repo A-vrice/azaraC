@@ -87,8 +87,8 @@ graph LR
 
 [`DedupFilter`](https://github.com/A-vrice/azaraC/tree/main/src/internal/Dedup.h)はアプリケーションノートv2の実装にのっとって実装されています。
 
-- **MT～VNで判定**: 発信元衛星によらず重複処理をするため、メッセージ本文のみを判定に使用します。具体的にはMT～VNフィールド（フレーム内bit 8..219、計212bit）のCRC-24Qを保存します。ただしMT=44（DCX/CAMF）のSD（SDMT bit 14・SDM bit 15..23）は照合範囲に含めないため、ゼロにしてからCRCを取ります（QZS事務局回答の照合範囲は「MTおよびCAMF〜EM」）。衝突の可能性は残りますが、メモリ効率を優先してこの方式を採用しています。
-- **メッセージの保存期間**: 一定時間受信しなかった情報は履歴から削除するため種別ごとの`window_ms`以内に再受信したものを重複として扱います。なお再受信のたびに有効時間は更新されます。1通に複数種類のメッセージが入る場合は条件を満たすうち最長のものを採用します。MT=43はアプリケーションノートの配信終了条件（p.26-27）、MT=44（CAMF）はA8-Hazard Durationの上限（UnknownはDCX §5.4により1週間）を有効期限とし、AVRではその上限を`AZARAC_DEDUP_MT44_MAX_WINDOW_MS`（既定5分）で頭打ちにします（スロットが64と少なく、7日の窓は生きた情報の枠を占め続けて押し出しを招くため。MT44の再送間隔は実測で最大16秒）。それ以外の表に無いカテゴリは`AZARAC_DEDUP_WINDOW_MS`を使います。
+- - **MT～VNで判定**: 発信元衛星によらず重複処理をするため、メッセージ本文のみを判定に使います。MT～VNフィールド（フレーム内 bit 8..219、計212bit）の CRC-24Q を保存します。ただし MT=44（DCX/CAMF）の SD（SDMT bit 14・SDM bit 15..23）は照合範囲に含めないので、ゼロにしてから CRC を取ります（QZS 事務局回答の照合範囲は「MTおよびCAMF〜EM」）。衝突の可能性は残りますが、メモリ効率を優先してこの方式にしています。
+- - **メッセージの保存期間**: 一定時間受信しなかった情報は履歴から削除するため、種別ごとの `window_ms` 以内に再受信したものを重複として扱います。再受信のたびに有効時間は更新され、1通に複数種類のメッセージが入る場合は条件を満たすうち最長のものを採用します。MT=43 はアプリケーションノートの配信終了条件（p.26-27）、MT=44（CAMF）は A8-Hazard Duration の上限（Unknown は DCX §5.4 により1週間）を有効期限とします。AVR では `AZARAC_DEDUP_MT44_MAX_WINDOW_MS`（既定5分）で頭打ちにします。スロットが64と少なく、7日の窓は生きた情報の枠を占め続けて押し出しを招くためです（MT44の再送間隔は最大16秒）。表に無いカテゴリは `AZARAC_DEDUP_WINDOW_MS` を使います。
 - **内部スキーマ**: セットアソシアティブ表（`AZARAC_DEDUP_SLOTS`÷`AZARAC_DEDUP_WAYS`セット）。満杯時は同一セット内の最も古い情報を置換します。受信当たりの走査は`WAYS`回で固定のため、`SLOTS`を増やしても計算コストが比例することはありません。
 - **容量不足時の挙動**: 容量が不足すると最も古い情報から置換されるため、置換後に同じ情報を再受信すると重複と見なされず再通知されます。生きている情報を重複と誤判定して通知を落とすことはありません。
 
@@ -131,16 +131,16 @@ graph LR
 
   `.l1s` は衛星別なので、同じ日でも衛星によって内容が違う（例 2024-08-07: Q002 は distinct 106・生存ピーク 68、Q005 は 148・110）。
   
-- **既定値**: 512スロット×8ウェイ = 4KB。30日すべてで FALSE_RE=0 / MISSED=0。256×8 でも再通知が残るのは最悪日（2024-08-28、同時327件）だけなので、余裕を見るなら 512 スロット、受信カテゴリを絞れるなら 128 スロットでも足ります。AVRプリセットは 64×8 = 512B（能登の SEISMIC/TSUNAMI 部分はフレーム 8,669・distinct 77 で、64×8 と 32×8 が 0 件、16×8 が 93 件。AVRの対象は震度・津波なので、気象・台風が主体の日であふれることはありません）。
-- **南海トラフでの重複判定**: 南海トラフの集約メッセージは、情報一件ごと（`info_code` + `information_type` + 報告時刻）で識別します。到着順でどのページが最後になるかは変わるため、集約済みテキストによる判定では同じ事象を再放送のたびに別情報と判定してしまいます。集約には`DedupKey::synthetic`で名前空間を分けており、値が一致しても衝突しません。事象鍵は6フィールド26ビット（`dedupEventToken`）で、集約バッファの鍵（`NankaiPageKey`）と同一です。`information_type`を含めるのは、同一 `info_code` + 同一報告時刻の発表（窓24時間）と取消（窓2時間）を別の情報として扱い、取消が発表の履歴に潰されないようにするためです（含めないと集約バッファでも両者のページが混ざります）。
+- - **既定値**: 512スロット×8ウェイ = 4KB。30日アーカイブすべてで FALSE_RE=0 / MISSED=0。256×8 でも再通知が残るのは最悪日（同時327件）だけなので、余裕を見るなら 512 スロット、受信カテゴリを絞れるなら 128 スロットでも足ります。AVRプリセットは 64×8 = 512B。対象は震度・津波に絞られるため、気象・台風が主体の日であふれることはありません。
+- - **南海トラフでの重複判定**: 集約メッセージは情報一件ごと（`info_code` + `information_type` + 報告時刻）で識別します。到着順でどのページが最後になるかは変わるため、集約済みテキストによる判定では同じ事象を再放送のたびに別情報と判定してしまいます。電文鍵とは `DedupKey::synthetic` で名前空間を分けるので、値が一致しても衝突しません。事象鍵は6フィールド26ビット（`dedupEventToken`）で、集約バッファの鍵（`NankaiPageKey`）と同一です。`information_type` を含むのは、同一 `info_code` + 同一報告時刻の発表（窓24時間）と取消（窓2時間）を別の情報として扱い、取消が発表の履歴に潰されないようにするためです（含めないと集約バッファでも両者のページが混ざります）。
 
 ### 5. NankaiPageBuffer (南海トラフページ集約)
 
-[`NankaiPageBuffer`](https://github.com/A-vrice/azaraC/tree/main/src/internal/NankaiPageBuffer.h)は最大63ページに分割される南海トラフ地震メッセージを集約。`MAX_PAGES×18+1`バイトのメモリを確保し、受信したページをビットマップで管理しながら直接書き込む（ソート不要）。バッファが全て使用中の場合はLRUエビクションで最も古いバッファから解放。
+[`NankaiPageBuffer`](https://github.com/A-vrice/azaraC/tree/main/src/internal/NankaiPageBuffer.h)は最大63ページに分割される南海トラフ地震メッセージを集約します。`MAX_PAGES×18+1` バイトを確保し、受信したページをビットマップで管理しながら直接書き込みます（ソート不要）。バッファが全て使用中なら LRU で最も古いバッファから解放します。
 
 ### 6. JsonSerializer (JSONシリアライザ)
 
-[`JsonSerializer`](https://github.com/A-vrice/azaraC/tree/main/src/json/JsonSerializer.h)はMessageをJSON形式にシリアライズ。ヒープ割り当てはせず固定バッファで処理。`Print&`経由で出力（Serial, WiFiClient等）。日本語/英語ラベルの選択的コンパイルに対応。キーと固定値リテラルは `internal::JsonKey`（`AZARAC_KEY("...")`）で受け、AVR では `PSTR` で Flash に置く（素のリテラルは avr-libc のリンカスクリプトが `.rodata` ごと `.data`＝SRAM に置くため）。書き出し時はキーを `AZARAC_KEY_BUF_SIZE`（既定 36B）の共有バッファへ 1 度だけ写し、値も同じバッファを通るので **キーを書き終えてから値の `keyView` を取る**順序が契約になる（ホストは 1 本のリテラルを直接指すため順序の誤りを検出できず、`make -C test pgm-stub` が `__AVR__` 経路で検出する）。
+[`JsonSerializer`](https://github.com/A-vrice/azaraC/tree/main/src/json/JsonSerializer.h)は Message を JSON にシリアライズします。ヒープ割り当てはせず、`Print&` 経由で出力（Serial、WiFiClient 等）。日本語/英語ラベルは選択的コンパイルに対応します。キーと固定値リテラルは `internal::JsonKey`（`AZARAC_KEY("...")`）で受け、AVR では `PSTR` で Flash に置きます（素のリテラルは avr-libc のリンカスクリプトが `.rodata` ごと `.data`＝SRAM に置くため）。書き出しはキーも値も Flash から走査し、必要ならスタックの一時バッファ（`AZARAC_KEY_BUF_SIZE`）へ 1 度写して出す。静的な共有バッファを持たないので、書き出し順序の制約はありません。
 
 ## データフロー
 
@@ -162,14 +162,20 @@ graph TD
 
 | コンポーネント | メモリ使用量 | 備考 |
 |---------------|-------------|------|
-| DedupFilter | `AZARAC_DEDUP_SLOTS × 8` B | 既定 4,096B（512スロット。AVRプリセットは512B）。1エントリ = CRC-24Q 4B + 受信時刻 4B |
-| Message | 84B（AVR プリセット。全カテゴリ有効でも 84B、DCX/CAMF 追加で 199B）/ ホストは全カテゴリ有効で最大（240B） | payload 枠は有効カテゴリ最大の `sizeof`（AVR は常におおむね津波の 62B）に `alignas(uint64_t)` を付けた `Mt43Data`。 スケッチがグローバルに 1 個持つとそのまま `.bss` を食う（AVR プリセットで 84B） |
-| NankaiPageBuffer | メタデータ 24B（ホスト、アラインメント込み）/ 22B（AVR）+ `MAX_PAGES × 18 + 1` B | 既定（非AVR）は 63 ページで 1,160B（ホスト実測）。AVR 既定は 4 ページで 95B（実測。`-DAZARAC_NANKAI_MAX_PAGES=63` 指定時は 1,157B）。LRUエビクション |
-| 定義テーブル | 生成 285 セクション: エントリ行 105,488B + 文字列・断片プール 187,664B = 293,152B。ライブラリ全体の読み取り専用セクション（`.rdata` 合計）は 336,304B。計測条件: 全カテゴリ + 日英ラベル有効、64bit ホスト `g++ 15.2 -std=c++17 -O2 -fdata-sections`（生成対象外の4表を含む計測） | Flash(AVRではPROGMEM)に配置。AVR/非AVR とも同一の生成コードで、表ごとに文字列プール＋共有断片プール（factor_parents、`scripts/gen/strategy.py`）を持ち、行は `{id, 親, offset}` の3フィールド（長さはプールのNUL区切りから取る）。旧来の非AVR方式（フルラベルを `const char*` で保持）に比べ、リンクバイナリで −129,618B（全カテゴリ + 日英のラベル網羅バイナリ実測）。単一ラベルの引き当ては非AVRではゼロコピーの `string_view`、2/3 分割ラベルは共有バッファ（`AZARAC_FLASH_BUF_SIZE`）への 1 回コピーで連結する。AVRプリセット（`-mmcu=atmega328p -Os`、SEISMIC/TSUNAMI のみ、JA）では表 + プール計 3,011B（2026-10 実測。`test/bench/avr/measure_tables.py`）。Flashが64KiBを超えるデバイス（ATmega2560 等）では、表・プールを `*(.progmem.*)`（`.text` 先頭のリンク順クラスタ）ではなく `.text.azaraC.<N>`（`*(.text.*)`、コードの後ろ）に置く（`AZARAC_PROGMEM`）。Arduino は `core.a` を最後にリンクするため、先頭クラスタに116KiBの表があるとコア自身のPROGMEM（`digital_pin_to_port_PGM` 等）が16bit窓の外へ出て `pinMode`/`digitalWrite` が誤動作する（`autoresearch.sh` のコア模擬オブジェクトがアドレスをゲートする）。アドレスは32bitのFlashアドレスで扱う（`AZARAC_PGM_PTR` + `pgm_read_*_far` / `memcpy_PF`） |
+| DedupFilter | `AZARAC_DEDUP_SLOTS × 8` B | 既定 4,096 B（512スロット）／AVRプリセット 512 B。1エントリ = identity 4 B + 受信時刻 4 B |
+| Message | 84 B（AVR。DCX/CAMF 追加で 199 B）／240 B（ホスト・全カテゴリ） | payload 枠は有効カテゴリ最大の `sizeof` に `alignas(uint64_t)` を付けた `Mt43Data`。スケッチがグローバルに 1 個持つとそのまま `.bss` になる |
+| NankaiPageBuffer | メタ 24 B（ホスト）／22 B（AVR）+ `MAX_PAGES × 18 + 1` B | 既定 63 ページで 1,160 B。AVR 既定 4 ページで 95 B。LRU で追い出し |
+| 定義テーブル | 293,152 B（エントリ行 105,488 + 文字列・断片プール 187,664、285 セクション） | 読み取り専用セクション合計は 336,304 B。AVRプリセット（SEISMIC/TSUNAMI、JA）は表 + プールで 3,011 B |
 
-**payload 枠の大きさ**: `Mt43Data` は `storage_` のサイズを `storage_size_`（有効なカテゴリの payload 型の `sizeof` の最大値、コンパイル時 `constexpr`）で決める。`EewData`（予報区は `region_bitmap[10]` 保持の 34B）と `HypocenterData` は `AZARAC_ENABLE_EEW` / `AZARAC_ENABLE_HYPOCENTER` で定義ごとガードしてある: EEW を有効にしても最大は津波（62B）のまま、`sizeof(Mt43Data)` は 75B、`Message` は 84B でカテゴリ構成によらず不変（DCX/CAMF 有効時は `Mt44Data` 190B が最大になり `Message` 199B。avr-gcc `-Os`、ATmega328P で実測）。どちらの型も `alignas(uint64_t)` で payload 領域を境界付けるが、AVR の `alignof(uint64_t)` は 1 なので実サイズは切り上がらない（ホストは 8 で、`sizeof` は不変）。ガードの追加箇所は 開発者ガイドの「カテゴリ無効時の型ガード」を参照。
+計測条件: 全カテゴリ + 日英ラベル有効、64 bit ホスト `g++ 15.2 -std=c++17 -O2 -fdata-sections`（生成対象外の4表を含む）。AVR 側は `test/bench/avr/measure_tables.py`。
 
-**LTO の制約（AVR）**: Arduino の AVR コアは `-flto` でコンパイル・リンクする。inline 関数内の `static const char[]` は one-only シンボルになり、LTO では `__section__` が落ちて `.rodata`（リンカスクリプト上 `.data`、実体 SRAM）へ移る。そのため生成ヘッダの switch 戦略は case リテラルを名前空間スコープの配列として出す。実測（Mega + DCX/CAMF、SRAM）: LTO なし 892B / LTO あり 892B。`make -C test bench` の stage 5b が LTO 画像の SRAM を計測する（ゲートではなくレポート）。
+***Flash 配置**: 表は AVR/非AVR 同一の生成コードで、表ごとに文字列プール＋共有断片プール（factor_parents、`scripts/gen/strategy.py`）を持ち、行は `{id, 親, offset}` の3フィールド（長さはプールの NUL 区切りから取る）。単一ラベルの引き当ては非AVRではゼロコピーの `string_view`、2/3 分割ラベルは共有バッファ（`AZARAC_FLASH_BUF_SIZE`）への 1 回コピーで連結する。
+
+Flash が 64 KiB を超える品では、表・プールを `.text.azaraC.<N>`（`*(.text.*)`、コードの後ろ）に置き、`.text` 先頭の `*(.progmem.*)` には置かない（`AZARAC_PROGMEM`）。Arduino は `core.a` を最後にリンクするため、先頭クラスタに 116 KiB の表があるとコア自身の PROGMEM（`digital_pin_to_port_PGM` 等）が 16 bit 窓の外へ押し出され、`pinMode`/`digitalWrite` が誤動作する。アドレスは 32 bit の Flash アドレスで扱う（`AZARAC_PGM_PTR` + `pgm_read_*_far` / `memcpy_PF`）。
+
+***payload 枠の大きさ**: `Mt43Data::storage_size_` は有効カテゴリの payload 型 `sizeof` の最大値（コンパイル時 `constexpr`）。EEW を有効にしても最大は津波（62 B）のままなので `sizeof(Mt43Data)` は 75 B、`Message` は 84 B でカテゴリ構成によらず不変（DCX/CAMF 有効時は `Mt44Data` が最大になり `Message` 199 B）。`EewData`（予報区は `region_bitmap[10]` 保持で 34 B）と `HypocenterData` は `AZARAC_ENABLE_EEW` / `AZARAC_ENABLE_HYPOCENTER`で定義ごとガードしてある。どちらも `alignas(uint64_t)` だが、AVR の `alignof(uint64_t)` は 1 なので実サイズは切り上がらない（ホストは 8）。ガードの追加箇所は開発者ガイドの「カテゴリ無効時の型ガード」を参照。
+
+***LTO の制約（AVR）**: Arduino の AVR コアは `-flto` でコンパイル・リンクする。inline 関数内の `static const char[]` は one-only シンボルになり、LTO では `__section__` が落ちて `.rodata`（リンカスクリプト上 `.data`、実体は SRAM）へ移る。そのため生成ヘッダの switch 戦略は case リテラルを名前空間スコープの配列として出す。`make -C test bench` の stage 5b が LTO 画像の SRAM を計測する（ゲートではなくレポート）。
 
 ## 関連ドキュメント
 

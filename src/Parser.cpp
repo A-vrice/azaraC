@@ -36,7 +36,8 @@ bool Parser::handleFrame(internal::Frame& frame, Message& out, uint32_t report_u
 bool Parser::postDecode(const Message& decoded, Message& out, uint32_t identity) {
     // dedup 有効期間の受信時刻（手順④'）。
     // 下の Nankai 集約も同じ時計を使うので、両段階で「現在」が一致する。
-    // 64 bit を丸ごと保持する: NankaiPageBuffer のタイムアウトは uint64 で、32 bit の dedup 窓は約 49.7 日ごとに巻き戻るため、ここで切り詰めると符号なしの経過時間比較がアンダーフローする。
+    // 64 bit を丸ごと保持する: NankaiPageBuffer のタイムアウトは uint64、32 bit の dedup 窓は約 49.7 日で巻き戻る。
+    // ここで切り詰めると符号なしの経過時間比較がアンダーフローする。
     const uint64_t now_ms64 = internal::getMillis();
     const uint32_t now_ms = static_cast<uint32_t>(now_ms64);
     const uint32_t window_ms = internal::dedupWindowMs(decoded);
@@ -49,7 +50,8 @@ bool Parser::postDecode(const Message& decoded, Message& out, uint32_t identity)
         if (mt43 && mt43->disaster_category == 4) {
             // getNankai() が無いのは電文として成立していない場合。集約できないので出力しない。
             if (!nankai) { out.clear(); return false; }
-            // out が decoded と同一でも安全: processNankaiAggregation が上書きするのは is_aggregated / aggregated_* / truncated / page / total_page だけで、直後に鍵として読む info_code と report_* は不変。
+            // out が decoded と同一でも安全: processNankaiAggregation が上書きするのは is_aggregated / aggregated_* / truncated / page / total_page だけ。
+            // 直後に鍵として読む info_code と report_* は不変。
             if (!processNankaiAggregation(decoded, out, mt43, now_ms64)) {
                 out.clear();
                 return false;
@@ -83,8 +85,9 @@ bool Parser::processNankaiAggregation(const Message& decoded, Message& out, cons
     const NankaiData* nankai = d->getNankai();
     if (!nankai) return false;
 
-    // 事象の identity = info_code + information_type + report_time month/day/hour/minute。
-    // 正規化済みの Mt43Data::event_time は使わず電文の生ビット (NankaiData::report_*) から取る: resolveTime() は暦外の日付を書き換えたり（2/30 → 3/1）月=0 に近い月を割り当てるため、放送途中で report_unix が現れると 1 つの事象が複数バッファに分裂する（NankaiPageKey 参照）。
+    // 事象の identity = info_code + information_type + report_time（月/日/時/分）。
+    // 正規化済みの Mt43Data::event_time は使わず電文の生ビット（NankaiData::report_*）から取る。
+    // resolveTime() は暦外の日付を書き換え（2/30 → 3/1）月=0 に近い月を割り当てるため、放送途中で report_unix が現れると 1 つの事象が複数バッファに分裂する（NankaiPageKey 参照）。
     internal::NankaiPageKey key;
     key.info_code       = nankai->info_code;
     key.information_type = d->information_type;
@@ -117,7 +120,7 @@ bool Parser::processNankaiAggregation(const Message& decoded, Message& out, cons
                 uint16_t textLen = completed->compactText();
                 if (textLen > 0) {
                     // ゼロコピー: NankaiPageBuffer の内部ストレージを指す。
-                    // 次の feed() または reset() までのみ有効（NankaiData の説明参照）— 以降 aggregated_text_ptr は宙に浮く。
+                    // 次の feed() または reset() まで有効（NankaiData の説明参照）。
                     outNankai->aggregated_text_ptr = completed->aggregated_text;
                     outNankai->aggregated_len = textLen;
                     outNankai->is_aggregated = true;

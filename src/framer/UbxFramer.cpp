@@ -23,7 +23,7 @@ bool UbxFramer::feed(uint8_t b, Frame& out) {
     case St::SYNC2:
         if (b == 0x62) _st = St::CLASS;
         else if (b != 0xB5) _st = St::SYNC1;
-        // else: keep SYNC2 (this 0xB5 may start a frame)
+        // この 0xB5 は新フレームの先頭候補なので SYNC2 を維持して取り直す
         break;
     case St::CLASS:
         // SFRBX のヘッダは 02 13 28 00 固定なので、ここに来た 0xB5 は新たな同期候補。フレームを捨てずに取り直す。
@@ -59,7 +59,7 @@ bool UbxFramer::feed(uint8_t b, Frame& out) {
         break;
     case St::CK_B:
         _st = St::SYNC1;
-        // b doubles as potential next-frame sync: preserve 0xB5 candidate on any reject.
+        // b は次フレームの同期候補にもなる: どの拒否でも 0xB5 の候補を残す
         if (b != _ck_b) { if (b == 0xB5) _st = St::SYNC2; return false; }
         // class=0x02 id=0x13 = RXM-SFRBX
         if (_class != 0x02 || _id != 0x13) { if (b == 0xB5) _st = St::SYNC2; return false; }
@@ -70,27 +70,24 @@ bool UbxFramer::feed(uint8_t b, Frame& out) {
 }
 
 bool UbxFramer::parse(Frame& out) {
-    // SFRBX header: gnssId(1) svId(1) sigId(1) freqId(1) numWords(1) chn(1) version(1) reserved(1)
+    // SFRBX ヘッダ: gnssId(1) svId(1) sigId(1) freqId(1) numWords(1) chn(1) version(1) reserved(1)
     if (_len < 8) return false;
     uint8_t gnssId   = _buf[0];
     uint8_t svId     = _buf[1];
     uint8_t sigId    = _buf[2];
     uint8_t numWords = _buf[4];
 
-    // QZSS gnssId=5, L1S sigId=0 or 1
+    // QZSS は gnssId=5、L1S は sigId=0 か 1
     if (gnssId != 5)  return false;
     if (sigId != 0 && sigId != 1) return false;
     // L1S サブフレーム = 8 ワード × 32 bit = 256 bit（データは 250 bit）。u-blox は詰め物のワードを
-    // 1 個足すことがある（numWords=9。実機の azarashi フィクスチャは 8/9 の両方）。それ以外は拒否し、
-    // 長すぎるフレームが 250 bit の詰めループを越えて余分なワードを持ち込めないようにする。
+    // 1 個足すことがある（numWords=9。実機の azarashi フィクスチャは 8/9 の両方）。それ以外は拒否し、長すぎるフレームが 250 bit の詰めループを越えて余分なワードを持ち込めないようにする。
     if (numWords != 8 && numWords != 9) return false;
     if (_len != 8u + static_cast<uint16_t>(numWords) * 4u) return false;
 
     // 航法ビットを MSB-first で out.bits[32] へ詰める: 8 ワード × 32 bit = 256、先頭 250 がデータで残りはゼロ詰め。
-    // ワードはリトルエンディアンで word の bit31 がサブフレームの先頭ビットなので、各ワードのバイトスワップが
-    // そのまま out.bits の該当 4 バイトになる（1 bit ずつの可変シフトループの代わりに直接ストア）。
-    // 先頭 7 ワード = 28 バイトは全域データ。word7 は bit 224..249 がデータで byte28-30 が全域、
-    // byte31 は上位 2 bit のみ（残り 6 bit はゼロ詰めのまま）。numWords=9 の余剰ワードは無視する。
+    // ワードはリトルエンディアンで word の bit31 がサブフレームの先頭ビットなので、各ワードのバイトスワップがそのまま out.bits の該当 4 バイトになる（1 bit ずつの可変シフトループの代わりに直接ストア）。
+    // 先頭 7 ワード = 28 バイトは全域データ。word7 は bit 224..249 がデータで byte28-30 が全域、byte31 は上位 2 bit のみ（残り 6 bit はゼロ詰めのまま）。numWords=9 の余剰ワードは無視する。
     memset(out.bits, 0, sizeof(out.bits));
     for (uint8_t w = 0; w < numWords && w < 8; ++w) {
         const uint8_t b0 = _buf[8 + w * 4u + 0], b1 = _buf[8 + w * 4u + 1];

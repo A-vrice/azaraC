@@ -1,7 +1,7 @@
 #pragma once
-// Nankai Trough Earthquake multi-page aggregation buffer
-//
-// ページは aggregated_text[] の (page_num-1)*TEXT_PER_PAGE へ直接書き、受信済みページは 64 bit の bitmap で管理する — PageData 配列を持たず（MAX_PAGES=63 で約 1 KB 節約）、ソートもせず、重複判定は O(1)。total_pages > MAX_PAGES なら打ち切る。
+// 南海トラフ地震の複数ページ集約バッファページは aggregated_text[] の (page_num-1)*TEXT_PER_PAGE へ直接書き、受信済みページは 64 bit の bitmap で管理する。
+// PageData 配列を持たないので（MAX_PAGES=63 で約 1 KB 節約）ソートも不要で、重複判定は O(1)。
+// total_pages > MAX_PAGES なら打ち切る。
 
 #if defined(__AVR__)
 #include "avr_std/cstdint"
@@ -25,15 +25,16 @@ namespace internal {
 
 // 事象の鍵。svid は除外（複数衛星が同一電文を中継するため重複する）。
 // identity = {info_code, information_type, 生の report_time DHM}。
-// DHM は正規化前の生プロトコルビット（NankaiData::report_*）: Mt43Data::event_time は resolveTime() が 2/30→3/1 を書き換え、月 0 を補完するため、report_unix の有無でハッシュが割れ、1 事象が複数バッファに分かれる。
+// DHM は正規化前の生プロトコルビット（NankaiData::report_*）:
+// Mt43Data::event_time は resolveTime() が 2/30→3/1 を書き換え月 0 を補完するため、report_unix の有無でハッシュが割れ、1 事象が複数バッファに分かれる。
 // information_type（It: 0=発表 / 2=取消）も鍵に必要（無いと発表と取消が同じ Pn を先着優先で潰し合い文面が混ざる）。
 // dedup 側も同じ 6 フィールドを使う（Dedup.h dedupEventToken）。
 struct NankaiPageKey {
-    uint8_t  info_code = 0;        // 1B — Is (Information Serial Code, 4b)
-    uint8_t  report_month  = 0;    // 1B — raw report_time month (4b)
-    uint8_t  report_day    = 0;    // 1B — raw report_time day (5b)
-    uint8_t  report_hour   = 0;    // 1B — raw report_time hour (5b)
-    uint8_t  report_minute = 0;    // 1B — raw report_time minute (6b)
+    uint8_t  info_code = 0;        // 1B — Is（情報系列コード、4b）
+    uint8_t  report_month  = 0;    // 1B — 生の report_time 月 (4b)
+    uint8_t  report_day    = 0;    // 1B — 生の report_time 日 (5b)
+    uint8_t  report_hour   = 0;    // 1B — 生の report_time 時 (5b)
+    uint8_t  report_minute = 0;    // 1B — 生の report_time 分 (6b)
     uint8_t  information_type = 0; // 1B — It (2b: 0=発表, 2=取消)
     // 合計 6B（パディングなし）
 
@@ -76,25 +77,26 @@ static_assert(AZARAC_NANKAI_MAX_PAGES > 0 && AZARAC_NANKAI_MAX_PAGES <= 63,
 
 struct NankaiPageBuffer {
     static constexpr uint8_t MAX_PAGES = AZARAC_NANKAI_MAX_PAGES;
-    static constexpr uint8_t SPEC_MAX_PAGES = 63;  // Official maximum (6 bits)
+    static constexpr uint8_t SPEC_MAX_PAGES = 63;  // 仕様の最大（6 bit）
     static constexpr uint8_t TEXT_PER_PAGE = 18;
     static constexpr uint32_t TIMEOUT_MS = 60000;
 
     NankaiPageKey key;                  // 6B
-    uint64_t received_bitmap = 0;       // 8B — bitmap: bit (page_num-1) set when received
+    uint64_t received_bitmap = 0;       // 8B — bit (page_num-1) が受信済みの印
     uint32_t last_update_ms = 0;        // 4B — TIMEOUT_MS=60s なので 32 bit 差分比較で十分（49.7 日でラップ）
-    uint8_t total_pages = 0;            // 1B — Effective total (capped at MAX_PAGES)
-    uint8_t original_total_pages = 0;   // 1B — Original total_pages from protocol
-    uint8_t received_count = 0;         // 1B — Number of pages received
-    bool truncated = false;             // 1B — true if total_pages > MAX_PAGES
-    // aggregated_text at offset 24 (host) / 22 (AVR) — char alignment is 1, no padding before it
+    uint8_t total_pages = 0;            // 1B — 実効ページ数（MAX_PAGES で頭打ち）
+    uint8_t original_total_pages = 0;   // 1B — 電文が示す元のページ数
+    uint8_t received_count = 0;         // 1B — 受信したページ数
+    bool truncated = false;             // 1B — total_pages > MAX_PAGES のとき true
+    // aggregated_text はオフセット 24 (host) / 22 (AVR) — char の境界は 1 なのでその前にパディングが無い
     char aggregated_text[MAX_PAGES * TEXT_PER_PAGE + 1];
 
     NankaiPageBuffer() : aggregated_text{} {
         clearAll();
     }
 
-    // ページを追加する（page_num は 1 始まり、total_pages_in は Pm 由来、text_data は 18 バイト）。追加できたら true。
+    // ページを追加する（page_num は 1 始まり、total_pages_in は Pm 由来、text_data は 18 バイト）。
+    // 追加できたら true。
     bool addPage(uint8_t page_num, uint8_t total_pages_in, const uint8_t* text_data, uint64_t current_ms) {
         // Pn は 1-63 (spec)
         if (page_num == 0 || page_num > SPEC_MAX_PAGES) {
@@ -144,7 +146,8 @@ struct NankaiPageBuffer {
         return received_count >= total_pages;
     }
 
-    // NUL を除いたテキスト長。ページごとに最初の 0x00 で止まる（UTF-8 に NUL は無い）。未完成のバッファでも安全（受信済みページしか読まない）。
+    // NUL を除いたテキスト長。ページごとに最初の 0x00 で止まる（UTF-8 に NUL は無い）。
+    // 未完成のバッファでも安全（受信済みページしか読まない）。
     uint16_t getTextLength() const {
         uint16_t len = 0;
 
@@ -162,7 +165,7 @@ struct NankaiPageBuffer {
         return len;
     }
 
-    // Compact received pages into a contiguous C string (call only when complete).
+    // 受信済みページを連続した C 文字列へ詰める（完成時のみ呼ぶ）。
     // 最終ページ以外は短いことがある（NUL の穴）— serialize は [ptr, ptr+len) を連続で出力するので、穴があると NUL が漏れる。
     // その場での圧縮は安全: 常に w <= p*TEXT_PER_PAGE で、書き込みが次のソースページに達することはない。
     uint16_t compactText() {
@@ -208,7 +211,7 @@ struct NankaiPageBuffer {
     }
 
 private:
-    // Per-page effective length (bytes up to first NUL, bounded by TEXT_PER_PAGE)
+    // ページ別の実効長（最初の NUL まで、TEXT_PER_PAGE 上限）
     uint8_t pageTextLength_(const char* page_start) const {
         uint8_t n = 0;
         while (n < TEXT_PER_PAGE && page_start[n] != 0) ++n;
@@ -216,8 +219,8 @@ private:
     }
 };
 
-// Exact layout: docs/api-reference.md and docs/architecture.md quote these sizes.
-// AZARAC_AVR_STUB defines __AVR__ but uses the host ABI, so it must expect the host values.
+// 正確な配置: docs/api-reference.md と docs/architecture.md がこのサイズを引用している。
+// AZARAC_AVR_STUB は __AVR__ を定義しつつホスト ABI を使うので、期待値はホスト側と同じ。
 #if AZARAC_NANKAI_MAX_PAGES == 63
 #  if defined(__AVR__) && !defined(AZARAC_AVR_STUB)
 static_assert(sizeof(NankaiPageBuffer) == 1157, "NankaiPageBuffer AVR layout");
@@ -246,7 +249,7 @@ public:
         }
     }
 
-    // Add a page; returns completed-buffer pointer if all pages received, else nullptr
+    // ページを追加し、全ページ受信ならそのバッファへのポインタ、そうでなければ nullptr を返す
     NankaiPageBuffer* addPage(const NankaiPageKey& key, uint8_t page_num,
                                uint8_t total_pages, const uint8_t* text_data,
                                uint64_t current_ms) {
@@ -304,7 +307,7 @@ private:
         return -1;
     }
 
-    // LRU eviction: oldest buffer by age (wrap-aware via unsigned subtraction)
+    // LRU 追い出し: 最も古いバッファから（符号なし減算でラップに強い）
     int8_t findOldestBuffer(uint64_t current_ms) {
         uint32_t max_age = 0;
         int8_t oldest_idx = 0;

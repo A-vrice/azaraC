@@ -1,23 +1,23 @@
-// MT=43 QZQSM / DC Report decoder (IS-QZSS-DCR-017)
+// MT=43 QZQSM / DC Report デコーダ (IS-QZSS-DCR-017)
 
 #include "Decoder.h"
 
 namespace azaraC {
 namespace internal {
 
-// Outer frame layout (offsets 0-indexed from preamble):
+// 外枠レイアウト（オフセットはプリアンブルから 0 始まり）:
 //   [14..16]  report_classification (3b)
 //   [17..20]  disaster_category     (4b)
-//   [21..24]  report_time month     (4b)  — not stored, used only for DHM resolve
+//   [21..24]  report_time month     (4b)  — 保持せず DHM の時刻解決にのみ使う
 //   [25..29]  report_time day       (5b)
 //   [30..34]  report_time hour      (5b)
 //   [35..40]  report_time minute    (6b)
 //   [41..42]  information_type      (2b)
 //   [43..46]  reserved / sub-type start
-//   [214..219] version (6b) — must be 1
-// Sub-type layouts per IS-QZSS-DCR-017 §4.1.2.3.
+//   [214..219] version (6b) — 仕様上の値は 1
+// サブタイプ別のレイアウトは IS-QZSS-DCR-017 §4.1.2.3。
 // 唯一の正となるカテゴリ表: X(code, enable_macro, sub_decoder) が対応判定・既知カテゴリ判定・ディスパッチを駆動する。
-// Change categories here only.
+// カテゴリの追加・削除はここだけで行う。
 #define AZARAC_DC_CATEGORIES(X) \
     X(1,  AZARAC_ENABLE_EEW,          decodeEEW)        \
     X(2,  AZARAC_ENABLE_HYPOCENTER,   decodeHypocenter) \
@@ -75,7 +75,7 @@ bool Decoder::decodeQzqsm(const uint8_t* bits, Message& out, uint32_t report_uni
     d->information_type      = getBits(bits, 41,  2);
     d->version               = ver;
 
-    // report_time: month(4b)+day(5b)+hour(5b)+min(6b) at bit 21
+    // report_time: bit 21 から month(4b)+day(5b)+hour(5b)+min(6b)
     uint8_t  rt_month  = getBits(bits, 21, 4);
     uint8_t  rt_day    = getBits(bits, 25, 5);
     uint8_t  rt_hour   = getBits(bits, 30, 5);
@@ -124,7 +124,7 @@ void Decoder::decodeEEW(const uint8_t* b, Message& out, uint32_t report_unix) {
     eew->long_period_lower = getBits(b, 47, 3);
     eew->long_period_upper = getBits(b, 50, 3);
 
-    // notifications: 3 × 9 bits at [53..79]
+    // 通知コード: [53..79] に 9 bit × 3 個
     eew->notification_count = readNotifications(b, 53, eew->notification);
 
     eew->quake_time   = extractDHM(b, 80, report_unix);
@@ -215,8 +215,7 @@ void Decoder::decodeNankai(const uint8_t* b, Message& out, uint32_t report_unix)
     nankai->report_day    = getBits(b, 25, 5);
     nankai->report_hour   = getBits(b, 30, 5);
     nankai->report_minute = getBits(b, 35, 6);
-    // text: 18 バイト = bit [57..200]。57 は 1 bit オフセットの固定位置なので
-    // prev<<1 | next>>7 の連続コピーで取り出す（18 回の getBits(8) を 18 回のシフトに）。
+    // text: 18 バイト = bit [57..200]。57 は 1 bit オフセットの固定位置なので prev<<1 | next>>7 の連続コピーで取り出す（18 回の getBits(8) を 18 回のシフトに）。
     for (uint8_t i = 0; i < 18; ++i) {
         const uint8_t p = (uint8_t)(7 + i);   // 57/8 = 7（bit 57 は byte 7 の 1 bit 目）
         nankai->text[i] = (uint8_t)((b[p] << 1) | (b[p + 1] >> 7));
@@ -225,10 +224,9 @@ void Decoder::decodeNankai(const uint8_t* b, Message& out, uint32_t report_unix)
 #endif // AZARAC_ENABLE_NANKAI
 
 #if (AZARAC_ENABLE_TSUNAMI)
-// Tsunami  (disaster_category == 5)
-// arrival time sub-field: nextday(1)+hour(5)+minute(6) = 12 bits
+// Tsunami  (disaster_category == 5)到着時刻サブフィールド: nextday(1)+hour(5)+minute(6) = 12 bit
 void Decoder::decodeTsunami(const uint8_t* b, Message& out, uint32_t report_unix) {
-    (void)report_unix; // Used indirectly via d->event_time.unix_time
+    (void)report_unix;  // d->event_time.unix_time 経由で間接的に使う
     Mt43Data* d = out.getMt43();
     if (!d) return;
     
@@ -390,7 +388,8 @@ void Decoder::decodeFlood(const uint8_t* b, Message& out, uint32_t report_unix) 
     flood->count = 0;
     for (uint8_t i = 0; i < 3; ++i) {
         uint16_t off = 53 + i * 44;
-        // 44 bit すべて 0 ならエントリなし（Region1 Lv の範囲は 1-15 で、0 は未使用）。44 bit > 32 なので getBits64 を使う。
+        // 44 bit すべて 0 ならエントリなし（Region1 Lv の範囲は 1-15 で、0 は未使用）。
+        // 44 bit > 32 なので getBits64 を使う。
         const uint64_t e = getBits64(b, off, 44);   // 一括 → 4/20/20 に分解
         if (e == 0) break;
         flood->entries[flood->count].warning_level = (uint8_t)((e >> 40) & 0xFu);
@@ -428,9 +427,7 @@ void Decoder::decodeMarine(const uint8_t* b, Message& out, uint32_t report_unix)
 #endif // AZARAC_ENABLE_MARINE
 
 #if (AZARAC_ENABLE_TYPHOON)
-// Typhoon  (disaster_category == 12)
-// IS-QZSS-DCR-017 Table 4.1.2-47
-// Bit layout (from preamble):
+// Typhoon  (disaster_category == 12) IS-QZSS-DCR-017 Table 4.1.2-47 ビットレイアウト（プリアンブルからのオフセット）:
 //   [53..68]  Bt  Reference Time (day(5)+hour(5)+min(6))
 //   [69..71]  Dt  Type of Reference Time (3 bits)
 //   [72..79]  Spare2 (8 bits)

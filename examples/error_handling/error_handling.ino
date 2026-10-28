@@ -1,10 +1,4 @@
-// azaraC — examples/error_handling/error_handling.ino
-//
-// エラーハンドリングと状態監視の例
-// CRCエラー、フレームエラーの統計を表示する
-// ※ 重複排除はParser内部で自動的に行われるため、example側では検出できません
-//
-// Wiring (ESP32-C3 DevKitM-1):
+// エラーハンドリングと状態監視の例 CRCエラー、フレームエラーの統計を表示する※ 重複排除はParser内部で自動的に行われるため、example側では検出できません配線 (ESP32-C3 DevKitM-1):
 //   GNSS TX → GPIO20 (Serial1 RX)
 //   GNSS RX → GPIO21 (Serial1 TX)
 //   GND     → GND
@@ -25,7 +19,9 @@ static constexpr uint32_t HEARTBEAT_MS   = 5000;
 static constexpr uint32_t STATS_INTERVAL = 10;  // メッセージ数
 
 //
-// この変数は parser.feed() の第3引数で、DCR/DCX 電文の「年」の算出に使われる。0 なら年は解決されないが月・日・時・分は正しく取れる。ライブラリは UBX-NAV-PVT (0x01 0x07) をパースしないため、時刻源はユーザーが用意する:
+// この変数は parser.feed() の第3引数で、DCR/DCX 電文の「年」の算出に使われる。
+// 0 なら年は解決されないが月・日・時・分は正しく取れる。
+// ライブラリは UBX-NAV-PVT (0x01 0x07) をパースしないため、時刻源はユーザーが用意する:
 //   - SNTP: uint32_t now = (time(nullptr) > 0) ? static_cast<uint32_t>(time(nullptr)) : 0;  (with_sntp.ino)
 //   - UBX-NAV-PVT を手動パース: payload[12..13]=year, [14]=month, [15]=day, [16]=hour, [17]=min, [18]=sec
 //   - RTC など他の同期手段
@@ -51,7 +47,7 @@ static uint32_t to_unix_time(uint16_t year, uint8_t month, uint8_t day,
 
 static uint32_t cached_gnss_unix_time = 0;
 
-// Parser::feed() が true を返した時点で msg.valid は保証されるため、total_messages は feed() の成功回数。将来 CRC/フレームエラーが API から取れるようになったら、errors を足して error rate を算出する。
+// Parser::feed() が true を返した時点で msg.valid は保証されるため、total_messages は feed() の成功回数。
 struct Statistics {
     uint32_t total_messages = 0;
     uint32_t mt43_count = 0;          // MT=43 メッセージ数
@@ -74,7 +70,8 @@ void printStatistics() {
     Serial.println(F("========================"));
 }
 
-// 注意: Parser::feed() が true を返した時点で msg.valid == true は保証されている。この関数は feed() 呼出し前に呼ばれないため msg.valid チェックはデッドコード。invalid も取れる API ができたら復活させる。
+// 注意: Parser::feed() が true を返した時点で msg.valid == true は保証されている。
+// この関数は feed() の前にしか呼ばれないので、msg.valid のチェックはデッドコード。
 bool validateMessage(const azaraC::Message& msg) {
     // SVIDの範囲チェック (QZSS L1S PRN: 181-191)
     if (msg.svid < QZSS_SVID_MIN || msg.svid > QZSS_SVID_MAX) {

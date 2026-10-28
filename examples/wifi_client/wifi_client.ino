@@ -1,5 +1,3 @@
-// azaraC — examples/wifi_client/wifi_client.ino
-//
 // Wi-Fi クライアントとして JSON メッセージを TCP サーバーに送信する例。 MQTT ブローカーや HTTP エンドポイントへの転送に使える。
 //
 // 必要な設定:
@@ -8,7 +6,7 @@
 //   - SERVER_HOST: 送信先サーバーアドレス
 //   - SERVER_PORT: 送信先ポート番号
 //
-// Wiring (ESP32-C3 DevKitM-1):
+// 配線 (ESP32-C3 DevKitM-1):
 //   GNSS TX → GPIO20 (Serial1 RX)
 //   GNSS RX → GPIO21 (Serial1 TX)
 //   GND     → GND

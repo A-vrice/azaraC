@@ -37,7 +37,7 @@ bool NmeaFramer::feed(uint8_t b, Frame& out) {
                 _xsum ^= b;
                 _buf[_pos++] = static_cast<char>(c);
             } else {
-                reset();  // overrun: truncated prefix + matching checksum must not parse
+                reset();  // 溢れたら切り詰め済み接頭＋一致チェックサムでも解析させない
             }
         }
         break;
@@ -61,8 +61,7 @@ bool NmeaFramer::feed(uint8_t b, Frame& out) {
 }
 
 bool NmeaFramer::parse(Frame& out) {
-    // Expected: QZQSM,<svid>,<hex-data>
-    // 先頭 6 バイトは固定なので Flash に置く（素のリテラルは avr-libc のリンカスクリプトで .data = SRAM に入る）。
+    // 期待する形: QZQSM,<svid>,<hex-data>先頭 6 バイトは固定なので Flash に置く（素のリテラルは avr-libc のリンカスクリプトで .data = SRAM に入る）。
     // リテラルは AZARAC_STRNCMP_P が PSTR で包むので、ここでは素のままでよい（ホストでは no-op）。
     if (AZARAC_STRNCMP_P(_buf, "QZQSM,", 6) != 0) return false;
 
@@ -80,10 +79,10 @@ bool NmeaFramer::parse(Frame& out) {
         p++;
     }
     // 仕様の Satellite ID は「PRN 下位 6bit の2桁10進」（IS-QZSS-DCR-017 §4.3.1 / DCX-004 §4.3.1、Table 4.3.1-1）。
-    // 1桁は下位 6bit の範囲外（PRN 183 = 55 は2桁）で、3桁は `| 0x80` しても PRN 契約（181-191）の外の値になる（100 → 228）。
-    // 64-99 は2桁だが 6bit に収まらないため拒否する（64 → 192）。0-52 は 6bit としては有効だが
-    // PRN 128-180 に対応し、L1S の PRN 契約（181-191）の外になる。フレーマーは通し、利用側が svid で絞る。
-    // azarashi も長さ 2 を要求して拒否する。
+    // 1桁は下位 6bit の範囲外（PRN 183 = 55 は2桁）。3桁は `| 0x80` しても PRN 契約（181-191）の外の値になる（100 → 228）。
+    // 64-99 は2桁だが 6bit に収まらないため拒否する（64 → 192）。
+    // 0-52 は 6bit として有効だが PRN 128-180 に対応し、L1S の PRN 契約（181-191）の外になる。
+    // フレーマーは通し、利用側が svid で絞る（azarashi も長さ 2 を要求して拒否する）。
     if (digit_count != 2 || *p != ',' || svid_tmp > 63) return false;
     uint8_t svid = static_cast<uint8_t>(svid_tmp);
     ++p;
@@ -119,7 +118,8 @@ bool NmeaFramer::parse(Frame& out) {
     }
 
     // QZQSM の Satellite ID は PRN の下位 6bit (DCR-017 §4.3.1 / DCX-004 §4.3.1)。
-    // Frame::svid は PRN 契約 (api-reference.md の 181-191) なので上位ビットを立てて正規化する。既に PRN (>=128) なら | 0x80 は恒等。
+    // Frame::svid は PRN 契約（api-reference.md の 181-191）なので上位ビットを立てて正規化する。
+    // 既に PRN (>=128) なら | 0x80 は恒等。
     out.svid = static_cast<uint8_t>(svid | 0x80);
 
     return true;
