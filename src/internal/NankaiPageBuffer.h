@@ -9,6 +9,11 @@
 #include <cstdint>
 #endif
 #if defined(__AVR__)
+#include "avr_std/cstddef"
+#else
+#include <cstddef>
+#endif
+#if defined(__AVR__)
 #include "avr_std/cstring"
 #else
 #include <cstring>
@@ -82,7 +87,7 @@ struct NankaiPageBuffer {
     uint8_t original_total_pages = 0;   // 1B — Original total_pages from protocol
     uint8_t received_count = 0;         // 1B — Number of pages received
     bool truncated = false;             // 1B — true if total_pages > MAX_PAGES
-    // aggregated_text at offset 28 (no padding needed, char alignment = 1)
+    // aggregated_text at offset 24 (host) / 22 (AVR) — char alignment is 1, no padding before it
     char aggregated_text[MAX_PAGES * TEXT_PER_PAGE + 1];
 
     NankaiPageBuffer() : aggregated_text{} {
@@ -210,6 +215,21 @@ private:
         return n;
     }
 };
+
+// Exact layout: docs/api-reference.md and docs/architecture.md quote these sizes.
+// AZARAC_AVR_STUB defines __AVR__ but uses the host ABI, so it must expect the host values.
+#if AZARAC_NANKAI_MAX_PAGES == 63
+#  if defined(__AVR__) && !defined(AZARAC_AVR_STUB)
+static_assert(sizeof(NankaiPageBuffer) == 1157, "NankaiPageBuffer AVR layout");
+static_assert(offsetof(NankaiPageBuffer, aggregated_text) == 22, "aggregated_text AVR offset");
+#  else
+static_assert(sizeof(NankaiPageBuffer) == 1160, "NankaiPageBuffer host/stub layout");
+static_assert(offsetof(NankaiPageBuffer, aggregated_text) == 24, "aggregated_text host/stub offset");
+#  endif
+#elif AZARAC_NANKAI_MAX_PAGES == 4 && defined(__AVR__) && !defined(AZARAC_AVR_STUB)
+static_assert(sizeof(NankaiPageBuffer) == 95, "NankaiPageBuffer AVR preset layout");
+static_assert(offsetof(NankaiPageBuffer, aggregated_text) == 22, "aggregated_text AVR preset offset");
+#endif
 
 // 複数のページバッファを bitmap 追跡 + LRU 追い出しで管理する。バッファ数 = AZARAC_NANKAI_BUFFERS（azaraC_config.h）。
 

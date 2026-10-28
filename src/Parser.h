@@ -12,7 +12,7 @@
 
 namespace azaraC {
 
-// RAM: Parser 実体は約 5.4 KB（静的、既定: Nankai 1 バッファ @63 ページ = 管理部 1,168 B + dedup 4,096 B (512x8) + framer/decoder。ホスト実測 sizeof = 5,464 B）。推奨は約 5.8 KB、最小 712 B（AVR preset: 4 ページ / 1 バッファ、dedup 64x8 = 512 B、Nankai/DCX off）。
+// RAM: Parser 実体は約 5.4 KB（静的、既定: Nankai 1 バッファ @63 ページ = 管理部 1,160 B + dedup 4,096 B (512x8) + framer/decoder。ホスト実測 sizeof = 5,456 B）。推奨は約 5.8 KB、最小 712 B（AVR preset: 4 ページ / 1 バッファ、dedup 64x8 = 512 B、Nankai/DCX off）。
 // 2 KB のターゲットでは Nankai/DCX を無効のままにすること。
 // AZARAC_DEDUP_SLOTS を AVR preset の 64 未満へ縮めるのは、実測し直す場合のみ（azaraC_config.h の実測値参照）。
 // スタック: feed() の最悪ケースの静的チェーンは host -Os で 808 B、AVR preset (atmega328p -Os, DCX/Nankai off) で 259 B。
@@ -37,7 +37,7 @@ public:
     void reset();
 
 #if AZARAC_ENABLE_NANKAI
-    // 鍵に一致するバッファ（= Nankai のページ集約が完了している）を返す。無ければ nullptr。
+    // 鍵に一致するバッファを返す（受信途中でも返る。完了判定は isComplete()）。無ければ nullptr。
     const internal::NankaiPageBuffer* getNankaiBuffer(const internal::NankaiPageKey& key) const;
 #endif
 

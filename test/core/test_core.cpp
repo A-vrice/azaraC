@@ -876,7 +876,7 @@ TEST_CASE("Memory: sizeof guards for embedded targets") {
     CHECK(sizeof(Message) <= 420);
     CHECK(sizeof(Mt43Data) <= 240);
     CHECK(sizeof(Mt44Data) <= 420);
-    // Parser = NankaiPageBufferManager (4×1168=4672) + framers, decoder, dedup (~320)
+    // Parser = NankaiPageBufferManager (AZARAC_NANKAI_BUFFERS × sizeof(NankaiPageBuffer)) + framers, decoder, dedup (~320)
     CHECK(sizeof(Parser) <= 5500);
 #else
     // Skip on non-GCC or embedded — sizeof may differ per arch

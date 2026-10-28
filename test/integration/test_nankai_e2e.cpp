@@ -303,6 +303,29 @@ static void buildNankaiPage(uint8_t page_num, uint8_t total_pages, uint8_t info_
 // 唯一の正は test/data/nankai_vectors.json（nankai_pages_generated.h として生成される）。ページデータを手で編集せず、ヘッダを再生成すること。
 #include "../data/nankai_pages_generated.h"
 
+TEST_CASE("Nankai E2E: getNankaiBuffer exposes an incomplete buffer") {
+    azaraC::Parser parser;
+    azaraC::Message msg;
+    uint8_t bits[32];
+    const uint8_t text[18] = {'p', 'a', 'r', 't', 'i', 'a', 'l'};
+
+    buildNankaiPage(1, 2, 1, text, sizeof(text), bits);
+    const std::string nmea = makeNmeaQzqsm(58, bits);
+
+    bool output = false;
+    for (size_t i = 0; i < nmea.length(); ++i) {
+        if (parser.feed(nmea[i], msg, 0)) output = true;
+    }
+    CHECK_FALSE(output);
+
+    const NankaiPageKey key{1, 0, 0, 0, 0, 0};
+    const NankaiPageBuffer* buf = parser.getNankaiBuffer(key);
+    REQUIRE(buf != nullptr);
+    CHECK_FALSE(buf->isComplete());
+    CHECK(buf->total_pages == 2);
+    CHECK(buf->received_count == 1);
+}
+
 // Per-page text length up to the first NUL, mirroring NankaiPageBuffer::compactText().
 // The final page of the real message is NUL-padded on the wire, so the aggregated body is shorter than pages * TEXT_PER_PAGE.
 [[maybe_unused]] static uint16_t pageUsedLength(const uint8_t* page) {

@@ -340,6 +340,8 @@ struct Mt43Data {
 
     template<typename T>
     void initAs() {
+        static_assert(sizeof(T) <= storage_size_,
+                      "Payload type exceeds Mt43Data storage (missing from storage_size_?)");
 #if !defined(__AVR__) || defined(AZARAC_AVR_STUB)
         static_assert(std::is_trivially_copyable_v<T>,
                       "Payload type must be trivially copyable for placement new");
