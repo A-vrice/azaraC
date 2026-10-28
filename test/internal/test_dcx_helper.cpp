@@ -74,7 +74,7 @@ TEST_CASE("decodeLongitude17_45_225: boundary and known values") {
 }
 
 TEST_CASE("decodeB2HazardCenter: C5/C6 table and >63 rounding branch") {
-    // EWSS CAMF v1.1 §3.7.2: delta = -10 + 20*code/128 度。code <=63 は code をそのまま使い、code >63 は +1 の丸め分岐に入る。
+    // EWSS CAMF v1.2 §3.7.2: delta = -10 + 20*code/128 度。code <=63 は code をそのまま使い、code >63 は +1 の丸め分岐に入る。
     CHECK(decodeB2HazardCenter(0, 0).delta_lat_microdeg == -10000000);
     CHECK(decodeB2HazardCenter(0, 0).delta_lon_microdeg == -10000000);
     CHECK(decodeB2HazardCenter(43, 16).delta_lat_microdeg == -3281250);

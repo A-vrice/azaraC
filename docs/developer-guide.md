@@ -81,6 +81,8 @@ make -C test run
 make -C test run MINGW64_BIN=C:\mingw64\bin
 ```
 
+同じ `test/*.o` を共有するターゲット同士の同時実行は `test/scripts/with-make-lock.sh` が直列化します。別の make が実行中なら exit 2 で止まるので、待つか `test/.make-lock` を削除してください。意図的にロックを迂回する場合は `make -C test AZARAC_LOCK_HELD=1 run` を使います。`run-lang-defaults` と `test-no-alloc` は複数行レシピのため Windows では未検証です（Linux CI で実行）。
+
 ### テスト結果例
 
 ```
@@ -88,8 +90,8 @@ $ make -C test run
 run_tests.exe
 [doctest] doctest version is "2.5.0"
 ===============================================================================
-[doctest] test cases:   418 |   418 passed | 0 failed | 0 skipped
-[doctest] assertions: 10500 | 10500 passed | 0 failed |
+[doctest] test cases:   422 |   422 passed | 0 failed | 0 skipped
+[doctest] assertions: 12911 | 12911 passed | 0 failed |
 [doctest] Status: SUCCESS!
 ```
 
@@ -115,7 +117,7 @@ make -C test fuzz FUZZ_ITERATIONS=100000
 | ターゲット | 用途 |
 |----------|------|
 | `make -C test pgm-stub` | `__AVR__` + スタブ `avr/pgmspace.h` で全テストをコンパイルし PROGMEM 分岐をホスト検証 |
-| `make -C test test-time-irq` | `ARDUINO=1` + `__AVR__` + スタブ `avr/io.h` で `internal::getMillis()` の割り込み状態保存・復元をホスト検証 |
+| `make -C test test-time-irq` | `ARDUINO=1` + `__AVR__` + スタブ `avr/io.h` で `internal::getMillis()` の割り込み状態保存・復元をホスト検証。AVR 分岐のみを対象とし、ESP32（Xtensa / RISC-V）では `noInterrupts()`/`interrupts()` が呼び出し側の状態を保存しないため、クリティカルセクション/ISR から呼ばないこと（既知の制約） |
 | `make -C test run-small-pages` | `AZARAC_NANKAI_MAX_PAGES=8` で全体を再ビルドし、ページ打ち切り経路を検証（既定 63 では打ち切りが発生せず該当テストが `#if` で除外されるため） |
 | `make -C test run-lto` | `-O2 -flto -Werror=lto-type-mismatch -Werror=odr` で全体を再ビルド・実行し、リンク時最適化での型不一致・ODR 違反・インライン後 codegen の退行を検証（終了時に `clean`） |
 | `make -C test decode` | decode_to_jsonのCLIビルド（azarashi 比較用） |

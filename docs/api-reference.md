@@ -31,7 +31,7 @@ Parser();
 explicit Parser(internal::IFramer& framer);
 ```
 
-コピー・ムーブは禁止されています (dedup テーブル・Nankai バッファを実体で持ち、`framer` は呼び出し側の所有物のため)。`Parser` の複製はコンパイルエラーになります。
+なおこのクラスのコピーやムーブはコンパイルエラーになります。 (dedup テーブル・Nankai バッファ、`framer` は呼び出した関数が持つため)
 
 #### メソッド
 
@@ -88,6 +88,8 @@ const internal::NankaiPageBuffer* getNankaiBuffer(const internal::NankaiPageKey&
 
 `NankaiPageKey`の識別子は`{info_code, information_type, report_timeのmonth/day/hour/minute}`です（`information_type`は発表=0/取消=2で、同一`info_code`+報告時刻の発表と取消を別情報として扱うために含めます）。呼び出しキーは`NankaiPageKey{info_code, month, day, hour, minute, information_type}`で生成が可能です（`information_type`は末尾の既定引数で省略可）。`report_time`はそのまま渡すこと（`resolveTime`の正規化で鍵が変わらないようにするため）。
 
+返るバッファは受信途中でもよく、完了判定は `isComplete()` で行います。返却ポインタは次の `feed()` / `reset()` までのみ有効です。
+
 ---
 
 ### `azaraC::internal::NankaiPageBufferManager`
@@ -104,8 +106,8 @@ const internal::NankaiPageBuffer* getNankaiBuffer(const internal::NankaiPageKey&
 #### メモリ使用量
 
 各バッファはページを`aggregated_text[MAX_PAGES * 18 + 1]`に保管します：
-- バッファあたり: メタデータ28B + `MAX_PAGES×18+1` B（既定63ページで1,135B、構造体サイズはアラインメント込み1,168B）
-- バッファ: 規定1バッファで約1.17KB。バッファ数を増やすと比例して増加（4バッファ・63ページで約4.7KB）
+- バッファあたり: メタデータ24B + `MAX_PAGES×18+1` B（既定63ページで1,135B、構造体サイズはアラインメント込み1,160B）
+- バッファ: 既定1バッファで約1.16KB。バッファ数を増やすと比例して増加（4バッファ・63ページで4,640B）
 
 #### LRU エビクション
 
@@ -194,7 +196,7 @@ JMA DC Reportメッセージのデータ構造。
 
 #### EEWデータ (`EewData`)
 
-`AZARAC_ENABLE_EEW=1`（非AVRの既定）のときだけ定義されます。0 ではこの型と `getEew()` が存在しないため、参照するコードは `#if (AZARAC_ENABLE_EEW)` で囲む必要があります（`HypocenterData` / `NankaiData` も同じ規則）。
+`AZARAC_ENABLE_EEW=1`（非AVRの既定）のときだけ定義されます。0のときはこの型と `getEew()` は存在しないため、コードで参照する場合は `#if (AZARAC_ENABLE_EEW)` で囲む必要があります（`HypocenterData` / `NankaiData` についてもそれぞれ同様の処理が必要）。
 
 ```cpp
 struct EewData {
@@ -411,26 +413,27 @@ if (client.connect(server, port)) {
 | `AZARAC_LANG_JA` | 1 | 日本語ラベルを有効化 |
 | `AZARAC_LANG_EN` | 0 | 英語ラベルを有効化 |
 
-両方1のときは日本語を優先し、そのコードに日本語が無ければ英語を使う。
+両方が 1 のときは日本語を優先し、その項目に日本語テーブルが無ければ代わりに英語を使う。
 `AZARAC_LANG_JA=0 / AZARAC_LANG_EN=1` では英語ラベルを出力する。
-英語表を持たない項目（例: 南海トラフの情報番号）は日本語のままになる。
+英語テーブルを持たない項目（例: 南海トラフの情報番号）は日本語のままになる。
 どちらも 0 のときは原則ラベルを出力しない。欠落時は `null`、定義済みで空文字列のラベルは `""` として出力される。ただし言語非依存表（北西太平洋津波の 3 表など）は値があれば 0/0 でも解決して返す。
 
 英語ラベルはazarashi 0.17.1の定義テーブルに由来する。
 `AZARAC_LANG_EN`で有効になるのは`_en`という接尾辞のヘッダで、対応する日本語表と対で生成される。
 
-逆に**日本語版を持たない英語専用表**（北西太平洋津波の `potential` / `height` / `region`）は言語非依存で、`AZARAC_LANG_EN` に関係なく常に出力されます。
-これは仕様自体が英語で日本語版が存在しないため。同じような例がCAMFに多数あります（定義テーブルの`_en`のうち、言語切替の対象になるのは対応するJA表があるものだけ）。
+逆に**日本語版を持たない英語専用表**（北西太平洋津波の `potential` / `height` / `region`）は言語非依存で、`AZARAC_LANG_EN` の設定に関係なく常に出力されます。
+これはCAMF自体が英語で日本語メッセージの定義が存在しないためで、同じ仕様を参照する他のテーブルも同様の処理がなされる場合があります。（定義テーブルの`_en`のうち、言語切替の対象になるのは対応する日本語テーブルが存在する場合のみ）
 
-**両方 1 のときの併記**: `AZARAC_LANG_JA=1`かつ`AZARAC_LANG_EN=1`のとき、文字列リテラルのキーを持つ `_label` フィールドには `_label_en` が併記される。`_label` は日本語優先（無ければ英語）、`_label_en` は常に英語。
+**両方 1 のときの併記**: `AZARAC_LANG_JA=1`かつ`AZARAC_LANG_EN=1`のとき、文字列リテラルのキーを持つ `_label` フィールドには `_label_en` が併記されます。`_label` は日本語優先（無ければ英語）、`_label_en` は常に英語となります。
 
 ```json
 { "depth": 60, "depth_label": "60km", "depth_label_en": "60 km" }
 ```
 
-配列要素のうち、汎用キー（`notifications[].label` / `regions[].label` / `prefectures[].label` / `cities[].label` / `local_govs[].label` / `entries[].region_label`）で出すラベルは `_label_en` を持たない。要素ごとにコード体系が異なり、固定キー名では併記できないからだ。逆に固定の文字列リテラルキー（`AZARAC_LABEL`）は配列要素でも `_label_en` を併記する（例: 震度の `entries[].intensity_label`）。要素ごとに言語を選びたい場合は`AZARAC_LANG_JA=0 / AZARAC_LANG_EN=1` 構成を使う。
+配列要素のうち、汎用キー（`notifications[].label` / `regions[].label` / `prefectures[].label` / `cities[].label` / `local_govs[].label` / `entries[].region_label`）の要素は `_label_en` を持ちません。（要素ごとにコード体系が異なり、固定キー名では併記できないため）
+逆に固定の文字列リテラルキー（`AZARAC_LABEL`）は配列要素でも `_label_en` を併記します（例: 震度の `entries[].intensity_label`）。要素ごとに言語を選びたい場合は`AZARAC_LANG_JA=0 / AZARAC_LANG_EN=1` 構成を使う。
 
-数量フィールド（`depth` / `magnitude` / `pressure` / `max_wind` / `max_gust` / `elapsed` / `number`）にも `_label` / `_label_en` が付く。生のコード値だけでは意味が取れない値も含む(以下の表参照)
+数量フィールド（`depth` / `magnitude` / `pressure` / `max_wind` / `max_gust` / `elapsed` / `number`）にも `_label` / `_label_en` が含まれます。これには生のコード値だけでは意味が取れない値も含みます(以下の表参照)
 
 | コード | ラベル | 意味 |
 |---|---|---|
@@ -440,17 +443,16 @@ if (client.connect(server, port)) {
 | `depth` 511 / `magnitude` 127 | `不明` / `Unknown` | センチネル |
 | `max_wind` 0 / `max_gust` 0 | `不明` / `Unknown` | センチネル |
 
-センチネルは全フィールド共通ではない。例えば`depth`の0は`0km`、`pressure`の0は`0hPa`、`elapsed`の0は`0時間後`で、それぞれ実値として意味を持つ。
-ただし`number`の0は`typhoon_number`表（1スタート）に無いため`number_label`は`null`になる。
+センチネルは全フィールド共通ではなく、例えば`depth`の0は`0km`、`pressure`の0は`0hPa`、`elapsed`の0は`0時間後`で、それぞれ実値として意味を持ちます。
+ただし`number`の0は`typhoon_number`表（1スタート）に無いため`number_label`は`null`となります。
 
-`AZARAC_LANG_EN=0`（既定）では`_label_en`は出力されず、`AZARAC_LANG_JA=0 / AZARAC_LANG_EN=1`でも`_label`自体がすべて英語になるため併記しない。
-`_label_en`が出るのは日本語/英語ともに有効にした構成のみ。
+`AZARAC_LANG_EN=0`（既定）では`_label_en`は出力されず、仮に`AZARAC_LANG_JA=0 / AZARAC_LANG_EN=1`でも`_label`自体がすべて英語になるため`_label_en`ではなく`_label`に英語が表示されます。
+包括すると`_label_en`が出るのは**日本語/英語ともに有効にした構成のみ**です。
 
 ### 災害カテゴリ選択
 
-不要なカテゴリの定義テーブルをコンパイル時に除外しFlash使用量を削減できます。
-日本語表と英語表は同じデータなので、**そのカテゴリを無効にすると両方が同時に除外されます**
-（`AZARAC_LANG_EN` だけの英語専用表も含む）。
+不要なカテゴリの定義テーブルをコンパイル時に除外することでFlash使用量を削減できます。
+日本語表と英語表は同じデータなので、**そのカテゴリを無効にすると両方が同時に除外されます**（`AZARAC_LANG_EN` だけの英語専用表も含む）。
 
 | マクロ | デフォルト | 説明(カテゴリ) |
 |-------|-----------|------|
