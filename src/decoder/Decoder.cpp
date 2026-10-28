@@ -168,6 +168,18 @@ uint64_t Decoder::getBits64(const uint8_t* buf, uint16_t start, uint8_t len) {
     return val;
 }
 
+namespace {
+// mp は 0..11 (March=0 .. February=11)。AVR の unsigned int は 16-bit なので、
+// `-9u` を式に直接置くと 65527 になり、Jan/Feb が 65537/65538 になる。
+constexpr uint32_t civilMonth(uint32_t mp) {
+    return mp < 10u ? mp + 3u : mp - 9u;
+}
+static_assert(civilMonth(0u)  == 3u,  "civilMonth March");
+static_assert(civilMonth(9u)  == 12u, "civilMonth December");
+static_assert(civilMonth(10u) == 1u,  "civilMonth January must not wrap on 16-bit int");
+static_assert(civilMonth(11u) == 2u,  "civilMonth February must not wrap on 16-bit int");
+} // namespace
+
 // 非AVR: Hinnant era 法 (u32)。定数除算はコンパイラが乗算展開するためこの形が最速。
 // AVR: era (400 年ブロック) の u32 除算だけを引き算ループ (≤24 回) に置き換える。
 // avr-gcc は u32/定数 を __udivmodsi4 呼び出しで実装するため、era 1 回の除去で
@@ -188,7 +200,7 @@ void Decoder::civil_from_days(uint32_t days_since_1970, uint32_t& y, uint32_t& m
     uint32_t doy = doe - (365u * yoe + yoe / 4u - yoe / 100u);
     uint32_t mp = (5u * doy + 2u) / 153u;
     d = doy - (153u * mp + 2u) / 5u + 1u;
-    m = mp + (mp < 10u ? 3u : -9u);
+    m = civilMonth(mp);
     y += (m <= 2u);
 }
 

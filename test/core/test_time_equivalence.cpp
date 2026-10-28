@@ -1,6 +1,10 @@
 // test/core/test_time_equivalence.cpp
-// Decoder::civil_from_days / days_from_civil の高速版 (u16 演算 + 400 年ブロック引き算) が
-// 旧実装 (Hinnant era 法・u32 除算) と実用域で完全一致することを全日スイープで検証する。
+// Decoder::civil_from_days / days_from_civil の実装 (Hinnant era 法ベース。AVR は
+// civil_from_days の era (146097) u32 除算を引き算ループに、days_from_civil の実用域
+// (y ≤ 65535) を u16 演算に置換) がリファレンス実装 (Hinnant era 法・u32 除算) と
+// 実用域で完全一致することを全日スイープで検証する。AVR 分岐は pgm-stub (-D__AVR__) で
+// 実行されるが、pgm-stub はホストの 32-bit int なので 16-bit 幅の退行は検出しない。
+// 16-bit 幅は Decoder.cpp の static_assert と実 avr-gcc の make bench が担う。
 // resolveTime の境界意味 (month==0 の 3 候補探索・stale 処理・2/29 正規化) は
 // test/integration/test_time_resolution.cpp が担う。ここは純粋な日付変換の等価性のみ。
 
@@ -12,7 +16,12 @@
 
 using namespace azaraC;
 
-// 旧実装 (Decoder.cpp の *_ref と同一・リファレンスオラクル)
+// リファレンス実装 (Hinnant era 法・u32 除算のオラクル)。月の対応は式ではなく表にして、
+// 実装側の `-9u` のような int 幅依存の式を共有しない（AVR でも独立したオラクルにする）。
+static constexpr uint8_t kRefMonth[12] = {
+    3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 1, 2
+};
+
 static void civilRef(uint32_t days_since_1970, uint32_t& y, uint32_t& m, uint32_t& d) {
     uint32_t z = days_since_1970 + 719468u;
     uint32_t era = z / 146097u;
@@ -22,7 +31,7 @@ static void civilRef(uint32_t days_since_1970, uint32_t& y, uint32_t& m, uint32_
     uint32_t doy = doe - (365u * yoe + yoe / 4u - yoe / 100u);
     uint32_t mp = (5u * doy + 2u) / 153u;
     d = doy - (153u * mp + 2u) / 5u + 1u;
-    m = mp + (mp < 10u ? 3u : -9u);
+    m = kRefMonth[mp];
     y += (m <= 2u);
 }
 
