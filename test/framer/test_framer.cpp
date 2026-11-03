@@ -1,4 +1,4 @@
-// test/framer/test_framer.cpp — UBX/NMEA フレーマーの統合テスト
+// UBX/NMEA フレーマーの統合テスト
 
 #define ARDUINO 0
 #include "../test_helpers.h"
@@ -7,10 +7,10 @@
 
 using namespace azaraC;
 
-// UBX Tests
+// UBX テスト
 
 TEST_CASE("UBX Framer: basic decode with multiple svIds") {
-    // svId -> PRN mapping: 2->184, 3->185, 7->189
+    // svId → PRN 対応: 2→184, 3→185, 7→189
     struct SvidCase { uint8_t svid; uint8_t expected_prn; uint8_t bits0; };
     SvidCase cases[] = {
         {2, 184, 0x53},  // svId=2 -> PRN184 (QZS-2 L1S)
@@ -36,7 +36,7 @@ TEST_CASE("UBX Framer: basic decode with multiple svIds") {
 }
 
 TEST_CASE("UBX Checksum Error: corrupted payload and checksum") {
-    // Method 1: Corrupt a header/payload byte
+    // 方法 1: ヘッダ／ペイロードの 1 バイトを壊す
     {
         uint8_t bits[32] = {0};
         auto pkt = makeUbxSfrbx(2, bits);
@@ -50,7 +50,7 @@ TEST_CASE("UBX Checksum Error: corrupted payload and checksum") {
         }
         CHECK_FALSE(found);
     }
-    // Method 2: Corrupt the last checksum byte
+    // 方法 2: チェックサム最終バイトを壊す
     {
         uint8_t bits[32] = {0x53, 0xAB};
         auto pkt = makeUbxSfrbx(2, bits);
@@ -79,10 +79,10 @@ TEST_CASE("UBX Garbage Recovery: multiple svIds after garbage") {
 
         UbxFramer framer;
         Frame out;
-        // Feed garbage
+        // ゴミを入力
         for (int i = 0; i < 100; ++i) framer.feed(0xAA, out);
 
-        // Feed valid
+        // 妥当な電文を入力
         bool found = false;
         for (auto b : pkt) {
             if (framer.feed(b, out)) { found = true; break; }
@@ -126,7 +126,7 @@ TEST_CASE("UBX: SFRBX with different svid") {
     CHECK(ubx_frame.svid == 186);  // svId=4 -> PRN186
 }
 
-// NMEA Tests
+// NMEA テスト
 
 TEST_CASE("NMEA Framer Basic") {
     // $QZQSM svid=56 -> PRN184 (QZS-2 L1S)
@@ -145,89 +145,94 @@ TEST_CASE("NMEA Framer Basic") {
     CHECK(out.bits[1] == 1);
 }
 
-TEST_CASE("NMEA Checksum Error") {
-    uint8_t bits[32] = {0};
-    auto pkt = makeNmeaQzqsm(56, bits);
-    pkt[pkt.size() - 3] = '0'; // Corrupt checksum last digit
+TEST_CASE("NMEA: invalid checksum is rejected") {
+    enum class Kind { LastDigit, Zero, FF };
+    struct Case { Kind kind; const char* name; };
+    const Case cases[] = {
+        {Kind::LastDigit, "last digit corrupted"},
+        {Kind::Zero,      "*00"},
+        {Kind::FF,        "*FF"},
+    };
+    for (const Case& c : cases) {
+        INFO(c.name);
+        uint8_t bits[32] = {};
+        auto pkt = makeNmeaQzqsm(56, bits);
+        switch (c.kind) {
+            case Kind::LastDigit: pkt[pkt.size() - 3] = '0'; break;
+            case Kind::Zero:      pkt[pkt.size() - 4] = '0'; pkt[pkt.size() - 3] = '0'; break;
+            case Kind::FF:        pkt[pkt.size() - 4] = 'F'; pkt[pkt.size() - 3] = 'F'; break;
+        }
 
-    NmeaFramer framer;
-    Frame out;
-    bool found = false;
-    for (char c : pkt) {
-        if (framer.feed((uint8_t)c, out)) found = true;
+        NmeaFramer framer;
+        Frame out;
+        bool found = false;
+        for (char ch : pkt) {
+            if (framer.feed((uint8_t)ch, out)) { found = true; break; }
+        }
+        CHECK_FALSE(found);
     }
-    CHECK_FALSE(found);
 }
 
-TEST_CASE("NMEA Garbage Recovery") {
-    // $QZQSM svid=57 -> PRN185 (QZS-4 L1S)
-    uint8_t bits[32] = {0x12, 0x34};
-    auto pkt = makeNmeaQzqsm(57, bits);
-
-    NmeaFramer framer;
-    Frame out;
-    // Feed partial frame then garbage
-    std::string partial = "$QZQSM,1";
-    for (char c : partial) framer.feed((uint8_t)c, out);
-    for (int i = 0; i < 50; ++i) framer.feed('?', out);
-
-    // Feed valid
-    bool found = false;
-    for (char c : pkt) {
-        if (framer.feed((uint8_t)c, out)) { found = true; break; }
+TEST_CASE("NMEA: garbage and partial frames recover") {
+    const std::string crlf = std::string(1, static_cast<char>(13)) + static_cast<char>(10);
+    std::string bursts;
+    for (int i = 0; i < 10; ++i) {
+        bursts += "N$GPGARBAGE,123,456,789*00" + crlf + "$XXFOO,bar,baz" + crlf;
     }
-    REQUIRE(found);
-    CHECK(out.svid == 185);  // NMEA 57 + 128 = PRN185
-}
 
-TEST_CASE("NMEA Oversize Recovery") {
-    NmeaFramer framer;
-    Frame out;
-    framer.feed('$', out);
-    for (int i = 0; i < 300; ++i) {
-        framer.feed('A', out); // Fill buffer beyond capacity
+    struct Case {
+        const char* name;
+        std::string prelude;
+        uint8_t svid;
+        uint8_t bits0;
+        uint8_t bits1;
+    };
+    const Case cases[] = {
+        {"partial frame",     "$QZQSM,55,9AAF", 55, 0x53, 0xAD},
+        {"partial then junk", "$QZQSM,1" + std::string(50, '?'), 57, 0x12, 0x34},
+        {"oversize",          "$" + std::string(300, 'A'), 61, 0x55, 0x00},
+        {"between garbage",   std::string("garbage_line_1") + crlf + "garbage_line_2" + crlf, 56, 0x53, 0x00},
+        {"repeated bursts",   bursts, 55, 0x53, 0x00},
+        {"invalid lines",     std::string("$XXXXX,123*00") + crlf + "$YYYYY,456*FF" + crlf, 56, 0x53, 0x00},
+    };
+    for (const Case& c : cases) {
+        INFO(c.name);
+        NmeaFramer framer;
+        Frame out;
+        for (char ch : c.prelude) framer.feed((uint8_t)ch, out);
+
+        uint8_t bits[32] = {c.bits0, c.bits1};
+        const std::string valid = makeNmeaQzqsm(c.svid, bits);
+        bool found = false;
+        for (char ch : valid) {
+            if (framer.feed((uint8_t)ch, out)) { found = true; break; }
+        }
+        REQUIRE(found);
+        CHECK(out.svid == static_cast<uint8_t>(c.svid + 128));
     }
-    // 内部でリセットされる前提。以下、有効フレームを受け付けることを確認する。$QZQSM svid=61 -> PRN189 (QZS-3 L1S)
-    uint8_t bits[32] = {0x55};
-    auto pkt = makeNmeaQzqsm(61, bits);
-    bool found = false;
-    for (char c : pkt) {
-        if (framer.feed((uint8_t)c, out)) { found = true; break; }
-    }
-    REQUIRE(found);
-    CHECK(out.svid == 189);  // NMEA 61 + 128 = PRN189
 }
 
 // NMEA ペイロード長検証: NmeaFramer のみ（Decoder を経由しない）
 
-TEST_CASE("NMEA: 62文字の拒否") {
-    Frame out{};
-    auto nmea = makeNmeaQzqsmHex(62);
-    CHECK_FALSE(feedNmeaRaw(nmea.c_str(), out));
-}
-
-TEST_CASE("NMEA: 63文字の受け入れ") {
-    Frame out{};
-    auto nmea = makeNmeaQzqsmHex(63);
-    CHECK(feedNmeaRaw(nmea.c_str(), out));
-    CHECK(out.svid == 183);  // NMEA 55 + 128 = PRN183
-}
-
-TEST_CASE("NMEA: 64文字の受け入れ") {
-    Frame out{};
-    auto nmea = makeNmeaQzqsmHex(64);
-    CHECK(feedNmeaRaw(nmea.c_str(), out));
-    CHECK(out.svid == 183);  // NMEA 55 + 128 = PRN183
-}
-
-TEST_CASE("NMEA: 65文字の拒否") {
-    Frame out{};
-    auto nmea = makeNmeaQzqsmHex(65);
-    CHECK_FALSE(feedNmeaRaw(nmea.c_str(), out));
+TEST_CASE("NMEA: payload length must be 63 or 64 hex chars") {
+    // 65 hex は _buf[82] に収まる（overrun は 73 hex 以上）ため、このテストは長さ検証のみ。
+    // overrun 時の reset() は、その長さが必ず 63/64 検証で拒否されるため等価変異（監査時に reset() 削除でも全テストが緑のままだったことを確認済み）。
+    struct Case { int hex_chars; bool accept; };
+    const Case cases[] = {
+        {62, false}, {63, true}, {64, true}, {65, false},
+    };
+    for (const Case& c : cases) {
+        INFO("hex_chars=", c.hex_chars);
+        Frame out{};
+        auto nmea = makeNmeaQzqsmHex(c.hex_chars);
+        const bool ok = feedNmeaRaw(nmea.c_str(), out);
+        CHECK(ok == c.accept);
+        if (c.accept) CHECK(out.svid == 183);  // NMEA 55 + 128 = PRN183
+    }
 }
 
 // Satellite ID は「PRN を表す 8bit の下位 6bit」(DCR-017/DCX-004 §4.3.1) なので Frame::svid は常に PRN (id | 0x80)。
-// 55-63 だけ +128 していた旧実装では、実データにある 53/54 (PRN181/182) が生 ID のまま通っていた。
+// 53/54 も実データに現れるためケースに含める。
 TEST_CASE("NMEA: Satellite ID は生 ID から PRN に正規化される") {
     struct Case { uint8_t id; uint8_t expected_prn; };
     const Case cases[] = {
@@ -304,10 +309,10 @@ TEST_CASE("UBX: SFRBX length must be 40") {
     pkt.push_back(0xB5); pkt.push_back(0x62); // SYNC
     pkt.push_back(0x02); pkt.push_back(0x13); // CLASS/ID (RXM-SFRBX)
     pkt.push_back(0x08); pkt.push_back(0x00); // length = 8 (should be 40)
-    // SFRBX header: gnssId=5(QZSS), svId=2, sigId=0, freqId=0, numWords=8, chn=0, ver=1, reserved=0
+    // SFRBX ヘッダ: gnssId=5(QZSS), svId=2, sigId=0, freqId=0, numWords=8, chn=0, ver=1, reserved=0
     pkt.push_back(5); pkt.push_back(2); pkt.push_back(0); pkt.push_back(0);
     pkt.push_back(8); pkt.push_back(0); pkt.push_back(1); pkt.push_back(0);
-    // UBX checksum over bytes [2..end)
+    // バイト [2..end) の UBX チェックサム
     uint8_t cka = 0, ckb = 0;
     for (size_t i = 2; i < pkt.size(); ++i) { cka += pkt[i]; ckb += cka; }
     pkt.push_back(cka);
@@ -401,114 +406,6 @@ TEST_CASE("UBX: Two consecutive frames decoded") {
 }
 
 // NMEA 部分フレーム復帰テスト
-
-TEST_CASE("NMEA: Partial frame then valid frame recovery") {
-    NmeaFramer framer;
-    Frame out;
-    // Feed a partial frame (truncated)
-    std::string partial = "$QZQSM,55,9AAF";
-    for (char c : partial) framer.feed((uint8_t)c, out);
-
-    // Now feed a valid frame
-    uint8_t bits[32] = {0x53, 0xAD};
-    auto validPkt = makeNmeaQzqsm(55, bits);
-    bool found = false;
-    for (char c : validPkt) {
-        if (framer.feed((uint8_t)c, out)) { found = true; break; }
-    }
-    REQUIRE(found);
-    CHECK(out.svid == 183);  // NMEA 55 + 128 = PRN183
-}
-
-// NMEA チェックサム境界値テスト
-
-TEST_CASE("NMEA: Checksum *00 rejected (unless coincidentally correct)") {
-    uint8_t bits[32] = {};
-    auto pkt = makeNmeaQzqsm(56, bits);
-    // Overwrite checksum with *00
-    pkt[pkt.size() - 4] = '0';
-    pkt[pkt.size() - 3] = '0';
-
-    NmeaFramer framer;
-    Frame out;
-    bool found = false;
-    for (char c : pkt) {
-        if (framer.feed((uint8_t)c, out)) { found = true; break; }
-    }
-    CHECK_FALSE(found);
-}
-
-TEST_CASE("NMEA: Checksum *FF rejected (unless coincidentally correct)") {
-    uint8_t bits[32] = {};
-    auto pkt = makeNmeaQzqsm(56, bits);
-    // Overwrite checksum with *FF
-    pkt[pkt.size() - 4] = 'F';
-    pkt[pkt.size() - 3] = 'F';
-
-    NmeaFramer framer;
-    Frame out;
-    bool found = false;
-    for (char c : pkt) {
-        if (framer.feed((uint8_t)c, out)) { found = true; break; }
-    }
-    CHECK_FALSE(found);
-}
-
-// NMEA マルチセンテンス混在テスト
-
-TEST_CASE("NMEA: QZQSM between garbage lines") {
-    // ゴミデータ → QZQSM → ゴミデータ の混在ストリームでも QZQSM が正常にデコードされる
-    uint8_t bits[32] = {0x53};
-    std::string valid = makeNmeaQzqsm(56, bits);
-    std::string stream = "garbage_line_1\r\ngarbage_line_2\r\n" + valid + "\r\ngarbage_line_3\r\n";
-
-    NmeaFramer framer;
-    Frame out;
-    bool found = false;
-    for (char c : stream) {
-        if (framer.feed((uint8_t)c, out)) { found = true; break; }
-    }
-    CHECK(found);
-    CHECK(out.svid == 184);  // NMEA 56 + 128 = PRN184
-}
-
-TEST_CASE("NMEA: QZQSM survives repeated garbage bursts") {
-    // 10 回のゴミデータバースト後に QZQSM が正しくデコードされる
-    std::string stream;
-    for (int i = 0; i < 10; ++i) {
-        stream += "N$GPGARBAGE,123,456,789*00\r\n$XXFOO,bar,baz\r\n";
-    }
-    uint8_t bits[32] = {0x53};
-    stream += makeNmeaQzqsm(55, bits);
-
-    NmeaFramer framer;
-    Frame out;
-    bool found = false;
-    for (char c : stream) {
-        if (framer.feed((uint8_t)c, out)) { found = true; break; }
-    }
-    REQUIRE(found);
-    CHECK(out.svid == 183);  // NMEA 55 + 128 = PRN183
-}
-
-TEST_CASE("NMEA: Invalid NMEA-like lines don't break subsequent QZQSM") {
-    // 不正な NMEA ライクな行（チェックサム一致しない）の後でも QZQSM がデコードできる
-    uint8_t bits[32] = {0x53};
-    std::string qzqsm = makeNmeaQzqsm(56, bits);
-    std::string stream =
-        "$XXXXX,123*00\r\n"   // チェックサム不一致（ゴミ）
-        "$YYYYY,456*FF\r\n"   // チェックサム不一致（ゴミ）
-        + qzqsm;
-
-    NmeaFramer framer;
-    Frame out;
-    bool found = false;
-    for (char c : stream) {
-        if (framer.feed((uint8_t)c, out)) { found = true; break; }
-    }
-    REQUIRE(found);
-    CHECK(out.svid == 184);  // NMEA 56 + 128 = PRN184
-}
 
 TEST_CASE("UBX: SYNC2 resync on stray 0xB5") {
     uint8_t bits[32] = {0x53};
