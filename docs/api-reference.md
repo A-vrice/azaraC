@@ -31,7 +31,7 @@ Parser();
 explicit Parser(internal::IFramer& framer);
 ```
 
-このクラスのコピーやムーブはコンパイルエラーになります（dedup テーブルと Nankai バッファを二重に確保せず、`framer` は呼び出し側が所有する参照のため）。
+このクラスのコピーやムーブはコンパイルエラーになります（dedupテーブルおよびNankaiバッファを二重に確保せず、`framer`も呼び出し側で所有する参照のため）。
 
 #### メソッド
 
@@ -50,7 +50,12 @@ bool feed(uint8_t byte, Message& out, uint32_t report_unix = 0);
 | `out` | `Message&` | 出力メッセージ (戻り値がtrueの場合に有効) |
 | `report_unix` | `uint32_t` | UNIX時刻 (省略時: 0 = 未解決) |
 
-**戻り値:** `bool` - フレームが完成し、デコードに成功し、重複でもない場合に `true`。フレーム未完成・CRC誤り・未対応バージョン（Vn≠1）・コンパイル時に無効なカテゴリ・仕様上未定義のカテゴリ（7/13）・43/44 以外の MT・重複受信・南海トラフのページ集約途中は `false`（完成したフレームの復号に失敗した時と重複時は `out` もクリアされる。フレーム未完成の時は `out` は書き換えられない）。`msg.unsupported_reason` に入るのは**復号器が完成フレームを拒否した場合だけ**（`DisabledAtCompileTime` / `UnknownCategory` / `UnsupportedVersion`）で、フレーム未完成・CRC誤り・重複では `None` のまま。
+**戻り値:** `bool` - フレームが完成し、デコードに成功し、重複でもない場合に `true`。
+フレーム未完成・CRC誤り・未対応バージョン（Vn≠1）・コンパイル時に無効なカテゴリ・仕様上未定義のカテゴリ（7/13）・43/44 以外の MT・重複受信・南海トラフのページ集約途中は `false`。
+（完成したフレームの復号に失敗した時と重複時は `out` もクリアされる。フレーム未完成の時は `out` は書き換えられない）。
+`msg.unsupported_reason` に値が入るのは、復号器が完成フレームを拒否した場合だけ（`DisabledAtCompileTime` / `UnknownCategory` / `UnsupportedVersion`）。
+CRC誤り・重複では `out` がクリアされ `None` になる。
+フレーム未完成では `out` を書き換えないため、直前に完成フレームで設定された値は残る。
 
 **使用例:**
 ```cpp
@@ -86,7 +91,9 @@ void reset();
 const internal::NankaiPageBuffer* getNankaiBuffer(const internal::NankaiPageKey& key) const;
 ```
 
-`NankaiPageKey`の識別子は`{info_code, information_type, report_timeのmonth/day/hour/minute}`です（`information_type`は発表=0/取消=2で、同一`info_code`+報告時刻の発表と取消を別情報として扱うために含めます）。呼び出しキーは`NankaiPageKey{info_code, month, day, hour, minute, information_type}`で生成が可能です（`information_type`は末尾の既定引数で省略可）。`report_time`はそのまま渡すこと（`resolveTime`の正規化で鍵が変わらないようにするため）。
+`NankaiPageKey`の識別子は`{info_code, information_type, report_timeのmonth/day/hour/minute}`です（`information_type`は発表=0/取消=2で、同一`info_code`+報告時刻の発表と取消を別情報として扱うために含めます）。
+呼び出しキーは`NankaiPageKey{info_code, month, day, hour, minute, information_type}`で生成が可能です（`information_type`は末尾の既定引数で省略可）。
+`report_time`はそのまま渡すこと（`resolveTime`の正規化でキーが変わらないようにするため）。
 
 返るバッファは受信途中でもよく、完了判定は `isComplete()` で行います。返却ポインタは次の `feed()` / `reset()` までのみ有効です。
 
@@ -127,7 +134,7 @@ const internal::NankaiPageBuffer* getNankaiBuffer(const internal::NankaiPageKey&
 | `msg_type` | `uint8_t` | メッセージタイプ (43=DCR, 44=DCX) |
 | `crc24` | `uint32_t` | CRC-24Qチェックサム |
 | `valid` | `bool` | メッセージの妥当性フラグ。`feed()` が `true` を返したときは常に `true` |
-| `unsupported_reason` | `UnsupportedReason` | 復号器が電文を拒否した理由（`None` / `DisabledAtCompileTime` / `UnknownCategory` / `UnsupportedVersion`）。`UnknownCategory` は仕様上未定義のカテゴリと 43/44 以外の MT。フレーム未完成・CRC誤り・重複では `None` のまま |
+| `unsupported_reason` | `UnsupportedReason` | 復号器が電文を拒否した理由（`None` / `DisabledAtCompileTime` / `UnknownCategory` / `UnsupportedVersion`）。`UnknownCategory` は仕様上未定義のカテゴリと 43/44 以外の MT。CRC誤り・重複では `out` がクリアされ `None`。フレーム未完成では `out` を書き換えないため直前の値が残る |
 | `payload_type` | `MsgPayloadType` | ペイロードタイプ |
 
 #### 安全なアクセサ
@@ -196,7 +203,8 @@ JMA DC Reportメッセージのデータ構造。
 
 #### EEWデータ (`EewData`)
 
-`AZARAC_ENABLE_EEW=1`（非AVRの既定）のときだけ定義されます。0のときはこの型と `getEew()` は存在しないため、コードで参照する場合は `#if (AZARAC_ENABLE_EEW)` で囲む必要があります（`HypocenterData` / `NankaiData` についてもそれぞれ同様の処理が必要）。
+`AZARAC_ENABLE_EEW=1`（非AVRの既定）のときだけ定義されます。
+0のときはこの型と `getEew()` は存在しないため、コードで参照する場合は `#if (AZARAC_ENABLE_EEW)` で囲む必要があります（`HypocenterData` / `NankaiData` についてもそれぞれ同様の処理が必要）。
 
 ```cpp
 struct EewData {
@@ -295,7 +303,8 @@ DCX/CAMFメッセージのデータ構造。
 | 11 | B4 | Quantitative and Detailed Information (D1-D36) |
 
 **B4 (A17=11)** D-series フィールド（D1〜D36）は、デコード時に内部計算され JSON シリアライズで出力されます。
-`Mt44CamfRaw` 上には B4 の有無を示す `b4_present` (bool) のみが保持され、個別の D-field 値はシリアライズ時に `decodeB4DetailedInfo(a18, a4, out)` で再計算されます。
+`Mt44CamfRaw` 上には B4 の有無を示す `b4_present` (bool) のみが保持されます。
+個別の D-field 値はシリアライズ時に `decodeB4DetailedInfo(a18, a4, out)` で再計算されます。
 
 ```cpp
 // B4 の有無を確認
@@ -377,6 +386,9 @@ void toJson(const Message& msg, Print& out);
 | `msg` | `const Message&` | シリアライズするメッセージ |
 | `out` | `Print&` | 出力先 (Serial, WiFiClient等) |
 
+**スレッド安全性:** 非 AVR ではラベル連結用の共有バッファ（`AZARAC_FLASH_BUF_SIZE`）を 1 本使うため、`toJson()` と定義テーブルの lookup を複数のタスク/スレッドから同時に呼ばないこと。
+FreeRTOS では呼び出し側で排他する（`examples/rtos_freertos` の `printJson()` を参照）。
+
 **使用例:**
 ```cpp
 // Serialに出力
@@ -395,8 +407,9 @@ if (client.connect(server, port)) {
 
 ## コンパイル時設定
 
-ビルドフラグ（`-DAZARAC_...=...`、PlatformIO の `build_flags`、arduino-cli の `--build-property compiler.cpp.extra_flags=...`）で指定します。スケッチ冒頭の `#define` はライブラリの `.cpp`（別 TU）に届かず、`Parser` などのサイズが TU 間でずれるため使えません。
-設定マクロは[`azaraC_config.h`](https://github.com/A-vrice/azaraC/tree/main/src/azaraC_config.h)で設定されています。
+ビルドフラグ（`-DAZARAC_...=...`、PlatformIO の `build_flags`、arduino-cli の `--build-property compiler.cpp.extra_flags=...`）で指定します。
+スケッチ冒頭の `#define` はライブラリ側（別 TU）で認識されず、`Parser`などのサイズが TU(翻訳単位) 間でずれるため使えません。
+設定のマクロは[`azaraC_config.h`](https://github.com/A-vrice/azaraC/tree/main/src/azaraC_config.h)で定義されています。
 
 ### 汎用設定
 
@@ -415,25 +428,32 @@ if (client.connect(server, port)) {
 
 両方が 1 のときは日本語を優先し、その項目に日本語テーブルが無ければ代わりに英語を使う。
 `AZARAC_LANG_JA=0 / AZARAC_LANG_EN=1` では英語ラベルを出力する。
-英語テーブルを持たない項目（例: 南海トラフの情報番号）は日本語のままになる。
-どちらも 0 のときは原則ラベルを出力しない。欠落時は `null`、定義済みで空文字列のラベルは `""` として出力される。ただし言語非依存表（北西太平洋津波の 3 表など）は値があれば 0/0 でも解決して返す。
+英語テーブルを持たない項目（例: 南海トラフの情報番号）は `AZARAC_LANG_JA=1` の間だけ日本語で出る。
+`AZARAC_LANG_JA=0` ではその日本語表がコンパイルされないので `null` になる（生コードは残る）。
+どちらも 0 のときは原則ラベルを出力しない。
+欠落時は `null`、定義済みで空文字列のラベルは `""` として出力される。
+ただし言語非依存表（北西太平洋津波の 3 表など）は値があれば 0/0 でも解決して返す。
 
 英語ラベルはazarashi 0.17.1の定義テーブルに由来する。
 `AZARAC_LANG_EN`で有効になるのは`_en`という接尾辞のヘッダで、対応する日本語表と対で生成される。
 
-逆に**日本語版を持たない英語専用表**（北西太平洋津波の `potential` / `height` / `region`）は言語非依存で、`AZARAC_LANG_EN` の設定に関係なく常に出力されます。
-これはCAMF自体が英語で日本語メッセージの定義が存在しないためで、同じ仕様を参照する他のテーブルも同様の処理がなされる場合があります。（定義テーブルの`_en`のうち、言語切替の対象になるのは対応する日本語テーブルが存在する場合のみ）
+逆に**日本語版を持たない英語専用表**（北西太平洋津波の `potential` / `height` / `region`）は言語非依存で、`AZARAC_LANG_EN` の設定に関係なく常に出力される。
+これはCAMF自体が英語で日本語メッセージの定義が存在しないためで、同じ仕様を参照する他のテーブルも同様の処理がなされる場合がある。
+（定義テーブルの`_en`のうち、言語切替の対象になるのは対応する日本語テーブルが存在する場合のみ）
 
-**両方 1 のときの併記**: `AZARAC_LANG_JA=1`かつ`AZARAC_LANG_EN=1`のとき、文字列リテラルのキーを持つ `_label` フィールドには `_label_en` が併記されます。`_label` は日本語優先（無ければ英語）、`_label_en` は常に英語となります。
+**両方 1 のときの併記**: `AZARAC_LANG_JA=1`かつ`AZARAC_LANG_EN=1`のとき、文字列リテラルのキーを持つ `_label` フィールドには `_label_en` が併記される。
+`_label` は日本語優先（無ければ英語）、`_label_en` は常に英語となる。
 
 ```json
 { "depth": 60, "depth_label": "60km", "depth_label_en": "60 km" }
 ```
 
-配列要素のうち、汎用キー（`notifications[].label` / `regions[].label` / `prefectures[].label` / `cities[].label` / `local_govs[].label` / `entries[].region_label`）の要素は `_label_en` を持ちません。（要素ごとにコード体系が異なり、固定キー名では併記できないため）
-逆に固定の文字列リテラルキー（`AZARAC_LABEL`）は配列要素でも `_label_en` を併記します（例: 震度の `entries[].intensity_label`）。要素ごとに言語を選びたい場合は`AZARAC_LANG_JA=0 / AZARAC_LANG_EN=1` 構成を使う。
+配列要素のうち、汎用キー（`notifications[].label` / `regions[].label` / `prefectures[].label` / `cities[].label` / `local_govs[].label` / `entries[].region_label`）の要素は `_label_en` を持たない。（要素ごとにコード体系が異なり、固定キー名では併記できないため）
+逆に固定の文字列リテラルキー（`AZARAC_LABEL`）は配列要素でも `_label_en` を併記する（例: 震度の `entries[].intensity_label`）。
+要素ごとに言語を選びたい場合は`AZARAC_LANG_JA=0 / AZARAC_LANG_EN=1` 構成を使うこと。
 
-数量フィールド（`depth` / `magnitude` / `pressure` / `max_wind` / `max_gust` / `elapsed` / `number`）にも `_label` / `_label_en` が含まれます。これには生のコード値だけでは意味が取れない値も含みます(以下の表参照)
+数量フィールド（`depth` / `magnitude` / `pressure` / `max_wind` / `max_gust` / `elapsed` / `number`）についても `_label` / `_label_en` が含まれる。
+これには生のコード値だけでは意味が取れない値も含む(以下の表参照)。
 
 | コード | ラベル | 意味 |
 |---|---|---|
@@ -443,16 +463,17 @@ if (client.connect(server, port)) {
 | `depth` 511 / `magnitude` 127 | `不明` / `Unknown` | センチネル |
 | `max_wind` 0 / `max_gust` 0 | `不明` / `Unknown` | センチネル |
 
-センチネルは全フィールド共通ではなく、例えば`depth`の0は`0km`、`pressure`の0は`0hPa`、`elapsed`の0は`0時間後`で、それぞれ実値として意味を持ちます。
-ただし`number`の0は`typhoon_number`表（1スタート）に無いため`number_label`は`null`となります。
+センチネルは全フィールド共通ではなく、例えば`depth`の0は`0km`、`pressure`の0は`0hPa`、`elapsed`の0は`0時間後`で、それぞれ実値として意味を持つ。
+ただし`number`の0は`typhoon_number`表（1スタート）に無いため`number_label`は`null`となる。
 
-`AZARAC_LANG_EN=0`（既定）では`_label_en`は出力されず、仮に`AZARAC_LANG_JA=0 / AZARAC_LANG_EN=1`でも`_label`自体がすべて英語になるため`_label_en`ではなく`_label`に英語が表示されます。
-包括すると`_label_en`が出るのは**日本語/英語ともに有効にした構成のみ**です。
+`AZARAC_LANG_EN=0`（既定）では`_label_en`は出力されない。
+`AZARAC_LANG_JA=0 / AZARAC_LANG_EN=1`の場合、`_label`自体がすべて英語になるため`_label_en`ではなく`_label`に英語が出力される。
+包括すると`_label_en`が出るのは**日本語/英語ともに有効にした構成のみ**。
 
 ### 災害カテゴリ選択
 
-不要なカテゴリの定義テーブルをコンパイル時に除外することでFlash使用量を削減できます。
-日本語表と英語表は同じデータなので、**そのカテゴリを無効にすると両方が同時に除外されます**（`AZARAC_LANG_EN` だけの英語専用表も含む）。
+不要なカテゴリの定義テーブルをコンパイル時に除外することでFlash使用量を削減可能。
+日本語表と英語表はともに**そのカテゴリを無効にすると両方が同時に除外される**（`AZARAC_LANG_EN` だけの英語専用表も含む）。
 
 | マクロ | デフォルト | 説明(カテゴリ) |
 |-------|-----------|------|
@@ -470,21 +491,37 @@ if (client.connect(server, port)) {
 | `AZARAC_ENABLE_MARINE` | 1 | 海上警報 (カテゴリ14) |
 | `AZARAC_ENABLE_DCX_CAMF` | 1 | DCX/CAMF全般 (MT=44) |
 
-`AZARAC_ENABLE_EEW` / `AZARAC_ENABLE_HYPOCENTER` / `AZARAC_ENABLE_NANKAI` を 0 にすると、定義テーブルだけでなく**payload 型そのもの**（`EewData` / `HypocenterData` / `NankaiData`）と対応する getter（`getEew()` など）もコンパイルから外れ、`Mt43Data` の payload 枠（`storage_size_`）は残ったカテゴリの最大 `sizeof` まで縮みます。AVR プリセットは EEW・震源が既定で 0 なので `sizeof(Mt43Data)` は 75B、`Message` は 84B です（EEW を有効にしても予報区は `region_bitmap[10]` 保持のため 75B / 84B のまま。全カテゴリ + DCX/CAMF 有効時は `Mt44Data` 190B、`Message` 199B。avr-gcc `-Os`、ATmega328P で実測）。無効にしたカテゴリの型を扱うコードはコンパイルエラーになるので `#if (AZARAC_ENABLE_EEW)` などで囲んでください（`examples/filter_by_category`・`examples/with_sntp` の EEW ブロックがその形です）。
+`AZARAC_ENABLE_EEW` / `AZARAC_ENABLE_HYPOCENTER` / `AZARAC_ENABLE_NANKAI` を 0 にすると、定義テーブルだけでなく**payload 型そのもの**（`EewData` / `HypocenterData` / `NankaiData`）と対応する取得関数（`getEew()` など）もコンパイル対象から外れる。
+また同時に`Mt43Data` のペイロードサイズ（`storage_size_`）は残ったカテゴリのうち最大の `sizeof` まで小さくなる。
+AVR プリセットは EEW・震源が既定で 0 なので `sizeof(Mt43Data)` は 75B、`Message` は 84B となる（EEW を有効にしても予報エリアは `region_bitmap[10]` 保持のため 75B / 84B のまま。DCRの全カテゴリおよび DCX/CAMF 有効時は `Mt44Data` 190B、`Message` 199Bとなる。avr-gcc `-Os`、ATmega328Pボードの設定で計測）。
+無効にしたカテゴリの型を扱うコードはコンパイルエラーになるので異なるアーキテクチャーでコードを使いまわす場合は `#if (AZARAC_ENABLE_EEW)` などで囲む必要がある（`examples/filter_by_category`・`examples/with_sntp` の EEW ブロックを参照のこと）。
 
 ### リソース制約・AVR 関連
 
 | マクロ | デフォルト | 説明 |
 |-------|-----------|------|
-| `AZARAC_FLASH_BUF_SIZE` | カテゴリ連鎖（AVR既定=64） | PROGMEMルックアップ用の共有RAMバッファサイズ (バイト)。AVRでは有効カテゴリに応じて 64（SEISMIC/TSUNAMI など）/ 80（＋北西太平洋津波）/ 96（＋火山・洪水）/ 540（＋南海トラフ）/ 640（＋緊急地震速報・震源）/ 800（＋DCX/CAMF）に自動選択。有効なカテゴリの最長ラベルを必ず収める（`make -C test bench` の `FLASH_BUF_OK` ゲート）。非AVRでは使われない |
+| `AZARAC_FLASH_BUF_SIZE` | カテゴリ連鎖（AVR既定=64） | PROGMEMルックアップ用の共有RAMバッファサイズ (バイト)。AVRでは有効カテゴリに応じて 64（SEISMIC/TSUNAMI など）/ 80（＋北西太平洋津波）/ 96（＋火山・洪水）/ 540（＋南海トラフ）/ 640（＋緊急地震速報・震源）/ 800（＋DCX/CAMF）に自動選択。有効なカテゴリの最長ラベルを必ず収める（`make -C test bench` の `FLASH_BUF_OK` ゲート）。AVR以外のアーキテクチャでは使われない |
 | `AZARAC_DEDUP_MT44_MAX_WINDOW_MS` | 300000 | MT=44 の情報有効時間(ms)の上限。`__AVR__`のみ定義され、常に A8 由来の窓（最短6時間）を置き換える。ホストは上限を設けず A8 の窓をそのまま使う |
 | `AZARAC_KEY_BUF_SIZE` | 36 | AVR で JSON のキーと固定値リテラルを Flash から書き出すときのスタック上の一時バッファのバイト数（どちらも `AZARAC_KEY("...")` で包む。値は `wf_s` の `JsonKey` オーバーロードが受ける）。最長はキーの35B（`a17_type_of_specific_settings_label`）、値は20B（`unsupported_category`）で、`JsonKey` の生成時に `static_assert` が収まらないリテラルをコンパイルエラーにする。非AVRでは使われない |
 
-**AVRプリセット**: `__AVR__`では`azaraC_config.h`のプリセットがデフォルトを変更します。有効カテゴリはボードによらず**SEISMIC/TSUNAMIのみ**（チップ名では何も有効化しません）。DCX/CAMFはオプトインで、`AZARAC_AVR_LARGE_FLASH=1`または`AZARAC_ENABLE_DCX_CAMF=1`を指定すると有効になります（ATmega2560 + DCX/CAMF + SEISMIC/TSUNAMI、日本語でフラッシュ148KB / RAM 892B を実測）。他10カテゴリは大容量ボードでも無効です（全部同時にすると 250,138B/262,144B でユーザーコードの余地が 12KB）。`AZARAC_DEDUP_SLOTS=64`（`AZARAC_DEDUP_WAYS=8`、512B）、`AZARAC_DEDUP_MT44_MAX_WINDOW_MS=300000`、`AZARAC_NANKAI_BUFFERS=1`、`AZARAC_NANKAI_MAX_PAGES=4`となります。`-D` で明示することで上書きできます（例: Mega で DCX/CAMF `-DAZARAC_ENABLE_DCX_CAMF=1`、Mega で全カテゴリ `-DAZARAC_ENABLE_EEW=1 ...`）。
+**AVRプリセット**: `__AVR__`では`azaraC_config.h`のプリセットがAVR専用のものに置き換わる。具体的には以下の変更が行われる。
+有効カテゴリはボードによらず**SEISMIC/TSUNAMIのみ**。
+他10カテゴリは大容量ボードでも無効となる（全部同時にすると、たとえ 256KB のボードでも 250,138B/262,144B となりユーザーのコードを 12KB しか置けなくなる）。
+DCX/CAMFはオプトインで、`AZARAC_AVR_LARGE_FLASH=1`または`AZARAC_ENABLE_DCX_CAMF=1`を指定すると有効になる。（このときATmega2560 + DCX/CAMF + SEISMIC/TSUNAMI、日本語でフラッシュ148KB / RAM 892B を計測済み）。
+その他には`AZARAC_DEDUP_SLOTS=64`（`AZARAC_DEDUP_WAYS=8`、512B）、`AZARAC_DEDUP_MT44_MAX_WINDOW_MS=300000`、`AZARAC_NANKAI_BUFFERS=1`、`AZARAC_NANKAI_MAX_PAGES=4`となる。
+但しコンパイル時の `-D` などで明示することで設定は上書きできる（例: DCX/CMAG有効化 `-DAZARAC_ENABLE_DCX_CAMF=1`、全カテゴリ有効化 `-DAZARAC_ENABLE_EEW=1 ...`）。
 
-**AVR 標準ライブラリシム**: AVRツールチェーンはlibstdc++を含まないため、`#if defined(__AVR__)`で`src/internal/avr_std/`の最小シム（`cstddef`/`cstdint`/`cstring`/`new`/`optional`/`string_view`）が自動適用されます。ライブラリの利用方法/API自体は非AVRと同一です。
+**AVR 標準ライブラリシム**: AVRツールチェーンはlibstdc++を含まないため、`#if defined(__AVR__)`で`src/internal/avr_std/`の最小シム（`cstddef`/`cstdint`/`cstring`/`new`/`optional`/`string_view`）が自動で適用される。
+これを利用してライブラリの利用方法/APIはほかのアーキテクチャと揃うようになっている。
 
-***64KiBを超えるFlashのAVR**: 定義テーブルは64KiBを超えて配置されるため、`AZARAC_PGM_READ_*` / `AZARAC_STRCPY_P`（16bitのPROGMEMポインタ）では届きません。定義テーブル自身は `internal/FlashString.h` が far 参照へ切り替わります。RAM上の文字列と固定リテラルを比較するときは `AZARAC_STRNCMP_P(a, "literal", n)` を使ってください（AVRでは `strncmp_P(a, PSTR(b), n)` になり、リテラルが `.data`＝SRAM に載りません。非AVRでは `strncmp`）。16bit読み出しを使うのは、低いprogmemクラスタに置く小さな表（`AZARAC_PROGMEM_NEAR`: CRC24Q・半径・B4レイアウト）とJSONキー（`PSTR`）だけです。自前のデータを64KiB超に置く場合も avr-libc のfar API（`pgm_get_far_address` + `pgm_read_*_far` / `memcpy_PF`）を使ってください。`AZARAC_PROGMEM` は64KiB超のデバイスでは `.text.azaraC.<N>` に配置します — `.text` 先頭の `*(.progmem.*)` は Arduino コア（`core.a`）と競合してコア自身のPROGMEMを16bit窓の外へ押し出すためです。節を宣言ごとに分ける理由など内部の詳細は開発者ガイドの「静的な定義テーブルを使用すること」を参照。
+**64KiBを超えるFlashをもつAVR**: 定義テーブルは64KiBを超えて配置されるため、`AZARAC_PGM_READ_*` / `AZARAC_STRCPY_P`（16bitのPROGMEMポインタ）では範囲外になる。
+このとき定義テーブル自身は `internal/FlashString.h` が far 参照へ切り替わる。
+RAM上の文字列と固定リテラルを比較するときは `AZARAC_STRNCMP_P(a, "literal", n)` を使用すること（AVRでは `strncmp_P(a, PSTR(b), n)` になり、リテラルが SRAM に載らない。非AVRでは `strncmp`）。
+16bit読み出しを使うのは一部progmemクラスタに置く（`AZARAC_PROGMEM_NEAR`: CRC24Q・半径・B4レイアウト）とJSONキー（`PSTR`）のみ。
+この時自前のデータを追加で置く場合も avr-libc のfar API（`pgm_get_far_address` + `pgm_read_*_far` / `memcpy_PF`）を使用する必要がある。
+64KiB超のデバイスでは `AZARAC_PROGMEM` の `*(.progmem.*)` が Arduino コア（`core.a`）と競合するため `.text.azaraC.<N>` に配置される。
+この競合によりコア自身のPROGMEMが16bitで扱える範囲外に押しだされる。
+この実装の内部の詳細は開発者ガイドの「静的な定義テーブルを使用すること」を参照。
 
 ---
 
@@ -529,7 +566,8 @@ public:
 
 ```cpp
 // feed() が true を返したメッセージだけを渡す（msg.valid はそこで保証される）。
-// false のときは、完成フレームを復号器が拒否した場合だけ msg.unsupported_reason に理由が入る（未完成・CRC誤り・重複は None）。
+// false のときは、完成フレームをデコーダが拒否した場合だけ msg.unsupported_reason に理由が入る。
+// 未完成では out を書き換えないため直前の値が残り、CRCの誤り・重複では out がクリアされて None になる。
 void processMessage(const azaraC::Message& msg) {
     // SVID範囲チェック（PRN は 181-191: 53/54 -> 181/182 も実データに存在）
     if (msg.svid < 181 || msg.svid > 191) {

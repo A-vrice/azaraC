@@ -3,7 +3,9 @@
 <img src="../logo.svg" alt="azaraCのロゴ" height="128">
 
 
-準天頂衛星みちびき(QZSS)から発信された[災危通報メッセージ](https://qzss.go.jp/overview/services/sv08_dc-report.html)をデコードするC++17製のArduino向けライブラリです。[azarashi](https://github.com/nbtk/azarashi)(Python/MIT)の定義テーブルを参照しますが、マイコンや組み込みなどでも省リソースで動作します。
+準天頂衛星みちびき(QZSS)から発信された[災危通報メッセージ](https://qzss.go.jp/overview/services/sv08_dc-report.html)をデコードするライブラリです。
+C++17製のArduino向け実装となっています。
+[azarashi](https://github.com/nbtk/azarashi)(Python/MIT)の定義テーブルを参照しますが、マイコンや組み込みなどでも省リソースで動作します。
 
 ## インストール
 
@@ -68,7 +70,8 @@ if (parser.feed(byte, msg, now)) { ... }
 
 ## コンパイル時設定
 
-ビルドフラグ（PlatformIO の `build_flags`、arduino-cli の `--build-property compiler.cpp.extra_flags=...` など）で `-D` を渡して指定します。スケッチ冒頭の `#define` はライブラリの `.cpp`（別 TU）には届かず、`Parser` などのサイズが TU 間でずれるため使えません。
+ビルドフラグ（PlatformIO の `build_flags`、arduino-cli の `--build-property compiler.cpp.extra_flags=...` など）で `-D` を渡して指定します。
+スケッチ冒頭の `#define` はライブラリ側で認識されず、`Parser` などのサイズが TU(翻訳単位) 間でずれるため使えません。
 
 | マクロ | デフォルト | 説明 |
 | ------ | ---------- | ---- |
@@ -81,7 +84,8 @@ if (parser.feed(byte, msg, now)) { ... }
 | `AZARAC_ENABLE_*`（13個） | 1（AVR は SEISMIC/TSUNAMI のみ） | 災害カテゴリ別のデコード有効化/無効化。AVR で DCX/CAMF を使うには `-DAZARAC_AVR_LARGE_FLASH=1` または `-DAZARAC_ENABLE_DCX_CAMF=1` を明示する |
 | `AZARAC_FLASH_BUF_SIZE` | カテゴリ連鎖（AVR既定=64） | PROGMEM参照用RAMバッファのサイズ。AVRでは有効カテゴリに応じて 64 / 80 / 96 / 540 / 640 / 800 に自動選択（有効なカテゴリの最長ラベルを収める）。非AVRでは使われない |
 
-AVR（Arduino Uno等）では専用プリセットにより有効カテゴリが SEISMIC/TSUNAMI のみに絞られ、バッファサイズも縮小されます（チップ名では何も有効化しません）。プリセット値とメモリ要件の詳細は [アーキテクチャ](architecture.md#メモリ設計) を参照してください。
+AVR（Arduino Uno等）では専用プリセットにより有効カテゴリが SEISMIC/TSUNAMI のみに絞られ、バッファサイズも縮小されます。
+プリセット値とメモリ要件の詳細は [アーキテクチャ](architecture.md#メモリ設計) を参照してください。
 
 ## Examples
 
