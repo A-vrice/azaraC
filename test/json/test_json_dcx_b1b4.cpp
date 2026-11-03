@@ -1,4 +1,4 @@
-// test/json/test_json_dcx_b1b4.cpp — DCX B1-B4 JSON出力テスト
+// DCX B1-B4 JSON出力テスト
 
 #define ARDUINO 0
 #include "../src/azaraC.h"
@@ -92,8 +92,9 @@ TEST_CASE("JSON DCX B2: hazard center fields") {
     mt44->mt44_decoded.main_ellipse_present = true;
     mt44->mt44_decoded.main_ellipse.lat_microdeg = 35600000; // 35.6°
     mt44->mt44_decoded.main_ellipse.lon_microdeg = 139600000; // 139.6°
-    mt44->mt44_decoded.b2_hazard_lat_microdeg = 35600000;
-    mt44->mt44_decoded.b2_hazard_lon_microdeg = 139600000;
+    // 主楕円と危険中心をずらし、delta の符号・桁を固定する。
+    mt44->mt44_decoded.b2_hazard_lat_microdeg = 35400000; // -0.2°
+    mt44->mt44_decoded.b2_hazard_lon_microdeg = 139800000; // +0.2°
 
     StringPrint sp;
     internal::JsonSerializer::serialize(m, sp);
@@ -102,6 +103,8 @@ TEST_CASE("JSON DCX B2: hazard center fields") {
     CHECK(has(s, "\"hazard_center\":{"));
     CHECK(has(s, "\"c5_raw\":63"));
     CHECK(has(s, "\"c6_raw\":63"));
+    CHECK(has(s, "\"delta_lat_deg\":-0.200000"));
+    CHECK(has(s, "\"delta_lon_deg\":0.200000"));
 }
 
 TEST_CASE("JSON DCX B3: secondary ellipse fields") {
@@ -167,6 +170,8 @@ TEST_CASE("JSON DCX B4: detailed info fields") {
     CHECK(has(s, "\"d2_seismic_coeff\":7"));
     CHECK(has(s, "\"d3_azimuth\":5,\"d3_azimuth_label\":\"112.5°\""));
     CHECK(has(s, "\"d4_vector_length\":9,\"d4_vector_length_label\":\"30\""));
+    // キーは D 番号の昇順（d3/d4 が d1/d2 より前に出る退行を防ぐ）
+    CHECK(s.find("\"d1_magnitude\"") < s.find("\"d3_azimuth\""));
 }
 
 // B4 メッセージ（ハザードコード + A18 ビットフィールド）を JSON で。
@@ -198,11 +203,11 @@ TEST_CASE("JSON DCX B4: multi-field layouts emit the correct raw values") {
         CHECK(has(s, "\"d9_rainfall\":7"));
         CHECK(has(s, "\"d16_lightning\":5"));
         CHECK(has(s, "\"d11_tornado_prob\":3"));
-        // Fields outside this layout must not be emitted (no cross-layout bleed).
+        // このレイアウト外のフィールドは出してはならない（レイアウト間の混入防止）。
         CHECK_FALSE(has(s, "\"d1_magnitude\""));
         CHECK_FALSE(has(s, "\"d26_cases_per_100k\""));
     }
-    // a4=77: D8(11,4) D9(8,3) D10(5,3) D16(2,3)
+    // a4=77 のレイアウト: D8(11,4) D9(8,3) D10(5,3) D16(2,3)
     {
         const std::string s = b4Json(77, (9u << 11) | (4u << 8) | (2u << 5) | (1u << 2));
         CHECK(has(s, "\"d8_wind_speed\":9"));
@@ -217,14 +222,14 @@ TEST_CASE("JSON DCX B4: multi-field layouts emit the correct raw values") {
         CHECK(has(s, "\"d8_wind_speed\":15"));
         CHECK(has(s, "\"d9_rainfall\":6"));
     }
-    // a4=82: D36(12,3) D8(8,4) D9(5,3) — verifies D36 value, not just its presence.
+    // a4=82: D36(12,3) D8(8,4) D9(5,3) — D36 は存在だけでなく値を検証する。
     {
         const std::string s = b4Json(82, (5u << 12) | (10u << 8) | (3u << 5));
         CHECK(has(s, "\"d36_typhoon_cat\":5"));
         CHECK(has(s, "\"d8_wind_speed\":10"));
         CHECK(has(s, "\"d9_rainfall\":3"));
     }
-    // a4=51: D26(10,5) D35(4,6) — 6-bit width field
+    // a4=51: D26(10,5) D35(4,6) — 6 bit 幅のフィールド
     {
         const std::string s = b4Json(51, (20u << 10) | (33u << 4));
         CHECK(has(s, "\"d26_cases_per_100k\":20"));
@@ -272,11 +277,11 @@ TEST_CASE("JSON DCX main ellipse fields") {
     internal::JsonSerializer::serialize(m, sp);
     const auto& s = sp.str();
     CHECK(has(s, "\"main_ellipse\":{"));
-    CHECK(has(s, "\"lat_deg\":35.600"));
-    CHECK(has(s, "\"lon_deg\":139.600"));
+    CHECK(has(s, "\"lat_deg\":35.600000"));
+    CHECK(has(s, "\"lon_deg\":139.600000"));
     CHECK(has(s, "\"semi_major_km\":100.000"));
     CHECK(has(s, "\"semi_minor_km\":50.000"));
-    CHECK(has(s, "\"azimuth_deg\":45.000"));
+    CHECK(has(s, "\"azimuth_deg\":45.000000"));
 }
 
 TEST_CASE("JSON DCX additional area fields") {
@@ -297,13 +302,18 @@ TEST_CASE("JSON DCX additional area fields") {
     mt44->mt44_decoded.additional_area.head_to_area = true;
     mt44->mt44_decoded.additional_area.ellipse.lat_microdeg = 35000000;  // 35.0°
     mt44->mt44_decoded.additional_area.ellipse.lon_microdeg = 140000000; // 140.0°
+    mt44->mt44_decoded.additional_area.ellipse.semi_major_m = 10933;     // 10.933 km
+    mt44->mt44_decoded.additional_area.ellipse.semi_minor_m = 5979;      // 5.979 km
+    mt44->mt44_decoded.additional_area.ellipse.azimuth_decideg = 4500000;
 
     StringPrint sp;
     internal::JsonSerializer::serialize(m, sp);
     const auto& s = sp.str();
 
-    CHECK(has(s, "\"additional_area\":{"));
-    CHECK(has(s, "\"head_to_area\":1"));
+    CHECK(has(s, "\"additional_area\":{\"head_to_area\":1,\"ellipse\":{"
+                 "\"lat_deg\":35.000000,\"lon_deg\":140.000000,"
+                 "\"semi_major_km\":10.933,\"semi_minor_km\":5.979,"
+                 "\"azimuth_deg\":45.000000}}"));
 }
 
 TEST_CASE("JSON DCX EX1 city codes with labels") {
@@ -324,7 +334,7 @@ TEST_CASE("JSON DCX EX1 city codes with labels") {
     mt44->camf.a5 = 3;
     mt44->camf.a8 = 4;
     mt44->camf.a11 = 1;
-    // City codes mode (EX8=1)
+    // 市区町村コードモード（EX8=1）
     mt44->ex.ex_jalert.ex8 = 1;
     mt44->ex.ex_jalert.vn = 1;
     // 既知の市区町村コード 1101 = "Chuo-ku, Sapporo-shi"
@@ -342,7 +352,7 @@ TEST_CASE("JSON DCX EX1 city codes with labels") {
     CHECK(s.find("\"cities\":[{\"code\":1101,\"label\":null}]") == std::string::npos);
     CHECK(s.find("city_codes") == std::string::npos);
     CHECK(s.find("city_labels") == std::string::npos);
-    // 回帰: array の閉じ括弧の後にカンマ、その後に ex_vn（以前は "]\"ex_vn\"" で不正 JSON）
+    // array の閉じ括弧の後にカンマ、その後に ex_vn（無いと不正 JSON）
     CHECK(s.find("],\"ex_vn\"") != std::string::npos);
     CHECK(s.find("]\"ex_vn\"") == std::string::npos);
 }
