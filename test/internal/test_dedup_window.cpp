@@ -1,8 +1,8 @@
-// test/internal/test_dedup_window.cpp — 情報有効時間（手順④）のカテゴリ別窓
+// 情報有効時間（手順④）のカテゴリ別窓 DedupWindow.h の条件表は「その情報がまだ配信中か」を決める唯一の場所。
+// カテゴリ・副条件ごとに窓の値を固定し、payload を渡さない経路もクラッシュせず fallback に落ちることを確かめる。
 //
-// DedupWindow.h の条件表は「その情報がまだ配信中か」を決める唯一の場所。カテゴリ・副条件ごとに窓の値を固定し、payload を渡さない経路もクラッシュせず fallback に落ちることを確かめる。
-//
-// Parser::handleFrame も検証する。custom framer 経路（feed が false）とデコード失敗経路は out に前回値が残らない契約（decode 失敗時は空の Message を丸ごとコピーする）。
+// Parser::handleFrame も検証する。
+// custom framer 経路（feed が false）とデコード失敗経路は out に前回値が残らない契約（decode 失敗時は空の Message を丸ごとコピーする）。
 
 #define ARDUINO 0
 #include "../src/Parser.h"
@@ -270,8 +270,10 @@ namespace {
 // 常に「フレーム無し」を返すフレーマ（Parser のカスタム排他モード経路）
 class NeverFramer : public azaraC::internal::IFramer {
 public:
-    bool feed(uint8_t, azaraC::internal::Frame&) override { return false; }
-    void reset() override {}
+    int calls = 0;
+    int resets = 0;
+    bool feed(uint8_t, azaraC::internal::Frame&) override { ++calls; return false; }
+    void reset() override { ++resets; }
 };
 
 // 一度だけ指定フレームを返すフレーマ
@@ -292,7 +294,10 @@ private:
 class StaleFrameFramer : public azaraC::internal::IFramer {
 public:
     bool saw_stale = false;
+    int calls = 0;
+    int resets = 0;
     bool feed(uint8_t, azaraC::internal::Frame& out) override {
+        ++calls;
         if (!_touched) {
             _touched = true;
             out.bits[0] = 0xAA;
@@ -303,7 +308,7 @@ public:
         }
         return false;
     }
-    void reset() override {}
+    void reset() override { ++resets; }
 private:
     bool _touched = false;
 };
@@ -321,9 +326,12 @@ TEST_CASE("Parser: custom framer with no frame keeps out untouched") {
     for (int i = 0; i < 8; ++i) {
         CHECK_FALSE(p.feed(0x00, m));
     }
+    CHECK(framer.calls == 8);   // カスタム framer が実際に呼ばれていること
     // フレームが来ない限り out は書き換えない（呼び出し側の前回値が残る）
     CHECK(m.valid);
     CHECK(m.msg_type == 43);
+    p.reset();
+    CHECK(framer.resets == 1);
 }
 
 TEST_CASE("Parser: custom framer starts each call with a zeroed Frame") {
@@ -334,6 +342,9 @@ TEST_CASE("Parser: custom framer starts each call with a zeroed Frame") {
     CHECK_FALSE(p.feed(0x00, m));   // 1 回目: Frame を汚す
     CHECK_FALSE(p.feed(0x00, m));   // 2 回目: 前回の値が残っていないこと
     CHECK_FALSE(framer.saw_stale);
+    CHECK(framer.calls == 2);
+    p.reset();
+    CHECK(framer.resets == 1);
 }
 
 TEST_CASE("Parser: custom framer decode failure clears the previous payload") {

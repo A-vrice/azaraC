@@ -9,7 +9,7 @@
 using namespace azaraC::internal;
 
 TEST_CASE("decodeLatitude16: boundary and known values") {
-    // Returns microdegrees (×1,000,000)
+    // 単位はマイクロ度（×1,000,000）
     CHECK(decodeLatitude16(0) == -90000000);
     CHECK(decodeLatitude16(65535) == 90000000);
     CHECK(decodeLatitude16(32767) == -1373);
@@ -18,29 +18,32 @@ TEST_CASE("decodeLatitude16: boundary and known values") {
 }
 
 TEST_CASE("decodeLongitude17: boundary and known values") {
-    // Returns microdegrees (×1,000,000)
+    // 単位はマイクロ度（×1,000,000）
     CHECK(decodeLongitude17(0) == -180000000);
     CHECK(decodeLongitude17(131071) == 180000000);
     CHECK(decodeLongitude17(65535) == -1373);
 }
 
-TEST_CASE("decodeRadiusCode: boundary and OOB") {
-    // Returns meters
-    CHECK(decodeRadiusCode(0) == 216);
-    CHECK(decodeRadiusCode(1) == 292);
-    CHECK(decodeRadiusCode(31) == 2500000);
-    // Out-of-bounds (≥32) → 0
+TEST_CASE("decodeRadiusCode: all 32 spec values") {
+    // IS-QZSS-DCX-004 Table 4.2-17 (Ellipse Semi-Major Axis) の全 32 値。
+    // 実装表をそのまま写さず、仕様表の値を独立した期待値として固定する。
+    static const int32_t expected[32] = {
+        216,     292,     395,     535,     723,     978,     1322,    1788,
+        2418,    3269,    4421,    5979,    8085,    10933,   14784,   19992,
+        27035,   36559,   49439,   66855,   90407,   122255,  165324,  223564,
+        302322,  408824,  552846,  747603,  1010970, 1367116, 1848727, 2500000
+    };
+    for (uint8_t i = 0; i < 32; ++i) {
+        CAPTURE(i);
+        CHECK(decodeRadiusCode(i) == expected[i]);
+    }
+    // 範囲外（≥32）は 0
     CHECK(decodeRadiusCode(32) == 0);
     CHECK(decodeRadiusCode(255) == 0);
-    // テーブルは単調増加（各エントリが前より大きい）
-    for (uint8_t i = 1; i < 32; ++i) {
-        CAPTURE(i);
-        CHECK(decodeRadiusCode(i) > decodeRadiusCode(i - 1));
-    }
 }
 
 TEST_CASE("decodeAzimuth6: boundary and known values") {
-    // Returns dexadegrees (×100,000)
+    // 単位は 100,000 分度（×100,000）
     CHECK(decodeAzimuth6(0) == -9000000);
     CHECK(decodeAzimuth6(32) == 0);
     CHECK(decodeAzimuth6(63) == 8718750);
@@ -49,7 +52,7 @@ TEST_CASE("decodeAzimuth6: boundary and known values") {
 }
 
 TEST_CASE("decodeAzimuth7: boundary and known values") {
-    // Returns dexadegrees (×100,000)
+    // 単位は 100,000 分度（×100,000）
     CHECK(decodeAzimuth7(0) == -9000000);
     CHECK(decodeAzimuth7(64) == 0);
     CHECK(decodeAzimuth7(127) == 8859375);
@@ -67,7 +70,7 @@ TEST_CASE("decodeLatitude17: boundary and known values") {
 }
 
 TEST_CASE("decodeLongitude17_45_225: boundary and known values") {
-    // EX4: 45 + (180/(2^17-1)) * code, microdegrees (45..225 deg)
+    // EX4: 45 + (180/(2^17-1)) * code、マイクロ度（45..225 度）
     CHECK(decodeLongitude17_45_225(0) == 45000000);
     CHECK(decodeLongitude17_45_225(131071) == 225000000);
     CHECK(decodeLongitude17_45_225(65535) == 134999313);
@@ -82,7 +85,7 @@ TEST_CASE("decodeB2HazardCenter: C5/C6 table and >63 rounding branch") {
     CHECK(decodeB2HazardCenter(64, 64).delta_lat_microdeg == 156250);
     CHECK(decodeB2HazardCenter(127, 127).delta_lon_microdeg == 10000000);
 
-    // c5 and c6 are independent
+    // c5 と c6 は独立
     B2HazardCenter b2 = decodeB2HazardCenter(86, 107);
     CHECK(b2.c5 == 86);
     CHECK(b2.c6 == 107);
@@ -91,7 +94,7 @@ TEST_CASE("decodeB2HazardCenter: C5/C6 table and >63 rounding branch") {
 }
 
 TEST_CASE("decodeCityCodeList: layout, zero skip and order") {
-    // EX8=1: four 16-bit codes at ex9[0:15],[16:31],[32:47],[48:63]
+    // EX8=1: 16 bit コード 4 個を ex9[0:15],[16:31],[32:47],[48:63] に置く
     uint16_t codes[4] = {0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF};
     uint64_t ex9 = ((uint64_t)0x1234) | ((uint64_t)0x5678 << 16) |
                    ((uint64_t)0x9ABC << 32) | ((uint64_t)0xDEF0 << 48);
@@ -102,7 +105,7 @@ TEST_CASE("decodeCityCodeList: layout, zero skip and order") {
     CHECK(codes[2] == 0x9ABC);
     CHECK(codes[3] == 0xDEF0);
 
-    // Zero codes are skipped; the remaining codes keep their relative order.
+    // ゼロのコードは飛ばし、残りは相対順序を保つ。
     codes[0] = codes[1] = codes[2] = codes[3] = 0xFFFF;
     uint64_t ex9_zero = ((uint64_t)0x0000) | ((uint64_t)0x0007 << 16) |
                         ((uint64_t)0x0000 << 32) | ((uint64_t)0x0009 << 48);
@@ -111,6 +114,6 @@ TEST_CASE("decodeCityCodeList: layout, zero skip and order") {
     CHECK(codes[0] == 0x0007);
     CHECK(codes[1] == 0x0009);
 
-    // All zero -> no codes.
+    // すべてゼロならコードなし。
     CHECK(decodeCityCodeList(0, codes) == 0);
 }
