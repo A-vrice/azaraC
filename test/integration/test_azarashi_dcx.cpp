@@ -1,6 +1,4 @@
-// test/integration/test_azarashi_dcx.cpp
-// MT=44 DCX の azarashi 比較テスト（データ駆動）
-// 参照ベクタは azarashi 0.17.1 の test_dcx、照合はその定義テーブルによる
+// MT=44 DCX の azarashi 比較テスト（データ駆動）参照ベクタは azarashi 0.17.1 の test_dcx、照合はその定義テーブルによる
 
 #include "../test_helpers.h"
 #include "doctest.h"
@@ -26,8 +24,7 @@ TEST_CASE("DCX: Null Message") {
     CHECK(mt44->is_null_message == true);
 }
 
-// 日本国外 — フィジーの津波
-// azarashi: a2=71(Fiji), a4=44(GEO/Tsunami), a5=3(Extreme), vn=16
+// 日本国外 — フィジーの津波 azarashi: a2=71(Fiji)、a4=44(GEO/Tsunami)、a5=3(Extreme)、vn=16
 
 TEST_CASE("DCX: Outside Japan - Fiji Tsunami") {
     Message msg{};
@@ -41,12 +38,11 @@ TEST_CASE("DCX: Outside Japan - Fiji Tsunami") {
     CHECK(mt44->service_kind == Mt44ServiceKind::OutsideJapan);
     CHECK(mt44->camf.a2 == 71);   // Fiji
     CHECK(mt44->camf.a3 == 0);    // Not used (code 0)
-    CHECK(mt44->camf.a5 == 3);    // Extreme severity
+    CHECK(mt44->camf.a5 == 3);    // 深刻度 Extreme
     CHECK(mt44->ex.ex_outside.vn == 16); // version 16
 }
 
-// LAlert
-// azarashi: a2=111(Japan), a3=1(Foundation for MultiMedia Communications), a4=1(CBRNE/Air strike), a5=0(Unknown), ex1=1101(札幌市中央区), vn=1
+// LAlert azarashi: a2=111(Japan), a3=1(Foundation for MultiMedia Communications), a4=1(CBRNE/Air strike), a5=0(Unknown), ex1=1101(札幌市中央区), vn=1
 
 TEST_CASE("DCX: L-Alert - CBRNE Air Strike") {
     Message msg{};
@@ -64,8 +60,7 @@ TEST_CASE("DCX: L-Alert - CBRNE Air Strike") {
     CHECK(mt44->ex.ex_lalert_local.vn == 1);
 }
 
-// JAlert
-// azarashi: a2=111(Japan), a3=3(Related Ministries), a4=8(CBRNE/Missile attack), a5=3(Extreme), vn=1, ex9=全47都道府県
+// JAlert azarashi: a2=111(Japan), a3=3(Related Ministries), a4=8(CBRNE/Missile attack), a5=3(Extreme), vn=1, ex9=全47都道府県
 
 TEST_CASE("DCX: J-Alert - Missile Attack") {
     Message msg{};
@@ -78,8 +73,8 @@ TEST_CASE("DCX: J-Alert - Missile Attack") {
     REQUIRE(mt44 != nullptr);
     CHECK(mt44->service_kind == Mt44ServiceKind::JAlert);
     CHECK(mt44->camf.a2 == 111);  // Japan
-    CHECK(mt44->camf.a3 == 3);    // Related Ministries (FDMA -> J-Alert)
-    CHECK(mt44->camf.a5 == 3);    // Extreme severity
+    CHECK(mt44->camf.a3 == 3);    // 関連省庁（FDMA → J-Alert）
+    CHECK(mt44->camf.a5 == 3);    // 深刻度 Extreme
     CHECK(mt44->ex.ex_jalert.vn == 1);
 
     CHECK(mt44->mt44_decoded.jalert_prefecture_mode == true);
@@ -106,54 +101,35 @@ Message decodeDcxHelper(uint8_t* bits) {
 }
 } // namespace
 
-TEST_CASE("DCX: Local Government a3=4 (boundary min)") {
-    uint8_t bits[32] = {};
-    setBits(bits, 0, 8, 0x53);     // PAB=A
-    setBits(bits, 8, 6, 44);       // MT=44
-    setBits(bits, 14, 1, 0);       // SDMT
-    setBits(bits, 15, 9, 0x1FF);   // SDM
-    setBits(bits, 26, 9, 111);     // a2=Japan
-    setBits(bits, 35, 5, 4);       // a3=4 (LocalGovernment min)
+TEST_CASE("DCX: Local Government a3 boundary values") {
+    const uint8_t a3_values[] = {4, 31};   // LocalGovernment range 4-31
+    for (uint8_t a3 : a3_values) {
+        INFO("a3=", static_cast<int>(a3));
+        uint8_t bits[32] = {};
+        setBits(bits, 0, 8, 0x53);     // PAB=A
+        setBits(bits, 8, 6, 44);       // MT=44
+        setBits(bits, 14, 1, 0);       // SDMT
+        setBits(bits, 15, 9, 0x1FF);   // SDM
+        setBits(bits, 26, 9, 111);     // a2=Japan
+        setBits(bits, 35, 5, a3);
 
-    Message msg = decodeDcxHelper(bits);
-    REQUIRE(msg.valid);
-    CHECK(msg.msg_type == 44);
-    CHECK(msg.payload_type == MsgPayloadType::Mt44);
+        Message msg = decodeDcxHelper(bits);
+        REQUIRE(msg.valid);
+        CHECK(msg.msg_type == 44);
+        CHECK(msg.payload_type == MsgPayloadType::Mt44);
 
-    const Mt44Data* mt44 = msg.getMt44();
-    REQUIRE(mt44 != nullptr);
-    CHECK(mt44->service_kind == Mt44ServiceKind::LocalGovernment);
-    CHECK(mt44->camf.a2 == 111);
-    CHECK(mt44->camf.a3 == 4);
-    CHECK(mt44->mt44_decoded.jalert_prefecture_mode == false);
-    CHECK(mt44->mt44_decoded.prefecture_count == 0);
+        const Mt44Data* mt44 = msg.getMt44();
+        REQUIRE(mt44 != nullptr);
+        CHECK(mt44->service_kind == Mt44ServiceKind::LocalGovernment);
+        CHECK(mt44->camf.a2 == 111);
+        CHECK(mt44->camf.a3 == a3);
+        CHECK(mt44->mt44_decoded.jalert_prefecture_mode == false);
+        CHECK(mt44->mt44_decoded.prefecture_count == 0);
+    }
 }
 
-TEST_CASE("DCX: Local Government a3=31 (boundary max)") {
-    uint8_t bits[32] = {};
-    setBits(bits, 0, 8, 0x53);     // PAB=A
-    setBits(bits, 8, 6, 44);       // MT=44
-    setBits(bits, 14, 1, 0);       // SDMT
-    setBits(bits, 15, 9, 0x1FF);   // SDM
-    setBits(bits, 26, 9, 111);     // a2=Japan
-    setBits(bits, 35, 5, 31);      // a3=31 (LocalGovernment max)
-
-    Message msg = decodeDcxHelper(bits);
-    REQUIRE(msg.valid);
-    CHECK(msg.msg_type == 44);
-    CHECK(msg.payload_type == MsgPayloadType::Mt44);
-
-    const Mt44Data* mt44 = msg.getMt44();
-    REQUIRE(mt44 != nullptr);
-    CHECK(mt44->service_kind == Mt44ServiceKind::LocalGovernment);
-    CHECK(mt44->camf.a2 == 111);
-    CHECK(mt44->camf.a3 == 31);
-    CHECK(mt44->mt44_decoded.jalert_prefecture_mode == false);
-    CHECK(mt44->mt44_decoded.prefecture_count == 0);
-}
-
-// JAlert a3 ∈ {0,2,3} — 非 null メッセージ
-// a3=0(FDMA), 2(Cabinet Office), 3(FDMA) はいずれも JAlert に分岐 (IS-QZSS-DCX-003 §4.2.1.2, DecoderDcx.cpp:196) a2=111(Japan), a4=8(Missile attack) を設定し、NullMessage（全フィールドゼロ）判定を避ける
+// JAlert a3 ∈ {0,2,3} — 非 null メッセージ a3=0(FDMA), 2(Cabinet Office), 3(FDMA) はいずれも JAlert に分岐（IS-QZSS-DCX-003 §4.2.1.2）。
+// a2=111(Japan), a4=8(Missile attack) を設定し、NullMessage（全フィールドゼロ）判定を避ける。
 
 TEST_CASE("DCX: J-Alert a3={0,2,3} (FDMA/Cabinet Office) - Non-null message") {
     const int a3_values[] = {0, 2, 3};
@@ -184,9 +160,8 @@ TEST_CASE("DCX: J-Alert a3={0,2,3} (FDMA/Cabinet Office) - Non-null message") {
     }
 }
 
-// Satellite ID 53/54 の E2E — 実データ（test/data/dcx_vectors.json）
-// 仕様は Satellite ID を「PRN を表す 8bit の下位 6bit」と定め、azarashi も `satellite_id | 0x80` で PRN 化する。
-// 5 通(53) / 56 通(54) が該当するが、旧実装は 55-63 しか変換せず生 ID のまま通していた。azarashi の期待値は satellite_prn = 181 / 182。
+// Satellite ID 53/54 の E2E — 実データ（test/data/dcx_vectors.json）仕様は Satellite ID を「PRN を表す 8bit の下位 6bit」と定め、azarashi も `satellite_id | 0x80` で PRN 化する。
+// 実データでは 53 が 5 通、54 が 56 通。azarashi の期待値は satellite_prn = 181 / 182。
 
 TEST_CASE("DCX E2E: Satellite ID 53/54 は PRN181/182 に正規化される") {
     struct Case { const char* nmea; uint8_t expected_prn; };
