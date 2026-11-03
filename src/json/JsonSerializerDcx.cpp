@@ -184,12 +184,12 @@ void serializeDcx(const Message& m, Print& out) {
             wf_v(out, name, value, lookup(static_cast<uint8_t>(value)), /*last=*/true);
         };
         // 36 個の D フィールドはすべて writeDField を通す。添字 [0]=D1 … [3]=D4、[4..35]=D5..D36
+        writeDField(AZARAC_KEY("d1_magnitude"),         b4.d_values[0],  b4.d_present[0],  qzss_dcx_camf_d1_magnitude_on_richter_scale_lookup);
+        writeDField(AZARAC_KEY("d2_seismic_coeff"),     b4.d_values[1],  b4.d_present[1],  qzss_dcx_camf_d2_seismic_coefficient_lookup);
         writeDField(AZARAC_KEY("d3_azimuth"),       b4.d_values[2], b4.d_present[2],
                     qzss_dcx_camf_d3_azimuth_from_centre_of_main_ellipse_to_epicentre_lookup);
         writeDField(AZARAC_KEY("d4_vector_length"), b4.d_values[3], b4.d_present[3],
                     qzss_dcx_camf_d4_vector_length_between_centre_of_main_ellipse_and_epicentre_lookup);
-        writeDField(AZARAC_KEY("d1_magnitude"),         b4.d_values[0],  b4.d_present[0],  qzss_dcx_camf_d1_magnitude_on_richter_scale_lookup);
-        writeDField(AZARAC_KEY("d2_seismic_coeff"),     b4.d_values[1],  b4.d_present[1],  qzss_dcx_camf_d2_seismic_coefficient_lookup);
         writeDField(AZARAC_KEY("d5_wave_height"),       b4.d_values[4],  b4.d_present[4],  qzss_dcx_camf_d5_wave_height_lookup);
         writeDField(AZARAC_KEY("d6_temp_range"),        b4.d_values[5],  b4.d_present[5],  qzss_dcx_camf_d6_temperature_range_lookup);
         writeDField(AZARAC_KEY("d7_hurricane_cat"),     b4.d_values[6],  b4.d_present[6],  qzss_dcx_camf_d7_hurricane_category_lookup);
