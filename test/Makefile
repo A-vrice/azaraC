@@ -77,7 +77,8 @@ TEST_SRCS = \
 	integration/test_dcx_edge_cases.cpp \
 	integration/test_azarashi_dcr.cpp \
 	integration/test_azarashi_dcx.cpp \
-	data/test_realdata_generated.cpp
+	data/test_realdata_generated.cpp \
+	data/test_realdata_anchors.cpp
 
 # Library sources (src/ 配下の実装ファイル)
 LIB_SRCS = \
