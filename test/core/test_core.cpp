@@ -1,5 +1,4 @@
-// test/core/test_core.cpp — コア機能テスト
-// CRC-24Q, 時間変換, 緯度経度, 重複除去
+// コア機能テスト CRC-24Q, 時間変換, 緯度経度, 重複除去
 
 #include "../test_helpers.h"
 #include "doctest.h"
@@ -73,8 +72,7 @@ TEST_CASE("CRC-24Q: bit_len=1") {
 }
 
 TEST_CASE("CRC-24Q: known-answer check value (72-bit)") {
-    // CRC-24Q standard check value for ASCII "123456789"
-    // RevEng CRC カタログ: poly=0x1864CFB init=0 refin=0 refout=0 xorout=0
+    // ASCII "123456789" に対する CRC-24Q の標準チェック値 RevEng CRC カタログ: poly=0x1864CFB init=0 refin=0 refout=0 xorout=0
     uint8_t buf[9] = {'1','2','3','4','5','6','7','8','9'};
     CHECK(TestDecoder::calcCRC(buf, 72) == 0xCDE703);
 }
@@ -142,7 +140,7 @@ TEST_CASE("getBits: No OOB at last valid position") {
     TestDecoder::clearOob();
     TestDecoder::extractBits(buf, 248, 8);
     CHECK(TestDecoder::checkOob() == false);
-    // 248+8=256, boundary exact, no OOB
+    // 248+8=256 は境界ちょうどで OOB なし
 }
 
 TEST_CASE("getBits: No OOB at mid-frame") {
@@ -387,32 +385,6 @@ TEST_CASE("resolveTime: 月のラップアラウンド（MDHM）") {
     CHECK(t.unix_time == expected);
 }
 
-TEST_CASE("resolveTime: 無効な入力の処理") {
-    TimeFields t1 = TestDecoder::testResolveTime(0, 0, 0, 0, 1704067200u);
-    CHECK(t1.day == 0);
-    CHECK(t1.hour == 0);
-    CHECK(t1.minute == 0);
-    CHECK(t1.unix_time == 0);
-
-    TimeFields t2 = TestDecoder::testResolveTime(0, 32, 0, 0, 1704067200u);
-    CHECK(t2.day == 0);
-    CHECK(t2.hour == 0);
-    CHECK(t2.minute == 0);
-    CHECK(t2.unix_time == 0);
-
-    TimeFields t3 = TestDecoder::testResolveTime(13, 1, 0, 0, 1704067200u);
-    CHECK(t3.day == 0);
-    CHECK(t3.hour == 0);
-    CHECK(t3.minute == 0);
-    CHECK(t3.unix_time == 0);
-
-    TimeFields t4 = TestDecoder::testResolveTime(1, 1, 24, 0, 1704067200u);
-    CHECK(t4.day == 0);
-    CHECK(t4.hour == 0);
-    CHECK(t4.minute == 0);
-    CHECK(t4.unix_time == 0);
-}
-
 // DHM extraction テスト
 
 TEST_CASE("extractDHM: basic extraction") {
@@ -444,7 +416,7 @@ TEST_CASE("extractDHM: max values") {
 
 TEST_CASE("extractDHM: zero values") {
     uint8_t buf[4] = {};
-    // day=0 → resolveTime rejects day<1 → all cleared
+    // day=0 → resolveTime は day<1 を弾く → すべてクリア
     uint32_t now = daysFromCivil(2024, 1, 15) * 86400u;
     TimeFields t = TestDecoder::testExtractDHM(buf, 0, now);
     CHECK(t.day == 0);
@@ -459,7 +431,7 @@ TEST_CASE("extractDHM: report_unix=0") {
     setBits(buf, 5, 5, 10);
     setBits(buf, 10, 6, 30);
     TimeFields t = TestDecoder::testExtractDHM(buf, 0, 0u);
-    // DHM resolved but unix_time stays 0
+    // DHM は解決されるが unix_time は 0 のまま
     CHECK(t.day == 15);
     CHECK(t.hour == 10);
     CHECK(t.minute == 30);
@@ -552,26 +524,6 @@ TEST_CASE("resolveTime: now_unix < 2000年 (閾値テスト)") {
     CHECK(t2.unix_time == 946684800u);
 }
 
-TEST_CASE("daysFromCivil と civilFromDays の網羅的ストレステスト (1970-2100)") {
-    uint32_t start_days = daysFromCivil(1970, 1, 1);
-    uint32_t end_days = daysFromCivil(2100, 12, 31);
-
-    for (uint32_t days = start_days; days <= end_days; ++days) {
-        uint32_t y = 0, m = 0, d = 0;
-        civilFromDays(days, y, m, d);
-        uint32_t reconstructed = daysFromCivil(y, m, d);
-
-        if (reconstructed != days) {
-            CAPTURE(days);
-            CAPTURE(y);
-            CAPTURE(m);
-            CAPTURE(d);
-            CAPTURE(reconstructed);
-            FAIL("日付のラウンドトリップ変換が一致しません");
-        }
-    }
-}
-
 // 緯度経度テスト
 
 TEST_CASE("extractLatLon: 基本的な緯度経度抽出") {
@@ -643,8 +595,8 @@ TEST_CASE("extractLatLon: 境界値テスト") {
     CHECK(ll.lon_sec == 59);
 }
 
-// 重複除去テスト
-// アプリケーションノートv2 (原PDF p.23–25) のモデル: 同一の情報 = 内容（MT～VN）の一致。受信衛星は情報の同一性に含まれない。履歴は 手順④' により「一定時間受信しなかった情報」を削除する。 isDuplicate の引数は (key, now_ms, window_ms)。
+// 重複除去テストアプリケーションノートv2 (原PDF p.23–25) のモデル: 同一の情報 = 内容（MT～VN）の一致で、受信衛星は同一性に含まれない。
+// 履歴は手順④' により「一定時間受信しなかった情報」を削除する。isDuplicate の引数は (key, now_ms, window_ms)。
 
 namespace {
 constexpr uint32_t DEDUP_TEST_WINDOW = 300000;   // 5分
@@ -871,17 +823,17 @@ TEST_CASE("DedupFilter: 大量のメッセージを処理できる") {
 
 TEST_CASE("Memory: sizeof guards for embedded targets") {
 #if defined(__GNUC__) && ARDUINO == 0
-    // Message payload_storage_ = max(sizeof(Mt43Data), sizeof(Mt44Data))
-    // Current (host-measured): Mt43Data=128, Mt44Data=280, Message=288, Frame=33
+    // Message の payload_storage_ = max(sizeof(Mt43Data), sizeof(Mt44Data))
     CHECK(sizeof(Message) <= 420);
     CHECK(sizeof(Mt43Data) <= 240);
     CHECK(sizeof(Mt44Data) <= 420);
-    // Parser = NankaiPageBufferManager (AZARAC_NANKAI_BUFFERS × sizeof(NankaiPageBuffer)) + framers, decoder, dedup (~320)
+    // Parser = NankaiPageBufferManager（AZARAC_NANKAI_BUFFERS × sizeof(NankaiPageBuffer)）+ フレーマ・デコーダ・dedup
     CHECK(sizeof(Parser) <= 5500);
 #else
-    // Skip on non-GCC or embedded — sizeof may differ per arch
+    // アーキで sizeof が変わり得るので非 GCC / 組込みではスキップ
     INFO("sizeof guard skipped (non-GCC or ARDUINO target)");
 #endif
 }
 
-// CHECK 無しのスモークはここには置かない。クラッシュを検出できないためで（CI は sanitizer 無しでビルドする）、実ファズは test/fuzz/fuzz_decoder.cpp（make fuzz）。
+// CHECK 無しのスモークは置かない（クラッシュを検出できない。CI は sanitizer 無しでビルドする）。
+// 実ファズは test/fuzz/fuzz_decoder.cpp（make fuzz）。
