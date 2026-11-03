@@ -3,7 +3,10 @@
 // 入力は test/data/{dcr,dcx,nankai}_vectors.json の $QZQSM 文のみ（ネットワーク・時計入力なし）。
 // report_unix は固定値（≥2000-01-01 なので日付解決経路も通す）。
 //
-// 測定: 同じ Parser に同じ文を 15 回流し rdtsc 差分の最小値を取り、同一グループ内の文ごとの中央値を METRIC DECODE_CYCLES_<GROUP> として出力する。重複抑止は 2 回目以降に通知を抑えるがデコード自体は毎回走るので、測っているのはフレーミング＋デコード＋シリアライズ前処理。
+// 測定: 同じ Parser に同じ文を 15 回流し rdtsc 差分の最小値を取り、同一グループ内の文ごとの中央値を METRIC DECODE_CYCLES_<GROUP> として出力する。
+// 重複抑止は 2 回目以降に通知を抑えるがデコード自体は毎回走るので、測っているのはフレーミング＋デコード＋シリアライズ前処理。
+//
+// MT43_NANKAI だけは Parser を作り直すとページ集約が完了しないため、ページ列を 1 つの Parser に通し、集約が完了する文を測る（先行ページは毎回同じ Parser に投入し、時間外）。
 //
 // Harness contract: "METRIC <name>=<value>" を出力し成功時 exit 0（bench_dedup.cpp と同じ）。
 
@@ -60,7 +63,9 @@ struct Sentence {
     const char* group;
 };
 
-// JSON テキストから $QZQSM 文を取り出す。"nmea" と "params.sentence" の両方に同じ文が入っているので、文全体で重複除去する。型は各 "nmea" の直後の "type": "..." から取る（生成された JSON では nmea が必ず type の前に来る）。
+// JSON テキストから $QZQSM 文を取り出す。
+// "nmea" と "params.sentence" の両方に同じ文が入っているので、文全体で重複除去する。
+// 型は各 "nmea" の直後の "type": "..." から取る（生成された JSON では nmea が必ず type の前に来る）。
 static void scanFile(const char* path, std::vector<Sentence>& out) {
     FILE* fp = fopen(path, "rb");
     if (!fp) { fprintf(stderr, "bench: cannot open %s\n", path); exit(2); }
@@ -129,7 +134,15 @@ int main() {
     std::map<std::string, size_t> group_outputs;
     size_t total_outputs = 0;
 
+    std::vector<const Sentence*> per_sentence;
+    std::vector<const Sentence*> nankai;
     for (const Sentence& s : sentences) {
+        if (std::strcmp(s.group, "MT43_NANKAI") == 0) nankai.push_back(&s);
+        else per_sentence.push_back(&s);
+    }
+
+    for (const Sentence* sp : per_sentence) {
+        const Sentence& s = *sp;
         Parser p;
         azaraC::Message msg;
         if (feedSentence(p, msg, s.nmea)) { ++total_outputs; ++group_outputs[s.group]; }
@@ -141,6 +154,36 @@ int main() {
             if (dt < best) best = dt;
         }
         per_group[s.group].push_back((double)best);
+    }
+
+    if (!nankai.empty()) {
+        // 集約は Parser を作り直すと完了しない。ページ列を 1 つの Parser に通し、
+        // 最初に完了した文の位置を求める（現 fixture は 1 イベント = 1 出力）。
+        size_t complete_at = nankai.size();
+        {
+            Parser p;
+            azaraC::Message msg;
+            for (size_t i = 0; i < nankai.size(); ++i) {
+                if (feedSentence(p, msg, nankai[i]->nmea)) {
+                    ++total_outputs; ++group_outputs["MT43_NANKAI"];
+                    if (complete_at == nankai.size()) complete_at = i;
+                }
+            }
+        }
+        if (complete_at < nankai.size()) {
+            // 完了文を 1 文として測る。先行ページは毎回同じ Parser に投入する（時間外）。
+            uint64_t best = ~0ull;
+            for (int rep = 0; rep < 15; ++rep) {
+                Parser p;
+                azaraC::Message msg;
+                for (size_t i = 0; i < complete_at; ++i) feedSentence(p, msg, nankai[i]->nmea);
+                const uint64_t t0 = readCycles();
+                feedSentence(p, msg, nankai[complete_at]->nmea);
+                const uint64_t dt = readCycles() - t0;
+                if (dt < best) best = dt;
+            }
+            per_group["MT43_NANKAI"].push_back((double)best);
+        }
     }
 
     printf("METRIC CRASH_GROUP=0\n");

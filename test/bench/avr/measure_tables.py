@@ -16,10 +16,9 @@ AZARAC_LANG_* ガードのモデルを二重に持たなくてよい。
                      `..._Entry`) として、AVR-GCC の自然アラインメントどおりに
                      並べたサイズ。
 
-  AVR_TABLE_BYTES    上記の合計 — 主要指標。
+AVR_TABLE_BYTES    上記の合計 — 主要指標。
 
-両項は、同じシンボルについて avr-gcc が報告するサイズと突き合わせる
-(crosscheck_tables.py)。
+両項は、同じシンボルについて avr-gcc が報告するサイズと突き合わせる (crosscheck_tables.py)。
 
 出力の各行は `METRIC <name>=<value>` 行。
 """
@@ -27,7 +26,8 @@ AZARAC_LANG_* ガードのモデルを二重に持たなくてよい。
 import re
 import sys
 
-# プリプロセス出力は宣言を `# 12 "file.h"` マーカーで分割し、__attribute__((__progmem__)) を独立した行へ持ち上げる。意味があるのは宣言本体だけなので、まずそれを取り除く。
+# プリプロセス出力は宣言を `# 12 "file.h"` マーカーで分割し、__attribute__((__progmem__)) を独立した行へ持ち上げる。
+# 意味があるのは宣言本体だけなので、まずそれを取り除く。
 # Flash が 64 KiB を超えると AZARAC_PROGMEM はインラインの `__attribute__((__section__(".text.azaraC.<n>")))` に展開される — 同じ属性で括弧が 1 段深いだけ — ので、パターンは両方を受ける（テキストは解析するだけでコンパイルしない）。
 MARKER = re.compile(r'^# \d+ "[^"]*"(?: \d+)*$', re.M)
 ATTR = re.compile(r'__attribute__\s*\(\((?:[^()]|\([^()]*\))*\)\)')
@@ -37,8 +37,11 @@ TABLE = re.compile(r'(\w+_TABLE)\[\]\s*=\s*\{(.*?)\n\s*\};', re.S)
 ROW = re.compile(r'\{\s*[0-9][0-9a-fA-FxXuUlL]*(?:\s*,\s*[0-9][0-9a-fA-FxXuUlL]*)*\s*\}')
 NAME = re.compile(r'(\w+)\s*$')
 
-# AVR-GCC はこれらのフィールドにバイト境界のアラインメントを与える（avr-gcc 7.3.0 で実測: `{uint8_t id; uint16_t offset; uint16_t len;}` のエントリは 5 バイトで、2 バイト境界なら 6 バイトになるところ。alignof(uint64_t) は 1）。よってエントリはフィールドの単純合計。
-# 未知のフィールドはレイアウトモデルを見直すべき合図で、推測してはいけない。いずれにせよ crosscheck_tables.py が結果を avr-gcc と照合する。
+# AVR-GCC はこれらのフィールドにバイト境界のアラインメントを与える。
+# （avr-gcc 7.3.0 で実測: `{uint8_t id; uint16_t offset; uint16_t len;}` のエントリは 5 バイトで、2 バイト境界なら 6 バイトになるところ。alignof(uint64_t) は 1）。
+# よってエントリはフィールドの単純合計。
+# 未知のフィールドはレイアウトモデルを見直すべき合図で、推測してはいけない。
+# いずれにせよ crosscheck_tables.py が結果を avr-gcc と照合する。
 SCALARS = {'uint8_t': 1, 'int8_t': 1, 'char': 1, 'bool': 1,
            'uint16_t': 2, 'int16_t': 2, 'uint32_t': 4, 'int32_t': 4,
            'uint64_t': 8, 'int64_t': 8,
@@ -91,8 +94,8 @@ def literal_bytes(lit: str) -> int:
 
 
 def scan_literal(text: str, quote: int):
-    """`text[quote] == '"'` から始まる文字列リテラルのバイト数（コンパイラが連結する
-    隣接リテラルも含む）と、その直後の位置。"""
+    """`text[quote] == '"'` から始まる文字列リテラルのバイト数（コンパイラが連結する隣接リテラルも含む）と、その直後の位置。
+    """
     total = 0
     i = quote
     while True:

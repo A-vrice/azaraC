@@ -28,7 +28,9 @@ void operator delete(void* p, size_t) { free(p); }
 void operator delete[](void* p, size_t) { free(p); }
 
 namespace {
-// シンク。write() はライブラリがキーとラベルに使う経路（out.write(s.data(), s.size())）なので、これを上書きすることがテーブルをイメージに結びつける。asm はポインタと長さを生かしたまま何も格納しない: カウンタに SRAM を使わない。
+// シンク。
+// write() はライブラリがキーとラベルに使う経路（out.write(s.data(), s.size())）なので、これを上書きすることがテーブルをイメージに結びつける。
+// asm はポインタと長さを生かしたまま何も格納しない: カウンタに SRAM を使わない。
 class ProbePrint : public Print {
 public:
     size_t write(uint8_t) override {

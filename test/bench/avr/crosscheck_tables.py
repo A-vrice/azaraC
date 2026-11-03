@@ -21,9 +21,10 @@ import sys
 
 SUFFIXES = ('_POOL', '_TABLE')
 
-# azaraC 自身の小さな Flash テーブル（internal/DcxHelper.cpp）は、生成定義テーブルと
-# 同じ命名規約に従って「RAM にない」ゲートに拾われるようにしているが、measure_tables.py は
-# 解析しない: 生成物ではなく手書きだから。これらの配置は MEGA_NEAR_SYM_ADDR でゲートする。
+# azaraC 自身の小さな Flash テーブル（internal/DcxHelper.cpp）は、生成定義テーブルと同じ命名規約に従って「RAM にない」ゲートに拾われるようにしている。
+# measure_tables.py は解析しない。
+# 生成物ではなく手書きだから。
+# これらの配置は MEGA_NEAR_SYM_ADDR でゲートする。
 HAND_WRITTEN_TABLES = {'RADIUS_TABLE', 'B4_LAYOUT_TABLE'}
 
 
@@ -40,8 +41,7 @@ def main(pools_path: str) -> int:
         parts = line.split()
         if len(parts) < 4 or len(parts[2]) != 1 or not parts[2].isalpha():
             continue
-        # 無名名前空間の demangle 名は空白を含むので、名前は型フィールドより後ろ全部であり、
-        # parts[3] だけではない。
+        # 無名名前空間の demangle 名は空白を含むので、名前は型フィールドより後ろ全部であり、 parts[3] だけではない。
         name = ' '.join(parts[3:]).rsplit('::', 1)[-1]
         if name in HAND_WRITTEN_TABLES:
             continue

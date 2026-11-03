@@ -1,22 +1,20 @@
 #!/usr/bin/env python3
 """ゲート: 共有ラベルバッファが、ビルドが返し得る最長ラベルを保持できること。
 
-`AZARAC_FLASH_BUF_SIZE` は src/azaraC_config.h で有効なカテゴリから選ばれるが、
-ラベルは *独立した* ガードマクロ（src/definition/*.h）で有効になるテーブルにある。
-最長ラベルがそのバッファより大きいカテゴリを有効にすると、`azarac_pgm_view` は
-コピーを `AZARAC_FLASH_BUF_SIZE - 1` で打ち切り（internal/FlashString.h）、ラベルは
-黙って切り詰められる — 切れ目は UTF-8 の途中に落ちるので、JSON 出力はエラーではなく
-壊れたラベルを載せる。AVR プリセットでは起きない（SEISMIC/TSUNAMI のラベルは最大 45 B）
-が、`-D` で有効にした他のカテゴリでは起きる。`-D` が文書化された設定方法だからだ。
+`AZARAC_FLASH_BUF_SIZE` は src/azaraC_config.h で有効なカテゴリから選ばれるが、ラベルは *独立した* ガードマクロ（src/definition/*.h）で有効になるテーブルにある。
+最長ラベルがそのバッファより大きいカテゴリを有効にすると、`azarac_pgm_view` はコピーを `AZARAC_FLASH_BUF_SIZE - 1` で打ち切り（internal/FlashString.h）、ラベルは黙って切り詰められる。
+切れ目は UTF-8 の途中に落ちるので、JSON 出力はエラーではなく壊れたラベルを載せる。
+AVR プリセットでは起きない（SEISMIC/TSUNAMI のラベルは最大 45 B）が、`-D` で有効にした他のカテゴリでは起きる。
+`-D` が文書化された設定方法だからだ。
 
-カテゴリフラグの全組み合わせ・両言語・出荷する 2 プリセット（Uno/atmega328p と
-Mega/atmega2560）について次を検査する:
+カテゴリフラグの全組み合わせ・両言語・出荷する 2 プリセット（Uno/atmega328p と Mega/atmega2560）について次を検査する:
 
     AZARAC_FLASH_BUF_SIZE - 1  >=  有効な全テーブルの最長ラベル
 
-テーブルは生成ヘッダから取る（各ガードブロックの非圧縮 host 分岐が、AVR 側が再現する
-ラベル集合）。サイズ連鎖は azaraC_config.h の `#if`/`#elif` 連鎖から読む。いくつかの
-設定は実 AVR プリプロセッサと突き合わせ、連鎖パーサがマクロからずれないようにする。
+テーブルは生成ヘッダから取る（各ガードブロックの非圧縮 host 分岐が、AVR 側が再現するラベル集合）。
+単一リテラルだけでなく、NUL 区切りプール内の各ラベルと、プール内ラベルに親（+ 祖父）プールを連結した後の長さも検査する。
+サイズ連鎖は azaraC_config.h の `#if`/`#elif` 連鎖から読む。
+いくつかの設定は実 AVR プリプロセッサと突き合わせ、連鎖パーサがマクロからずれないようにする。
 
 実行: python test/bench/avr/check_flash_buf.py [--avr-gcc avr-gcc] [--quiet]
 終了: 0 = 全設定が収まる、1 = 少なくとも 1 つが切り詰める、2 = 使用方法/準備の誤り。
@@ -43,6 +41,40 @@ CONFIG_H = os.path.join(REPO, "src", "azaraC_config.h")
 
 LITERAL = re.compile(r'"((?:[^"\\]|\\.)*)"')
 GUARD = re.compile(r'#\s*if\s+(.*)')
+POOL = re.compile(r'static const char AZARAC_PROGMEM (\w+)\[\]\s*[^=]*=\s*"((?:[^"\\]|\\.)*)";')
+CHILD_TABLE = re.compile(r'static const \w+_Entry\s+(\w+)_TABLE\[\]\s*[^=]*=\s*\{(.*?)\};', re.S)
+PARENT_TABLE = re.compile(r'static const \w+_PARENT_Entry\s+(\w+)_PARENT_TABLE\[\]\s*[^=]*=\s*\{(.*?)\};', re.S)
+GRAND_TABLE = re.compile(r'static const \w+_GRAND_Entry\s+(\w+)_GRAND_TABLE\[\]\s*[^=]*=\s*\{(.*?)\};', re.S)
+ENTRY_STRUCT = re.compile(r'struct (\w+_Entry)\s*\{([^}]*)\};')
+
+
+def table_fields(text):
+    """構造体宣言から {構造体名: [フィールド名, ...]} を作る。
+
+    行の要素の意味はフィールド名で決まる（戦略ごとに `{offset, parent}` だったり `{id, parent, offset}` だったりする）ので、宣言から名前を取る。
+    """
+    return {name: re.findall(r'\b(\w+)\s*;', body)
+            for name, body in ENTRY_STRUCT.findall(text)}
+
+
+def table_rows(body):
+    """`{0u, 255u},` 形式の行を整数リストにする。"""
+    return [[int(x.strip().rstrip("u")) for x in row.split(",") if x.strip()]
+            for row in re.findall(r'\{([^}]*)\}', body)]
+
+
+def offset_lengths(data):
+    """NUL 区切りプールの {開始オフセット: バイト長}。"""
+    out = {}
+    start = 0
+    for i, b in enumerate(data):
+        if b == 0:
+            if i > start:
+                out[start] = i - start
+            start = i + 1
+    if start < len(data):
+        out[start] = len(data) - start
+    return out
 
 
 def unescape(text):
@@ -67,22 +99,24 @@ def parse_condition(expr):
 def scan_tables():
     """ガード条件ごとの最長ラベル: {(frames, languages): (bytes, file)}。
 
-    `frames` は開いている `#if` ごとに 1 つのカテゴリ frozenset を持つ。ガードは
-    フレーム内でカテゴリを OR でまとめ（`(A || B) && (LANG_JA)`）、フレーム同士を
-    AND で繋ぐので、OR の組は分けたままにする: まとめてしまうと OR 組の全カテゴリを
-    要求し、どれか 1 つで有効になるテーブルを取りこぼす。
+    `frames` は開いている `#if` ごとに 1 つのカテゴリ frozenset を持つ。
+    ガードはフレーム内でカテゴリを OR でまとめ（`(A || B) && (LANG_JA)`）、フレーム同士を AND で繋ぐので、OR の組は分けたままにする。
+    まとめてしまうと OR 組の全カテゴリを要求し、どれか 1 つで有効になるテーブルを取りこぼす。
 
-    ラベルごとに 1 エントリ持つと設定のたびに再走査になるが、効き得るのは条件ごとの
-    最長だけであり条件も少ないので、ここで畳み込む。
+    ラベルは 3 形態あるので全部見る: 単一リテラル（switch 戦略）、NUL 区切りプール内の各ラベル（binary_search 戦略の葉）。
+    プール内ラベル＋親（＋祖父）プールの連結後（`azarac_pgm_join_z` / `join3` が返す長さ）。
+    プールを丸ごと飛ばすと後者 2 つを見落とす。
+
+    ラベルごとに 1 エントリ持つと設定のたびに再走査になるが、効き得るのは条件ごとの最長だけであり条件も少ないので、ここで畳み込む。
     """
     out = {}
-    # listdir でなく os.walk: 手書きテーブルは definition/manual/ にあり、同じ共有
-    # バッファ経由でラベルを返すので、これらも走査対象にする。
+    # listdir でなく os.walk: 手書きテーブルは definition/manual/ にあり、同じ共有バッファ経由でラベルを返すので、これらも走査対象にする。
     paths = []
     for root, _dirs, files in os.walk(DEFS):
         paths.extend(os.path.join(root, f) for f in files if f.endswith(".h"))
     for path in sorted(paths):
         name = os.path.relpath(path, DEFS).replace(os.sep, "/")
+        blocks = {}
         stack = []  # [(categories, language)]、開いている #if ごとに 1 エントリ
         for line in open(path, encoding="utf-8"):
             stripped = line.lstrip()
@@ -95,27 +129,81 @@ def scan_tables():
                 continue
             if stripped.startswith("#"):
                 continue  # #include "..." はラベルではない
-            if '"' not in line:
-                continue
-            frames = tuple(frozenset(c) for c, _ in stack)
-            langs = tuple(l for _, l in stack if l)
-            for body in LITERAL.findall(line):
-                if "\\0" in body:
-                    continue  # NUL 区切りのプールであり、単一ラベルではない
-                data = unescape(body)
-                if not data:
+            key = (tuple(frozenset(c) for c, _ in stack),
+                   tuple(l for _, l in stack if l))
+            blocks.setdefault(key, []).append(line)
+
+        for key, lines in blocks.items():
+            text = "".join(lines)
+
+            def put(n):
+                if n > out.get(key, (0, ""))[0]:
+                    out[key] = (n, name)
+
+            # 単一リテラル（プール以外）
+            for line in lines:
+                for body in LITERAL.findall(line):
+                    if "\\0" in body:
+                        continue  # NUL 区切りのプールであり、単一ラベルではない
+                    data = unescape(body)
+                    if data:
+                        put(len(data))
+
+            # プール内の各ラベル
+            pools = {}
+            for m in POOL.finditer(text):
+                data = unescape(m.group(2))
+                if data is None:
                     continue
-                key = (frames, langs)
-                if len(data) > out.get(key, (0, ""))[0]:
-                    out[key] = (len(data), name)
+                pools[m.group(1)] = offset_lengths(data)
+                for length in pools[m.group(1)].values():
+                    put(length)
+
+            # 分割ラベルの連結後（子 + 親 + 祖父）
+            fields = table_fields(text)
+            parents = {n: (table_rows(b), fields.get(n + "_PARENT_Entry", ["offset", "grand"]))
+                       for n, b in PARENT_TABLE.findall(text)}
+            grands = {n: (table_rows(b), fields.get(n + "_GRAND_Entry", ["offset"]))
+                      for n, b in GRAND_TABLE.findall(text)}
+            for base, body in CHILD_TABLE.findall(text):
+                if base.endswith("_PARENT") or base.endswith("_GRAND"):
+                    continue  # 親・祖父テーブル自体は下から参照されるだけ
+                child = pools.get(base + "_POOL")
+                parent = pools.get(base + "_PARENT_POOL")
+                grand = pools.get(base + "_GRAND_POOL")
+                if not child:
+                    continue
+                child_fields = fields.get(base + "_Entry", ["id", "offset"])
+                for row in table_rows(body):
+                    entry = dict(zip(child_fields, row))
+                    off = entry.get("offset")
+                    if off not in child:
+                        continue
+                    length = child[off]
+                    pi = entry.get("parent", 255)
+                    if pi != 255 and parent and base in parents:
+                        prows, pfields = parents[base]
+                        if pi < len(prows):
+                            p = dict(zip(pfields, prows[pi]))
+                            poff = p.get("offset")
+                            if poff in parent:
+                                length += parent[poff]
+                                gi = p.get("grand", 255)
+                                if gi != 255 and grand and base in grands:
+                                    grows, gfields = grands[base]
+                                    if gi < len(grows):
+                                        goff = dict(zip(gfields, grows[gi])).get("offset")
+                                        if goff in grand:
+                                            length += grand[goff]
+                    put(length)
     return out
 
 
 def parse_ladder():
     """AZARAC_FLASH_BUF_SIZE の連鎖から [(categories, language|None, size)] を返す。
 
-    連鎖は自前のもの（機械的に大小比較でき、カテゴリ群ごとに 1 分岐）なので、
-    素直な置換で足りる。正しさは `crosscheck_ladder` が avr-gcc と突き合わせて示す。
+    連鎖は自前のもの（機械的に大小比較でき、カテゴリ群ごとに 1 分岐）なので、素直な置換で足りる。
+    正しさは `crosscheck_ladder` が avr-gcc と突き合わせて示す。
     """
     text = open(CONFIG_H, encoding="utf-8").read()
     chain = re.search(r'#ifndef AZARAC_FLASH_BUF_SIZE\n(.*?)\n#endif', text, re.S)

@@ -30,7 +30,8 @@ public:
     virtual size_t write(uint8_t) { return 1; }
     virtual size_t write(const char*, size_t n) { return n; }
 
-    // 実コアと同じく print() は write() へ流す。ここで捨てると LTO が出力を作る側の処理（writeUint32 の桁変換など）ごと消し、計測した Flash がスケッチの実費より小さくなる。
+    // 実コアと同じく print() は write() へ流す。
+    // ここで捨てると LTO が出力を作る側の処理（writeUint32 の桁変換など）ごと消し、計測した Flash がスケッチの実費より小さくなる。
     size_t print(char c) { return write(static_cast<uint8_t>(c)); }
     size_t print(const char* s) { return write(s, strlen(s)); }
     size_t print(std::string_view s) { return s.empty() ? 0 : write(s.data(), s.size()); }

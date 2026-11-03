@@ -2,7 +2,8 @@
 # autoresearch.sh — AVR 定義テーブルのフットプリント計測。
 #
 # 目的 (issue #35): 生成される target-area 文字列プールが親リージョン名を重複して持つため、プール 1 つで英語側だけで約 63 KB かかる。
-# AVR ではそれが高コストなだけでなくビルド不能になる: avr-gcc は 32,767 バイトを超える単一オブジェクトを拒否する（"size of variable is too large"。32,767 は通り 32,768 は通らないことを確認済み）。azaraC_config.h の AVR プリセットが DCX/CAMF（および volcano/ash-fall 系）を完全に外しているのはこのため。
+# AVR ではそれが高コストなだけでなくビルド不能になる: avr-gcc は 32,767 バイトを超える単一オブジェクトを拒否する（"size of variable is too large"。32,767 は通り 32,768 は通らないことを確認済み）。
+# azaraC_config.h の AVR プリセットが DCX/CAMF（および volcano/ash-fall 系）を完全に外しているのはこのため。
 #
 # 主要指標 AVR_TABLE_BYTES — 有効な設定が AVR リンカに要求する全バイト数:
 #                定義テーブルの文字列リテラル（プールと `switch` テーブルの
@@ -41,8 +42,10 @@
 #   path      リンクした各イメージが decode 経路・シリアライザ・定義テーブルを保持していること:
 #             LTO がそれらを落とすと flash の数値は「スケッチが払う額」を意味しなくなる。
 #
-# 決定的: ツールチェーンフラグ固定、入力固定、ネットワーク・時計なし。avr-gcc/avr-size/avr-nm と g++ が PATH に必要。
-# Uno イメージは Arduino AVR コアの `-flto -fuse-linker-plugin`（AVR_LTO）でリンクする。Mega イメージは stage 5 で LTO なし、stage 5b で Arduino レシピでリンクし、stage 5b のイメージはゲート対象（リンクでき、品の SRAM に収まること）。
+# 決定的: ツールチェーンフラグ固定、入力固定、ネットワーク・時計なし。
+# avr-gcc/avr-size/avr-nm と g++ が PATH に必要。
+# Uno イメージは Arduino AVR コアの `-flto -fuse-linker-plugin`（AVR_LTO）でリンクする。
+# Mega イメージは stage 5 で LTO なし、stage 5b で Arduino レシピでリンクし、stage 5b のイメージはゲート対象（リンクでき、品の SRAM に収まること）。
 #
 # `bash test/bench/avr/autoresearch.sh --bless-labels` は golden のラベルハッシュを再記録する — ラベル変更が意図どおりだと確認した後のみ。
 
@@ -69,9 +72,11 @@ AVR_BUILD=(-mmcu="$MCU" -Os -std=gnu++17 -fno-exceptions
            -ffunction-sections -fdata-sections -Werror=overflow
            -I src -I "$BENCH/shim" -DARDUINO=1)
 
-# Arduino AVR コアは `-flto -fuse-linker-plugin` でコンパイル・リンクする（platform.txt）ので、stage 4 の Uno イメージ — スケッチが実際に配布される設定 — もこれを使う。
+# Arduino AVR コアは `-flto -fuse-linker-plugin` でコンパイル・リンクする（platform.txt）。
+# stage 4 の Uno イメージ — スケッチが実際に配布される設定 — もこれを使う。
 # stage 3 は意図的に LTO なしのレシピを使う: LTO オブジェクトはシンボルのサイズを持たず、avr-gcc との突き合わせに何も残らないため。
-# stage 5 も別の理由で LTO なしのまま。その箇所の注記を参照。
+# stage 5 も別の理由で LTO なしのまま。
+# その箇所の注記を参照。
 AVR_LTO=(-flto -fuse-linker-plugin)
 
 # テーブルの最悪ケース: 全カテゴリ・両言語。
@@ -99,8 +104,8 @@ MAX_UNO_RAM_BYTES=142
 # この上限に余裕はない: 892 B が現在の実測値なので、SRAM が回帰すればここで落ちる（SRAM を増やして Flash を減らすのが、これが存在する理由の失敗）。
 MAX_MEGA_RAM_BYTES=892
 
-# 品の SRAM。スケッチが実際に受けるイメージ（stage 5b、Arduino レシピ）向け: LTO
-# ビルドがリンクでき ATmega2560 に収まらなければ、その設定は出荷できない。
+# 品の SRAM。
+# スケッチが実際に受けるイメージ（stage 5b、Arduino レシピ）向け: LTO ビルドがリンクでき ATmega2560 に収まらなければ、その設定は出荷できない。
 ATMEGA2560_SRAM_BYTES=8192
 
 mkdir -p "$OUT"
@@ -124,8 +129,10 @@ largest="$(metric AVR_LARGEST_LITERAL)"
     || { echo "autoresearch: metrics missing" >&2; exit 3; }
 
 # stage 1b
-# 共有ラベルバッファは有効な全カテゴリの最長ラベルを保持できること: internal/FlashString.h は AZARAC_FLASH_BUF_SIZE - 1 でコピーを打ち切るため、サイズ連鎖から漏れたカテゴリはラベルを黙って（UTF-8 の途中で）切り詰める。
-# 全カテゴリの組み合わせ・両言語・両プリセットで走査する。サイズ連鎖は azaraC_config.h から読み、AVR プリプロセッサと突き合わせる。
+# 共有ラベルバッファは有効な全カテゴリの最長ラベルを保持できること。
+# internal/FlashString.h は AZARAC_FLASH_BUF_SIZE - 1 でコピーを打ち切るため、サイズ連鎖から漏れたカテゴリはラベルを黙って（UTF-8 の途中で）切り詰める。
+# 全カテゴリの組み合わせ・両言語・両プリセットで走査する。
+# サイズ連鎖は azaraC_config.h から読み、AVR プリプロセッサと突き合わせる。
 buf_status=0
 "$PYTHON" "$BENCH/check_flash_buf.py" --avr-gcc "$AVR_CC" || buf_status=$?
 echo "METRIC FLASH_BUF_OK=$(( buf_status == 0 ? 1 : 0 ))"
@@ -194,7 +201,8 @@ else
 fi
 
 # stage 3
-# 単一プールがオブジェクト上限を超えていない状態で、全 TU が実ターゲット向けにコンパイルできること。上限を超えている間はビルド自体がゲートで、超えた状態の失敗は想定内のベースライン。
+# 単一プールがオブジェクト上限を超えていない状態で、全 TU が実ターゲット向けにコンパイルできること。
+# 上限を超えている間はビルド自体がゲートで、超えた状態の失敗は想定内のベースライン。
 rm -rf "$OUT/obj"
 mkdir -p "$OUT/obj"
 build_failed=0
@@ -250,7 +258,9 @@ echo "METRIC UNO_COMPILE_OK=$uno_ok"
 # 大容量フラッシュのイメージ: DCX/CAMF を明示的に有効化した 256 KB 品（プリセットはもうチップ名で有効化しないので、Mega ユーザーがするようにこの stage で定義する）。
 # テーブルが 64 KB 超に置かれるため、この stage は実デバイス上で far アドレッシングを証明できる。
 #
-# stage 4 と違いここでは ${AVR_LTO[@]} を付けない: この stage は下のゲートが比較する数値（MAX_MEGA_RAM_BYTES、near シンボルの窓、far 読み出し）を記録するので、素のレシピのままにする。stage 5b が同じプリセットを Arduino レシピでリンクして結果を報告し、両者の差はゲートではなく警告。
+# stage 4 と違いここでは ${AVR_LTO[@]} を付けない:
+# この stage は下のゲートが比較する数値（MAX_MEGA_RAM_BYTES、near シンボルの窓、far 読み出し）を記録するので、素のレシピのままにする。
+# stage 5b が同じプリセットを Arduino レシピでリンクして結果を報告し、両者の差はゲートではなく警告。
 mega_ok=0
 mega_build=(-mmcu="$MCU" -Os -std=gnu++17 -fno-exceptions
             -ffunction-sections -fdata-sections -Wl,--gc-sections -Werror=overflow
@@ -285,8 +295,10 @@ if [[ ${#mega_objs[@]} -gt 0 ]] && "$AVR_CC" "${mega_build[@]}" "${mega_objs[@]}
     near_sym_addr="$("$AVR_NM" -C "$OUT/mega.elf" 2>/dev/null \
         | awk 'NF >= 3 && $NF ~ /(CRC24Q_T4B[0-2]|RADIUS_TABLE|B4_LAYOUT_TABLE)$/ && $1 > m { m = $1 } END { print m }')"
 
-    # コアが我々のテーブルに対して払うもの。core.a は最後にリンクされるので、コア自身の PROGMEM（digital_pin_to_port_PGM …）は progmem クラスタの全入力セクションより後 — 我々の後 — に置かれる。
-    # 0xFFFF を越えるとコアの 16 ビット `pgm_read_byte(&digital_pin_to_port_PGM[pin])` は届かず、pinMode/digitalWrite が誤ったポートを読む。64 KiB 超の Flash を持つ品で AZARAC_PROGMEM がテーブルを .text.azaraC.* クラスタへ移すのはこのため。
+    # コアが我々のテーブルに対して払うもの。
+    # core.a は最後にリンクされるので、コア自身の PROGMEM（digital_pin_to_port_PGM …）は progmem クラスタの全入力セクションより後 — 我々の後 — に置かれる。
+    # 0xFFFF を越えるとコアの 16 ビット `pgm_read_byte(&digital_pin_to_port_PGM[pin])` は届かず、pinMode/digitalWrite が誤ったポートを読む。
+    # 64 KiB 超の Flash を持つ品で AZARAC_PROGMEM がテーブルを .text.azaraC.* クラスタへ移すのはこのため。
     # test/bench/avr/core_progmem.c を参照。
     core_build=(-mmcu="$MCU" -Os -std=gnu11 -fno-exceptions
                 -ffunction-sections -fdata-sections)
@@ -306,12 +318,10 @@ echo "METRIC MEGA_COMPILE_OK=$mega_ok"
 [[ -n "${mega_core_pgm:-}" ]] && echo "METRIC MEGA_CORE_PGM_ADDR=0x$mega_core_pgm"
 
 # --------------------------------------------------------------- stage 5b ---
-# スケッチが実際にビルドされるレシピでの同じプリセット: Arduino AVR
-# コアは `-flto`（${AVR_LTO[@]}）でコンパイル・リンクする。これがボードの見る
-# 数値なので、下でイメージ自体をゲートする（リンクでき ATmega2560 の SRAM に収まること）。
-# LTO なしの stage 5 の値も追従すること — ジェネレータは switch 方式の
-# リテラルを名前空間スコープに持ち上げて LTO でも Flash に残すので、差が
-# 出るのはそれらが .data に落ちたとき。
+# スケッチが実際にビルドされるレシピでの同じプリセット: Arduino AVR コアは `-flto`（${AVR_LTO[@]}）でコンパイル・リンクする。
+# これがボードの見る数値なので、下でイメージ自体をゲートする（リンクでき ATmega2560 の SRAM に収まること）。
+# LTO なしの stage 5 の値も追従すること — ジェネレータは switch 方式のリテラルを名前空間スコープに持ち上げて LTO でも Flash に残すので、
+# 差が出るのはそれらが .data に落ちたとき。
 mega_lto_ok=0
 mega_lto_build=(-mmcu="$MCU" -Os -std=gnu++17 -fno-exceptions "${AVR_LTO[@]}"
                 -ffunction-sections -fdata-sections -Wl,--gc-sections -Werror=overflow
@@ -383,10 +393,9 @@ if [[ -n "${mega_ram:-}" ]] && (( mega_ram > MAX_MEGA_RAM_BYTES )); then
     status=15
 fi
 
-# stage 5b のイメージは Mega スケッチが実際に受け取るもの（コアが -flto を付ける）なので、
-# ゲートする: リンクでき、品に収まること。LTO なしの値との差はゲートせず警告に留める
-# — 生成リテラルがすべて LTO を生き残る間は一致し（ジェネレータが switch 方式の
-# リテラルを名前空間スコープに出すのはまさにそのため）、差自体がツールチェーン依存だから。
+# stage 5b のイメージは Mega スケッチが実際に受け取るもの（コアが -flto を付ける）なので、ゲートする: リンクでき、品に収まること。
+# LTO なしの値との差はゲートせず警告に留める — 生成リテラルがすべて LTO を生き残る間は一致し（ジェネレータが switch 方式のリテラルを名前空間スコープに出すのはまさにそのため）。
+# 差自体がツールチェーン依存だから。
 if (( mega_lto_ok == 0 )); then
     echo "autoresearch: the DCX/CAMF configuration no longer builds with the Arduino recipe (-flto)" >&2
     status=16
@@ -400,8 +409,8 @@ if [[ -n "${mega_lto_ram:-}" && -n "${mega_ram:-}" ]] \
     echo "autoresearch: the Arduino recipe (-flto) makes the Mega image cost $mega_lto_ram B of SRAM against the LTO-free $mega_ram B — generated literals are landing in .data instead of Flash (not gated: the fix is the generator emitting namespace-scope literals)" >&2
 fi
 
-# プローブはリンク済みの各イメージで decode + serialize 経路と定義テーブルを
-# 保持し続けなければならない。でなければ上の flash 数値はスケッチが決して走らせないイメージを測っている。
+# プローブはリンク済みの各イメージで decode + serialize 経路と定義テーブルを保持し続けなければならない。
+# でなければ上の flash 数値はスケッチが決して走らせないイメージを測っている。
 for img in "$OUT/uno.elf" "$OUT/mega.elf" "$OUT/mega_lto.elf"; do
     if [[ -f "$img" ]] && ! image_has_path "$img"; then
         echo "autoresearch: $(basename "$img") lost the decode path, the serializer or the definition tables — its flash number no longer reflects a sketch" >&2

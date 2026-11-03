@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """定義ラベルを網羅的にダンプする C++ を生成する（autoresearch.sh stage 2）。
 
-include した定義ヘッダの `*_lookup()` を *すべて* その id 全域にわたって呼び、
-`(lookup, id, label)` のストリームをハッシュする C++ プログラムを書き出す。
-autoresearch.sh がこれを 2 通りにビルドし — AVR 分岐（`-D__AVR__` + test/stub の
-PROGMEM スタブ）と host 分岐 — 両方のハッシュを test/bench/avr/labels.golden と比較する。
+include した定義ヘッダの `*_lookup()` を *すべて* その id 全域にわたって呼び、 `(lookup, id, label)` のストリームをハッシュする C++ プログラムを書き出す。
+autoresearch.sh がこれを 2 通りにビルドし — AVR 分岐（`-D__AVR__` + test/stub の PROGMEM スタブ）と host 分岐。
+両方のハッシュを test/bench/avr/labels.golden と比較する。
 
 テーブルの行ではなく全域を回す理由: AVR のプールはこれから再エンコードされる
 (issue #35) ので、テーブルは形を変えられなければならない。id 全域の `lookup(id)` を

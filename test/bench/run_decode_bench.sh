@@ -4,7 +4,8 @@
 #   primary    : DECODE_CYCLES_<GROUP>   グループ別・1 文あたりサイクル（rdtsc、文内 min-of-15
 #                                     のグループ中央値）。フレーミング＋デコード込み。
 #   gates      : CRASH_GROUP == 0, DECODE_OUTPUTS > 0, DECODE_GROUPS >= 8,
-#                MT43_SEISMIC / MT44 の両グループが存在すること（違反で非ゼロ終了）。
+#                MT43_SEISMIC / MT44 / MT43_NANKAI の各グループが存在すること、
+#                DECODE_EMITTED_MT43_NANKAI == 1（違反で非ゼロ終了）。
 #                サイクル値そのものはゲートしない（回帰追跡は METRIC の diff で行う）。
 #
 # 決定的な入力（test/data/*.json）、固定 report_unix、ネットワークなし、実時計入力なし。
@@ -25,7 +26,8 @@ LIBS=(src/Parser.cpp src/decoder/Decoder.cpp src/decoder/DecoderDcx.cpp
       src/json/JsonWriter.cpp src/json/JsonSerializer.cpp src/json/JsonSerializerDcx.cpp
       src/json/JsonSerializerQzqsm.cpp src/internal/DcxHelper.cpp src/internal/Dedup.cpp)
 
-NEWEST_HEADER="$(ls -t src/*.h src/*/*.h test/*.h test/*/*.h 2>/dev/null | head -1)"
+# ベンチ間で .o を共有しない（run_dedup_bench.sh と同時に走っても衝突しない）ため、スクリプト固有名の接頭辞を付ける。
+NEWEST_HEADER="$(ls -t src/*.h src/*/*.h src/*/*/*.h test/*.h test/*/*.h 2>/dev/null | head -1)"
 needs_rebuild() {   # $1 = ソース、$2 = オブジェクト
     [[ ! -f "$2" ]] && return 0
     [[ "$1" -nt "$2" ]] && return 0
@@ -36,7 +38,7 @@ needs_rebuild() {   # $1 = ソース、$2 = オブジェクト
 
 OBJS=()
 for src in "${LIBS[@]}"; do
-    obj="$BENCH_DIR/$(basename "${src%.cpp}").o"
+    obj="$BENCH_DIR/decode_$(basename "${src%.cpp}").o"
     OBJS+=("$obj")
     needs_rebuild "$src" "$obj" && {
         "$CXX" -std=c++17 -O2 -I src -I test -DARDUINO=0 -c "$src" -o "$obj" || exit 3
@@ -68,8 +70,15 @@ if [[ -z "$groups" || "$groups" -lt 8 ]]; then
     echo "bench: too few groups (DECODE_GROUPS=${groups:-missing}) — fixture or scan broken" >&2
     exit 6
 fi
-for name in DECODE_CYCLES_MT43_SEISMIC DECODE_CYCLES_MT44; do
+for name in DECODE_CYCLES_MT43_SEISMIC DECODE_CYCLES_MT44 DECODE_CYCLES_MT43_NANKAI; do
     [[ -n "$(metric "$name")" ]] || { echo "bench: required metric $name missing" >&2; exit 7; }
 done
+
+# 集約が完了しないと MT43_NANKAI は 0 件になる（Parser を作り直した場合など）。
+nankai="$(metric DECODE_EMITTED_MT43_NANKAI)"
+if [[ "${nankai:-missing}" != "1" ]]; then
+    echo "bench: MT43_NANKAI emitted ${nankai:-missing} (expected 1; page aggregation did not complete)" >&2
+    exit 8
+fi
 
 echo "bench: ok (DECODE_OUTPUTS=$outputs DECODE_GROUPS=$groups)"

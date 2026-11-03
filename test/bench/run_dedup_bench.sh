@@ -7,28 +7,23 @@
 #   reported   : CAPACITY_DISTINCT, SRAM_*_BYTES, ACCURACY_P*, CORPUS_*（表示のみで
 #                ゲートしない — 動いたら diff で読む）
 #
-# scored ストリームは仕様モデルのトラフィック（qzss-specs/アプリケーションノートv2.md
-# 原PDF p.23–27）: 同じ情報が複数衛星で中継され、4 秒ごとに再放送され、有効窓の後に
-# 繰り返される。ACCURACY 単独は目的ではない: 2238 判定のうち 2200 が "duplicate" を
-# 期待するので、「常に重複」と答えるフィルタは全警報を抑止しながら精度由来の指標を
-# 制覇してしまう。そこで NEW_RECALL を目的関数に含め
-# (DUP_SUPPRESS × NEW_RECALL / NANOS_PER_OP)、ゲートにもする: ベースラインより
-# 新規情報の通知が少ない実行は棄却する。
+# scored ストリームは仕様モデルのトラフィック（qzss-specs/アプリケーションノートv2.md 原PDF p.23–27）: 同じ情報が複数衛星で中継され、4 秒ごとに再放送される。
+# 有効窓の後に繰り返される。
+# ACCURACY 単独は目的ではない: 2238 判定のうち 2200 が "duplicate" を期待するので、「常に重複」と答えるフィルタは全警報を抑止しながら精度由来の指標を制覇してしまう。
+# そこで NEW_RECALL を目的関数に含め (DUP_SUPPRESS × NEW_RECALL / NANOS_PER_OP)、ゲートにもする: ベースラインより新規情報の通知が少ない実行は棄却する。
 #
-# 決定的な入力（test/data/*.json）、固定 LCG シード、ネットワークなし、
-# 実時計入力なし。成功時 exit 0、ハーネスやガードレールが失敗すると非ゼロ。
+# 決定的な入力（test/data/*.json）、固定 LCG シード、ネットワークなし、実時計入力なし。
+# 成功時 exit 0、ハーネスやガードレールが失敗すると非ゼロ。
 
 set -uo pipefail
 
-# 下のパスはリポジトリ相対なので、スクリプトが test/bench/ にあり呼び出し側が
-# cd していなくても、リポジトリルートから実行する。
+# 下のパスはリポジトリ相対なので、スクリプトが test/bench/ にあり呼び出し側が cd していなくても、リポジトリルートから実行する。
 cd "$(dirname "$0")/../.."
 
 # ベースラインの NEW_RECALL 数（通知した情報数）— 決定的。改善したら上げる。
 MIN_NEW_CORRECT=118
 
-# 速度と引き換えに重複抑止を落としてはならない: テーブルをコミット済み容量より
-# 小さくすると（32 スロット x 8 ウェイは 0.9797）NANOS_PER_OP ではなくここに出る。
+# 速度と引き換えに重複抑止を落としてはならない: テーブルをコミット済み容量より小さくすると（32 スロット x 8 ウェイは 0.9797）NANOS_PER_OP ではなくここに出る。
 MIN_DUP_SUPPRESS=0.99
 
 CXX="${CXX:-g++}"
@@ -43,10 +38,10 @@ LIBS=(src/Parser.cpp src/decoder/Decoder.cpp src/decoder/DecoderDcx.cpp
       src/json/JsonWriter.cpp src/json/JsonSerializer.cpp src/json/JsonSerializerDcx.cpp
       src/json/JsonSerializerQzqsm.cpp src/internal/DcxHelper.cpp src/internal/Dedup.cpp)
 
-# ヘッダはライブラリとヘッダオンリーのベンチ対象の両方を駆動するので、最新の
-# ヘッダ（src か test — bench_dedup.cpp は test_helpers.h を include する）を
-# 全オブジェクトの依存に含める（-MMD の方が厳密だが、依存なしのままにしておく必要がある）。
-NEWEST_HEADER="$(ls -t src/*.h src/*/*.h test/*.h test/*/*.h 2>/dev/null | head -1)"
+# ヘッダはライブラリとヘッダオンリーのベンチ対象の両方を駆動するので、最新のヘッダ（src か test — bench_dedup.cpp は test_helpers.h を include する）を全オブジェクトの依存に含める（-MMD の方が厳密だが、依存なしのままにしておく必要がある）。
+# ベンチ間で .o を共有しない（run_decode_bench.sh と同時に走っても衝突しない）ため、スクリプト固有名の接頭辞を付ける。
+# ヘッダは src/*/*/*.h まで含める（src/definition/manual/*.h の変更を取りこぼさない）。
+NEWEST_HEADER="$(ls -t src/*.h src/*/*.h src/*/*/*.h test/*.h test/*/*.h 2>/dev/null | head -1)"
 needs_rebuild() {   # $1 = ソース、$2 = オブジェクト
     [[ ! -f "$2" ]] && return 0
     [[ "$1" -nt "$2" ]] && return 0
@@ -59,7 +54,7 @@ needs_rebuild() {   # $1 = ソース、$2 = オブジェクト
 
 OBJS=()
 for src in "${LIBS[@]}"; do
-    obj="$BENCH_DIR/$(basename "${src%.cpp}").o"
+    obj="$BENCH_DIR/dedup_$(basename "${src%.cpp}").o"
     OBJS+=("$obj")
     needs_rebuild "$src" "$obj" && {
         "$CXX" -std=c++17 -O2 -I src -I test -DARDUINO=0 -c "$src" -o "$obj" || exit 3
@@ -89,8 +84,8 @@ scored="$(metric DECISIONS_SCORED)"
 [[ -n "$nanos" && -n "$dup" && -n "$recall" && -n "$new_ok" && -n "$scored" ]] \
     || { echo "bench: metrics missing" >&2; exit 5; }
 
-# ガードレール: 通知の網羅性が回帰してはいけない。でないとループは速度と引き換えに
-# 全警報を喜んで捨てる。
+# ガードレール: 通知の網羅性が回帰してはいけない。
+# でないとループは速度と引き換えに全警報を喜んで捨てる。
 if (( new_ok < MIN_NEW_CORRECT )); then
     echo "bench: NEW_RECALL regressed (NEW_CORRECT=$new_ok < $MIN_NEW_CORRECT, NEW_RECALL=$recall)" >&2
     exit 6

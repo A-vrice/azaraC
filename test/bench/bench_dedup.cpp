@@ -312,7 +312,8 @@ static Phase phaseCapacity(const Corpus& c) {
     return p;
 }
 
-// P6 — capacity reclaimed: 受信が止まった情報がスロットを永久に占有してはならない。窓分の無音で旧セットは退役する（手順④'）ので、新セットは偽の重複なしに追跡できる。
+// P6 — capacity reclaimed: 受信が止まった情報がスロットを永久に占有してはならない。
+// 窓分の無音で旧セットは退役する（手順④'）ので、新セットは偽の重複なしに追跡できる。
 static Phase phaseReclaim(const Corpus& c) {
     Phase p;
     p.name = "P6_reclaim";
