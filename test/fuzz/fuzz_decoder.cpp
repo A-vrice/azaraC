@@ -958,7 +958,8 @@ static void test_memory_stability(FuzzStats& stats, std::mt19937& rng, int itera
     printf("  Completed in %llds.\n", (long long)elapsed);
 }
 
-// テスト17: デコード成功電文の JSON シリアライズ（監査 P2-3）他のテストは decode まででシリアライザを通さないため、ランダムペイロードが定義テーブル参照（ラベル引き当て）や数値フォーマット経路に与える入力はここでしか検証できない。有効 CRC の MT43/MT44 をデコードし、成功したものをそのまま JsonSerializer へ流す（test_azarashi_dcr.cpp と同じ公開経路）。
+// テスト17: デコード成功電文の JSON シリアライズ（監査 P2-3）他のテストは decode まででシリアライザを通さないため、ランダムペイロードが定義テーブル参照（ラベル引き当て）や数値フォーマット経路に与える入力はここでしか検証できない。
+// 有効 CRC の MT43/MT44 をデコードし、成功したものをそのまま JsonSerializer へ流す（test_azarashi_dcr.cpp と同じ公開経路）。
 static void test_decode_serialize(FuzzStats& stats, std::mt19937& rng, int iterations) {
     printf("Test 17: Decode -> JSON serialize (%d iterations)...\n", iterations);
 
@@ -1041,6 +1042,7 @@ int main(int argc, char* argv[]) {
         iterations = v;
     }
     printf("Iterations per test: %lld\n\n", iterations);
+    fflush(stdout);
 
     FuzzStats stats;
 
@@ -1094,8 +1096,8 @@ int main(int argc, char* argv[]) {
         printf("FAIL: %llu exceptions caught during fuzz testing.\n",
                (unsigned long long)stats.exceptions);
         // catch できないクラッシュ（segfault 等）で死んだ場合も、シードを固定して再実行すれば同じ入力列を辿れる。
-        printf("Reproduce with: FUZZ_SEED=%llu <iterations>\n",
-               (unsigned long long)seed);
+        printf("Reproduce with: FUZZ_SEED=%llu make -C test fuzz FUZZ_ITERATIONS=%lld\n",
+               (unsigned long long)seed, iterations);
     }
 
     printf("Fuzz testing completed.\n");
