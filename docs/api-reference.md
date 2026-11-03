@@ -500,7 +500,7 @@ AVR プリセットは EEW・震源が既定で 0 なので `sizeof(Mt43Data)` �
 
 | マクロ | デフォルト | 説明 |
 |-------|-----------|------|
-| `AZARAC_FLASH_BUF_SIZE` | カテゴリ連鎖（AVR既定=64） | PROGMEMルックアップ用の共有RAMバッファサイズ (バイト)。AVRでは有効カテゴリに応じて 64（SEISMIC/TSUNAMI など）/ 80（＋北西太平洋津波）/ 96（＋火山・洪水）/ 540（＋南海トラフ）/ 640（＋緊急地震速報・震源）/ 800（＋DCX/CAMF）に自動選択。有効なカテゴリの最長ラベルを必ず収める（`make -C test bench` の `FLASH_BUF_OK` ゲート）。AVR以外のアーキテクチャでは使われない |
+| `AZARAC_FLASH_BUF_SIZE` | AVR: カテゴリ連鎖（既定=64）/ 非 AVR: 800 | ラベル引き当て用の共有RAMバッファサイズ (バイト)。AVRでは有効カテゴリに応じて 64（SEISMIC/TSUNAMI など）/ 80（＋北西太平洋津波）/ 96（＋火山・洪水）/ 540（＋南海トラフ）/ 640（＋緊急地震速報・震源）/ 800（＋DCX/CAMF）に自動選択。有効なカテゴリの最長ラベルを必ず収める（`make -C test bench` の `FLASH_BUF_OK` ゲート）。非 AVR でも join 系（`azarac_pgm_join_z` / `azarac_pgm_join3`）と `azarac_pgm_len` の打ち切りに使う |
 | `AZARAC_DEDUP_MT44_MAX_WINDOW_MS` | 300000 | MT=44 の情報有効時間(ms)の上限。`__AVR__`のみ定義され、常に A8 由来の窓（最短6時間）を置き換える。ホストは上限を設けず A8 の窓をそのまま使う |
 | `AZARAC_KEY_BUF_SIZE` | 36 | AVR で JSON のキーと固定値リテラルを Flash から書き出すときのスタック上の一時バッファのバイト数（どちらも `AZARAC_KEY("...")` で包む。値は `wf_s` の `JsonKey` オーバーロードが受ける）。最長はキーの35B（`a17_type_of_specific_settings_label`）、値は20B（`unsupported_category`）で、`JsonKey` の生成時に `static_assert` が収まらないリテラルをコンパイルエラーにする。非AVRでは使われない |
 

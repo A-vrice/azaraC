@@ -82,7 +82,7 @@ if (parser.feed(byte, msg, now)) { ... }
 | `AZARAC_NANKAI_MAX_PAGES` / `AZARAC_NANKAI_BUFFERS` | 63 / 1 | 防災気象情報(南海トラフ地震)の最大収集ページ数(1-63)と最大同時追跡数(1-32) |
 | `AZARAC_LANG_JA` / `AZARAC_LANG_EN` | 1 / 0 | 定義テーブルの言語選択 |
 | `AZARAC_ENABLE_*`（13個） | 1（AVR は SEISMIC/TSUNAMI のみ） | 災害カテゴリ別のデコード有効化/無効化。AVR で DCX/CAMF を使うには `-DAZARAC_AVR_LARGE_FLASH=1` または `-DAZARAC_ENABLE_DCX_CAMF=1` を明示する |
-| `AZARAC_FLASH_BUF_SIZE` | カテゴリ連鎖（AVR既定=64） | PROGMEM参照用RAMバッファのサイズ。AVRでは有効カテゴリに応じて 64 / 80 / 96 / 540 / 640 / 800 に自動選択（有効なカテゴリの最長ラベルを収める）。非AVRでは使われない |
+| `AZARAC_FLASH_BUF_SIZE` | AVR: カテゴリ連鎖（既定=64）/ 非 AVR: 800 | ラベル引き当て用RAMバッファのサイズ。AVRでは有効カテゴリに応じて 64 / 80 / 96 / 540 / 640 / 800 に自動選択（有効なカテゴリの最長ラベルを収める）。非AVRでも分割ラベルの連結と長さ取得に使う |
 
 AVR（Arduino Uno等）では専用プリセットにより有効カテゴリが SEISMIC/TSUNAMI のみに絞られ、バッファサイズも縮小されます。
 プリセット値とメモリ要件の詳細は [アーキテクチャ](architecture.md#メモリ設計) を参照してください。
