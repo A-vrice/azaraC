@@ -153,20 +153,17 @@ SKIP_MODULES = {
 
 BASE_MOD = "azarashi.definitions"
 
+# DCR/JMA の表に使う接頭辞。JMA の表は日本語が原文で、_en 対応表が無いものは日本語-only になる。
+JA_FAMILY_PREFIX = "qzss_dcr_jma_"
+
 def category_guard_for(varname):
     """Resolve the AZARAC_ENABLE_* guard for a table, with inheritance.
 
-    An *_en / *_ja table holds the same data as the table it translates, so it
-    must carry that table's category guard. Looking the name up verbatim (the
-    old behaviour) left every translated table guarded only by AZARAC_LANG_EN,
-    so `-DAZARAC_ENABLE_TSUNAMI=0` dropped the Japanese table from Flash while
-    the English one stayed: the macro saved half of what it promises, and the
-    JA and EN tables stopped covering the same codes. The comment on GUARD_MAP
-    has always claimed the sibling inherits; this makes it true.
+    An *_en / *_ja table holds the same data as the table it translates, so it must carry that table's category guard.
+    Looking the name up verbatim (the old behaviour) left every translated table guarded only by AZARAC_LANG_EN, so `-DAZARAC_ENABLE_TSUNAMI=0` dropped the Japanese table from Flash while the English one stayed: the macro saved half of what it promises, and the JA and EN tables stopped covering the same codes.
+    The comment on GUARD_MAP has always claimed the sibling inherits; this makes it true.
 
-    The exact name still wins, because a few families (a11_japanese_library,
-    ex1_target_area_code, ex9_target_area_code) exist only as _en/_ja and
-    register the guard on those names with no base table to inherit from.
+    The exact name still wins, because a few families (a11_japanese_library, ex1_target_area_code, ex9_target_area_code) exist only as _en/_ja and register the guard on those names with no base table to inherit from.
     """
     if varname in GUARD_MAP:
         return GUARD_MAP[varname]
@@ -249,9 +246,10 @@ def c_str_literal(s):
     escaped = escape(s)
     return f'"{escaped}"'
 
-# AVR ラベル格納
-# プール方式の AVR テーブルは、ラベルを NUL 区切りの 1 リテラルと {key, offset} 行で持つ: プールが各エントリの区切りになるので、長さは行ごとの 1 バイトではなくプール自身から取る（azarac_pgm_len）。
-# 行ごとに同じ地域を繰り返すラベル（target_area_code、local_government — "Sapporo City, Hokkaido Prefecture"、"北海道札幌市"）は factor_parents（strategy.py）が子 + 共有親に分割し、両半分を FlashString の共有 RAM バッファで連結するので SRAM は増えない。
+# プール方式の AVR テーブルは、ラベルを NUL 区切りの 1 リテラルと {key, offset} 行で持つ:
+# プールが各エントリの区切りになるので、長さは行ごとの 1 バイトではなくプール自身から取る（azarac_pgm_len）。
+# 行ごとに同じ地域を繰り返すラベル（target_area_code、local_government — "Sapporo City, Hokkaido Prefecture"、"北海道札幌市"）は factor_parents（strategy.py）が子 + 共有親に分割する。
+# 両半分を FlashString の共有 RAM バッファで連結するので SRAM は増えない。
 # 素のレイアウトが既定のまま: 分割が実際にバイト数を減らすときだけそちらを選ぶ。
 
 def _pool_decl(guard, name, strings):
@@ -275,9 +273,8 @@ GRAND_MIN_GAIN = 128
 def _grand_fragments(guard, parents):
     """テーブルの親プールに対する 2 段目の断片（不要なら None）。
 
-    親名自体が部分を繰り返すことがある — " City, Aichi Prefecture" が延々と続く
-    ように — ので、親リストをもう一度分割する。これは親行あたり 1 バイト（grand
-    インデックス）と小さな grand テーブルを要するので、両方を賄えるときだけ返す。
+    親名自体が部分を繰り返すことがある — " City, Aichi Prefecture" が延々と続くように — ので、親リストをもう一度分割する。
+    これは親行あたり 1 バイト（grand インデックス）と小さな grand テーブルを要するので、両方を賄えるときだけ返す。
     戻り値は (decls, plan, pool_name)。
     """
     plan = factor_parents({i: s for i, s in enumerate(parents)})
@@ -297,12 +294,10 @@ def _grand_fragments(guard, parents):
     return decls, plan, f"{guard}_GRAND_POOL"
 
 def _fragment_section(guard, plan, positional, kt, ptr):
-    """親/grand プール、その行構造体と行、および行の親インデックスをラベルの
-    残りの断片へ解決するコード。
+    """親/grand プール、その行構造体と行、および行の親インデックスをラベルの残りの断片へ解決するコード。
 
-    どちらの段も単方向なので、断片順はテーブルごとに固定: ("parent", "literal")
-    か ("literal", "parent")、grand がある場合は grand+parent+literal、
-    parent+grand+literal、literal+grand+parent、literal+parent+grand のいずれか。
+    どちらの段も単方向なので、断片順はテーブルごとに固定:
+    ("parent", "literal") か ("literal", "parent")、grand がある場合は grand+parent+literal、 parent+grand+literal、literal+grand+parent、literal+parent+grand のいずれか。
 
     戻り値は (decls, setup, fragments, order2, order3)。`setup` は「親なし」ガードの
     後に出力する: pp/poff を読み、grand 段があれば続けて gi と goff を読む — その間に
@@ -412,8 +407,8 @@ def avr_label_storage(guard, kt, keys, entries, ptr, as_cstr=False):
 
 def avr_positional_label_storage(guard, table, ptr):
     """array 方式のテーブルの AVR 格納: 行は `id - BASE` で指すので id 列を持たない。
-    `table[i]` がその id のラベル（None = その id は未定義）。戻り値は
-    avr_label_storage と同じ (decls, fetch)。
+    `table[i]` がその id のラベル（None = その id は未定義）。
+    戻り値は avr_label_storage と同じ (decls, fetch)。
     """
     labels = {i: v for i, v in enumerate(table) if v is not None}
     plan = factor_parents(labels)
@@ -707,8 +702,9 @@ def emit_bsearch_optional(varname, entries, guard, kt):
         "    return std::nullopt;",
         "}",
     ])
-    # 非 AVR: ペイロードは const char* で、幅は emit_bsearch と同じ。lookup は
-    # 引き続き std::optional<std::string_view> を返す。二分探索では「鍵が無い」自体が不在の合図なので nullptr 行は要らない。
+    # 非 AVR: ペイロードは const char* で、幅は emit_bsearch と同じ。
+    # lookup は引き続き std::optional<std::string_view> を返す。
+    # 二分探索では「鍵が無い」自体が不在の合図なので nullptr 行は要らない。
     rows = "\n".join(f'    {{{k}u, {c_str_literal(entries[k])}}},' for k in keys)
     non_avr_body = "\n".join([
         f"struct {guard}_Entry {{ {kt} id; const char* label; }};",
@@ -763,6 +759,11 @@ def build_header(modname, varname, entries, ver, all_varnames, obj=None, use_opt
         if varname[:-3] in all_varnames or f"{varname[:-3]}_ja" in all_varnames:
             lang_guard = "AZARAC_LANG_EN"
     elif varname.endswith("_ja") or f"{varname}_en" in all_varnames:
+        lang_guard = "AZARAC_LANG_JA"
+    elif varname.startswith(JA_FAMILY_PREFIX):
+        # DCR/JMA 家族で _en 対応表が無いものは日本語-only の表（例: information_serial_code）。
+        # ガードが無いと EN 専用ビルドでも表が生き残り、日本語ラベルが漏れる（info_code_label が「巨大地震注意」を返す）。
+        # CAMF 家族（qzss_dcx_camf_）は仕様自体が英語なのでこの規則に掛からない。
         lang_guard = "AZARAC_LANG_JA"
 
     def wrap_guard(expr):
@@ -822,13 +823,12 @@ def build_header(modname, varname, entries, ver, all_varnames, obj=None, use_opt
     )
 
 def write_file(path, text):
-    """`text` を `path` に書く。Windows の一時的な共有エラーは許容する。
+    """`text` を `path` に書く。
+    Windows の一時的な共有エラーは許容する。
 
-    ファイルスキャナ（Defender、インデクサ）が書き出したばかりのヘッダを一瞬
-    掴むことがあり、Windows ではそれが共有違反ではなく OSError(EINVAL) として
-    現れる。そのまま生成全体が中断し、ツリーが中途半端に更新された状態で残る。
-    CI は Linux なので起きないが、中途半端なツリーは本物のドリフト失敗と区別
-    できないため、諦める前に短くリトライする。
+    ファイルスキャナ（Defender、インデクサ）が書き出したばかりのヘッダを一瞬掴むことがあり、Windows ではそれが共有違反ではなく OSError(EINVAL) として現れる。
+    そのまま生成全体が中断し、ツリーが中途半端に更新された状態で残る。
+    CI は Linux なので起きないが、中途半端なツリーは本物のドリフト失敗と区別できないため、諦める前に短くリトライする。
     """
     for attempt in range(5):
         try:
