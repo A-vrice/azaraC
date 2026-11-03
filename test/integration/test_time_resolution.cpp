@@ -1,4 +1,3 @@
-// test/integration/test_time_resolution.cpp
 // report_unix を渡し、resolveTime / event_time の unix_time 解決を検証する統合テスト。
 
 #include "../test_helpers.h"
@@ -82,17 +81,17 @@ TEST_CASE("Time: resolveTime with month wrap-around (MDHM)") {
 
 TEST_CASE("Time: resolveTime with invalid values rejected") {
     uint32_t now = 1704067200u;
-    // Invalid day=32
+    // 不正な day=32
     TimeFields t1 = TestDecoder::testResolveTime(0, 32, 0, 0, now);
     CHECK(t1.unix_time == 0);
     CHECK(t1.day == 0);
 
-    // Invalid month=13
+    // 不正な month=13
     TimeFields t2 = TestDecoder::testResolveTime(13, 1, 0, 0, now);
     CHECK(t2.unix_time == 0);
     CHECK(t2.day == 0);
 
-    // Invalid hour=24
+    // 不正な hour=24
     TimeFields t3 = TestDecoder::testResolveTime(1, 1, 24, 0, now);
     CHECK(t3.unix_time == 0);
     CHECK(t3.day == 0);
@@ -115,7 +114,7 @@ TEST_CASE("Time: resolveTime report_unix < 2000-01-01 returns unix_time=0") {
 
 #if (AZARAC_ENABLE_TSUNAMI)
 TEST_CASE("Time: Tsunami arrival_time unix resolved with valid report_unix") {
-    // report_unix = 2024-01-01 12:00:00 UTC
+    // report_unix = 2024-01-01 10:40:00 UTC
     const char* nmea = "$QZQSM,57,9AACA884EB0001E4F47B31E833C07C8D6920035C8800E087FF355011DDFED1C*09";
     Message msg{};
     REQUIRE(decodeNmea(nmea, msg, 1704105600u));
@@ -128,18 +127,22 @@ TEST_CASE("Time: Tsunami arrival_time unix resolved with valid report_unix") {
 
     const TsunamiData* tsunami = mt43->getTsunami();
     REQUIRE(tsunami != nullptr);
+    REQUIRE(tsunami->count == 5);
 
-    CHECK(mt43->event_time.unix_time != 0);
-
-    // arrival_time は基地局の event_time から計算
+    // 生の到着時刻 (2024-01-01) から独立に計算した UTC。
+    CHECK(mt43->event_time.unix_time == 1704093720u);   // 07:22
+    struct Arrival { uint16_t raw; uint32_t unix; };
+    const Arrival expected[] = {
+        {488u,  1704094800u},   // 07:40
+        {498u,  1704095400u},   // 07:50
+        {512u,  1704096000u},   // 08:00
+        {512u,  1704096000u},   // 08:00
+        {2047u, 0u},            // 到着済み/不明
+    };
     for (uint8_t i = 0; i < tsunami->count; ++i) {
         INFO("tsunami entry ", i);
-        // 到達済み (hour=31, min=63) のエントリをスキップ
-        if (tsunami->entries[i].arrival_time.hour <= 23 &&
-            tsunami->entries[i].arrival_time.minute <= 59 &&
-            tsunami->entries[i].arrival_time_raw != 2047) {
-            CHECK(tsunami->entries[i].arrival_time.unix_time != 0);
-        }
+        CHECK(tsunami->entries[i].arrival_time_raw == expected[i].raw);
+        CHECK(tsunami->entries[i].arrival_time.unix_time == expected[i].unix);
     }
 }
 
@@ -168,10 +171,7 @@ TEST_CASE("Time: Tsunami arrival_time unix=0 with report_unix=0") {
 // DCX onset_time 解決 E2E テスト
 
 TEST_CASE("Time: DCX onset_time resolved with valid report_unix") {
-    // DCX a6=0（今週）、a7=2（月曜 00:01）
-    // IS-QZSS-DCX-004 §4.2.3.6, Table 4.2-9: A6=0 → current week, A6=1 → next week
-    // EWSS CAMF v1.2 §3.3: Week starts Monday 00:00 UTC
-    // report_unix = 2024-05-20 00:00:00 UTC (Monday = 週の起点)
+    // DCX a6=0（今週）、a7=2（月曜 00:01） IS-QZSS-DCX-004 §4.2.3.6, Table 4.2-9: A6=0 は今週、A6=1 は翌週 EWSS CAMF v1.2 §3.3: 週は月曜 00:00 UTC に始まる report_unix = 2024-05-20 00:00:00 UTC (Monday = 週の起点)
     uint8_t bits[32] = {};
     setBits(bits, 0, 8, 0x53);
     setBits(bits, 8, 6, 44);
@@ -195,7 +195,7 @@ TEST_CASE("Time: DCX onset_time resolved with valid report_unix") {
     Decoder dec;
     Message msg{};
     // a6=0 の週の起点 (Monday 00:00) と report_unix が同日 → onset_time = report_unix + 60
-    uint32_t report_unix = static_cast<uint32_t>(daysFromCivil(2024, 5, 20) * 86400u);
+    uint32_t report_unix = 1716163200u;   // 2024-05-20 00:00:00 UTC (Monday)
     bool ok = dec.decode(frame, msg, report_unix);
     REQUIRE(ok);
 
@@ -208,9 +208,7 @@ TEST_CASE("Time: DCX onset_time resolved with valid report_unix") {
 }
 
 TEST_CASE("Time: DCX onset_time A7 boundary (16-bit overflow guard)") {
-    // A7 は 1..10080（週頭からの分）。16 bit の unsigned int では (a7-1)*60 が 65535 を超えた時点で
-    // 週内の別時刻へ折り返す（a7=1094 が最初の外れ値、a7=10080 が上限）。ここでは境界の意味
-    // （週頭 + (a7-1) 分）を固定する。
+    // A7 は 1..10080（週頭からの分）。16 bit の unsigned int では (a7-1)*60 が 65535 を超えた時点で週内の別時刻へ折り返す（a7=1094 が最初の外れ値、a7=10080 が上限）。ここでは境界の意味（週頭 + (a7-1) 分）を固定する。
     struct Case { uint16_t a6, a7; uint32_t offset_s; uint8_t hour, minute; };
     const Case cases[] = {
         {0, 1094,  65580u, 18, 13},   // 16 bit で最初に折り返す値
@@ -218,7 +216,7 @@ TEST_CASE("Time: DCX onset_time A7 boundary (16-bit overflow guard)") {
     };
 
     // 2024-05-20 は月曜 00:00 UTC（週の起点）
-    const uint32_t report_unix = static_cast<uint32_t>(daysFromCivil(2024, 5, 20) * 86400u);
+    const uint32_t report_unix = 1716163200u;   // 2024-05-20 00:00:00 UTC (Monday)
 
     for (const Case& c : cases) {
         uint8_t bits[32] = {};
@@ -298,6 +296,6 @@ TEST_CASE("Time: EEW event_time resolved with real report_unix") {
     REQUIRE(mt43 != nullptr);
     CHECK(mt43->disaster_category == 1);
 
-    CHECK(mt43->event_time.unix_time != 0);
+    CHECK(mt43->event_time.unix_time == 1704092760u);   // 2024-01-01 07:06 UTC
 }
 #endif // AZARAC_ENABLE_EEW

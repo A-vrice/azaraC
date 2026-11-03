@@ -1,4 +1,4 @@
-// test/integration/test_nankai_e2e.cpp — 南海トラフ複数ページ集約E2Eテスト
+// 南海トラフ複数ページ集約E2Eテスト
 
 #include <string>
 #include "doctest.h"
@@ -9,172 +9,71 @@
 using namespace azaraC::internal;
 
 #if (AZARAC_ENABLE_NANKAI)
-TEST_CASE("Nankai E2E: Parser decodes synthetic Nankai message") {
-    azaraC::Parser parser;
-    azaraC::Message msg;
+namespace {
 
+std::string makeSinglePageNmea(uint8_t info_code) {
     uint8_t bits[32] = {};
     setBits(bits, 0, 8, 0x53);
     setBits(bits, 8, 6, 43);
     setBits(bits, 14, 3, 1);
     setBits(bits, 17, 4, 4);
-    setBits(bits, 53, 4, 1);
+    setBits(bits, 53, 4, info_code);
     setBits(bits, 201, 6, 1);
     setBits(bits, 207, 6, 1);
     setBits(bits, 214, 6, 1);
-
-    uint32_t crc = crc24qRef(bits, 226);
-    setBits(bits, 226, 24, crc);
-
-    std::string nmea = makeNmeaQzqsm(58, bits);
-
-    bool output = false;
-    for (size_t i = 0; i < nmea.length(); i++) {
-        if (parser.feed(nmea[i], msg, 0)) {
-            output = true;
-            break;
-        }
-    }
-
-    CHECK(output);
-    CHECK(msg.valid);
-    CHECK(msg.payload_type == azaraC::MsgPayloadType::Mt43);
-    
-    const Mt43Data* mt43 = msg.getMt43();
-    REQUIRE(mt43 != nullptr);
-    CHECK(mt43->disaster_category == 4);
-    
-    const NankaiData* nankai = mt43->getNankai();
-    REQUIRE(nankai != nullptr);
-    CHECK(nankai->page == 1);
-    CHECK(nankai->total_page == 1);
+    setBits(bits, 226, 24, crc24qRef(bits, 226));
+    return makeNmeaQzqsm(58, bits);
 }
 
-TEST_CASE("Nankai E2E: Parser duplicate suppression") {
-    azaraC::Parser parser;
-    azaraC::Message msg;
-
-    uint8_t bits[32] = {};
-    setBits(bits, 0, 8, 0x53);
-    setBits(bits, 8, 6, 43);
-    setBits(bits, 14, 3, 1);
-    setBits(bits, 17, 4, 4);
-    setBits(bits, 53, 4, 1);
-    setBits(bits, 201, 6, 1);
-    setBits(bits, 207, 6, 1);
-    setBits(bits, 214, 6, 1);
-
-    uint32_t crc = crc24qRef(bits, 226);
-    setBits(bits, 226, 24, crc);
-
-    std::string nmea = makeNmeaQzqsm(58, bits);
-
-    bool output1 = false;
-    for (size_t i = 0; i < nmea.length(); i++) {
-        if (parser.feed(nmea[i], msg, 0)) {
-            output1 = true;
-            break;
-        }
+bool feedAll(azaraC::Parser& parser, azaraC::Message& msg, const std::string& nmea) {
+    for (size_t i = 0; i < nmea.length(); ++i) {
+        if (parser.feed(nmea[i], msg, 0)) return true;
     }
-    CHECK(output1);
-
-    bool output2 = false;
-    for (size_t i = 0; i < nmea.length(); i++) {
-        if (parser.feed(nmea[i], msg, 0)) {
-            output2 = true;
-            break;
-        }
-    }
-    CHECK_FALSE(output2);
+    return false;
 }
 
-TEST_CASE("Nankai E2E: Parser reset allows re-output") {
-    azaraC::Parser parser;
-    azaraC::Message msg;
+} // namespace
 
-    uint8_t bits[32] = {};
-    setBits(bits, 0, 8, 0x53);
-    setBits(bits, 8, 6, 43);
-    setBits(bits, 14, 3, 1);
-    setBits(bits, 17, 4, 4);
-    setBits(bits, 53, 4, 1);
-    setBits(bits, 201, 6, 1);
-    setBits(bits, 207, 6, 1);
-    setBits(bits, 214, 6, 1);
+TEST_CASE("Nankai E2E: parser decode, dedup and reset") {
+    SUBCASE("decodes a synthetic message") {
+        azaraC::Parser parser;
+        azaraC::Message msg;
+        REQUIRE(feedAll(parser, msg, makeSinglePageNmea(1)));
+        CHECK(msg.valid);
+        CHECK(msg.payload_type == azaraC::MsgPayloadType::Mt43);
 
-    uint32_t crc = crc24qRef(bits, 226);
-    setBits(bits, 226, 24, crc);
-
-    std::string nmea = makeNmeaQzqsm(58, bits);
-
-    bool output1 = false;
-    for (size_t i = 0; i < nmea.length(); i++) {
-        if (parser.feed(nmea[i], msg, 0)) {
-            output1 = true;
-            break;
-        }
+        const Mt43Data* mt43 = msg.getMt43();
+        REQUIRE(mt43 != nullptr);
+        CHECK(mt43->disaster_category == 4);
+        const NankaiData* nankai = mt43->getNankai();
+        REQUIRE(nankai != nullptr);
+        CHECK(nankai->page == 1);
+        CHECK(nankai->total_page == 1);
     }
-    CHECK(output1);
 
-    parser.reset();
-
-    bool output2 = false;
-    for (size_t i = 0; i < nmea.length(); i++) {
-        if (parser.feed(nmea[i], msg, 0)) {
-            output2 = true;
-            break;
-        }
+    SUBCASE("duplicate is suppressed") {
+        azaraC::Parser parser;
+        azaraC::Message msg;
+        const std::string nmea = makeSinglePageNmea(1);
+        CHECK(feedAll(parser, msg, nmea));
+        CHECK_FALSE(feedAll(parser, msg, nmea));
     }
-    CHECK(output2);
-}
 
-TEST_CASE("Nankai E2E: Multiple different messages not suppressed") {
-    azaraC::Parser parser;
-    azaraC::Message msg;
-
-    uint8_t bits1[32] = {};
-    setBits(bits1, 0, 8, 0x53);
-    setBits(bits1, 8, 6, 43);
-    setBits(bits1, 14, 3, 1);
-    setBits(bits1, 17, 4, 4);
-    setBits(bits1, 53, 4, 1);
-    setBits(bits1, 201, 6, 1);
-    setBits(bits1, 207, 6, 1);
-    setBits(bits1, 214, 6, 1);
-    uint32_t crc1 = crc24qRef(bits1, 226);
-    setBits(bits1, 226, 24, crc1);
-    std::string nmea1 = makeNmeaQzqsm(58, bits1);
-
-    uint8_t bits2[32] = {};
-    setBits(bits2, 0, 8, 0x53);
-    setBits(bits2, 8, 6, 43);
-    setBits(bits2, 14, 3, 1);
-    setBits(bits2, 17, 4, 4);
-    setBits(bits2, 53, 4, 2);
-    setBits(bits2, 201, 6, 1);
-    setBits(bits2, 207, 6, 1);
-    setBits(bits2, 214, 6, 1);
-    uint32_t crc2 = crc24qRef(bits2, 226);
-    setBits(bits2, 226, 24, crc2);
-    std::string nmea2 = makeNmeaQzqsm(58, bits2);
-
-    bool output1 = false;
-    for (size_t i = 0; i < nmea1.length(); i++) {
-        if (parser.feed(nmea1[i], msg, 0)) {
-            output1 = true;
-            break;
-        }
+    SUBCASE("reset allows re-output") {
+        azaraC::Parser parser;
+        azaraC::Message msg;
+        const std::string nmea = makeSinglePageNmea(1);
+        CHECK(feedAll(parser, msg, nmea));
+        parser.reset();
+        CHECK(feedAll(parser, msg, nmea));
     }
-    CHECK(output1);
 
-    bool output2 = false;
-    for (size_t i = 0; i < nmea2.length(); i++) {
-        if (parser.feed(nmea2[i], msg, 0)) {
-            output2 = true;
-            break;
-        }
+    SUBCASE("different messages are not suppressed") {
+        azaraC::Parser parser;
+        azaraC::Message msg;
+        CHECK(feedAll(parser, msg, makeSinglePageNmea(1)));
+        CHECK(feedAll(parser, msg, makeSinglePageNmea(2)));
     }
-    CHECK(output2);
 }
 
 TEST_CASE("Nankai E2E: Text extraction from single page") {
@@ -221,12 +120,40 @@ TEST_CASE("Nankai E2E: Text extraction from single page") {
     CHECK(nankai->text[3] == 't');
 }
 
-TEST_CASE("Nankai E2E: Oversized page rejected") {
-    const char* nmea_oversized = "$QZQSM,58,9AAFA19C918002F1C0C271C0410000000000000000000000000036D81121AA2D0*07";
+TEST_CASE("Nankai E2E: page bounds are rejected") {
+    struct Case { uint8_t page; uint8_t total; bool emitted; const char* name; };
+    const Case cases[] = {
+        {1, 1, true,  "page=1,total=1"},
+        {2, 1, false, "page > total"},
+        {1, 0, false, "total=0"},
+        {0, 1, false, "page=0"},
+    };
+    for (const Case& c : cases) {
+        INFO(c.name);
+        uint8_t bits[32] = {};
+        setBits(bits, 0, 8, 0x53);
+        setBits(bits, 8, 6, 43);
+        setBits(bits, 14, 3, 1);
+        setBits(bits, 17, 4, 4);
+        setBits(bits, 53, 4, 1);
+        setBits(bits, 201, 6, c.page);
+        setBits(bits, 207, 6, c.total);
+        setBits(bits, 214, 6, 1);
+        setBits(bits, 226, 24, crc24qRef(bits, 226));
+        const std::string nmea = makeNmeaQzqsm(58, bits);
 
-    Message msg;
-    bool ok = decodeNmea(nmea_oversized, msg);
-    CHECK_FALSE(ok);
+        azaraC::Parser parser;
+        azaraC::Message msg;
+        bool output = false;
+        for (char ch : nmea) {
+            if (parser.feed(static_cast<uint8_t>(ch), msg, 0)) {
+                output = true;
+                break;
+            }
+        }
+        CHECK(output == c.emitted);
+        if (c.emitted) CHECK(msg.valid);
+    }
 }
 
 TEST_CASE("Nankai E2E: Page tracking with single page") {
@@ -270,7 +197,7 @@ TEST_CASE("Nankai E2E: Page tracking with single page") {
 
 // Nankai 27ページ完全集約 E2E テスト (integration_e2e.md #1)。テキストは nankai_vectors.json の実データ。
 
-// Helper: build a Nankai page message with specific page number and text
+// ヘルパ: ページ番号と本文を指定した南海トラフ前沿電文を作る
 static void buildNankaiPage(uint8_t page_num, uint8_t total_pages, uint8_t info_code,
                             const uint8_t* text, uint8_t text_len, uint8_t* bits,
                             uint8_t rt_month = 0, uint8_t rt_day = 0,
@@ -281,14 +208,14 @@ static void buildNankaiPage(uint8_t page_num, uint8_t total_pages, uint8_t info_
     setBits(bits, 8, 6, 43);         // msg_type
     setBits(bits, 14, 3, 1);         // report_classification = 1 (訓練)
     setBits(bits, 17, 4, 4);         // disaster_category = 4 (Nankai)
-    // report_time: month(4)+day(5)+hour(5)+minute(6) at bit 21
+    // report_time: bit 21 から month(4)+day(5)+hour(5)+minute(6)
     setBits(bits, 21, 4, rt_month);
     setBits(bits, 25, 5, rt_day);
     setBits(bits, 30, 5, rt_hour);
     setBits(bits, 35, 6, rt_minute);
     setBits(bits, 41, 2, information_type);  // It (0=発表 / 2=取消)
     setBits(bits, 53, 4, info_code);  // info_code
-    // Text: 18 bytes at bits 57..200
+    // 本文: bit 57..200 の 18 バイト
     for (uint8_t i = 0; i < text_len && i < 18; ++i) {
         setBits(bits, 57 + i * 8, 8, text[i]);
     }
@@ -299,7 +226,7 @@ static void buildNankaiPage(uint8_t page_num, uint8_t total_pages, uint8_t info_
     setBits(bits, 226, 24, crc);
 }
 
-// 18-byte page payloads generated from azarashi via test/scripts/gen_all_vectors.py.
+// 18 バイトのページペイロードは test/scripts/gen_all_vectors.py が azarashi から生成した。
 // 唯一の正は test/data/nankai_vectors.json（nankai_pages_generated.h として生成される）。ページデータを手で編集せず、ヘッダを再生成すること。
 #include "../data/nankai_pages_generated.h"
 
@@ -326,15 +253,15 @@ TEST_CASE("Nankai E2E: getNankaiBuffer exposes an incomplete buffer") {
     CHECK(buf->received_count == 1);
 }
 
-// Per-page text length up to the first NUL, mirroring NankaiPageBuffer::compactText().
-// The final page of the real message is NUL-padded on the wire, so the aggregated body is shorter than pages * TEXT_PER_PAGE.
+// ページ別の本文長は最初の NUL まで。NankaiPageBuffer::compactText() と同じ手順。
+// 実電文の最終ページは送信中 NUL パッドなので、集約本文は ページ数 * TEXT_PER_PAGE より短くなる。
 [[maybe_unused]] static uint16_t pageUsedLength(const uint8_t* page) {
     uint16_t n = 0;
     while (n < NankaiPageBuffer::TEXT_PER_PAGE && page[n] != 0) ++n;
     return n;
 }
 
-// Compact a page table into the contiguous body produced by compactText().
+// ページ表を compactText() が作る連続本文へ詰める。
 [[maybe_unused]] static uint16_t compactPages(const uint8_t (*pages)[NankaiPageBuffer::TEXT_PER_PAGE],
                              uint8_t count, uint8_t* out) {
     uint16_t w = 0;
@@ -348,7 +275,7 @@ TEST_CASE("Nankai E2E: getNankaiBuffer exposes an incomplete buffer") {
 
 #if AZARAC_NANKAI_MAX_PAGES >= 27
 TEST_CASE("Nankai E2E: 27-page full aggregation with real text data") {
-    // Uses shared nankai_page_data[] defined above (18-byte fixed payloads)
+    // 上の nankai_page_data[]（18 バイト固定ペイロード）を共用する
 
     azaraC::Parser parser;
     azaraC::Message msg;
@@ -401,10 +328,10 @@ TEST_CASE("Nankai E2E: 27-page full aggregation with real text data") {
     CHECK(nankai->is_aggregated == true);
     CHECK(nankai->aggregated_len == EXPECTED_AGG_LEN);
 
-    // Full exact match of the aggregated body — catches reordering, truncation, or partial overwrites that flag/length-only checks would miss.
+    // 集約本文を完全一致で確かめる（フラグと長さだけの検証では見逃す並べ替え・打ち切り・部分上書きを捕らえる）。
     CHECK(memcmp(nankai->aggregated_text_ptr, expected_body, EXPECTED_AGG_LEN) == 0);
 
-    // Stable portion checks: prefix (page 1) and suffix (final page's used bytes)
+    // 安定部分の検証: 前文（ページ 1）と後文（最終ページの使用中バイト）
     CHECK(memcmp(nankai->aggregated_text_ptr,
                  nankai_page_data[0], pageUsedLength(nankai_page_data[0])) == 0);
     {
@@ -480,13 +407,13 @@ TEST_CASE("Nankai E2E: 同一 info_code + 報告時刻でも発表と取消は�
 }
 #endif
 
-// Nankai NUL 打ち切りリグレッション: ページ内の 0x00 以降は aggregated_text に含まれず aggregated_len が短縮される。
+// ページ内の 0x00 以降は aggregated_text に含まれず、aggregated_len が短縮される。
 
 TEST_CASE("Nankai E2E: NUL byte mid-page stops aggregation at null") {
     // 3 ページ構成。page 2 の 9 バイト目に 0x00。NankaiPageBuffer::getTextLength/getText の stop-at-NUL を検証する。
     constexpr uint8_t TOTAL = 3;
 
-    // Page 1: 18 × 'A' (0x41)
+    // ページ 1: 18 × 'A' (0x41)
     static const uint8_t p1[NankaiPageBuffer::TEXT_PER_PAGE] = {
         'A','A','A','A','A','A','A','A','A',
         'A','A','A','A','A','A','A','A','A'
@@ -496,7 +423,7 @@ TEST_CASE("Nankai E2E: NUL byte mid-page stops aggregation at null") {
         'A','A','A','A','A','A','A','A','A',
         0x00,'B','B','B','B','B','B','B','B'
     };
-    // Page 3: 18 × 'C' (0x43)
+    // ページ 3: 18 × 'C' (0x43)
     static const uint8_t p3[NankaiPageBuffer::TEXT_PER_PAGE] = {
         'C','C','C','C','C','C','C','C','C',
         'C','C','C','C','C','C','C','C','C'
@@ -579,7 +506,7 @@ TEST_CASE("Nankai E2E: Page missing prevents aggregation") {
     uint8_t bits[32];
     constexpr uint8_t SKIP_PAGE = 14;
 
-    // Phase 1: Feed all pages EXCEPT the skipped one
+    // フェーズ 1: 飛ばしたページ以外をすべて入力
     for (uint8_t page = 1; page <= 27; ++page) {
         if (page == SKIP_PAGE) continue;
 
@@ -638,11 +565,17 @@ TEST_CASE("Nankai E2E: Page missing prevents aggregation") {
         REQUIRE(nankai != nullptr);
         CHECK(nankai->is_aggregated == true);
         CHECK(nankai->aggregated_len > 0);
+
+        uint8_t expected_body[27 * azaraC::internal::NankaiPageBuffer::TEXT_PER_PAGE] = {};
+        const uint16_t expected_len = compactPages(nankai_page_data, 27, expected_body);
+        REQUIRE(nankai->aggregated_text_ptr != nullptr);
+        CHECK(nankai->aggregated_len == expected_len);
+        CHECK(memcmp(nankai->aggregated_text_ptr, expected_body, expected_len) == 0);
     }
 }
 #endif // AZARAC_NANKAI_MAX_PAGES >= 27
 
-// 鍵正規化リグレッション: report_unix が途中で解決されても 1 バッファに集約される report_time は固定なので、解決済み/未解決で鍵の identity は変わらない。
+// 鍵は report_time 由来で固定なので、report_unix が途中で解決しても解決済み/未解決で identity は変わらない（1 バッファに集約される）。
 
 TEST_CASE("Nankai E2E: report_unix becoming valid mid-broadcast keeps one buffer") {
     azaraC::Parser parser;
@@ -659,7 +592,7 @@ TEST_CASE("Nankai E2E: report_unix becoming valid mid-broadcast keeps one buffer
         buildNankaiPage(page, TOTAL, 5, text, NankaiPageBuffer::TEXT_PER_PAGE, bits,
                         /*rt_month=*/6, /*rt_day=*/15, /*rt_hour=*/12, /*rt_minute=*/30);
         std::string nmea = makeNmeaQzqsm(58, bits);
-        // First page has no baseline; the remaining pages get a valid report_unix.
+        // 先頭ページは基準時刻なし、残りページは妥当な report_unix を与える。
         const uint32_t report_unix = (page == 1) ? 0u : 1700000000u;
 
         output = false;
@@ -678,7 +611,7 @@ TEST_CASE("Nankai E2E: report_unix becoming valid mid-broadcast keeps one buffer
     CHECK(nankai->truncated == false);
 }
 
-// 鍵の生ビット正規化リグレッション: report_time が暦上正規化される値でも解決状況に依存せず 1 バッファに集約される（report_* は resolveTime を通さない）。
+// report_* は resolveTime を通らないので、暦上正規化される日付でも解決状況に依存せず 1 バッファに集約される。
 
 TEST_CASE("Nankai E2E: key uses raw report_time, not the normalized date") {
     constexpr uint8_t TOTAL = 3;
@@ -722,7 +655,8 @@ TEST_CASE("Nankai E2E: key uses raw report_time, not the normalized date") {
     }
 }
 
-// 打ち切り（total_pages > MAX_PAGES）E2E テスト。MAX_PAGES は NankaiPageBuffer から取得（既定値非依存）。 6bit フィールド（<=63）に収まる MAX_PAGES+2 でのみ成立し、MAX_PAGES=63（仕様最大）では打ち切りが起きず #if で除外される。
+// 打ち切り（total_pages > MAX_PAGES）E2E テスト。MAX_PAGES は NankaiPageBuffer から取得（既定値非依存）。
+// 6bit フィールド（<=63）に収まる MAX_PAGES+2 でのみ成立し、MAX_PAGES=63（仕様最大）では打ち切りが起きず #if で除外される。
 
 #if AZARAC_NANKAI_MAX_PAGES + 2 <= 63
 TEST_CASE("Nankai E2E: pages beyond MAX_PAGES are dropped and flagged truncated") {
@@ -774,7 +708,9 @@ TEST_CASE("Nankai E2E: pages beyond MAX_PAGES are dropped and flagged truncated"
 }
 #endif // AZARAC_NANKAI_MAX_PAGES + 2 <= 63
 
-// Nankai 63ページ最大集約 E2E テスト。total_page は6ビット（最大63）で、63ページ×18バイト=1134バイトは aggregated_text[1135]（1134+ヌル終端）にちょうど収まる。ページ1-27はazarashi検証済みデータ、ページ28-63は合成データを使用。
+// Nankai 63ページ最大集約 E2E テスト。
+// total_page は6ビット（最大63）で、63ページ×18バイト=1134バイトは aggregated_text[1135]（1134+ヌル終端）にちょうど収まる。
+// ページ1-27はazarashi検証済みデータ、ページ28-63は合成データを使用。
 
 #if AZARAC_NANKAI_MAX_PAGES >= 63
 TEST_CASE("Nankai E2E: 63-page maximum aggregation (protocol limit)") {
@@ -785,7 +721,7 @@ TEST_CASE("Nankai E2E: 63-page maximum aggregation (protocol limit)") {
     azaraC::Message msg;
     uint8_t bits[32];
 
-    // Pages 1-27: real azarashi data; pages 28-63: synthetic filler (protocol max).
+    // ページ 1-27 は azarashi の実データ、28-63 は合成の埋め草（仕様最大ページ数）。
     static const uint8_t filler[NankaiPageBuffer::TEXT_PER_PAGE] = {
         0xE3,0x81,0x8A,0xE3,0x81,0x86,0xE3,0x81,0x8B,
         0xE3,0x82,0x93,0xE3,0x82,0x80,0xE3,0x82,0x8A
@@ -843,7 +779,7 @@ TEST_CASE("Nankai E2E: 63-page maximum aggregation (protocol limit)") {
     CHECK(nankai->aggregated_len == EXPECTED_AGG_LEN_63);
     CHECK(memcmp(nankai->aggregated_text_ptr, expected_body_63, EXPECTED_AGG_LEN_63) == 0);
 
-    // Stable portion checks: prefix (page 1) and suffix (page 63 = filler)
+    // 安定部分の検証: 前文（ページ 1）と後文（ページ 63 = 埋め草）
     CHECK(memcmp(nankai->aggregated_text_ptr,
                  nankai_page_data[0], NankaiPageBuffer::TEXT_PER_PAGE) == 0);
     CHECK(memcmp(nankai->aggregated_text_ptr + EXPECTED_AGG_LEN_63 - NankaiPageBuffer::TEXT_PER_PAGE,

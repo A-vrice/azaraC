@@ -1,5 +1,4 @@
-// test/integration/test_parser_integration.cpp — Parser統合テスト
-// 注: ほとんどのテストは EEW (dc=1) を使う。AZARAC_ENABLE_EEW でガード。
+// Parser統合テスト注: ほとんどのテストは EEW (dc=1) を使う。AZARAC_ENABLE_EEW でガード。
 
 #include <string>
 #include "doctest.h"
@@ -8,7 +7,7 @@
 
 using namespace azaraC;
 
-// Non-category-specific tests (always compiled)
+// カテゴリ非依存のテスト（常時コンパイル）
 
 #if (AZARAC_ENABLE_NANKAI)
 TEST_CASE("Parser getNankaiBuffer returns nullptr for unknown key") {
@@ -20,9 +19,31 @@ TEST_CASE("Parser getNankaiBuffer returns nullptr for unknown key") {
 }
 #endif
 
-// EEW-dependent tests (dc=1)
+// EEW 依存のテスト（dc=1）
 
 #if (AZARAC_ENABLE_EEW)
+
+// reset の framer 状態クリアを検証するための最小 EEW 文。
+static std::string makeEewNmea58() {
+    uint8_t bits[32] = {};
+    setBits(bits, 0, 8, 0x53);
+    setBits(bits, 8, 6, 43);
+    setBits(bits, 14, 3, 1);
+    setBits(bits, 17, 4, 1);
+    setBits(bits, 214, 6, 1);
+    setBits(bits, 226, 24, crc24qRef(bits, 226));
+    return makeNmeaQzqsm(58, bits);
+}
+
+static std::vector<uint8_t> makeEewUbx193() {
+    uint8_t bits[32] = {};
+    setBits(bits, 0, 8, 0x53);
+    setBits(bits, 8, 6, 43);
+    setBits(bits, 17, 4, 1);
+    setBits(bits, 214, 6, 1);
+    setBits(bits, 226, 24, crc24qRef(bits, 226));
+    return makeUbxSfrbx(193, bits);
+}
 
 TEST_CASE("Parser AUTO mode: NMEA message decoded") {
     Parser parser;
@@ -48,6 +69,7 @@ TEST_CASE("Parser AUTO mode: NMEA message decoded") {
 
     CHECK(output);
     CHECK(msg.valid);
+    CHECK(msg.msg_type == 43);
     CHECK(msg.payload_type == MsgPayloadType::Mt43);
 }
 
@@ -74,6 +96,10 @@ TEST_CASE("Parser AUTO mode: UBX message decoded") {
 
     CHECK(output);
     CHECK(msg.valid);
+    CHECK(msg.msg_type == 43);
+    CHECK(msg.payload_type == MsgPayloadType::Mt43);
+    REQUIRE(msg.getMt43() != nullptr);
+    CHECK(msg.getMt43()->disaster_category == 1);
 }
 
 TEST_CASE("Parser EEW duplicate suppression") {
@@ -261,6 +287,75 @@ TEST_CASE("Parser: rapid consecutive resets still decode") {
     }
     CHECK(output);
     CHECK(msg.valid);
+}
+
+TEST_CASE("Parser: reset clears NMEA framer state") {
+    const std::string nmea = makeEewNmea58();
+    const size_t cut = nmea.size() * 2 / 3;   // '$' と prefix、payload の途中まで
+
+    azaraC::Parser parser;
+    azaraC::Message msg;
+    for (size_t i = 0; i < cut; ++i) {
+        parser.feed(static_cast<uint8_t>(nmea[i]), msg, 0);
+    }
+    parser.reset();
+
+    // '$' を除いた残りを流す。framer が reset されていれば WAIT のままで出力しない。
+    bool output = false;
+    for (size_t i = cut; i < nmea.size(); ++i) {
+        if (parser.feed(static_cast<uint8_t>(nmea[i]), msg, 0)) {
+            output = true;
+            break;
+        }
+    }
+    CHECK_FALSE(output);
+
+    // 陽性対照: 完全な文は 1 回で復号できる。
+    azaraC::Parser fresh;
+    azaraC::Message fresh_msg;
+    bool decoded = false;
+    for (char c : nmea) {
+        if (fresh.feed(static_cast<uint8_t>(c), fresh_msg, 0)) {
+            decoded = true;
+            break;
+        }
+    }
+    CHECK(decoded);
+    CHECK(fresh_msg.valid);
+}
+
+TEST_CASE("Parser: reset clears UBX framer state") {
+    const std::vector<uint8_t> pkt = makeEewUbx193();
+    const size_t cut = 12;   // sync + header + payload の途中まで
+
+    azaraC::Parser parser;
+    azaraC::Message msg;
+    for (size_t i = 0; i < cut; ++i) {
+        parser.feed(pkt[i], msg, 0);
+    }
+    parser.reset();
+
+    bool output = false;
+    for (size_t i = cut; i < pkt.size(); ++i) {
+        if (parser.feed(pkt[i], msg, 0)) {
+            output = true;
+            break;
+        }
+    }
+    CHECK_FALSE(output);
+
+    // 陽性対照: 完全な packet は 1 回で復号できる。
+    azaraC::Parser fresh;
+    azaraC::Message fresh_msg;
+    bool decoded = false;
+    for (uint8_t b : pkt) {
+        if (fresh.feed(b, fresh_msg, 0)) {
+            decoded = true;
+            break;
+        }
+    }
+    CHECK(decoded);
+    CHECK(fresh_msg.valid);
 }
 
 TEST_CASE("Parser: mode switch NMEA to UBX after partial frame") {

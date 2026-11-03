@@ -1,4 +1,3 @@
-// test/integration/test_azarashi_dcr.cpp
 // MT=43 DCR の azarashi 比較テスト（データ駆動、定義テーブルは azarashi 0.17.1）
 
 #include "../test_helpers.h"
@@ -11,7 +10,7 @@
 using namespace azaraC;
 
 // hasField: value の直後が JSON の区切り文字であることまで見る（境界チェック）。test_json.cpp と同じ流儀。
-static bool hasField(const std::string& s, const std::string& key_val) {
+[[maybe_unused]] static bool hasField(const std::string& s, const std::string& key_val) {
     auto pos = s.find(key_val);
     if (pos == std::string::npos) return false;
     size_t end = pos + key_val.size();
@@ -242,6 +241,29 @@ TEST_CASE("DCR: EEW Long Period Ground Motion - exhaustive") {
     REQUIRE(eew != nullptr);
     CHECK(eew->long_period_lower == 3);
     CHECK(eew->long_period_upper == 3);
+
+    // 3 bit の全コード（8x8）で抽出が一致すること。
+    for (uint8_t lo = 0; lo < 8; ++lo) {
+        for (uint8_t up = 0; up < 8; ++up) {
+            INFO("lower=", static_cast<int>(lo), " upper=", static_cast<int>(up));
+            uint8_t bits[32] = {};
+            setBits(bits, 0, 8, 0x53);
+            setBits(bits, 8, 6, 43);
+            setBits(bits, 14, 3, 1);
+            setBits(bits, 17, 4, 1);
+            setBits(bits, 47, 3, lo);
+            setBits(bits, 50, 3, up);
+            setBits(bits, 214, 6, 1);
+            setBits(bits, 226, 24, crc24qRef(bits, 226));
+
+            Message m2{};
+            REQUIRE(decodeNmea(makeNmeaQzqsm(58, bits).c_str(), m2));
+            const EewData* e2 = m2.getMt43()->getEew();
+            REQUIRE(e2 != nullptr);
+            CHECK(e2->long_period_lower == lo);
+            CHECK(e2->long_period_upper == up);
+        }
+    }
 }
 #endif // AZARAC_ENABLE_EEW
 
@@ -258,7 +280,7 @@ TEST_CASE("DCR: Tsunami arrival time boundary - arrived (hour=31, min=63)") {
     setBits(bits, 17, 4, 5);      // disaster_category = Tsunami
     setBits(bits, 214, 6, 1);     // version
 
-    // Report Time: Month=4, Day=25, Hour=13, Min=0
+    // 報告時刻: 月=4, 日=25, 時=13, 分=0
     setBits(bits, 21, 4, 4);
     setBits(bits, 25, 5, 25);
     setBits(bits, 30, 5, 13);
@@ -267,18 +289,17 @@ TEST_CASE("DCR: Tsunami arrival time boundary - arrived (hour=31, min=63)") {
     // Warning Code = 3 (津波警報)
     setBits(bits, 80, 4, 3);
 
-    // Tsunami entry (IS-QZSS-DCR-016: Ta(12) + Th(4) + Pl(10))
-    // Ta: NextDay=0, Hour=31, Min=63 (到達済み/不明)
+    // 津波エントリ（IS-QZSS-DCR-016: Ta(12) + Th(4) + Pl(10)） Ta: NextDay=0, Hour=31, Min=63 (到達済み/不明)
     setBits(bits, 84, 12, (0u << 11) | (31u << 6) | 63u);
-    // Th: Height=2
+    // Th: 高さ=2
     setBits(bits, 96, 4, 2);
-    // Pl: Region=1
+    // Pl: 区域=1
     setBits(bits, 100, 10, 1);
 
     uint32_t crc = crc24qRef(bits, 226);
     setBits(bits, 226, 24, crc);
 
-    // Use full decode flow to properly initialize Mt43Data
+    // 完全な復号フローで Mt43Data を正しく初期化する
     Frame frame{};
     memcpy(frame.bits, bits, 32);
     frame.svid = 55;
@@ -290,10 +311,14 @@ TEST_CASE("DCR: Tsunami arrival time boundary - arrived (hour=31, min=63)") {
     
     const TsunamiData* tsunami = mt43->getTsunami();
     REQUIRE(tsunami != nullptr);
-    CHECK(tsunami->count >= 1);
+    CHECK(tsunami->warning_code == 3);
+    REQUIRE(tsunami->count == 1);
+    CHECK(tsunami->entries[0].arrival_time_raw == ((0u << 11) | (31u << 6) | 63u));
     CHECK(tsunami->entries[0].arrival_time.hour == 0);
     CHECK(tsunami->entries[0].arrival_time.minute == 0);
     CHECK(tsunami->entries[0].arrival_time.unix_time == 0);
+    CHECK(tsunami->entries[0].height_code == 2);
+    CHECK(tsunami->entries[0].region_code == 1);
 }
 #endif // AZARAC_ENABLE_TSUNAMI
 
@@ -301,7 +326,7 @@ TEST_CASE("DCR: Tsunami arrival time boundary - arrived (hour=31, min=63)") {
 
 #if (AZARAC_ENABLE_NW_PAC_TSUNAMI)
 TEST_CASE("DCR: NW Pacific Tsunami - Tsunamigenic Potential patterns") {
-    // Pattern 1: potential=0 (津波発生の可能性なし)
+    // Pattern 1: potential=4 (最大: 広域津波の可能性あり)
     {
         Message msg{};
         const char* nmea = "$QZQSM,55,53AD360D5B80047FFFFE3000000000000000000000000000000000118372EC8*0C";
@@ -315,7 +340,7 @@ TEST_CASE("DCR: NW Pacific Tsunami - Tsunamigenic Potential patterns") {
         
         const NwPacTsunamiData* nw_pac = mt43->getNwPac();
         REQUIRE(nw_pac != nullptr);
-        CHECK(nw_pac->potential <= 4);  // 0-4 (4=maximum)
+        CHECK(nw_pac->potential == 4);
     }
     // Pattern 2: potential=2 (広域津波の可能性あり)
     {
