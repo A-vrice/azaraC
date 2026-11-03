@@ -35,6 +35,7 @@ plans/
 .plans
 .pl/
 .omp/
+.qoderignore
 realdata/
 qzss-specs/
 azarashi*
