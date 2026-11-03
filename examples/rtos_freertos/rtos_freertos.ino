@@ -44,7 +44,9 @@ static constexpr UBaseType_t kOutputTaskPriority = 1;
 #define SERIAL_GNSS Serial1
 
 
-// メッセージキュー (azaraC::Message をやり取り) FreeRTOS のキューはバイトコピーで、Message のコピー ctor/dtor は通らない。payload のサブオブジェクトは trivially copyable で所有ポインタを持たないため、この example ではオブジェクト表現のコピーとして扱う（標準のコピー意味論ではない）。Nankai の aggregated_text_ptr は Parser 内部への借用ポインタなのでキューには載せない（processByte を参照）。
+// メッセージキュー (azaraC::Message をやり取り) FreeRTOS のキューはバイトコピーで、Message のコピー ctor/dtor は通らない。
+// payload のサブオブジェクトは trivially copyable で所有ポインタを持たないため、この example ではオブジェクト表現のコピーとして扱う（標準のコピー意味論ではない）。
+// Nankai の aggregated_text_ptr は Parser 内部への借用ポインタなのでキューには載せない（processByte を参照）。
 static QueueHandle_t g_messageQueue = nullptr;
 
 // Serial は RX タスク（集約済み南海トラフ）と Output タスク（キュー・統計）の両方から書く。
@@ -72,6 +74,7 @@ static void outputTask(void* pvParameters);
 static void processByte(uint8_t b, azaraC::Parser& parser);
 
 // 1 通の JSON を、他のタスクの出力と混ざらないように書き出す。
+// toJson は非 AVR でもラベル連結用の共有バッファを使うため、この排他は出力の混在防止だけでなく必須。
 static void printJson(const azaraC::Message& msg) {
     if (xSemaphoreTake(g_serialMutex, portMAX_DELAY) == pdTRUE) {
         azaraC::toJson(msg, Serial);

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 r"""
-gcovr_summary.py — gcovr の JSON 出力をパースし、ファイル別・全体のカバレッジを
-Markdown サマリーとして出力します。GitHub Actions の $GITHUB_STEP_SUMMARY 用に使用します。
+gcovr_summary.py — gcovr の JSON 出力をパースし、ファイル別・全体のカバレッジを Markdown サマリーとして出力します。
+GitHub Actions の $GITHUB_STEP_SUMMARY 用に使用します。
 
 Usage:
     # gcovr の JSON レポートを生成

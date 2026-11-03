@@ -83,10 +83,12 @@
 #define AZARAC_ENABLE_DCX_CAMF AZARAC_AVR_LARGE_FLASH
 #endif
 
-// 定義表引き当て用の共有バッファ（internal/FlashString.h 参照）。カテゴリマクロより後に置く（preset でもサイズを選べるようにするため）。
+// 定義表引き当て用の共有バッファ（internal/FlashString.h 参照）。
+// カテゴリマクロより後に置く（preset でもサイズを選べるようにするため）。
 // 収めるべき長さは「ラベルの出どころとなる全カテゴリの最長ラベル」。
 // 表はそれぞれのガードで有効になりこの連鎖では決まらないので、ここに無いカテゴリは黙ってラベルを切り詰める（azarac_pgm_view は AZARAC_FLASH_BUF_SIZE - 1、UTF-8 の途中でも切る）。
-// 各分岐の値は test/bench/avr/check_flash_buf.py（make -C test bench）が全カテゴリの組み合わせと突き合わせ、不足すれば失敗する。不足を指摘されたら分岐を足す。
+// 各分岐の値は test/bench/avr/check_flash_buf.py（make -C test bench）が全カテゴリの組み合わせと突き合わせ、不足すれば失敗する。
+// 不足を指摘されたら分岐を足す。
 #ifndef AZARAC_FLASH_BUF_SIZE
 #if AZARAC_ENABLE_DCX_CAMF
 // DCX/CAMF はさらに長いラベルを足す（a4_hazard_definition: 683 B）→ 800 B。
@@ -194,14 +196,17 @@
 // それ以上の Flash の品（ATmega2560 等）の定義表は avr-libc の far API を使う（pgm_get_far_address + pgm_read_*_far / memcpy_PF。FLASHEND > 0xFFFF で internal/FlashString.h が選択）。
 #ifdef __AVR__
 #include <avr/pgmspace.h>
-// 定義表を置く場所。avr-libc のリンカスクリプトは progmem クラスタの入力を .text の先頭へ並べ、Arduino のレシピはコア（core.a）を最後にリンクする。
-// 約 116 KiB の表をそこに置くとコア自身の PROGMEM が 0xFFFF より上へ押し出され、コアの 16 bit `pgm_read_byte(&digital_pin_to_port_PGM[pin])` が届かない領域に入り、pinMode/digitalWrite が誤ったポートを読む。
+// 定義表を置く場所。
+// avr-libc のリンカスクリプトは progmem クラスタの入力を .text の先頭へ並べ、Arduino のレシピはコア（core.a）を最後にリンクする。
+// 約 116 KiB の表をそこに置くとコア自身の PROGMEM が 0xFFFF より上へ押し出される。
+// コアの 16 bit `pgm_read_byte(&digital_pin_to_port_PGM[pin])` が届かない領域に入り、pinMode/digitalWrite が誤ったポートを読む。
 // そこで表は `.text.azaraC.<n>` に置く: どの avr-libc スクリプトも `*(.text.*)` を progmem クラスタとコードの両方より後に置くため、コアの表は低い位置に残る。
 // `.progmemx.*` は使わない: binutils 2.29 以降（PR 21849）にしか無く、古い atmel 2.26（Ubuntu の binutils-avr、Arduino ツールチェーン）では広い `*(.progmem*)` が同じ名前を低いクラスタへ飲み戻す。
 // 連番サフィックスは宣言ごとに 1 セクションを持たせるもの（-fdata-sections が `__progmem__` データにするのと同じ）。
 // 共有セクションだと、1 つの表が参照されただけで --gc-sections が全体を残す。
 // inline 関数内の関数ローカル static は one-only（weak）で出力され、通常の配列とはセクションを共有できない（"section type conflict"）。
-// この配置は far で Flash を読む品だけが必要。64 KiB 以下の品は素の PROGMEM のまま。
+// この配置は far で Flash を読む品だけが必要。
+// 64 KiB 以下の品は素の PROGMEM のまま。
 #if FLASHEND > 0xFFFF && !defined(AZARAC_AVR_STUB)
 #define AZARAC_PGM_STR_(x) #x
 #define AZARAC_PGM_STR(x) AZARAC_PGM_STR_(x)

@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """compare_with_azarashi.py — azarashi vs azaraC 出力比較スクリプト
 
-realdata/ の実際のQZSSメッセージを入力とし、azarashi (リファレンス実装) と
-azaraC のデコード結果を比較する。
+realdata/ の実際のQZSSメッセージを入力とし、azarashi (リファレンス実装) と azaraC のデコード結果を比較する。
 
 比較は「_raw サフィックスの数値フィールド」を中心に行う。
 ラベル文字列は言語・フォーマット差異が多いため、数値の一致を主眼とする。
@@ -127,8 +126,7 @@ def decode_with_azarashi(nmea: str) -> dict:
 def decode_with_azarashi_json(nmea: str) -> dict | None:
     """azarashi の JSON v2 レコード（`to_json_dict`）。
 
-    `get_params()` には津波の高さの境界が無く、境界は v2 レコードの
-    `data.forecasts[i].height.range{lower,upper}` にしか出ないためこちらを使う。
+    `get_params()` には津波の高さの境界が無く、境界は v2 レコードの `data.forecasts[i].height.range{lower,upper}` にしか出ないためこちらを使う。
     失敗時は None（呼び出し側で SKIP として扱う）。
     """
     try:

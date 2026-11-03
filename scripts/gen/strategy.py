@@ -42,21 +42,15 @@ def factor_parents(labels: dict, min_len: int = 4,
                    min_uses = (4, 8, 16, 32, 64), max_parents: int = 0xFF):
     """Split labels into a child and a shared parent name (issue #35).
 
-    Target-area and local-government labels repeat the region they belong to —
-    "Sapporo City, Hokkaido Prefecture", "北海道札幌市" — so the table pays for
-    "Hokkaido Prefecture" once per city. Storing each repeated part once and
-    joining it at lookup time is what this returns.
+    Target-area and local-government labels repeat the region they belong to — "Sapporo City, Hokkaido Prefecture", "北海道札幌市" — so the table pays for "Hokkaido Prefecture" once per city.
+    Storing each repeated part once and joining it at lookup time is what this returns.
 
-    A parent is any prefix or suffix of at least `min_len` bytes shared by at
-    least `min_uses` labels of the table; each label takes the longest such part
-    (the child may be as short as one byte — "0 hPa" splits into "0" + " hPa").
-    `min_uses` is swept because the two costs pull in opposite directions: a
-    long part is worth more per label but is shared by fewer of them, so the
-    parent table's own bytes are amortised over less. The cheapest candidate
-    wins.
+    A parent is any prefix or suffix of at least `min_len` bytes shared by at least `min_uses` labels of the table.
+    Each label takes the longest such part (the child may be as short as one byte — "0 hPa" splits into "0" + " hPa").
+    `min_uses` is swept because the two costs pull in opposite directions: a long part is worth more per label but is shared by fewer of them, so the parent table's own bytes are amortised over less.
+    The cheapest candidate wins.
 
-    One direction is kept per table (majority wins): the join is then a
-    compile-time constant, and the entry needs a parent index but no order bit.
+    One direction is kept per table (majority wins): the join is then a compile-time constant, and the entry needs a parent index but no order bit.
     The labels of the losing direction stay uncompressed.
 
     Returns None when nothing beats the plain pool, else:

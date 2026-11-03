@@ -1,6 +1,6 @@
 // internal/TimeFields.h の Arduino 分岐の host 側チェック。
-// -D__AVR__ でビルドし、SREG の退避・復帰経路を通す。スタブは
-// test/stub_arduino が SREG、cli()/sei()、millis() を提供する。
+// -D__AVR__ でビルドし、SREG の退避・復帰経路を通す。
+// スタブは test/stub_arduino が SREG、cli()/sei()、millis() を提供する。
 #include "internal/TimeFields.h"
 
 #include <cstdint>

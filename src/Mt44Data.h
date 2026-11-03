@@ -90,7 +90,8 @@ struct Mt44ExOutside {
 
 // 復号済み構造 (IS-QZSS-DCX-004)
 
-// 楕円の汎用部。追加楕円は B1 精密化を持たない（EWSS CAMF v1.2 の B1 は主楕円のみ）ので b1_* は DecodedEllipse 側に分離し、DecodedAdditionalArea は 16 B 小さいコア型を使う。
+// 楕円の汎用部。
+// 追加楕円は B1 精密化を持たない（EWSS CAMF v1.2 の B1 は主楕円のみ）ので b1_* は DecodedEllipse 側に分離し、DecodedAdditionalArea は 16 B 小さいコア型を使う。
 struct DecodedEllipseCore {
     int32_t lat_microdeg;              // microdegrees (×1,000,000)
     int32_t lon_microdeg;              // microdegrees (×1,000,000)

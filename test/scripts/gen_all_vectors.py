@@ -97,9 +97,8 @@ def _write_nankai_header(data_dir, pages, total):
 def gen_nankai(data_dir):
     """Decode the Nankai scenario and emit both artifacts from one source.
 
-    Writes nankai_vectors.json (azarashi reference) and
-    test/data/nankai_pages_generated.h (C++ fixture derived from the same JSON),
-    so the C++ page data can never drift from azarashi.
+    Writes nankai_vectors.json (azarashi reference) and test/data/nankai_pages_generated.h (C++ fixture derived from the same JSON).
+    The C++ page data therefore cannot drift from azarashi.
     """
     results = [decode_nmea(n) for n in NANKAI_NMEAS]
     pages, total = _nankai_pages(results)
@@ -115,8 +114,8 @@ def gen_nankai(data_dir):
 def gen_nankai_header_from_json(data_dir):
     """既存の nankai_vectors.json からヘッダだけを再生成する。
 
-    azarashi を呼ばず、JSON を書き換えない。参照ベクタ（JSON）は azarashi のバージョンで
-    形式が変わるため固定するが、そこから派生するヘッダはこの経路で更新できる。
+    azarashi を呼ばず、JSON を書き換えない。
+    参照ベクタ（JSON）は azarashi のバージョンで形式が変わるため固定するが、そこから派生するヘッダはこの経路で更新できる。
     """
     path = os.path.join(data_dir, 'nankai_vectors.json')
     with open(path, encoding='utf-8') as f:

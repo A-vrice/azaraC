@@ -6,7 +6,8 @@
 // 検証済み: u-blox M10 / ZED-F9P (L1S 有効)、Furuno GT-87
 
 // Arduino Uno (AVR) 互換: Serial1 がなく（ハードウェア UART はピン 0/1 の Serial のみ）、GNSS モジュールと JSON 出力が同じポートを共用する。
-// この共用 UART 経路はコンパイル/リンク検証用で、実際に GNSS を繋ぐ場合は SoftwareSerial か、 2 つ目の UART を持つボード（例: Mega の Serial1）を使うこと。そうしないと Serial に書いた JSON が GNSS モジュールにも送られる。
+// この共用 UART 経路はコンパイル/リンク検証用で、実際に GNSS を繋ぐ場合は SoftwareSerial か、2 つ目の UART を持つボード（例: Mega の Serial1）を使うこと。
+// そうしないと Serial に書いた JSON が GNSS モジュールにも送られる。
 // 32KB フラッシュ向けのカテゴリ削減は azaraC_config.h が自動で適用する（AVR プリセットは SEISMIC/TSUNAMI のみ残す）。
 #include <azaraC.h>
 

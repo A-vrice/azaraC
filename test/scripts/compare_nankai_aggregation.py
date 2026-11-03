@@ -2,9 +2,7 @@
 """compare_nankai_aggregation.py — azarashi 出力と azaraC 集約結果を比較する
 
 test/data/nankai_vectors.json（azarashi 出力）を唯一の情報源とする。
-C++ 側のページフィクスチャ test/data/nankai_pages_generated.h は
-gen_all_vectors.py の gen_nankai() が同じ JSON から生成するため、
-C++ と Python でページデータが二重管理されることはない。
+C++ 側のページフィクスチャ test/data/nankai_pages_generated.h は gen_all_vectors.py の gen_nankai() が同じ JSON から生成するため、C++ と Python でページデータが二重管理されることはない。
 
 検証内容:
   1. JSON のページ構成（欠落ページがないか）

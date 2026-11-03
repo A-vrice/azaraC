@@ -1,5 +1,7 @@
 // Arduino Uno (AVR) の最小サンプル: バイトを Parser に流し、JSON を Serial に出力する。
-// Uno には Serial1 がないため GNSS モジュールには Serial（ピン 0/1）を使う。この共用 UART 経路は CI のコンパイル/リンク確認用で、実機では GNSS に SoftwareSerial（または Mega の Serial1）を使い、Serial は JSON 用に空けておくこと。そうしないと双方向が衝突する。
+// Uno には Serial1 がないため GNSS モジュールには Serial（ピン 0/1）を使う。
+// この共用 UART 経路は CI のコンパイル/リンク確認用で、実機では GNSS に SoftwareSerial（または Mega の Serial1）を使い、Serial は JSON 用に空けておくこと。
+// そうしないと双方向が衝突する。
 //
 // AVR ボードの CI コンパイル/リンク確認も兼ねる:
 // Parser を実体化して feed()/toJson() を呼ぶことで、ライブラリ全体（フレーマ、デコーダ、シリアライザ、PROGMEM テーブル）がリンクに残る。

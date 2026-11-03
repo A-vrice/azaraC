@@ -1,7 +1,8 @@
 #pragma once
 // 定義表の文字列アクセス（AVR の PROGMEM 対応）。
 // AVR ではラベル文字列が Flash にあり std::string_view では指せないため、引き当て時に共有 RAM バッファへコピーする。
-// 返り値の view/ポインタは次の定義引き当て呼び出しまでのみ有効。非 AVR: 素通し。
+// 返り値の view/ポインタは次の定義引き当て呼び出しまでのみ有効。非 AVR: view 系は素通し、join 系は同じ共有バッファへ連結する。
+// バッファは全呼び出しで共有するため、スレッド/タスク間で同時に引き当てないこと（呼び出し側で排他する）。
 //
 // AVR のアドレス: 64 KiB 超の Flash の品では表が 0xFFFF より上にリンクされ、16 bit の progmem ポインタでは届かない。
 // そのためアドレスと読み出しは far アクセサ経由にする（それ未満では素の progmem ポインタ）。
@@ -62,6 +63,7 @@ inline void azarac_copy_string(char* dst, azarac_pgm_ptr src, size_t n) { strncp
 #endif
 
 // 共有 RAM バッファは 1 本: 800 B を 2 本持つと Uno の 2 KB SRAM を溢れる。次の引き当てまで有効。
+// 非 AVR の join 系も同じ 1 本を使う（並行呼び出しは呼び出し側で排他する）。
 inline char* azarac_flash_buf() {
     static char buf[AZARAC_FLASH_BUF_SIZE];
     return buf;
@@ -98,8 +100,8 @@ inline std::string_view azarac_pgm_join_z(azarac_pgm_ptr a, azarac_pgm_ptr b) {
     buf[n] = '\0';
     return std::string_view(buf, n);
 }
-// 3 分割ラベル: 同じ考えを 1 段深くし、共有断片自体が繰り返す場合に使う
-// （" City, Aichi Prefecture" を " City, " + "Aichi Prefecture" で表す）。コピーは同じバッファへの 1 回分のまま。
+// 3 分割ラベル: 同じ考えを 1 段深くし、共有断片自体が繰り返す場合に使う（" City, Aichi Prefecture" を " City, " + "Aichi Prefecture" で表す）。
+// コピーは同じバッファへの 1 回分のまま。
 inline std::string_view azarac_pgm_join3(azarac_pgm_ptr a, azarac_pgm_ptr b, azarac_pgm_ptr c) {
     char* buf = azarac_flash_buf();
     size_t n = azarac_pgm_append(buf, 0, a);
@@ -119,6 +121,7 @@ inline const char* azarac_pgm_copy(azarac_pgm_ptr src) {
 // 定義テーブルの生成コード (scripts/gen/gen_definitions.py) は AVR と同一テキストを両アーキテクチャへ出すため、AVR 側のアクセサ一式（byte offset 読み出し・NUL 区切りプール走査・共有バッファ連結）を同一署名で用意する。
 // これで非 AVR も factor_parents による共有断片プールの恩恵を受け、フルラベル保持よりフラッシュが減る（local_government で ja 約 14KB / en 約 39KB、target_area_code で ja 約 15KB / en 約 42KB）。
 // join 系のみ RAM バッファへ 1 回コピーし、切り詰めは AVR と同じ AZARAC_FLASH_BUF_SIZE に揃える。
+// そのバッファも全呼び出しで共有する 1 本なので、並行して join しないこと。
 // view 系はゼロコピーのまま。
 using azarac_pgm_ptr = const char*;
 #define AZARAC_PGM_PTR(flash_array) (reinterpret_cast<const char*>(flash_array))

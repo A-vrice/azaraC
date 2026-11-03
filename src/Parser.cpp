@@ -9,8 +9,8 @@ bool Parser::feed(uint8_t byte, Message& out, uint32_t report_unix) {
 
     // カスタムフレーマ（排他モード）
     if (_custom) {
-        // カスタムフレーマは全フィールドを埋めずに true を返し得る。決定的なゼロ基準を与えるが、このオプトイン経路に限る:
-        // 毎バイト 33 B をゼロ化すると、成功時に必ず Frame を埋める組み込みフレーマにコストが乗る。
+        // カスタムフレーマは全フィールドを埋めずに true を返し得る。
+        // 決定的なゼロ基準を与えるが、このオプトイン経路に限る: 毎バイト 33 B をゼロ化すると、成功時に必ず Frame を埋める組み込みフレーマにコストが乗る。
         frame = internal::Frame{};
         if (!_custom->feed(byte, frame)) return false;
         return handleFrame(frame, out, report_unix);
@@ -42,7 +42,7 @@ bool Parser::postDecode(const Message& decoded, Message& out, uint32_t identity)
     const uint32_t now_ms = static_cast<uint32_t>(now_ms64);
     const uint32_t window_ms = internal::dedupWindowMs(decoded);
 
-    // Nankai Trough page aggregation
+    // 南海トラフのページ集約
 #if AZARAC_ENABLE_NANKAI
     if (decoded.payload_type == MsgPayloadType::Mt43) {
         const Mt43Data* mt43 = decoded.getMt43();

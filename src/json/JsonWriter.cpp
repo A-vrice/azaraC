@@ -76,7 +76,8 @@ void writeStr(Print& out, std::string_view s) {
     out.print('"'); writeEscaped(out, s); out.print('"');
 }
 
-// キー（JsonKey）をエスケープ付きで書く。AVR では Flash から直接走査し、エスケープ不要ならスタックへ 1 回写して 1 回の write で出す（キー引き当て用の静的 RAM バッファを持たない）。
+// キー（JsonKey）をエスケープ付きで書く。
+// AVR では Flash から直接走査し、エスケープ不要ならスタックへ 1 回写して 1 回の write で出す（キー引き当て用の静的 RAM バッファを持たない）。
 static void writeEscapedKey(Print& out, JsonKey k) {
 #if defined(__AVR__)
     char buf[AZARAC_KEY_BUF_SIZE];
@@ -149,7 +150,8 @@ void wf_deg(Print& out, JsonKey k, int32_t denominator, int32_t v, bool last) {
 
     // denominator の桁数 = 小数部の桁数（1000000 → 6）
     uint8_t digits = 0;
-    // 上限 9 は uint32 の最大桁数 - 1。明示すると GCC が buf[digits] の範囲を証明でき、-O2 -flto の -Wstringop-overflow 偽陽性（digits を [129,255] と誤認）を避けられる。
+    // 上限 9 は uint32 の最大桁数 - 1。
+    // 明示すると GCC が buf[digits] の範囲を証明でき、-O2 -flto の -Wstringop-overflow 偽陽性（digits を [129,255] と誤認）を避けられる。
     for (uint32_t d = den / 10u; d != 0 && digits < 9; d /= 10u) ++digits;
     if (digits) {
         char buf[12];   // uint32 の denominator は最大 10 桁

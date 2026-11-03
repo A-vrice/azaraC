@@ -38,7 +38,8 @@ static inline uint64_t getMillis() {
     __asm__ volatile("cpsid i" ::: "memory");
 #else
     // このコア（Xtensa / RISC-V の ESP32 など）には可搬な保存/復元 API が無い。
-    // noInterrupts()/interrupts() は呼び出し側の割り込み状態を保存しないため、クリティカルセクション中や ISR から getMillis()（および Parser::feed()）を呼ばないこと。AVR / Cortex-M は SREG / PRIMASK を退避・復元する。
+    // noInterrupts()/interrupts() は呼び出し側の割り込み状態を保存しないため、クリティカルセクション中や ISR から getMillis()（および Parser::feed()）を呼ばないこと。
+    // AVR / Cortex-M は SREG / PRIMASK を退避・復元する。
     noInterrupts();
 #endif
     // 下の拡張が一貫した値を 1 つ見るよう、クリティカルセクション内で millis() を読む。

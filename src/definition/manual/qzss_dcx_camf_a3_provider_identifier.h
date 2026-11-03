@@ -1,9 +1,9 @@
 #pragma once
-// HAND-MAINTAINED（手書き）— 自動生成ではない。scripts/gen/gen_definitions.py はこの表を SKIP_MODULES に
-// 挙げ、_index.h の extra_headers リストでもそのまま保持するため、決して書き換えられない。
-// 生成器は表ごとに単一キーの引き当てを出力するが、CAMF A3 は (country, provider) を鍵とし、
-// 呼び出し側は std::optional を必要とするため、下の引き当ては手書きにしている。azarashi の
-// qzss_dcx_camf_a3_provider_identifier と手作業で同期させること（出所: azarashi 0.17.1）。
+// HAND-MAINTAINED（手書き）— 自動生成ではない。
+// scripts/gen/gen_definitions.py はこの表を SKIP_MODULES に挙げ、_index.h の extra_headers リストでもそのまま保持するため、決して書き換えられない。
+// 生成器は表ごとに単一キーの引き当てを出力する。
+// CAMF A3 は (country, provider) を鍵とし、呼び出し側は std::optional を必要とするため、下の引き当ては手書きにしている。
+// azarashi の qzss_dcx_camf_a3_provider_identifier と手作業で同期させること（出所: azarashi 0.17.1）。
 #if defined(__AVR__)
 #include "../../internal/avr_std/cstdint"
 #else

@@ -6,7 +6,8 @@
 #define PGM_P const char*
 // avr-libc の PSTR 相当。実機はリテラルを __progmem__ の static 配列にする statement expression だが、host では PROGMEM が空なのでリテラルそのままでよい。
 #define PSTR(s) ((const char*)(s))
-// Flash 64 KiB 超の品を模し、host ビルドで far アドレッシング経路（AZARAC_PGM_PTR / pgm_read_*_far）を通す。短い経路は uno のもので、実ツールチェーンがコンパイルする。
+// Flash 64 KiB 超の品を模し、host ビルドで far アドレッシング経路（AZARAC_PGM_PTR / pgm_read_*_far）を通す。
+// 短い経路は uno のもので、実ツールチェーンがコンパイルする。
 #ifndef FLASHEND
 #define FLASHEND 0x3FFFFUL
 #endif
@@ -15,7 +16,8 @@ inline char* strncpy_P(char* d, const char* s, std::size_t n) { return std::strn
 inline char* strcpy_P(char* d, const char* s) { return std::strcpy(d, s); }
 inline int strncmp_P(const char* a, const char* b, std::size_t n) { return std::strncmp(a, b, n); }
 inline uint8_t  pgm_read_byte(const void* a)  { return *static_cast<const uint8_t*>(a); }
-// 型付きローカルへ memcpy する: ソースは非アラインかもしれず（PROGMEM プールはバイト詰め）、キャストしたポインタの参照外しはアラインメントに厳しい host（例: ARM）でトラップし得る。
+// 型付きローカルへ memcpy する: ソースは非アラインかもしれず（PROGMEM プールはバイト詰め）。
+// キャストしたポインタの参照外しはアラインメントに厳しい host（例: ARM）でトラップし得る。
 inline uint16_t pgm_read_word(const void* a) {
     uint16_t v;
     std::memcpy(&v, a, sizeof(v));

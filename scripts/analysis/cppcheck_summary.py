@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """
-cppcheck_summary.py — cppcheck の XML 出力をパースし、重要度別に集計した
-Markdown サマリーを GitHub Actions の $GITHUB_STEP_SUMMARY 用に出力します。
+cppcheck_summary.py — cppcheck の XML 出力をパースし、重要度別に集計した Markdown サマリーを GitHub Actions の $GITHUB_STEP_SUMMARY 用に出力します。
 
 Usage:
     # 従来通り cppcheck を実行してサマリー生成
