@@ -6,7 +6,7 @@ azaraC の `JsonSerializer`（C++ / `Print&`）が出力する JSON と、基本
 
 ルートの `schema_version` は `2`。スキーマを変える変更のときのみ上げる。
 
-本書の数値は `test/data/*_vectors.json` の NMEA **228 通**（MT43 98 通 / MT44 130 通）で測る（§2.6）。
+本書の数値は `test/data/*_vectors.json` の NMEA **228 通**（MT=43 98 通 / MT=44 130 通）で測る（§2.6）。
 
 ---
 
@@ -28,10 +28,10 @@ azaraC の `JsonSerializer`（C++ / `Print&`）が出力する JSON と、基本
 
 | note | 詳細 |
 |--|--|
-| `invalid_mt43` | MT43として解析に失敗 |
-| `invalid_mt44` | MT44として解析に失敗 |
-| `unsupported_msg_type` | MTが43/44ではない、または当該型のシリアライザがビルド無効（例: `AZARAC_ENABLE_DCX_CAMF=0` の MT44）。`crc24`フィールドの直後に`note`を出力しそれ以降のフィールドは出力なし。 |
-| `unsupported_category`| 引き受けるシリアライザが無いカテゴリ（規格に無い 7/13 や、そのカテゴリの `AZARAC_ENABLE_*` が無効なビルド）の `Mt43Data` を直列化した場合。MT43のメタ情報を出力するが`"data":{"note":"unsupported_category"}`となる。受信電文の復号では無効カテゴリは拒否される（`feed()` は `false`、`payload_type` は `Empty`）ので、この note は出ない |
+| `invalid_mt43` | MT=43 として解析に失敗 |
+| `invalid_mt44` | MT=44 として解析に失敗 |
+| `unsupported_msg_type` | MTが43/44ではない、または当該型のシリアライザがビルド無効（例: `AZARAC_ENABLE_DCX_CAMF=0` の MT=44）。`crc24`フィールドの直後に`note`を出力しそれ以降のフィールドは出力なし。 |
+| `unsupported_category`| 引き受けるシリアライザが無いカテゴリ（規格に無い 7/13 や、そのカテゴリの `AZARAC_ENABLE_*` が無効なビルド）の `Mt43Data` を直列化した場合。MT=43 のメタ情報を出力するが`"data":{"note":"unsupported_category"}`となる。受信電文の復号では無効カテゴリは拒否される（`feed()` は `false`、`payload_type` は `Empty`）ので、この note は出ない |
 
 ### 1.1 共通ヘッダ
 
@@ -44,11 +44,11 @@ azaraC の `JsonSerializer`（C++ / `Print&`）が出力する JSON と、基本
 | `data` | obj | 本文（§1.2 / §1.3）。失敗時は代わりに `note` |
 | `note` | str | `invalid_mt43` / `invalid_mt44` / `unsupported_category` / `unsupported_msg_type`（`unsupported_category` のみ `data` の中） |
 
-MT43 はこれに加えて DCR の報告ヘッダをルートに持つ: `report_classification`(+`_label`) / `disaster_category`(+`_label`) / `information_type`(+`_label`) / `version` / `report_time{month,day,hour,min,unix}`
-MT44 のルートは `crc24` までで、A フィールド・拡張部・`sd_sdmt` / `sd_sdm` はすべて `data` の中。
+MT=43 はこれに加えて DCR の報告ヘッダをルートに持つ: `report_classification`(+`_label`) / `disaster_category`(+`_label`) / `information_type`(+`_label`) / `version` / `report_time{month,day,hour,min,unix}`
+MT=44 のルートは `crc24` までで、A フィールド・拡張部・`sd_sdmt` / `sd_sdm` はすべて `data` の中。
 `svid` と `msg_type` のみラベルを持たない。
 
-### 1.2 MT43 の `data`（カテゴリ別）
+### 1.2 MT=43 の `data`（カテゴリ別）
 
 `(+_label)` は `_label`が付くキー。
 
@@ -93,7 +93,7 @@ MT44 のルートは `crc24` までで、A フィールド・拡張部・`sd_sdm
 範囲外チェックを先に置くと `hour == 30` の `no_information` が到達不能になる。
 `raw == 0` は azarashi が「同日 00:00」に解決するのに対し azaraC の `resolveArrivalTime()` は空を返すため `unrecognized_code` になる
 
-### 1.3 MT44 の `data` のキー
+### 1.3 MT=44 の `data` のキー
 
 テスト電文 130 通（`test/data/dcx_vectors.json`。すべて A17=0）の `data` 内のキー。
 
@@ -117,7 +117,7 @@ A フィールド: `dcx_type`（`"NULL"` / `"L_ALERT"` / `"J_ALERT"` / `"LOCAL_G
 | `ex8_area_type` | J-Alert | — |
 | `ex11_raw` | 国外 | — |
 | `ex_vn` | 拡張部あり | L-Alert/地方自治体と国外では data 直下、J-Alert では `jalert_target.ex_vn`（`jalert_target` の最後のキー） |
-| `sd_sdmt`, `sd_sdm` | 常時（MT44 の最後） | — |
+| `sd_sdmt`, `sd_sdm` | 常時（MT=44 の最後） | — |
 
 `main_ellipse` は 130 通中 8 通に出て、いずれも `b1_refinement` を伴う（A17=0 でも C1–C4 が非ゼロなら B1 として出る）。
 `hazard_center`（B2）・`secondary_ellipse`（B3）・`detailed_info`（B4）・`additional_area`（EX2–EX7）を含む電文はテストデータに無い。
@@ -177,7 +177,7 @@ azarashi は同コードを `status: "undefined"` として区別する。
 | 概念 | azarashi 0.17.1 | azaraC | 差 |
 |---|---|---|---|
 | スキーマ | `schema_version: 2`（0.17.1 の JSON v2） | `schema_version: 2` | 値は同じだが**版数は独立**。azarashi の v2 と azaraC の v2 は別々に定めた版数で、意味は対応しない |
-| バージョン（DCR の `Vn`） | `data.version: {status, value}` | `version: 1`（MT43 のみ） | azaraC は DCR の `Vn` だけを `version` として運ぶ |
+| バージョン（DCR の `Vn`） | `data.version: {status, value}` | `version: 1`（MT=43 のみ） | azaraC は DCR の `Vn` だけを `version` として運ぶ |
 | 種別 | `type: "qzss.dcr.tsunami"` | `msg_type: 43` + `disaster_category` | azaraC は数値の組合せ |
 | 訓練/試験 | `is_test: true` | なし | azaraC では利用側が `report_classification == 7` で判定する |
 | 受信時刻 | `reception.at: "...Z"` | なし（`report_time.unix` は `Parser` に時刻を渡さないと `null`） | azaraC は受信時刻を運ばない |
@@ -222,7 +222,7 @@ azarashi は同コードを `status: "undefined"` として区別する。
 | provider code 0（Fiji, A2=71） | `status:"special"`, `labels:{en:"Not used"}` | 手書き表に 0 が無く `a3_provider_label: null` |
 | 表そのものが無い | `status:"undefined"` | `"_label": null` |
 
-`a11_guidance_label` は元コード A11 と、A9/A2 で選ぶライブラリ（IS-QZSS-DCX-004 §4.2.3.9 Table 4.2-12）で決まる。
+`a11_guidance_label` は元コード A11 と、A9/A2 で選ぶライブラリで決まる。A11 の表は IS-QZSS-DCX-004 §4.2.3.11(1) Table 4.2-15（日本）/ (2) Table 4.2-16（国際）、国際ライブラリは EWSS CAMF v1.2 §3.5.3 / §11。§4.2.3.9 Table 4.2-12 は A9 の選択表で、A2 による国別ライブラリ選択は CAMF v1.2 §3.5.1。
 A11 は 10bit だが、国際ライブラリ（A9=0）では EWSS CAMF v1.2 §3.5.3 / §11 のとおり **List A 5bit（`a11 >> 5`）と List B 5bit（`a11 & 0x1F`）の 2 コード** に分かれ、それぞれ別の表を引く。
 List B のラベルは常に出力する `a11_guidance_list_b_label`に出る
 
@@ -370,7 +370,7 @@ azaraC は `prefectures` / `cities` に展開する。
 
 ### 2.6 サイズと入れ子の深さ
 
-`test/data/dcr_vectors.json` + `test/data/dcx_vectors.json` の NMEA **228 通** （MT43 98 / MT44 130。すべて azaraC が受理）の合計（区切り文字なしのコンパクト表現、 UTF-8 バイト）。
+`test/data/dcr_vectors.json` + `test/data/dcx_vectors.json` の NMEA **228 通** （MT=43 98 / MT=44 130。すべて azaraC が受理）の合計（区切り文字なしのコンパクト表現、 UTF-8 バイト）。
 両者を同じ計量関数で測る。
 azarashi は `azarashi.json.to_json_dict()` の完全レコード。
 
@@ -409,7 +409,7 @@ azarashi は封筒（`schema_version` / `type` / `message_id` / `series` / `rece
 | Null | 4 | 4 |
 
 差は主に出力の階層表現にある。
-azarashi はコードを `{status, code, table, labels}` で 1 段深くし、MT44 では azaraC の `jalert_target.prefectures[]` / `cities[]` が オブジェクト配列の分だけ 1 段深くなる（4 → 5）。
+azarashi はコードを `{status, code, table, labels}` で 1 段深くし、MT=44 では azaraC の `jalert_target.prefectures[]` / `cities[]` が オブジェクト配列の分だけ 1 段深くなる（4 → 5）。
 両者が釣り合う J-Alert では同じ深さになる。
 
 ## 3. 落ちる情報と設計方針
@@ -448,8 +448,8 @@ azarashi の出力（`table`/`labels`/`range`）をそのまま真似るとサ�
 | （版数なし） | `schema_version: 2` |
 | `svid_label` | 削除（`svid` は PRN そのもの） |
 | `msg_type_label` | 削除 |
-| `detail`（MT43 本文） | `data` |
-| MT44 のルート直下フィールド | `data` 配下 |
+| `detail`（MT=43 本文） | `data` |
+| MT=44 のルート直下フィールド | `data` 配下 |
 | `dcx_type`（数値）+ `dcx_type_label` | `dcx_type`（文字列） |
 | `alert_identity{a2,a3,a4,ex1}` | 削除（`a2_country` 等と同値） |
 | `detailed_info.a4_code` | 削除（`a4_hazard` と同値） |

@@ -11,7 +11,7 @@ class Decoder {
 public:
     bool decode(const Frame& frame, Message& out, uint32_t report_unix = 0);
 
-    // CRC-24Q (IS-QZSS-L1S §3.2.8)。data[0] の MSB から bit_len ビットを処理する。
+    // CRC-24Q (IS-QZSS-L1S-009 §4.1.1.3)。data[0] の MSB から bit_len ビットを処理する。
     // Parser も同じ実装を使う（手順③ の照合対象 MT～VN = bit 8..219 の digest）。
     static uint32_t crc24q(const uint8_t* data, uint16_t bit_len);
 

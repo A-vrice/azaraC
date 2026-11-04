@@ -21,7 +21,7 @@ int32_t decodeLatitude17(uint32_t code);
 // EX4: 経度 = 45 + (180/(2^17-1)) * code、単位はマイクロ度
 int32_t decodeLongitude17_45_225(uint32_t code);
 
-// A14/A15/EX5/EX6: 対数表（IS-QZSS-DCX-003 Table 4.2-17）、単位はメートル（km×1,000）
+// A14/A15/EX5/EX6: 対数表（IS-QZSS-DCX-004 §4.2.3.14/§4.2.3.15 Table 4.2-17/18）、単位はメートル（km×1,000）
 int32_t decodeRadiusCode(uint8_t code);
 
 // A16: 方位角 = -90 + (180/2^6) * code、単位は 100,000 分度

@@ -367,7 +367,7 @@ bool Decoder::decode(const Frame& frame, Message& out, uint32_t report_unix) {
     out.crc24   = recv;
 
     uint8_t preamble = getBits(bits, 0, 8);
-    if (preamble != 0x53 && preamble != 0x9A && preamble != 0xC6) return false;  // IS-QZSS-L1S §3.2.4
+    if (preamble != 0x53 && preamble != 0x9A && preamble != 0xC6) return false;  // IS-QZSS-L1S-009 §4.1.1.2
 
     uint8_t mt = getBits(bits, 8, 6);
     out.msg_type = mt;

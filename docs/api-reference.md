@@ -265,10 +265,10 @@ DCX/CAMFメッセージのデータ構造。
 |---|------|------|
 | `NullMessage` | Null Message | A1=0, A2=111, A3=0, かつ全CAMFフィールド(A4–A18)および拡張フィールドがゼロ |
 | `LAlert` | L-Alert | A2=111, A3=1 |
-| `JAlert` | J-Alert | A2=111, A3=0,2,3 |
-| `LocalGovernment` | 地方自治体 | A2=111, A3=4-31 |
+| `JAlert` | J-Alert | A2=111, A3=2,3 |
+| `LocalGovernment` | 地方自治体 | A2=111, A3=4 |
 | `OutsideJapan` | 国外 | A2≠111 |
-| `Unknown` | 不明 | 上記以外 |
+| `Unknown` | 不明 | 上記以外（A3=0, 5–31 を含む） |
 
 #### CAMFフィールド (`Mt44CamfRaw`)
 
@@ -509,7 +509,7 @@ AVR プリセットは EEW・震源が既定で 0 なので `sizeof(Mt43Data)` �
 他10カテゴリは大容量ボードでも無効となる（全部同時にすると、たとえ 256KB のボードでも 250,138B/262,144B となりユーザーのコードを 12KB しか置けなくなる）。
 DCX/CAMFはオプトインで、`AZARAC_AVR_LARGE_FLASH=1`または`AZARAC_ENABLE_DCX_CAMF=1`を指定すると有効になる。（このときATmega2560 + DCX/CAMF + SEISMIC/TSUNAMI、日本語でフラッシュ148KB / RAM 892B を計測済み）。
 その他には`AZARAC_DEDUP_SLOTS=64`（`AZARAC_DEDUP_WAYS=8`、512B）、`AZARAC_DEDUP_MT44_MAX_WINDOW_MS=300000`、`AZARAC_NANKAI_BUFFERS=1`、`AZARAC_NANKAI_MAX_PAGES=4`となる。
-但しコンパイル時の `-D` などで明示することで設定は上書きできる（例: DCX/CMAG有効化 `-DAZARAC_ENABLE_DCX_CAMF=1`、全カテゴリ有効化 `-DAZARAC_ENABLE_EEW=1 ...`）。
+但しコンパイル時の `-D` などで明示することで設定は上書きできる（例: DCX/CAMF有効化 `-DAZARAC_ENABLE_DCX_CAMF=1`、全カテゴリ有効化 `-DAZARAC_ENABLE_EEW=1 ...`）。
 
 **AVR 標準ライブラリシム**: AVRツールチェーンはlibstdc++を含まないため、`#if defined(__AVR__)`で`src/internal/avr_std/`の最小シム（`cstddef`/`cstdint`/`cstring`/`new`/`optional`/`string_view`）が自動で適用される。
 これを利用してライブラリの利用方法/APIはほかのアーキテクチャと揃うようになっている。

@@ -78,8 +78,8 @@ bool NmeaFramer::parse(Frame& out) {
         }
         p++;
     }
-    // 仕様の Satellite ID は「PRN 下位 6bit の2桁10進」（IS-QZSS-DCR-017 §4.3.1 / DCX-004 §4.3.1、Table 4.3.1-1）。
-    // 1桁は下位 6bit の範囲外（PRN 183 = 55 は2桁）。3桁は `| 0x80` しても PRN 契約（181-191）の外の値になる（100 → 228）。
+    // 仕様の Satellite ID は「PRN 下位 6bit の2桁10進」（DCR-017 §4.3.1 / Table 4.3.1-1、DCX-004 §4.4.1 / Table 4.4-1）。
+    // 1桁は仕様の2文字表記に合わない（PRN 183 = 55 は2桁）。3桁は `| 0x80` しても PRN 契約（181-191）の外の値になる（100 → 228）。
     // 64-99 は2桁だが 6bit に収まらないため拒否する（64 → 192）。
     // 0-52 は 6bit として有効だが PRN 128-180 に対応し、L1S の PRN 契約（181-191）の外になる。
     // フレーマーは通し、利用側が svid で絞る（azarashi も長さ 2 を要求して拒否する）。
@@ -117,7 +117,7 @@ bool NmeaFramer::parse(Frame& out) {
         out.bits[31] &= 0xC0;
     }
 
-    // QZQSM の Satellite ID は PRN の下位 6bit (DCR-017 §4.3.1 / DCX-004 §4.3.1)。
+    // QZQSM の Satellite ID は PRN の下位 6bit (DCR-017 §4.3.1 / DCX-004 §4.4.1)。
     // Frame::svid は PRN 契約（api-reference.md の 181-191）なので上位ビットを立てて正規化する。
     // 既に PRN (>=128) なら | 0x80 は恒等。
     out.svid = static_cast<uint8_t>(svid | 0x80);

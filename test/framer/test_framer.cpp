@@ -231,7 +231,7 @@ TEST_CASE("NMEA: payload length must be 63 or 64 hex chars") {
     }
 }
 
-// Satellite ID は「PRN を表す 8bit の下位 6bit」(DCR-017/DCX-004 §4.3.1) なので Frame::svid は常に PRN (id | 0x80)。
+// Satellite ID は「PRN を表す 8bit の下位 6bit」(DCR-017 §4.3.1 / DCX-004 §4.4.1) なので Frame::svid は常に PRN (id | 0x80)。
 // 53/54 も実データに現れるためケースに含める。
 TEST_CASE("NMEA: Satellite ID は生 ID から PRN に正規化される") {
     struct Case { uint8_t id; uint8_t expected_prn; };
@@ -260,7 +260,7 @@ TEST_CASE("NMEA: Satellite ID は生 ID から PRN に正規化される") {
     }
 }
 
-// 仕様の Satellite ID は PRN 下位 6bit の2桁10進（Table 4.3.1-1）。azarashi も長さ 2 を要求する。
+// 仕様の Satellite ID は PRN 下位 6bit の2桁10進（DCR-017 Table 4.3.1-1）。azarashi も長さ 2 を要求する。
 // 1桁/3桁/6bit を超える2桁を通すと `| 0x80` の結果が PRN 契約（181-191）の外に出る（64 → 192, 100 → 228）。
 TEST_CASE("NMEA: Satellite ID は 2 桁かつ 6bit に限る") {
     auto sentence = [](const char* id_field) {

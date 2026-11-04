@@ -71,12 +71,12 @@ graph LR
 | フレーマー | プロトコル | 対応デバイス |
 |-----------|-----------|-------------|
 | [`UbxFramer`](https://github.com/A-vrice/azaraC/tree/main/src/framer/UbxFramer.h) | UBX-RXM-SFRBX | u-blox M10, ZED-F9P |
-| [`NmeaFramer`](https://github.com/A-vrice/azaraC/tree/main/src/framer/NmeaFramer.h) | NMEA $QZQSM | Furuno GT-87, 汎用GNSS, Sony Spressense |
+| [`NmeaFramer`](https://github.com/A-vrice/azaraC/tree/main/src/framer/NmeaFramer.h) | NMEA $QZQSM | Furuno GT-87, 汎用GNSS, Sony Spresense |
 | カスタム (IFramer) | 任意 | Sony, その他 |
 
 `Frame::svid` は QZSS L1S の PRN が入ります。
-Satellite ID は「PRN を表す 8bit の下位 6bit」（IS-QZSS-DCR-017 §4.3.1）なので、`NmeaFramer` は受け取った値を処理して PRN に直します（仕様上有効な Satellite ID 53–63 → PRN 181–191）。
-2桁でも 6bit に収まらない 64–99 は拒否し、0–52 は 6bit としては通しますが PRN 128–180 でQZSSの割り当て外です。
+Satellite ID は「PRN を表す 8bit の下位 6bit」（IS-QZSS-DCR-017 §4.3.1）なので、`NmeaFramer` は受け取った値に `svid | 0x80` を適用して PRN に直します（仕様上有効な Satellite ID 53–63 → PRN 181–191）。
+2桁でも 6bit に収まらない 64–99 は拒否し、0–52 は 6bit としては通しますが PRN 128–180 で QZSS の割り当て外です。
 `UbxFramer` は `ublox_qzss_svid_prn_map` に該当する場合だけ PRN へ変換し、181–191 はこの変換後の QZSS PRN に限ります。
 表に無い `svId` は範囲外の値を含めて入力値のまま通します。
 `JsonSerializer` は `svid` を数値のまま出力し、ラベルは付けません。
@@ -85,7 +85,7 @@ Satellite ID は「PRN を表す 8bit の下位 6bit」（IS-QZSS-DCR-017 §4.3.
 
 [`Decoder`](https://github.com/A-vrice/azaraC/tree/main/src/decoder/Decoder.h)はビット列からメッセージフィールドを抽出します。
 
-**共通処理**: CRC-24Q検証（IS-QZSS-L1S §3.2.8。§番号は原本で要確認 — リポジトリに L1S s規格の原本は無い）、MSB-firstビット抽出、UNIX時刻ベースの年月補正。
+**共通処理**: CRC-24Q検証（IS-QZSS-L1S-009 §4.1.1.3）、MSB-firstビット抽出、UNIX時刻ベースの年月補正。
 
 **MT=43**: `DecoderQzqsm`がX-macroテーブル`AZARAC_DC_CATEGORIES`から全12カテゴリのサポート判定・ディスパッチを生成。
 カテゴリ一覧は[APIリファレンス](api-reference.md#azaracmt43data-mt43-qzqsm)を参照。
@@ -106,7 +106,7 @@ Satellite ID は「PRN を表す 8bit の下位 6bit」（IS-QZSS-DCR-017 §4.3.
   再受信のたびに有効時間は更新され、1通に複数種類のメッセージが入る場合は条件を満たすうち最長のものを採用します。
   MT=43 はアプリケーションノートの配信終了条件（p.26-27）、MT=44（CAMF）は A8-Hazard Duration の上限（Unknown は DCX §5.4 により1週間）を有効期限とします。
   AVR では `AZARAC_DEDUP_MT44_MAX_WINDOW_MS`（既定5分）で頭打ちにします。
-  スロットが64と少なく、7日の窓は生きた情報の枠を占め続けて押し出しを招くためです（MT44の再送間隔は最大16秒）。
+  スロットが64と少なく、7日の窓は生きた情報の枠を占め続けて押し出しを招くためです（MT=44 の再送間隔は最大16秒）。
   表に無いカテゴリは `AZARAC_DEDUP_WINDOW_MS` を使います。
 - **内部スキーマ**: セットアソシアティブ表（`AZARAC_DEDUP_SLOTS`÷`AZARAC_DEDUP_WAYS`セット）。
   満杯時は同一セット内の最も古い情報を置換します。
@@ -123,7 +123,7 @@ Satellite ID は「PRN を表す 8bit の下位 6bit」（IS-QZSS-DCR-017 §4.3.
   | 101–130 | 3 | 0 | 0 |
   | **327**（2024-08-28） | 1 | **2** | **0** |
 
-  同時メッセージ数は **20〜327**（中央値 66）で、256×8 の再通知は最悪日の 2 件のみ、512×8 では 30 日すべてで取りこぼしも再通知もない。
+  同時メッセージ数は **20〜327**（中央値 66）で、256×8 の再通知は最悪日の 2 件のみ、512×8 では 30日すべてで取りこぼしも再通知もない。
   日別の内訳（`AZARAC_DEDUP_WAYS=8`）:
 
   | 日 | distinct | 最大同時メッセージ数 | 64×8 | 128×8 | 256×8 | 512×8 |

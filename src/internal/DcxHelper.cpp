@@ -33,7 +33,7 @@ int32_t decodeLongitude17_45_225(uint32_t code) {
     );
 }
 
-// 半径の復号（5 bit コード）: IS-QZSS-DCX-003 Table 4.2-17 / 4.2-18、Radius[m] = 10^(log10(216.20) + a * (log10(2500000) - log10(216.20)) / 31) Flash に置く: avr-libc のリンカスクリプトは .rodata を .data（SRAM）へ含めるので、属性の無い const 配列はそのまま SRAM を食う。
+// 半径の復号（5 bit コード）: IS-QZSS-DCX-004 §4.2.3.14/§4.2.3.15 Table 4.2-17/18、Radius[m] = 10^(log10(216.20) + a * (log10(2500000) - log10(216.20)) / 31) Flash に置く: avr-libc のリンカスクリプトは .rodata を .data（SRAM）へ含めるので、属性の無い const 配列はそのまま SRAM を食う。
 static const int32_t RADIUS_TABLE[32] AZARAC_PROGMEM_NEAR = {
         216,
         292,

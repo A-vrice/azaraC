@@ -81,7 +81,7 @@ void serializeDcx(const Message& m, Print& out) {
     wf_s(out, AZARAC_KEY("a10_library_version_label"),
         qzss_dcx_camf_a10_library_version_lookup(d->camf.a10));
 
-    // A11 対応動作ライブラリのガイダンス（IS-QZSS-DCX-004 §4.2.3.9 Table 4.2-12 / EWSS CAMF v1.2 §3.5.3, §11）。
+    // A11 対応動作ライブラリのガイダンス（IS-QZSS-DCX-004 §4.2.3.11(1) Table 4.2-15 / (2) Table 4.2-16、EWSS CAMF v1.2 §3.5.3, §11）。
     // List A 5bit (a11 >> 5) と List B 5bit (a11 & 0x1F) の 2 コード。
     // 国際表 (A9=0) は両者を別々に引く。
     // 日本の表は 10bit を鍵にした結合表なので 1 本で足りる（List B は null）。
