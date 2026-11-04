@@ -35,6 +35,8 @@ git clone https://github.com/A-vrice/azaraC \
 
 ライブラリ側でプロトコルを自動判別するため、UBX/NMEAの形式を問わずそのままデコードできます。
 
+> 注: この例は AVR（Uno など）を対象外とします。AVR は `Serial1` が無いため [examples/basic_uno](https://github.com/A-vrice/azaraC/tree/main/examples/basic_uno/) を参照してください。
+
 ```cpp
 #include <azaraC.h>
 
@@ -46,8 +48,12 @@ void setup() {
 #if defined(ARDUINO_ESP32C3_DEV) || defined(CONFIG_IDF_TARGET_ESP32C3)
     // ESP32-C3 の UART0 既定ピン（20/21）。AVR（Uno など）は Serial1 が無いので examples/basic_uno を参照
     Serial1.begin(9600, SERIAL_8N1, /*rx=*/20, /*tx=*/21);
+#elif defined(CONFIG_IDF_TARGET_ESP32C6) || defined(ARDUINO_ESP32C6_DEV)
+    // ESP32-C6 は GPIO16/17 が UART0（Serial 出力）なので別ピンを使う
+    Serial1.begin(9600, SERIAL_8N1, /*rx=*/4, /*tx=*/5);
 #elif defined(ESP32)
-    // 他の ESP32 系は GPIO16/17 を例示する。ボードの配線に合わせて変更すること
+    // 他の ESP32 系は GPIO16/17（classic ESP32 / S3 の UART2 既定）を例示する。
+    // WROVER は 16/17 を PSRAM が使うので、その場合は配線に合わせて別ピンに変更すること
     Serial1.begin(9600, SERIAL_8N1, /*rx=*/16, /*tx=*/17);
 #else
     Serial1.begin(9600);

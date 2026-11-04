@@ -31,7 +31,11 @@ void setup() {
 
 #if defined(ARDUINO_ESP32C3_DEV) || defined(CONFIG_IDF_TARGET_ESP32C3)
     Serial1.begin(9600, SERIAL_8N1, /*rx=*/20, /*tx=*/21);
+#elif defined(CONFIG_IDF_TARGET_ESP32C6) || defined(ARDUINO_ESP32C6_DEV)
+    // ESP32-C6 は GPIO16/17 が UART0（Serial 出力）なので別ピンを使う
+    Serial1.begin(9600, SERIAL_8N1, /*rx=*/4, /*tx=*/5);
 #elif defined(ESP32)
+    // 他の ESP32 系は GPIO16/17（classic ESP32 / S3 の UART2 既定）を例示する。WROVER は PSRAM が使うので配線に合わせて変更する
     Serial1.begin(9600, SERIAL_8N1, /*rx=*/16, /*tx=*/17);
 #elif !defined(ARDUINO_ARCH_AVR)
     Serial1.begin(9600, SERIAL_8N1);

@@ -53,7 +53,8 @@ bool feed(uint8_t byte, Message& out, uint32_t report_unix = 0);
 **戻り値:** `bool` - フレームが完成し、デコードに成功し、重複でもない場合に `true`。
 フレーム未完成・CRC誤り・未対応バージョン（Vn≠1）・コンパイル時に無効なカテゴリ・仕様上未定義のカテゴリ（7/13）・43/44 以外の MT・重複受信・南海トラフのページ集約途中は `false`。
 完成フレームを復号器が拒否した場合、`out` は有効な出力ではないが全体がゼロになるわけではない。
-`Decoder::decode` が `out.clear()` の後に `svid` を書き戻すため `svid` は必ず残り、CRC 通過後の拒否では `crc24` と `msg_type` も残る。
+`Decoder::decode` が `out.clear()` の後に `svid` を書き戻すため `svid` は必ず残る。
+`crc24` は CRC 通過後に拒否された場合に残り、`msg_type` はさらにプリアンブル検証を通過した後の拒否（43/44 以外の MT など）でのみ残る。
 重複時は `out` 全体がクリアされる。
 フレーム未完成の時は `out` は書き換えられない。
 `msg.unsupported_reason` に値が入るのは、復号器が完成フレームを拒否した場合だけ（`DisabledAtCompileTime` / `UnknownCategory` / `UnsupportedVersion`）。
