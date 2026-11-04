@@ -77,6 +77,19 @@ TEST_CASE("Definition lookup: label content survives const char* storage") {
     REQUIRE(agency.has_value());
     CHECK(*agency == std::string_view("National Emergency Management Agency"));
 }
+
+TEST_CASE("Definition lookup: A3 reserved providers do not alias 4-bit keys") {
+    // A3 は 5bit。16–31 を 4bit に切り捨てると 0–15 のキーに化けるため拒否する。
+    CHECK_FALSE(def::qzss_dcx_camf_a3_provider_identifier_lookup(111, 17).has_value());
+    CHECK_FALSE(def::qzss_dcx_camf_a3_provider_identifier_lookup(111, 20).has_value());
+
+    // provider 0 は docs/json-formats.md の既知の欠落どおり null。
+    CHECK_FALSE(def::qzss_dcx_camf_a3_provider_identifier_lookup(111, 0).has_value());
+
+    auto local = def::qzss_dcx_camf_a3_provider_identifier_lookup(111, 4);
+    REQUIRE(local.has_value());
+    CHECK(*local == std::string_view("Local Government"));
+}
 #endif // AZARAC_ENABLE_DCX_CAMF
 
 // 英語索引 — azarashi 0.17 が追加した _en 表を 3 戦略で引く（strategy ごとの境界・欠落、値が英語であることを確認）。期待値は実ヘッダからの実測。

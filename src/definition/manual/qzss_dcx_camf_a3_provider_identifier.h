@@ -79,7 +79,9 @@ static const QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_Entry
 
 [[nodiscard]] inline std::optional<std::string_view>
 qzss_dcx_camf_a3_provider_identifier_lookup(uint16_t country, uint8_t provider) {
-  uint16_t key = static_cast<uint16_t>((country << 4) | (provider & 0xF));
+  // A3 は 5bit。16–31 は予約なので 4bit キーへ切り捨てず nullopt を返す。
+  if (provider > 15) return std::nullopt;
+  uint16_t key = static_cast<uint16_t>((country << 4) | provider);
   uint8_t lo = 0,
           hi = static_cast<uint8_t>(sizeof(QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_TABLE) /
                                     sizeof(QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER_TABLE[0]));
@@ -140,7 +142,9 @@ static constexpr A3Entry QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER[] = {
 };
 
 [[nodiscard]] inline std::optional<std::string_view> qzss_dcx_camf_a3_provider_identifier_lookup(uint16_t country, uint8_t provider) {
-  uint16_t key = (uint16_t)((country << 4) | (provider & 0xF));
+  // A3 は 5bit。16–31 は予約なので 4bit キーへ切り捨てず nullopt を返す。
+  if (provider > 15) return std::nullopt;
+  uint16_t key = (uint16_t)((country << 4) | provider);
   constexpr auto _count = std::size(QZSS_DCX_CAMF_A3_PROVIDER_IDENTIFIER);
   uint16_t lo = 0, hi = static_cast<uint16_t>(_count);
   while (lo < hi) {
