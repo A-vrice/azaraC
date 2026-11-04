@@ -43,9 +43,12 @@ azaraC::Message msg;
 
 void setup() {
     Serial.begin(115200);
-#if defined(ESP32)
-    // ESP32 のピン配置。AVR（Uno など）は Serial1 が無いので examples/basic_uno を参照
+#if defined(ARDUINO_ESP32C3_DEV) || defined(CONFIG_IDF_TARGET_ESP32C3)
+    // ESP32-C3 の UART0 既定ピン（20/21）。AVR（Uno など）は Serial1 が無いので examples/basic_uno を参照
     Serial1.begin(9600, SERIAL_8N1, /*rx=*/20, /*tx=*/21);
+#elif defined(ESP32)
+    // 他の ESP32 系は GPIO16/17 を例示する。ボードの配線に合わせて変更すること
+    Serial1.begin(9600, SERIAL_8N1, /*rx=*/16, /*tx=*/17);
 #else
     Serial1.begin(9600);
 #endif

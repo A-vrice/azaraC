@@ -52,9 +52,12 @@ bool feed(uint8_t byte, Message& out, uint32_t report_unix = 0);
 
 **戻り値:** `bool` - フレームが完成し、デコードに成功し、重複でもない場合に `true`。
 フレーム未完成・CRC誤り・未対応バージョン（Vn≠1）・コンパイル時に無効なカテゴリ・仕様上未定義のカテゴリ（7/13）・43/44 以外の MT・重複受信・南海トラフのページ集約途中は `false`。
-（完成したフレームの復号に失敗した時と重複時は `out` もクリアされる。フレーム未完成の時は `out` は書き換えられない）。
+完成フレームを復号器が拒否した場合、`out` は有効な出力ではないが全体がゼロになるわけではない。
+`Decoder::decode` が `out.clear()` の後に `svid` を書き戻すため `svid` は必ず残り、CRC 通過後の拒否では `crc24` と `msg_type` も残る。
+重複時は `out` 全体がクリアされる。
+フレーム未完成の時は `out` は書き換えられない。
 `msg.unsupported_reason` に値が入るのは、復号器が完成フレームを拒否した場合だけ（`DisabledAtCompileTime` / `UnknownCategory` / `UnsupportedVersion`）。
-CRC誤り・重複では `out` がクリアされ `None` になる。
+CRC誤り・重複では `unsupported_reason` は `None` になる（重複時は `out` も全体クリア、CRC誤りでは書き戻された `svid` だけが残る）。
 フレーム未完成では `out` を書き換えないため、直前に完成フレームで設定された値は残る。
 
 **使用例:**
@@ -134,7 +137,7 @@ const internal::NankaiPageBuffer* getNankaiBuffer(const internal::NankaiPageKey&
 | `msg_type` | `uint8_t` | メッセージタイプ (43=DCR, 44=DCX) |
 | `crc24` | `uint32_t` | CRC-24Qチェックサム |
 | `valid` | `bool` | メッセージの妥当性フラグ。`feed()` が `true` を返したときは常に `true` |
-| `unsupported_reason` | `UnsupportedReason` | 復号器が電文を拒否した理由（`None` / `DisabledAtCompileTime` / `UnknownCategory` / `UnsupportedVersion`）。`UnknownCategory` は仕様上未定義のカテゴリと 43/44 以外の MT。CRC誤り・重複では `out` がクリアされ `None`。フレーム未完成では `out` を書き換えないため直前の値が残る |
+| `unsupported_reason` | `UnsupportedReason` | 復号器が電文を拒否した理由（`None` / `DisabledAtCompileTime` / `UnknownCategory` / `UnsupportedVersion`）。`UnknownCategory` は仕様上未定義のカテゴリと 43/44 以外の MT。CRC誤り・重複では `None`（重複時は `out` も全体クリア、CRC誤りでは `svid` が残る）。フレーム未完成では `out` を書き換えないため直前の値が残る |
 | `payload_type` | `MsgPayloadType` | ペイロードタイプ |
 
 #### 安全なアクセサ
@@ -567,7 +570,7 @@ public:
 ```cpp
 // feed() が true を返したメッセージだけを渡す（msg.valid はそこで保証される）。
 // false のときは、完成フレームをデコーダが拒否した場合だけ msg.unsupported_reason に理由が入る。
-// 未完成では out を書き換えないため直前の値が残り、CRCの誤り・重複では out がクリアされて None になる。
+// 未完成では out を書き換えないため直前の値が残り、重複では out が全体クリアされ、CRC の誤りでは書き戻された svid だけが残る（いずれも unsupported_reason は None）。
 void processMessage(const azaraC::Message& msg) {
     // SVID範囲チェック（PRN は 181-191: 53/54 -> 181/182 も実データに存在）
     if (msg.svid < 181 || msg.svid > 191) {

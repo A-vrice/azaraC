@@ -119,7 +119,6 @@ bool NmeaFramer::parse(Frame& out) {
 
     // QZQSM の Satellite ID は PRN の下位 6bit (DCR-017 §4.3.1 / DCX-004 §4.4.1)。
     // Frame::svid は PRN 契約（api-reference.md の 181-191）なので上位ビットを立てて正規化する。
-    // 既に PRN (>=128) なら | 0x80 は恒等。
     out.svid = static_cast<uint8_t>(svid | 0x80);
 
     return true;

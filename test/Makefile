@@ -114,17 +114,18 @@ VPATH = ../src:../src/decoder:../src/framer:../src/json:../src/internal
 # がロックを取り直して自己デッドロックすることはない。迂回するなら
 # `make AZARAC_LOCK_HELD=1 <target>`。
 #
-# ロック対象は test/ 直下と test/bench/ の .o を書く／消す目標。
+# ロック対象は test/ 配下の .o・バイナリと bench/avr/out を書く／消す目標。
 # bench-dedup / bench-decode は test/bench/*.o を書くので、別プロセスの clean に消されないようここに含める。
 # ただし同じ make 内の `-j2 bench-dedup bench-decode` はこのロックでは直列化されないため、衝突はスクリプト側のオブジェクト接頭辞（dedup_ / decode_）で防いでいる。
-# test-time-irq は独自バイナリのみ、test-macro-* は .macro_tmp に隔離されていて共有状態を持たない。
-# bench（AVR 計測）は bench/avr/ の独自領域なので対象外。
+# test-time-irq は time_irq_test を書くので clean / run-lto と同時に走らないよう含める。
+# bench（AVR 計測）は bench/avr/out を共有するので、並行する make bench 同士の衝突を防ぐため含める。
+# test-macro-* は .macro_tmp に隔離されていて共有状態を持たないので対象外。
 #
 # 残リスク: 強制 kill（SIGKILL/プロセスクラッシュ）では trap を実行できないためロックが残る。
 # その場合は test/.make-lock を手動で削除する（スクリプトのエラーにも記載）。
 LOCKABLE  := all run run-small-pages run-lto run-lang-defaults clean \
              test-no-alloc pgm-stub macro fuzz decode dedup-realday \
-             bench-dedup bench-decode compare-realdata coverage check check-xml check-strict-compile
+             bench bench-dedup bench-decode test-time-irq compare-realdata coverage check check-xml check-strict-compile
 USER_GOALS := $(if $(MAKECMDGOALS),$(MAKECMDGOALS),all)
 # 「ロック未保持」かつ「ユーザーが直接 LOCKABLE な目標を指定した」場合のみラップする。
 NEED_LOCK := $(if $(AZARAC_LOCK_HELD),,$(filter $(LOCKABLE),$(USER_GOALS)))

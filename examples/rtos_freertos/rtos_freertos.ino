@@ -38,7 +38,7 @@ static constexpr uint32_t kOutputTaskStackSize = 4096;
 static constexpr UBaseType_t kRxTaskPriority = 2;
 static constexpr UBaseType_t kOutputTaskPriority = 1;
 
-// ピン定義例 (ESP32-C3 DevKitM-1)
+// ピン定義例 (ESP32-C3 DevKitM-1)。他の ESP32 系ではボードの配線に合わせて変更する。
 #define RX_PIN 20
 #define TX_PIN 21
 #define SERIAL_GNSS Serial1

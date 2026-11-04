@@ -81,8 +81,9 @@ make -C test run
 make -C test run MINGW64_BIN=C:\mingw64\bin
 ```
 
-同じ `test/*.o` を共有するターゲット同士の同時実行は `test/scripts/with-make-lock.sh` が直列化します。
-別の make が実行中なら exit 2 で止まるので、待つか `test/.make-lock` を削除してください。
+同じ `test/*.o` を共有するターゲット同士の同時実行は `test/scripts/with-make-lock.sh` が直列化し、`bench` と `test-time-irq` も含みます。
+別の make が実行中なら exit 2 で止まるので、終わるまで待ってください（ロックは終了時に自動で解放されます）。
+ロックだけが残るのは SIGKILL などで trap を実行できなかった場合だけなので、実行中の make が無いことを確認できたときだけ `test/.make-lock` を削除してください。
 意図的にロックを迂回する場合は `make -C test AZARAC_LOCK_HELD=1 run` を使います。
 `run-lang-defaults` と `test-no-alloc` は複数行レシピのため Windows では未検証です（Linux CI で実行）。
 

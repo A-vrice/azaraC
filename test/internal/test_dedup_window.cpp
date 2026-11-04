@@ -1,8 +1,9 @@
 // 情報有効時間（手順④）のカテゴリ別窓 DedupWindow.h の条件表は「その情報がまだ配信中か」を決める唯一の場所。
 // カテゴリ・副条件ごとに窓の値を固定し、payload を渡さない経路もクラッシュせず fallback に落ちることを確かめる。
 //
-// Parser::handleFrame も検証する。
-// custom framer 経路（feed が false）とデコード失敗経路は out に前回値が残らない契約（decode 失敗時は空の Message を丸ごとコピーする）。
+// Parser::feed / handleFrame も検証する。
+// custom framer 経路でフレームが返らない間、feed() は out を書き換えない（呼び出し側の前回値が残る）。
+// デコード失敗経路では Decoder::decode() が out を clear した後 svid を書き戻すため、payload と msg_type は残らない。
 
 #define ARDUINO 0
 #include "../src/Parser.h"

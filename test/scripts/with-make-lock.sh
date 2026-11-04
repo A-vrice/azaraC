@@ -18,7 +18,8 @@ fi
 if ! mkdir "$lock_dir" 2>/dev/null; then
     printf '%s\n' \
         "test/Makefile: $lock_dir exists - another make is running, or a stale lock remains." \
-        "  Wait for the other build, or remove it with: rm -rf test/$lock_dir" >&2
+        "  Wait for the other build to finish. Remove it only if no make is running:" \
+        "    rm -rf test/$lock_dir" >&2
     exit 2
 fi
 

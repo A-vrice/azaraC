@@ -35,7 +35,7 @@ namespace azaraC {
 // 繰返しエントリの要素型（各カテゴリの entries[] に並ぶ）
 
 struct TsunamiEntry {
-    // Ta(12b)+Th(4b) は 16 bit に収まるので共有ユニットに詰める（Pl は 10 bit）
+    // Ta(12b) は単独の 16 bit ユニットを使う。Th(4b)+Pl(10b) が次のユニットを共有する（間の TimeFields がユニットを分断する）。
     uint16_t   arrival_time_raw : 12;
     TimeFields arrival_time;
     uint16_t   height_code      : 4;
@@ -63,7 +63,7 @@ struct MarineEntry {
 };
 
 struct NwPacTsunamiEntry {
-    // 同様に 16 bit へパック（Th 9 bit + Pl 7 bit）
+    // 同様に Th(9b)+Pl(7b) が 1 ユニットを共有する（Ta は単独、間の TimeFields が分断する）。
     uint16_t   arrival_time_raw : 12;
     TimeFields arrival_time;
     uint16_t   height_code      : 9;
