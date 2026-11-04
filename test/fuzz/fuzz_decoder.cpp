@@ -1,9 +1,7 @@
-// test/fuzz/fuzz_decoder.cpp
-// ファジーテスト: ランダム入力に対するデコーダの堅牢性テスト
+// ファジーテスト: ランダム入力に対するデコーダの堅牢性テストビルド・実行: `make fuzz`（FUZZ_ITERATIONS でイテレーション数を指定可）。
+// ライブラリ構成（ソース一覧・フラグ）は test/Makefile が唯一の正。
 //
-// コンパイル: g++ -std=c++17 -I../include -I. -DARDUINO=0 -DAZARAC_LANG_JA=1 -DAZARAC_LANG_EN=1 -g -o fuzz_decoder fuzz_decoder.cpp ../src/Parser.cpp ../src/decoder/Decoder.cpp ../src/decoder/DecoderDcx.cpp ../src/decoder/DecoderQzqsm.cpp ../src/framer/UbxFramer.cpp ../src/framer/NmeaFramer.cpp ../src/json/JsonWriter.cpp ../src/json/JsonSerializer.cpp ../src/json/JsonSerializerDcx.cpp ../src/json/JsonSerializerQzqsm.cpp ../src/internal/DcxHelper.cpp ../src/internal/Dedup.cpp -Wl,--stack,33554432
-//
-// 実行: ./fuzz_decoder [イテレーション数]
+// シード: 既定は random_device。FUZZ_SEED で固定すると全テストが決定的になる（クラッシュ時の再現に使う。失敗時の出力に再現コマンドも出る）。
 
 #include <cstdint>
 #include <cstdlib>
@@ -27,6 +25,8 @@
 #include "decoder/Decoder.h"
 #include "framer/NmeaFramer.h"
 #include "framer/UbxFramer.h"
+#include "json/JsonSerializer.h"
+#include "internal/PrintShim.h"
 #include "test_helpers.h"
 
 using namespace azaraC;
@@ -114,13 +114,11 @@ private:
     }
 };
 
-// 例外情報
 struct ExceptionInfo {
     const char* test_name;
     uint64_t iteration;
 };
 
-// 統計情報
 struct FuzzStats {
     uint64_t total_iterations = 0;
     uint64_t valid_frames = 0;
@@ -133,6 +131,7 @@ struct FuzzStats {
     uint64_t exceptions = 0;
     uint64_t nmea_frames = 0;
     uint64_t ubx_frames = 0;
+    uint64_t serialized = 0;
 
     // テストごとの例外記録
     ExceptionInfo exception_log[MAX_EXCEPTION_LOG];
@@ -159,6 +158,7 @@ struct FuzzStats {
         printf("  MT=43:             %llu\n", (unsigned long long)mt43_count);
         printf("  MT=44:             %llu\n", (unsigned long long)mt44_count);
         printf("Decode fail:         %llu\n", (unsigned long long)decode_fail);
+        printf("Serialized:          %llu\n", (unsigned long long)serialized);
         printf("Exceptions caught:   %llu\n", (unsigned long long)exceptions);
 
         if (exception_log_count > 0) {
@@ -174,7 +174,6 @@ struct FuzzStats {
 };
 
 
-// 有効なプリアンブルを設定
 static void set_valid_preamble(uint8_t* bits, std::mt19937& rng) {
     std::uniform_int_distribution<int> dist(0, 2);
     uint8_t preambles[] = {0x53, 0x9A, 0xC6};
@@ -195,7 +194,6 @@ static void set_valid_msg_type(uint8_t* bits, std::mt19937& rng) {
     }
 }
 
-// CRCを計算して設定
 static void set_valid_crc(uint8_t* bits) {
     uint32_t crc = crc24qRef(bits, 226);
     // CRCはビット226-249に設定
@@ -296,7 +294,6 @@ static void test_valid_frames_mt43(FuzzStats& stats, std::mt19937& rng, int iter
             uint8_t bits[32];
             generate_random_nav_bits(bits, sizeof(bits), rng);
             set_valid_preamble(bits, rng);
-            // MT=43を強制設定
             for (int j = 0; j < 6; j++) {
                 if ((43 >> (5 - j)) & 1) {
                     bits[(8 + j) / 8] |= (0x80 >> ((8 + j) % 8));
@@ -339,7 +336,6 @@ static void test_valid_frames_mt44(FuzzStats& stats, std::mt19937& rng, int iter
             uint8_t bits[32];
             generate_random_nav_bits(bits, sizeof(bits), rng);
             set_valid_preamble(bits, rng);
-            // MT=44を強制設定
             for (int j = 0; j < 6; j++) {
                 if ((44 >> (5 - j)) & 1) {
                     bits[(8 + j) / 8] |= (0x80 >> ((8 + j) % 8));
@@ -385,7 +381,7 @@ static void test_nmea_framer(FuzzStats& stats, std::mt19937& rng, int iterations
             set_valid_msg_type(bits, rng);
             set_valid_crc(bits);
 
-            std::string nmea = makeNmeaQzqsm(193, bits);
+            std::string nmea = makeNmeaQzqsm(63, bits);
 
             NmeaFramer framer;
             Frame frame;
@@ -457,7 +453,6 @@ static void test_ubx_framer(FuzzStats& stats, std::mt19937& rng, int iterations)
 static void test_boundary_values(FuzzStats& stats, std::mt19937& rng) {
     printf("Test 7: Boundary values...\n");
 
-    // テストケース: 全ゼロ
     {
         try {
             uint8_t bits[32] = {0};
@@ -474,7 +469,6 @@ static void test_boundary_values(FuzzStats& stats, std::mt19937& rng) {
         }
     }
 
-    // テストケース: 全1
     {
         try {
             uint8_t bits[32];
@@ -492,7 +486,6 @@ static void test_boundary_values(FuzzStats& stats, std::mt19937& rng) {
         }
     }
 
-    // テストケース: プリアンブルの境界値
     uint8_t boundary_preambles[] = {0x00, 0x52, 0x53, 0x54, 0x99, 0x9A, 0x9B, 0xC5, 0xC6, 0xC7, 0xFF};
     for (uint8_t preamble : boundary_preambles) {
         try {
@@ -511,7 +504,6 @@ static void test_boundary_values(FuzzStats& stats, std::mt19937& rng) {
         }
     }
 
-    // テストケース: 無効なMSG_TYPE
     for (uint8_t mt = 0; mt < 64; mt++) {
         if (mt == 43 || mt == 44) continue; // 有効なタイプはスキップ
 
@@ -560,7 +552,6 @@ static void test_boundary_values(FuzzStats& stats, std::mt19937& rng) {
         }
     }
 
-    // テストケース: report_unix境界値
     uint32_t boundary_times[] = {
         0,                    // 未初期化
         1,                    // 最小値
@@ -610,8 +601,7 @@ static void test_long_running(FuzzStats& stats, std::mt19937& rng, int iteration
             set_valid_msg_type(bits, rng);
             set_valid_crc(bits);
 
-            // NMEA経由でテスト
-            std::string nmea = makeNmeaQzqsm(193, bits);
+            std::string nmea = makeNmeaQzqsm(63, bits);
 
             NmeaFramer framer;
             Frame frame;
@@ -627,7 +617,6 @@ static void test_long_running(FuzzStats& stats, std::mt19937& rng, int iteration
 
             stats.total_iterations++;
 
-            // 進捗表示
             if (i % 10000 == 0 && i > 0) {
                 auto now = std::chrono::steady_clock::now();
                 auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - start).count();
@@ -692,7 +681,7 @@ static void test_corrupted_nmea(FuzzStats& stats, std::mt19937& rng, int iterati
             set_valid_msg_type(bits, rng);
             set_valid_crc(bits);
 
-            std::string nmea = makeNmeaQzqsm(193, bits);
+            std::string nmea = makeNmeaQzqsm(63, bits);
 
             // NMEAを破損させる（ランダムな位置の文字を変更）
             if (nmea.size() > 10) {
@@ -793,8 +782,7 @@ static void test_decode_failure_state(FuzzStats& stats, std::mt19937& rng, int i
             Message msg;
             bool result = decoder.decode(frame, msg, 0);
 
-            // デコードは失敗するはず（CRC不一致）
-            // 注意: CRC失敗時はsvidが設定されずにfalseが返される（正常動作）ここではvalidがfalseであることのみを検証
+            // CRC不一致で false。CRC失敗時は svid 未設定のまま false が返る（正常）ため、ここでは valid==false のみ検証する。
             if (!result && msg.valid) {
                 printf("  WARNING: valid should be false on decode failure at iteration %d\n", i);
             }
@@ -819,9 +807,8 @@ static void test_corrupted_nmea_dollar(FuzzStats& stats, std::mt19937& rng, int 
             set_valid_msg_type(bits, rng);
             set_valid_crc(bits);
 
-            std::string nmea = makeNmeaQzqsm(193, bits);
+            std::string nmea = makeNmeaQzqsm(63, bits);
 
-            // Remove the leading '$'
             if (nmea.size() > 0 && nmea[0] == '$') {
                 nmea = nmea.substr(1);
             }
@@ -837,9 +824,8 @@ static void test_corrupted_nmea_dollar(FuzzStats& stats, std::mt19937& rng, int 
                 }
             }
 
-            // Should NOT be detected without '$'
+            // '$' が無ければ検出してはならない
             if (found) {
-                // Malformed frame was still detected — record as failure and abort
                 printf("  FAIL: NMEA frame detected without '$' at iteration %d\n", i);
                 stats.log_exception("test_corrupted_nmea_dollar_unexpected_found", i);
                 stats.total_iterations++;
@@ -868,7 +854,6 @@ static void test_corrupted_ubx_sync(FuzzStats& stats, std::mt19937& rng, int ite
 
             auto ubx = makeUbxSfrbx(193, bits);
 
-            // Corrupt SYNC character
             if (ubx.size() > 0) {
                 ubx[0] = 0x00;  // Should be 0xB5
             }
@@ -885,7 +870,6 @@ static void test_corrupted_ubx_sync(FuzzStats& stats, std::mt19937& rng, int ite
             }
 
             if (found) {
-                // Malformed frame was still detected — record as failure and abort
                 printf("  FAIL: UBX frame detected with corrupted SYNC at iteration %d\n", i);
                 stats.log_exception("test_corrupted_ubx_sync_unexpected_found", i);
                 stats.total_iterations++;
@@ -943,8 +927,7 @@ static void test_memory_stability(FuzzStats& stats, std::mt19937& rng, int itera
             set_valid_msg_type(bits, rng);
             set_valid_crc(bits);
 
-            // NMEA経由でテスト
-            std::string nmea = makeNmeaQzqsm(193, bits);
+            std::string nmea = makeNmeaQzqsm(63, bits);
 
             NmeaFramer framer;
             Frame frame;
@@ -960,7 +943,6 @@ static void test_memory_stability(FuzzStats& stats, std::mt19937& rng, int itera
 
             stats.total_iterations++;
 
-            // 進捗表示
             if (i % 10000 == 0 && i > 0) {
                 auto now = std::chrono::steady_clock::now();
                 auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - start).count();
@@ -976,15 +958,72 @@ static void test_memory_stability(FuzzStats& stats, std::mt19937& rng, int itera
     printf("  Completed in %llds.\n", (long long)elapsed);
 }
 
+// テスト17: デコード成功電文の JSON シリアライズ（監査 P2-3）他のテストは decode まででシリアライザを通さないため、ランダムペイロードが定義テーブル参照（ラベル引き当て）や数値フォーマット経路に与える入力はここでしか検証できない。
+// 有効 CRC の MT43/MT44 をデコードし、成功したものをそのまま JsonSerializer へ流す（test_azarashi_dcr.cpp と同じ公開経路）。
+static void test_decode_serialize(FuzzStats& stats, std::mt19937& rng, int iterations) {
+    printf("Test 17: Decode -> JSON serialize (%d iterations)...\n", iterations);
+
+    for (int i = 0; i < iterations; i++) {
+        try {
+            uint8_t bits[32];
+            generate_random_nav_bits(bits, sizeof(bits), rng);
+            set_valid_preamble(bits, rng);
+            set_valid_msg_type(bits, rng);
+            set_valid_crc(bits);
+
+            Frame frame;
+            frame.svid = 193;
+            memcpy(frame.bits, bits, 32);
+
+            Decoder decoder;
+            Message msg;
+            if (decoder.decode(frame, msg, 1704067200u)) {
+                StringPrint sp;
+                JsonSerializer::serialize(msg, sp);
+                const std::string& s = sp.str();
+                // 有効電文のシリアライズ結果が空になることはない。空なら破損の兆候。
+                if (s.empty()) {
+                    printf("  FAIL: serializer produced empty output at iteration %d\n", i);
+                    stats.log_exception("test_decode_serialize_empty_output", i);
+                } else {
+                    stats.serialized++;
+                }
+            }
+
+            stats.total_iterations++;
+        } catch (...) {
+            stats.log_exception("test_decode_serialize", i);
+        }
+    }
+    printf("  Completed.\n");
+}
+
 int main(int argc, char* argv[]) {
     printf("=== azaraC Fuzz Testing ===\n");
     printf("Starting fuzz tests...\n\n");
 
-    // 乱数シード
-    std::random_device rd;
-    std::mt19937 rng(rd());
+    // シード（監査 P2-2）: 既定は random_device。FUZZ_SEED で固定できる。
+    // mt19937 の seed は uint32 なので、指定値は 32bit に切り詰めた「実効シード」を印字する — 印字された値で再現するには FUZZ_SEED に同じ値を渡せばよい。
+    uint32_t seed = 0;
+    const char* env_seed = std::getenv("FUZZ_SEED");
+    if (env_seed && *env_seed) {
+        char* end = nullptr;
+        errno = 0;
+        // base 0: 10 進に加え 0x/0b 接頭辞も受け付ける
+        const unsigned long long v = std::strtoull(env_seed, &end, 0);
+        if (errno != 0 || end == env_seed || *end != '\0') {
+            fprintf(stderr, "FUZZ: invalid FUZZ_SEED: '%s' (expected integer)\n", env_seed);
+            return 2;
+        }
+        seed = static_cast<uint32_t>(v);
+    } else {
+        std::random_device rd;
+        seed = rd();
+    }
+    std::mt19937 rng(seed);
+    printf("Seed: %llu\n", (unsigned long long)seed);
 
-    // イテレーション数（環境変数 > コマンドライン引数 > デフォルト） atoi は不正入力で 0 を返し、0 回の「無検査 PASS」になる。値域を検証して落とす。
+    // イテレーション数（環境変数 > コマンドライン引数 > デフォルト）。atoi は不正入力で 0 を返し 0 回の「無検査 PASS」になるため、値域を検証して落とす。
     long long iterations = 10000;
     const char* env_iter = std::getenv("FUZZ_ITERATIONS");
     const char* source = "default";
@@ -994,7 +1033,7 @@ int main(int argc, char* argv[]) {
         char* end = nullptr;
         errno = 0;
         const long long v = std::strtoll(env_iter, &end, 10);
-        // test_long_running / test_memory_stability に `iterations * 5` を渡すため、上限は INT_MAX / 5。INT_MAX まで許すと int 引数への縮小で負値になり、ループが 1 回も回らず「無検査 PASS」に戻る。
+        // 上限 INT_MAX / 5: iterations * 5 を渡すテストがあり、INT_MAX まで許すと int への縮小で負値→0 回ループの「無検査 PASS」に戻る。
         if (errno != 0 || end == env_iter || *end != '\0' || v <= 0 || v > INT_MAX / 5) {
             fprintf(stderr, "FUZZ: invalid %s: '%s' (expected integer in 1..%d)\n",
                     source, env_iter, INT_MAX / 5);
@@ -1003,13 +1042,13 @@ int main(int argc, char* argv[]) {
         iterations = v;
     }
     printf("Iterations per test: %lld\n\n", iterations);
+    fflush(stdout);
 
     FuzzStats stats;
 
     // RAIIによる自動メモリ計測（スコープ終了時にレポート出力）
     MemoryTracker mem_tracker;
 
-    // テスト実行
     test_random_raw_data(stats, rng, iterations);
     mem_tracker.checkpoint();
     test_valid_preamble(stats, rng, iterations);
@@ -1044,17 +1083,21 @@ int main(int argc, char* argv[]) {
     mem_tracker.checkpoint();
     test_memory_stability(stats, rng, iterations * 5);
     mem_tracker.checkpoint();
+    test_decode_serialize(stats, rng, iterations / 2);
+    mem_tracker.checkpoint();
 
-    // 結果表示（メモリレポートはmem_trackerのデストラクタで自動出力）
+    // メモリレポートは mem_tracker のデストラクタで自動出力
     stats.print();
 
-    // サマリー
     printf("\n=== Summary ===\n");
     if (stats.exceptions == 0) {
         printf("PASS: No exceptions caught during fuzz testing.\n");
     } else {
         printf("FAIL: %llu exceptions caught during fuzz testing.\n",
                (unsigned long long)stats.exceptions);
+        // catch できないクラッシュ（segfault 等）で死んだ場合も、シードを固定して再実行すれば同じ入力列を辿れる。
+        printf("Reproduce with: FUZZ_SEED=%llu make -C test fuzz FUZZ_ITERATIONS=%lld\n",
+               (unsigned long long)seed, iterations);
     }
 
     printf("Fuzz testing completed.\n");

@@ -1,5 +1,5 @@
 #pragma once
-// Minimal Arduino Print shim for host-side unit tests.
+// ホスト側ユニットテスト用の最小限の Arduino Print shim
 
 #if !defined(ARDUINO) || ARDUINO < 1
 #include <cstdio>
@@ -23,7 +23,7 @@ public:
     virtual void print(const void* s)  { if (s) fputs(static_cast<const char*>(s), stdout); }
 };
 
-// ホストテスト用: 動的バッファ（オーバーフローフリー）
+// 動的バッファ（オーバーフローフリー）
 class StringPrint : public Print {
     std::string _buf;
 

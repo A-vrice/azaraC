@@ -1,12 +1,6 @@
-// test/json/test_json_wellformed.cpp — シリアライザ出力が JSON として妥当か
-//
-// `_label_en` の併記は各ラベルサイトを 2 つのペアで書くため、`last` の受け渡しを誤ると `"a":1"b":2` のような**カンマ欠落**や、逆に二重カンマを生む。既存テストは
-// `has()` による部分文字列検査なので、この種の構文崩れを検出できない。
-//
-// ここでは全カテゴリを 1 通ずつシリアライズし、
-//   1. JSON として構造が閉じている（括弧・引用符・カンマ）
+// シリアライザ出力が JSON として妥当か`_label_en` の併記は各ラベルサイトを 2 ペアで書き、`last` の受け渡しを誤ると `"a":1"b":2` のカンマ欠落や二重カンマを生む。既存テストの has() 部分一致では検出できないので、全カテゴリを 1 通ずつシリアライズし、 1. 構造が閉じている（括弧・引用符・カンマ）
 //   2. 同じオブジェクト内でキーが重複していない
-// を検証する。キー重複は、数量フィールドに `_label` を足した際などに起こり得る。
+// を検証する（重複は数量フィールドに `_label` を足した際などに起こる）。
 
 #define ARDUINO 0
 #include "../src/azaraC.h"
@@ -184,8 +178,12 @@ void initMt43As(Message& m, uint8_t dc) {
     if (!mt43) return;
     mt43->disaster_category = dc;
     switch (dc) {
+#if (AZARAC_ENABLE_EEW)
         case 1: mt43->initAs<EewData>(); break;
+#endif
+#if (AZARAC_ENABLE_HYPOCENTER)
         case 2: mt43->initAs<HypocenterData>(); break;
+#endif
         case 3: mt43->initAs<SeismicData>(); break;
 #if (AZARAC_ENABLE_NANKAI)
         case 4: mt43->initAs<NankaiData>(); break;
@@ -215,8 +213,7 @@ void checkWellFormed(const std::string& json, const char* what) {
 
 } // namespace
 
-// 各カテゴリを代表値付きで埋め、1 通ずつ JSON 妥当性を検査する。
-// 数量フィールドは境界値（センチネル）を入れてラベルの分岐も通す。
+// 各カテゴリを代表値付きで埋め、1 通ずつ JSON 妥当性を検査する（数量はセンチネルを入れてラベル分岐も通す）。
 TEST_CASE("JSON well-formedness: every MT43 category") {
     for (uint8_t dc : allCategories()) {
         Message m{};
@@ -282,8 +279,8 @@ TEST_CASE("JSON well-formedness: MT44 DCX") {
     mt44->camf.a1 = 1; mt44->camf.a2 = 111; mt44->camf.a3 = 1;
     mt44->camf.a4 = 10; mt44->camf.a5 = 3; mt44->camf.a8 = 4;
     mt44->camf.a9 = 1; mt44->camf.a11 = 1;   // 日本語ライブラリ（AZARAC_LOOKUP_LANG 経路）
-    mt44->ex_lalert_local.ex1 = 1100;
-    mt44->ex_lalert_local.vn = 1;
+    mt44->ex.ex_lalert_local.ex1 = 1100;
+    mt44->ex.ex_lalert_local.vn = 1;
     mt44->sd.sdmt = 0; mt44->sd.sdm = 0x1FF;
 
     StringPrint sp;
@@ -292,8 +289,7 @@ TEST_CASE("JSON well-formedness: MT44 DCX") {
 }
 #endif // AZARAC_ENABLE_DCX_CAMF
 
-// 不正な JSON を検出できること（検査器自体の回帰）。
-// これが無いと「常に true を返す検査器」で上のテストが無意味になる。
+// 検査器自体の検証: 不正な JSON を検出できること（無いと「常に true を返す検査器」で上のテストが無意味になる）。
 TEST_CASE("JSON well-formedness: the checker rejects malformed input") {
     const char* bad[] = {
         "{\"a\":1\"b\":2}",          // カンマ欠落（AZARAC_LABEL の last 誤りと同じ形）
@@ -305,7 +301,10 @@ TEST_CASE("JSON well-formedness: the checker rejects malformed input") {
         "{\"a\":1}",                 // （これは妥当 — 除外）
     };
     for (const char* s : bad) {
-        JsonCheck jc(s);
+        // JsonCheck は const std::string& を保持する。
+        // const char* からの一時 std::string を直接渡すとメンバ参照の束縛先が全式の終わりで破壊される（dangling reference。LTO のヒープレイアウト変化で顕在化）ので、ここで寿命を作る。
+        const std::string input(s);
+        JsonCheck jc(input);
         bool ok = jc.run();
         if (strcmp(s, "{\"a\":1}") == 0) {
             CHECK(ok);               // 妥当なものは通る

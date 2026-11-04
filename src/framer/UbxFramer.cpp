@@ -23,10 +23,10 @@ bool UbxFramer::feed(uint8_t b, Frame& out) {
     case St::SYNC2:
         if (b == 0x62) _st = St::CLASS;
         else if (b != 0xB5) _st = St::SYNC1;
-        // else: keep SYNC2 (this 0xB5 may start a frame)
+        // この 0xB5 は新フレームの先頭候補なので SYNC2 を維持して取り直す
         break;
     case St::CLASS:
-        // SFRBX header is fixed 02 13 28 00: 0xB5 here cannot belong to SFRBX, so treat it as a fresh sync candidate instead of losing the frame.
+        // SFRBX のヘッダは 02 13 28 00 固定なので、ここに来た 0xB5 は新たな同期候補。フレームを捨てずに取り直す。
         if (b == 0xB5) { _st = St::SYNC2; break; }
         _class = b; _ck_a = _ck_b = 0;
         _ck_a += b; _ck_b += _ck_a;
@@ -59,7 +59,7 @@ bool UbxFramer::feed(uint8_t b, Frame& out) {
         break;
     case St::CK_B:
         _st = St::SYNC1;
-        // b doubles as potential next-frame sync: preserve 0xB5 candidate on any reject.
+        // b は次フレームの同期候補にもなる: どの拒否でも 0xB5 の候補を残す
         if (b != _ck_b) { if (b == 0xB5) _st = St::SYNC2; return false; }
         // class=0x02 id=0x13 = RXM-SFRBX
         if (_class != 0x02 || _id != 0x13) { if (b == 0xB5) _st = St::SYNC2; return false; }
@@ -70,46 +70,43 @@ bool UbxFramer::feed(uint8_t b, Frame& out) {
 }
 
 bool UbxFramer::parse(Frame& out) {
-    // SFRBX header: gnssId(1) svId(1) sigId(1) freqId(1) numWords(1) chn(1) version(1) reserved(1)
+    // SFRBX ヘッダ: gnssId(1) svId(1) sigId(1) freqId(1) numWords(1) chn(1) version(1) reserved(1)
     if (_len < 8) return false;
     uint8_t gnssId   = _buf[0];
     uint8_t svId     = _buf[1];
     uint8_t sigId    = _buf[2];
     uint8_t numWords = _buf[4];
 
-    // QZSS gnssId=5, L1S sigId=0 or 1
+    // QZSS は gnssId=5、L1S は sigId=0 か 1
     if (gnssId != 5)  return false;
     if (sigId != 0 && sigId != 1) return false;
-    if (numWords < 8) return false;  // L1S subframe = 8 words × 32 bits = 256 bits (250 data bits)
+    // L1S サブフレーム = 8 ワード × 32 bit = 256 bit（データは 250 bit）。u-blox は詰め物のワードを
+    // 1 個足すことがある（numWords=9。実機の azarashi フィクスチャは 8/9 の両方）。それ以外は拒否し、長すぎるフレームが 250 bit の詰めループを越えて余分なワードを持ち込めないようにする。
+    if (numWords != 8 && numWords != 9) return false;
     if (_len != 8u + static_cast<uint16_t>(numWords) * 4u) return false;
 
-    // Pack 250 nav bits MSB-first into out.bits[32]: 8 words × 32 bits (256 total), first 250 are data, last 6 of word 8 are zero-filled padding.
+    // 航法ビットを MSB-first で out.bits[32] へ詰める: 8 ワード × 32 bit = 256、先頭 250 がデータで残りはゼロ詰め。
+    // ワードはリトルエンディアンで word の bit31 がサブフレームの先頭ビットなので、各ワードのバイトスワップがそのまま out.bits の該当 4 バイトになる（1 bit ずつの可変シフトループの代わりに直接ストア）。
+    // 先頭 7 ワード = 28 バイトは全域データ。word7 は bit 224..249 がデータで byte28-30 が全域、byte31 は上位 2 bit のみ（残り 6 bit はゼロ詰めのまま）。numWords=9 の余剰ワードは無視する。
     memset(out.bits, 0, sizeof(out.bits));
-    uint16_t bit_pos = 0;
-    for (uint8_t w = 0; w < numWords && bit_pos < 250; ++w) {
-        // Words are little-endian in the UBX payload
-        uint32_t word = ((uint32_t)_buf[8 + w*4 + 3] << 24) |
-                        ((uint32_t)_buf[8 + w*4 + 2] << 16) |
-                        ((uint32_t)_buf[8 + w*4 + 1] <<  8) |
-                         (uint32_t)_buf[8 + w*4 + 0];
-        // Bit 31 of the first word is the first bit of the subframe.
-        for (int8_t b2 = 31; b2 >= 0 && bit_pos < 250; --b2, ++bit_pos) {
-            if ((word >> b2) & 1u) {
-                out.bits[bit_pos / 8] |= (0x80u >> (bit_pos % 8));
-            }
+    for (uint8_t w = 0; w < numWords && w < 8; ++w) {
+        const uint8_t b0 = _buf[8 + w * 4u + 0], b1 = _buf[8 + w * 4u + 1];
+        const uint8_t b2 = _buf[8 + w * 4u + 2], b3 = _buf[8 + w * 4u + 3];
+        if (w < 7) {
+            out.bits[w * 4u + 0] = b3;
+            out.bits[w * 4u + 1] = b2;
+            out.bits[w * 4u + 2] = b1;
+            out.bits[w * 4u + 3] = b0;
+        } else {
+            out.bits[28] = b3;
+            out.bits[29] = b2;
+            out.bits[30] = b1;
+            out.bits[31] = (uint8_t)(b0 & 0xC0u);
         }
     }
-    // Convert ublox svId to L1S PRN if possible, else keep original
-    auto prn_str = def::ublox_qzss_svid_prn_map_lookup(svId);
-    if (prn_str.has_value()) {
-        out.svid = 0;
-        for (char c : prn_str.value()) {
-            out.svid = out.svid * 10 + (c - '0');
-        }
-    } else {
-        out.svid = svId;
-    }
-    
+    // SVID→PRN 変換は数値参照で直接取る（ラベル経由だと AVR で共有バッファコピー+再パースが発生する）。
+    const auto prn = def::ublox_qzss_svid_prn_map_lookup_num(svId);
+    out.svid = prn.value_or(svId);
     return true;
 }
 

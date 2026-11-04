@@ -1,5 +1,5 @@
 #pragma once
-// Shared types used by both MT=43 (QZQSM/DCR) and MT=44 (DCX/CAMF)
+// MT=43 (QZQSM/DCR) と MT=44 (DCX/CAMF) の両方で使う共通型
 
 #if defined(__AVR__)
 #include "avr_std/cstdint"
@@ -10,11 +10,11 @@
 namespace azaraC {
 
 struct TimeFields {
-    uint8_t  month;   // 1-12 (0 = unresolved)
-    uint8_t  day;     // 1-31 (0 = unresolved)
+    uint8_t  month;   // 1-12（0 は未解決）
+    uint8_t  day;     // 1-31（0 は未解決）
     uint8_t  hour;    // 0-23
     uint8_t  minute;  // 0-59
-    uint32_t unix_time; // 0 = not resolved
+    uint32_t unix_time; // 未解決なら 0
 };
 
 struct LatLon {

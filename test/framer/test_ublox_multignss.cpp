@@ -1,6 +1,4 @@
-// test/framer/test_ublox_multignss.cpp
-// UBX SFRBX マルチGNSS混在テスト
-// gnssId フィルタリング（QZSS=5 のみ許可）の正しさを検証
+// gnssId フィルタリング（QZSS=5 のみ許可）の検証
 
 #include "../test_helpers.h"
 #include "doctest.h"
@@ -11,11 +9,10 @@ using namespace azaraC;
 
 // ヘルパー: 任意の gnssId で SFRBX パケットを生成
 
-static std::vector<uint8_t> makeUbxSfrbxGnssId(uint8_t gnssId, uint8_t svId, const uint8_t* nav_bits) {
-    auto pkt = makeUbxSfrbx(static_cast<uint8_t>(svId + 182), nav_bits);
-    // gnssId フィールドはペイロード先頭バイト（offset 6 from sync）
-    // UBX header(6) + SFRBX payload hdr(8) の構造:
-    // [B5][62][02][13][len_lo][len_hi][gnssId][svId][sigId][freqId][numWords][chn][ver][reserved] gnssId は index 6 (=全体の7バイト目)
+static std::vector<uint8_t> makeUbxSfrbxGnssId(uint8_t gnssId, uint8_t rawSvId, const uint8_t* nav_bits) {
+    auto pkt = makeUbxSfrbx(rawSvId, nav_bits);
+    // UBX header(6) + SFRBX payload hdr(8):
+    // [B5][62][02][13][len_lo][len_hi][gnssId][svId][sigId][freqId][numWords][chn][ver][reserved] gnssId は全体の index 6。
     pkt[6] = gnssId;
     // Checksum は変更されたバイトに対して再計算
     uint8_t cka = 0, ckb = 0;
@@ -28,71 +25,28 @@ static std::vector<uint8_t> makeUbxSfrbxGnssId(uint8_t gnssId, uint8_t svId, con
     return pkt;
 }
 
-// テストケース
+TEST_CASE("UBX: non-QZSS gnssId is ignored") {
+    struct Case { uint8_t gnssId; const char* name; };
+    const Case cases[] = {
+        {0, "GPS"},
+        {6, "GLONASS"},
+        {2, "Galileo"},
+        {3, "BeiDou"},
+        {7, "undefined"},
+    };
+    for (const Case& c : cases) {
+        INFO(c.name);
+        uint8_t bits[32] = {0x53};
+        auto pkt = makeUbxSfrbxGnssId(c.gnssId, 2, bits);
 
-TEST_CASE("UBX: GPS (gnssId=0) ignored") {
-    uint8_t bits[32] = {0x53};
-    auto pkt = makeUbxSfrbxGnssId(0, 2, bits);  // GPS (gnssId=0)
-
-    UbxFramer framer;
-    Frame out;
-    bool found = false;
-    for (auto b : pkt) {
-        if (framer.feed(b, out)) { found = true; break; }
+        UbxFramer framer;
+        Frame out;
+        bool found = false;
+        for (auto b : pkt) {
+            if (framer.feed(b, out)) { found = true; break; }
+        }
+        CHECK_FALSE(found);
     }
-    CHECK_FALSE(found);  // GPS は無視される
-}
-
-TEST_CASE("UBX: GLONASS (gnssId=6) ignored") {
-    uint8_t bits[32] = {0x53};
-    auto pkt = makeUbxSfrbxGnssId(6, 2, bits);  // GLONASS (gnssId=6)
-
-    UbxFramer framer;
-    Frame out;
-    bool found = false;
-    for (auto b : pkt) {
-        if (framer.feed(b, out)) { found = true; break; }
-    }
-    CHECK_FALSE(found);  // GLONASS は無視される
-}
-
-TEST_CASE("UBX: Galileo (gnssId=2) ignored") {
-    uint8_t bits[32] = {0x53};
-    auto pkt = makeUbxSfrbxGnssId(2, 2, bits);  // Galileo (gnssId=2)
-
-    UbxFramer framer;
-    Frame out;
-    bool found = false;
-    for (auto b : pkt) {
-        if (framer.feed(b, out)) { found = true; break; }
-    }
-    CHECK_FALSE(found);  // Galileo は無視される
-}
-
-TEST_CASE("UBX: BeiDou (gnssId=3) ignored") {
-    uint8_t bits[32] = {0x53};
-    auto pkt = makeUbxSfrbxGnssId(3, 2, bits);  // BeiDou (gnssId=3)
-
-    UbxFramer framer;
-    Frame out;
-    bool found = false;
-    for (auto b : pkt) {
-        if (framer.feed(b, out)) { found = true; break; }
-    }
-    CHECK_FALSE(found);  // BeiDou は無視される
-}
-
-TEST_CASE("UBX: Invalid gnssId (7) ignored") {
-    uint8_t bits[32] = {0x53};
-    auto pkt = makeUbxSfrbxGnssId(7, 2, bits);  // 未定義 gnssId=7
-
-    UbxFramer framer;
-    Frame out;
-    bool found = false;
-    for (auto b : pkt) {
-        if (framer.feed(b, out)) { found = true; break; }
-    }
-    CHECK_FALSE(found);  // 未定義も無視される
 }
 
 TEST_CASE("UBX: QZSS after 100 GPS frames") {
@@ -177,7 +131,6 @@ TEST_CASE("UBX: QZSS with valid payload survives non-QZSS contamination") {
     }
     REQUIRE(found);
     CHECK(out.svid == 184);
-    // ペイロードが正しいこと
     CHECK(out.bits[0] == 0x53);
     CHECK(out.bits[1] == 0x2F);
 }

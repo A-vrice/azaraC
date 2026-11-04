@@ -1,8 +1,8 @@
 #pragma once
-// MT=43 (QZQSM/DCR) data structures and tagged union
-// Bit offsets derived from azarashi (IS-QZSS-DCR-017)
+// MT=43 (QZQSM/DCR) のデータ構造とタグ付き union。ビット位置は IS-QZSS-DCR-017（azarashi の定義表）由来。
 //
-// CONTRACT: every payload type (EewData, …, MarineData) MUST stay trivially copyable/destructible (scalars, fixed arrays, POD only, no owning pointers), so copy/move/destroy reduce to memcpy / tag reset. A non-trivial member (e.g. std::string) breaks this.
+// 規約: payload の全型（EewData … MarineData）は trivially copyable/destructible のまま維持すること（スカラ・固定長配列・POD のみ、所有ポインタ禁止）。
+// コピー/ムーブ/破棄が memcpy とタグのリセットで済む前提。
 
 #if defined(__AVR__)
 #include "internal/avr_std/cstdint"
@@ -32,13 +32,14 @@
 
 namespace azaraC {
 
-// repeating record structs (up to 8 each)
+// 繰返しエントリの要素型（各カテゴリの entries[] に並ぶ）
 
 struct TsunamiEntry {
-    uint16_t   arrival_time_raw;
+    // Ta(12b) は単独の 16 bit ユニットを使う。Th(4b)+Pl(10b) が次のユニットを共有する（間の TimeFields がユニットを分断する）。
+    uint16_t   arrival_time_raw : 12;
     TimeFields arrival_time;
-    uint8_t    height_code;
-    uint16_t   region_code;
+    uint16_t   height_code      : 4;
+    uint16_t   region_code      : 10;
 };
 
 struct SeismicEntry {
@@ -62,14 +63,16 @@ struct MarineEntry {
 };
 
 struct NwPacTsunamiEntry {
-    uint16_t   arrival_time_raw;
+    // 同様に Th(9b)+Pl(7b) が 1 ユニットを共有する（Ta は単独、間の TimeFields が分断する）。
+    uint16_t   arrival_time_raw : 12;
     TimeFields arrival_time;
-    uint16_t   height_code;
-    uint8_t    region_code;
+    uint16_t   height_code      : 9;
+    uint16_t   region_code      : 7;
 };
 
-// MT=43 Data (QZQSM / DC Report)
+// MT=43 payload
 
+#if AZARAC_ENABLE_EEW
 struct EewData {
     uint8_t  long_period_lower;
     uint8_t  long_period_upper;
@@ -81,10 +84,41 @@ struct EewData {
     uint16_t epicenter;
     uint8_t  intensity_lower;
     uint8_t  intensity_upper;
-    uint8_t  regions[80];
-    uint8_t  region_count;
-};
+    // 予報区 80 区を電文 [130..209] のビット配置のまま保持（bit i = 予報区 i+1）。展開配列だと 81 B かかる。
+    uint8_t  region_bitmap[10];
 
+    // 対象予報区の個数
+    uint8_t regionCount() const {
+        uint8_t n = 0;
+        for (uint8_t i = 0; i < 10; ++i) {
+            uint8_t v = region_bitmap[i];
+            while (v) { v = (uint8_t)(v & (uint8_t)(v - 1u)); ++n; }
+        }
+        return n;
+    }
+    // 昇順 i 番目 (0 始まり) の対象予報区コード (1..80)。i >= regionCount() は 0。
+    uint8_t regionAt(uint8_t i) const {
+        uint8_t seen = 0;
+        for (uint8_t byt = 0; byt < 10; ++byt) {
+            const uint8_t v = region_bitmap[byt];
+            for (uint8_t bit = 0; bit < 8; ++bit) {
+                if (v & (0x80u >> bit)) {
+                    if (seen == i) return (uint8_t)(byt * 8u + bit + 1u);
+                    ++seen;
+                }
+            }
+        }
+        return 0;
+    }
+    // テスト用: 予報区 code (1..80) を対象にする
+    void addRegion(uint8_t code) {
+        if (code == 0 || code > 80) return;
+        region_bitmap[(code - 1u) >> 3] = (uint8_t)(region_bitmap[(code - 1u) >> 3] | (0x80u >> ((code - 1u) & 7u)));
+    }
+};
+#endif // AZARAC_ENABLE_EEW
+
+#if AZARAC_ENABLE_HYPOCENTER
 struct HypocenterData {
     uint16_t   notification[3];
     uint8_t    notification_count;
@@ -94,6 +128,7 @@ struct HypocenterData {
     uint16_t   epicenter;
     LatLon     coords;
 };
+#endif // AZARAC_ENABLE_HYPOCENTER
 
 struct SeismicData {
     TimeFields   quake_time;
@@ -102,20 +137,22 @@ struct SeismicData {
 };
 
 #if AZARAC_ENABLE_NANKAI
-// Nankai Trough page aggregation.
-// LIFETIME: when is_aggregated, aggregated_text_ptr borrows the Parser's statically-held NankaiPageBuffer::aggregated_text[] and is invalidated by the next feed()/reset() or a Nankai aggregation reusing the slot; the buffer may then hold a different event. Caller MUST copy/serialize immediately. Zero-copy: avoids copying up to AZARAC_NANKAI_MAX_PAGES*18 bytes into each Message.
+// 南海トラフ前沿のページ集約。
+// aggregated_text_ptr（is_aggregated のとき）は Parser が静的保持する NankaiPageBuffer::aggregated_text[] への借用で、次の feed()/reset() かスロット再利用で無効になる（その頃バッファは別の事象を持ち得る）。
+// 呼び出し側は直ちにコピー/シリアライズすること。
+// Message ごとに AZARAC_NANKAI_MAX_PAGES*18 B のコピーを避けるゼロコピー設計。
 struct NankaiData {
     uint8_t info_code;
     uint8_t text[18];
     uint8_t page;
     uint8_t total_page;
-    // MT=43 ペイロードの report_time（bit 21/25/30/35）を受信そのまま保持する。
-    // 集約キーの軸: event_time と違い Decoder::resolveTime の正規化を受けないため、放送途中で report_unix が有効/無効になっても鍵がずれない。
+    // 受信した MT=43 の report_time（bit 21/25/30/35）をそのまま保持し、集約キーの軸にする。
+    // event_time と違い Decoder::resolveTime の正規化を受けないので、放送途中で report_unix が有効/無効になっても鍵がずれない。
     uint8_t report_month;   // 1-12 (4b)
     uint8_t report_day;     // 1-31 (5b)
     uint8_t report_hour;    // 0-23 (5b)
     uint8_t report_minute;  // 0-59 (6b)
-    const char* aggregated_text_ptr = nullptr;  // lifetime: until next feed() or reset()
+    const char* aggregated_text_ptr = nullptr;  // 次の feed()/reset() まで
     uint16_t aggregated_len = 0;
     bool is_aggregated = false;
     bool truncated = false;
@@ -182,17 +219,24 @@ struct MarineData {
     uint8_t     count;
 };
 
-// Safe tagged union for MT=43 disaster_category data
+// 災害カテゴリ別 payload の tagged union
 
 struct Mt43Data {
     uint8_t  report_classification;
     uint8_t  disaster_category;
     uint8_t  information_type;
-    uint8_t  version;        // Vn, 6 bits at [214..219]; spec requires 1
+    uint8_t  version;        // Vn: [214..219]、仕様上の値は 1
     TimeFields event_time;
 
     enum class ActiveType : uint8_t {
-        None, Eew, Hypocenter, Seismic,
+        None,
+#if AZARAC_ENABLE_EEW
+        Eew,
+#endif
+#if AZARAC_ENABLE_HYPOCENTER
+        Hypocenter,
+#endif
+        Seismic,
 #if AZARAC_ENABLE_NANKAI
         Nankai,
 #endif
@@ -204,8 +248,12 @@ struct Mt43Data {
 
     static constexpr size_t storage_size_ = []() -> size_t {
         constexpr size_t sizes[] = {
+#if AZARAC_ENABLE_EEW
             sizeof(EewData),
+#endif
+#if AZARAC_ENABLE_HYPOCENTER
             sizeof(HypocenterData),
+#endif
             sizeof(SeismicData),
 #if AZARAC_ENABLE_NANKAI
             sizeof(NankaiData),
@@ -223,7 +271,8 @@ struct Mt43Data {
         for (auto x : sizes) if (x > m) m = x;
         return m;
     }();
-    alignas(8) unsigned char storage_[storage_size_];
+    // uint64_t を含む型（FloodEntry 等）が入るため境界指定が必要。AVR の alignof(uint64_t) は 1 なので実質要求なし（8 の倍数への切り上げが起きない）、ホストは 8。
+    alignas(uint64_t) unsigned char storage_[storage_size_];
 
     Mt43Data()
         : report_classification(0)
@@ -292,6 +341,8 @@ struct Mt43Data {
 
     template<typename T>
     void initAs() {
+        static_assert(sizeof(T) <= storage_size_,
+                      "Payload type exceeds Mt43Data storage (missing from storage_size_?)");
 #if !defined(__AVR__) || defined(AZARAC_AVR_STUB)
         static_assert(std::is_trivially_copyable_v<T>,
                       "Payload type must be trivially copyable for placement new");
@@ -311,8 +362,12 @@ struct Mt43Data {
         return (active_type == typeFor<T>()) ? reinterpret_cast<const T*>(storage_) : nullptr;
     }
 
+#if AZARAC_ENABLE_EEW
     EewData* getEew() { return get<EewData>(); }
+#endif
+#if AZARAC_ENABLE_HYPOCENTER
     HypocenterData* getHypocenter() { return get<HypocenterData>(); }
+#endif
     SeismicData* getSeismic() { return get<SeismicData>(); }
 #if AZARAC_ENABLE_NANKAI
     NankaiData* getNankai() { return get<NankaiData>(); }
@@ -326,8 +381,12 @@ struct Mt43Data {
     TyphoonData* getTyphoon() { return get<TyphoonData>(); }
     MarineData* getMarine() { return get<MarineData>(); }
 
+#if AZARAC_ENABLE_EEW
     const EewData* getEew() const { return get<EewData>(); }
+#endif
+#if AZARAC_ENABLE_HYPOCENTER
     const HypocenterData* getHypocenter() const { return get<HypocenterData>(); }
+#endif
     const SeismicData* getSeismic() const { return get<SeismicData>(); }
 #if AZARAC_ENABLE_NANKAI
     const NankaiData* getNankai() const { return get<NankaiData>(); }
@@ -345,22 +404,25 @@ private:
     template<typename T> static ActiveType typeFor();
 
     void destroyActive() {
-        active_type = ActiveType::None;  // all payload types are trivially destructible → no-op
+        active_type = ActiveType::None;  // payload 型はすべて trivially destructible なので破棄は不要
     }
 
     void copyFrom(const Mt43Data& other) {
-        memcpy(storage_, other.storage_, storage_size_);  // all payload types are trivially copyable
+        memcpy(storage_, other.storage_, storage_size_);  // payload 型はすべて trivially copyable
     }
 
     void moveFrom(Mt43Data& other) {
-        memcpy(storage_, other.storage_, storage_size_);  // move == copy for trivial types
+        memcpy(storage_, other.storage_, storage_size_);  // trivial なのでムーブはコピーと同じ
         other.active_type = ActiveType::None;
     }
 };
 
-// Type mapping specializations
+#if AZARAC_ENABLE_EEW
 template<> inline Mt43Data::ActiveType Mt43Data::typeFor<EewData>() { return ActiveType::Eew; }
+#endif
+#if AZARAC_ENABLE_HYPOCENTER
 template<> inline Mt43Data::ActiveType Mt43Data::typeFor<HypocenterData>() { return ActiveType::Hypocenter; }
+#endif
 template<> inline Mt43Data::ActiveType Mt43Data::typeFor<SeismicData>() { return ActiveType::Seismic; }
 #if AZARAC_ENABLE_NANKAI
 template<> inline Mt43Data::ActiveType Mt43Data::typeFor<NankaiData>() { return ActiveType::Nankai; }

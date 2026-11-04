@@ -1,0 +1,40 @@
+name: 'Setup Arduino CLI'
+description: 'Arduino CLI のインストールとボードマネージャ設定。core update-index は一時的な取得失敗に備えて3回リトライする。'
+
+inputs:
+  version:
+    description: 'arduino-cli のバージョン指定'
+    required: false
+    default: '1.x'
+  additional_urls:
+    description: 'board_manager.additional_urls へ追加する URL（複数はスペース区切り。空なら追加しない）'
+    required: false
+    default: ''
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install Arduino CLI
+      uses: arduino/setup-arduino-cli@81d310742121c928ea9c8bbd407b4217b432ae02 # v2.0.0
+      with:
+        version: ${{ inputs.version }}
+
+    - name: Configure board manager
+      shell: bash
+      env:
+        ADDITIONAL_URLS: ${{ inputs.additional_urls }}
+      run: |
+        # 'config init'自体がindex更新を行い、一時的な取得失敗でexit 1になる
+        # (例: Run #92 で Nano 33 BLEが2連続 "Some indexes could not be updated")。 config作成が目的なので失敗許容し、update-index側でリトライする。
+        arduino-cli config init --overwrite || true
+        # Boards with a built-in core (e.g. arduino:avr) have no additional index URL; an empty URL makes 'core update-index' fail with "Invalid index URL".
+        if [[ -n "$ADDITIONAL_URLS" ]]; then
+          # 複数URLは語で分割して渡す（SC2086 相当の意図的な分割）
+          arduino-cli config add board_manager.additional_urls $ADDITIONAL_URLS
+        fi
+        for i in 1 2 3; do
+          arduino-cli core update-index && break
+          echo "::warning::core update-index failed (attempt $i/3), retrying..."
+          sleep 10
+          [[ $i -eq 3 ]] && exit 1
+        done

@@ -1,4 +1,4 @@
-// test/integration/test_error_handling.cpp — エラーハンドリング詳細テスト
+// エラーハンドリング詳細テスト
 #include <string>
 #include "doctest.h"
 #include "../src/Parser.h"
@@ -109,7 +109,8 @@ TEST_CASE("Error: Invalid NMEA checksum rejected") {
 }
 
 TEST_CASE("Error: Short NMEA payload rejected") {
-    const char* nmea = "$QZQSM,58,9AAF*7F";
+    // チェックサムは正しい（QZQSM,58,9AAF の XOR = 0x36）。長さ検証だけで拒否されること。
+    const char* nmea = "$QZQSM,58,9AAF*36";
     NmeaFramer framer;
     Frame frame;
     bool found = false;
@@ -175,8 +176,7 @@ TEST_CASE("Error: Version 1 accepted") {
 }
 #endif // AZARAC_ENABLE_EEW
 
-// 未割当・予約の災害カテゴリは拒否される
-// Helper: build a valid MT=43 frame with custom disaster_category
+// 未割当・予約の disaster_category は拒否されるヘルパ: disaster_category を指定した妥当な MT=43 フレームを作る
 static void buildMt43Frame(uint8_t category, uint8_t* bits) {
     memset(bits, 0, 32);
     setBits(bits, 0, 8, 0x53);       // Preamble
@@ -239,6 +239,9 @@ TEST_CASE("Decoder: report_classification all values 0-7") {
         INFO("report_classification=", rc);
         CHECK(result);
         CHECK(msg.valid);
+        REQUIRE(msg.getMt43() != nullptr);
+        CHECK(msg.getMt43()->report_classification == rc);
+        CHECK(msg.getMt43()->disaster_category == 1);
     }
 }
 TEST_CASE("Decoder: information_type all values 0-3") {
@@ -262,6 +265,9 @@ TEST_CASE("Decoder: information_type all values 0-3") {
         INFO("information_type=", it);
         CHECK(result);
         CHECK(msg.valid);
+        REQUIRE(msg.getMt43() != nullptr);
+        CHECK(msg.getMt43()->information_type == it);
+        CHECK(msg.getMt43()->disaster_category == 1);
     }
 }
 #endif // AZARAC_ENABLE_EEW
@@ -273,11 +279,10 @@ TEST_CASE("Decoder: MT=44 A12=0 with EX1!=0 target_area_code present") {
     setBits(bits, 8, 6, 44);         // MT=44
     setBits(bits, 24, 2, 1);         // a1=1 (Alert)
     setBits(bits, 26, 9, 111);       // a2=111 (Japan)
-    setBits(bits, 35, 5, 1);         // a3=1 (Foundation for MultiMedia Communications) - 5 bits
-    setBits(bits, 40, 7, 10);        // a4=10 - 7 bits
-    setBits(bits, 47, 2, 3);         // a5=3 - 2 bits
-    // A12-A16 (main ellipse) = 0
-    // EX1 at bit 146 (16 bits) = 1100 (札幌市中央区)
+    setBits(bits, 35, 5, 1);         // a3=1 (Foundation for MultiMedia Communications)
+    setBits(bits, 40, 7, 10);        // a4=10
+    setBits(bits, 47, 2, 3);         // a5=3
+    // A12-A16（主楕円）= 0 EX1 at bit 146 (16 bits) = 1100 (札幌市中央区)
     setBits(bits, 146, 16, 1100);
     setBits(bits, 214, 6, 1);        // version
     uint32_t crc = crc24qRef(bits, 226);
@@ -294,8 +299,9 @@ TEST_CASE("Decoder: MT=44 A12=0 with EX1!=0 target_area_code present") {
 
     const Mt44Data* mt44 = msg.getMt44();
     REQUIRE(mt44 != nullptr);
-    CHECK(mt44->mt44_decoded.target_area_code_present == true);
-    CHECK(mt44->mt44_decoded.target_area_code == 1100);
+    // target_area_code のミラーは廃止: 主楕円なし && ex1!=0 のとき ex1 が対象地域コード
+    CHECK(mt44->ex.ex_lalert_local.ex1 == 1100);
+    CHECK(!mt44->mt44_decoded.main_ellipse_present);
 }
 
 TEST_CASE("Decoder: MT=44 EX8=1 (city code list mode)") {
@@ -304,18 +310,14 @@ TEST_CASE("Decoder: MT=44 EX8=1 (city code list mode)") {
     setBits(bits, 8, 6, 44);         // MT=44
     setBits(bits, 24, 2, 2);         // a1=2 (Update)
     setBits(bits, 26, 9, 111);       // a2=111 (Japan)
-    setBits(bits, 35, 5, 2);         // a3=2 (Fire and Disaster Management Agency) - 5 bits
-    setBits(bits, 40, 7, 5);         // a4=5 - 7 bits
-    setBits(bits, 47, 2, 3);         // a5=3 - 2 bits
-    // EX8 at bit 146 (1 bit) = 1 (city code list mode)
+    setBits(bits, 35, 5, 2);         // a3=2 (Fire and Disaster Management Agency)
+    setBits(bits, 40, 7, 5);         // a4=5
+    setBits(bits, 47, 2, 3);         // a5=3
+    // EX8 = bit 146（1 bit）を 1 にして市区町村コードリストモード
     setBits(bits, 146, 1, 1);
-    // EX9 at bit 147 (64 bits) = 4 city codes (each 16 bits)
-    // ex9 = (ex9_hi << 32) | ex9_lo
-    // ex9_hi = bits 147..178, ex9_lo = bits 179..210
-    // Code 1 = ex9[0:15] = ex9_lo[0:15] = bits 179..194
-    // Code 2 = ex9[16:31] = ex9_lo[16:31] = bits 195..210
-    // Code 3 = ex9[32:47] = ex9_hi[0:15] = bits 147..162
-    // Code 4 = ex9[48:63] = ex9_hi[16:31] = bits 163..178
+    // EX9 は bit 147 から（64 ビット）= 4 つの市区町村コード（各 16 ビット）。
+// ex9 = (ex9_hi << 32) | ex9_lo、ex9_hi = bit 147..178、ex9_lo = bit 179..210:
+// code1 = ex9[0:15] = bit 179..194、code2 = ex9[16:31] = bit 195..210、code3 = ex9[32:47] = bit 147..162、code4 = ex9[48:63] = bit 163..178
     setBits(bits, 179, 16, 1100);    // city 1 (ex9[0:15])
     setBits(bits, 195, 16, 1101);    // city 2 (ex9[16:31])
     setBits(bits, 147, 16, 1102);    // city 3 (ex9[32:47])
@@ -336,8 +338,7 @@ TEST_CASE("Decoder: MT=44 EX8=1 (city code list mode)") {
     REQUIRE(mt44 != nullptr);
     CHECK(mt44->mt44_decoded.jalert_prefecture_mode == false);
     CHECK(mt44->mt44_decoded.city_code_count == 4);
-    // Verify all 4 codes are decoded in the exact ex9 bit layout order produced by decodeCityCodeList (ex9[0:15], ex9[16:31], ex9[32:47],
-    // ex9[48:63]). With the fixture below this yields [1101, 1100, 1103, 1102].
+    // city_codes[] は ex9 のビット順（ex9[0:15], [16:31], [32:47], [48:63]）に従う。このフィクスチャでは [1101, 1100, 1103, 1102] になる。
     CHECK(mt44->mt44_decoded.city_codes[0] == 1101);
     CHECK(mt44->mt44_decoded.city_codes[1] == 1100);
     CHECK(mt44->mt44_decoded.city_codes[2] == 1103);
@@ -345,15 +346,14 @@ TEST_CASE("Decoder: MT=44 EX8=1 (city code list mode)") {
 }
 
 TEST_CASE("Decoder: MT=44 Outside Japan ex11_raw JSON output") {
-    // Use a synthetic Outside Japan message
     uint8_t bits[32] = {};
     setBits(bits, 0, 8, 0x53);
     setBits(bits, 8, 6, 44);         // MT=44
     setBits(bits, 24, 2, 3);         // a1=3 (All Clear)
     setBits(bits, 26, 9, 71);        // a2=71 (Fiji) - triggers OutsideJapan branch (a2 != 111)
     setBits(bits, 35, 5, 2);         // a3=2 (Fiji Meteorological Service)
-    setBits(bits, 40, 7, 5);         // a4=5 - 7 bits
-    setBits(bits, 47, 2, 3);         // a5=3 - 2 bits
+    setBits(bits, 40, 7, 5);         // a4=5
+    setBits(bits, 47, 2, 3);         // a5=3
     setBits(bits, 146, 8, 0xAB);     // ex11_raw[0] = 0xAB
     setBits(bits, 214, 6, 1);
     uint32_t crc = crc24qRef(bits, 226);
@@ -367,7 +367,7 @@ TEST_CASE("Decoder: MT=44 Outside Japan ex11_raw JSON output") {
     bool result = dec.decode(frame, msg, 0);
     REQUIRE(result);
 
-    // ex11_raw はビット 146..209 の 8 バイト + 210..213 の 4 ビットを hex 化した 17 文字。先頭バイトだけ 0xAB を入れてあるので、他の桁は 0 のままになる。
+    // ex11_raw = ビット 146..209 (8 バイト) + 210..213 (4 ビット) を hex 化した 17 桁。0xAB は先頭バイトのみで他は 0 のまま。
     StringPrint sp;
     internal::JsonSerializer::serialize(msg, sp);
     const auto& s = sp.str();
@@ -383,9 +383,9 @@ TEST_CASE("Decoder: MT=44 A17/A18 specific settings output") {
     setBits(bits, 35, 5, 1);         // a3=1 (Foundation for MultiMedia Communications)
     setBits(bits, 40, 7, 10);        // a4=10
     setBits(bits, 47, 2, 3);         // a5=3
-    // A17 at bit 129 (2 bits) = 2
+    // A17 = bit 129（2 bit）を 2 に
     setBits(bits, 129, 2, 2);
-    // A18 at bit 131 (15 bits) = 0x1234
+    // A18 = bit 131（15 bit）を 0x1234 に
     setBits(bits, 131, 15, 0x1234);
     setBits(bits, 214, 6, 1);
     uint32_t crc = crc24qRef(bits, 226);
@@ -399,7 +399,6 @@ TEST_CASE("Decoder: MT=44 A17/A18 specific settings output") {
     bool result = dec.decode(frame, msg, 0);
     REQUIRE(result);
 
-    // Verify JSON output contains a17/a18
     StringPrint sp;
     internal::JsonSerializer::serialize(msg, sp);
     const auto& s = sp.str();
@@ -408,9 +407,7 @@ TEST_CASE("Decoder: MT=44 A17/A18 specific settings output") {
 }
 
 TEST_CASE("Decoder: MT=44 D36 typhoon category output") {
-    // D36 (typhoon category) is decoded from A18[14:12] (top 3 bits of A18)
-    // A18 starts at bit 131, so A18[14:12] = bits 131..133
-    // DcxHelper.cpp: r.d36 = (a18 >> 12) & 0x07;
+    // D36（台風カテゴリ）= A18[14:12]（A18 は bit 131 開始 → bit 131..133）。DcxHelper.cpp: r.d36 = (a18 >> 12) & 0x07;
     for (uint8_t d36_val = 0; d36_val <= 7; ++d36_val) {
         uint8_t bits[32] = {};
         setBits(bits, 0, 8, 0x53);
@@ -421,9 +418,9 @@ TEST_CASE("Decoder: MT=44 D36 typhoon category output") {
         setBits(bits, 40, 7, 82);        // a4=82 (Typhoon)
         setBits(bits, 47, 2, 3);         // a5=3
         setBits(bits, 129, 2, 3);        // A17=3 (B4 detailed info)
-        // A18 at bit 131: d36 at a18[14:12] = spec bits 131..133
+        // d36 = a18[14:12]
         setBits(bits, 131, 3, d36_val);
-        // d8 at a18[11:8] = spec bits 134..137, d9 at a18[7:5] = spec bits 138..140
+        // d8 = a18[11:8] = 仕様 bit 134..137、d9 = a18[7:5] = 仕様 bit 138..140
         setBits(bits, 134, 4, 5);        // d8=5
         setBits(bits, 138, 3, 2);        // d9=2
         setBits(bits, 214, 6, 1);        // version
@@ -443,7 +440,7 @@ TEST_CASE("Decoder: MT=44 D36 typhoon category output") {
         const Mt44Data* mt44 = msg.getMt44();
         REQUIRE(mt44 != nullptr);
 
-        // Verify JSON output carries the decoded d36 value and its flattened label
+        // JSON 出力に復号済みの d36 と、平坦化されたラベルが出ること
         StringPrint sp;
         internal::JsonSerializer::serialize(msg, sp);
         const auto& s = sp.str();

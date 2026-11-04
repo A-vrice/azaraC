@@ -2,9 +2,7 @@
 """compare_nankai_aggregation.py — azarashi 出力と azaraC 集約結果を比較する
 
 test/data/nankai_vectors.json（azarashi 出力）を唯一の情報源とする。
-C++ 側のページフィクスチャ test/data/nankai_pages_generated.h は
-gen_all_vectors.py の gen_nankai() が同じ JSON から生成するため、
-C++ と Python でページデータが二重管理されることはない。
+C++ 側のページフィクスチャ test/data/nankai_pages_generated.h は gen_all_vectors.py の gen_nankai() が同じ JSON から生成するため、C++ と Python でページデータが二重管理されることはない。
 
 検証内容:
   1. JSON のページ構成（欠落ページがないか）
@@ -80,8 +78,7 @@ def main():
     print("=== azaraC decode_to_json aggregation verification ===")
     input_text = "\n".join(nmeas[n] for n in range(1, total + 1)) + "\n"
     try:
-        # check=False: 失敗時は returncode と stderr を自前で整形して報告する
-        # （CalledProcessError にスタックトレースを出させない）。
+        # check=False: 失敗は returncode/stderr を自前で整形して報告する（スタックトレースを出さない）。
         result = subprocess.run(
             [AZARAC_BIN], input=input_text, capture_output=True, text=True,
             timeout=30, encoding='utf-8', errors='replace', check=False)

@@ -4,14 +4,12 @@ CXX      = g++
 CXXFLAGS = -std=c++17 -Wall -Wextra -I../src -I. -DARDUINO=0 -DAZARAC_LANG_JA=1 -DAZARAC_LANG_EN=1 -MMD -MP
 
 # --- Static Analysis and Coverage ---
-# -Wconversion / -Wsign-conversion はビット演算を多用する組み込み向けコードでは修正コストが
-# 見合わないため使わない。-Wshadow は有効（実害のあるシャドウイングを検出するため）。
+# -Wconversion / -Wsign-conversion はビット演算を多用する組み込み向けコードでは修正コストが見合わないため使わない。
+# -Wshadow は有効（実害のあるシャドウイングを検出するため）。
 ANALYSIS_CXXFLAGS = $(CXXFLAGS) -Wpedantic -Wshadow -Wnull-dereference -Wdouble-promotion -Wformat=2 -Werror
 COVERAGE_FLAGS    = -O0 -fprofile-arcs -ftest-coverage
 # check / check-xml で共有する cppcheck オプション（ドリフト防止）。
-# uninitMemberVarNoCtor は POD 集約体を memset + placement new で扱う設計
-# （Mt43Data/Mt44Data の payload 共用体、Dedup.h のキー構造体）で常に誤検知になるため抑制する
-# （実測 24 件はすべて手書き集約体と test/ のベンチ・ファズ構造体。生成定義テーブルには出ない）。
+# uninitMemberVarNoCtor は POD 集約体を memset + placement new で扱う設計（Mt43Data/Mt44Data の payload 共用体、Dedup.h のキー構造体）で常に誤検知になるため抑制する（実測 24 件はすべて手書き集約体と test/ のベンチ・ファズ構造体。生成定義テーブルには出ない）。
 CPPCHECK_OPTS = --enable=warning,performance,portability --check-level=exhaustive --inline-suppr --suppress=missingIncludeSystem --suppress=*:doctest.h --suppress=uninitMemberVarNoCtor --error-exitcode=1 --std=c++17 -I../src -I. -DAZARAC_NANKAI_MAX_PAGES=63 ../src .
 
 # MinGW-w64 bin path (opt-in; set on the command line if g++ is not on PATH,
@@ -55,6 +53,7 @@ TEST_SRCS = \
 	core/test_core.cpp \
 	core/test_boundary_values.cpp \
 	core/test_message_struct.cpp \
+	core/test_time_equivalence.cpp \
 	core/test_macro_disabled.cpp \
 	framer/test_framer.cpp \
 	framer/test_ublox_azarashi.cpp \
@@ -76,7 +75,8 @@ TEST_SRCS = \
 	integration/test_dcx_edge_cases.cpp \
 	integration/test_azarashi_dcr.cpp \
 	integration/test_azarashi_dcx.cpp \
-	integration/test_realdata.cpp
+	data/test_realdata_generated.cpp \
+	data/test_realdata_anchors.cpp
 
 # Library sources (src/ 配下の実装ファイル)
 LIB_SRCS = \
@@ -101,7 +101,47 @@ OBJS = $(TEST_OBJS) $(LIB_OBJS)
 # VPATH for library sources
 VPATH = ../src:../src/decoder:../src/framer:../src/json:../src/internal
 
-.PHONY: all clean run run-small-pages run-lang-defaults fuzz decode dedup-realday bench compare-realdata check check-xml check-strict-compile coverage test-no-alloc pgm-stub
+# --- 同一ツリーでの並行 make 排他（監査 P2-1） ---
+# この Makefile は全構成（既定 / run-lto / pgm-stub / macro / no-alloc）で同じ .o パスを共有するため、2 つの make が同時に走ると同一名の .o へ同時書き込みになる。
+# リンク時に「lto1: Cannot open」「illegal relocation type」「file truncated」のような本来の原因と無関係な失敗になる（実測: 複数セッションの並行実行で再現）。
+#
+# 仕組み: ロック未保持のまま LOCKABLE な目標が呼ばれたら、scripts/with-make-lock.sh が
+# mkdir でロックを取り、AZARAC_LOCK_HELD=1 を付けた make を再帰実行し、終了時に解放する。
+# ロック処理を Make のレシピから外すのは、Windows の native make が複数行・非 ASCII の
+# レシピを MSYS sh に渡す際に引用符を壊すため（make -C test run が起動前に失敗した）。
+# AZARAC_LOCK_HELD はコマンドライン変数で MAKEFLAGS 経由で全ての再帰 make
+# （run-lto / macro / test-no-alloc 等の内部呼び出し）へ自動伝播するため、サブ make
+# がロックを取り直して自己デッドロックすることはない。迂回するなら
+# `make AZARAC_LOCK_HELD=1 <target>`。
+#
+# ロック対象は test/ 配下の .o・バイナリと bench/avr/out を書く／消す目標。
+# bench-dedup / bench-decode は test/bench/*.o を書くので、別プロセスの clean に消されないようここに含める。
+# ただし同じ make 内の `-j2 bench-dedup bench-decode` はこのロックでは直列化されないため、衝突はスクリプト側のオブジェクト接頭辞（dedup_ / decode_）で防いでいる。
+# test-time-irq は time_irq_test を書くので clean / run-lto と同時に走らないよう含める。
+# bench（AVR 計測）は bench/avr/out を共有するので、並行する make bench 同士の衝突を防ぐため含める。
+# test-macro-compile / test-macro-sizes / macro / test-no-alloc は .macro_tmp を共有し、最後に丸ごと削除するので含める。
+#
+# 残リスク: 強制 kill（SIGKILL/プロセスクラッシュ）では trap を実行できないためロックが残る。
+# その場合は test/.make-lock を手動で削除する（スクリプトのエラーにも記載）。
+LOCKABLE  := all run run-small-pages run-lto run-lang-defaults clean \
+             test-no-alloc pgm-stub macro fuzz decode dedup-realday \
+             bench bench-dedup bench-decode test-time-irq test-macro-compile test-macro-sizes \
+             compare-realdata coverage check check-xml check-strict-compile
+USER_GOALS := $(if $(MAKECMDGOALS),$(MAKECMDGOALS),all)
+# 「ロック未保持」かつ「ユーザーが直接 LOCKABLE な目標を指定した」場合のみラップする。
+NEED_LOCK := $(if $(AZARAC_LOCK_HELD),,$(filter $(LOCKABLE),$(USER_GOALS)))
+
+ifneq ($(NEED_LOCK),)
+.PHONY: lockwrap $(USER_GOALS)
+MAKE_CMD := $(MAKE)
+$(USER_GOALS):: lockwrap
+lockwrap:
+	@AZARAC_MAKE="$(MAKE_CMD)" bash scripts/with-make-lock.sh $(USER_GOALS)
+endif
+
+ifeq ($(NEED_LOCK),)
+
+.PHONY: all clean run run-small-pages run-lto run-lang-defaults fuzz decode dedup-realday bench bench-dedup bench-decode compare-realdata check check-xml check-strict-compile coverage test-no-alloc pgm-stub test-time-irq
 
 all: $(TEST_BIN)
 
@@ -123,6 +163,15 @@ run: all
 # check-strict-compile 後に混在リンクして落ちる。必ず clean する。
 run-small-pages:
 	$(MAKE) -B CXXFLAGS_EXTRA="-DAZARAC_NANKAI_MAX_PAGES=8" run; status=$$?; $(MAKE) clean; exit $$status
+
+# リンク時最適化（LTO）の検証。
+# -O2 と併用しないと LTO の codegen 経路がほぼ通らないため -O2 -flto で全体を再ビルドする。
+# CXXFLAGS は依存関係に載らないので -B を使い、終了後は必ず clean する（既定 -O0 の .o と混在すると以降の run が再ビルドされない）。
+# LTO は ODR 違反・インライン後の未定義動作をリンク時に顕在化させる。
+# 型不一致系は GCC では既定で警告に留まり（例: Dedup.h / Dedup.cpp の配列長不一致）。
+# 素の -flto では緑のままなのでこの 2 つだけ -Werror にする（-Werror 全体だと -O2 由来の無関係な警告で落ちる）。
+run-lto:
+	$(MAKE) -B CXXFLAGS="$(CXXFLAGS) -O2 -flto -Werror=lto-type-mismatch -Werror=odr" run; status=$$?; $(MAKE) clean; exit $$status
 
 # 言語構成の検証。ライブラリ既定は JA=1 / EN=0 で、テスト既定（JA=1 / EN=1）とは
 # 出力が変わる: 日本語版を持たない英語専用表が EN=0 で消える回帰は、テスト既定では
@@ -178,9 +227,24 @@ endif
 $(DEDUP_REALDAY_BIN): $(DEDUP_REALDAY_OBJS) $(LIB_OBJS)
 	$(CXX) $(CXXFLAGS) $(CXXFLAGS_EXTRA) $^ -o $@ $(LDFLAGS)
 
-# dedup ベンチ（autoresearch.sh）。入力は test/data/*.json のみで realdata は不要。
+# 定義テーブルの AVR フットプリント計測（test/bench/avr/autoresearch.sh）。
+# avr-gcc / avr-libc とホストの g++ / python が必要。
+# 入力は追跡済みの src/definition/*.h のみ。
 bench:
-	@bash ../autoresearch.sh
+	@bash bench/avr/autoresearch.sh
+
+# dedup ベンチ（test/bench/run_dedup_bench.sh）。
+# host の g++ だけで動き、入力は test/data/*.json のみ。
+# NEW_RECALL / DUP_SUPPRESS / NANKAI_KEY_STABLE / PREAMBLE_KEY_STABLE をゲートし、失敗時は非 0 で終了する。
+bench-dedup:
+	@bash bench/run_dedup_bench.sh
+
+# decode ベンチ（test/bench/run_decode_bench.sh）。
+# host の g++ だけで動き、入力は test/data/*.json のみ。
+# グループ別 DECODE_CYCLES_*（フレーミング＋デコード込みの 1 文あたりサイクル）を出力する。
+# 値そのものはゲートせず、METRIC の diff で追跡する。
+bench-decode:
+	@bash bench/run_decode_bench.sh
 
 # --- Static Analysis ---
 # 静的解析 (時間をかけた厳格なチェック)
@@ -215,14 +279,11 @@ coverage:
 	gcovr . --filter=../src/ --exclude='.*test_.*\.cpp' --exclude='.*definition.*' --txt
 
 # --- 動的確保ゼロ検証 (test-no-alloc) ---
-# GNU ld の --wrap は未解決参照しか差し替えないため、ライブラリとテストを 1 つの
-# 実行ファイルにリンクする。--wrap はリンク時にしか効かないので、通常の
-# run_tests とは別バイナリ・別オブジェクトディレクトリ (.noalloc/) を使う
-# （既定の .o と混在させると __real_* 未定義でリンクが落ちる）。
-# CXXFLAGS_EXTRA は依存関係に載らないため、実行後は clean する（残った
-# .noalloc/*.o が縮小構成のまま再利用されるのを避ける）。
-# macOS の ld64 は --wrap を持たないためスキップする（uname -s は MinGW で
-# MSYS_NT-* を返すので Darwin 判定で問題ない）。
+# GNU ld の --wrap は未解決参照しか差し替えないため、ライブラリとテストを 1 つの実行ファイルにリンクする。
+# --wrap はリンク時にしか効かないので、通常の run_tests とは別バイナリを使う。
+# 別オブジェクトディレクトリ (.noalloc/) を使う（既定の .o と混在させると __real_* 未定義でリンクが落ちる）。
+# CXXFLAGS_EXTRA は依存関係に載らないため、実行後は clean する（残った .noalloc/*.o が縮小構成のまま再利用されるのを避ける）。
+# macOS の ld64 は --wrap を持たないためスキップする（uname -s は MinGW で MSYS_NT-* を返すので Darwin 判定で問題ない）。
 NOALLOC_BIN = no_alloc_tests$(suffix $(TEST_BIN))
 NOALLOC_TMP = .noalloc
 NOALLOC_WRAP = -Wl,--wrap=malloc -Wl,--wrap=calloc -Wl,--wrap=realloc -Wl,--wrap=posix_memalign
@@ -239,15 +300,14 @@ test-no-alloc:
 $(NOALLOC_TMP):
 	@mkdir -p $@
 
-# ディレクトリは order-only にする（通常の prerequisite にすると mtime 変化で
-# 全 .o が毎回再ビルドされる）。
+# ディレクトリは order-only にする（通常の prerequisite にすると mtime 変化で全 .o が毎回再ビルドされる）。
 $(NOALLOC_BIN): $(NOALLOC_OBJS) | $(NOALLOC_TMP)
 	$(CXX) $(CXXFLAGS) $(CXXFLAGS_EXTRA) $^ -o $@ $(LDFLAGS) $(NOALLOC_WRAP)
 
 $(NOALLOC_OBJS): | $(NOALLOC_TMP)
 
-# テスト本体はサブディレクトリにあり VPATH（../src 配下）に無いためパターン
-# ルールでは解決できない。明示ルールを置く。
+# テスト本体はサブディレクトリにあり VPATH（../src 配下）に無いためパターンルールでは解決できない。
+# 明示ルールを置く。
 $(NOALLOC_TMP)/test_no_alloc.o: integration/test_no_alloc.cpp
 	$(CXX) $(CXXFLAGS) $(CXXFLAGS_EXTRA) -c $< -o $@
 
@@ -402,7 +462,7 @@ endif
 -include $(TEST_OBJS:.o=.d) $(LIB_OBJS:.o=.d) $(FUZZ_OBJS:.o=.d) $(DECODE_OBJS:.o=.d) $(DEDUP_REALDAY_OBJS:.o=.d)
 
 clean:
-	-@$(RM) *.o *.exe *.d *.gcno *.gcda cppcheck_report.xml cppcheck_stderr.log coverage.xml coverage_report.json macro_sizes.txt
+	-@$(RM) *.o *.exe *.d *.gcno *.gcda cppcheck_report.xml cppcheck_stderr.log coverage.xml coverage_report.json macro_sizes.txt time_irq_test
 	-@$(RM) $(NOALLOC_BIN)
 	-@rm -rf $(NOALLOC_TMP)
 	-@$(RM) core/*.o core/*.d core/*.gcno core/*.gcda
@@ -410,10 +470,12 @@ clean:
 	-@$(RM) framer/*.o framer/*.d framer/*.gcno framer/*.gcda
 	-@$(RM) json/*.o json/*.d json/*.gcno json/*.gcda
 	-@$(RM) integration/*.o integration/*.d integration/*.gcno integration/*.gcda
+	-@$(RM) data/*.o data/*.d data/*.gcno data/*.gcda
 	-@$(RM) internal/*.o internal/*.d internal/*.gcno internal/*.gcda
 	-@$(RM) fuzz/*.o fuzz/*.d fuzz/*.gcno fuzz/*.gcda
 	-@$(RM) tools/*.o tools/*.d tools/*.gcno tools/*.gcda
 	-@$(RM) scripts/*.o scripts/*.d scripts/*.gcno scripts/*.gcda
+	-@$(RM) bench/*.o bench/*.cxxid bench/bench_dedup bench/bench_decode
 
 # ---- PROGMEM stub (AVR branch semantics test on host) ----
 # Compiles all tests with __AVR__ defined and a stub avr/pgmspace.h so the
@@ -432,3 +494,15 @@ clean:
 pgm-stub:
 	$(MAKE) clean
 	$(MAKE) CXXFLAGS="-std=c++17 -Wall -Wextra -Istub -I../src -I. -DARDUINO=0 -D__AVR__ -DAZARAC_AVR_STUB -DAZARAC_LANG_JA=1 -DAZARAC_LANG_EN=1 -DAZARAC_NANKAI_MAX_PAGES=63 -DAZARAC_NANKAI_BUFFERS=4 -DAZARAC_DEDUP_SLOTS=64 -DAZARAC_ENABLE_EEW=1 -DAZARAC_ENABLE_HYPOCENTER=1 -DAZARAC_ENABLE_SEISMIC=1 -DAZARAC_ENABLE_NANKAI=1 -DAZARAC_ENABLE_TSUNAMI=1 -DAZARAC_ENABLE_NW_PAC_TSUNAMI=1 -DAZARAC_ENABLE_VOLCANO=1 -DAZARAC_ENABLE_ASH_FALL=1 -DAZARAC_ENABLE_WEATHER=1 -DAZARAC_ENABLE_FLOOD=1 -DAZARAC_ENABLE_TYPHOON=1 -DAZARAC_ENABLE_MARINE=1 -DAZARAC_ENABLE_DCX_CAMF=1 -MMD -MP -g" $(TEST_BIN); b=$$?; if [ $$b -ne 0 ]; then $(MAKE) clean; exit $$b; fi; ./$(TEST_BIN); t=$$?; $(MAKE) clean; exit $$t
+
+# ---- Arduino の割り込み状態テスト（ARDUINO=1、host 上で AVR 分岐） ----
+# 通常のスイートは ARDUINO=0 なので、TimeFields.h の Arduino 分岐はコンパイルされない。
+# このターゲットは __AVR__ と stub_arduino のヘッダでそれをコンパイルし、
+# getMillis() が呼び出し側の SREG 状態を保存することを確認する。
+test-time-irq:
+	$(CXX) -std=c++17 -Wall -Wextra -Istub_arduino -I../src -DARDUINO=1 -D__AVR__ -DAZARAC_AVR_STUB internal/test_time_irq.cpp -o time_irq_test
+	./time_irq_test; t=$$?; $(RM) time_irq_test time_irq_test.exe; exit $$t
+
+# 実規則セクション全体の条件の終わり（冒頭の並行 make 排他ロック参照）。
+# NEED_LOCK が空 = ロック保持済みか対象外の目標のときだけここまでパースされる。
+endif

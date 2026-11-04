@@ -3,7 +3,6 @@ import os
 import sys
 from datetime import datetime
 
-# パス
 _exe = ".exe" if os.name == "nt" else ""
 BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 REALDATA = os.path.join(BASE, "realdata")
@@ -19,7 +18,6 @@ DC_MAP = {
 IT_MAP = {"発表": 0, "訂正": 1, "取消": 2}
 RC_MAP = {"最優先": 1, "優先": 2, "通常": 3, "訓練/試験": 7}
 
-# NMEA
 def nmea_checksum(body: str) -> str:
     cs = 0
     for ch in body:
@@ -32,7 +30,6 @@ def make_qzqsm(svid: int, hex_payload: str) -> str:
     return f"${body}{nmea_checksum(body)}"
 
 
-# JSON serialize
 def json_serial(obj):
     """azarashi オブジェクト等を JSON 文字列化（robust: __str__/__repr__ 例外も吸収）"""
     if isinstance(obj, datetime):

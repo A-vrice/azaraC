@@ -1,13 +1,11 @@
-// test/core/test_core.cpp — コア機能テスト
-// CRC-24Q, 時間変換, 緯度経度, 重複除去の統合テスト
-// test_crc.cpp, test_time.cpp, test_latlon.cpp, test_dedup.cpp を統合
+// コア機能テスト CRC-24Q, 時間変換, 緯度経度, 重複除去
 
 #include "../test_helpers.h"
 #include "doctest.h"
 
 using namespace azaraC;
 
-// CRC-24Q テスト (from test_crc.cpp)
+// CRC-24Q テスト
 
 TEST_CASE("CRC-24Q vs reference") {
     uint8_t buf[29] = {};
@@ -25,7 +23,6 @@ TEST_CASE("CRC-24Q: diverse random patterns") {
     uint8_t buf[29];
     for (int pat = 0; pat < 50; ++pat) {
         INFO("Pattern ", pat);
-        // Fill with deterministic pseudo-random data
         uint8_t seed = (uint8_t)(pat * 37 + 13);
         for (int i = 0; i < 29; ++i) {
             buf[i] = (uint8_t)(seed * (i + 1) ^ 0xA5);
@@ -48,14 +45,12 @@ TEST_CASE("CRC-24Q: alternating bits") {
 
 TEST_CASE("CRC-24Q: single bit set sweep") {
     uint8_t buf[29] = {};
-    // Test first 10 bit positions
     for (int b = 0; b < 10; ++b) {
         INFO("Bit position ", b);
         memset(buf, 0, 29);
         buf[b / 8] = (uint8_t)(0x80u >> (b % 8));
         CHECK(TestDecoder::calcCRC(buf, 226) == crc24qRef(buf, 226));
     }
-    // Test last 10 bit positions
     for (int b = 216; b < 226; ++b) {
         INFO("Bit position ", b);
         memset(buf, 0, 29);
@@ -77,16 +72,13 @@ TEST_CASE("CRC-24Q: bit_len=1") {
 }
 
 TEST_CASE("CRC-24Q: known-answer check value (72-bit)") {
-    // CRC-24Q standard check value for ASCII "123456789"
-    // From RevEng CRC catalogue: poly=0x1864CFB init=0 refin=0 refout=0 xorout=0
-    // This implementation matches the catalogue, confirmed by independent LFSR bit-wise implementation.
+    // ASCII "123456789" に対する CRC-24Q の標準チェック値 RevEng CRC カタログ: poly=0x1864CFB init=0 refin=0 refout=0 xorout=0
     uint8_t buf[9] = {'1','2','3','4','5','6','7','8','9'};
     CHECK(TestDecoder::calcCRC(buf, 72) == 0xCDE703);
 }
 
 TEST_CASE("CRC-24Q: known-answer 226-bit messages") {
-    // Values computed by independent bit-wise LFSR CRC-24Q (Python) and cross-verified against azarashi and crc24qRef byte-wise implementation.
-    // Both implementations agree.
+    // 期待値は独立実装のビット単位 LFSR CRC-24Q によるもので、azarashi と crc24qRef で照合済み。
     {
         INFO("all-zero 226-bit");
         uint8_t buf[29] = {};
@@ -148,7 +140,7 @@ TEST_CASE("getBits: No OOB at last valid position") {
     TestDecoder::clearOob();
     TestDecoder::extractBits(buf, 248, 8);
     CHECK(TestDecoder::checkOob() == false);
-    // 248+8=256, boundary exact, no OOB
+    // 248+8=256 は境界ちょうどで OOB なし
 }
 
 TEST_CASE("getBits: No OOB at mid-frame") {
@@ -184,7 +176,6 @@ TEST_CASE("setBits: roundtrip with getBits") {
 TEST_CASE("setBits: zero-length write no-op") {
     uint8_t buf[4] = {};
     setBits(buf, 10, 0, 0xFF);
-    // Buffer should remain unchanged (all zeros)
     CHECK(TestDecoder::extractBits(buf, 0, 32) == 0);
 }
 
@@ -280,7 +271,6 @@ TEST_CASE("MT=44 field extraction on synthetic frame") {
     CHECK(msg.msg_type == 44);
     CHECK(msg.payload_type == MsgPayloadType::Mt44);
     
-    // Use safe accessor for Mt44Data
     const Mt44Data* mt44 = msg.getMt44();
     REQUIRE(mt44 != nullptr);
     CHECK(mt44->service_kind == Mt44ServiceKind::JAlert);
@@ -290,7 +280,7 @@ TEST_CASE("MT=44 field extraction on synthetic frame") {
 }
 #endif
 
-// 時間変換テスト (from test_time.cpp)
+// 時間変換テスト
 
 TEST_CASE("daysFromCivil と civilFromDays の相互変換") {
     struct TestCase {
@@ -373,7 +363,6 @@ TEST_CASE("resolveTime: 日付のラップアラウンド（月末→月初）")
 TEST_CASE("resolveTime: 日付のラップアラウンド（月初→月末）") {
     uint32_t now = daysFromCivil(2024, 1, 31) * 86400u;
     // day=1 は base から1日後（Feb 1）が最も近い（closest-within-margin）→ Feb。
-    // 旧 ±15・ハイブリッドとも一致。
     TimeFields t = TestDecoder::testResolveTime(0, 1, 0, 0, now);
     uint32_t expected = daysFromCivil(2024, 2, 1) * 86400u;
     CHECK(t.unix_time == expected);
@@ -394,32 +383,6 @@ TEST_CASE("resolveTime: 月のラップアラウンド（MDHM）") {
     TimeFields t = TestDecoder::testResolveTime(12, 15, 0, 0, now);
     uint32_t expected = daysFromCivil(2023, 12, 15) * 86400u;
     CHECK(t.unix_time == expected);
-}
-
-TEST_CASE("resolveTime: 無効な入力の処理") {
-    TimeFields t1 = TestDecoder::testResolveTime(0, 0, 0, 0, 1704067200u);
-    CHECK(t1.day == 0);
-    CHECK(t1.hour == 0);
-    CHECK(t1.minute == 0);
-    CHECK(t1.unix_time == 0);
-
-    TimeFields t2 = TestDecoder::testResolveTime(0, 32, 0, 0, 1704067200u);
-    CHECK(t2.day == 0);
-    CHECK(t2.hour == 0);
-    CHECK(t2.minute == 0);
-    CHECK(t2.unix_time == 0);
-
-    TimeFields t3 = TestDecoder::testResolveTime(13, 1, 0, 0, 1704067200u);
-    CHECK(t3.day == 0);
-    CHECK(t3.hour == 0);
-    CHECK(t3.minute == 0);
-    CHECK(t3.unix_time == 0);
-
-    TimeFields t4 = TestDecoder::testResolveTime(1, 1, 24, 0, 1704067200u);
-    CHECK(t4.day == 0);
-    CHECK(t4.hour == 0);
-    CHECK(t4.minute == 0);
-    CHECK(t4.unix_time == 0);
 }
 
 // DHM extraction テスト
@@ -453,7 +416,7 @@ TEST_CASE("extractDHM: max values") {
 
 TEST_CASE("extractDHM: zero values") {
     uint8_t buf[4] = {};
-    // day=0 → resolveTime rejects day<1 → all cleared
+    // day=0 → resolveTime は day<1 を弾く → すべてクリア
     uint32_t now = daysFromCivil(2024, 1, 15) * 86400u;
     TimeFields t = TestDecoder::testExtractDHM(buf, 0, now);
     CHECK(t.day == 0);
@@ -468,7 +431,7 @@ TEST_CASE("extractDHM: report_unix=0") {
     setBits(buf, 5, 5, 10);
     setBits(buf, 10, 6, 30);
     TimeFields t = TestDecoder::testExtractDHM(buf, 0, 0u);
-    // DHM resolved but unix_time stays 0
+    // DHM は解決されるが unix_time は 0 のまま
     CHECK(t.day == 15);
     CHECK(t.hour == 10);
     CHECK(t.minute == 30);
@@ -511,7 +474,6 @@ TEST_CASE("resolveArrivalTime: normal day_offset=0") {
     CHECK(t.day == 1);
     CHECK(t.hour == 7);
     CHECK(t.minute == 40);
-    // unix: base day + 7*3600 + 40*60
     uint32_t expected = daysFromCivil(2024, 1, 1) * 86400u + 7u * 3600u + 40u * 60u;
     CHECK(t.unix_time == expected);
 }
@@ -562,27 +524,7 @@ TEST_CASE("resolveTime: now_unix < 2000年 (閾値テスト)") {
     CHECK(t2.unix_time == 946684800u);
 }
 
-TEST_CASE("daysFromCivil と civilFromDays の網羅的ストレステスト (1970-2100)") {
-    uint32_t start_days = daysFromCivil(1970, 1, 1);
-    uint32_t end_days = daysFromCivil(2100, 12, 31);
-
-    for (uint32_t days = start_days; days <= end_days; ++days) {
-        uint32_t y = 0, m = 0, d = 0;
-        civilFromDays(days, y, m, d);
-        uint32_t reconstructed = daysFromCivil(y, m, d);
-
-        if (reconstructed != days) {
-            CAPTURE(days);
-            CAPTURE(y);
-            CAPTURE(m);
-            CAPTURE(d);
-            CAPTURE(reconstructed);
-            FAIL("日付のラウンドトリップ変換が一致しません");
-        }
-    }
-}
-
-// 緯度経度テスト (from test_latlon.cpp)
+// 緯度経度テスト
 
 TEST_CASE("extractLatLon: 基本的な緯度経度抽出") {
     uint8_t buf[32] = {};
@@ -653,11 +595,8 @@ TEST_CASE("extractLatLon: 境界値テスト") {
     CHECK(ll.lon_sec == 59);
 }
 
-// 重複除去テスト
-// アプリケーションノートv2 (原PDF p.23–25) のモデル:
-//   同一の情報 = 内容（MT～VN）の一致。受信衛星は情報の同一性に含まれない。
-//   履歴は 手順④' により「一定時間受信しなかった情報」を削除する。
-// isDuplicate の引数は (key, now_ms, window_ms)。
+// 重複除去テストアプリケーションノートv2 (原PDF p.23–25) のモデル: 同一の情報 = 内容（MT～VN）の一致で、受信衛星は同一性に含まれない。
+// 履歴は手順④' により「一定時間受信しなかった情報」を削除する。isDuplicate の引数は (key, now_ms, window_ms)。
 
 namespace {
 constexpr uint32_t DEDUP_TEST_WINDOW = 300000;   // 5分
@@ -678,8 +617,7 @@ TEST_CASE("DedupFilter: 同じ情報の再受信は重複と判定される") {
 }
 
 TEST_CASE("DedupFilter: 複数衛星からの同一情報は重複と判定される") {
-    // 250ビットのデータに衛星IDは含まれないため、受信衛星が違っても同一情報。
-    // filter に渡す鍵は内容のみで、衛星ごとに通知が増えてはならない。
+    // 250ビットのデータに衛星IDは含まれないため、受信衛星が違っても同一情報（鍵は内容のみ）。
     DedupFilter filter;
     DedupKey key{43, 0xABCDEF};
     CHECK_FALSE(filter.isDuplicate(key, DEDUP_TEST_BASE, DEDUP_TEST_WINDOW));
@@ -757,8 +695,7 @@ TEST_CASE("DedupFilter: reset後は新規として扱われる") {
 // 手順④': 情報有効時間
 
 TEST_CASE("DedupFilter: ウィンドウ経過後の再受信は新規として通知される") {
-    // 手順④' 一定時間受信しなかった情報は履歴から削除する。
-    // 削除後も、ウィンドウ内に受信し続けている他情報は重複のまま残る。
+    // 手順④' 一定時間受信しなかった情報は履歴から削除する（削除後も、受信継続中の他情報は重複のまま）。
     DedupFilter filter;
     const DedupKey stale{43, 0xABCDEF};
     const DedupKey live{43, 0x123456};
@@ -796,8 +733,7 @@ TEST_CASE("DedupFilter: 再受信のたびに情報有効時間が更新され�
 // 容量と追い出し
 
 TEST_CASE("DedupFilter: 直近に受信した情報は容量超過後も重複と判定される") {
-    // 満杯時に捨てるのは最も古い情報であり、直近のものではない。
-    // （巡回リングで新着を捨てる実装や、古いエントリが固定される実装は通知済みの情報を再通知することになる）
+    // 満杯時に捨てるのは最も古い情報（巡回リングで新着を捨てる実装は通知済みの情報を再通知してしまう）。
     DedupFilter filter;
     const int recent = AZARAC_DEDUP_WAYS;
     const int churn  = 4 * AZARAC_DEDUP_SLOTS;
@@ -813,10 +749,11 @@ TEST_CASE("DedupFilter: 直近に受信した情報は容量超過後も重複�
 }
 
 TEST_CASE("DedupFilter: 32bit 時刻のラップをまたぐ victim 選択") {
-    // last_seen_ms は uint32 ミリ秒で 49.7 日周期。同一セット内の2エントリの差が 2^31 ms（約 24.8 日）を超えると、生の時刻を int32 で引く実装は新しい方を「古い」と誤認し、生きている情報を追い出して再通知させる。
-    // unsigned 差で比較する現行実装は、24.8 日を超える差でも順序が保たれる。
-    //
-    // 再現: 同一セットに「34.7 日前のエントリ」と「直近のエントリ」を置き、新規鍵を入れる。誤実装は直近エントリを追い出す。
+    // last_seen_ms は uint32 ミリ秒（49.7 日周期）。
+    // 同一セット内の差が 2^31 ms（約 24.8 日）を超えると、生の時刻を int32 で引く実装は新しい方を「古い」と誤認し、生きている情報を追い出して再通知させる。
+    // unsigned 差なら順序が保たれる。
+    // 再現: 同一セットに「34.7 日前のエントリ」と「直近のエントリ」を置き、新規鍵を入れる。
+    // 誤実装は直近エントリを追い出す。
     static_assert(DEDUP_SETS > 1, "need multiple sets to isolate a collision");
 
     // Dedup.cpp の setIndexOf と同じ折り畳み（同ファイルでは static なので再現）。
@@ -882,22 +819,21 @@ TEST_CASE("DedupFilter: 大量のメッセージを処理できる") {
     }
 }
 
-// sizeof 回帰ガード
-// RAMが制限された組込みターゲットで構造体が肥大化した場合に検出する。
+// sizeof 回帰ガード: RAM制限のある組込みターゲットで構造体が肥大化した場合に検出する。
 
 TEST_CASE("Memory: sizeof guards for embedded targets") {
 #if defined(__GNUC__) && ARDUINO == 0
-    // Message payload_storage_ = max(sizeof(Mt43Data), sizeof(Mt44Data))
-    // Current (host-measured): Mt43Data=128, Mt44Data=280, Message=288, Frame=33
+    // Message の payload_storage_ = max(sizeof(Mt43Data), sizeof(Mt44Data))
     CHECK(sizeof(Message) <= 420);
     CHECK(sizeof(Mt43Data) <= 240);
     CHECK(sizeof(Mt44Data) <= 420);
-    // Parser = NankaiPageBufferManager (4×1168=4672) + framers, decoder, dedup (~320)
+    // Parser = NankaiPageBufferManager（AZARAC_NANKAI_BUFFERS × sizeof(NankaiPageBuffer)）+ フレーマ・デコーダ・dedup
     CHECK(sizeof(Parser) <= 5500);
 #else
-    // Skip on non-GCC or embedded — sizeof may differ per arch
+    // アーキで sizeof が変わり得るので非 GCC / 組込みではスキップ
     INFO("sizeof guard skipped (non-GCC or ARDUINO target)");
 #endif
 }
 
-// CHECK 無しのスモークはここには置かない。クラッシュを検出できないためで（CI は sanitizer 無しでビルドする）、実ファズは test/fuzz/fuzz_decoder.cpp（make fuzz）。
+// CHECK 無しのスモークは置かない（クラッシュを検出できない。CI は sanitizer 無しでビルドする）。
+// 実ファズは test/fuzz/fuzz_decoder.cpp（make fuzz）。

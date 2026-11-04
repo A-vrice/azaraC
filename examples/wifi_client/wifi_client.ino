@@ -1,6 +1,4 @@
-// azaraC — examples/wifi_client/wifi_client.ino
-//
-// Wi-FiクライアントとしてJSONメッセージをTCPサーバーに送信する例 MQTTブローカーやHTTPエンドポイントにメッセージを転送する用途に適する
+// Wi-Fi クライアントとして JSON メッセージを TCP サーバーに送信する例。 MQTT ブローカーや HTTP エンドポイントへの転送に使える。
 //
 // 必要な設定:
 //   - WIFI_SSID: Wi-Fiネットワーク名
@@ -8,7 +6,7 @@
 //   - SERVER_HOST: 送信先サーバーアドレス
 //   - SERVER_PORT: 送信先ポート番号
 //
-// Wiring (ESP32-C3 DevKitM-1):
+// 配線 (ESP32-C3 DevKitM-1):
 //   GNSS TX → GPIO20 (Serial1 RX)
 //   GNSS RX → GPIO21 (Serial1 TX)
 //   GND     → GND
@@ -16,7 +14,6 @@
 #include <azaraC.h>
 #include <WiFi.h>
 
-// ===== 設定 =====
 #ifndef WIFI_SSID
   #define WIFI_SSID "YOUR_SSID"
 #endif
@@ -34,15 +31,13 @@ azaraC::Parser  parser;
 azaraC::Message msg;
 WiFiClient wifiClient;
 
-// 再接続管理
 uint32_t lastReconnectAttempt = 0;
 uint32_t lastTcpAttempt = 0;
 const uint32_t RECONNECT_INTERVAL = 5000;
-bool serverConnected = false;  // 接続状態フラグ
+bool serverConnected = false;
 
 static uint32_t cached_gnss_unix_time = 0;
 
-// Wi-Fi接続
 void connectWiFi() {
     Serial.print(F("[wifi] connecting to "));
     Serial.println(WIFI_SSID);
@@ -67,13 +62,11 @@ void connectWiFi() {
 
 // TCPサーバー接続（切断時のみ再接続を試みる）
 bool connectServer() {
-    // 既に接続中の場合は何もしない
     if (wifiClient.connected()) {
         serverConnected = true;
         return true;
     }
 
-    // 接続試行
     Serial.print(F("[tcp] connecting to "));
     Serial.print(SERVER_HOST);
     Serial.print(F(":"));
@@ -90,7 +83,6 @@ bool connectServer() {
     }
 }
 
-// カスタムPrintクラス: WiFiClientに出力
 class WifiPrint : public Print {
 public:
     WiFiClient& client;
@@ -99,7 +91,6 @@ public:
     size_t write(const uint8_t* buf, size_t len) override { return client.write(buf, len); }
 };
 
-// JSONをWiFiClientに送信
 bool sendJson(const azaraC::Message& msg) {
     if (!wifiClient.connected()) {
         serverConnected = false;
@@ -131,10 +122,8 @@ void setup() {
 
     Serial.println(F("[azaraC] wifi_client ready"));
 
-    // Wi-Fi接続
     connectWiFi();
 
-    // GNSSシリアル開始
 #if defined(ESP32)
     Serial1.begin(9600, SERIAL_8N1, /*rx=*/20, /*tx=*/21);
 #else
@@ -143,7 +132,6 @@ void setup() {
 }
 
 void loop() {
-    // Wi-Fi接続確認
     if (WiFi.status() != WL_CONNECTED) {
         setStatusLED(false);
         serverConnected = false;  // サーバー接続も切断
@@ -154,8 +142,7 @@ void loop() {
         }
     } else {
         setStatusLED(true);
-        // サーバーが切断されている場合のみ再接続を試みる
-        // WiFi 接続が確立している場合のみ connectServer() を呼ぶ
+        // サーバーは切断時のみ、Wi-Fi 接続済みのときだけ再接続を試みる
         if (!serverConnected) {
             uint32_t now = millis();
             if (now - lastTcpAttempt > RECONNECT_INTERVAL) {
@@ -165,17 +152,14 @@ void loop() {
         }
     }
 
-    // メッセージ受信処理
     while (Serial1.available()) {
         uint8_t b = static_cast<uint8_t>(Serial1.read());
 
-        // 第3引数にUNIX時刻を渡すことで、DCR/DCX電文の「年」を正確に算出できます
+        // 第3引数に UNIX 時刻を渡すと DCR/DCX 電文の「年」が解決する
         if (parser.feed(b, msg, cached_gnss_unix_time)) {
-            // Serialにも出力
             azaraC::toJson(msg, Serial);
             Serial.println();
 
-            // WiFi経由で送信
             if (sendJson(msg)) {
                 Serial.println(F("[tcp] sent"));
             } else {

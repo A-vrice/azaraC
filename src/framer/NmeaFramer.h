@@ -1,5 +1,5 @@
 #pragma once
-// Parses $QZQSM sentences from any NMEA-outputting receiver.
+// NMEA を出力する受信機からの $QZQSM 文を解析する。
 
 #include "IFramer.h"
 
@@ -16,7 +16,7 @@ private:
     St      _st    = St::WAIT;
     char    _buf[82] = {};
     uint8_t _pos   = 0;
-    uint8_t _xsum  = 0;  // running XOR
+    uint8_t _xsum  = 0;  // 受信バイトの XOR 継続値
     uint8_t _csumH = 0;
 
     bool parse(Frame& out);

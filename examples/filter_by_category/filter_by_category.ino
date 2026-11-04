@@ -1,9 +1,4 @@
-// azaraC — examples/filter_by_category/filter_by_category.ino
-//
-// MT=43 防災カテゴリ別フィルタリングの例
-// 特定の災害カテゴリのみをSerialに出力する
-//
-// 対応カテゴリ:
+// MT=43 防災カテゴリ別フィルタリングの例特定の災害カテゴリのみをSerialに出力する対応カテゴリ:
 //   1  = 緊急地震速報 (EEW)
 //   2  = 震源情報 (Hypocenter)
 //   3  = 震度情報 (Seismic Intensity)
@@ -17,7 +12,7 @@
 //   12 = 台風情報 (Typhoon)
 //   14 = 海上警報 (Marine)
 //
-// Wiring (ESP32-C3 DevKitM-1):
+// 配線 (ESP32-C3 DevKitM-1):
 //   GNSS TX → GPIO20 (Serial1 RX)
 //   GNSS RX → GPIO21 (Serial1 TX)
 //   GND     → GND
@@ -49,7 +44,6 @@ struct CategoryFilter {
 
 CategoryFilter filter;
 
-// 災害カテゴリのラベル（日本語）
 const char* getCategoryLabel(uint8_t category) {
     switch (category) {
         case 1:  return "緊急地震速報";
@@ -68,7 +62,6 @@ const char* getCategoryLabel(uint8_t category) {
     }
 }
 
-// フィルタリング判定
 bool shouldOutput(uint8_t category) {
     switch (category) {
         case 1:  return filter.eew;
@@ -87,12 +80,12 @@ bool shouldOutput(uint8_t category) {
     }
 }
 
-// MT=43 カテゴリ別の詳細出力
 void printMt43Details(const azaraC::Message& msg) {
     const azaraC::Mt43Data* mt43 = msg.getMt43();
     if (!mt43) return;
 
     switch (mt43->disaster_category) {
+#if (AZARAC_ENABLE_EEW)
         case 1: { // EEW
             const azaraC::EewData* eew = mt43->getEew();
             if (!eew) break;
@@ -107,6 +100,8 @@ void printMt43Details(const azaraC::Message& msg) {
             Serial.println(F("km"));
             break;
         }
+#endif // AZARAC_ENABLE_EEW
+#if (AZARAC_ENABLE_HYPOCENTER)
         case 2: { // Hypocenter
             const azaraC::HypocenterData* hypo = mt43->getHypocenter();
             if (!hypo) break;
@@ -119,6 +114,7 @@ void printMt43Details(const azaraC::Message& msg) {
             Serial.println();
             break;
         }
+#endif // AZARAC_ENABLE_HYPOCENTER
         case 3: { // Seismic Intensity
             const azaraC::SeismicData* seis = mt43->getSeismic();
             if (!seis) break;
@@ -172,7 +168,7 @@ void loop() {
     while (Serial1.available()) {
         uint8_t b = static_cast<uint8_t>(Serial1.read());
 
-        // 第3引数にUNIX時刻を渡すことで、DCR/DCX電文の「年」を正確に算出できます
+        // 第3引数に UNIX 時刻を渡すと DCR/DCX 電文の「年」が解決する
         if (parser.feed(b, msg, cached_gnss_unix_time)) {
             if (msg.msg_type == 43) {
                 const azaraC::Mt43Data* mt43 = msg.getMt43();
@@ -181,12 +177,13 @@ void loop() {
                     Serial.print(getCategoryLabel(mt43->disaster_category));
                     Serial.print(F("] SVID="));
                     Serial.print(msg.svid);
+                    Serial.println();
                     printMt43Details(msg);
+                    azaraC::toJson(msg, Serial);
+                    Serial.println();
                 }
             } else if (msg.msg_type == 44) {
-                // DCX (MT=44) はカテゴリフィルタの対象外のため、常に出力する。
-                // MT=43 と同様にフィルタリングしたい場合は shouldOutput() に
-                // MT=44 用の分岐を追加すること。
+                // DCX (MT=44) はカテゴリフィルタの対象外。フィルタしたい場合は shouldOutput() に分岐を足す。
                 Serial.print(F("[MT44] SVID="));
                 Serial.println(msg.svid);
                 azaraC::toJson(msg, Serial);

@@ -1,5 +1,4 @@
-// test/integration/test_nankai.cpp — 南海トラフ単体テスト
-// E2E テストは test_nankai_e2e.cpp に分離済み
+// 南海トラフ単体テスト E2E は test_nankai_e2e.cpp
 
 #include <string>
 #include <chrono>
@@ -10,7 +9,7 @@
 
 using namespace azaraC::internal;
 
-// Helper to get current time in milliseconds (non-Arduino)
+// 現在時刻（ms、非 Arduino）。
 static uint32_t currentMillis() {
     auto now = std::chrono::steady_clock::now();
     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -20,7 +19,7 @@ static uint32_t currentMillis() {
 
 #if (AZARAC_ENABLE_NANKAI)
 TEST_CASE("NankaiPageKey equality") {
-    // Identity = info_code + information_type + report_time DHM (month/day/hour/minute).
+    // identity = info_code + information_type + report_time DHM（月/日/時/分）。
     NankaiPageKey key1 = {1, 4, 10, 30, 15};
     NankaiPageKey key2 = {1, 4, 10, 30, 15};
     NankaiPageKey key3 = {2, 4, 10, 30, 15};  // different info_code
@@ -44,13 +43,6 @@ TEST_CASE("NankaiPageKey equality") {
     SUBCASE("Different information_type") {
         // 発表(0) と取消(2) は同一 info_code + 同一報告時刻でも別の情報。
         CHECK(!(key1 == key6));
-    }
-
-    SUBCASE("Identity depends only on report_time, not resolution") {
-        // The key carries no resolved UNIX time, so the same message yields the same key whether or not report_unix is available.
-        NankaiPageKey from_unresolved = {1, 4, 10, 30, 15};
-        NankaiPageKey from_resolved   = {1, 4, 10, 30, 15};
-        CHECK(from_resolved == from_unresolved);
     }
 }
 
@@ -90,7 +82,6 @@ TEST_CASE("NankaiPageBuffer basic operations") {
         CHECK(result);
         CHECK(buffer.isComplete());
         CHECK(buffer.received_count == 3);
-        // bits 0,1,2 = pages 1,2,3
         CHECK(buffer.received_bitmap == 0x7ULL);
     }
     
@@ -102,7 +93,6 @@ TEST_CASE("NankaiPageBuffer basic operations") {
         
         CHECK(!result);
         CHECK(buffer.received_count == 1);
-        // Bitmap still has only bit 0 set
         CHECK(buffer.received_bitmap == (1ULL << 0));
     }
     
@@ -127,17 +117,15 @@ TEST_CASE("NankaiPageBuffer basic operations") {
 }
 
 TEST_CASE("NankaiPageBuffer truncation") {
-    // When total_pages > MAX_PAGES, the buffer caps to MAX_PAGES
-    // and sets the truncated flag.
-    // MAX_PAGES = NankaiPageBuffer::MAX_PAGES (library default, overridable).
-    // Since SPEC_MAX_PAGES=63, total_pages values above 63 are the only way to exceed a MAX_PAGES=63 build; page_num must stay <= SPEC_MAX_PAGES.
+    // total_pages > MAX_PAGES なら total_pages を MAX_PAGES（ライブラリ既定、上書き可）に丸め、truncated フラグを立てる。
+    // SPEC_MAX_PAGES=63 なので MAX_PAGES=63 のビルドを超え得るのは total_pages>63 のみ。page_num は SPEC_MAX_PAGES 以下でなければならない。
     NankaiPageBuffer buffer;
     uint32_t now = currentMillis();
     
     SUBCASE("total_pages > MAX_PAGES sets truncated flag") {
         uint8_t text[18] = {'T', 'e', 's', 't', 0};
         
-        // total_pages=99, capped to MAX_PAGES
+        // total_pages=99 は MAX_PAGES で頭打ち
         bool result = buffer.addPage(1, 99, text, now);
         
         CHECK(result);
@@ -149,11 +137,9 @@ TEST_CASE("NankaiPageBuffer truncation") {
     SUBCASE("Truncated buffer completes when MAX_PAGES pages received") {
         uint8_t text[18] = {'T', 'e', 's', 't', 0};
         
-        // total_pages=99, cap to MAX_PAGES
         buffer.addPage(1, 99, text, now);
         CHECK_FALSE(buffer.isComplete());
         
-        // Fill pages 2..MAX_PAGES
         for (uint8_t p = 2; p <= NankaiPageBuffer::MAX_PAGES; ++p) {
             buffer.addPage(p, 99, text, now);
         }
@@ -167,8 +153,7 @@ TEST_CASE("NankaiPageBuffer truncation") {
         uint8_t text[18] = {'T', 'e', 's', 't', 0};
         
         buffer.addPage(1, 99, text, now);
-        // MAX_PAGES 超のページ番号は effective_total (= MAX_PAGES) で拒否され、
-        // SPEC_MAX_PAGES=63 を超える値は先に範囲チェックで拒否される。
+        // MAX_PAGES 超のページ番号は先に範囲チェックで拒否される（effective_total=MAX_PAGES でも拒否）。
         bool result = buffer.addPage(static_cast<uint8_t>(NankaiPageBuffer::MAX_PAGES + 1), 99, text, now);
         
         CHECK_FALSE(result);
@@ -220,7 +205,11 @@ TEST_CASE("NankaiPageBufferManager") {
         
         NankaiPageBuffer* result = manager.addPage(key, 1, 1, text, currentMillis());
         
-        CHECK(result != nullptr);
+        REQUIRE(result != nullptr);
+        CHECK(manager.getBuffer(key) == result);
+        CHECK(result->total_pages == 1);
+        CHECK(result->received_count == 1);
+        CHECK(result->received_bitmap == (1ULL << 0));
     }
     
     SUBCASE("Add page to existing buffer") {
@@ -265,44 +254,37 @@ TEST_CASE("NankaiPageBufferManager buffer limit") {
     
     SUBCASE("Max buffers is configurable") {
         uint32_t now = currentMillis();
-        // Fill all buffers
         for (uint8_t i = 0; i < NankaiPageBufferManager::MAX_BUFFERS; i++) {
             NankaiPageKey key = {static_cast<uint8_t>(i + 1)};
             uint8_t text[18] = {'T', 'e', 's', 't', 0};
             manager.addPage(key, 1, 1, text, now);
         }
         
-        // Adding one more should evict the oldest
+        // もう 1 つ追加すると最も古いバッファが追い出される。
         NankaiPageKey key_new = {static_cast<uint8_t>(NankaiPageBufferManager::MAX_BUFFERS + 1)};
         uint8_t text[18] = {'N', 'e', 'w', 0};
         manager.addPage(key_new, 1, 1, text, now);
         
-        // Oldest buffer (first inserted key) should be evicted
         NankaiPageKey key0 = {1};
         CHECK(manager.getBuffer(key0) == nullptr);
         
-        // New buffer should exist
         CHECK(manager.getBuffer(key_new) != nullptr);
     }
 }
-
-// ゼロ鍵が空スロットに誤マッチしないこと
 
 TEST_CASE("NankaiPageBufferManager empty slots never match") {
     NankaiPageBufferManager manager;
     NankaiPageKey zero;  // all-zero identity
 
-    // Empty slots hold an all-zero key; getBuffer must not return one.
+    // 空スロットは全ゼロの鍵を持つ。getBuffer を返してはならない。
     CHECK(manager.getBuffer(zero) == nullptr);
 
     uint8_t text[18] = {'T', 'e', 's', 't', 0};
     manager.addPage(zero, 1, 2, text, 1000);
     CHECK(manager.getBuffer(zero) != nullptr);
-    // The same zero-key event continues in its buffer, not a fresh empty slot.
+    // 同じゼロ鍵の事象は新しい空スロットではなく元のバッファへ続く。
     CHECK(manager.addPage(zero, 2, 2, text, 1000) != nullptr);
 }
-
-// 失効（TIMEOUT_MS）と LRU の区別
 
 TEST_CASE("NankaiPageBuffer expiry") {
     SUBCASE("isExpired boundary") {
@@ -320,7 +302,7 @@ TEST_CASE("NankaiPageBuffer expiry") {
         manager.addPage(key, 1, 2, text, 1000);
         CHECK(manager.getBuffer(key) != nullptr);
 
-        // Touching the manager past the timeout expires the stale buffer.
+        // タイムアウトを過ぎて触れば、古いバッファは失効する。
         manager.addPage({2, 4, 10, 30, 15}, 1, 1, text,
                         1000 + NankaiPageBuffer::TIMEOUT_MS + 1);
         CHECK(manager.getBuffer(key) == nullptr);
@@ -335,7 +317,7 @@ TEST_CASE("NankaiPageBufferManager expiry is not LRU eviction") {
     uint8_t text[18] = {'P', 0};
     manager.addPage(k1, 1, 2, text, 1000);
     manager.addPage(k2, 1, 2, text, 1000);
-    // Both buffers are equally old: past the timeout both must expire, whereas a single LRU eviction would drop only one.
+    // 2 つのバッファが同じ古さなら、タイムアウト超過で両方失効する。LRU 1 件の追い出しでは 1 件しか落ちない。
     manager.addPage({3, 4, 10, 30, 15}, 1, 1, text,
                     1000 + NankaiPageBuffer::TIMEOUT_MS + 1);
     CHECK(manager.getBuffer(k1) == nullptr);
@@ -346,12 +328,12 @@ TEST_CASE("NankaiPageBufferManager: zero key follows its buffer across slot reus
     NankaiPageBufferManager manager;
     uint8_t text[18] = {'T', 'e', 's', 't', 0};
     NankaiPageKey nonzero = {7, 6, 15, 12, 30};
-    NankaiPageKey zero;  // all-zero identity
+    NankaiPageKey zero;
 
     CHECK(manager.addPage(nonzero, 1, 2, text, 0) == nullptr);        // slot 0 (stale later)
     CHECK(manager.addPage(zero, 1, 2, text, 30000) == nullptr);       // slot 1
 
-    // At t=70000 slot 0 expires; a zero-key page must continue in its own buffer (slot 1), not bind to the freshly emptied slot 0.
+    // t=70000 で slot 0 が失効する。ゼロ鍵のページは空になった slot 0 ではなく自分のバッファ（slot 1）へ続く。
     NankaiPageBuffer* done = manager.addPage(zero, 2, 2, text, 70000);
     CHECK(done != nullptr);
 }

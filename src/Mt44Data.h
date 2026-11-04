@@ -1,12 +1,9 @@
 #pragma once
-// MT=44 (DCX/CAMF) data structures
-// Bit offsets derived from azarashi (IS-QZSS-DCX-004)
+// MT=44 (DCX/CAMF) のデータ構造。ビット位置は IS-QZSS-DCX-004（azarashi の定義表）由来。
 
-#include "internal/MtCommonTypes.h"  // shared integer types (cstdint AVR switch lives here)
+#include "internal/MtCommonTypes.h"  // 共通の整数型（cstdint の AVR 分岐もここ）
 
 namespace azaraC {
-
-// MT=44 DCX type
 
 enum class Mt44ServiceKind : uint8_t {
     NullMessage,
@@ -41,8 +38,8 @@ struct Mt44CamfRaw {
     uint8_t  a9  = 0;    // 1
     uint8_t  a10 = 0;    // 3
     uint16_t a11 = 0;    // 10
-    uint16_t a12 = 0;    // 16 (unsigned, latitude code)
-    uint32_t a13 = 0;    // 17 (unsigned, longitude code)
+    uint16_t a12 = 0;    // 16 (unsigned、緯度コード)
+    uint32_t a13 = 0;    // 17 (unsigned、経度コード)
     uint8_t  a14 = 0;    // 5
     uint8_t  a15 = 0;    // 5
     uint8_t  a16 = 0;    // 6
@@ -91,14 +88,19 @@ struct Mt44ExOutside {
     uint8_t vn;
 };
 
-// MT=44 Decoded structures (IS-QZSS-DCX-004)
+// 復号済み構造 (IS-QZSS-DCX-004)
 
-struct DecodedEllipse {
+// 楕円の汎用部。
+// 追加楕円は B1 精密化を持たない（EWSS CAMF v1.2 の B1 は主楕円のみ）ので b1_* は DecodedEllipse 側に分離し、DecodedAdditionalArea は 16 B 小さいコア型を使う。
+struct DecodedEllipseCore {
     int32_t lat_microdeg;              // microdegrees (×1,000,000)
     int32_t lon_microdeg;              // microdegrees (×1,000,000)
     int32_t semi_major_m;              // meters (×1,000 from km)
     int32_t semi_minor_m;              // meters (×1,000 from km)
-    int32_t azimuth_decideg;           // dexadegrees (×100,000)
+    int32_t azimuth_decideg;           // decidegrees (×100,000)
+};
+
+struct DecodedEllipse : DecodedEllipseCore {
     int32_t b1_lat_offset_microdeg;    // microdegrees (×1,000,000)
     int32_t b1_lon_offset_microdeg;    // microdegrees (×1,000,000)
     int32_t b1_refined_semi_major_m;   // meters (×1,000 from km)
@@ -108,28 +110,23 @@ struct DecodedEllipse {
 struct DecodedAdditionalArea {
     bool present;
     bool head_to_area;
-    DecodedEllipse ellipse;
+    DecodedEllipseCore ellipse;
 };
 
+// Mt44Decoded は生コードから導けない派生値だけを持つ。
+// service_kind・is_null_message・b2_hazard_center_present・target_area_code はそれぞれ Mt44Data の同名フィールド / camf.b2_present / ex_lalert_local.ex1 と同値なのでミラーにしない。
 struct Mt44Decoded {
-    Mt44ServiceKind service_kind;
-    bool is_null_message;
     bool main_ellipse_present;
-    DecodedEllipse main_ellipse;
-    bool b2_hazard_center_present = false;
-    int32_t b2_hazard_lat_microdeg = 0;   // microdegrees (×1,000,000)
-    int32_t b2_hazard_lon_microdeg = 0;   // microdegrees (×1,000,000)
-    bool target_area_code_present;
-    uint16_t target_area_code;
     bool jalert_prefecture_mode;
+    DecodedEllipse main_ellipse;
+    int32_t b2_hazard_lat_microdeg;    // microdegrees (×1,000,000)
+    int32_t b2_hazard_lon_microdeg;    // microdegrees (×1,000,000)
     uint8_t prefecture_positions[47];
     uint8_t prefecture_count;
     uint16_t city_codes[4];
     uint8_t city_code_count;
     DecodedAdditionalArea additional_area;
 };
-
-// MT=44 Data (DCX / CAMF)
 
 struct Mt44Data {
     Mt44ServiceKind service_kind = {};
@@ -138,10 +135,17 @@ struct Mt44Data {
     Mt44CamfRaw     camf = {};
     TimeFields      onset_time = {};
     ExtendedKind        ex_kind = {};
-    Mt44ExLAlertOrLocal ex_lalert_local = {};
-    Mt44ExJAlert        ex_jalert = {};
-    Mt44ExOutside       ex_outside = {};
-    Mt44Decoded      mt44_decoded = {};
+    // 拡張部は ex_kind で排他（decoder は active 枝だけ書き、serializer も ex_kind で分岐して active 枝だけ読む）。
+    // 3 構造体を並列に持つと AVR で 36 B 常時消費なので union にする（最大枝 15 B）。
+    // NSDMI は代表枝 1 つだけ（C++17 では複数の variant メンバに初期化子を持てない）。
+    // 非 active 枝は未規定値だが、ex_kind で排他なので読まれない。
+    union Mt44Extended {
+        Mt44ExLAlertOrLocal ex_lalert_local{};
+        Mt44ExJAlert        ex_jalert;
+        Mt44ExOutside       ex_outside;
+    };
+    Mt44Extended    ex = {};
+    Mt44Decoded     mt44_decoded = {};
 };
 
 } // namespace azaraC

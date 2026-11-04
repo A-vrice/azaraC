@@ -2876,7 +2876,7 @@
     {
       "toolId": "Lizard",
       "exclude": [
-        "src/definition/**",
+        "src/definition/*.h",
         "test/**"
       ],
       "patterns": [

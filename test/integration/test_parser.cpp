@@ -1,5 +1,4 @@
-// test/integration/test_parser.cpp — パーサー統合テスト
-// EEW, DCX (MT=44), decodePrefectureBitmask, B1 Refinement の統合テスト
+// パーサー統合テスト EEW, DCX (MT=44), decodePrefectureBitmask, B1 Refinement の統合テスト
 
 #include "../test_helpers.h"
 #include "../src/internal/DcxHelper.h"
@@ -47,12 +46,9 @@ TEST_CASE("decodeEEW: 基本的なEEWメッセージのデコード") {
     uint32_t now_unix = 1704067200u;
     msg.initPayload<Mt43Data>();
     Mt43Data* mt43 = msg.getMt43();
-    if (mt43) mt43->disaster_category = 1;
     TestDecoder::testDecodeEEW(bits, msg, now_unix);
 
     REQUIRE(mt43 != nullptr);
-    // cppcheck-suppress nullPointerRedundantCheck -- REQUIRE guards the deref; cppcheck can't see through the macro
-    CHECK(mt43->disaster_category == 1);
     
     const EewData* eew = mt43->getEew();
     REQUIRE(eew != nullptr);
@@ -69,10 +65,10 @@ TEST_CASE("decodeEEW: 基本的なEEWメッセージのデコード") {
     CHECK(eew->epicenter == 25);
     CHECK(eew->intensity_lower == 3);
     CHECK(eew->intensity_upper == 7);
-    CHECK(eew->region_count == 3);
-    CHECK(eew->regions[0] == 1);
-    CHECK(eew->regions[1] == 5);
-    CHECK(eew->regions[2] == 10);
+    CHECK(eew->regionCount() == 3);
+    CHECK(eew->regionAt(0) == 1);
+    CHECK(eew->regionAt(1) == 5);
+    CHECK(eew->regionAt(2) == 10);
 }
 #endif // AZARAC_ENABLE_EEW
 
@@ -135,10 +131,10 @@ TEST_CASE("decodeDcx: L-Alert メッセージのデコード") {
     CHECK(mt44->camf.a1 == 1);
     CHECK(mt44->camf.a2 == 111);
     CHECK(mt44->camf.a3 == 1);
-    CHECK(mt44->ex_lalert_local.ex1 == 1100);
-    CHECK(mt44->ex_lalert_local.vn == 1);
+    CHECK(mt44->ex.ex_lalert_local.ex1 == 1100);
+    CHECK(mt44->ex.ex_lalert_local.vn == 1);
 
-    // Main ellipse (A12-A16) decoded through DcxHelper (wiring check)
+    // 主楕円（A12-A16）が DcxHelper 経由で復号されるか（結線の確認）
     const Mt44Decoded& dec = mt44->mt44_decoded;
     CHECK(dec.main_ellipse_present);
     CHECK(dec.main_ellipse.lat_microdeg == 35688258);   // decodeLatitude16(45761)
@@ -191,9 +187,9 @@ TEST_CASE("decodeDcx: J-Alert メッセージのデコード") {
     CHECK(mt44->service_kind == Mt44ServiceKind::JAlert);
     CHECK(mt44->camf.a2 == 111);
     CHECK(mt44->camf.a3 == 2);
-    CHECK(mt44->ex_jalert.ex8 == 0);
-    CHECK(mt44->ex_jalert.ex9 == 3);
-    CHECK(mt44->ex_jalert.vn == 1);
+    CHECK(mt44->ex.ex_jalert.ex8 == 0);
+    CHECK(mt44->ex.ex_jalert.ex9 == 3);
+    CHECK(mt44->ex.ex_jalert.vn == 1);
 }
 
 TEST_CASE("decodeDcx: Local Government メッセージのデコード") {
@@ -241,16 +237,16 @@ TEST_CASE("decodeDcx: Local Government メッセージのデコード") {
     REQUIRE(mt44 != nullptr);
     CHECK(mt44->service_kind == Mt44ServiceKind::LocalGovernment);
     CHECK(mt44->camf.a3 == 4);
-    CHECK(mt44->ex_lalert_local.ex1 == 1100);
-    CHECK(mt44->ex_lalert_local.ex2 == 1);
-    CHECK(mt44->ex_lalert_local.ex3 == 91522);
-    CHECK(mt44->ex_lalert_local.ex4 == 68950);
-    CHECK(mt44->ex_lalert_local.ex5 == 13);
-    CHECK(mt44->ex_lalert_local.ex6 == 11);
-    CHECK(mt44->ex_lalert_local.ex7 == 96);
-    CHECK(mt44->ex_lalert_local.vn == 1);
+    CHECK(mt44->ex.ex_lalert_local.ex1 == 1100);
+    CHECK(mt44->ex.ex_lalert_local.ex2 == 1);
+    CHECK(mt44->ex.ex_lalert_local.ex3 == 91522);
+    CHECK(mt44->ex.ex_lalert_local.ex4 == 68950);
+    CHECK(mt44->ex.ex_lalert_local.ex5 == 13);
+    CHECK(mt44->ex.ex_lalert_local.ex6 == 11);
+    CHECK(mt44->ex.ex_lalert_local.ex7 == 96);
+    CHECK(mt44->ex.ex_lalert_local.vn == 1);
 
-    // Additional area (EX2-EX7) decoded through DcxHelper (wiring check)
+    // 追加地域（EX2-EX7）が DcxHelper 経由で復号されるか（結線の確認）
     const Mt44Decoded& dec = mt44->mt44_decoded;
     CHECK(dec.additional_area.present);
     CHECK(dec.additional_area.head_to_area);
@@ -303,7 +299,7 @@ TEST_CASE("decodeDcx: Outside Japan メッセージのデコード") {
     REQUIRE(mt44 != nullptr);
     CHECK(mt44->service_kind == Mt44ServiceKind::OutsideJapan);
     CHECK(mt44->camf.a2 == 32);
-    CHECK(mt44->ex_outside.vn == 5);
+    CHECK(mt44->ex.ex_outside.vn == 5);
 }
 
 TEST_CASE("decodeDcx: NULL Message のデコード") {
@@ -368,7 +364,7 @@ TEST_CASE("decodePrefectureBitmask: 空（ゼロ）") {
     CHECK(count == 0);
 }
 
-// B1 (A17=00) - Improved Resolution of Main Ellipse Tests
+// B1 (A17=00) Improved Resolution of Main Ellipse のテスト
 
 TEST_CASE("decodeB1Refinement: 基本的な分割") {
     uint16_t a18 = (5 << 12) | (3 << 9) | (2 << 6) | (1 << 3);
@@ -400,39 +396,28 @@ TEST_CASE("decodeB1Refinement: 最大値（全7）") {
 }
 
 TEST_CASE("b1RefinedLatitudeOffset: 計算値検証") {
-    // Returns microdegrees (×1,000,000)
+    // 単位はマイクロ度（×1,000,000）
     CHECK(azaraC::internal::b1RefinedLatitudeOffset(0) == 0);
     CHECK(azaraC::internal::b1RefinedLatitudeOffset(1) == 343);
     CHECK(azaraC::internal::b1RefinedLatitudeOffset(7) == 2403);
 }
 
 TEST_CASE("b1RefinedLongitudeOffset: 計算値検証") {
-    // Returns microdegrees (×1,000,000)
     CHECK(azaraC::internal::b1RefinedLongitudeOffset(0) == 0);
     CHECK(azaraC::internal::b1RefinedLongitudeOffset(1) == 343);
     CHECK(azaraC::internal::b1RefinedLongitudeOffset(7) == 2403);
 }
 
-TEST_CASE("b1RefinedRadiusM: 計算値検証 (EWSS CAMF v1.1 §3.7.1.3/4)") {
-    // Returns meters. 実装は四捨五入: base - (delta*code + 4) / 8
-    // a14_code=0: delta = decodeRadiusCode(0) = 216
-    // base=216, code=0: 216 - (216*0+4)/8 = 216
-    // base=216, code=4: 216 - (216*4+4)/8 = 216 - 108 = 108
-    // base=216, code=7: 216 - (216*7+4)/8 = 216 - 189 = 27
+TEST_CASE("b1RefinedRadiusM: 計算値検証 (EWSS CAMF v1.2 §3.7.1.3/4)") {
+    // Returns meters. 実装は四捨五入: base - (delta*code + 4) / 8 delta: a14_code=0 → decodeRadiusCode(0) = 216、a14_code=1 → 292 - 216 = 76、a14_code=3 → 535 - 395 = 140
     CHECK(azaraC::internal::b1RefinedRadiusM(0, 216, 0) == 216);
     CHECK(azaraC::internal::b1RefinedRadiusM(4, 216, 0) == 108);
     CHECK(azaraC::internal::b1RefinedRadiusM(7, 216, 0) == 27);
 
-    // a14_code=1: delta = 292 - 216 = 76
-    // base=292, code=0: 292 - (76*0+4)/8 = 292
-    // base=292, code=4: 292 - (76*4+4)/8 = 292 - 38 = 254
-    // base=292, code=7: 292 - (76*7+4)/8 = 292 - 67 = 225
     CHECK(azaraC::internal::b1RefinedRadiusM(0, 292, 1) == 292);
     CHECK(azaraC::internal::b1RefinedRadiusM(4, 292, 1) == 254);
     CHECK(azaraC::internal::b1RefinedRadiusM(7, 292, 1) == 225);
 
-    // a14_code=3: delta = 535 - 395 = 140
-    // base=535, code=4: 535 - (140*4+4)/8 = 535 - 70 = 465
     CHECK(azaraC::internal::b1RefinedRadiusM(4, 535, 3) == 465);
 }
 
@@ -487,7 +472,7 @@ TEST_CASE("DCX B1: L-AlertメッセージでのB1解析") {
     REQUIRE(mt44 != nullptr);
     CHECK(mt44->service_kind == Mt44ServiceKind::LAlert);
     CHECK(mt44->camf.b1_present == true);
-    // C1=5, C2=3, C3=2, C4=1 → decoded refinement values
+    // C1=5, C2=3, C3=2, C4=1 → 復号済みの精細化値
     CHECK(mt44->mt44_decoded.main_ellipse.b1_lat_offset_microdeg == 1717);
     CHECK(mt44->mt44_decoded.main_ellipse.b1_lon_offset_microdeg == 1030);
     CHECK(mt44->mt44_decoded.main_ellipse.b1_refined_semi_major_m == 4133);
@@ -523,7 +508,7 @@ TEST_CASE("DCX B2: ハザード中心オフセットが主楕円座標に反映�
     setBits(bits, 123, 6, 32);
 
     setBits(bits, 129, 2, 1);
-    // MSB-first: C5=a18[14:8], C6=a18[7:1] → c5=63(0b0111111), c6=63(0b0111111) a18 = 0b0_0111111_0111111_0 = (63 << 8) | (63 << 1)
+    // MSB ファースト: C5=a18[14:8]、C6=a18[7:1]
     uint16_t a18_b2 = ((63u & 0x7Fu) << 8) | ((63u & 0x7Fu) << 1);
     setBits(bits, 131, 15, a18_b2);
 
@@ -549,6 +534,16 @@ TEST_CASE("DCX B2: ハザード中心オフセットが主楕円座標に反映�
     CHECK(mt44->camf.b2_present == true);
     CHECK(mt44->camf.b2_c5 == 63);
     CHECK(mt44->camf.b2_c6 == 63);
+    // c5/c6=63 は delta = -10,000,000 + 20,000,000*63/128 = -156,250 µdeg。
+    // 主楕円は lat/lon とも 1,373 µdeg なので、危険中心は -154,877 µdeg。
+    CHECK(mt44->mt44_decoded.main_ellipse.lat_microdeg == 1373);
+    CHECK(mt44->mt44_decoded.main_ellipse.lon_microdeg == 1373);
+    CHECK(mt44->mt44_decoded.b2_hazard_lat_microdeg == -154877);
+    CHECK(mt44->mt44_decoded.b2_hazard_lon_microdeg == -154877);
+    CHECK(mt44->mt44_decoded.b2_hazard_lat_microdeg -
+          mt44->mt44_decoded.main_ellipse.lat_microdeg == -156250);
+    CHECK(mt44->mt44_decoded.b2_hazard_lon_microdeg -
+          mt44->mt44_decoded.main_ellipse.lon_microdeg == -156250);
 }
 
 // B3 (A17=10) - Secondary Ellipse Definition 統合テスト
@@ -579,7 +574,7 @@ TEST_CASE("DCX B3: 副楕円パラメータが camf に反映される") {
     setBits(bits, 118, 5, 8);
     setBits(bits, 123, 6, 32);
 
-    // MSB-first: C7=a18[14:13], C8=a18[12:10], C9=a18[9:5], C10=a18[4:0] c7=3(0b11), c8=7(0b111), c9=31(0b11111), c10=0(0b00000) a18 = 0b11_111_11111_00000 = (3 << 13) | (7 << 10) | (31 << 5) | (0 << 0)
+    // MSB ファースト: C7=a18[14:13]、C8=a18[12:10]、C9=a18[9:5]、C10=a18[4:0]
     uint16_t a18_b3 = ((3u & 0x03u) << 13) | ((7u & 0x07u) << 10) | ((31u & 0x1Fu) << 5) | (0u & 0x1Fu);
     setBits(bits, 129, 2, 2);
     setBits(bits, 131, 15, a18_b3);

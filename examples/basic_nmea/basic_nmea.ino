@@ -1,16 +1,15 @@
-// azaraC — examples/basic_nmea/basic_nmea.ino
-//
-// NMEA $QZQSM (9600 baud) → JSON on Serial (USB)
-//
-// Wiring (ESP32-C3 DevKitM-1):
+// NMEA $QZQSM（9600 baud）をデコードして Serial (USB) へ JSON を出す配線 (ESP32-C3 DevKitM-1):
 //   GNSS TX → GPIO20 (Serial1 RX)
-//   GNSS RX → GPIO21 (Serial1 TX)  [optional, for config]
+//   GNSS RX → GPIO21 (Serial1 TX)  [任意: 設定用]
 //   GND     → GND
 //
-// Tested with: u-blox M10 / ZED-F9P (L1S enabled), Furuno GT-87
+// 検証済み: u-blox M10 / ZED-F9P (L1S 有効)、Furuno GT-87
+// 他の ESP32 系（classic ESP32 / S3 など）は GPIO16/17 を例示する（下の #elif を参照）。
 
-// Arduino Uno (AVR) compatibility: the Uno has no Serial1 (single hardware
-// UART = Serial on pins 0/1), so the GNSS module connects to Serial and JSON goes out the same port. Category reduction for the 32KB flash is applied automatically by azaraC_config.h (AVR preset keeps SEISMIC/TSUNAMI only).
+// Arduino Uno (AVR) 互換: Serial1 がなく（ハードウェア UART はピン 0/1 の Serial のみ）、GNSS モジュールと JSON 出力が同じポートを共用する。
+// この共用 UART 経路はコンパイル/リンク検証用で、実際に GNSS を繋ぐ場合は SoftwareSerial か、2 つ目の UART を持つボード（例: Mega の Serial1）を使うこと。
+// そうしないと Serial に書いた JSON が GNSS モジュールにも送られる。
+// 32KB フラッシュ向けのカテゴリ削減は azaraC_config.h が自動で適用する（AVR プリセットは SEISMIC/TSUNAMI のみ残す）。
 #include <azaraC.h>
 
 
@@ -30,8 +29,14 @@ void setup() {
     uint32_t start = millis();
     while (!Serial && (millis() - start < 5000)) { delay(10); } // 5秒タイムアウト
 
-#if defined(ESP32)
+#if defined(ARDUINO_ESP32C3_DEV) || defined(CONFIG_IDF_TARGET_ESP32C3)
     Serial1.begin(9600, SERIAL_8N1, /*rx=*/20, /*tx=*/21);
+#elif defined(CONFIG_IDF_TARGET_ESP32C6) || defined(ARDUINO_ESP32C6_DEV)
+    // ESP32-C6 は GPIO16/17 が UART0（Serial 出力）なので別ピンを使う
+    Serial1.begin(9600, SERIAL_8N1, /*rx=*/4, /*tx=*/5);
+#elif defined(ESP32)
+    // 他の ESP32 系は GPIO16/17（classic ESP32 / S3 の UART2 既定）を例示する。WROVER は PSRAM が使うので配線に合わせて変更する
+    Serial1.begin(9600, SERIAL_8N1, /*rx=*/16, /*tx=*/17);
 #elif !defined(ARDUINO_ARCH_AVR)
     Serial1.begin(9600, SERIAL_8N1);
 #endif
@@ -48,7 +53,7 @@ void loop() {
     while (gnss.available()) {
         uint8_t b = static_cast<uint8_t>(gnss.read());
 
-        // TinyGPS++ 等で NMEA をパースして時刻が更新されたら、 cached_gnss_unix_time = ... と更新する想定。
+        // TinyGPS++ 等で NMEA をパースして時刻が更新されたら、cached_gnss_unix_time = ... と更新する想定。
 
         // 第3引数now_unixにGNSSなどの時刻を渡すことで、DCR/DCX電文の「年」を正確に算出できます。
         // 未同期時 (now_unix = 0) の場合、年は解決されませんが、電文の生データ (月・日・時・分) は正しく取得・出力されます。

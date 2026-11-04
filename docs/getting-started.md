@@ -3,9 +3,23 @@
 <img src="../logo.svg" alt="azaraCのロゴ" height="128">
 
 
-準天頂衛星みちびき(QZSS)から発信された[災危通報メッセージ](https://qzss.go.jp/overview/services/sv08_dc-report.html)をデコードするC++17製のArduino向けライブラリです。[azarashi](https://github.com/nbtk/azarashi)(Python/MIT)の定義テーブルを参照しますが、マイコンや組み込みなどでも省リソースで動作します。
+準天頂衛星みちびき(QZSS)から発信された[災危通報メッセージ](https://qzss.go.jp/overview/services/sv08_dc-report.html)をデコードするライブラリです。
+C++17製のArduino向け実装となっています。
+[azarashi](https://github.com/nbtk/azarashi)(Python/MIT)の定義テーブルを参照しますが、マイコンや組み込みなどでも省リソースで動作します。
 
 ## インストール
+
+パッケージマネージャーから導入できます:
+
+```bash
+# Arduino Library Manager（Arduino IDE / arduino-cli）
+arduino-cli lib install azaraC
+
+# PlatformIO
+pio pkg install --library "a-vrice/azaraC"
+```
+
+開発版は git clone でも導入できます:
 
 ```bash
 # Arduino IDE
@@ -17,11 +31,11 @@ git clone https://github.com/A-vrice/azaraC \
   <PROJECT_DIR>/.pio/libdeps/<TARGET_BOARD>/azaraC
 ```
 
-> **注:** Library Manager / `pio pkg install` は未申請のため現時点で利用できません。
-
 ## クイックスタート
 
 ライブラリ側でプロトコルを自動判別するため、UBX/NMEAの形式を問わずそのままデコードできます。
+
+> 注: この例は AVR（Uno など）を対象外とします。AVR は `Serial1` が無いため [examples/basic_uno](https://github.com/A-vrice/azaraC/tree/main/examples/basic_uno/) を参照してください。
 
 ```cpp
 #include <azaraC.h>
@@ -31,7 +45,19 @@ azaraC::Message msg;
 
 void setup() {
     Serial.begin(115200);
+#if defined(ARDUINO_ESP32C3_DEV) || defined(CONFIG_IDF_TARGET_ESP32C3)
+    // ESP32-C3 の UART0 既定ピン（20/21）。AVR（Uno など）は Serial1 が無いので examples/basic_uno を参照
     Serial1.begin(9600, SERIAL_8N1, /*rx=*/20, /*tx=*/21);
+#elif defined(CONFIG_IDF_TARGET_ESP32C6) || defined(ARDUINO_ESP32C6_DEV)
+    // ESP32-C6 は GPIO16/17 が UART0（Serial 出力）なので別ピンを使う
+    Serial1.begin(9600, SERIAL_8N1, /*rx=*/4, /*tx=*/5);
+#elif defined(ESP32)
+    // 他の ESP32 系は GPIO16/17（classic ESP32 / S3 の UART2 既定）を例示する。
+    // WROVER は 16/17 を PSRAM が使うので、その場合は配線に合わせて別ピンに変更すること
+    Serial1.begin(9600, SERIAL_8N1, /*rx=*/16, /*tx=*/17);
+#else
+    Serial1.begin(9600);
+#endif
 }
 
 void loop() {
@@ -53,7 +79,8 @@ if (parser.feed(byte, msg, now)) { ... }
 
 ## コンパイル時設定
 
-`azaraC.h`の前に`#define`で指定します。
+ビルドフラグ（PlatformIO の `build_flags`、arduino-cli の `--build-property compiler.cpp.extra_flags=...` など）で `-D` を渡して指定します。
+スケッチ冒頭の `#define` はライブラリ側で認識されず、`Parser` などのサイズが TU(翻訳単位) 間でずれるため使えません。
 
 | マクロ | デフォルト | 説明 |
 | ------ | ---------- | ---- |
@@ -63,23 +90,24 @@ if (parser.feed(byte, msg, now)) { ... }
 | `AZARAC_DEDUP_MT44_MAX_WINDOW_MS` | 300000 | MT=44 の情報有効時間(ms)の上限。AVRのみ定義（ホストは A8 由来の窓をそのまま使用） |
 | `AZARAC_NANKAI_MAX_PAGES` / `AZARAC_NANKAI_BUFFERS` | 63 / 1 | 防災気象情報(南海トラフ地震)の最大収集ページ数(1-63)と最大同時追跡数(1-32) |
 | `AZARAC_LANG_JA` / `AZARAC_LANG_EN` | 1 / 0 | 定義テーブルの言語選択 |
-| `AZARAC_ENABLE_*`（13個） | 1 | 災害カテゴリ別のデコード有効化/無効化|
-| `AZARAC_FLASH_BUF_SIZE` | 800 | PROGMEM参照用RAMバッファのサイズ。AVRでは有効カテゴリに応じて 64 / 80 / 540 / 800 に自動縮小 |
+| `AZARAC_ENABLE_*`（13個） | 1（AVR は SEISMIC/TSUNAMI のみ） | 災害カテゴリ別のデコード有効化/無効化。AVR で DCX/CAMF を使うには `-DAZARAC_AVR_LARGE_FLASH=1` または `-DAZARAC_ENABLE_DCX_CAMF=1` を明示する |
+| `AZARAC_FLASH_BUF_SIZE` | AVR: カテゴリ連鎖（既定=64）/ 非 AVR: 800 | ラベル引き当て用RAMバッファのサイズ。AVRでは有効カテゴリに応じて 64 / 80 / 96 / 540 / 640 / 800 に自動選択（有効なカテゴリの最長ラベルを収める）。非AVRでも分割ラベルの連結と長さ取得に使う |
 
-AVR（Arduino Uno等）では専用プリセットにより有効カテゴリが絞られ、バッファサイズも縮小されます。プリセット値とメモリ要件の詳細は [アーキテクチャ](architecture.md#メモリ設計) を参照してください。
+AVR（Arduino Uno等）では専用プリセットにより有効カテゴリが SEISMIC/TSUNAMI のみに絞られ、バッファサイズも縮小されます。
+プリセット値とメモリ要件の詳細は [アーキテクチャ](architecture.md#メモリ設計) を参照してください。
 
 ## Examples
 
 | Example | 説明 |
 |-------|----|
-| [basic_nmea](../examples/basic_nmea/) | NMEA $QZQSM の基本的な使用例 |
-| [basic_ubx](../examples/basic_ubx/) | UBX-RXM-SFRBX の基本的な使用例 |
-| [basic_uno](../examples/basic_uno/) | Arduino Uno (AVR) 用最小例 |
-| [with_sntp](../examples/with_sntp/) | SNTP 時刻解決 + EEW フィルタ |
-| [filter_by_category](../examples/filter_by_category/) | 災害カテゴリ別フィルタリング |
-| [error_handling](../examples/error_handling/) | エラーハンドリングと統計 |
-| [wifi_client](../examples/wifi_client/) | Wi-Fi クライアント出力 |
-| [rtos_freertos](../examples/rtos_freertos/) | FreeRTOS タスクベース処理 |
+| [basic_nmea](https://github.com/A-vrice/azaraC/tree/main/examples/basic_nmea/) | NMEA $QZQSM の基本的な使用例 |
+| [basic_ubx](https://github.com/A-vrice/azaraC/tree/main/examples/basic_ubx/) | UBX-RXM-SFRBX の基本的な使用例 |
+| [basic_uno](https://github.com/A-vrice/azaraC/tree/main/examples/basic_uno/) | Arduino Uno (AVR) 用最小例 |
+| [with_sntp](https://github.com/A-vrice/azaraC/tree/main/examples/with_sntp/) | SNTP 時刻解決 + EEW フィルタ |
+| [filter_by_category](https://github.com/A-vrice/azaraC/tree/main/examples/filter_by_category/) | 災害カテゴリ別フィルタリング |
+| [error_handling](https://github.com/A-vrice/azaraC/tree/main/examples/error_handling/) | エラーハンドリングと統計 |
+| [wifi_client](https://github.com/A-vrice/azaraC/tree/main/examples/wifi_client/) | Wi-Fi クライアント出力 |
+| [rtos_freertos](https://github.com/A-vrice/azaraC/tree/main/examples/rtos_freertos/) | FreeRTOS タスクベース処理 |
 
 ## テスト
 

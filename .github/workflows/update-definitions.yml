@@ -46,29 +46,17 @@ jobs:
         if: steps.ver.outputs.changed == 'true'
         run: python scripts/gen/gen_definitions.py --out-dir src/definition
 
-      - name: Install Arduino CLI
+      - name: Setup Arduino CLI
         if: steps.ver.outputs.changed == 'true'
-        uses: arduino/setup-arduino-cli@81d310742121c928ea9c8bbd407b4217b432ae02 # v2.0.0
+        uses: ./.github/actions/setup-arduino-cli
         with:
-          version: "1.x"
-
-      - name: Configure board manager URLs
-        if: steps.ver.outputs.changed == 'true'
-        run: |
-          arduino-cli config init --overwrite || true
-          arduino-cli config add board_manager.additional_urls \
-            https://github.com/earlephilhower/arduino-pico/releases/download/global/package_rp2040_index.json \
+          additional_urls: >-
+            https://github.com/earlephilhower/arduino-pico/releases/download/global/package_rp2040_index.json
             https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
 
       - name: Install required cores
         if: steps.ver.outputs.changed == 'true'
         run: |
-          for i in 1 2 3; do
-            arduino-cli core update-index && break
-            echo "::warning::core update-index failed (attempt $i/3), retrying..."
-            sleep 10
-            [[ $i -eq 3 ]] && exit 1
-          done
           arduino-cli core install rp2040:rp2040
           arduino-cli core install esp32:esp32
 
@@ -85,7 +73,8 @@ jobs:
             esp32:esp32:esp32s3
           do
             echo "=== $fqbn ==="
-            arduino-cli compile --fqbn "$fqbn" examples/basic_ubx
+            arduino-cli compile --clean --fqbn "$fqbn" examples/basic_ubx \
+              --build-property "compiler.cpp.extra_flags=-std=gnu++17"
           done
 
       - name: Create Pull Request
@@ -103,4 +92,4 @@ jobs:
             | Previous | `${{ steps.ver.outputs.current }}` |
             | New | `${{ steps.ver.outputs.latest }}` |
 
-            Changes are in `src/definition/`. Do not edit those files manually.
+            Changes are in `src/definition/` (generated tables only; the two hand-written headers are listed in the generator's extra_headers and are not touched). Do not edit the generated files manually.

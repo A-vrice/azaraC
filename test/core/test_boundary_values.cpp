@@ -1,5 +1,4 @@
-// test/core/test_boundary_values.cpp — 境界値テスト
-// 緯度経度、日付、時間の境界値テスト
+// 緯度経度・日付・時間の境界値テスト
 
 #include "../test_helpers.h"
 #include "doctest.h"
@@ -11,7 +10,6 @@ using namespace azaraC;
 
 TEST_CASE("Boundary: Latitude 90°N") {
     uint8_t buf[32] = {};
-    // lat_ns=0, lat_deg=90, lat_min=59, lat_sec=59
     setBits(buf, 0, 1, 0);       // lat_ns = 0 (North)
     setBits(buf, 1, 7, 90);      // lat_deg = 90
     setBits(buf, 8, 6, 59);      // lat_min = 59
@@ -26,7 +24,6 @@ TEST_CASE("Boundary: Latitude 90°N") {
 
 TEST_CASE("Boundary: Latitude 90°S") {
     uint8_t buf[32] = {};
-    // lat_ns=1, lat_deg=90, lat_min=59, lat_sec=59
     setBits(buf, 0, 1, 1);       // lat_ns = 1 (South)
     setBits(buf, 1, 7, 90);      // lat_deg = 90
     setBits(buf, 8, 6, 59);      // lat_min = 59
@@ -41,7 +38,6 @@ TEST_CASE("Boundary: Latitude 90°S") {
 
 TEST_CASE("Boundary: Longitude 180°E") {
     uint8_t buf[32] = {};
-    // lon_ew=0, lon_deg=180, lon_min=59, lon_sec=59
     setBits(buf, 20, 1, 0);      // lon_ew = 0 (East)
     setBits(buf, 21, 8, 180);    // lon_deg = 180
     setBits(buf, 29, 6, 59);     // lon_min = 59
@@ -56,7 +52,6 @@ TEST_CASE("Boundary: Longitude 180°E") {
 
 TEST_CASE("Boundary: Longitude 180°W") {
     uint8_t buf[32] = {};
-    // lon_ew=1, lon_deg=180, lon_min=59, lon_sec=59
     setBits(buf, 20, 1, 1);      // lon_ew = 1 (West)
     setBits(buf, 21, 8, 180);    // lon_deg = 180
     setBits(buf, 29, 6, 59);     // lon_min = 59
@@ -80,34 +75,23 @@ TEST_CASE("Boundary: Hour=23, Minute=59") {
     CHECK(t.minute == 59);
 }
 
-TEST_CASE("Boundary: Month=0, Day=0 (invalid)") {
-    uint32_t now = 1704067200u;
-    TimeFields t = TestDecoder::testResolveTime(0, 0, 0, 0, now);
-    CHECK(t.day == 0);
-    CHECK(t.hour == 0);
-    CHECK(t.minute == 0);
-    CHECK(t.unix_time == 0);
-}
-
-TEST_CASE("Boundary: Month=13 (invalid)") {
-    uint32_t now = 1704067200u;
-    TimeFields t = TestDecoder::testResolveTime(13, 1, 0, 0, now);
-    CHECK(t.day == 0);
-    CHECK(t.unix_time == 0);
-}
-
-TEST_CASE("Boundary: Hour=24 (invalid)") {
-    uint32_t now = 1704067200u;
-    TimeFields t = TestDecoder::testResolveTime(1, 1, 24, 0, now);
-    CHECK(t.day == 0);
-    CHECK(t.unix_time == 0);
-}
-
-TEST_CASE("Boundary: Minute=60 (invalid)") {
-    uint32_t now = 1704067200u;
-    TimeFields t = TestDecoder::testResolveTime(1, 1, 0, 60, now);
-    CHECK(t.day == 0);
-    CHECK(t.unix_time == 0);
+TEST_CASE("Boundary: invalid date/time combinations are rejected") {
+    struct Case { uint8_t month, day, hour, minute; const char* name; };
+    const Case cases[] = {
+        {0,  0,  0,  0,  "month=0,day=0"},
+        {0,  32, 0,  0,  "month=0,day=32"},
+        {13, 1,  0,  0,  "month=13"},
+        {1,  1,  24, 0,  "hour=24"},
+        {1,  1,  0,  60, "minute=60"},
+    };
+    for (const Case& c : cases) {
+        INFO(c.name);
+        TimeFields t = TestDecoder::testResolveTime(c.month, c.day, c.hour, c.minute, 1704067200u);
+        CHECK(t.day == 0);
+        CHECK(t.hour == 0);
+        CHECK(t.minute == 0);
+        CHECK(t.unix_time == 0);
+    }
 }
 
 // 深度・大きさ境界値テスト (Hypocenter: dc=2)
@@ -251,7 +235,6 @@ TEST_CASE("Boundary: EEW notification count=3") {
     setBits(bits, 0, 8, 0x53);
     setBits(bits, 8, 6, 43);
     setBits(bits, 17, 4, 1);     // EEW
-    // 3 notification codes: 100, 200, 300
     setBits(bits, 53, 9, 100);
     setBits(bits, 62, 9, 200);
     setBits(bits, 71, 9, 300);
@@ -280,7 +263,7 @@ TEST_CASE("Boundary: EEW notification count=3") {
 // 閏年テスト
 
 TEST_CASE("Boundary: Leap year Feb 29") {
-    uint32_t now = 1709164800u; // 2024-03-01 00:00:00 UTC (2024 is leap year)
+    uint32_t now = 1709164800u; // 2024-02-29 00:00:00 UTC (2024 is leap year)
     uint8_t bits[32] = {};
     setBits(bits, 0, 8, 0x53);
     setBits(bits, 8, 6, 43);
@@ -301,13 +284,17 @@ TEST_CASE("Boundary: Leap year Feb 29") {
     
     const Mt43Data* mt43 = msg.getMt43();
     REQUIRE(mt43 != nullptr);
+    CHECK(mt43->event_time.month == 2);
     CHECK(mt43->event_time.day == 29);
+    CHECK(mt43->event_time.hour == 0);
+    CHECK(mt43->event_time.minute == 0);
+    CHECK(mt43->event_time.unix_time == 1709164800u);
 }
 
 // 年末テスト
 
 TEST_CASE("Boundary: Year end Dec 31") {
-    uint32_t now = 1735686000u; // 2024-12-31 00:00:00 UTC
+    uint32_t now = 1735686000u; // 2024-12-31 23:00:00 UTC
     uint8_t bits[32] = {};
     setBits(bits, 0, 8, 0x53);
     setBits(bits, 8, 6, 43);
@@ -328,6 +315,11 @@ TEST_CASE("Boundary: Year end Dec 31") {
     
     const Mt43Data* mt43 = msg.getMt43();
     REQUIRE(mt43 != nullptr);
+    CHECK(mt43->event_time.month == 12);
     CHECK(mt43->event_time.day == 31);
+    CHECK(mt43->event_time.hour == 0);
+    CHECK(mt43->event_time.minute == 0);
+    // 報告時刻 (23:00) より前の同日 00:00 を選ぶ。
+    CHECK(mt43->event_time.unix_time == 1735603200u);
 }
 #endif // AZARAC_ENABLE_EEW

@@ -12,24 +12,30 @@
 
 namespace azaraC {
 
-//
-// RAM: Parser obj ~5.4 KB (static, default: Nankai 1-buffer @63 pages = 1,168 B manager + dedup table 4,096 B (512x8) + framers/decoder; host-measured sizeof = 5,464 B); stack per feed() ~321 B (Message 288 B + Frame 33 B, host-measured default config). ~5.8 KB recommended; min 712 B (AVR preset: 4 pages / 1 buffer, dedup 64x8 = 512 B, Nankai/DCX off). For 2 KB targets keep Nankai/DCX disabled; do not shrink AZARAC_DEDUP_SLOTS below the AVR preset's 64 without re-measuring (see azaraC_config.h for the measured error rates).
-//
+// RAM: Parser 実体は静的確保で約 5.4 KB（既定: dedup 4 KB + Nankai 管理部 1.2 KB + framer/decoder）、推奨 5.8 KB。
+// AVR preset（Nankai/DCX off、dedup 64x8）では約 0.7 KB。2 KB SRAM のターゲットでは Nankai/DCX を無効のままにすること。
+// スタック上限: feed() が host -Os で 808 B / AVR preset で 259 B。JSON 出力は別チェーン（host 1,600 B）。
+// AZARAC_DEDUP_SLOTS を AVR preset の 64 未満へ縮めるのは、再通知を実測し直す場合のみ（azaraC_config.h）。
 class Parser {
 public:
     Parser() = default;
-    // Custom framer (e.g. Sony, Furuno) — caller owns the object
+    // カスタムフレーマ（Sony、Furuno 等）を注入する。オブジェクトの所有は呼び出し側。
     explicit Parser(internal::IFramer& framer) : _custom(&framer) {}
 
-    // Feed one byte. Returns true when a new, non-duplicate, valid message is in `out`.
-    // report_unix: UNIX epoch of the report for time resolution (0 = use fixed baseline 2024-01-01)
+    // コピー/ムーブ禁止: dedup テーブル 4 KB と Nankai バッファを二重に確保し、_custom（ユーザー所有のフレーマ）も二重参照になるため。
+    Parser(const Parser&) = delete;
+    Parser& operator=(const Parser&) = delete;
+    Parser(Parser&&) = delete;
+    Parser& operator=(Parser&&) = delete;
+
+    // 1 バイト入力し、新規かつ妥当な電文が `out` に揃えば true。
+    // report_unix: 時刻解決に使う報告の UNIX epoch。0 は未解決（DHM フィールドは残るが unix_time は 0 のまま）。
     bool feed(uint8_t byte, Message& out, uint32_t report_unix = 0);
 
     void reset();
 
 #if AZARAC_ENABLE_NANKAI
-    // Check if Nankai Trough page aggregation is complete for given key
-    // Returns pointer to the buffer matching the key, or nullptr if not found
+    // 鍵に一致するバッファを返す（受信途中でも返る。完了判定は isComplete()）。無ければ nullptr。
     const internal::NankaiPageBuffer* getNankaiBuffer(const internal::NankaiPageKey& key) const;
 #endif
 
@@ -43,20 +49,18 @@ private:
 #endif
     internal::IFramer*               _custom = nullptr;
 
-    // Common post-decode handler: Nankai aggregation → dedup → copy to out.
-    // Extracted to eliminate duplication between custom framer and AUTO mode paths.
-    // Returns true if message should be output (valid, non-duplicate, aggregation handled).
-    // identity: 手順③ の照合対象（MT～VN = フレーム bit 8..219）の digest。
+    // 復号後の共通経路（カスタムフレーマ経路と AUTO 経路）: Nankai 集約 → dedup → out へのコピー。
+    // 妥当・非重複・集約済みで出力すべきなら true。
+    // identity: 手順③ の照合範囲（MT～VN）の digest。ビット範囲と除外対象は呼び出し側に記す。
+    // decoded と out が同一オブジェクトならコピーは行わない。
     bool postDecode(const Message& decoded, Message& out, uint32_t identity);
 
-    // Shared decode → postDecode path; on decode failure copies the cleared
-    // Decoder state into `out` so a reused Message never retains stale payload.
-    // frame は非 const: messageIdentity が MT=44 の SD を一時的にゼロにする（呼び出しの前後で内容は不変）。
+    // decode → postDecode を `out` 自体に対して行う。decode() が先に out をクリアするため、復号失敗で前の payload が残らない。
+    // frame が非 const なのは messageIdentity が MT=44 の SD を一時的にゼロにするため。
     bool handleFrame(internal::Frame& frame, Message& out, uint32_t report_unix);
 
 #if AZARAC_ENABLE_NANKAI
-    // Process Nankai Trough page aggregation
-    // Returns true if message should be output (page aggregation complete or not Nankai)
+    // Nankai のページ集約。出力すべきなら true（集約完了、または Nankai 以外）
     bool processNankaiAggregation(const Message& decoded, Message& out, const Mt43Data* d, uint64_t current_ms);
 #endif
 };

@@ -8,12 +8,14 @@
 
 [![Codacy Grade](https://app.codacy.com/project/badge/Grade/b3588525b57047f89f8d2ee988d155d3)](https://app.codacy.com/gh/A-vrice/azaraC/dashboard) [![Codacy Coverage](https://app.codacy.com/project/badge/Coverage/b3588525b57047f89f8d2ee988d155d3)](https://app.codacy.com/gh/A-vrice/azaraC/dashboard) [![OSSF Scorecard](https://img.shields.io/ossf-scorecard/github.com/A-vrice/azaraC?style=flat-square&label=Scorecard)](https://scorecard.dev/viewer/?uri=github.com/A-vrice/azaraC) [![SLSA Level3](https://img.shields.io/badge/SLSA-Level3-brightgreen?style=flat-square&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3MDAgNzAwIj48cGF0aCBmaWxsPSIjZmY2NzQwIiBkPSJNMTI1IDFRODIgNiA1MCAzM0MzOSA0MyAyNCA1OSAyNSA2MWw4IDEyIDcgMTIgMzQgNDYgMjAgMjRhMTAzNCAxMDM0IDAgMCAwIDcyIDc1cTExIDExIDEyIDhhODM4IDgzOCAwIDAgMCAyMTMtODRsNTMtMzNhODI0IDgyNCAwIDAgMCA5Ni03Nmw0My00My0zLTF6bTQ5NiAzNGE4OTQgODk0IDAgMCAxLTk4IDkwbC0xNSAxMi0xOCAxMy03NyA0OGMtOCA2LTUzIDI5LTcwIDM2YTg5NyA4OTcgMCAwIDEtMTExIDQybC03IDIgOSA4IDEyIDkgNDkgMzJhODY4IDg2OCAwIDAgMCA4NSA0NWw0NiAxOSA1IDIgMTMgNSAzMyAxMSA3IDIgOC02YzktNiAzMS0yNSAzOS0zMmwxMy0xMmE5MTAgOTEwIDAgMCAwIDY2LTY5bDExLTE0YzMtMiAyOS0zOCAzMi00Mmw0MC02MSA3LTExdi0xOWwtMi0yNi0yLTEwYy0xLTctNy0yNS0xMS0zMmExNDYgMTQ2IDAgMCAwLTQ4LTU0bC0zLTJ6TTEgMTE5djQ2MmgxOGwyMi0xIDEyLTIgMTEtMSA5LTEgMTgtMiAxNC0yIDktMSA4LTEgNy0yIDIxLTMgNy0yIDctMiA3Ny0yMSA3MC0yNyAxMy02YTk3MiA5NzIgMCAwIDAgODEtNDJsMjgtMTctNi0zYTg4OSA4ODkgMCAwIDEtMjY0LTE1MWwtNy01LTctNy03LTYtMTItMTEtNjUtNjYtNTMtNjgtMTAtMTN6Ii8+PHBhdGggZmlsbD0iI2ZmNjc0MCIgZD0iTTY5OCAyNTlhOTM3IDkzNyAwIDAgMS02MSA3NyA5ODQgOTg0IDAgMCAxLTczIDc1IDg2NyA4NjcgMCAwIDEtMjQ1IDE1M2wtMTcgNy0xMyA1LTIwIDctNjAgMTlhOTM2IDkzNiAwIDAgMS0xMTUgMjNsLTkgMS0xOSAyLTEwIDEtMTQgMS0yMiAxYy0xIDIgMTIgMTggMjAgMjdsMTUgMTMgMjIgMTRxMTUgOCAzNSAxMmwxMCAzaDQ1NmwxMC0zYTE0MSAxNDEgMCAwIDAgMTEwLTExM2MyLTExIDItMTYgMi0xNjlWMjU3eiIvPjwvc3ZnPg==)](https://github.com/A-vrice/azaraC/releases)
 
-準天頂衛星みちびき(QZSS)から発信されたL1S信号の災危通報メッセージをデコードするArduino向けC++17ライブラリ。[azarashi](https://github.com/nbtk/azarashi)(Python)の移植です。外部依存やヒープの動的割り当てはせず、負荷を抑えています。
+準天頂衛星みちびき(QZSS)から発信されたL1S信号の災危通報メッセージをデコードするArduino向けC++17ライブラリ。
+[azarashi](https://github.com/nbtk/azarashi)(Python)の移植です。
+外部依存はなく、ヒープの動的割り当てもしません。
 
 ## 対応メッセージ
 
 | msg_type | 規格            | 名称            |
-| -------- | --------------- | --------------- |
+|----------|-----------------|-----------------|
 | 43       | [IS-QZSS-DCR-017](https://qzss.go.jp/technical/download/is_qzss_dcr_017_agree.html) | DCR 12種類（QZQSM） |
 | 44       | [IS-QZSS-DCX-004](https://qzss.go.jp/technical/download/is_qzss_dcx_004_agree.html) | DCX / CAMF（L-Alert, J-Alert など） |
 
@@ -21,9 +23,27 @@
 
 MT=44 の B フィールド（B1–B4）と C10 は [EWSS CAMF Issue 1.2](https://www.gsc-europa.eu/electronic-library/programme-reference-documents/galileo-in-force/ewss) に基づきます。
 
+AVR（Uno・Mega を含む）は既定で SEISMIC/TSUNAMI のみ有効です。
+無効にしたカテゴリは定義テーブルがコンパイルされず、`EewData` / `HypocenterData` / `NankaiData` は型ごと除外されます（`SeismicData` / `TsunamiData` など残りの型は、そのカテゴリを無効にしても定義は残ります）。
+
+- `Message` のサイズは 84 B（全カテゴリ有効時も 84 B、DCX/CAMF 追加時は 199 B ／ ATmega328P の `sizeof` 実測）
+- EEW と震源は AVR プリセットで無効なので `getEew()` / `getHypocenter()` は既定で使えません。
+  有効化する場合は `-DAZARAC_ENABLE_EEW=1` / `-DAZARAC_ENABLE_HYPOCENTER=1`
+- MT=44 は `-DAZARAC_AVR_LARGE_FLASH=1` または `-DAZARAC_ENABLE_DCX_CAMF=1` で有効化します（Flash が 64KB を超えるボードが対象）
+
 ## インストール
 
-git clone で直接導入できます:
+パッケージマネージャーから導入できます:
+
+```bash
+# Arduino Library Manager（Arduino IDE / arduino-cli）
+arduino-cli lib install azaraC
+
+# PlatformIO
+pio pkg install --library "a-vrice/azaraC"
+```
+
+開発版は git clone でも導入できます:
 
 ```bash
 # Arduino IDE
@@ -33,9 +53,8 @@ git clone https://github.com/A-vrice/azaraC <PROJECT_DIR>/libraries/azaraC
 git clone https://github.com/A-vrice/azaraC <PROJECT_DIR>/.pio/libdeps/<TARGET_BOARD>/azaraC
 ```
 
-> **注:** Library Manager / `pio pkg install` は未申請のため現時点で利用できません。
->
-> **注:** 本ライブラリは C++17 必須です。Arduino IDE / PlatformIO のビルドで `-std=gnu++17` を指定してください（設定例は [`platformio.ini.example`](platformio.ini.example) を参照）。
+> **注:** 本ライブラリは C++17 必須です。
+> Arduino IDE / PlatformIO のビルドで `-std=gnu++17` を指定してください（設定例は [`platformio.ini.example`](platformio.ini.example) を参照）。
 
 ## ドキュメント
 
@@ -48,8 +67,11 @@ git clone https://github.com/A-vrice/azaraC <PROJECT_DIR>/.pio/libdeps/<TARGET_B
 
 [MIT](LICENSE)
 
-本ライブラリは非公式なものであり，準天頂衛星システムサービス株式会社，JAXA，その他公共機関など，「みちびき」に関連する組織，NBTK氏の提供するazarashiとは一切関係ありません。また，あるふぁ米およびそのコントリビューターは，受信したメッセージや本ライブラリの出力内容の正確性，完全性，その他のいかなるものについても保証しません。本ライブラリを使用したことによるいかなる損害についても責任は負いかねます。本ライブラリは現状有姿で提供されます。また，本ライブラリを利用される際はQSSの免責条項[参考](https://qzss.go.jp/technical/dod/dc-report/users-manual_agree.html)を確認することを推奨します。
+本ライブラリは非公式なものであり，準天頂衛星システムサービス株式会社，JAXA，その他公共機関など「みちびき」に関連する組織，ならびにNBTK氏の提供するazarashiとは一切関係ありません。
+また本ライブラリは現状有姿で提供され，あるふぁ米およびそのコントリビューターは，受信したメッセージや本ライブラリの出力内容の正確性，完全性，その他のいかなるものについても保証しません。
+本ライブラリを使用したことによるいかなる損害についても責任は負いかねます。
+また，本ライブラリを利用される際はQSSの免責条項[参考](https://qzss.go.jp/technical/dod/dc-report/users-manual_agree.html)を確認することを推奨します。
 
-## 連絡先
+## 問い合わせ
 
 不具合や、疑問点は[Issue](https://github.com/A-vrice/azaraC/issues)または[作者メールアドレス](mailto:azaraC@vrice.f5.si)までお願いします。
