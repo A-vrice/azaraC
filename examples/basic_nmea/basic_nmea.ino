@@ -4,7 +4,7 @@
 //   GND     → GND
 //
 // 検証済み: u-blox M10 / ZED-F9P (L1S 有効)、Furuno GT-87
-// 他の ESP32 系（classic ESP32 / S3 など）は GPIO16/17 を例示する（下の #elif を参照）。
+// 他の ESP32 系はボードで空きピンが違う（classic ESP32 / S3 は GPIO16/17、ESP32-C6 は GPIO16/17 が UART0 と衝突するので GPIO4/5）。下の #elif を参照。
 
 // Arduino Uno (AVR) 互換: Serial1 がなく（ハードウェア UART はピン 0/1 の Serial のみ）、GNSS モジュールと JSON 出力が同じポートを共用する。
 // この共用 UART 経路はコンパイル/リンク検証用で、実際に GNSS を繋ぐ場合は SoftwareSerial か、2 つ目の UART を持つボード（例: Mega の Serial1）を使うこと。
