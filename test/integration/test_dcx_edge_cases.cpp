@@ -39,7 +39,7 @@ static Message decodeEdge(uint8_t sdmt, uint16_t sdm, uint8_t a1, uint16_t a2,
 } // namespace
 
 TEST_CASE("DCX Edge: NullMessage classification") {
-    // A1=0, A2=111(Japan), A3=0 が前提。CAMF/拡張が非ゼロなら JAlert。
+    // A1=0, A2=111(Japan), A3=0 が前提。CAMF/拡張が非ゼロなら Unknown（A3=0 は not used）。
     struct Case {
         uint16_t sdm;
         uint8_t a4;
@@ -49,9 +49,9 @@ TEST_CASE("DCX Edge: NullMessage classification") {
         Mt44ServiceKind kind;
     };
     const Case cases[] = {
-        {0,     0, 1101, 1, false, Mt44ServiceKind::JAlert},
+        {0,     0, 1101, 1, false, Mt44ServiceKind::Unknown},
         {0,     0, 0,    0, true,  Mt44ServiceKind::NullMessage},
-        {0x1FF, 5, 0,    1, false, Mt44ServiceKind::JAlert},
+        {0x1FF, 5, 0,    1, false, Mt44ServiceKind::Unknown},
     };
     for (const Case& c : cases) {
         INFO("is_null=", c.is_null);
@@ -81,12 +81,15 @@ TEST_CASE("DCX Edge: OutsideJapan classification") {
     }
 }
 
-TEST_CASE("DCX Edge: Japan provider boundary (JAlert/LocalGovernment)") {
+TEST_CASE("DCX Edge: Japan provider classification (JAlert/LocalGovernment/Unknown)") {
     struct Case { uint16_t sdm; uint8_t a4; uint8_t a3; Mt44ServiceKind kind; };
     const Case cases[] = {
-        {0x1FF, 5, 0,  Mt44ServiceKind::JAlert},
-        {0,     0, 5,  Mt44ServiceKind::LocalGovernment},
-        {0,     0, 31, Mt44ServiceKind::LocalGovernment},
+        {0x1FF, 5, 0,  Mt44ServiceKind::Unknown},
+        {0x1FF, 5, 2,  Mt44ServiceKind::JAlert},
+        {0x1FF, 5, 3,  Mt44ServiceKind::JAlert},
+        {0x1FF, 5, 4,  Mt44ServiceKind::LocalGovernment},
+        {0x1FF, 5, 5,  Mt44ServiceKind::Unknown},
+        {0x1FF, 5, 31, Mt44ServiceKind::Unknown},
     };
     for (const Case& c : cases) {
         INFO("a3=", static_cast<int>(c.a3));

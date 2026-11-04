@@ -61,8 +61,7 @@ bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix)
     d->camf.b3_c9 = 0;
     d->camf.b3_c10 = 0;
 
-    // Null Message 検査 (IS-QZSS-DCX-004 §4.3): PAB, MT, SD, Reserved, CRC 以外はすべて 0 でなければならない。
-    // A2 は日本 (001101111 = 111)、A3 は 0。
+    // Null Message 検査 (IS-QZSS-DCX-004 §4.3): A1=0, A2=111, A3=0, A4–A18=0, 拡張=0。
     if (d->camf.a1 == 0 && d->camf.a2 == DCX_COUNTRY_CODE_JAPAN && d->camf.a3 == 0 &&
         d->camf.a4 == 0 && d->camf.a5 == 0 && d->camf.a6 == 0 &&
         d->camf.a7 == 0 && d->camf.a8 == 0 && d->camf.a9 == 0 &&
@@ -84,7 +83,7 @@ bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix)
     }
 
     // 発現時刻: A6（0 = 今週, 1 = 翌週）+ A7（14 bit、1 分刻み）で 15 bit を成し、最大 2 週先まで表せる。
-    // IS-QZSS-DCX-004 §4.2.3.6, Table 4.2-9 / EWSS CAMF v1.2 §3.3: 週は月曜 00:00 UTC に始まり日曜 23:59 UTC に終わる。
+    // IS-QZSS-DCX-004 §4.2.3.6, Table 4.2-9（A6=0 は今週、A6=1 は翌週）/ §4.2.3.7, Table 4.2-10（週は月曜 00:00 UTC に始まり日曜 23:59 UTC に終わる）/ EWSS CAMF v1.2 §3.3。
     if (d->camf.a7 > 0 && d->camf.a7 <= 10080 && report_unix >= 946684800u) {
         // 1970-01-01 は木曜なので (days + 3) % 7 が 0=月 … 6=日になる。
         // report_unix を含む週の月曜 00:00 UTC を求める。
@@ -112,15 +111,15 @@ bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix)
         d->service_kind = Mt44ServiceKind::OutsideJapan;
         d->ex_kind = ExtendedKind::OutsideJapan;
     } else {
-        if (d->camf.a3 == 0 || d->camf.a3 == 2 || d->camf.a3 == 3) {
-            // A3=0,3: J-Alert（消防庁）、A3=2: J-Alert（内閣府）— IS-QZSS-DCX-003 §4.2.1.2
+        if (d->camf.a3 == 2 || d->camf.a3 == 3) {
+            // A3=2: J-Alert（消防庁/FDMA）、A3=3: J-Alert（関係省庁/Related Ministries）— IS-QZSS-DCX-004 §4.2.3.3 Table 4.2-6
             d->service_kind = Mt44ServiceKind::JAlert;
             d->ex_kind = ExtendedKind::JAlert;
         } else if (d->camf.a3 == 1) {
             d->service_kind = Mt44ServiceKind::LAlert;
             d->ex_kind = ExtendedKind::LAlertOrLocal;
-        } else if (d->camf.a3 <= 31) {
-            // A3=4: 地方公共団体、A3=5-31: 将来用に予約 — IS-QZSS-DCX-003 §4.2.1.2
+        } else if (d->camf.a3 == 4) {
+            // A3=4: 地方公共団体。A3=5-31 は予約のため Unknown — 同 Table 4.2-6
             d->service_kind = Mt44ServiceKind::LocalGovernment;
             d->ex_kind = ExtendedKind::LAlertOrLocal;
         } else {
@@ -154,7 +153,7 @@ bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix)
         d->ex.ex_outside.vn = getBits(bits, 214, 6);
     }
 
-    // 復号済み構造を埋める (IS-QZSS-DCX-003 §15.2)
+    // 復号済み構造を埋める（主楕円は DCX-004 §4.2.3.12–16、B1–B4 は EWSS CAMF v1.2 §3.7）
 
     Mt44Decoded& dec = d->mt44_decoded;
     dec.main_ellipse_present = false;

@@ -73,7 +73,7 @@ TEST_CASE("DCX: J-Alert - Missile Attack") {
     REQUIRE(mt44 != nullptr);
     CHECK(mt44->service_kind == Mt44ServiceKind::JAlert);
     CHECK(mt44->camf.a2 == 111);  // Japan
-    CHECK(mt44->camf.a3 == 3);    // 関連省庁（FDMA → J-Alert）
+    CHECK(mt44->camf.a3 == 3);    // 関連省庁（Related Ministries → J-Alert）
     CHECK(mt44->camf.a5 == 3);    // 深刻度 Extreme
     CHECK(mt44->ex.ex_jalert.vn == 1);
 
@@ -85,7 +85,7 @@ TEST_CASE("DCX: J-Alert - Missile Attack") {
     }
 }
 
-// Local Government の a3 境界（4..31）: a3=4(最小)/31(最大) → LocalGovernment、a2=111(日本)、非 JAlert 経路を固定。
+// Local Government は a3=4 のみ: a2=111(日本)、非 JAlert 経路を固定。
 
 namespace {
 Message decodeDcxHelper(uint8_t* bits) {
@@ -101,8 +101,8 @@ Message decodeDcxHelper(uint8_t* bits) {
 }
 } // namespace
 
-TEST_CASE("DCX: Local Government a3 boundary values") {
-    const uint8_t a3_values[] = {4, 31};   // LocalGovernment range 4-31
+TEST_CASE("DCX: Local Government a3=4") {
+    const uint8_t a3_values[] = {4};
     for (uint8_t a3 : a3_values) {
         INFO("a3=", static_cast<int>(a3));
         uint8_t bits[32] = {};
@@ -128,11 +128,11 @@ TEST_CASE("DCX: Local Government a3 boundary values") {
     }
 }
 
-// JAlert a3 ∈ {0,2,3} — 非 null メッセージ a3=0(FDMA), 2(Cabinet Office), 3(FDMA) はいずれも JAlert に分岐（IS-QZSS-DCX-003 §4.2.1.2）。
+// JAlert a3 ∈ {2,3} — a3=2(FDMA/消防庁), 3(Related Ministries/関係省庁) はいずれも JAlert に分岐（IS-QZSS-DCX-004 §4.2.3.3 Table 4.2-6）。
 // a2=111(Japan), a4=8(Missile attack) を設定し、NullMessage（全フィールドゼロ）判定を避ける。
 
-TEST_CASE("DCX: J-Alert a3={0,2,3} (FDMA/Cabinet Office) - Non-null message") {
-    const int a3_values[] = {0, 2, 3};
+TEST_CASE("DCX: J-Alert a3={2,3} (FDMA/Related Ministries) - Non-null message") {
+    const int a3_values[] = {2, 3};
     for (int a3_val : a3_values) {
         INFO("Testing a3=" << a3_val);
         
@@ -142,7 +142,7 @@ TEST_CASE("DCX: J-Alert a3={0,2,3} (FDMA/Cabinet Office) - Non-null message") {
         setBits(bits, 14, 1, 0);       // SDMT
         setBits(bits, 15, 9, 0x1FF);   // SDM
         setBits(bits, 26, 9, 111);     // a2=Japan
-        setBits(bits, 35, 5, a3_val);  // a3 ∈ {0,2,3}
+        setBits(bits, 35, 5, a3_val);  // a3 ∈ {2,3}
         setBits(bits, 40, 7, 8);       // a4=8 (CBRNE/Missile attack) - ensures non-null
 
         Message msg = decodeDcxHelper(bits);
