@@ -119,8 +119,7 @@ VPATH = ../src:../src/decoder:../src/framer:../src/json:../src/internal
 # ただし同じ make 内の `-j2 bench-dedup bench-decode` はこのロックでは直列化されないため、衝突はスクリプト側のオブジェクト接頭辞（dedup_ / decode_）で防いでいる。
 # test-time-irq は time_irq_test を書くので clean / run-lto と同時に走らないよう含める。
 # bench（AVR 計測）は bench/avr/out を共有するので、並行する make bench 同士の衝突を防ぐため含める。
-# test-macro-compile / test-macro-sizes は .macro_tmp を共有し、最後に丸ごと削除するので含める。
-# macro / test-no-alloc は .macro_tmp を使わないが、内部で clean を呼び *.o を消す（macro は run も呼ぶ）ので含める。
+# test-macro-compile / test-macro-sizes / macro / test-no-alloc は .macro_tmp を共有し、最後に丸ごと削除するので含める。
 #
 # 残リスク: 強制 kill（SIGKILL/プロセスクラッシュ）では trap を実行できないためロックが残る。
 # その場合は test/.make-lock を手動で削除する（スクリプトのエラーにも記載）。

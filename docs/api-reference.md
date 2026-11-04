@@ -56,7 +56,6 @@ bool feed(uint8_t byte, Message& out, uint32_t report_unix = 0);
 `Decoder::decode` が `out.clear()` の後に `svid` を書き戻すため `svid` は必ず残る。
 `crc24` は CRC 通過後に拒否された場合に残り、`msg_type` はさらにプリアンブル検証を通過した後の拒否（43/44 以外の MT など）でのみ残る。
 重複時は `out` 全体がクリアされる。
-南海トラフ（カテゴリ 4）のページ集約途中と、カテゴリ 4 で `getNankai()` が nullptr になる電文も `out` 全体をクリアする。
 フレーム未完成の時は `out` は書き換えられない。
 `msg.unsupported_reason` に値が入るのは、復号器が完成フレームを拒否した場合だけ（`DisabledAtCompileTime` / `UnknownCategory` / `UnsupportedVersion`）。
 CRC誤り・重複では `unsupported_reason` は `None` になる（重複時は `out` も全体クリア、CRC誤りでは書き戻された `svid` だけが残る）。
@@ -391,7 +390,7 @@ void toJson(const Message& msg, Print& out);
 | `msg` | `const Message&` | シリアライズするメッセージ |
 | `out` | `Print&` | 出力先 (Serial, WiFiClient等) |
 
-**スレッド安全性:** AVR / 非 AVR のどちらもラベル用の共有バッファ（`AZARAC_FLASH_BUF_SIZE` の 1 本）を使うため、`toJson()` と定義テーブルの lookup を複数のタスク/スレッドから同時に呼ばないこと。AVR では lookup のたびに Flash からこのバッファへコピーする。
+**スレッド安全性:** 非 AVR ではラベル連結用の共有バッファ（`AZARAC_FLASH_BUF_SIZE`）を 1 本使うため、`toJson()` と定義テーブルの lookup を複数のタスク/スレッドから同時に呼ばないこと。
 FreeRTOS では呼び出し側で排他する（`examples/rtos_freertos` の `printJson()` を参照）。
 
 **使用例:**
