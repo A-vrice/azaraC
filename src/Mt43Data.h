@@ -90,30 +90,36 @@ struct EewData {
     // 対象予報区の個数
     uint8_t regionCount() const {
         uint8_t n = 0;
-        for (uint8_t i = 0; i < 10; ++i) {
-            uint8_t v = region_bitmap[i];
-            while (v) { v = (uint8_t)(v & (uint8_t)(v - 1u)); ++n; }
-        }
+        for (uint8_t byt = 0; byt < 10; ++byt) n = (uint8_t)(n + popcount8(region_bitmap[byt]));
         return n;
     }
     // 昇順 i 番目 (0 始まり) の対象予報区コード (1..80)。i >= regionCount() は 0。
+    // 各バイトの立ビット数を数え、i がそのバイトに無ければ丸ごと読み飛ばす（最悪 80 bit 走査 → 10 バイト + 8 bit）。
     uint8_t regionAt(uint8_t i) const {
-        uint8_t seen = 0;
         for (uint8_t byt = 0; byt < 10; ++byt) {
             const uint8_t v = region_bitmap[byt];
+            const uint8_t n = popcount8(v);
+            if (i >= n) { i = (uint8_t)(i - n); continue; }
             for (uint8_t bit = 0; bit < 8; ++bit) {
-                if (v & (0x80u >> bit)) {
-                    if (seen == i) return (uint8_t)(byt * 8u + bit + 1u);
-                    ++seen;
-                }
+                if (!(v & (0x80u >> bit))) continue;
+                if (i == 0) return (uint8_t)(byt * 8u + bit + 1u);
+                --i;
             }
         }
         return 0;
     }
-    // テスト用: 予報区 code (1..80) を対象にする
+    // 予報区 code (1..80) を対象に加える。範囲外は無視し、既に立っているビットはそのまま。
     void addRegion(uint8_t code) {
         if (code == 0 || code > 80) return;
         region_bitmap[(code - 1u) >> 3] = (uint8_t)(region_bitmap[(code - 1u) >> 3] | (0x80u >> ((code - 1u) & 7u)));
+    }
+
+  private:
+    // 1 バイト中の立っているビット数（Kernighan 法）
+    static uint8_t popcount8(uint8_t v) {
+        uint8_t n = 0;
+        while (v) { v = (uint8_t)(v & (uint8_t)(v - 1u)); ++n; }
+        return n;
     }
 };
 #endif // AZARAC_ENABLE_EEW

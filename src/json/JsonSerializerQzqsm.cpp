@@ -110,8 +110,8 @@ bool serializeEEW(const Mt43Data* d, Print& out) {
         qzss_dcr_jma_seismic_intensity_upper_limit_lookup,
         qzss_dcr_jma_seismic_intensity_upper_limit_en_lookup, eew->intensity_upper, false);
     wk(out, AZARAC_KEY("regions")); out.print('[');
-    // regionCount()+regionAt(i) は i ごとに先頭から走査して O(N²) になる。
-    // ビットマップを 1 回走査すれば昇順のまま O(80)。
+    // regionAt(i) は i ごとに先頭バイトから数えるため、regionCount()+regionAt(i) のループより
+    // ビットマップ 1 回走査の方が速い（昇順はそのまま）。
     bool first = true;
     for (uint8_t byt = 0; byt < 10; ++byt) {
         const uint8_t v = eew->region_bitmap[byt];

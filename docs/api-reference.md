@@ -217,8 +217,10 @@ struct EewData {
     uint8_t  intensity_lower;     // 震度下限 (4bits)
     uint8_t  intensity_upper;     // 震度上限 (4bits)
     uint8_t  region_bitmap[10];   // 予報区 80 区のビットマップ（bit i = 予報区 i+1）
-    // アクセサ: regionCount() = 対象予報区数、regionAt(i) = 昇順 i 番目の予報区コード
-    // (1..80、範囲外は 0)、addRegion(code) = テスト等で予報区を追加
+    // 予報区アクセサ:
+    //   regionCount()   … 対象予報区数
+    //   regionAt(i)     … 昇順 i 番目 (0 始まり) の予報区コード (1..80)。i >= regionCount() は 0
+    //   addRegion(code) … 予報区コード (1..80) を対象に追加する。範囲外は無視
 };
 ```
 

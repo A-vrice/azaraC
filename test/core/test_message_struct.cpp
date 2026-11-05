@@ -179,6 +179,29 @@ TEST_CASE("Mt43Data: EewDataの初期化とアクセス") {
     CHECK(data.getNankai() == nullptr);
 #endif
 }
+
+TEST_CASE("Mt43Data: EewData 予報区アクセサ") {
+    EewData eew{};
+    CHECK(eew.regionCount() == 0);
+    CHECK(eew.regionAt(0) == 0);
+
+    eew.addRegion(0);    // 範囲外は無視
+    eew.addRegion(81);
+    CHECK(eew.regionCount() == 0);
+
+    eew.addRegion(8);
+    eew.addRegion(9);    // バイト境界またぎ（bit 7 → 次バイト bit 0）
+    eew.addRegion(16);
+    eew.addRegion(80);   // 最終ビット
+    eew.addRegion(9);    // 重複は無視
+    CHECK(eew.regionCount() == 4);
+    CHECK(eew.regionAt(0) == 8);
+    CHECK(eew.regionAt(1) == 9);
+    CHECK(eew.regionAt(2) == 16);
+    CHECK(eew.regionAt(3) == 80);
+    CHECK(eew.regionAt(4) == 0);    // i >= regionCount()
+    CHECK(eew.regionAt(255) == 0);
+}
 #endif // AZARAC_ENABLE_EEW
 
 #if (AZARAC_ENABLE_NANKAI)
