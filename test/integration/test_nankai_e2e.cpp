@@ -318,6 +318,12 @@ TEST_CASE("Nankai E2E: 27-page full aggregation with real text data") {
             // 既定構成で実メッセージが打ち切られないことを固定
             CHECK(nankai->truncated == false);
             CHECK(memcmp(nankai->aggregated_text_ptr, expected_body, EXPECTED_AGG_LEN) == 0);
+
+            // compactText() 後も getNankaiBuffer() 経由の長さが集約本文と一致する。
+            const NankaiPageBuffer* buf = parser.getNankaiBuffer(NankaiPageKey{5, 0, 0, 0, 0, 0});
+            REQUIRE(buf != nullptr);
+            CHECK(buf->compacted);
+            CHECK(buf->getTextLength() == EXPECTED_AGG_LEN);
         }
     }
 
@@ -486,6 +492,10 @@ TEST_CASE("Nankai E2E: NUL byte mid-page stops aggregation at null") {
     CHECK(nankai->aggregated_len == EXPECTED_LEN);
     CHECK(nankai->aggregated_text_ptr != nullptr);
     CHECK(memcmp(nankai->aggregated_text_ptr, expected_compact, EXPECTED_LEN) == 0);
+
+    const NankaiPageBuffer* buf = parser.getNankaiBuffer(NankaiPageKey{5, 0, 0, 0, 0, 0});
+    REQUIRE(buf != nullptr);
+    CHECK(buf->getTextLength() == EXPECTED_LEN);
 
     // compact 済みで embedded NUL がないため JSON は text_utf8 を使う
     StringPrint sp;

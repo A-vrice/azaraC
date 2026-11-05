@@ -87,7 +87,8 @@ struct NankaiPageBuffer {
     uint8_t total_pages = 0;            // 1B — 実効ページ数（MAX_PAGES で頭打ち）
     uint8_t original_total_pages = 0;   // 1B — 電文が示す元のページ数
     uint8_t received_count = 0;         // 1B — 受信したページ数
-    bool truncated = false;             // 1B — total_pages > MAX_PAGES のとき true
+    bool truncated : 1;                 // 1b — total_pages > MAX_PAGES のとき true
+    bool compacted : 1;                 // 1b — compactText() がページを詰めた後 true（getTextLength の読み方を切り替える）
     // aggregated_text はオフセット 24 (host) / 22 (AVR) — char の境界は 1 なのでその前にパディングが無い
     char aggregated_text[MAX_PAGES * TEXT_PER_PAGE + 1];
 
@@ -148,7 +149,14 @@ struct NankaiPageBuffer {
 
     // NUL を除いたテキスト長。ページごとに最初の 0x00 で止まる（UTF-8 に NUL は無い）。
     // 未完成のバッファでも安全（受信済みページしか読まない）。
+    // compactText() 後は本文が先頭から連続しているため、ページ割り付けではなく文字列長を返す。
     uint16_t getTextLength() const {
+        if (compacted) {
+            uint16_t n = 0;
+            while (n < (uint16_t)(MAX_PAGES * TEXT_PER_PAGE) && aggregated_text[n] != 0) ++n;
+            return n;
+        }
+
         uint16_t len = 0;
 
         uint64_t bm = received_bitmap;
@@ -178,6 +186,7 @@ struct NankaiPageBuffer {
             w += n;
         }
         aggregated_text[w] = '\0';
+        compacted = true;
         return w;
     }
 
@@ -194,6 +203,7 @@ struct NankaiPageBuffer {
         received_bitmap = 0;
         last_update_ms = 0;
         truncated = false;
+        compacted = false;
         memset(aggregated_text, 0, sizeof(aggregated_text));
     }
 
