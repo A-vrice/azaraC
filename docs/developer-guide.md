@@ -87,17 +87,16 @@ make -C test run MINGW64_BIN=C:\mingw64\bin
 意図的にロックを迂回する場合は `make -C test AZARAC_LOCK_HELD=1 run` を使います。
 `run-lang-defaults` と `test-no-alloc` は複数行レシピのため Windows では未検証です（Linux CI で実行）。
 
-### テスト結果例
+### テスト結果
 
+`make -C test run` の最後に doctest がケース数・アサーション数・成否を出力します。
 ```
 $ make -C test run
-run_tests.exe
-[doctest] doctest version is "2.5.0"
-===============================================================================
-[doctest] test cases:   422 |   422 passed | 0 failed | 0 skipped
-[doctest] assertions: 12911 | 12911 passed | 0 failed |
+[doctest] test cases:    ... |    ... passed | 0 failed | 0 skipped
+[doctest] assertions: ... | ... passed | 0 failed |
 [doctest] Status: SUCCESS!
 ```
+件数はテストを追加するたびに変わるため、ここには固定値を書きません。CI の host-test は同じ集計を GitHub Actions の step summary に出力します。
 
 ### テストカテゴリ
 
