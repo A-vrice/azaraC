@@ -46,6 +46,8 @@ static constexpr UBaseType_t kOutputTaskPriority = 1;
 
 // メッセージキュー (azaraC::Message をやり取り) FreeRTOS のキューはバイトコピーで、Message のコピー ctor/dtor は通らない。
 // payload のサブオブジェクトは trivially copyable で所有ポインタを持たないため、この example ではオブジェクト表現のコピーとして扱う（標準のコピー意味論ではない）。
+// 厳密には、非 trivially copyable な Message をバイトコピーで渡して元とコピーの両方を Message として扱うのは ISO C++ では未定義動作。
+// このサンプルは実用上の POD 相当のレイアウトに依存しており、標準規格の保証を主張するものではない。
 // Nankai の aggregated_text_ptr は Parser 内部への借用ポインタなのでキューには載せない（processByte を参照）。
 static QueueHandle_t g_messageQueue = nullptr;
 

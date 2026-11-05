@@ -183,8 +183,9 @@ Satellite ID は「PRN を表す 8bit の下位 6bit」（IS-QZSS-DCR-017 §4.3.
 ヒープ割り当てはせず、`Print&` 経由で出力（Serial、WiFiClient 等）。
 日本語/英語ラベルは選択的コンパイルに対応します。
 キーと固定値リテラルは `internal::JsonKey`（`AZARAC_KEY("...")`）で受け、AVR では `PSTR` で Flash に置きます（素のリテラルは avr-libc のリンカスクリプトが `.rodata` ごと `.data`＝SRAM に置くため）。
-書き出しはキーも値も Flash から走査し、必要ならスタックの一時バッファ（`AZARAC_KEY_BUF_SIZE`）へ 1 度写して出す。
-静的な共有バッファを持たないので、書き出し順序の制約はありません。
+書き出しはキーも値も Flash から走査し、キーは必要ならスタックの一時バッファ（`AZARAC_KEY_BUF_SIZE`）へ 1 度写して出す。
+日本語/英語ラベルは、非 AVR の単一ラベルの引き当てがゼロコピーの `string_view`、それ以外（AVR の lookup と 2/3 分割ラベルの連結）は共有バッファ（`AZARAC_FLASH_BUF_SIZE`）へ 1 度コピーして扱う。
+共有バッファは 1 本なので、`toJson()` と定義テーブルの lookup を複数のタスク/スレッドから同時に呼ばないこと。
 
 ## データフロー
 
