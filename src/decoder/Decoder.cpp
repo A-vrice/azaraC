@@ -362,7 +362,12 @@ bool Decoder::decode(const Frame& frame, Message& out, uint32_t report_unix) {
     // L1S サブフレーム: CRC-24Q は bit [0..225] を覆い、CRC は [226..249] に格納
     uint32_t calc = crc24q(bits, 226);
     uint32_t recv = getBits(bits, 226, 24);
-    if (calc != recv) return false;
+    if (calc != recv) {
+        // 壊れたフレームのヘッダ由来の値を残さない。svid の書き込みを CRC 後へ移すと
+        // frame が CRC 呼び出し越しに生き、スタックが 80B → 96B に増える（host -Os）。
+        out.svid = 0;
+        return false;
+    }
 
     out.crc24   = recv;
 

@@ -73,6 +73,38 @@ TEST_CASE("Parser AUTO mode: NMEA message decoded") {
     CHECK(msg.payload_type == MsgPayloadType::Mt43);
 }
 
+TEST_CASE("Parser: CRC 不正のフレームは svid を残さない") {
+    Parser parser;
+    Message msg;
+
+    // 正常なフレームで svid を入れる
+    const std::string good = makeEewNmea58();
+    bool output = false;
+    for (size_t i = 0; i < good.length(); ++i) {
+        if (parser.feed(good[i], msg, 0)) { output = true; break; }
+    }
+    CHECK(output);
+    CHECK(msg.svid == 186);  // NMEA の Satellite ID 58 は PRN 186 に正規化される
+
+    // CRC だけ壊す（NMEA チェックサムは作り直すのでフレーマは通る）
+    uint8_t bits[32] = {};
+    setBits(bits, 0, 8, 0x53);
+    setBits(bits, 8, 6, 43);
+    setBits(bits, 14, 3, 1);
+    setBits(bits, 17, 4, 1);
+    setBits(bits, 214, 6, 1);
+    setBits(bits, 226, 24, 0xDEADBEu);
+    const std::string bad = makeNmeaQzqsm(61, bits);
+
+    bool accepted = false;
+    for (size_t i = 0; i < bad.length(); ++i) {
+        if (parser.feed(bad[i], msg, 0)) accepted = true;
+    }
+    CHECK_FALSE(accepted);
+    CHECK_FALSE(msg.valid);
+    CHECK(msg.svid == 0);  // 直前の 186 も、壊れたフレームの 189 も残らない
+}
+
 TEST_CASE("Parser AUTO mode: UBX message decoded") {
     Parser parser;
     Message msg;
