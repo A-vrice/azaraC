@@ -43,6 +43,7 @@ TEST_CASE("Error: Invalid CRC leaves msg invalid") {
     bool result = dec.decode(frame, msg, 0);
     CHECK_FALSE(result);
     CHECK_FALSE(msg.valid);
+    CHECK(msg.svid == 0);  // CRC 通過前に svid を書き戻さない
 }
 
 TEST_CASE("Error: Invalid preamble leaves msg invalid") {
