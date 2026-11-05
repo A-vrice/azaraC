@@ -41,7 +41,19 @@ jobs:
           persist-credentials: false
 
       - name: Build & run
-        run: make -C test run
+        run: |
+          set -o pipefail
+          make -C test run 2>&1 | tee host-test.log
+
+      - name: Test counts (step summary)
+        if: always()
+        run: |
+          {
+            echo '### Host tests'
+            echo '```'
+            grep -E '^\[doctest\] (test cases|assertions):' host-test.log || echo 'doctest summary not found'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Build & run (reduced page budget, AZARAC_NANKAI_MAX_PAGES=8)
         run: make -C test run-small-pages
@@ -82,14 +94,15 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Install azarashi
-        run: pip install azarashi==0.17.1
-
-      - name: Regenerate fixtures
-        run: python test/scripts/gen_all_vectors.py
+      - name: Regenerate the Nankai page header from the committed JSON
+        run: python test/scripts/gen_all_vectors.py --nankai-header-only
 
       - name: Verify committed fixtures match the generator
         run: git diff --exit-code -- test/data/nankai_pages_generated.h
+
+      # timestamp は生成時刻で毎回変わるため、ハッシュは決まったフィールドだけを対象にする。
+      - name: Verify nankai_vectors.json deterministic fields
+        run: python test/scripts/hash_nankai_vectors.py --check
 
   fuzz-test:
     name: Fuzz testing
