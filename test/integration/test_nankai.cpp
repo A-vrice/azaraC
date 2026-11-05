@@ -192,6 +192,49 @@ TEST_CASE("NankaiPageBuffer text aggregation") {
         CHECK(buffer.aggregated_text[0] == 'A');
         CHECK(buffer.aggregated_text[1] == 'B');
     }
+
+    SUBCASE("getTextLength after compactText uses the contiguous text") {
+        uint8_t text1[18] = {'P', '1', 0};
+        uint8_t text2[18] = {'P', '2', 0};
+        uint8_t text3[18] = {'P', '3', 0};
+        buffer.addPage(1, 3, text1, now);
+        buffer.addPage(2, 3, text2, now);
+        buffer.addPage(3, 3, text3, now);
+        CHECK(buffer.getTextLength() == 6);
+
+        CHECK(buffer.compactText() == 6);
+        CHECK(buffer.compacted);
+        CHECK(buffer.getTextLength() == 6);  // ページ割り付けではなく連続文字列として読む
+        CHECK(memcmp(buffer.aggregated_text, "P1P2P3", 6) == 0);
+    }
+
+    SUBCASE("getTextLength after compactText with a missing page") {
+        uint8_t text1[18] = {'P', '1', 0};
+        uint8_t text3[18] = {'P', '3', 0};
+        CHECK(buffer.addPage(1, 3, text1, now));
+        CHECK(buffer.addPage(3, 3, text3, now));
+        CHECK_FALSE(buffer.isComplete());
+
+        CHECK(buffer.compactText() == 4);
+        CHECK(buffer.getTextLength() == 4);
+        CHECK(memcmp(buffer.aggregated_text, "P1P3", 4) == 0);
+    }
+
+    SUBCASE("clearAll restores the page-offset length path") {
+        uint8_t text[18] = {'P', '1', 0};
+        buffer.addPage(1, 1, text, now);
+        CHECK(buffer.compactText() == 2);
+        CHECK(buffer.compacted);
+
+        buffer.clearAll();
+        CHECK_FALSE(buffer.compacted);
+        CHECK(buffer.getTextLength() == 0);
+
+        uint8_t page2[18] = {'A', 'B', 0};
+        CHECK(buffer.addPage(2, 3, page2, now));
+        CHECK_FALSE(buffer.compacted);
+        CHECK(buffer.getTextLength() == 2);  // 空のページ 1 を飛ばしてページ 2 を読む
+    }
 }
 
 
