@@ -19,7 +19,7 @@ bool DedupFilter::isDuplicate(const DedupKey& key, uint32_t now_ms, uint32_t win
     Entry* set = _ring[setIndexOf(content)];
 
     Entry* free_slot = nullptr;
-    Entry* oldest = &set[0];
+    Entry* oldest = nullptr;
     for (uint8_t w = 0; w < DEDUP_WAYS; ++w) {
         Entry& e = set[w];
         if (!(e.content & VALID)) {
@@ -28,7 +28,7 @@ bool DedupFilter::isDuplicate(const DedupKey& key, uint32_t now_ms, uint32_t win
         }
         // 経過 = now - last_seen を符号なしで取る: millis() の 49.7 日巻き戻りをまたいでも正しい。
         // last_seen 同士の比較は 2 件が 24.8 日以上離れると巻き戻り、生きている方を追い出してしまう。
-        if ((uint32_t)(now_ms - e.last_seen_ms) > (uint32_t)(now_ms - oldest->last_seen_ms)) oldest = &e;
+        if (!oldest || (uint32_t)(now_ms - e.last_seen_ms) > (uint32_t)(now_ms - oldest->last_seen_ms)) oldest = &e;
         if (e.content != content) continue;
         if ((uint32_t)(now_ms - e.last_seen_ms) <= window_ms) {
             e.last_seen_ms = now_ms;   // 手順④': 再受信で有効時間を延長
