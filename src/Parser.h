@@ -29,6 +29,8 @@ public:
     Parser& operator=(Parser&&) = delete;
 
     // 1 バイト入力し、新規かつ妥当な電文が `out` に揃えば true。
+    // `out` をメッセージとして読めるのは true のときだけ。false のときの内容は未定義で、直前の値や復号途中のフィールドが残り得る。
+    // 例外は診断用の `unsupported_reason` で、復号器が完成フレームを拒否した場合に理由が入る（それ以外の false では保証しない）。
     // report_unix: 時刻解決に使う報告の UNIX epoch。0 は未解決（DHM フィールドは残るが unix_time は 0 のまま）。
     bool feed(uint8_t byte, Message& out, uint32_t report_unix = 0);
 
