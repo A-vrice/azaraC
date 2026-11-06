@@ -55,6 +55,8 @@ bool feed(uint8_t byte, Message& out, uint32_t report_unix = 0);
 `out` をメッセージとして読めるのは戻り値が `true` のときだけです。`false` を返したときの `out` の内容は未定義で、直前に完成フレームで設定された値や復号途中のフィールドが残ることがあります（フレーム未完成では `out` を書き換えないため、直前の値がそのまま残ります）。個々のフィールドの残留に依存しないでください。
 診断用の `msg.unsupported_reason` だけは、復号器が完成フレームを拒否した場合に理由（`DisabledAtCompileTime` / `UnknownCategory` / `UnsupportedVersion`）が入ります。それ以外の `false`（フレーム未完成・CRC誤り・重複・南海トラフのページ集約途中）では `None` のことが多いですが、値は保証されません。
 
+復号に失敗したフレーム（CRC誤りなど）では `msg.valid` は `false` に落とされます（`svid` など診断用の一部フィールドは frame 由来の値が残りますが、payload は保証されません）。ただし**フレーム未完成で `false` のときは、直前に `true` で受け取った内容がそのまま残ります**。`false` のときは `valid` を含め `msg` を読まないでください。
+
 **使用例:**
 ```cpp
 azaraC::Parser parser;
@@ -117,6 +119,27 @@ const internal::NankaiPageBuffer* getNankaiBuffer(const internal::NankaiPageKey&
 #### LRU エビクション
 
 全てのバッファが使用中の場合、最も古いバッファが自動的に解放されます。
+
+#### 集約テキストの借用ポインタ（重要）
+
+`NankaiData::aggregated_text_ptr` は **`Parser` 内部の `NankaiPageBuffer::aggregated_text[]` を指す借用ポインタ**です。所有権はありません。
+
+- **有効期間**: `feed()` が `true` を返した直後から、**次に `feed()` / `reset()` を呼ぶまで**。
+- `Parser` が生きている間はアドレス自体は有効ですが、**内容は次の事象で上書き・ゼロ埋めされます**（LRU でスロットが再利用され、`clearAll()` が `memset` します）。真の dangling になるのは `Parser` を破棄した後です。
+- `Message` は値コピー可能ですが、コピーしてもポインタが複製されるだけです。`std::vector` に入れる、FreeRTOS キューへ積む、`Print` 出力を遅延させる、といった使い方はできません。
+- 必要な場合は `feed()` が `true` を返した直後にコピーするか、`toJson()` でシリアライズしてください。
+
+```cpp
+if (parser.feed(b, msg)) {
+    const Mt43Data* m = msg.getMt43();
+    const NankaiData* n = m ? m->getNankai() : nullptr;
+    if (n && n->is_aggregated) {
+        text.assign(n->aggregated_text_ptr, n->aggregated_len);  // ここでコピーする
+    }
+}
+```
+
+`examples/rtos_freertos` は、集約済みの南海トラフだけキューに載せず、そのタスクで JSON 化してから送る実装例です。`test/integration/test_nankai_e2e.cpp` の「copied Message keeps a borrowed pointer」が、コピー後に内容が別の警報文へ変わることを回帰で固定しています。
 
 ---
 
@@ -500,8 +523,13 @@ AVR プリセットは EEW・震源が既定で 0 なので `sizeof(Mt43Data)` �
 
 | マクロ | デフォルト | 説明 |
 |-------|-----------|------|
-| `AZARAC_FLASH_BUF_SIZE` | AVR: カテゴリ連鎖（既定=64）/ 非 AVR: 800 | ラベル引き当て用の共有RAMバッファサイズ (バイト)。AVRでは有効カテゴリに応じて 64（SEISMIC/TSUNAMI など）/ 80（＋北西太平洋津波）/ 96（＋火山・洪水）/ 540（＋南海トラフ）/ 640（＋緊急地震速報・震源）/ 800（＋DCX/CAMF）に自動選択。有効なカテゴリの最長ラベルを必ず収める（`make -C test bench` の `FLASH_BUF_OK` ゲート）。非 AVR でも join 系（`azarac_pgm_join_z` / `azarac_pgm_join3`）と `azarac_pgm_len` の打ち切りに使う |
+| `AZARAC_FLASH_BUF_SIZE` | AVR: カテゴリ連鎖（既定=64）/ 非 AVR: 800 | ラベル引き当て用の共有RAMバッファサイズ (バイト)。AVRでは有効カテゴリに応じて 64（SEISMIC/TSUNAMI など）/ 80（＋北西太平洋津波）/ 96（＋火山・洪水）/ 540（＋南海トラフ）/ 640（＋緊急地震速報・震源）/ 800（＋DCX/CAMF）に自動選択。有効なカテゴリの最長ラベルを必ず収める（`make -C test bench` の `FLASH_BUF_OK` ゲート）。64 未満は `static_assert` で拒否。非 AVR でも join 系（`azarac_pgm_join_z` / `azarac_pgm_join3`）と `azarac_pgm_len` の打ち切りに使う。切り詰め位置が UTF-8 の途中なら、不完全な末尾シーケンスを捨てて境界まで戻す |
 | `AZARAC_DEDUP_MT44_MAX_WINDOW_MS` | 300000 | MT=44 の情報有効時間(ms)の上限。`__AVR__`のみ定義され、常に A8 由来の窓（最短6時間）を置き換える。ホストは上限を設けず A8 の窓をそのまま使う |
+| `AZARAC_ENABLE_DEDUP` | 1 | 0 で重複排除を無効化する。`DedupFilter` が状態を持たず常に「新規」を返し、`Parser` から `AZARAC_DEDUP_SLOTS × 8 B`（既定 4 KB / AVR 512 B）が消える。同一情報の再放送もすべて受け取りたいロガー・冗長系・検証機向け |
+| `AZARAC_DEDUP_SLOTS` | 512（AVR: 64） | 重複排除テーブルのスロット数。`AZARAC_DEDUP_WAYS` で割り切れ、商が 2 の冪であること。1 スロット 8 B |
+| `AZARAC_DEDUP_WAYS` | 8 | 1 セットあたりの連想度 |
+| `AZARAC_NMEA_STRICT_SVID` | 0 | `$QZQSM` の Satellite ID 検証。0=00–63 を受理（実機互換）/ 1=53–63（PRN181–191）/ 2=仕様表の 55/56/57/58/61 のみ |
+| `AZARAC_NMEA_REJECT_NONZERO_PADDING` | 0 | 1 でフレーム bit 250–255（仕様上 `00`）が非 0 の NMEA 電文を拒否する。既定はマスクして受理（CRC 被覆域外のため、警報を落とさない方を優先） |
 | `AZARAC_KEY_BUF_SIZE` | 36 | AVR で JSON のキーと固定値リテラルを Flash から書き出すときのスタック上の一時バッファのバイト数（どちらも `AZARAC_KEY("...")` で包む。値は `wf_s` の `JsonKey` オーバーロードが受ける）。最長はキーの35B（`a17_type_of_specific_settings_label`）、値は20B（`unsupported_category`）で、`JsonKey` の生成時に `static_assert` が収まらないリテラルをコンパイルエラーにする。非AVRでは使われない |
 
 **AVRプリセット**: `__AVR__`では`azaraC_config.h`のプリセットがAVR専用のものに置き換わる。具体的には以下の変更が行われる。

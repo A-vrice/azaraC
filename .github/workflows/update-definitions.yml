@@ -46,6 +46,28 @@ jobs:
         if: steps.ver.outputs.changed == 'true'
         run: python scripts/gen/gen_definitions.py --out-dir src/definition
 
+      # 生成物の検証ゲート。
+      # 既定の GITHUB_TOKEN で作った PR は push では CI が起動せず、pull_request も
+      # 「承認待ち」で止まる（GitHub の仕様）。無人実行では誰も承認しないため、
+      # PR を作る前にここで落とす。トークン種別に依存しないのが利点。
+      - name: Install host + AVR toolchain
+        if: steps.ver.outputs.changed == 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y g++ make gcc-avr binutils-avr avr-libc
+
+      - name: Gate - host unit tests
+        if: steps.ver.outputs.changed == 'true'
+        run: make -C test run
+
+      - name: Gate - definition label buffer sizes
+        if: steps.ver.outputs.changed == 'true'
+        run: make -C test bench
+
+      - name: Show definition diff summary
+        if: steps.ver.outputs.changed == 'true'
+        run: git diff --stat -- src/definition .azarashi-version
+
       - name: Setup Arduino CLI
         if: steps.ver.outputs.changed == 'true'
         uses: ./.github/actions/setup-arduino-cli
@@ -79,6 +101,9 @@ jobs:
 
       - name: Create Pull Request
         if: steps.ver.outputs.changed == 'true'
+        # 自動でフル CI も走らせたい場合は GitHub App トークン（contents: write / pull-requests: write）を
+        # `token:` に渡す。既定の GITHUB_TOKEN では push が CI を起動せず、pull_request も承認待ちになる。
+        # pull_request_target は使わない（フォーク由来コードに write トークン/シークレットを渡す pwn-request になる）。
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8
         with:
           title: "chore: update definitions (azarashi ${{ steps.ver.outputs.latest }})"
@@ -91,5 +116,7 @@ jobs:
             |---|---|
             | Previous | `${{ steps.ver.outputs.current }}` |
             | New | `${{ steps.ver.outputs.latest }}` |
+
+            Host tests (`make -C test run`) and the AVR label-size gate (`make -C test bench`) passed before this PR was created.
 
             Changes are in `src/definition/` (generated tables only; the two hand-written headers are listed in the generator's extra_headers and are not touched). Do not edit the generated files manually.

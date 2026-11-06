@@ -1,5 +1,6 @@
 #pragma once
 // AUTO-GENERATED from azarashi 0.17.1 — do not edit
+// Specs: IS-QZSS-DCR-017 / IS-QZSS-DCX-004 Rev.004 / EWSS CAMF Issue 1.2
 // 138 generated + 2 hand-written definition headers
 
 #include "qzss_dcr_jma_ambiguity_of_activity_time_en.h"

@@ -124,6 +124,7 @@ struct FuzzStats {
     uint64_t valid_frames = 0;
     uint64_t invalid_crc = 0;
     uint64_t invalid_preamble = 0;
+    uint64_t framer_rejected = 0;
     uint64_t decode_success = 0;
     uint64_t decode_fail = 0;
     uint64_t mt43_count = 0;
@@ -154,6 +155,7 @@ struct FuzzStats {
         printf("  UBX frames:        %llu\n", (unsigned long long)ubx_frames);
         printf("Invalid CRC:         %llu\n", (unsigned long long)invalid_crc);
         printf("Invalid preamble:    %llu\n", (unsigned long long)invalid_preamble);
+        printf("Framer rejects:      %llu\n", (unsigned long long)framer_rejected);
         printf("Decode success:      %llu\n", (unsigned long long)decode_success);
         printf("  MT=43:             %llu\n", (unsigned long long)mt43_count);
         printf("  MT=44:             %llu\n", (unsigned long long)mt44_count);
@@ -647,8 +649,12 @@ static void test_corrupted_frames(FuzzStats& stats, std::mt19937& rng, int itera
             set_valid_msg_type(bits, rng);
             set_valid_crc(bits);
 
-            // ランダムなビットを反転（CRC破損）
-            int corrupt_pos = bit_dist(rng);
+            // ランダムなビットを反転（CRC破損）。
+            // 1/8 はプリアンブル、1/8 はデータ部を確実に壊し、両方の拒否経路が必ず観測されるようにする。
+            int corrupt_pos;
+            if (i % 8 == 0)      corrupt_pos = (i / 8) % 8;      // bit 0..7（プリアンブル）
+            else if (i % 8 == 1) corrupt_pos = 8 + (i % 218);    // bit 8..225（CRC 被覆域）
+            else                 corrupt_pos = bit_dist(rng);
             bits[corrupt_pos / 8] ^= (0x80 >> (corrupt_pos % 8));
 
             Frame frame;
@@ -657,7 +663,18 @@ static void test_corrupted_frames(FuzzStats& stats, std::mt19937& rng, int itera
 
             Decoder decoder;
             Message msg;
-            decoder.decode(frame, msg, 1704067200u);
+            const bool ok = decoder.decode(frame, msg, 1704067200u);
+
+            const uint8_t pre = bits[0];
+            const bool pre_ok = (pre == 0x53 || pre == 0x9A || pre == 0xC6);
+            if (!pre_ok) stats.invalid_preamble++;
+            else         stats.invalid_crc++;
+
+            // 1 bit 反転で CRC-24Q が通ることはない（線形符号）。通ったら実装のバグ。
+            if (ok) {
+                printf("  FAIL: corrupted frame decoded successfully at iteration %d\n", i);
+                stats.log_exception("test_corrupted_frames_unexpected_success", i);
+            }
 
             stats.total_iterations++;
         } catch (...) {
@@ -704,7 +721,9 @@ static void test_corrupted_nmea(FuzzStats& stats, std::mt19937& rng, int iterati
             if (found) {
                 Decoder decoder;
                 Message msg;
-                decoder.decode(frame, msg, 1704067200u);
+                if (!decoder.decode(frame, msg, 1704067200u)) stats.invalid_crc++;
+            } else {
+                stats.framer_rejected++;
             }
 
             stats.total_iterations++;
@@ -752,7 +771,9 @@ static void test_corrupted_ubx(FuzzStats& stats, std::mt19937& rng, int iteratio
             if (found) {
                 Decoder decoder;
                 Message msg;
-                decoder.decode(frame, msg, 1704067200u);
+                if (!decoder.decode(frame, msg, 1704067200u)) stats.invalid_crc++;
+            } else {
+                stats.framer_rejected++;
             }
 
             stats.total_iterations++;
@@ -1100,7 +1121,21 @@ int main(int argc, char* argv[]) {
                (unsigned long long)seed, iterations);
     }
 
+    // 破損テストが実際に「拒否」を観測できているか。カウンタが 0 のままなら
+    // 入力生成か判定が壊れている（計測が嘘をついている）ので、成功扱いにしない。
+    const bool corruption_observed = (stats.invalid_crc > 0 && stats.invalid_preamble > 0);
+    if (corruption_observed) {
+        printf("Corruption rejections: crc=%llu, preamble=%llu, framer=%llu\n",
+               (unsigned long long)stats.invalid_crc,
+               (unsigned long long)stats.invalid_preamble,
+               (unsigned long long)stats.framer_rejected);
+    } else {
+        printf("FAIL: corruption counters were not exercised (crc=%llu, preamble=%llu).\n",
+               (unsigned long long)stats.invalid_crc,
+               (unsigned long long)stats.invalid_preamble);
+    }
+
     printf("Fuzz testing completed.\n");
 
-    return stats.exceptions > 0 ? 1 : 0;
+    return (stats.exceptions > 0 || !corruption_observed) ? 1 : 0;
 }

@@ -151,6 +151,10 @@ pip install --upgrade azarashi
 python scripts/gen/gen_definitions.py --out-dir src/definition
 ```
 
+生成ヘッダには `// Specs: IS-QZSS-DCR-017 / IS-QZSS-DCX-004 Rev.004 / EWSS CAMF Issue 1.2` が入ります（`scripts/gen/gen_definitions.py` の `SPEC_BASELINE`）。仕様を改訂したらここを更新してください。azarashi の版だけでは「どの仕様に追随した更新か」が `git diff` から読めないためです。
+
+自動更新 PR は、作成前に `make -C test run` と `make -C test bench` を実行します（`.github/workflows/update-definitions.yml`）。既定の `GITHUB_TOKEN` で作った PR は `push` で CI が起動せず、`pull_request` も承認待ちで止まるため、ゲートは PR 作成前に置いています。
+
 ### 手書きの定義ヘッダ（`src/definition/manual/`）
 
 `src/definition/` 直下の `*.h` はすべて自動生成物です。

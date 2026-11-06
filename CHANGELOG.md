@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **レビュー指摘の修正（API 契約・入力検証・CI ゲート）**:
+  - 南海トラフの `aggregated_text_ptr` が `Parser` 内部への借用ポインタであることを `docs/api-reference.md` と README に明記し、`Message` をコピーした後に内容が別の警報文へ変わることを `test/integration/test_nankai_e2e.cpp` で回帰固定した。
+  - `AZARAC_ENABLE_DEDUP=0` を追加。`DedupFilter` が状態を持たず常に「新規」を返し、`Parser` から `AZARAC_DEDUP_SLOTS × 8 B`（既定 4 KB / AVR 512 B）が消える。`test-macro-compile` に `-DAZARAC_ENABLE_DEDUP=0` を加えて常時コンパイル検証する。
+  - `AZARAC_NMEA_STRICT_SVID`（0=00–63 / 1=53–63 / 2=仕様表の 55/56/57/58/61）と `AZARAC_NMEA_REJECT_NONZERO_PADDING` を追加。既定は実機互換と警報の可用性を優先し、従来どおり受理する。
+  - `AZARAC_FLASH_BUF_SIZE` に 64 未満を拒否する `static_assert` を追加し、ラベルの切り詰めを UTF-8 境界へ丸めるようにした（`azarac_utf8_trim_len`）。
+  - ファズの `invalid_crc` / `invalid_preamble` を実加算し、プリアンブルとデータ部の破損を決定的に混ぜた。両方が 0 ならファズを失敗させる。`Framer rejects` も追加。
+  - `Parser::handleFrame` が復号失敗時に `valid` を落とすようにした（`decodeQzqsm()` が `valid=true` を設定した後に `oob_` で false を返す経路）。
+  - `azaraC.h` の `abs`/`min`/`max` undef を `push_macro`/`pop_macro` で往復し、利用者のスケッチから恒久的に消さないようにした。
+  - 生成定義ヘッダに準拠仕様（`IS-QZSS-DCR-017 / IS-QZSS-DCX-004 Rev.004 / EWSS CAMF Issue 1.2`）を記録し、`gen_definitions.py` のテンプレートと 139 ヘッダを揃えた。
+  - `update-definitions.yml` は PR 作成前に `make -C test run` と `make -C test bench` を実行する（既定 `GITHUB_TOKEN` の PR は push で CI が起動せず、`pull_request` も承認待ちになるため）。
+  - CI に ASan/UBSan ジョブを追加（段階導入のため `continue-on-error`）。コアヘッダの chrono パッチは対象 0 件なら失敗させる。
+
 - **CI に LTO ゲートを追加**: `make -C test run-lto` を新設し、host-test で `-O2 -flto` の全体再ビルド・テスト実行を必須にした。
   LTO の型不一致（`-Wlto-type-mismatch`）と ODR 違反（`-Wodr`）は GCC では既定で警告に留まり素の `-flto` では緑のままなので、この 2 つだけ `-Werror` にしてゲートで落とす（過去に `AZARAC_DEDUP_SLOTS` の配列長不一致を LTO だけが検出した事例がある）。
   `CXXFLAGS` は依存関係に載らないため `-B` で再ビルドし、終了時に `clean` する。

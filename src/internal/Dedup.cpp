@@ -3,6 +3,7 @@
 namespace azaraC {
 namespace internal {
 
+#if AZARAC_ENABLE_DEDUP
 // 詰めた内容からセット番号を決める: DEDUP_SETS は 2 の冪なので、CRC を自分自身へ fold した後の下位 log2(DEDUP_SETS) bit が index。
 // シフト量は 8 と 4 で、いずれも 24 未満に収まる（24 以上のシフトは未定義）。
 // `& 0xFFFFFF` は SETS ≤ 2^12（SLOTS ≤ 32768）では no-op: fold は各ビットを最大 12 しか下げないので、下位 log2(SETS) bit は元の bit 24 以上（msg_type bits 24-29、synthetic 鍵の It bits 24-25）へ届かない。
@@ -54,6 +55,7 @@ void DedupFilter::reset() {
         }
     }
 }
+#endif // AZARAC_ENABLE_DEDUP
 
 } // namespace internal
 } // namespace azaraC

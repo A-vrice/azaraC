@@ -30,6 +30,7 @@ AVR（Uno・Mega を含む）は既定で SEISMIC/TSUNAMI のみ有効です。
 - EEW と震源は AVR プリセットで無効なので `getEew()` / `getHypocenter()` は既定で使えません。
   有効化する場合は `-DAZARAC_ENABLE_EEW=1` / `-DAZARAC_ENABLE_HYPOCENTER=1`
 - MT=44 は `-DAZARAC_AVR_LARGE_FLASH=1` または `-DAZARAC_ENABLE_DCX_CAMF=1` で有効化します（Flash が 64KB を超えるボードが対象）
+- 南海トラフの集約テキスト（`NankaiData::aggregated_text_ptr`）は `Parser` 内部への**借用ポインタ**です。`Message` をコピーしても所有権は移らず、次の `feed()` / `reset()` で内容が変わります。`feed()` が `true` を返した直後にコピーするか、`toJson()` で出力してください（[API リファレンス](docs/api-reference.md#集約テキストの借用ポインタ重要)、[Examples の RTOS 実装](examples/rtos_freertos/rtos_freertos.ino)）
 
 ## インストール
 
@@ -61,6 +62,8 @@ git clone https://github.com/A-vrice/azaraC <PROJECT_DIR>/.pio/libdeps/<TARGET_B
 - [はじめに（クイックスタート・Examples・コンパイル時設定）](docs/getting-started.md)
 - [API リファレンス](docs/api-reference.md)
 - [アーキテクチャ](docs/architecture.md)
+- [JSON 出力フォーマット（azarashi との差分）](docs/json-formats.md)
+- [Examples 一覧](examples/README.md)
 - [開発者ガイド（ビルド・テストなど）](docs/developer-guide.md)
 
 ## ライセンス

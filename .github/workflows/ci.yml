@@ -84,6 +84,23 @@ jobs:
       - name: Arduino interrupt-state test (ARDUINO=1, AVR branch)
         run: make -C test test-time-irq
 
+  sanitizer:
+    name: ASan/UBSan (g++)
+    runs-on: ubuntu-latest
+    # 段階導入: まず観測のみ。数回緑を確認したら continue-on-error を外してゲートにする。
+    # cppcheck / coverage / LTO はあるが、動的なメモリ・UB 検出はここが唯一。
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Build & run with ASan/UBSan
+        run: |
+          make -C test run \
+            CXXFLAGS_EXTRA="-fsanitize=address,undefined -fno-omit-frame-pointer" \
+            LDFLAGS="-fsanitize=address,undefined"
+
   # azarashi由来。バージョン間で互換性の内部表現があるためこちらで補正
   fixture-drift:
     name: Generated fixture drift
@@ -303,8 +320,21 @@ jobs:
         run: |
           # Wrap #include <chrono> with pragma push_macro/pop_macro to isolate macro conflicts
           PATCH_SCRIPT='s/#include <chrono>/#pragma push_macro("abs")\n#pragma push_macro("min")\n#pragma push_macro("max")\n#pragma push_macro("round")\n#undef abs\n#undef min\n#undef max\n#undef round\n#include <chrono>\n#pragma pop_macro("round")\n#pragma pop_macro("max")\n#pragma pop_macro("min")\n#pragma pop_macro("abs")/'
-          # Apply to all headers and sources in the installed cores
-          find ~/.arduino15/packages/ -type f \( -name "*.h" -o -name "*.cpp" -o -name "*.c" \) -exec sed -i "$PATCH_SCRIPT" {} + 2>/dev/null || true
+          # Apply to all headers and sources in the installed cores.
+          # 0 件ならコア構成が変わってこのワークアラウンドが不要になったということなので、
+          # 黙って通さず失敗させる（sed 自体の失敗も bash -e で止まる）。
+          patched=0
+          while IFS= read -r -d '' f; do
+            if grep -q '#include <chrono>' "$f"; then
+              sed -i "$PATCH_SCRIPT" "$f"
+              patched=$((patched + 1))
+            fi
+          done < <(find ~/.arduino15/packages/ -type f \( -name "*.h" -o -name "*.cpp" -o -name "*.c" \) -print0)
+          echo "patched $patched file(s)"
+          if [[ "$patched" -eq 0 ]]; then
+            echo "::error::no core source contained '#include <chrono>'; the chrono macro patch is obsolete or the core layout changed"
+            exit 1
+          fi
 
       - name: Compile examples
         id: compile

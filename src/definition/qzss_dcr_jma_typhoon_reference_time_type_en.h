@@ -1,5 +1,6 @@
 #pragma once
 // AUTO-GENERATED from azarashi 0.17.1 — do not edit
+// Specs: IS-QZSS-DCR-017 / IS-QZSS-DCX-004 Rev.004 / EWSS CAMF Issue 1.2
 // azarashi.definitions.qzss.dcr.typhoon_reference_time_type → qzss_dcr_jma_typhoon_reference_time_type_en: 3 entries, strategy switch
 // Unknown id returns nullptr — callers MUST null-check.
 

@@ -28,8 +28,36 @@
 #define AZARAC_FLASH_BUF_SIZE 800
 #endif
 
+// 下限: 最小 preset（SEISMIC/TSUNAMI）の最長ラベル 45 B + NUL を収める 64 B。
+// これ未満は定義ラベルが構造的に切れるため、警告ではなくビルド時に止める。
+static_assert(AZARAC_FLASH_BUF_SIZE >= 64,
+              "AZARAC_FLASH_BUF_SIZE must be >= 64: the longest SEISMIC/TSUNAMI label is 45 bytes");
+
 namespace azaraC {
 namespace def {
+
+// 切り詰めが UTF-8 の途中に落ちたとき、不完全な末尾シーケンスを捨てる。
+// ラベルは日本語（3 バイト）と英語（1 バイト）が混在するため、バイト境界で切ると JSON に不正な UTF-8 が出る。
+// 末尾が完全なシーケンスなら n をそのまま返す（正常系では何もしない）。
+inline size_t azarac_utf8_trim_len(const char* buf, size_t n) {
+    size_t i = n;
+    size_t back = 0;
+    // 継続バイト（10xxxxxx）は最大 3 個。先頭バイトまで戻る。
+    while (i > 0 && back < 3 && (static_cast<unsigned char>(buf[i - 1]) & 0xC0u) == 0x80u) {
+        --i;
+        ++back;
+    }
+    if (i == 0) return 0;
+    const unsigned char lead = static_cast<unsigned char>(buf[i - 1]);
+    size_t need;
+    if ((lead & 0x80u) == 0x00u)      need = 1;
+    else if ((lead & 0xE0u) == 0xC0u) need = 2;
+    else if ((lead & 0xF0u) == 0xE0u) need = 3;
+    else if ((lead & 0xF8u) == 0xF0u) need = 4;
+    else return i - 1;                 // 不正な先頭バイトは落とす
+    const size_t have = n - (i - 1);
+    return (have >= need) ? n : (i - 1);
+}
 
 #ifdef __AVR__
 #include <avr/pgmspace.h>
@@ -72,6 +100,7 @@ inline std::string_view azarac_pgm_view(azarac_pgm_ptr src, size_t n) {
     char* buf = azarac_flash_buf();
     if (n >= AZARAC_FLASH_BUF_SIZE) n = AZARAC_FLASH_BUF_SIZE - 1;
     azarac_read_block(buf, src, n);
+    n = azarac_utf8_trim_len(buf, n);   // 切った位置が UTF-8 の途中なら戻す
     buf[n] = '\0';
     return std::string_view(buf, n);
 }
@@ -97,6 +126,7 @@ inline std::string_view azarac_pgm_join_z(azarac_pgm_ptr a, azarac_pgm_ptr b) {
     char* buf = azarac_flash_buf();
     size_t n = azarac_pgm_append(buf, 0, a);
     n = azarac_pgm_append(buf, n, b);
+    n = azarac_utf8_trim_len(buf, n);   // 連結後の打ち切りが UTF-8 の途中なら戻す
     buf[n] = '\0';
     return std::string_view(buf, n);
 }
@@ -107,6 +137,7 @@ inline std::string_view azarac_pgm_join3(azarac_pgm_ptr a, azarac_pgm_ptr b, aza
     size_t n = azarac_pgm_append(buf, 0, a);
     n = azarac_pgm_append(buf, n, b);
     n = azarac_pgm_append(buf, n, c);
+    n = azarac_utf8_trim_len(buf, n);   // 連結後の打ち切りが UTF-8 の途中なら戻す
     buf[n] = '\0';
     return std::string_view(buf, n);
 }
@@ -114,6 +145,10 @@ inline const char* azarac_pgm_copy(azarac_pgm_ptr src) {
     char* buf = azarac_flash_buf();
     azarac_copy_string(buf, src, AZARAC_FLASH_BUF_SIZE - 1);
     buf[AZARAC_FLASH_BUF_SIZE - 1] = '\0';
+    size_t n = 0;
+    while (buf[n] != '\0') ++n;
+    n = azarac_utf8_trim_len(buf, n);
+    buf[n] = '\0';
     return buf;
 }
 #else
@@ -151,7 +186,8 @@ inline std::string_view azarac_pgm_view(azarac_pgm_ptr src, size_t n) {
     return std::string_view(src, n);
 }
 inline std::string_view azarac_pgm_view_z(azarac_pgm_ptr src) {
-    return std::string_view(src, azarac_pgm_len(src));
+    const size_t n = azarac_pgm_len(src);
+    return std::string_view(src, azarac_utf8_trim_len(src, n));
 }
 inline size_t azarac_pgm_append(char* buf, size_t at, azarac_pgm_ptr src) {
     size_t n = azarac_pgm_len(src);
@@ -167,6 +203,7 @@ inline std::string_view azarac_pgm_join_z(azarac_pgm_ptr a, azarac_pgm_ptr b) {
     char* buf = azarac_flash_buf();
     size_t n = azarac_pgm_append(buf, 0, a);
     n = azarac_pgm_append(buf, n, b);
+    n = azarac_utf8_trim_len(buf, n);   // 連結後の打ち切りが UTF-8 の途中なら戻す
     buf[n] = '\0';
     return std::string_view(buf, n);
 }
@@ -175,6 +212,7 @@ inline std::string_view azarac_pgm_join3(azarac_pgm_ptr a, azarac_pgm_ptr b, aza
     size_t n = azarac_pgm_append(buf, 0, a);
     n = azarac_pgm_append(buf, n, b);
     n = azarac_pgm_append(buf, n, c);
+    n = azarac_utf8_trim_len(buf, n);   // 連結後の打ち切りが UTF-8 の途中なら戻す
     buf[n] = '\0';
     return std::string_view(buf, n);
 }

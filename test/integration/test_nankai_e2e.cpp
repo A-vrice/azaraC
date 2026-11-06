@@ -253,6 +253,51 @@ TEST_CASE("Nankai E2E: getNankaiBuffer exposes an incomplete buffer") {
     CHECK(buf->received_count == 1);
 }
 
+// 借用ポインタの寿命（H2）: 集約完了後に Message を値コピーしても、aggregated_text_ptr は
+// Parser 内部の NankaiPageBuffer を指したまま。別事象を feed() するとバッファが再利用され、
+// コピー側は「別の警報文」を読む。docs/api-reference.md の注意書きと同じ契約を回帰で固定する。
+TEST_CASE("Nankai E2E: copied Message keeps a borrowed pointer into Parser storage") {
+    azaraC::Parser parser;
+    azaraC::Message msg;
+    uint8_t bits[32];
+
+    auto feedOnePage = [&](uint8_t info_code, const char* text, uint8_t len) {
+        buildNankaiPage(1, 1, info_code,
+                        reinterpret_cast<const uint8_t*>(text), len, bits,
+                        /*rt_month=*/6, /*rt_day=*/15, /*rt_hour=*/12, /*rt_minute=*/30);
+        const std::string nmea = makeNmeaQzqsm(58, bits);
+        for (char c : nmea) {
+            if (parser.feed(static_cast<uint8_t>(c), msg, 0)) return true;
+        }
+        return false;
+    };
+
+    REQUIRE(feedOnePage(5, "FIRST-EVENT-TEXT", 16));
+    const azaraC::Mt43Data* mt43 = msg.getMt43();
+    REQUIRE(mt43 != nullptr);
+    const azaraC::NankaiData* first = mt43->getNankai();
+    REQUIRE(first != nullptr);
+    REQUIRE(first->is_aggregated);
+    REQUIRE(first->aggregated_text_ptr != nullptr);
+    const char* borrowed = first->aggregated_text_ptr;
+    CHECK(std::string(borrowed, first->aggregated_len) == "FIRST-EVENT-TEXT");
+
+    // 値コピー: ポインタはそのまま複製される（所有権は移らない）。
+    azaraC::Message copy = msg;
+    const azaraC::Mt43Data* copyMt43 = copy.getMt43();
+    REQUIRE(copyMt43 != nullptr);
+    const azaraC::NankaiData* copied = copyMt43->getNankai();
+    REQUIRE(copied != nullptr);
+    CHECK(copied->aggregated_text_ptr == borrowed);   // 同じ Parser 内部を指す
+
+    // 別事象（info_code 違い）。AZARAC_NANKAI_BUFFERS=1 では LRU で同じスロットが再利用される。
+    REQUIRE(feedOnePage(6, "SECOND-EVENT-TXT", 16));
+
+    // コピー側は同じアドレスのまま、内容だけが別の警報文に変わる。これが H2 の実害。
+    CHECK(copied->aggregated_text_ptr == borrowed);
+    CHECK(std::string(copied->aggregated_text_ptr, copied->aggregated_len) != "FIRST-EVENT-TEXT");
+}
+
 // ページ別の本文長は最初の NUL まで。NankaiPageBuffer::compactText() と同じ手順。
 // 実電文の最終ページは送信中 NUL パッドなので、集約本文は ページ数 * TEXT_PER_PAGE より短くなる。
 [[maybe_unused]] static uint16_t pageUsedLength(const uint8_t* page) {

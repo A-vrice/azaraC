@@ -13,6 +13,11 @@ import time
 sys.path.insert(0, os.path.dirname(__file__))
 from strategy import choose, key_type, uint_type, factor_parents, PARENT_NONE
 
+# 生成ヘッダが準拠する仕様の版数。azarashi の版とは独立に、レビュアーが
+# 「どの仕様に追随した更新か」を git diff だけで判断できるようにする（H1/M8）。
+# 仕様を改訂したらここを更新する（生成ヘッダにも同じ行が出る）。
+SPEC_BASELINE = "IS-QZSS-DCR-017 / IS-QZSS-DCX-004 Rev.004 / EWSS CAMF Issue 1.2"
+
 GUARD_MAP = {
     "qzss_dcr_jma_eew_forecast_region": "AZARAC_ENABLE_EEW",
     "qzss_dcr_jma_epicenter_and_hypocenter": "(AZARAC_ENABLE_EEW || AZARAC_ENABLE_HYPOCENTER)",
@@ -804,6 +809,7 @@ def build_header(modname, varname, entries, ver, all_varnames, obj=None, use_opt
     return (
         f"#pragma once\n"
         f"// AUTO-GENERATED from azarashi {ver} — do not edit\n"
+        f"// Specs: {SPEC_BASELINE}\n"
         f"// {modname} → {varname}: {len(keys)} entries, strategy {strat}\n"
         f"// Unknown id returns nullptr — callers MUST null-check.\n\n"
         f"#if defined(__AVR__)\n"
@@ -889,6 +895,7 @@ def run(out_dir):
     idx = (
         "#pragma once\n"
         f"// AUTO-GENERATED from azarashi {ver} — do not edit\n"
+        f"// Specs: {SPEC_BASELINE}\n"
         f"// {len(generated)} generated + {len(extra_headers)} hand-written definition headers\n"
         "\n"
         + "\n".join(f'#include "{a}.h"' for a in sorted(generated))

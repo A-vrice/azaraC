@@ -25,7 +25,14 @@ bool Parser::feed(uint8_t byte, Message& out, uint32_t report_unix) {
 }
 
 bool Parser::handleFrame(internal::Frame& frame, Message& out, uint32_t report_unix) {
-    if (!_decoder.decode(frame, out, report_unix)) return false;
+    if (!_decoder.decode(frame, out, report_unix)) {
+        // 復号に失敗したフレームで valid だけ立った中途半端な Message を残さない。
+        // decodeQzqsm() は valid=true を設定した後に oob_ で false を返す経路があるため、
+        // ここで落とす。svid など診断用のフィールドは decoder が書いた値を残す
+        // （既存の契約: 失敗時も frame 由来の svid は読める）。
+        out.valid = false;
+        return false;
+    }
     // 手順③ の照合範囲は MT～VN（bit 8..219 = 212 bit、bit 220..225 は Reserved）。
     // プリアンブルと Reserved は放送で巡回し、受信衛星はフレームに無く NMEA/UBX ヘッダ由来なので鍵に含めない。
     // MT=44 の SD は事務局回答の照合範囲（MT および CAMF〜EM）に無く、Decoder::messageIdentity がゼロにしてから digest を取る。
