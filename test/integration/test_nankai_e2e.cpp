@@ -254,8 +254,10 @@ TEST_CASE("Nankai E2E: getNankaiBuffer exposes an incomplete buffer") {
 }
 
 // 借用ポインタの寿命（H2）: 集約完了後に Message を値コピーしても、aggregated_text_ptr は
-// Parser 内部の NankaiPageBuffer を指したまま。別事象を feed() するとバッファが再利用され、
-// コピー側は「別の警報文」を読む。docs/api-reference.md の注意書きと同じ契約を回帰で固定する。
+// Parser 内部の NankaiPageBuffer を指したまま。その内容は後続の feed() / reset() で
+// 上書き・ゼロ埋めされる。docs/api-reference.md の注意書きと同じ契約を回帰で固定する。
+// 上書きはスロットの再利用ではなく Parser::reset()（clearAll() の memset）で起こすため、
+// AZARAC_NANKAI_BUFFERS を変えても同じ契約になる。
 TEST_CASE("Nankai E2E: copied Message keeps a borrowed pointer into Parser storage") {
     azaraC::Parser parser;
     azaraC::Message msg;
@@ -290,12 +292,18 @@ TEST_CASE("Nankai E2E: copied Message keeps a borrowed pointer into Parser stora
     REQUIRE(copied != nullptr);
     CHECK(copied->aggregated_text_ptr == borrowed);   // 同じ Parser 内部を指す
 
-    // 別事象（info_code 違い）。AZARAC_NANKAI_BUFFERS=1 では LRU で同じスロットが再利用される。
+    // 別事象（info_code 違い）。新しいスロットに入るかは AZARAC_NANKAI_BUFFERS 次第なので、
+    // 「別の警報文になる」ことをスロット再利用に依存させない。
     REQUIRE(feedOnePage(6, "SECOND-EVENT-TXT", 16));
+    CHECK(copied->aggregated_text_ptr == borrowed);   // コピーは同じ Parser 内部を指したまま
 
-    // コピー側は同じアドレスのまま、内容だけが別の警報文に変わる。これが H2 の実害。
+    // 契約の本体: Parser::reset() は NankaiPageBuffer::clearAll() で aggregated_text を
+    // memset するため、コピー側が指す内容はゼロ埋めされる。バッファ本数に依存しない。
+    parser.reset();
     CHECK(copied->aggregated_text_ptr == borrowed);
-    CHECK(std::string(copied->aggregated_text_ptr, copied->aggregated_len) != "FIRST-EVENT-TEXT");
+    const std::string afterReset(copied->aggregated_text_ptr, copied->aggregated_len);
+    CHECK(afterReset != "FIRST-EVENT-TEXT");
+    CHECK(afterReset == std::string(copied->aggregated_len, '\0'));
 }
 
 // ページ別の本文長は最初の NUL まで。NankaiPageBuffer::compactText() と同じ手順。
