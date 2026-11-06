@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **レビュー指摘の修正（API 契約・入力検証・CI ゲート）**:
-  - 南海トラフの `aggregated_text_ptr` が `Parser` 内部への借用ポインタであることを `docs/api-reference.md` と README に明記し、`Message` をコピーした後に内容が別の警報文へ変わることを `test/integration/test_nankai_e2e.cpp` で回帰固定した。
+  - 南海トラフの `aggregated_text_ptr` が `Parser` 内部への借用ポインタであることを `docs/api-reference.md` と README に明記し、`Message` をコピーした後に内容が上書きされることを `test/integration/test_nankai_e2e.cpp` で回帰固定した。
   - `AZARAC_ENABLE_DEDUP=0` を追加。`DedupFilter` が状態を持たず常に「新規」を返し、`Parser` から `AZARAC_DEDUP_SLOTS × 8 B`（既定 4 KB / AVR 512 B）が消える。`test-macro-compile` に `-DAZARAC_ENABLE_DEDUP=0` を加えて常時コンパイル検証する。
   - `AZARAC_NMEA_STRICT_SVID`（0=00–63 / 1=53–63 / 2=仕様表の 55/56/57/58/61）と `AZARAC_NMEA_REJECT_NONZERO_PADDING` を追加。既定は実機互換と警報の可用性を優先し、従来どおり受理する。
   - `AZARAC_FLASH_BUF_SIZE` に 64 未満を拒否する `static_assert` を追加し、ラベルの切り詰めを UTF-8 境界へ丸めるようにした（`azarac_utf8_trim_len`）。
@@ -195,6 +195,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **借用ポインタの回帰テストが `AZARAC_NANKAI_BUFFERS` に依存して落ちていた**: `test_nankai_e2e.cpp` の H2 回帰は「別事象を `feed()` すると同じスロットが再利用されて内容が変わる」ことを前提にしていたが、スロットの再利用は `AZARAC_NANKAI_BUFFERS=1` での LRU 追い出しに依存する実装詳細で、別スロットが空いている構成（`pgm-stub` の `=4` など）では成立せず `355 cases, 1 failed` になっていた。
+  `Parser::reset()` が `NankaiPageBuffer::clearAll()` で `aggregated_text` をゼロ埋めする契約に置き換え、バッファ本数を問わず成立させた。回帰は `pgm-stub` 構成（`AZARAC_NANKAI_BUFFERS=4`）で 355 ケース全通過。
 - **`compactText()` 後の `getTextLength()` がページ割り付けを読んでいた**: `compactText()` は受信済みページを `aggregated_text` の先頭へ詰めるが、`received_bitmap` と `total_pages` は受信済みのままなので、`getTextLength()` が `p * TEXT_PER_PAGE` の位置からページ長を足し、ページ境界をまたいだ本文を誤って読んでいた（`getNankaiBuffer()` 経由の長さが `aggregated_len` と一致しない）。
   `compacted` フラグを追加し、`compactText()` 後は先頭からの連続文字列として長さを返す。
   `clearAll()` でフラグを戻すため、バッファ再利用後の再受信は従来のページ経路に戻る。
