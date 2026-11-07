@@ -1,7 +1,7 @@
 # test/Makefile — ホストビルド
 
 CXX      = g++
-CXXFLAGS = -std=c++17 -Wall -Wextra -I../src -I. -DARDUINO=0 -DAZARAC_LANG_JA=1 -DAZARAC_LANG_EN=1 -MMD -MP
+CXXFLAGS = -std=c++17 -Wall -Wextra -I../src -I. -DARDUINO=0 -DAZARAC_TESTING=1 -DAZARAC_LANG_JA=1 -DAZARAC_LANG_EN=1 -MMD -MP
 
 # --- Static Analysis and Coverage ---
 # -Wconversion / -Wsign-conversion はビット演算を多用する組み込み向けコードでは修正コストが見合わないため使わない。
@@ -66,10 +66,11 @@ TEST_SRCS = \
 	json/test_json.cpp \
 	json/test_json_dcx_b1b4.cpp \
 	json/test_json_wellformed.cpp \
+	integration/test_decoder_dcx.cpp \
 	integration/test_parser.cpp \
-	integration/test_parser_integration.cpp \
 	integration/test_nankai.cpp \
 	integration/test_nankai_e2e.cpp \
+	integration/test_parser_clock.cpp \
 	integration/test_error_handling.cpp \
 	integration/test_time_resolution.cpp \
 	integration/test_dcx_edge_cases.cpp \
@@ -124,7 +125,7 @@ VPATH = ../src:../src/decoder:../src/framer:../src/json:../src/internal
 #
 # 残リスク: 強制 kill（SIGKILL/プロセスクラッシュ）では trap を実行できないためロックが残る。
 # その場合は test/.make-lock を手動で削除する（スクリプトのエラーにも記載）。
-LOCKABLE  := all run run-small-pages run-lto run-lang-defaults clean \
+LOCKABLE  := all run run-small-pages run-dedup-off run-lto run-lang-defaults clean \
              test-no-alloc pgm-stub macro fuzz decode dedup-realday \
              bench bench-dedup bench-decode test-time-irq test-macro-compile test-macro-sizes \
              compare-realdata coverage check check-xml check-strict-compile
@@ -142,7 +143,7 @@ endif
 
 ifeq ($(NEED_LOCK),)
 
-.PHONY: all clean run run-small-pages run-lto run-lang-defaults fuzz decode dedup-realday bench bench-dedup bench-decode compare-realdata check check-xml check-strict-compile coverage test-no-alloc pgm-stub test-time-irq
+.PHONY: all clean run run-small-pages run-dedup-off run-lto run-lang-defaults fuzz decode dedup-realday bench bench-dedup bench-decode compare-realdata check check-xml check-strict-compile coverage test-no-alloc pgm-stub test-time-irq avr-layout
 
 all: $(TEST_BIN)
 
@@ -164,6 +165,11 @@ run: all
 # check-strict-compile 後に混在リンクして落ちる。必ず clean する。
 run-small-pages:
 	$(MAKE) -B CXXFLAGS_EXTRA="-DAZARAC_NANKAI_MAX_PAGES=8" run; status=$$?; $(MAKE) clean; exit $$status
+
+# dedup 無効構成でも全テストがコンパイル・実行できることを検証する。
+# CXXFLAGS_EXTRA は依存関係に載らないため -B と事後の clean が必須。
+run-dedup-off:
+	$(MAKE) -B CXXFLAGS_EXTRA="-DAZARAC_ENABLE_DEDUP=0" run; status=$$?; $(MAKE) clean; exit $$status
 
 # リンク時最適化（LTO）の検証。
 # -O2 と併用しないと LTO の codegen 経路がほぼ通らないため -O2 -flto で全体を再ビルドする。
@@ -246,6 +252,14 @@ bench-dedup:
 # 値そのものはゲートせず、METRIC の diff で追跡する。
 bench-decode:
 	@bash bench/run_decode_bench.sh
+
+# 実 avr-g++ で Nankai/dedup の ABI レイアウトを固定する（オブジェクトは残さない）。
+# Nankai の 63 ページ構成と AVR プリセット 4 ページ構成の両方を見る。
+avr-layout:
+	avr-g++ -std=gnu++17 -Os -mmcu=atmega328p -fsyntax-only -I../src \
+		-DAZARAC_ENABLE_NANKAI=1 -DAZARAC_NANKAI_MAX_PAGES=63 tools/avr_layout_probe.cpp
+	avr-g++ -std=gnu++17 -Os -mmcu=atmega328p -fsyntax-only -I../src \
+		-DAZARAC_ENABLE_NANKAI=1 -DAZARAC_NANKAI_MAX_PAGES=4 tools/avr_layout_probe.cpp
 
 # --- Static Analysis ---
 # 静的解析 (時間をかけた厳格なチェック)
@@ -495,7 +509,7 @@ clean:
 # 成功時はテストの終了コードを返す。
 pgm-stub:
 	$(MAKE) clean
-	$(MAKE) CXXFLAGS="-std=c++17 -Wall -Wextra -Istub -I../src -I. -DARDUINO=0 -D__AVR__ -DAZARAC_AVR_STUB -DAZARAC_LANG_JA=1 -DAZARAC_LANG_EN=1 -DAZARAC_NANKAI_MAX_PAGES=63 -DAZARAC_NANKAI_BUFFERS=4 -DAZARAC_DEDUP_SLOTS=64 -DAZARAC_ENABLE_EEW=1 -DAZARAC_ENABLE_HYPOCENTER=1 -DAZARAC_ENABLE_SEISMIC=1 -DAZARAC_ENABLE_NANKAI=1 -DAZARAC_ENABLE_TSUNAMI=1 -DAZARAC_ENABLE_NW_PAC_TSUNAMI=1 -DAZARAC_ENABLE_VOLCANO=1 -DAZARAC_ENABLE_ASH_FALL=1 -DAZARAC_ENABLE_WEATHER=1 -DAZARAC_ENABLE_FLOOD=1 -DAZARAC_ENABLE_TYPHOON=1 -DAZARAC_ENABLE_MARINE=1 -DAZARAC_ENABLE_DCX_CAMF=1 -MMD -MP -g" $(TEST_BIN); b=$$?; if [ $$b -ne 0 ]; then $(MAKE) clean; exit $$b; fi; ./$(TEST_BIN); t=$$?; $(MAKE) clean; exit $$t
+	$(MAKE) CXXFLAGS="-std=c++17 -Wall -Wextra -Istub -I../src -I. -DARDUINO=0 -DAZARAC_TESTING=1 -D__AVR__ -DAZARAC_AVR_STUB -DAZARAC_LANG_JA=1 -DAZARAC_LANG_EN=1 -DAZARAC_NANKAI_MAX_PAGES=63 -DAZARAC_NANKAI_BUFFERS=4 -DAZARAC_DEDUP_SLOTS=64 -DAZARAC_ENABLE_EEW=1 -DAZARAC_ENABLE_HYPOCENTER=1 -DAZARAC_ENABLE_SEISMIC=1 -DAZARAC_ENABLE_NANKAI=1 -DAZARAC_ENABLE_TSUNAMI=1 -DAZARAC_ENABLE_NW_PAC_TSUNAMI=1 -DAZARAC_ENABLE_VOLCANO=1 -DAZARAC_ENABLE_ASH_FALL=1 -DAZARAC_ENABLE_WEATHER=1 -DAZARAC_ENABLE_FLOOD=1 -DAZARAC_ENABLE_TYPHOON=1 -DAZARAC_ENABLE_MARINE=1 -DAZARAC_ENABLE_DCX_CAMF=1 -MMD -MP -g" $(TEST_BIN); b=$$?; if [ $$b -ne 0 ]; then $(MAKE) clean; exit $$b; fi; ./$(TEST_BIN); t=$$?; $(MAKE) clean; exit $$t
 
 # ---- Arduino の割り込み状態テスト（ARDUINO=1、host 上で AVR 分岐） ----
 # 通常のスイートは ARDUINO=0 なので、TimeFields.h の Arduino 分岐はコンパイルされない。

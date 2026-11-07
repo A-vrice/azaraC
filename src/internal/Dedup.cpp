@@ -6,7 +6,7 @@ namespace internal {
 #if AZARAC_ENABLE_DEDUP
 // 詰めた内容からセット番号を決める: DEDUP_SETS は 2 の冪なので、CRC を自分自身へ fold した後の下位 log2(DEDUP_SETS) bit が index。
 // シフト量は 8 と 4 で、いずれも 24 未満に収まる（24 以上のシフトは未定義）。
-// `& 0xFFFFFF` は SETS ≤ 2^12（SLOTS ≤ 32768）では no-op: fold は各ビットを最大 12 しか下げないので、下位 log2(SETS) bit は元の bit 24 以上（msg_type bits 24-29、synthetic 鍵の It bits 24-25）へ届かない。
+// `& 0xFFFFFF` は SETS ≤ 2^12（SLOTS ≤ 32768）では no-op: fold は各ビットを最大 12 しか下げないので、下位 log2(SETS) bit は元の bit 24 以上（msg_type bits 24-29、synthetic 鍵の It/Rc bits 24-28）へ届かない。
 // SETS ≥ 2^13（SLOTS ≥ 65536）で届き始め、マスクが効くかどうかが決まる。
 static inline uint16_t setIndexOf(uint32_t content) {
     uint32_t h = content & 0xFFFFFFu;
@@ -27,7 +27,8 @@ bool DedupFilter::isDuplicate(const DedupKey& key, uint32_t now_ms, uint32_t win
             if (!free_slot) free_slot = &e;
             continue;
         }
-        // 経過 = now - last_seen を符号なしで取る: millis() の 49.7 日巻き戻りをまたいでも正しい。
+        // 経過 = now - last_seen を符号なしで取る: 2^32 ms 未満の折り返しをまたいでも正しい。
+        // 2^32 ms 以上の空白や時計後退は Parser::postDecodeAt() の epoch guard が履歴を消す。
         // last_seen 同士の比較は 2 件が 24.8 日以上離れると巻き戻り、生きている方を追い出してしまう。
         if (!oldest || (uint32_t)(now_ms - e.last_seen_ms) > (uint32_t)(now_ms - oldest->last_seen_ms)) oldest = &e;
         if (e.content != content) continue;

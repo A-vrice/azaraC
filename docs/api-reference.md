@@ -91,8 +91,8 @@ void reset();
 const internal::NankaiPageBuffer* getNankaiBuffer(const internal::NankaiPageKey& key) const;
 ```
 
-`NankaiPageKey`の識別子は`{info_code, information_type, report_timeのmonth/day/hour/minute}`です（`information_type`は発表=0/取消=2で、同一`info_code`+報告時刻の発表と取消を別情報として扱うために含めます）。
-呼び出しキーは`NankaiPageKey{info_code, month, day, hour, minute, information_type}`で生成が可能です（`information_type`は末尾の既定引数で省略可）。
+`NankaiPageKey`の識別子は`{info_code, information_type, report_classification, report_timeのmonth/day/hour/minute}`です（`information_type`は発表=0/取消=2、`report_classification`は実警報=2/訓練・試験=7で、それぞれ同一`info_code`+報告時刻の発表と取消、訓練と実警報を別情報として扱うために含めます）。
+呼び出しキーは`NankaiPageKey{info_code, month, day, hour, minute, information_type, report_classification}`で生成が可能です（末尾2つは既定引数で省略可）。既存の6引数呼び出しは`report_classification=0`になるため、実バッファを`getNankaiBuffer()`で検索するときは受信したRcも渡してください。
 `report_time`はそのまま渡すこと（`resolveTime`の正規化でキーが変わらないようにするため）。
 
 返るバッファは受信途中でもよく、完了判定は `isComplete()` で行います。返却ポインタは次の `feed()` / `reset()` までのみ有効です。
@@ -113,7 +113,7 @@ const internal::NankaiPageBuffer* getNankaiBuffer(const internal::NankaiPageKey&
 #### メモリ使用量
 
 各バッファはページを`aggregated_text[MAX_PAGES * 18 + 1]`に保管します：
-- バッファあたり: メタデータ24B + `MAX_PAGES×18+1` B（既定63ページで1,135B、構造体サイズはアラインメント込み1,160B）
+- バッファあたり: メタデータ24B（AVRは23B）+ `MAX_PAGES×18+1` B（既定63ページで1,135B、構造体サイズはアラインメント込み1,160B、AVRは1,158B）
 - バッファ: 既定1バッファで約1.16KB。バッファ数を増やすと比例して増加（4バッファ・63ページで4,640B）
 
 #### LRU エビクション
@@ -525,7 +525,7 @@ AVR プリセットは EEW・震源が既定で 0 なので `sizeof(Mt43Data)` �
 |-------|-----------|------|
 | `AZARAC_FLASH_BUF_SIZE` | AVR: カテゴリ連鎖（既定=64）/ 非 AVR: 800 | ラベル引き当て用の共有RAMバッファサイズ (バイト)。AVRでは有効カテゴリに応じて 64（SEISMIC/TSUNAMI など）/ 80（＋北西太平洋津波）/ 96（＋火山・洪水）/ 540（＋南海トラフ）/ 640（＋緊急地震速報・震源）/ 800（＋DCX/CAMF）に自動選択。有効なカテゴリの最長ラベルを必ず収める（`make -C test bench` の `FLASH_BUF_OK` ゲート）。64 未満は `static_assert` で拒否。非 AVR でも join 系（`azarac_pgm_join_z` / `azarac_pgm_join3`）と `azarac_pgm_len` の打ち切りに使う。切り詰め位置が UTF-8 の途中なら、不完全な末尾シーケンスを捨てて境界まで戻す |
 | `AZARAC_DEDUP_MT44_MAX_WINDOW_MS` | 300000 | MT=44 の情報有効時間(ms)の上限。`__AVR__`のみ定義され、常に A8 由来の窓（最短6時間）を置き換える。ホストは上限を設けず A8 の窓をそのまま使う |
-| `AZARAC_ENABLE_DEDUP` | 1 | 0 で重複排除を無効化する。`DedupFilter` が状態を持たず常に「新規」を返し、`Parser` から `AZARAC_DEDUP_SLOTS × 8 B`（既定 4 KB / AVR 512 B）が消える。同一情報の再放送もすべて受け取りたいロガー・冗長系・検証機向け |
+| `AZARAC_ENABLE_DEDUP` | 1 | 0 で重複排除を無効化する。`DedupFilter` が状態を持たず常に「新規」を返し、`Parser` から `AZARAC_DEDUP_SLOTS × 8 B`（既定 4 KB / AVR 512 B）が消える。同一情報の再放送もすべて受け取りたいロガー・冗長系・検証機向け。ただし Nankai のページビットマップによる同一ページの抑制は残る |
 | `AZARAC_DEDUP_SLOTS` | 512（AVR: 64） | 重複排除テーブルのスロット数。`AZARAC_DEDUP_WAYS` で割り切れ、商が 2 の冪であること。1 スロット 8 B |
 | `AZARAC_DEDUP_WAYS` | 8 | 1 セットあたりの連想度 |
 | `AZARAC_NMEA_STRICT_SVID` | 0 | `$QZQSM` の Satellite ID 検証。0=00–63 を受理（実機互換）/ 1=53–63（PRN181–191）/ 2=仕様表の 55/56/57/58/61 のみ |

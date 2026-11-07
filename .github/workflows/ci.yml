@@ -58,6 +58,9 @@ jobs:
       - name: Build & run (reduced page budget, AZARAC_NANKAI_MAX_PAGES=8)
         run: make -C test run-small-pages
 
+      - name: Build & run (dedup disabled, AZARAC_ENABLE_DEDUP=0)
+        run: make -C test run-dedup-off
+
       - name: Build & run (LTO, -O2 -flto)
         run: make -C test run-lto
 
@@ -78,6 +81,9 @@ jobs:
       - name: Definition-table footprint benchmark (gates)
         run: make -C test bench
 
+      - name: AVR ABI layout (Nankai/dedup)
+        run: make -C test avr-layout
+
       - name: AVR-style stub build (PROGMEM, 16-bit int)
         run: make -C test pgm-stub
 
@@ -87,9 +93,8 @@ jobs:
   sanitizer:
     name: ASan/UBSan (g++)
     runs-on: ubuntu-latest
-    # 段階導入: まず観測のみ。数回緑を確認したら continue-on-error を外してゲートにする。
-    # cppcheck / coverage / LTO はあるが、動的なメモリ・UB 検出はここが唯一。
-    continue-on-error: true
+    # 動的なメモリ・UB 検出はここが唯一なのでゲートにする。
+    # cppcheck / coverage / LTO と合わせて、失敗は PR を止める。
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:

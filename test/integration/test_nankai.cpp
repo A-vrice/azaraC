@@ -19,13 +19,14 @@ static uint32_t currentMillis() {
 
 #if (AZARAC_ENABLE_NANKAI)
 TEST_CASE("NankaiPageKey equality") {
-    // identity = info_code + information_type + report_time DHM（月/日/時/分）。
-    NankaiPageKey key1 = {1, 4, 10, 30, 15};
-    NankaiPageKey key2 = {1, 4, 10, 30, 15};
-    NankaiPageKey key3 = {2, 4, 10, 30, 15};  // different info_code
-    NankaiPageKey key4 = {1, 4, 10, 30, 16};  // different minute
-    NankaiPageKey key5 = {1, 5, 10, 30, 15};  // different month
-    NankaiPageKey key6 = {1, 4, 10, 30, 15, 2};  // different information_type (取消)
+    // identity = info_code + information_type + report_classification + report_time DHM（月/日/時/分）。
+    NankaiPageKey key1 = {1, 4, 10, 30, 15, 0, 2};
+    NankaiPageKey key2 = {1, 4, 10, 30, 15, 0, 2};
+    NankaiPageKey key3 = {2, 4, 10, 30, 15, 0, 2};  // different info_code
+    NankaiPageKey key4 = {1, 4, 10, 30, 16, 0, 2};  // different minute
+    NankaiPageKey key5 = {1, 5, 10, 30, 15, 0, 2};  // different month
+    NankaiPageKey key6 = {1, 4, 10, 30, 15, 2, 2};  // different information_type (取消)
+    NankaiPageKey key7 = {1, 4, 10, 30, 15, 0, 7};  // different report_classification (訓練)
 
     SUBCASE("Same keys are equal") {
         CHECK(key1 == key2);
@@ -43,6 +44,11 @@ TEST_CASE("NankaiPageKey equality") {
     SUBCASE("Different information_type") {
         // 発表(0) と取消(2) は同一 info_code + 同一報告時刻でも別の情報。
         CHECK(!(key1 == key6));
+    }
+
+    SUBCASE("Different report_classification") {
+        // 訓練/試験(7) と実警報(2) は同一 info_code + 同一報告時刻でも別の情報。
+        CHECK(!(key1 == key7));
     }
 }
 
@@ -159,6 +165,14 @@ TEST_CASE("NankaiPageBuffer truncation") {
         CHECK_FALSE(result);
     }
     
+    SUBCASE("Invalid first page does not set truncated or total_pages") {
+        uint8_t text[18] = {'T', 'e', 's', 't', 0};
+        CHECK_FALSE(buffer.addPage(2, 1, text, now));
+        CHECK_FALSE(buffer.truncated);
+        CHECK(buffer.total_pages == 0);
+        CHECK(buffer.isEmpty());
+    }
+
     SUBCASE("Normal (non-truncated) buffer has truncated=false") {
         uint8_t text[18] = {'T', 'e', 's', 't', 0};
         buffer.addPage(1, 1, text, now);
@@ -266,6 +280,26 @@ TEST_CASE("NankaiPageBufferManager") {
         NankaiPageBuffer* result2 = manager.addPage(key, 2, 2, text2, currentMillis());
         CHECK(result2 != nullptr);
     }
+
+    SUBCASE("Invalid page for a new key does not evict an in-progress event") {
+        NankaiPageKey keyA = {1};
+        NankaiPageKey keyB = {2};
+        uint8_t text1[18] = {'A', '1', 0};
+        uint8_t text2[18] = {'A', '2', 0};
+        const uint32_t now = currentMillis();
+
+        CHECK(manager.addPage(keyA, 1, 2, text1, now) == nullptr);
+        REQUIRE(manager.getBuffer(keyA) != nullptr);
+
+        // page > total の不正ページは、別鍵の新規バッファを割り当ててはいけない。
+        CHECK(manager.addPage(keyB, 2, 1, text1, now) == nullptr);
+        CHECK(manager.getBuffer(keyA) != nullptr);
+        CHECK(manager.getBuffer(keyB) == nullptr);
+        CHECK(manager.getBuffer(keyA)->received_count == 1);
+
+        // 事象Aの残りページは引き続き完成できる。
+        CHECK(manager.addPage(keyA, 2, 2, text2, now) != nullptr);
+    }
     
 #if AZARAC_NANKAI_BUFFERS >= 2
     SUBCASE("Multiple events") {
@@ -290,6 +324,32 @@ TEST_CASE("NankaiPageBufferManager") {
         
         CHECK(manager.getBuffer(key) == nullptr);
     }
+}
+
+TEST_CASE("NankaiPageBufferManager aggregate status") {
+    NankaiPageBufferManager manager;
+    NankaiPageKey key = {1};
+    uint8_t text[18] = {'T', 'e', 's', 't', 0};
+    NankaiPageBuffer* completed = nullptr;
+
+    CHECK(manager.addPageEx(key, 1, 2, text, 1000, &completed) ==
+          NankaiAggregateResult::NotComplete);
+    CHECK(completed == nullptr);
+
+    // 未完成バッファの重複ページは Complete ではない。
+    CHECK(manager.addPageEx(key, 1, 2, text, 1001, &completed) ==
+          NankaiAggregateResult::NotComplete);
+    CHECK(completed == nullptr);
+
+    CHECK(manager.addPageEx(key, 2, 2, text, 1002, &completed) ==
+          NankaiAggregateResult::Complete);
+    REQUIRE(completed != nullptr);
+
+    // 完成済みバッファの受信済みページ再送。
+    completed = nullptr;
+    CHECK(manager.addPageEx(key, 1, 2, text, 1003, &completed) ==
+          NankaiAggregateResult::DuplicateComplete);
+    CHECK(completed == nullptr);
 }
 
 TEST_CASE("NankaiPageBufferManager buffer limit") {

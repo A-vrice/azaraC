@@ -15,7 +15,7 @@ std::string makeSinglePageNmea(uint8_t info_code) {
     uint8_t bits[32] = {};
     setBits(bits, 0, 8, 0x53);
     setBits(bits, 8, 6, 43);
-    setBits(bits, 14, 3, 1);
+    setBits(bits, 14, 3, 2);
     setBits(bits, 17, 4, 4);
     setBits(bits, 53, 4, info_code);
     setBits(bits, 201, 6, 1);
@@ -83,7 +83,7 @@ TEST_CASE("Nankai E2E: Text extraction from single page") {
     uint8_t bits[32] = {};
     setBits(bits, 0, 8, 0x53);
     setBits(bits, 8, 6, 43);
-    setBits(bits, 14, 3, 1);
+    setBits(bits, 14, 3, 2);
     setBits(bits, 17, 4, 4);
     setBits(bits, 53, 4, 1);
     const char* text = "Test";
@@ -133,7 +133,7 @@ TEST_CASE("Nankai E2E: page bounds are rejected") {
         uint8_t bits[32] = {};
         setBits(bits, 0, 8, 0x53);
         setBits(bits, 8, 6, 43);
-        setBits(bits, 14, 3, 1);
+        setBits(bits, 14, 3, 2);
         setBits(bits, 17, 4, 4);
         setBits(bits, 53, 4, 1);
         setBits(bits, 201, 6, c.page);
@@ -163,7 +163,7 @@ TEST_CASE("Nankai E2E: Page tracking with single page") {
     uint8_t bits[32] = {};
     setBits(bits, 0, 8, 0x53);
     setBits(bits, 8, 6, 43);
-    setBits(bits, 14, 3, 1);
+    setBits(bits, 14, 3, 2);
     setBits(bits, 17, 4, 4);
     setBits(bits, 53, 4, 5);
     setBits(bits, 201, 6, 1);
@@ -202,11 +202,11 @@ static void buildNankaiPage(uint8_t page_num, uint8_t total_pages, uint8_t info_
                             const uint8_t* text, uint8_t text_len, uint8_t* bits,
                             uint8_t rt_month = 0, uint8_t rt_day = 0,
                             uint8_t rt_hour = 0, uint8_t rt_minute = 0,
-                            uint8_t information_type = 0) {
+                            uint8_t information_type = 0, uint8_t report_classification = 2) {
     memset(bits, 0, 32);
     setBits(bits, 0, 8, 0x53);       // Preamble
     setBits(bits, 8, 6, 43);         // msg_type
-    setBits(bits, 14, 3, 1);         // report_classification = 1 (訓練)
+    setBits(bits, 14, 3, report_classification); // Rc: 2=実警報, 7=訓練/試験
     setBits(bits, 17, 4, 4);         // disaster_category = 4 (Nankai)
     // report_time: bit 21 から month(4)+day(5)+hour(5)+minute(6)
     setBits(bits, 21, 4, rt_month);
@@ -230,6 +230,55 @@ static void buildNankaiPage(uint8_t page_num, uint8_t total_pages, uint8_t info_
 // 唯一の正は test/data/nankai_vectors.json（nankai_pages_generated.h として生成される）。ページデータを手で編集せず、ヘッダを再生成すること。
 #include "../data/nankai_pages_generated.h"
 
+TEST_CASE("Nankai E2E: Rc separates training from a real alert") {
+    azaraC::Parser parser;
+    azaraC::Message msg;
+    uint8_t bits[32];
+
+    const uint8_t drill[] = {'D', 'R', 'I', 'L', 'L'};
+    buildNankaiPage(1, 1, 1, drill, sizeof(drill), bits,
+                    /*rt_month=*/6, /*rt_day=*/15, /*rt_hour=*/12, /*rt_minute=*/30,
+                    /*information_type=*/0, /*report_classification=*/7);
+    CHECK(feedAll(parser, msg, makeNmeaQzqsm(58, bits)));
+
+    const uint8_t real[] = {'R', 'E', 'A', 'L'};
+    buildNankaiPage(1, 1, 1, real, sizeof(real), bits,
+                    /*rt_month=*/6, /*rt_day=*/15, /*rt_hour=*/12, /*rt_minute=*/30,
+                    /*information_type=*/0, /*report_classification=*/2);
+    CHECK(feedAll(parser, msg, makeNmeaQzqsm(58, bits)));
+
+    const azaraC::Mt43Data* mt43 = msg.getMt43();
+    REQUIRE(mt43 != nullptr);
+    CHECK(mt43->report_classification == 2);
+    const azaraC::NankaiData* nankai = mt43->getNankai();
+    REQUIRE(nankai != nullptr);
+    REQUIRE(nankai->is_aggregated);
+    CHECK(std::string(nankai->aggregated_text_ptr, nankai->aggregated_len) == "REAL");
+}
+
+#if AZARAC_NANKAI_BUFFERS >= 2
+TEST_CASE("Nankai E2E: training and real pages do not share an aggregate buffer") {
+    azaraC::Parser parser;
+    azaraC::Message msg;
+    uint8_t bits[32];
+    const uint8_t drill[] = {'D', 'R', 'I', 'L', 'L'};
+    const uint8_t real1[] = {'R', 'E', 'A', 'L', '1'};
+    const uint8_t real2[] = {'R', 'E', 'A', 'L', '2'};
+
+    buildNankaiPage(1, 2, 1, drill, sizeof(drill), bits, 6, 15, 12, 30, 0, 7);
+    CHECK_FALSE(feedAll(parser, msg, makeNmeaQzqsm(58, bits)));
+    buildNankaiPage(1, 2, 1, real1, sizeof(real1), bits, 6, 15, 12, 30, 0, 2);
+    CHECK_FALSE(feedAll(parser, msg, makeNmeaQzqsm(58, bits)));
+    buildNankaiPage(2, 2, 1, real2, sizeof(real2), bits, 6, 15, 12, 30, 0, 2);
+    CHECK(feedAll(parser, msg, makeNmeaQzqsm(58, bits)));
+
+    const azaraC::NankaiData* nankai = msg.getMt43()->getNankai();
+    REQUIRE(nankai != nullptr);
+    REQUIRE(nankai->is_aggregated);
+    CHECK(std::string(nankai->aggregated_text_ptr, nankai->aggregated_len) == "REAL1REAL2");
+}
+#endif
+
 TEST_CASE("Nankai E2E: getNankaiBuffer exposes an incomplete buffer") {
     azaraC::Parser parser;
     azaraC::Message msg;
@@ -245,7 +294,7 @@ TEST_CASE("Nankai E2E: getNankaiBuffer exposes an incomplete buffer") {
     }
     CHECK_FALSE(output);
 
-    const NankaiPageKey key{1, 0, 0, 0, 0, 0};
+    const NankaiPageKey key{1, 0, 0, 0, 0, 0, 2};
     const NankaiPageBuffer* buf = parser.getNankaiBuffer(key);
     REQUIRE(buf != nullptr);
     CHECK_FALSE(buf->isComplete());
@@ -261,10 +310,10 @@ TEST_CASE("Nankai E2E: copied Message keeps a borrowed pointer into Parser stora
     azaraC::Message msg;
     uint8_t bits[32];
 
-    auto feedOnePage = [&](uint8_t info_code, const char* text, uint8_t len) {
+    auto feedOnePage = [&](uint8_t info_code, const char* text, uint8_t len, uint8_t minute = 30) {
         buildNankaiPage(1, 1, info_code,
                         reinterpret_cast<const uint8_t*>(text), len, bits,
-                        /*rt_month=*/6, /*rt_day=*/15, /*rt_hour=*/12, /*rt_minute=*/30);
+                        /*rt_month=*/6, /*rt_day=*/15, /*rt_hour=*/12, /*rt_minute=*/minute);
         const std::string nmea = makeNmeaQzqsm(58, bits);
         for (char c : nmea) {
             if (parser.feed(static_cast<uint8_t>(c), msg, 0)) return true;
@@ -290,7 +339,11 @@ TEST_CASE("Nankai E2E: copied Message keeps a borrowed pointer into Parser stora
     REQUIRE(copied != nullptr);
     CHECK(copied->aggregated_text_ptr == borrowed);   // 同じ Parser 内部を指す
 
-    // 別事象（info_code 違い）。AZARAC_NANKAI_BUFFERS=1 では LRU で同じスロットが再利用される。
+    // 全スロットを埋めてから別事象を送る。AZARAC_NANKAI_BUFFERS=1 なら B が A を追い出し、
+    // 4 以上なら埋めたスロットのうち最も古い A が追い出される。BUFFERS に依存せず同じ検証になる。
+    for (uint8_t i = 0; i + 1 < azaraC::internal::NankaiPageBufferManager::MAX_BUFFERS; ++i) {
+        REQUIRE(feedOnePage(7, "FILL-EVENT", 10, static_cast<uint8_t>(i + 1)));
+    }
     REQUIRE(feedOnePage(6, "SECOND-EVENT-TXT", 16));
 
     // コピー側は同じアドレスのまま、内容だけが別の警報文に変わる。これが H2 の実害。
@@ -365,7 +418,7 @@ TEST_CASE("Nankai E2E: 27-page full aggregation with real text data") {
             CHECK(memcmp(nankai->aggregated_text_ptr, expected_body, EXPECTED_AGG_LEN) == 0);
 
             // compactText() 後も getNankaiBuffer() 経由の長さが集約本文と一致する。
-            const NankaiPageBuffer* buf = parser.getNankaiBuffer(NankaiPageKey{5, 0, 0, 0, 0, 0});
+            const NankaiPageBuffer* buf = parser.getNankaiBuffer(NankaiPageKey{5, 0, 0, 0, 0, 0, 2});
             REQUIRE(buf != nullptr);
             CHECK(buf->compacted);
             CHECK(buf->getTextLength() == EXPECTED_AGG_LEN);
@@ -401,6 +454,7 @@ TEST_CASE("Nankai E2E: 27-page full aggregation with real text data") {
 
 // 同じ事象を別のページ順で再受信しても再通知しない。集約メッセージの同一性はページ集合を完成させた電文ではなく事象そのもの（info_code + 報告時刻）。
 // 既定の AZARAC_NANKAI_BUFFERS=1 では事象BがAのページバッファを追い出すため、 3手目は集約が再完了して dedup の判定に到達する（バッファ数が2以上でもページ重複で再完了しないだけで、期待値は同じ0）。
+#if AZARAC_ENABLE_DEDUP
 #if AZARAC_NANKAI_MAX_PAGES >= 27
 TEST_CASE("Nankai E2E: 同一事象の再放送は再通知しない") {
     azaraC::Parser parser;
@@ -457,6 +511,7 @@ TEST_CASE("Nankai E2E: 同一 info_code + 報告時刻でも発表と取消は�
     CHECK(feedEvent(0) == 0);   // 発表の再放送は抑制される
 }
 #endif
+#endif // AZARAC_ENABLE_DEDUP
 
 // ページ内の 0x00 以降は aggregated_text に含まれず、aggregated_len が短縮される。
 
@@ -538,7 +593,7 @@ TEST_CASE("Nankai E2E: NUL byte mid-page stops aggregation at null") {
     CHECK(nankai->aggregated_text_ptr != nullptr);
     CHECK(memcmp(nankai->aggregated_text_ptr, expected_compact, EXPECTED_LEN) == 0);
 
-    const NankaiPageBuffer* buf = parser.getNankaiBuffer(NankaiPageKey{5, 0, 0, 0, 0, 0});
+    const NankaiPageBuffer* buf = parser.getNankaiBuffer(NankaiPageKey{5, 0, 0, 0, 0, 0, 2});
     REQUIRE(buf != nullptr);
     CHECK(buf->getTextLength() == EXPECTED_LEN);
 

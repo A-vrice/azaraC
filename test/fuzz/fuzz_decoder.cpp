@@ -130,6 +130,7 @@ struct FuzzStats {
     uint64_t mt43_count = 0;
     uint64_t mt44_count = 0;
     uint64_t exceptions = 0;
+    uint64_t warnings = 0;
     uint64_t nmea_frames = 0;
     uint64_t ubx_frames = 0;
     uint64_t serialized = 0;
@@ -143,6 +144,13 @@ struct FuzzStats {
             exception_log[exception_log_count++] = {test_name, iter};
         }
         exceptions++;
+    }
+
+    void log_warning(const char* test_name, uint64_t iter) {
+        if (exception_log_count < MAX_EXCEPTION_LOG) {
+            exception_log[exception_log_count++] = {test_name, iter};
+        }
+        warnings++;
     }
 
     void print() const {
@@ -162,6 +170,7 @@ struct FuzzStats {
         printf("Decode fail:         %llu\n", (unsigned long long)decode_fail);
         printf("Serialized:          %llu\n", (unsigned long long)serialized);
         printf("Exceptions caught:   %llu\n", (unsigned long long)exceptions);
+        printf("Warnings:            %llu\n", (unsigned long long)warnings);
 
         if (exception_log_count > 0) {
             printf("\n--- Exception Details (first %d) ---\n", exception_log_count);
@@ -805,7 +814,8 @@ static void test_decode_failure_state(FuzzStats& stats, std::mt19937& rng, int i
 
             // CRC不一致で false。CRC失敗時は svid 未設定のまま false が返る（正常）ため、ここでは valid==false のみ検証する。
             if (!result && msg.valid) {
-                printf("  WARNING: valid should be false on decode failure at iteration %d\n", i);
+                stats.log_warning("test_decode_failure_state", i);
+                printf("  FAIL: valid should be false on decode failure at iteration %d\n", i);
             }
 
             stats.total_iterations++;
@@ -1019,6 +1029,92 @@ static void test_decode_serialize(FuzzStats& stats, std::mt19937& rng, int itera
     printf("  Completed.\n");
 }
 
+// テスト18: Parser の状態遷移（Nankai ページ集約、Rc、dedup、reset）を含む入力。
+// 既存の fuzz は Decoder を直接呼ぶため、状態付きのバグを検出できない。
+static void test_parser_stateful(FuzzStats& stats, std::mt19937& rng, int iterations) {
+    printf("Test 18: Stateful Parser (%d iterations)...\n", iterations);
+    Parser parser;
+    Message msg;
+    std::uniform_int_distribution<int> byte_dist(0, 255);
+    std::uniform_int_distribution<int> rc_dist(0, 7);
+    std::uniform_int_distribution<int> page_dist(0, 64);
+    std::uniform_int_distribution<int> info_dist(0, 15);
+    std::uniform_int_distribution<int> it_dist(0, 3);
+
+    for (int i = 0; i < iterations; ++i) {
+        try {
+            uint8_t bits[32];
+            generate_random_nav_bits(bits, sizeof(bits), rng);
+            set_valid_preamble(bits, rng);
+            setBits(bits, 8, 6, 43);
+            setBits(bits, 14, 3, static_cast<uint32_t>(rc_dist(rng)));
+            setBits(bits, 17, 4, 4);  // Nankai
+            setBits(bits, 21, 4, static_cast<uint32_t>(byte_dist(rng) & 0x0F));
+            setBits(bits, 25, 5, static_cast<uint32_t>(byte_dist(rng) & 0x1F));
+            setBits(bits, 30, 5, static_cast<uint32_t>(byte_dist(rng) & 0x1F));
+            setBits(bits, 35, 6, static_cast<uint32_t>(byte_dist(rng) & 0x3F));
+            setBits(bits, 41, 2, static_cast<uint32_t>(it_dist(rng)));
+            setBits(bits, 53, 4, static_cast<uint32_t>(info_dist(rng)));
+            for (int t = 0; t < 18; ++t) {
+                setBits(bits, static_cast<uint16_t>(57 + t * 8), 8,
+                        static_cast<uint32_t>(byte_dist(rng)));
+            }
+            setBits(bits, 201, 6, static_cast<uint32_t>(page_dist(rng)));
+            setBits(bits, 207, 6, static_cast<uint32_t>(page_dist(rng)));
+            setBits(bits, 214, 6, 1);  // version
+            set_valid_crc(bits);
+
+            const std::string nmea = makeNmeaQzqsm(58, bits);
+            bool emitted = false;
+            for (char c : nmea) {
+                if (parser.feed(static_cast<uint8_t>(c), msg, 1704067200u)) {
+                    emitted = true;
+                    break;
+                }
+            }
+            if (emitted) {
+                if (!msg.valid) {
+                    stats.log_warning("test_parser_stateful_invalid", i);
+                }
+                if (msg.payload_type == MsgPayloadType::Mt43) {
+                    const Mt43Data* d = msg.getMt43();
+                    if (!d) {
+                        stats.log_warning("test_parser_stateful_missing_mt43", i);
+                    } else if (d->disaster_category == 4) {
+                        const NankaiData* n = d->getNankai();
+                        if (!n) {
+                            stats.log_warning("test_parser_stateful_missing_nankai", i);
+                        } else if (n->is_aggregated &&
+                                   (!n->aggregated_text_ptr || n->aggregated_len > 63 * 18)) {
+                            stats.log_warning("test_parser_stateful_bad_aggregate", i);
+                        }
+                        if (n && (n->page < 1 || n->total_page < 1 || n->page > n->total_page)) {
+                            stats.log_warning("test_parser_stateful_bad_page", i);
+                        }
+                    }
+                }
+            }
+
+            // 同じ電文の再送も Parser の状態（ページ重複・dedup）を通す。
+            if (i % 17 == 0) {
+                for (char c : nmea) {
+                    if (parser.feed(static_cast<uint8_t>(c), msg, 1704067200u) && !msg.valid) {
+                        stats.log_warning("test_parser_stateful_repeat_invalid", i);
+                        break;
+                    }
+                }
+            }
+            // 長時間同じ Parser だけを使い続けないよう、時々状態を初期化する。
+            if (i % 997 == 0) parser.reset();
+
+            stats.total_iterations++;
+        } catch (...) {
+            stats.log_exception("test_parser_stateful", i);
+        }
+    }
+    printf("  Completed.\n");
+}
+
 int main(int argc, char* argv[]) {
     printf("=== azaraC Fuzz Testing ===\n");
     printf("Starting fuzz tests...\n\n");
@@ -1106,16 +1202,19 @@ int main(int argc, char* argv[]) {
     mem_tracker.checkpoint();
     test_decode_serialize(stats, rng, iterations / 2);
     mem_tracker.checkpoint();
+    test_parser_stateful(stats, rng, iterations / 2);
+    mem_tracker.checkpoint();
 
     // メモリレポートは mem_tracker のデストラクタで自動出力
     stats.print();
 
     printf("\n=== Summary ===\n");
-    if (stats.exceptions == 0) {
-        printf("PASS: No exceptions caught during fuzz testing.\n");
+    if (stats.exceptions == 0 && stats.warnings == 0) {
+        printf("PASS: No exceptions or invariant warnings during fuzz testing.\n");
     } else {
-        printf("FAIL: %llu exceptions caught during fuzz testing.\n",
-               (unsigned long long)stats.exceptions);
+        printf("FAIL: %llu exceptions and %llu warnings during fuzz testing.\n",
+               (unsigned long long)stats.exceptions,
+               (unsigned long long)stats.warnings);
         // catch できないクラッシュ（segfault 等）で死んだ場合も、シードを固定して再実行すれば同じ入力列を辿れる。
         printf("Reproduce with: FUZZ_SEED=%llu make -C test fuzz FUZZ_ITERATIONS=%lld\n",
                (unsigned long long)seed, iterations);
@@ -1137,5 +1236,5 @@ int main(int argc, char* argv[]) {
 
     printf("Fuzz testing completed.\n");
 
-    return (stats.exceptions > 0 || !corruption_observed) ? 1 : 0;
+    return (stats.exceptions > 0 || stats.warnings > 0 || !corruption_observed) ? 1 : 0;
 }

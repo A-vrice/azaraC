@@ -160,6 +160,8 @@
 // 重複排除の有効/無効。0 にすると DedupFilter は状態を持たず、常に「新規」を返す。
 // ロガー・冗長系・検証機など、同一情報の再放送もすべて受け取りたい用途向け。
 // 既定 1。0 では AZARAC_DEDUP_* は未使用になり、Parser から 4 KB（AVR では 512 B）が消える。
+// ただし Nankai のページビットマップによる同一ページの抑制は残る（ページ集約の重複防止は dedup とは別）。
+
 #ifndef AZARAC_ENABLE_DEDUP
 #define AZARAC_ENABLE_DEDUP 1
 #endif

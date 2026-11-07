@@ -1,7 +1,7 @@
 // FreeRTOS タスクベースの NMEA / UBX デコーダこのスケッチは loop() を使わず、FreeRTOS タスクで全ての処理を行います。
 // ESP32 系 Arduino コア専用です（xTaskCreatePinnedToCore を使用）。
 //
-// アーキテクチャ: UART RX Task ──(Message Queue)──▶ Output Task 配線 (例: ESP32-C3 DevKitM-1):
+// アーキテクチャ: UART RX Task ──(Message index queue)──▶ Output Task 配線 (例: ESP32-C3 DevKitM-1):
 //   GNSS TX → GPIO20 (Serial1 RX)
 //   GND             → GND
 //
@@ -44,12 +44,12 @@ static constexpr UBaseType_t kOutputTaskPriority = 1;
 #define SERIAL_GNSS Serial1
 
 
-// メッセージキュー (azaraC::Message をやり取り) FreeRTOS のキューはバイトコピーで、Message のコピー ctor/dtor は通らない。
-// payload のサブオブジェクトは trivially copyable で所有ポインタを持たないため、この example ではオブジェクト表現のコピーとして扱う（標準のコピー意味論ではない）。
-// 厳密には、非 trivially copyable な Message をバイトコピーで渡して元とコピーの両方を Message として扱うのは ISO C++ では未定義動作。
-// このサンプルは実用上の POD 相当のレイアウトに依存しており、標準規格の保証を主張するものではない。
+// Message はコピー ctor/dtor を持つため、FreeRTOS キューのバイトコピーには載せない。
+// 固定スロットを静的確保し、ready/free のインデックスキューで所有権をやり取りする。
 // Nankai の aggregated_text_ptr は Parser 内部への借用ポインタなのでキューには載せない（processByte を参照）。
-static QueueHandle_t g_messageQueue = nullptr;
+static QueueHandle_t g_readyQueue = nullptr;
+static QueueHandle_t g_freeQueue = nullptr;
+static azaraC::Message g_messageSlots[kQueueSize];
 
 // Serial は RX タスク（集約済み南海トラフ）と Output タスク（キュー・統計）の両方から書く。
 // 1 レコードが途中で混ざらないよう、JSON 1 通・統計行・起動行を丸ごとミューテックスで囲む。
@@ -108,9 +108,16 @@ static void processByte(uint8_t b, azaraC::Parser& parser) {
             return;
         }
 #endif
-        // キューに送信 (待たない)
-        if (xQueueSend(g_messageQueue, &msg, 0) != pdTRUE) {
+        // 空きスロットを取得し、Message のコピー代入で所有権を移す（バイトコピーしない）。
+        uint8_t index = 0;
+        if (xQueueReceive(g_freeQueue, &index, 0) != pdTRUE) {
             g_stats.queueFullErrors++;
+            return;
+        }
+        g_messageSlots[index] = msg;
+        if (xQueueSend(g_readyQueue, &index, 0) != pdTRUE) {
+            g_stats.queueFullErrors++;
+            (void)xQueueSend(g_freeQueue, &index, 0);
         } else {
             g_stats.Messages++;
         }
@@ -144,14 +151,15 @@ static void uartRxTask(void* pvParameters) {
 static void outputTask(void* pvParameters) {
     (void)pvParameters;
 
-    azaraC::Message msg;
+    uint8_t index = 0;
 
     printLine(F("[RTOS] Output task started"));
 
     for (;;) {
-        // キューからメッセージを待機 (最大 100ms)
-        if (xQueueReceive(g_messageQueue, &msg, pdMS_TO_TICKS(100)) == pdTRUE) {
-            printJson(msg);
+        // ready キューのインデックスを待機し、スロットの Message を出力して free に戻す。
+        if (xQueueReceive(g_readyQueue, &index, pdMS_TO_TICKS(100)) == pdTRUE) {
+            printJson(g_messageSlots[index]);
+            (void)xQueueSend(g_freeQueue, &index, 0);
         }
 
         // 統計情報の定期出力 (約10秒ごと)
@@ -194,15 +202,19 @@ void setup() {
         }
     }
 
-    g_messageQueue = xQueueCreate(kQueueSize, sizeof(azaraC::Message));
-    if (g_messageQueue == nullptr) {
+    g_readyQueue = xQueueCreate(kQueueSize, sizeof(uint8_t));
+    g_freeQueue = xQueueCreate(kQueueSize, sizeof(uint8_t));
+    if (g_readyQueue == nullptr || g_freeQueue == nullptr) {
         Serial.println(F("[ERROR] Failed to create message queue!"));
         // エラー時は停止
         for (;;) {
             vTaskDelay(pdMS_TO_TICKS(1000));
         }
     }
-    Serial.print(F("[INIT] Message queue created (size="));
+    for (uint8_t i = 0; i < kQueueSize; ++i) {
+        (void)xQueueSend(g_freeQueue, &i, 0);
+    }
+    Serial.print(F("[INIT] Message queues created (size="));
     Serial.print(kQueueSize);
     Serial.println(F(")"));
 

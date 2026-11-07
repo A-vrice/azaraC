@@ -1,607 +1,528 @@
-// パーサー統合テスト EEW, DCX (MT=44), decodePrefectureBitmask, B1 Refinement の統合テスト
+// Parser 統合テスト。注: ほとんどのテストは EEW (dc=1) を使う。AZARAC_ENABLE_EEW でガード。
 
-#include "../test_helpers.h"
-#include "../src/internal/DcxHelper.h"
+#include <string>
 #include "doctest.h"
+#include "../src/Parser.h"
+#include "../test_helpers.h"
 
 using namespace azaraC;
 
-// EEW デコードテスト
+// カテゴリ非依存のテスト（常時コンパイル）
+
+#if (AZARAC_ENABLE_NANKAI)
+TEST_CASE("Parser getNankaiBuffer returns nullptr for unknown key") {
+    Parser parser;
+
+    azaraC::internal::NankaiPageKey key = {1};
+    const azaraC::internal::NankaiPageBuffer* buf = parser.getNankaiBuffer(key);
+    CHECK(buf == nullptr);
+}
+#endif
+
+// EEW 依存のテスト（dc=1）
 
 #if (AZARAC_ENABLE_EEW)
-TEST_CASE("decodeEEW: 基本的なEEWメッセージのデコード") {
+
+// reset の framer 状態クリアを検証するための最小 EEW 文。
+static std::string makeEewNmea58() {
     uint8_t bits[32] = {};
-    Message msg{};
+    setBits(bits, 0, 8, 0x53);
+    setBits(bits, 8, 6, 43);
+    setBits(bits, 14, 3, 1);
+    setBits(bits, 17, 4, 1);
+    setBits(bits, 214, 6, 1);
+    setBits(bits, 226, 24, crc24qRef(bits, 226));
+    return makeNmeaQzqsm(58, bits);
+}
 
-    setBits(bits, 0, 8, 0x53);       // preamble
-    setBits(bits, 8, 6, 43);        // msg_type
-    setBits(bits, 14, 3, 1);        // report_classification
-    setBits(bits, 17, 4, 1);        // disaster_category = 1 (EEW)
-    setBits(bits, 41, 2, 0);        // information_type
-    setBits(bits, 214, 6, 1);      // version = 1
+static std::vector<uint8_t> makeEewUbx193() {
+    uint8_t bits[32] = {};
+    setBits(bits, 0, 8, 0x53);
+    setBits(bits, 8, 6, 43);
+    setBits(bits, 17, 4, 1);
+    setBits(bits, 214, 6, 1);
+    setBits(bits, 226, 24, crc24qRef(bits, 226));
+    return makeUbxSfrbx(193, bits);
+}
 
-    setBits(bits, 47, 3, 3);        // long_period_lower = 3
-    setBits(bits, 50, 3, 5);        // long_period_upper = 5
+TEST_CASE("Parser AUTO mode: NMEA message decoded") {
+    Parser parser;
+    Message msg;
 
-    setBits(bits, 53, 9, 100);      // notification 1
-    setBits(bits, 62, 9, 200);      // notification 2
-
-    setBits(bits, 80, 5, 15);       // day = 15
-    setBits(bits, 85, 5, 10);       // hour = 10
-    setBits(bits, 90, 6, 30);       // minute = 30
-
-    setBits(bits, 96, 9, 50);       // depth = 50km
-    setBits(bits, 105, 7, 65);      // magnitude = 6.5
-    setBits(bits, 112, 10, 25);     // epicenter code = 25
-    setBits(bits, 122, 4, 3);       // intensity lower = 3
-    setBits(bits, 126, 4, 7);       // intensity upper = 7
-
-    setBits(bits, 130, 1, 1);       // region 1
-    setBits(bits, 134, 1, 1);       // region 5
-    setBits(bits, 139, 1, 1);       // region 10
-
+    uint8_t bits[32] = {};
+    setBits(bits, 0, 8, 0x53);
+    setBits(bits, 8, 6, 43);
+    setBits(bits, 14, 3, 1);
+    setBits(bits, 17, 4, 1);
+    setBits(bits, 214, 6, 1);
     uint32_t crc = crc24qRef(bits, 226);
     setBits(bits, 226, 24, crc);
+    std::string nmea = makeNmeaQzqsm(58, bits);
 
-    uint32_t now_unix = 1704067200u;
-    msg.initPayload<Mt43Data>();
-    Mt43Data* mt43 = msg.getMt43();
-    TestDecoder::testDecodeEEW(bits, msg, now_unix);
+    bool output = false;
+    for (size_t i = 0; i < nmea.length(); i++) {
+        if (parser.feed(nmea[i], msg, 0)) {
+            output = true;
+            break;
+        }
+    }
 
-    REQUIRE(mt43 != nullptr);
-    
-    const EewData* eew = mt43->getEew();
-    REQUIRE(eew != nullptr);
-    CHECK(eew->long_period_lower == 3);
-    CHECK(eew->long_period_upper == 5);
-    CHECK(eew->notification_count == 2);
-    CHECK(eew->notification[0] == 100);
-    CHECK(eew->notification[1] == 200);
-    CHECK(eew->quake_time.day == 15);
-    CHECK(eew->quake_time.hour == 10);
-    CHECK(eew->quake_time.minute == 30);
-    CHECK(eew->depth == 50);
-    CHECK(eew->magnitude == 65);
-    CHECK(eew->epicenter == 25);
-    CHECK(eew->intensity_lower == 3);
-    CHECK(eew->intensity_upper == 7);
-    CHECK(eew->regionCount() == 3);
-    CHECK(eew->regionAt(0) == 1);
-    CHECK(eew->regionAt(1) == 5);
-    CHECK(eew->regionAt(2) == 10);
+    CHECK(output);
+    CHECK(msg.valid);
+    CHECK(msg.msg_type == 43);
+    CHECK(msg.payload_type == MsgPayloadType::Mt43);
 }
+
+TEST_CASE("Parser: CRC 不正のフレームは svid を残さない") {
+    Parser parser;
+    Message msg;
+
+    // 正常なフレームで svid を入れる
+    const std::string good = makeEewNmea58();
+    bool output = false;
+    for (size_t i = 0; i < good.length(); ++i) {
+        if (parser.feed(good[i], msg, 0)) { output = true; break; }
+    }
+    CHECK(output);
+    CHECK(msg.svid == 186);  // NMEA の Satellite ID 58 は PRN 186 に正規化される
+
+    // CRC だけ壊す（NMEA チェックサムは作り直すのでフレーマは通る）
+    uint8_t bits[32] = {};
+    setBits(bits, 0, 8, 0x53);
+    setBits(bits, 8, 6, 43);
+    setBits(bits, 14, 3, 1);
+    setBits(bits, 17, 4, 1);
+    setBits(bits, 214, 6, 1);
+    setBits(bits, 226, 24, 0xDEADBEu);
+    const std::string bad = makeNmeaQzqsm(61, bits);
+
+    bool accepted = false;
+    for (size_t i = 0; i < bad.length(); ++i) {
+        if (parser.feed(bad[i], msg, 0)) accepted = true;
+    }
+    CHECK_FALSE(accepted);
+    CHECK_FALSE(msg.valid);
+    CHECK(msg.svid == 0);  // 直前の 186 も、壊れたフレームの 189 も残らない
+}
+
+TEST_CASE("Parser AUTO mode: UBX message decoded") {
+    Parser parser;
+    Message msg;
+
+    uint8_t nav_bits[32] = {};
+    setBits(nav_bits, 0, 8, 0x53);
+    setBits(nav_bits, 8, 6, 43);
+    setBits(nav_bits, 17, 4, 1);
+    setBits(nav_bits, 214, 6, 1);
+    uint32_t crc = crc24qRef(nav_bits, 226);
+    setBits(nav_bits, 226, 24, crc);
+    auto ubx = makeUbxSfrbx(193, nav_bits);
+
+    bool output = false;
+    for (auto b : ubx) {
+        if (parser.feed(b, msg, 0)) {
+            output = true;
+            break;
+        }
+    }
+
+    CHECK(output);
+    CHECK(msg.valid);
+    CHECK(msg.msg_type == 43);
+    CHECK(msg.payload_type == MsgPayloadType::Mt43);
+    REQUIRE(msg.getMt43() != nullptr);
+    CHECK(msg.getMt43()->disaster_category == 1);
+}
+
+#if AZARAC_ENABLE_DEDUP
+TEST_CASE("Parser EEW duplicate suppression") {
+    Parser parser;
+    Message msg;
+
+    uint8_t bits[32] = {};
+    setBits(bits, 0, 8, 0x53);
+    setBits(bits, 8, 6, 43);
+    setBits(bits, 14, 3, 1);
+    setBits(bits, 17, 4, 1);
+    setBits(bits, 214, 6, 1);
+    uint32_t crc = crc24qRef(bits, 226);
+    setBits(bits, 226, 24, crc);
+    std::string nmea = makeNmeaQzqsm(58, bits);
+
+    bool output1 = false;
+    for (size_t i = 0; i < nmea.length(); i++) {
+        if (parser.feed(nmea[i], msg, 0)) {
+            output1 = true;
+            break;
+        }
+    }
+    CHECK(output1);
+    CHECK(msg.valid);
+
+    const Mt43Data* mt43 = msg.getMt43();
+    REQUIRE(mt43 != nullptr);
+    CHECK(mt43->disaster_category == 1);
+
+    bool output2 = false;
+    for (size_t i = 0; i < nmea.length(); i++) {
+        if (parser.feed(nmea[i], msg, 0)) {
+            output2 = true;
+            break;
+        }
+    }
+    CHECK_FALSE(output2);
+}
+#endif // AZARAC_ENABLE_DEDUP
+
+TEST_CASE("Parser reset clears state") {
+    Parser parser;
+    Message msg;
+
+    uint8_t bits[32] = {};
+    setBits(bits, 0, 8, 0x53);
+    setBits(bits, 8, 6, 43);
+    setBits(bits, 14, 3, 1);
+    setBits(bits, 17, 4, 1);
+    setBits(bits, 214, 6, 1);
+    uint32_t crc = crc24qRef(bits, 226);
+    setBits(bits, 226, 24, crc);
+    std::string nmea = makeNmeaQzqsm(58, bits);
+
+    bool output1 = false;
+    for (size_t i = 0; i < nmea.length(); i++) {
+        if (parser.feed(nmea[i], msg, 0)) {
+            output1 = true;
+            break;
+        }
+    }
+    CHECK(output1);
+
+    parser.reset();
+
+    bool output2 = false;
+    for (size_t i = 0; i < nmea.length(); i++) {
+        if (parser.feed(nmea[i], msg, 0)) {
+            output2 = true;
+            break;
+        }
+    }
+    CHECK(output2);
+}
+
+// NMEA 部は EEW (dc=1)、UBX 部は DCX (MT=44) を使う。両マクロが必要。
+#if (AZARAC_ENABLE_DCX_CAMF)
+TEST_CASE("Parser handles mixed NMEA and UBX messages") {
+    Parser parser;
+    Message msg;
+
+    uint8_t bits1[32] = {};
+    setBits(bits1, 0, 8, 0x53);
+    setBits(bits1, 8, 6, 43);
+    setBits(bits1, 14, 3, 1);
+    setBits(bits1, 17, 4, 1);
+    setBits(bits1, 214, 6, 1);
+    uint32_t crc1 = crc24qRef(bits1, 226);
+    setBits(bits1, 226, 24, crc1);
+    std::string nmea1 = makeNmeaQzqsm(58, bits1);
+
+    bool output1 = false;
+    for (size_t i = 0; i < nmea1.length(); i++) {
+        if (parser.feed(nmea1[i], msg, 0)) {
+            output1 = true;
+            break;
+        }
+    }
+    CHECK(output1);
+    CHECK(msg.payload_type == MsgPayloadType::Mt43);
+
+    uint8_t nav_bits[32] = {};
+    setBits(nav_bits, 0, 8, 0x53);
+    setBits(nav_bits, 8, 6, 44);
+    setBits(nav_bits, 24, 2, 1);
+    setBits(nav_bits, 26, 9, 111);
+    setBits(nav_bits, 214, 6, 1);
+    uint32_t crc2 = crc24qRef(nav_bits, 226);
+    setBits(nav_bits, 226, 24, crc2);
+    auto ubx = makeUbxSfrbx(193, nav_bits);
+
+    bool output2 = false;
+    for (auto b : ubx) {
+        if (parser.feed(b, msg, 0)) {
+            output2 = true;
+            break;
+        }
+    }
+    CHECK(output2);
+    CHECK(msg.payload_type == MsgPayloadType::Mt44);
+}
+#endif // AZARAC_ENABLE_DCX_CAMF
+
+
+TEST_CASE("Parser: long garbage between valid frames recovers") {
+    azaraC::Parser parser;
+    azaraC::Message msg;
+
+    uint8_t bits[32] = {};
+    setBits(bits, 0, 8, 0x53);
+    setBits(bits, 8, 6, 43);
+    setBits(bits, 14, 3, 1);
+    setBits(bits, 17, 4, 1);
+    setBits(bits, 214, 6, 1);
+    uint32_t crc = crc24qRef(bits, 226);
+    setBits(bits, 226, 24, crc);
+    std::string nmea = makeNmeaQzqsm(58, bits);
+
+    std::string garbage;
+    for (int i = 0; i < 1000; ++i) {
+        garbage += static_cast<char>(0x41 + (i % 26));
+    }
+    std::string stream = garbage + nmea;
+
+    bool output = false;
+    for (size_t i = 0; i < stream.length(); ++i) {
+        if (parser.feed(stream[i], msg, 0)) {
+            output = true;
+            break;
+        }
+    }
+    CHECK(output);
+    CHECK(msg.valid);
+    CHECK(msg.payload_type == azaraC::MsgPayloadType::Mt43);
+}
+
+TEST_CASE("Parser: rapid consecutive resets still decode") {
+    azaraC::Parser parser;
+    azaraC::Message msg;
+
+    const std::string partial = "$QZQSM,58,9AAF";
+    for (int r = 0; r < 10; ++r) {
+        for (char c : partial) {
+            parser.feed(static_cast<uint8_t>(c), msg, 0);
+        }
+        parser.reset();
+    }
+
+    uint8_t bits[32] = {};
+    setBits(bits, 0, 8, 0x53);
+    setBits(bits, 8, 6, 43);
+    setBits(bits, 14, 3, 1);
+    setBits(bits, 17, 4, 1);
+    setBits(bits, 214, 6, 1);
+    uint32_t crc = crc24qRef(bits, 226);
+    setBits(bits, 226, 24, crc);
+    std::string nmea = makeNmeaQzqsm(58, bits);
+
+    bool output = false;
+    for (size_t i = 0; i < nmea.length(); ++i) {
+        if (parser.feed(nmea[i], msg, 0)) {
+            output = true;
+            break;
+        }
+    }
+    CHECK(output);
+    CHECK(msg.valid);
+}
+
+TEST_CASE("Parser: reset clears NMEA framer state") {
+    const std::string nmea = makeEewNmea58();
+    const size_t cut = nmea.size() * 2 / 3;   // '$' と prefix、payload の途中まで
+
+    azaraC::Parser parser;
+    azaraC::Message msg;
+    for (size_t i = 0; i < cut; ++i) {
+        parser.feed(static_cast<uint8_t>(nmea[i]), msg, 0);
+    }
+    parser.reset();
+
+    // '$' を除いた残りを流す。framer が reset されていれば WAIT のままで出力しない。
+    bool output = false;
+    for (size_t i = cut; i < nmea.size(); ++i) {
+        if (parser.feed(static_cast<uint8_t>(nmea[i]), msg, 0)) {
+            output = true;
+            break;
+        }
+    }
+    CHECK_FALSE(output);
+
+    // 陽性対照: 完全な文は 1 回で復号できる。
+    azaraC::Parser fresh;
+    azaraC::Message fresh_msg;
+    bool decoded = false;
+    for (char c : nmea) {
+        if (fresh.feed(static_cast<uint8_t>(c), fresh_msg, 0)) {
+            decoded = true;
+            break;
+        }
+    }
+    CHECK(decoded);
+    CHECK(fresh_msg.valid);
+}
+
+TEST_CASE("Parser: reset clears UBX framer state") {
+    const std::vector<uint8_t> pkt = makeEewUbx193();
+    const size_t cut = 12;   // sync + header + payload の途中まで
+
+    azaraC::Parser parser;
+    azaraC::Message msg;
+    for (size_t i = 0; i < cut; ++i) {
+        parser.feed(pkt[i], msg, 0);
+    }
+    parser.reset();
+
+    bool output = false;
+    for (size_t i = cut; i < pkt.size(); ++i) {
+        if (parser.feed(pkt[i], msg, 0)) {
+            output = true;
+            break;
+        }
+    }
+    CHECK_FALSE(output);
+
+    // 陽性対照: 完全な packet は 1 回で復号できる。
+    azaraC::Parser fresh;
+    azaraC::Message fresh_msg;
+    bool decoded = false;
+    for (uint8_t b : pkt) {
+        if (fresh.feed(b, fresh_msg, 0)) {
+            decoded = true;
+            break;
+        }
+    }
+    CHECK(decoded);
+    CHECK(fresh_msg.valid);
+}
+
+TEST_CASE("Parser: mode switch NMEA to UBX after partial frame") {
+    azaraC::Parser parser;
+    azaraC::Message msg;
+
+    std::string nmea_partial = "$QZQSM,58,9AAF";
+    uint8_t nav_bits[32] = {};
+    setBits(nav_bits, 0, 8, 0x53);
+    setBits(nav_bits, 8, 6, 43);
+    setBits(nav_bits, 17, 4, 1);
+    setBits(nav_bits, 214, 6, 1);
+    uint32_t crc = crc24qRef(nav_bits, 226);
+    setBits(nav_bits, 226, 24, crc);
+    auto ubx = makeUbxSfrbx(193, nav_bits);
+
+    for (char c : nmea_partial) {
+        parser.feed((uint8_t)c, msg, 0);
+    }
+
+    bool ubx_found = false;
+    for (auto b : ubx) {
+        if (parser.feed(b, msg, 0)) {
+            ubx_found = true;
+            break;
+        }
+    }
+    CHECK(ubx_found);
+    CHECK(msg.valid);
+    CHECK(msg.payload_type == azaraC::MsgPayloadType::Mt43);
+}
+
+TEST_CASE("Parser: stale NMEA partial data doesn't leak") {
+    azaraC::Parser parser;
+    azaraC::Message msg;
+
+    std::string stale_prefix = "$GPGGA,1234";
+    for (char c : stale_prefix) {
+        parser.feed((uint8_t)c, msg, 0);
+    }
+
+    uint8_t bits[32] = {};
+    setBits(bits, 0, 8, 0x53);
+    setBits(bits, 8, 6, 43);
+    setBits(bits, 14, 3, 1);
+    setBits(bits, 17, 4, 1);
+    setBits(bits, 214, 6, 1);
+    uint32_t crc = crc24qRef(bits, 226);
+    setBits(bits, 226, 24, crc);
+    std::string nmea = makeNmeaQzqsm(58, bits);
+
+    bool output = false;
+    for (size_t i = 0; i < nmea.length(); ++i) {
+        if (parser.feed(nmea[i], msg, 0)) {
+            output = true;
+            break;
+        }
+    }
+    CHECK(output);
+    CHECK(msg.valid);
+    const azaraC::Mt43Data* mt43 = msg.getMt43();
+    REQUIRE(mt43 != nullptr);
+    CHECK(mt43->disaster_category == 1);
+}
+
+// 手順③ の照合対象は MT～VN（bit 8..219 = 212 bit。
+// 付属フローチャートも「MT～Vnの212bit」と明記）。
+// プリアンブル（bit 0..7）は A(0x53)→B(0x9A)→C(0xC6)、Reserved（bit 220..225）は 16 値で巡回するため、どちらも含めず 1 情報 1 通知に固定する。
+#if AZARAC_ENABLE_DEDUP
+TEST_CASE("Parser: プリアンブル/Reserved が違っても同一 MT～VN は 1 回だけ通知される") {
+    Parser parser;
+    Message msg;
+
+    // minute: MT～VN 内の唯一の内容マーカー（bit 35..40）。preamble/reserved は MT～VN 外で identity を変えない。
+    auto feedFrame = [&](uint8_t preamble, uint8_t minute, uint8_t reserved) -> int {
+        uint8_t bits[32] = {};
+        setBits(bits, 0, 8, preamble);
+        setBits(bits, 8, 6, 43);
+        setBits(bits, 14, 3, 1);      // report_classification
+        setBits(bits, 17, 4, 1);      // disaster_category = 1 (EEW)
+        setBits(bits, 35, 6, minute); // report_time minute
+        setBits(bits, 214, 6, 1);     // version (Vn = bit 214..219)
+        setBits(bits, 220, 6, reserved);
+        setBits(bits, 226, 24, crc24qRef(bits, 226));
+        const std::string nmea = makeNmeaQzqsm(58, bits);
+        int emitted = 0;
+        for (size_t i = 0; i < nmea.size(); ++i) {
+            if (parser.feed(static_cast<uint8_t>(nmea[i]), msg, 0)) ++emitted;
+        }
+        return emitted;
+    };
+
+    CHECK(feedFrame(0x53, 0, 0) == 1);   // 新規情報
+    CHECK(feedFrame(0x9A, 0, 0) == 0);   // プリアンブルだけ違う → 重複
+    CHECK(feedFrame(0xC6, 0, 0) == 0);   // 同様
+    CHECK(feedFrame(0x53, 0, 5) == 0);   // Reserved(220..225) だけ違う → 重複
+    CHECK(feedFrame(0x53, 0, 15) == 0);  // 同様（218 bit 鍵なら別情報になる）
+    CHECK(feedFrame(0x53, 1, 0) == 1);   // MT～VN が変われば別情報
+}
+#endif // AZARAC_ENABLE_DEDUP
 #endif // AZARAC_ENABLE_EEW
 
 #if (AZARAC_ENABLE_DCX_CAMF)
-// DCX (MT=44) デコードテスト
+// QZS 事務局回答: 照合範囲「MT および CAMF〜EM」に SDMT（bit 14）・SDM（bit 15..23）を含めず、SD だけが違う同一内容は 1 回だけ通知する。
+#if AZARAC_ENABLE_DEDUP
+TEST_CASE("Parser: MT44 は SDMT/SDM が違っても同一内容を 1 回だけ通知する") {
+    Parser parser;
+    Message msg;
 
-static Message decodeDcxHelper(uint8_t* bits, uint32_t now_unix = 1704067200u) {
-    uint32_t crc = crc24qRef(bits, 226);
-    setBits(bits, 226, 24, crc);
+    // MT=44 の L-Alert（A2=Japan, A3=FMMC）。SDMT/SDM と A8 以外は固定。
+    auto feed = [&](uint8_t sdmt, uint16_t sdm, uint8_t a8) -> int {
+        uint8_t bits[32] = {};
+        setBits(bits, 0, 8, 0x53);
+        setBits(bits, 8, 6, 44);
+        setBits(bits, 14, 1, sdmt);
+        setBits(bits, 15, 9, sdm);
+        setBits(bits, 24, 2, 1);       // A1=Alert
+        setBits(bits, 26, 9, 111);     // A2=Japan
+        setBits(bits, 35, 5, 1);       // A3=FMMC (L-Alert)
+        setBits(bits, 40, 7, 1);       // A4=Rainfall（NullMessage 判定を避ける）
+        setBits(bits, 64, 2, a8);      // A8=Hazard Duration
+        setBits(bits, 226, 24, crc24qRef(bits, 226));
+        const std::string nmea = makeNmeaQzqsm(58, bits);
+        int emitted = 0;
+        for (size_t i = 0; i < nmea.size(); ++i) {
+            if (parser.feed(static_cast<uint8_t>(nmea[i]), msg, 0)) ++emitted;
+        }
+        return emitted;
+    };
 
-    TestDecoder decoder;
-    Message msg{};
-    Frame frame{};
-    memcpy(frame.bits, bits, 32);
-    frame.svid = 193;
-    decoder.decode(frame, msg, now_unix);
-    return msg;
+    CHECK(feed(0, 0x000, 1) == 1);   // 新規情報
+    CHECK(feed(1, 0x1FF, 1) == 0);   // SD だけ違う → 重複（Step 1 前は 1 になる）
+    CHECK(feed(0, 0x1FF, 2) == 1);   // A8 が違う → 別情報
 }
-
-TEST_CASE("decodeDcx: L-Alert メッセージのデコード") {
-    uint8_t bits[32] = {};
-
-    setBits(bits, 0, 8, 0x53);
-    setBits(bits, 8, 6, 44);
-    setBits(bits, 14, 1, 0);
-    setBits(bits, 15, 9, 0x1FF);
-
-    setBits(bits, 24, 2, 1);
-    setBits(bits, 26, 9, 111);
-    setBits(bits, 35, 5, 1);
-    setBits(bits, 40, 7, 10);
-    setBits(bits, 47, 2, 3);
-    setBits(bits, 49, 1, 0);
-    setBits(bits, 50, 14, 7200);
-    setBits(bits, 64, 2, 2);
-    setBits(bits, 66, 1, 0);
-    setBits(bits, 67, 3, 1);
-    setBits(bits, 70, 10, 1);
-    setBits(bits, 80, 16, 45761);
-    setBits(bits, 96, 17, 116395);
-    setBits(bits, 113, 5, 13);
-    setBits(bits, 118, 5, 11);
-    setBits(bits, 123, 6, 48);
-    setBits(bits, 129, 2, 0);
-    setBits(bits, 131, 15, 0);
-
-    setBits(bits, 146, 16, 1100);
-    setBits(bits, 214, 6, 1);
-
-    Message msg = decodeDcxHelper(bits);
-
-    CHECK(msg.valid == true);
-    CHECK(msg.payload_type == MsgPayloadType::Mt44);
-    
-    const Mt44Data* mt44 = msg.getMt44();
-    REQUIRE(mt44 != nullptr);
-    CHECK(mt44->service_kind == Mt44ServiceKind::LAlert);
-    CHECK(mt44->sd.sdmt == 0);
-    CHECK(mt44->sd.sdm == 0x1FF);
-    CHECK(mt44->camf.a1 == 1);
-    CHECK(mt44->camf.a2 == 111);
-    CHECK(mt44->camf.a3 == 1);
-    CHECK(mt44->ex.ex_lalert_local.ex1 == 1100);
-    CHECK(mt44->ex.ex_lalert_local.vn == 1);
-
-    // 主楕円（A12-A16）が DcxHelper 経由で復号されるか（結線の確認）
-    const Mt44Decoded& dec = mt44->mt44_decoded;
-    CHECK(dec.main_ellipse_present);
-    CHECK(dec.main_ellipse.lat_microdeg == 35688258);   // decodeLatitude16(45761)
-    CHECK(dec.main_ellipse.lon_microdeg == 139690855);  // decodeLongitude17(116395)
-    CHECK(dec.main_ellipse.semi_major_m == 10933);      // radius code 13
-    CHECK(dec.main_ellipse.semi_minor_m == 5979);       // radius code 11
-    CHECK(dec.main_ellipse.azimuth_decideg == 4500000); // decodeAzimuth6(48)
-}
-
-TEST_CASE("decodeDcx: J-Alert メッセージのデコード") {
-    uint8_t bits[32] = {};
-
-    setBits(bits, 0, 8, 0x53);
-    setBits(bits, 8, 6, 44);
-    setBits(bits, 14, 1, 0);
-    setBits(bits, 15, 9, 0x1FF);
-
-    setBits(bits, 24, 2, 1);
-    setBits(bits, 26, 9, 111);
-    setBits(bits, 35, 5, 2);
-    setBits(bits, 40, 7, 5);
-    setBits(bits, 47, 2, 3);
-    setBits(bits, 49, 1, 0);
-    setBits(bits, 50, 14, 0);
-    setBits(bits, 64, 2, 0);
-    setBits(bits, 66, 1, 0);
-    setBits(bits, 67, 3, 0);
-    setBits(bits, 70, 10, 0);
-    setBits(bits, 80, 16, 0);
-    setBits(bits, 96, 17, 0);
-    setBits(bits, 113, 5, 0);
-    setBits(bits, 118, 5, 0);
-    setBits(bits, 123, 6, 0);
-    setBits(bits, 129, 2, 0);
-    setBits(bits, 131, 15, 0);
-
-    setBits(bits, 146, 1, 0);
-    setBits(bits, 147, 32, 0);
-    setBits(bits, 179, 32, 3);
-    setBits(bits, 211, 3, 0);
-    setBits(bits, 214, 6, 1);
-
-    Message msg = decodeDcxHelper(bits);
-
-    CHECK(msg.valid == true);
-    CHECK(msg.payload_type == MsgPayloadType::Mt44);
-    
-    const Mt44Data* mt44 = msg.getMt44();
-    REQUIRE(mt44 != nullptr);
-    CHECK(mt44->service_kind == Mt44ServiceKind::JAlert);
-    CHECK(mt44->camf.a2 == 111);
-    CHECK(mt44->camf.a3 == 2);
-    CHECK(mt44->ex.ex_jalert.ex8 == 0);
-    CHECK(mt44->ex.ex_jalert.ex9 == 3);
-    CHECK(mt44->ex.ex_jalert.vn == 1);
-}
-
-TEST_CASE("decodeDcx: Local Government メッセージのデコード") {
-    uint8_t bits[32] = {};
-
-    setBits(bits, 0, 8, 0x53);
-    setBits(bits, 8, 6, 44);
-    setBits(bits, 14, 1, 0);
-    setBits(bits, 15, 9, 0x1FF);
-
-    setBits(bits, 24, 2, 1);
-    setBits(bits, 26, 9, 111);
-    setBits(bits, 35, 5, 4);
-    setBits(bits, 40, 7, 10);
-    setBits(bits, 47, 2, 3);
-    setBits(bits, 49, 1, 0);
-    setBits(bits, 50, 14, 7200);
-    setBits(bits, 64, 2, 2);
-    setBits(bits, 66, 1, 0);
-    setBits(bits, 67, 3, 1);
-    setBits(bits, 70, 10, 1);
-    setBits(bits, 80, 16, 45761);
-    setBits(bits, 96, 17, 116395);
-    setBits(bits, 113, 5, 13);
-    setBits(bits, 118, 5, 11);
-    setBits(bits, 123, 6, 48);
-    setBits(bits, 129, 2, 0);
-    setBits(bits, 131, 15, 0);
-
-    setBits(bits, 146, 16, 1100);
-    setBits(bits, 162, 1, 1);
-    setBits(bits, 163, 17, 91522);
-    setBits(bits, 180, 17, 68950);
-    setBits(bits, 197, 5, 13);
-    setBits(bits, 202, 5, 11);
-    setBits(bits, 207, 7, 96);
-    setBits(bits, 214, 6, 1);
-
-    Message msg = decodeDcxHelper(bits);
-
-    CHECK(msg.valid == true);
-    CHECK(msg.payload_type == MsgPayloadType::Mt44);
-    
-    const Mt44Data* mt44 = msg.getMt44();
-    REQUIRE(mt44 != nullptr);
-    CHECK(mt44->service_kind == Mt44ServiceKind::LocalGovernment);
-    CHECK(mt44->camf.a3 == 4);
-    CHECK(mt44->ex.ex_lalert_local.ex1 == 1100);
-    CHECK(mt44->ex.ex_lalert_local.ex2 == 1);
-    CHECK(mt44->ex.ex_lalert_local.ex3 == 91522);
-    CHECK(mt44->ex.ex_lalert_local.ex4 == 68950);
-    CHECK(mt44->ex.ex_lalert_local.ex5 == 13);
-    CHECK(mt44->ex.ex_lalert_local.ex6 == 11);
-    CHECK(mt44->ex.ex_lalert_local.ex7 == 96);
-    CHECK(mt44->ex.ex_lalert_local.vn == 1);
-
-    // 追加地域（EX2-EX7）が DcxHelper 経由で復号されるか（結線の確認）
-    const Mt44Decoded& dec = mt44->mt44_decoded;
-    CHECK(dec.additional_area.present);
-    CHECK(dec.additional_area.head_to_area);
-    CHECK(dec.additional_area.ellipse.lat_microdeg == 35687299);   // decodeLatitude17(91522)
-    CHECK(dec.additional_area.ellipse.lon_microdeg == 139689138);  // decodeLongitude17_45_225(68950)
-    CHECK(dec.additional_area.ellipse.semi_major_m == 10933);      // radius code 13
-    CHECK(dec.additional_area.ellipse.semi_minor_m == 5979);       // radius code 11
-    CHECK(dec.additional_area.ellipse.azimuth_decideg == 4500000); // decodeAzimuth7(96)
-}
-
-TEST_CASE("decodeDcx: Outside Japan メッセージのデコード") {
-    uint8_t bits[32] = {};
-
-    setBits(bits, 0, 8, 0x53);
-    setBits(bits, 8, 6, 44);
-    setBits(bits, 14, 1, 0);
-    setBits(bits, 15, 9, 0x1FF);
-
-    setBits(bits, 24, 2, 1);
-    setBits(bits, 26, 9, 32);
-    setBits(bits, 35, 5, 1);
-    setBits(bits, 40, 7, 10);
-    setBits(bits, 47, 2, 3);
-    setBits(bits, 49, 1, 0);
-    setBits(bits, 50, 14, 0);
-    setBits(bits, 64, 2, 0);
-    setBits(bits, 66, 1, 0);
-    setBits(bits, 67, 3, 0);
-    setBits(bits, 70, 10, 0);
-    setBits(bits, 80, 16, 0);
-    setBits(bits, 96, 17, 0);
-    setBits(bits, 113, 5, 0);
-    setBits(bits, 118, 5, 0);
-    setBits(bits, 123, 6, 0);
-    setBits(bits, 129, 2, 0);
-    setBits(bits, 131, 15, 0);
-
-    for (int i = 0; i < 8; ++i) {
-        setBits(bits, 146 + i * 8, 8, 0xAB);
-    }
-    setBits(bits, 210, 4, 0xF);
-    setBits(bits, 214, 6, 5);
-
-    Message msg = decodeDcxHelper(bits);
-
-    CHECK(msg.valid == true);
-    CHECK(msg.payload_type == MsgPayloadType::Mt44);
-    
-    const Mt44Data* mt44 = msg.getMt44();
-    REQUIRE(mt44 != nullptr);
-    CHECK(mt44->service_kind == Mt44ServiceKind::OutsideJapan);
-    CHECK(mt44->camf.a2 == 32);
-    CHECK(mt44->ex.ex_outside.vn == 5);
-}
-
-TEST_CASE("decodeDcx: NULL Message のデコード") {
-    uint8_t bits[32] = {};
-
-    setBits(bits, 0, 8, 0x53);
-    setBits(bits, 8, 6, 44);
-    setBits(bits, 14, 1, 0);
-    setBits(bits, 15, 9, 0);
-
-    setBits(bits, 26, 9, 111);
-
-    Message msg = decodeDcxHelper(bits);
-
-    CHECK(msg.valid == true);
-    CHECK(msg.payload_type == MsgPayloadType::Mt44);
-    
-    const Mt44Data* mt44 = msg.getMt44();
-    REQUIRE(mt44 != nullptr);
-    CHECK(mt44->service_kind == Mt44ServiceKind::NullMessage);
-    CHECK(mt44->is_null_message == true);
-}
-#endif
-
-// decodePrefectureBitmask 単体テスト
-
-TEST_CASE("decodePrefectureBitmask: 仕様書例（北海道・青森・岩手）") {
-    uint64_t ex9 = (uint64_t)7 << 17;
-    uint8_t positions[47] = {};
-    uint8_t count = azaraC::internal::decodePrefectureBitmask(ex9, positions);
-
-    CHECK(count == 3);
-    CHECK(positions[0] == 1);
-    CHECK(positions[1] == 2);
-    CHECK(positions[2] == 3);
-}
-
-TEST_CASE("decodePrefectureBitmask: 沖縄のみ（MSB）") {
-    uint64_t ex9 = (uint64_t)1 << 63;
-    uint8_t positions[47] = {};
-    uint8_t count = azaraC::internal::decodePrefectureBitmask(ex9, positions);
-
-    CHECK(count == 1);
-    CHECK(positions[0] == 47);
-}
-
-TEST_CASE("decodePrefectureBitmask: 全都道府県（全ビット=1）") {
-    uint64_t ex9 = ((1ULL << 47) - 1) << 17;
-    uint8_t positions[47] = {};
-    uint8_t count = azaraC::internal::decodePrefectureBitmask(ex9, positions);
-
-    CHECK(count == 47);
-    CHECK(positions[0] == 1);
-    CHECK(positions[46] == 47);
-}
-
-TEST_CASE("decodePrefectureBitmask: 空（ゼロ）") {
-    uint64_t ex9 = 0;
-    uint8_t positions[47] = {};
-    uint8_t count = azaraC::internal::decodePrefectureBitmask(ex9, positions);
-
-    CHECK(count == 0);
-}
-
-// B1 (A17=00) Improved Resolution of Main Ellipse のテスト
-
-TEST_CASE("decodeB1Refinement: 基本的な分割") {
-    uint16_t a18 = (5 << 12) | (3 << 9) | (2 << 6) | (1 << 3);
-    B1Refinement b1 = azaraC::internal::decodeB1Refinement(a18);
-
-    CHECK(b1.c1 == 5);
-    CHECK(b1.c2 == 3);
-    CHECK(b1.c3 == 2);
-    CHECK(b1.c4 == 1);
-}
-
-TEST_CASE("decodeB1Refinement: 全ゼロ") {
-    B1Refinement b1 = azaraC::internal::decodeB1Refinement(0);
-
-    CHECK(b1.c1 == 0);
-    CHECK(b1.c2 == 0);
-    CHECK(b1.c3 == 0);
-    CHECK(b1.c4 == 0);
-}
-
-TEST_CASE("decodeB1Refinement: 最大値（全7）") {
-    uint16_t a18 = (7 << 12) | (7 << 9) | (7 << 6) | (7 << 3);
-    B1Refinement b1 = azaraC::internal::decodeB1Refinement(a18);
-
-    CHECK(b1.c1 == 7);
-    CHECK(b1.c2 == 7);
-    CHECK(b1.c3 == 7);
-    CHECK(b1.c4 == 7);
-}
-
-TEST_CASE("b1RefinedLatitudeOffset: 計算値検証") {
-    // 単位はマイクロ度（×1,000,000）
-    CHECK(azaraC::internal::b1RefinedLatitudeOffset(0) == 0);
-    CHECK(azaraC::internal::b1RefinedLatitudeOffset(1) == 343);
-    CHECK(azaraC::internal::b1RefinedLatitudeOffset(7) == 2403);
-}
-
-TEST_CASE("b1RefinedLongitudeOffset: 計算値検証") {
-    CHECK(azaraC::internal::b1RefinedLongitudeOffset(0) == 0);
-    CHECK(azaraC::internal::b1RefinedLongitudeOffset(1) == 343);
-    CHECK(azaraC::internal::b1RefinedLongitudeOffset(7) == 2403);
-}
-
-TEST_CASE("b1RefinedRadiusM: 計算値検証 (EWSS CAMF v1.2 §3.7.1.3/4)") {
-    // Returns meters. 実装は四捨五入: base - (delta*code + 4) / 8 delta: a14_code=0 → decodeRadiusCode(0) = 216、a14_code=1 → 292 - 216 = 76、a14_code=3 → 535 - 395 = 140
-    CHECK(azaraC::internal::b1RefinedRadiusM(0, 216, 0) == 216);
-    CHECK(azaraC::internal::b1RefinedRadiusM(4, 216, 0) == 108);
-    CHECK(azaraC::internal::b1RefinedRadiusM(7, 216, 0) == 27);
-
-    CHECK(azaraC::internal::b1RefinedRadiusM(0, 292, 1) == 292);
-    CHECK(azaraC::internal::b1RefinedRadiusM(4, 292, 1) == 254);
-    CHECK(azaraC::internal::b1RefinedRadiusM(7, 292, 1) == 225);
-
-    CHECK(azaraC::internal::b1RefinedRadiusM(4, 535, 3) == 465);
-}
-
-#if (AZARAC_ENABLE_DCX_CAMF)
-TEST_CASE("DCX B1: L-AlertメッセージでのB1解析") {
-    uint8_t bits[32] = {};
-    Message msg{};
-
-    setBits(bits, 0, 8, 0x53);
-    setBits(bits, 8, 6, 44);
-    setBits(bits, 14, 1, 0);
-    setBits(bits, 15, 9, 0);
-    setBits(bits, 24, 2, 1);
-    setBits(bits, 26, 9, 111);
-    setBits(bits, 35, 5, 1);
-    setBits(bits, 40, 7, 74);
-    setBits(bits, 47, 2, 2);
-    setBits(bits, 49, 1, 0);
-    setBits(bits, 50, 14, 100);
-    setBits(bits, 64, 2, 1);
-    setBits(bits, 66, 1, 1);
-    setBits(bits, 67, 3, 0);
-    setBits(bits, 70, 10, 0);
-
-    setBits(bits, 80, 16, 32768);
-    setBits(bits, 96, 17, 65536);
-    setBits(bits, 113, 5, 10);
-    setBits(bits, 118, 5, 8);
-    setBits(bits, 123, 6, 32);
-
-    setBits(bits, 129, 2, 0);
-    setBits(bits, 131, 15, (5 << 12) | (3 << 9) | (2 << 6) | (1 << 3));
-
-    setBits(bits, 146, 16, 1100);
-    setBits(bits, 214, 6, 1);
-
-    uint32_t crc = crc24qRef(bits, 226);
-    setBits(bits, 226, 24, crc);
-
-    Decoder decoder;
-    Frame frame;
-    frame.svid = 56;
-    memcpy(frame.bits, bits, 32);
-
-    uint32_t report_unix = 1704067200u;
-    bool result = decoder.decode(frame, msg, report_unix);
-
-    CHECK(result == true);
-    CHECK(msg.valid == true);
-    
-    const Mt44Data* mt44 = msg.getMt44();
-    REQUIRE(mt44 != nullptr);
-    CHECK(mt44->service_kind == Mt44ServiceKind::LAlert);
-    CHECK(mt44->camf.b1_present == true);
-    // C1=5, C2=3, C3=2, C4=1 → 復号済みの精細化値
-    CHECK(mt44->mt44_decoded.main_ellipse.b1_lat_offset_microdeg == 1717);
-    CHECK(mt44->mt44_decoded.main_ellipse.b1_lon_offset_microdeg == 1030);
-    CHECK(mt44->mt44_decoded.main_ellipse.b1_refined_semi_major_m == 4133);
-    CHECK(mt44->mt44_decoded.main_ellipse.b1_refined_semi_minor_m == 2339);
-}
-
-// B2 (A17=01) - Position of the Centre of the Hazard 統合テスト
-
-TEST_CASE("DCX B2: ハザード中心オフセットが主楕円座標に反映される") {
-    uint8_t bits[32] = {};
-    Message msg{};
-
-    setBits(bits, 0, 8, 0x53);
-    setBits(bits, 8, 6, 44);
-    setBits(bits, 14, 1, 0);
-    setBits(bits, 15, 9, 0);
-    setBits(bits, 24, 2, 1);
-    setBits(bits, 26, 9, 111);
-    setBits(bits, 35, 5, 1);
-    setBits(bits, 40, 7, 74);
-    setBits(bits, 47, 2, 2);
-    setBits(bits, 49, 1, 0);
-    setBits(bits, 50, 14, 100);
-    setBits(bits, 64, 2, 1);
-    setBits(bits, 66, 1, 1);
-    setBits(bits, 67, 3, 0);
-    setBits(bits, 70, 10, 0);
-
-    setBits(bits, 80, 16, 32768);
-    setBits(bits, 96, 17, 65536);
-    setBits(bits, 113, 5, 10);
-    setBits(bits, 118, 5, 8);
-    setBits(bits, 123, 6, 32);
-
-    setBits(bits, 129, 2, 1);
-    // MSB ファースト: C5=a18[14:8]、C6=a18[7:1]
-    uint16_t a18_b2 = ((63u & 0x7Fu) << 8) | ((63u & 0x7Fu) << 1);
-    setBits(bits, 131, 15, a18_b2);
-
-    setBits(bits, 146, 16, 1100);
-    setBits(bits, 214, 6, 1);
-
-    uint32_t crc = crc24qRef(bits, 226);
-    setBits(bits, 226, 24, crc);
-
-    Decoder decoder;
-    Frame frame;
-    frame.svid = 56;
-    memcpy(frame.bits, bits, 32);
-
-    bool result = decoder.decode(frame, msg, 1704067200u);
-
-    REQUIRE(result == true);
-    CHECK(msg.valid == true);
-    
-    const Mt44Data* mt44 = msg.getMt44();
-    REQUIRE(mt44 != nullptr);
-    CHECK(mt44->service_kind == Mt44ServiceKind::LAlert);
-    CHECK(mt44->camf.b2_present == true);
-    CHECK(mt44->camf.b2_c5 == 63);
-    CHECK(mt44->camf.b2_c6 == 63);
-    // c5/c6=63 は delta = -10,000,000 + 20,000,000*63/128 = -156,250 µdeg。
-    // 主楕円は lat/lon とも 1,373 µdeg なので、危険中心は -154,877 µdeg。
-    CHECK(mt44->mt44_decoded.main_ellipse.lat_microdeg == 1373);
-    CHECK(mt44->mt44_decoded.main_ellipse.lon_microdeg == 1373);
-    CHECK(mt44->mt44_decoded.b2_hazard_lat_microdeg == -154877);
-    CHECK(mt44->mt44_decoded.b2_hazard_lon_microdeg == -154877);
-    CHECK(mt44->mt44_decoded.b2_hazard_lat_microdeg -
-          mt44->mt44_decoded.main_ellipse.lat_microdeg == -156250);
-    CHECK(mt44->mt44_decoded.b2_hazard_lon_microdeg -
-          mt44->mt44_decoded.main_ellipse.lon_microdeg == -156250);
-}
-
-// B3 (A17=10) - Secondary Ellipse Definition 統合テスト
-
-TEST_CASE("DCX B3: 副楕円パラメータが camf に反映される") {
-    uint8_t bits[32] = {};
-    Message msg{};
-
-    setBits(bits, 0, 8, 0x53);
-    setBits(bits, 8, 6, 44);
-    setBits(bits, 14, 1, 0);
-    setBits(bits, 15, 9, 0);
-    setBits(bits, 24, 2, 1);
-    setBits(bits, 26, 9, 111);
-    setBits(bits, 35, 5, 1);
-    setBits(bits, 40, 7, 74);
-    setBits(bits, 47, 2, 2);
-    setBits(bits, 49, 1, 0);
-    setBits(bits, 50, 14, 100);
-    setBits(bits, 64, 2, 1);
-    setBits(bits, 66, 1, 1);
-    setBits(bits, 67, 3, 0);
-    setBits(bits, 70, 10, 0);
-
-    setBits(bits, 80, 16, 45761);
-    setBits(bits, 96, 17, 116395);
-    setBits(bits, 113, 5, 13);
-    setBits(bits, 118, 5, 8);
-    setBits(bits, 123, 6, 32);
-
-    // MSB ファースト: C7=a18[14:13]、C8=a18[12:10]、C9=a18[9:5]、C10=a18[4:0]
-    uint16_t a18_b3 = ((3u & 0x03u) << 13) | ((7u & 0x07u) << 10) | ((31u & 0x1Fu) << 5) | (0u & 0x1Fu);
-    setBits(bits, 129, 2, 2);
-    setBits(bits, 131, 15, a18_b3);
-
-    setBits(bits, 146, 16, 1100);
-    setBits(bits, 214, 6, 1);
-
-    uint32_t crc = crc24qRef(bits, 226);
-    setBits(bits, 226, 24, crc);
-
-    Decoder decoder;
-    Frame frame;
-    frame.svid = 56;
-    memcpy(frame.bits, bits, 32);
-
-    bool result = decoder.decode(frame, msg, 1704067200u);
-
-    REQUIRE(result == true);
-    CHECK(msg.valid == true);
-    
-    const Mt44Data* mt44 = msg.getMt44();
-    REQUIRE(mt44 != nullptr);
-    CHECK(mt44->service_kind == Mt44ServiceKind::LAlert);
-    CHECK(mt44->camf.b3_present == true);
-    CHECK(mt44->camf.b3_c7  == 3);
-    CHECK(mt44->camf.b3_c8  == 7);
-    CHECK(mt44->camf.b3_c9  == 31);
-    CHECK(mt44->camf.b3_c10 == 0);
-}
-#endif
+#endif // AZARAC_ENABLE_DEDUP
+#endif // AZARAC_ENABLE_DCX_CAMF

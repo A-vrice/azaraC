@@ -41,11 +41,24 @@ bool Parser::handleFrame(internal::Frame& frame, Message& out, uint32_t report_u
 }
 
 bool Parser::postDecode(const Message& decoded, Message& out, uint32_t identity) {
+    return postDecodeAt(decoded, out, identity, internal::getMillis());
+}
+
+bool Parser::postDecodeAt(const Message& decoded, Message& out, uint32_t identity, uint64_t now_ms64) {
     // dedup 有効期間の受信時刻（手順④'）。
     // 下の Nankai 集約も同じ時計を使うので、両段階で「現在」が一致する。
-    // 64 bit を丸ごと保持する: NankaiPageBuffer のタイムアウトは uint64、32 bit の dedup 窓は約 49.7 日で巻き戻る。
-    // ここで切り詰めると符号なしの経過時間比較がアンダーフローする。
-    const uint64_t now_ms64 = internal::getMillis();
+    // 通常の 32 bit 折り返しは DedupFilter/NankaiPageBuffer の符号なし差分で扱えるが、
+    // 2^32 ms 以上の空白や時計後退では 32 bit の last_seen が「最近」に見えてしまう。
+    // その場合だけ履歴を捨てる（再通知は許容し、生きた警報の抑止は避ける）。
+#if AZARAC_ENABLE_DEDUP || AZARAC_ENABLE_NANKAI
+    if (now_ms64 < _last_now_ms || (now_ms64 - _last_now_ms) >= (1ULL << 32)) {
+        _dedup.reset();
+#if AZARAC_ENABLE_NANKAI
+        _nankaiBuffers.clearAll();
+#endif
+    }
+    _last_now_ms = now_ms64;
+#endif
     const uint32_t now_ms = static_cast<uint32_t>(now_ms64);
     const uint32_t window_ms = internal::dedupWindowMs(decoded);
 
@@ -57,18 +70,34 @@ bool Parser::postDecode(const Message& decoded, Message& out, uint32_t identity)
         if (mt43 && mt43->disaster_category == 4) {
             // getNankai() が無いのは電文として成立していない場合。集約できないので出力しない。
             if (!nankai) { out.clear(); return false; }
-            // out が decoded と同一でも安全: processNankaiAggregation が上書きするのは is_aggregated / aggregated_* / truncated / page / total_page だけ。
+            // out が decoded と同一でも安全: Complete のとき processNankaiAggregation が上書きするのは
+            // is_aggregated / aggregated_* / truncated / page / total_page だけ。
             // 直後に鍵として読む info_code と report_* は不変。
-            if (!processNankaiAggregation(decoded, out, mt43, now_ms64)) {
+            internal::NankaiPageBuffer* completed = nullptr;
+            const internal::NankaiAggregateResult aggregate = processNankaiAggregation(
+                decoded, out, mt43, now_ms64, &completed);
+            if (aggregate == internal::NankaiAggregateResult::Rejected ||
+                aggregate == internal::NankaiAggregateResult::NotComplete) {
                 out.clear();
                 return false;
             }
-            // 同一性は事象そのもの（info_code + 情報種別 + 報告時刻）。
+
+            // 同一性は事象そのもの（info_code + 情報種別 + Rc + 報告時刻）。
             // ページ集合を完成させた電文は到着順で変わるため、その crc24 を鍵にすると同じ事象が再送のたびに別情報として通知される。
             // 情報種別を含めるのは同一 info_code + 同一報告時刻の発表と取消を別扱いするため（NankaiPageKey 参照）。
+            // Rc を含めるのは訓練/試験が実警報を抑止・混在させないため。
             const internal::DedupKey key = internal::dedupEventKey(internal::dedupEventToken(
                 nankai->info_code, mt43->information_type, nankai->report_month, nankai->report_day,
-                nankai->report_hour, nankai->report_minute));
+                nankai->report_hour, nankai->report_minute, mt43->report_classification));
+
+            if (aggregate == internal::NankaiAggregateResult::DuplicateComplete) {
+                // 完成済みイベントの再送。本文は再出力せず、dedup 履歴だけ更新する。
+                // 未完成ページの重複ではここへ来ない（完成通知を抑止しないため）。
+                (void)_dedup.isDuplicate(key, now_ms, window_ms);
+                out.clear();
+                return false;
+            }
+
             if (_dedup.isDuplicate(key, now_ms, window_ms)) {
                 out.clear();
                 return false;
@@ -87,12 +116,15 @@ bool Parser::postDecode(const Message& decoded, Message& out, uint32_t identity)
 }
 
 #if AZARAC_ENABLE_NANKAI
-bool Parser::processNankaiAggregation(const Message& decoded, Message& out, const Mt43Data* d, uint64_t current_ms) {
+internal::NankaiAggregateResult Parser::processNankaiAggregation(
+    const Message& decoded, Message& out, const Mt43Data* d, uint64_t current_ms,
+    internal::NankaiPageBuffer** completed) {
 
+    if (completed) *completed = nullptr;
     const NankaiData* nankai = d->getNankai();
-    if (!nankai) return false;
+    if (!nankai) return internal::NankaiAggregateResult::Rejected;
 
-    // 事象の identity = info_code + information_type + report_time（月/日/時/分）。
+    // 事象の identity = info_code + information_type + Rc + report_time（月/日/時/分）。
     // 正規化済みの Mt43Data::event_time は使わず電文の生ビット（NankaiData::report_*）から取る。
     // resolveTime() は暦外の日付を書き換え（2/30 → 3/1）月=0 に近い月を割り当てるため、放送途中で report_unix が現れると 1 つの事象が複数バッファに分裂する（NankaiPageKey 参照）。
     internal::NankaiPageKey key;
@@ -102,41 +134,49 @@ bool Parser::processNankaiAggregation(const Message& decoded, Message& out, cons
     key.report_day      = nankai->report_day;
     key.report_hour     = nankai->report_hour;
     key.report_minute   = nankai->report_minute;
+    key.report_classification = static_cast<uint8_t>(d->report_classification & 0x7u);
 
-    internal::NankaiPageBuffer* completed = _nankaiBuffers.addPage(
+    internal::NankaiPageBuffer* buffer = nullptr;
+    const internal::NankaiAggregateResult result = _nankaiBuffers.addPageEx(
         key,
         nankai->page,
         nankai->total_page,
         nankai->text,
-        current_ms
+        current_ms,
+        &buffer
     );
 
-    if (completed) {
-        out = decoded;
-        Mt43Data* outMt43 = out.getMt43();
-        if (outMt43) {
-            NankaiData* outNankai = outMt43->getNankai();
-            if (outNankai) {
-                outNankai->is_aggregated = false;
-                outNankai->aggregated_len = 0;
-                outNankai->aggregated_text_ptr = nullptr;
-                outNankai->truncated = completed->truncated;
-                outNankai->page = 1;
-                outNankai->total_page = completed->original_total_pages;
+    if (result != internal::NankaiAggregateResult::Complete) {
+        return result;
+    }
+    if (!buffer) {
+        return internal::NankaiAggregateResult::Rejected;
+    }
 
-                uint16_t textLen = completed->compactText();
-                if (textLen > 0) {
-                    // ゼロコピー: NankaiPageBuffer の内部ストレージを指す。
-                    // 次の feed() または reset() まで有効（NankaiData の説明参照）。
-                    outNankai->aggregated_text_ptr = completed->aggregated_text;
-                    outNankai->aggregated_len = textLen;
-                    outNankai->is_aggregated = true;
-                }
+    out = decoded;
+    Mt43Data* outMt43 = out.getMt43();
+    if (outMt43) {
+        NankaiData* outNankai = outMt43->getNankai();
+        if (outNankai) {
+            outNankai->is_aggregated = false;
+            outNankai->aggregated_len = 0;
+            outNankai->aggregated_text_ptr = nullptr;
+            outNankai->truncated = buffer->truncated;
+            outNankai->page = 1;
+            outNankai->total_page = buffer->original_total_pages;
+
+            uint16_t textLen = buffer->compactText();
+            if (textLen > 0) {
+                // ゼロコピー: NankaiPageBuffer の内部ストレージを指す。
+                // 次の feed() または reset() まで有効（NankaiData の説明参照）。
+                outNankai->aggregated_text_ptr = buffer->aggregated_text;
+                outNankai->aggregated_len = textLen;
+                outNankai->is_aggregated = true;
             }
         }
-        return true;
     }
-    return false;
+    if (completed) *completed = buffer;
+    return internal::NankaiAggregateResult::Complete;
 }
 #endif
 
@@ -151,6 +191,7 @@ void Parser::reset() {
     _nmea.reset();
     if (_custom) _custom->reset();
     _dedup.reset();
+    _last_now_ms = 0;
 #if AZARAC_ENABLE_NANKAI
     _nankaiBuffers.clearAll();
 #endif

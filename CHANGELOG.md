@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **南海トラフの訓練/実警報の分離と集約状態の修正**:
+  - `NankaiPageKey` と `dedupEventToken` に `report_classification`（Rc、3 bit）を追加した。訓練/試験（Rc=7）と実警報（Rc=2）が同じ事象として抑止・混在するのを防ぐ。事象トークンは 26 bit から 29 bit になり、合成鍵の payload 30 bit に収まる。`NankaiPageKey` は 7 B、AVR の `NankaiPageBuffer` は 1,158 B（4 ページ構成は 96 B）、ホストは 1,160 B のまま。
+  - `NankaiPageBufferManager` がページ範囲を割り当て・LRU 追い出しより前に検証するようにした。別事象の不正ページが進行中の正常な集約を消さない。
+  - 完成済み Nankai の再送ページは本文を再出力せず、dedup の `last_seen` だけを更新する。未完成ページの重複では dedup を呼ばない。`AZARAC_ENABLE_DEDUP=0` では Nankai のページビットマップ抑制が残ることを明記した。
+  - `Parser` に 64 bit 時刻の epoch guard を追加した。通常の 32 bit 折り返しは符号なし差分で維持し、2³² ms 以上の空白または時計後退時だけ dedup/Nankai 履歴を捨てる（再通知は許容し、生きた警報の抑止を避ける）。
+  - 回帰テストとして、Rc の分離、訓練/実警報ページの混在防止、不正ページによる既存バッファ破壊の防止、完成後再送の履歴更新、折り返し/後退を追加した。`run-dedup-off` と実 avr-g++ の `avr-layout` を追加し、fuzz に stateful Parser と警告の失敗条件を追加した。
+  - `examples/rtos_freertos` の `Message` バイトコピー（ISO C++ では未定義動作）を、静的スロット + ready/free インデックスキューへ変更した。
+  - テストの保守性を改善: `test_message_struct.cpp` の全12型 copy/move を型テーブルへ統合し、`test_parser.cpp`/`test_decoder_dcx.cpp` の名前を内容に合わせた。`test_nankai_e2e.cpp` の Nankai フレーム生成は Rc を引数化した。
+
 - **レビュー指摘の修正（API 契約・入力検証・CI ゲート）**:
   - 南海トラフの `aggregated_text_ptr` が `Parser` 内部への借用ポインタであることを `docs/api-reference.md` と README に明記し、`Message` をコピーした後に内容が別の警報文へ変わることを `test/integration/test_nankai_e2e.cpp` で回帰固定した。
   - `AZARAC_ENABLE_DEDUP=0` を追加。`DedupFilter` が状態を持たず常に「新規」を返し、`Parser` から `AZARAC_DEDUP_SLOTS × 8 B`（既定 4 KB / AVR 512 B）が消える。`test-macro-compile` に `-DAZARAC_ENABLE_DEDUP=0` を加えて常時コンパイル検証する。
