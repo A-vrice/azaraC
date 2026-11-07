@@ -49,7 +49,7 @@ TEST_CASE("decodeEEW: 基本的なEEWメッセージのデコード") {
     TestDecoder::testDecodeEEW(bits, msg, now_unix);
 
     REQUIRE(mt43 != nullptr);
-    
+
     const EewData* eew = mt43->getEew();
     REQUIRE(eew != nullptr);
     CHECK(eew->long_period_lower == 3);
@@ -122,7 +122,7 @@ TEST_CASE("decodeDcx: L-Alert メッセージのデコード") {
 
     CHECK(msg.valid == true);
     CHECK(msg.payload_type == MsgPayloadType::Mt44);
-    
+
     const Mt44Data* mt44 = msg.getMt44();
     REQUIRE(mt44 != nullptr);
     CHECK(mt44->service_kind == Mt44ServiceKind::LAlert);
@@ -181,7 +181,7 @@ TEST_CASE("decodeDcx: J-Alert メッセージのデコード") {
 
     CHECK(msg.valid == true);
     CHECK(msg.payload_type == MsgPayloadType::Mt44);
-    
+
     const Mt44Data* mt44 = msg.getMt44();
     REQUIRE(mt44 != nullptr);
     CHECK(mt44->service_kind == Mt44ServiceKind::JAlert);
@@ -232,7 +232,7 @@ TEST_CASE("decodeDcx: Local Government メッセージのデコード") {
 
     CHECK(msg.valid == true);
     CHECK(msg.payload_type == MsgPayloadType::Mt44);
-    
+
     const Mt44Data* mt44 = msg.getMt44();
     REQUIRE(mt44 != nullptr);
     CHECK(mt44->service_kind == Mt44ServiceKind::LocalGovernment);
@@ -294,7 +294,7 @@ TEST_CASE("decodeDcx: Outside Japan メッセージのデコード") {
 
     CHECK(msg.valid == true);
     CHECK(msg.payload_type == MsgPayloadType::Mt44);
-    
+
     const Mt44Data* mt44 = msg.getMt44();
     REQUIRE(mt44 != nullptr);
     CHECK(mt44->service_kind == Mt44ServiceKind::OutsideJapan);
@@ -316,7 +316,7 @@ TEST_CASE("decodeDcx: NULL Message のデコード") {
 
     CHECK(msg.valid == true);
     CHECK(msg.payload_type == MsgPayloadType::Mt44);
-    
+
     const Mt44Data* mt44 = msg.getMt44();
     REQUIRE(mt44 != nullptr);
     CHECK(mt44->service_kind == Mt44ServiceKind::NullMessage);
@@ -467,7 +467,7 @@ TEST_CASE("DCX B1: L-AlertメッセージでのB1解析") {
 
     CHECK(result == true);
     CHECK(msg.valid == true);
-    
+
     const Mt44Data* mt44 = msg.getMt44();
     REQUIRE(mt44 != nullptr);
     CHECK(mt44->service_kind == Mt44ServiceKind::LAlert);
@@ -527,7 +527,7 @@ TEST_CASE("DCX B2: ハザード中心オフセットが主楕円座標に反映�
 
     REQUIRE(result == true);
     CHECK(msg.valid == true);
-    
+
     const Mt44Data* mt44 = msg.getMt44();
     REQUIRE(mt44 != nullptr);
     CHECK(mt44->service_kind == Mt44ServiceKind::LAlert);
@@ -594,7 +594,7 @@ TEST_CASE("DCX B3: 副楕円パラメータが camf に反映される") {
 
     REQUIRE(result == true);
     CHECK(msg.valid == true);
-    
+
     const Mt44Data* mt44 = msg.getMt44();
     REQUIRE(mt44 != nullptr);
     CHECK(mt44->service_kind == Mt44ServiceKind::LAlert);
