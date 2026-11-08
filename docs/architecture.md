@@ -173,7 +173,8 @@ Satellite ID は「PRN を表す 8bit の下位 6bit」（IS-QZSS-DCR-017 §4.3.
   `report_classification`（Rc）を含めるのは、訓練/試験（7）が実警報（2）を抑止したり、両者のページ本文が同じ集約バッファで連結されたりするのを防ぐためです。
   完成済み事象の再送ページは本文を再出力せず、dedup の履歴だけを更新します。`AZARAC_ENABLE_DEDUP=0` でも Nankai のページビットマップによる重複抑制は残ります。
 - **32 bit 時刻の折り返し**: `Parser` は 64 bit の受信時刻を監視し、通常の 32 bit 折り返しは `DedupFilter`/`NankaiPageBuffer` の符号なし差分で扱います。
-  2³² ms 以上の空白または時計後退を検出したときだけ dedup/Nankai の履歴を捨てます（再通知は許容し、生きた警報の抑止を避けるため）。
+  1,000 ms（1 秒）以内の時計後退は受信順序の揺らぎとして丸め、それを超える後退（時計の再設定）または 2³² ms 以上の空白を検出したときだけ dedup/Nankai の履歴を捨てます（再通知は許容し、生きた警報の抑止を避けるため）。
+  dedup と Nankai を両方無効にすると `Parser` の 64 bit 最終観測時刻メンバは存在しなくなり、8 B 分減ります。
   `DedupFilter::Entry` は 8 B、AVR の dedup RAM は 512 B のままです。
 
 ### 5. NankaiPageBuffer (南海トラフページ集約)

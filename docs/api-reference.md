@@ -55,7 +55,7 @@ bool feed(uint8_t byte, Message& out, uint32_t report_unix = 0);
 `out` をメッセージとして読めるのは戻り値が `true` のときだけです。`false` を返したときの `out` の内容は未定義で、直前に完成フレームで設定された値や復号途中のフィールドが残ることがあります（フレーム未完成では `out` を書き換えないため、直前の値がそのまま残ります）。個々のフィールドの残留に依存しないでください。
 診断用の `msg.unsupported_reason` だけは、復号器が完成フレームを拒否した場合に理由（`DisabledAtCompileTime` / `UnknownCategory` / `UnsupportedVersion`）が入ります。それ以外の `false`（フレーム未完成・CRC誤り・重複・南海トラフのページ集約途中）では `None` のことが多いですが、値は保証されません。
 
-復号に失敗したフレーム（CRC誤りなど）では `msg.valid` は `false` に落とされます（`svid` など診断用の一部フィールドは frame 由来の値が残りますが、payload は保証されません）。ただし**フレーム未完成で `false` のときは、直前に `true` で受け取った内容がそのまま残ります**。`false` のときは `valid` を含め `msg` を読まないでください。
+復号に失敗したフレーム（CRC誤りなど）では `msg.valid` は `false` に落ちます（CRC 失敗時は `Decoder` が `svid` も 0 に戻します）。`false` のときは `valid` を含め `msg` を読まないでください。
 
 **使用例:**
 ```cpp
@@ -206,13 +206,15 @@ JMA DC Reportメッセージのデータ構造。
 #### 災害カテゴリ
 
 `Mt43Data` はタグ付きユニオンで、有効なペイロードは対応する getter で取得します（`active_type` が一致しなければ `nullptr`）。
+`AZARAC_ENABLE_<カテゴリ>` を 0 にすると、その行の payload 型（`EewData` など）と getter 自体が存在しません。
+参照するコードは `#if (AZARAC_ENABLE_<カテゴリ>)` で囲んでください。
 
 | カテゴリID | 名称 | アクセサ |
 |-----------|------|-----------|
-| 1 | 緊急地震速報 (EEW) | `getEew()`（`AZARAC_ENABLE_EEW=1` のときのみ。0 では `EewData` 型自体が存在しない） |
-| 2 | 震源情報 | `getHypocenter()`（`AZARAC_ENABLE_HYPOCENTER=1` のときのみ。0 では `HypocenterData` 型自体が存在しない） |
+| 1 | 緊急地震速報 (EEW) | `getEew()` |
+| 2 | 震源情報 | `getHypocenter()` |
 | 3 | 震度情報 | `getSeismic()` |
-| 4 | 南海トラフ地震 | `getNankai()`（`AZARAC_ENABLE_NANKAI=1` のときのみ） |
+| 4 | 南海トラフ地震 | `getNankai()` |
 | 5 | 津波警報・注意報 | `getTsunami()` |
 | 6 | 北太平洋津波 | `getNwPac()` |
 | 8 | 火山情報 | `getVolcano()` |
@@ -225,7 +227,7 @@ JMA DC Reportメッセージのデータ構造。
 #### EEWデータ (`EewData`)
 
 `AZARAC_ENABLE_EEW=1`（非AVRの既定）のときだけ定義されます。
-0のときはこの型と `getEew()` は存在しないため、コードで参照する場合は `#if (AZARAC_ENABLE_EEW)` で囲む必要があります（`HypocenterData` / `NankaiData` についてもそれぞれ同様の処理が必要）。
+0のときはこの型と `getEew()` は存在しないため、コードで参照する場合は `#if (AZARAC_ENABLE_EEW)` で囲む必要があります（同じ規則がすべてのカテゴリ payload 型に当てはまります）。
 
 ```cpp
 struct EewData {
