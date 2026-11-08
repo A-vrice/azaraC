@@ -66,3 +66,11 @@ test/bench/*.cxxid
 test/bench/avr/out/
 test/bench/avr/*.log
 .mega/
+
+# ローカル作業メモ（エージェントの記憶・ルート直下の日付付きレビュー）
+.workbuddy-ai/
+/REVIEW-*.md
+
+# make の一時ディレクトリ（中断時に残る）
+test/.noalloc/
+test/.macro_tmp/
