@@ -17,7 +17,7 @@ struct ParserTestHook;
 } // namespace internal
 
 // RAM: Parser 実体は静的確保で約 5.4 KB（既定: dedup 4 KB + Nankai 管理部 1.2 KB + framer/decoder）、推奨 5.8 KB。
-// dedup/Nankai 有効時は 64 bit epoch guard 用に 8 B を追加する。
+// dedup/Nankai 有効時は 64 bit epoch guard 用に 8 B を追加する（両方無効ならメンバ自体が存在しない）。
 // AVR preset（Nankai/DCX off、dedup 64x8）では約 0.7 KB。2 KB SRAM のターゲットでは Nankai/DCX を無効のままにすること。
 // スタック上限: feed() が host -Os で 808 B / AVR preset で 259 B。JSON 出力は別チェーン（host 1,600 B）。
 // AZARAC_DEDUP_SLOTS を AVR preset の 64 未満へ縮めるのは、再通知を実測し直す場合のみ（azaraC_config.h）。
@@ -60,7 +60,9 @@ private:
 #endif
     // 32 bit 時刻の一周以上を検出するための最終観測時刻。DedupFilter/NankaiPageBuffer の
     // last_seen は RAM 削減のため 32 bit のままで、通常の折り返しは符号なし差分で扱える。
+#if AZARAC_ENABLE_DEDUP || AZARAC_ENABLE_NANKAI
     uint64_t                         _last_now_ms = 0;
+#endif
 
     // 復号後の共通経路（カスタムフレーマ経路と AUTO 経路）: Nankai 集約 → dedup → out へのコピー。
     // 妥当・非重複・集約済みで出力すべきなら true。

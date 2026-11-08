@@ -4,6 +4,14 @@
 
 namespace azaraC {
 
+#if AZARAC_ENABLE_DEDUP || AZARAC_ENABLE_NANKAI
+namespace {
+// FreeRTOS のマルチコアでは getMillis() が数 ms 逆行し得る。この範囲は受信順序の揺らぎとして
+// 最終観測時刻に丸め、履歴を捨てない。これを超える後退は時計の再設定とみなして履歴を捨てる。
+constexpr uint64_t kClockRollbackToleranceMs = 1000;
+} // namespace
+#endif
+
 bool Parser::feed(uint8_t byte, Message& out, uint32_t report_unix) {
     internal::Frame frame;
 
@@ -28,8 +36,8 @@ bool Parser::handleFrame(internal::Frame& frame, Message& out, uint32_t report_u
     if (!_decoder.decode(frame, out, report_unix)) {
         // 復号に失敗したフレームで valid だけ立った中途半端な Message を残さない。
         // decodeQzqsm() は valid=true を設定した後に oob_ で false を返す経路があるため、
-        // ここで落とす。svid など診断用のフィールドは decoder が書いた値を残す
-        // （既存の契約: 失敗時も frame 由来の svid は読める）。
+        // ここで落とす。CRC 失敗時は Decoder が svid も 0 に戻す（成功時だけ frame の svid が残る）。
+        // その他の false では out の内容は未定義なので、呼び出し側は読まないこと。
         out.valid = false;
         return false;
     }
@@ -48,10 +56,21 @@ bool Parser::postDecodeAt(const Message& decoded, Message& out, uint32_t identit
     // dedup 有効期間の受信時刻（手順④'）。
     // 下の Nankai 集約も同じ時計を使うので、両段階で「現在」が一致する。
     // 通常の 32 bit 折り返しは DedupFilter/NankaiPageBuffer の符号なし差分で扱えるが、
-    // 2^32 ms 以上の空白や時計後退では 32 bit の last_seen が「最近」に見えてしまう。
-    // その場合だけ履歴を捨てる（再通知は許容し、生きた警報の抑止は避ける）。
+    // 2^32 ms 以上の空白や時計の再設定では 32 bit の last_seen が「最近」に見えてしまう。
+    // 小さな後退は受信順序の揺らぎとして丸め、それを超える後退と 2^32 ms 以上の空白だけ履歴を捨てる
+    // （再通知は許容し、生きた警報の抑止は避ける）。
 #if AZARAC_ENABLE_DEDUP || AZARAC_ENABLE_NANKAI
-    if (now_ms64 < _last_now_ms || (now_ms64 - _last_now_ms) >= (1ULL << 32)) {
+    if (now_ms64 < _last_now_ms) {
+        if (_last_now_ms - now_ms64 > kClockRollbackToleranceMs) {
+            _dedup.reset();
+#if AZARAC_ENABLE_NANKAI
+            _nankaiBuffers.clearAll();
+#endif
+            // 時計の再設定。基準も低い方へ張り直す（丸めると新時刻が旧高値を追い越すまで凍結する）。
+        } else {
+            now_ms64 = _last_now_ms;   // 受信順序の揺らぎは丸める
+        }
+    } else if ((now_ms64 - _last_now_ms) >= (1ULL << 32)) {
         _dedup.reset();
 #if AZARAC_ENABLE_NANKAI
         _nankaiBuffers.clearAll();
@@ -191,7 +210,9 @@ void Parser::reset() {
     _nmea.reset();
     if (_custom) _custom->reset();
     _dedup.reset();
+#if AZARAC_ENABLE_DEDUP || AZARAC_ENABLE_NANKAI
     _last_now_ms = 0;
+#endif
 #if AZARAC_ENABLE_NANKAI
     _nankaiBuffers.clearAll();
 #endif

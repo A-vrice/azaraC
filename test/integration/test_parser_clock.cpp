@@ -1,10 +1,11 @@
 // Parser の内部時刻を使う Nankai/dedup の回帰テスト。
+// Nankai 系は AZARAC_ENABLE_NANKAI、dedup 単独のケースは AZARAC_ENABLE_DEDUP で囲む。
 // ParserTestHook は AZARAC_TESTING=1 のときだけ Parser の friend になる。
 
 #include "doctest.h"
 #include "test_helpers.h"
 
-#if defined(AZARAC_TESTING) && AZARAC_TESTING && AZARAC_ENABLE_NANKAI
+#if defined(AZARAC_TESTING) && AZARAC_TESTING
 namespace azaraC {
 namespace internal {
 struct ParserTestHook {
@@ -20,8 +21,10 @@ namespace {
 
 using azaraC::Message;
 using azaraC::Mt43Data;
-using azaraC::NankaiData;
 using azaraC::internal::ParserTestHook;
+
+#if AZARAC_ENABLE_NANKAI
+using azaraC::NankaiData;
 
 Message makeNankai(uint8_t info_code, uint8_t page, uint8_t total,
                    uint8_t report_classification, const char* text, uint8_t text_len,
@@ -53,6 +56,7 @@ Message makeNankai(uint8_t info_code, uint8_t page, uint8_t total,
     }
     return msg;
 }
+#endif // AZARAC_ENABLE_NANKAI
 
 bool feedAt(azaraC::Parser& parser, const Message& decoded, Message& out,
             uint32_t identity, uint64_t now_ms) {
@@ -61,6 +65,7 @@ bool feedAt(azaraC::Parser& parser, const Message& decoded, Message& out,
 
 } // namespace
 
+#if AZARAC_ENABLE_NANKAI
 TEST_CASE("Parser clock: partial Nankai duplicate does not reach dedup") {
     azaraC::Parser parser;
     Message out;
@@ -129,5 +134,66 @@ TEST_CASE("Parser clock: normal 32-bit wrap keeps duplicate suppression") {
     CHECK(feedAt(parser, event_a, out, 0, t0));
     CHECK_FALSE(feedAt(parser, event_a, out, 0, (1ULL << 32) + 0x100));
 }
+
+TEST_CASE("Parser clock: 1 ms rollback keeps duplicate suppression") {
+    azaraC::Parser parser;
+    Message out;
+    const Message event_a = makeNankai(6, 1, 1, 2, "A", 1, 6, 15, 12, 30, 2);
+    const uint64_t t0 = 100000;
+
+    CHECK(feedAt(parser, event_a, out, 0, t0));
+    // FreeRTOS のマルチコアで起こる程度の逆行。履歴を捨てず、同じ事象を抑止する。
+    CHECK_FALSE(feedAt(parser, event_a, out, 0, t0 - 1));
+}
+
+TEST_CASE("Parser clock: large rollback resets history without freezing the clock") {
+    azaraC::Parser parser;
+    Message out;
+    const Message event_a = makeNankai(7, 1, 1, 2, "A", 1, 6, 15, 12, 30, 2);
+    const Message event_b = makeNankai(8, 1, 1, 2, "B", 1, 6, 15, 12, 30, 2);
+    const uint64_t t0 = 4ULL * 60 * 60 * 1000;
+    const uint64_t cancel_window = 2ULL * 60 * 60 * 1000;
+
+    CHECK(feedAt(parser, event_a, out, 0, t0));
+    // 時計が 3 時間戻った（再起動・NTP 補正）。履歴を捨てて同じ事象も再通知する。
+    const uint64_t t1 = t0 - 3ULL * 60 * 60 * 1000;
+    CHECK(feedAt(parser, event_a, out, 0, t1));
+    CHECK(feedAt(parser, event_b, out, 0, t1));
+    // 旧高値より手前の追いつき期間でも、窓内の重複抑圧が保たれること。
+    // 毎回リセットする実装ではここで再通知してしまう。
+    CHECK_FALSE(feedAt(parser, event_b, out, 0, t1 + 1000));
+    // 新しい基準で窓を満了させたとき、旧高値（t0）より手前でも再通知できること。
+    // 旧高値に丸めると時計が凍結し、窓が永久に満了しない。
+    CHECK(feedAt(parser, event_b, out, 0, t1 + cancel_window + 2000));
+}
 #endif // AZARAC_ENABLE_DEDUP
-#endif // AZARAC_TESTING && AZARAC_ENABLE_NANKAI
+#endif // AZARAC_ENABLE_NANKAI
+
+#if AZARAC_ENABLE_DEDUP
+namespace {
+// Nankai を使わずに epoch guard と dedup の関係だけを見る（NANKAI=0 構成でも回す）。
+Message makeHypocenter() {
+    Message msg;
+    msg.valid = true;
+    msg.msg_type = 43;
+    msg.initPayload<Mt43Data>();
+    Mt43Data* mt43 = msg.getMt43();
+    REQUIRE(mt43 != nullptr);
+    mt43->disaster_category = 2;   // 震源情報: dedup 窓は 2 時間
+    return msg;
+}
+} // namespace
+
+TEST_CASE("Parser clock: 1 ms rollback keeps dedup suppression without Nankai") {
+    azaraC::Parser parser;
+    Message out;
+    const Message event = makeHypocenter();
+    const uint64_t t0 = 100000;
+    const uint64_t window = 2ULL * 60 * 60 * 1000;
+
+    CHECK(feedAt(parser, event, out, 42, t0));
+    CHECK_FALSE(feedAt(parser, event, out, 42, t0 - 1));
+    CHECK(feedAt(parser, event, out, 42, t0 + window + 1));
+}
+#endif // AZARAC_ENABLE_DEDUP
+#endif // AZARAC_TESTING
