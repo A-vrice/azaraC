@@ -327,7 +327,7 @@ jobs:
           PATCH_SCRIPT='s/#include <chrono>/#pragma push_macro("abs")\n#pragma push_macro("min")\n#pragma push_macro("max")\n#pragma push_macro("round")\n#undef abs\n#undef min\n#undef max\n#undef round\n#include <chrono>\n#pragma pop_macro("round")\n#pragma pop_macro("max")\n#pragma pop_macro("min")\n#pragma pop_macro("abs")/'
           # Apply to all headers and sources in the installed cores.
           # 0 件ならコア構成が変わってこのワークアラウンドが不要になったということなので、
-          # 黙って通さず失敗させる（sed 自体の失敗も bash -e で止まる）。
+          # 失敗にはせず warning に留める（コア側が直った時点で全 PR を落とさない）。
           patched=0
           while IFS= read -r -d '' f; do
             if grep -q '#include <chrono>' "$f"; then
@@ -337,8 +337,7 @@ jobs:
           done < <(find ~/.arduino15/packages/ -type f \( -name "*.h" -o -name "*.cpp" -o -name "*.c" \) -print0)
           echo "patched $patched file(s)"
           if [[ "$patched" -eq 0 ]]; then
-            echo "::error::no core source contained '#include <chrono>'; the chrono macro patch is obsolete or the core layout changed"
-            exit 1
+            echo "::warning::no core source contained '#include <chrono>'; the chrono macro patch may be obsolete or the core layout changed"
           fi
 
       - name: Compile examples

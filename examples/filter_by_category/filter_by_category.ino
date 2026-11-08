@@ -1,4 +1,5 @@
-// MT=43 防災カテゴリ別フィルタリングの例特定の災害カテゴリのみをSerialに出力する対応カテゴリ:
+// MT=43 防災カテゴリ別フィルタリングの例。
+// 特定の災害カテゴリのみを Serial に出力する。対応カテゴリ:
 //   1  = 緊急地震速報 (EEW)
 //   2  = 震源情報 (Hypocenter)
 //   3  = 震度情報 (Seismic Intensity)
@@ -115,6 +116,7 @@ void printMt43Details(const azaraC::Message& msg) {
             break;
         }
 #endif // AZARAC_ENABLE_HYPOCENTER
+#if (AZARAC_ENABLE_SEISMIC)
         case 3: { // Seismic Intensity
             const azaraC::SeismicData* seis = mt43->getSeismic();
             if (!seis) break;
@@ -122,6 +124,8 @@ void printMt43Details(const azaraC::Message& msg) {
             Serial.println(seis->count);
             break;
         }
+#endif // AZARAC_ENABLE_SEISMIC
+#if (AZARAC_ENABLE_TSUNAMI)
         case 5: { // Tsunami
             const azaraC::TsunamiData* tsunami = mt43->getTsunami();
             if (!tsunami) break;
@@ -131,6 +135,8 @@ void printMt43Details(const azaraC::Message& msg) {
             Serial.println(tsunami->count);
             break;
         }
+#endif // AZARAC_ENABLE_TSUNAMI
+#if (AZARAC_ENABLE_TYPHOON)
         case 12: { // Typhoon
             const azaraC::TyphoonData* typh = mt43->getTyphoon();
             if (!typh) break;
@@ -143,6 +149,7 @@ void printMt43Details(const azaraC::Message& msg) {
             Serial.println(F("m/s"));
             break;
         }
+#endif // AZARAC_ENABLE_TYPHOON
         default:
             break;
     }

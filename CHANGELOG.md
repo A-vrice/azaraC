@@ -13,8 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `NankaiPageKey` と `dedupEventToken` に `report_classification`（Rc、3 bit）を追加した。訓練/試験（Rc=7）と実警報（Rc=2）が同じ事象として抑止・混在するのを防ぐ。事象トークンは 26 bit から 29 bit になり、合成鍵の payload 30 bit に収まる。`NankaiPageKey` は 7 B、AVR の `NankaiPageBuffer` は 1,158 B（4 ページ構成は 96 B）、ホストは 1,160 B のまま。
   - `NankaiPageBufferManager` がページ範囲を割り当て・LRU 追い出しより前に検証するようにした。別事象の不正ページが進行中の正常な集約を消さない。
   - 完成済み Nankai の再送ページは本文を再出力せず、dedup の `last_seen` だけを更新する。未完成ページの重複では dedup を呼ばない。`AZARAC_ENABLE_DEDUP=0` では Nankai のページビットマップ抑制が残ることを明記した。
-  - `Parser` に 64 bit 時刻の epoch guard を追加した。通常の 32 bit 折り返しは符号なし差分で維持し、2³² ms 以上の空白または時計後退時だけ dedup/Nankai 履歴を捨てる（再通知は許容し、生きた警報の抑止を避ける）。
-  - 回帰テストとして、Rc の分離、訓練/実警報ページの混在防止、不正ページによる既存バッファ破壊の防止、完成後再送の履歴更新、折り返し/後退を追加した。`run-dedup-off` と実 avr-g++ の `avr-layout` を追加し、fuzz に stateful Parser と警告の失敗条件を追加した。
+  - `Parser` に 64 bit 時刻の epoch guard を追加した。通常の 32 bit 折り返しは符号なし差分で維持し、1,000 ms 以内の時計後退は受信順序の揺らぎとして最終観測時刻に丸める。1,000 ms を超える後退（時計の再設定）または 2³² ms 以上の空白のときだけ dedup/Nankai 履歴を捨てる（再通知は許容し、生きた警報の抑止を避ける）。
+  - 回帰テストとして、Rc の分離、訓練/実警報ページの混在防止、不正ページによる既存バッファ破壊の防止、完成後再送の履歴更新、折り返し/後退（1 ms の丸め・大きな後退後の満了・Nankai 無効時の dedup 単独）を追加した。`run-dedup-off` と実 avr-g++ の `avr-layout` を追加し、fuzz に stateful Parser と警告の失敗条件を追加した。
   - `examples/rtos_freertos` の `Message` バイトコピー（ISO C++ では未定義動作）を、静的スロット + ready/free インデックスキューへ変更した。
   - テストの保守性を改善: `test_message_struct.cpp` の全12型 copy/move を型テーブルへ統合し、`test_parser.cpp`/`test_decoder_dcx.cpp` の名前を内容に合わせた。`test_nankai_e2e.cpp` の Nankai フレーム生成は Rc を引数化した。
 
@@ -28,7 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `azaraC.h` の `abs`/`min`/`max` undef を `push_macro`/`pop_macro` で往復し、利用者のスケッチから恒久的に消さないようにした。
   - 生成定義ヘッダに準拠仕様（`IS-QZSS-DCR-017 / IS-QZSS-DCX-004 Rev.004 / EWSS CAMF Issue 1.2`）を記録し、`gen_definitions.py` のテンプレートと 139 ヘッダを揃えた。
   - `update-definitions.yml` は PR 作成前に `make -C test run` と `make -C test bench` を実行する（既定 `GITHUB_TOKEN` の PR は push で CI が起動せず、`pull_request` も承認待ちになるため）。
-  - CI に ASan/UBSan ジョブを追加（段階導入のため `continue-on-error`）。コアヘッダの chrono パッチは対象 0 件なら失敗させる。
+  - CI に ASan/UBSan ジョブを追加（段階導入のため `continue-on-error`）。コアヘッダの chrono パッチは対象 0 件なら warning に留める（コア側が直った時点で全 PR を落とさない）。
   - **全 payload 型をカテゴリマクロでガード（M7）**: `SeismicData` / `TsunamiData` / `NwPacTsunamiData` / `VolcanoData` / `AshFallData` / `WeatherData` / `FloodData` / `TyphoonData` / `MarineData` と対応する entry 型・enum 値・`getXxx()`・`typeFor<>` を `AZARAC_ENABLE_*` でガードし、`DedupWindow.h` のカテゴリ別窓計算も同じガードで囲んだ。
     カテゴリを無効にすると RAM 枠が連動して縮む（ホスト実測: 津波系無効で `storage_size_` 88→56 B、全無効で 1 B。`storage_` が空配列にならないよう 1 B に切り上げ）。
     `DedupWindow.h` の payload 引数は全対象カテゴリ無効時に未使用になるため `(void)payload;` を追加。
@@ -209,6 +209,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **時計の小さな後退で dedup/Nankai 履歴が全消去されていた**: `getMillis()` は FreeRTOS のマルチコアで数 ms 逆行し得るが、epoch guard が任意の後退で履歴を捨てていたため、生きた警報が再通知され、集約中の南海トラフも消えていた。
+  1 秒以内の後退は最終観測時刻に丸め、1 秒を超える後退だけ履歴を捨てるようにした。
+  1 ms 後退で抑圧が続くこと、大きな後退の後に新しい基準で窓が満了すること（旧高値へ丸めて凍結しないこと）を `test_parser_clock.cpp` に追加した。
+- **`Parser::_last_now_ms` が dedup/Nankai 無効でも 8 B 残っていた**: epoch guard の `#if` と同じ条件でメンバを囲み、`reset()` の初期化も揃えた。
+- **カテゴリ無効時に `examples/filter_by_category` がコンパイルできなかった**: `SeismicData` / `TsunamiData` / `TyphoonData` の利用が `AZARAC_ENABLE_*` でガードされておらず、AVR preset（TYPHOON=0）の Mega と全カテゴリ無効の Arduino Zero で CI が赤になっていた。各 case を型と同じマクロで囲んだ。
+- **Codacy の新規指摘 2 件**: `test_decoder_dcx.cpp` の `memcpy` 4 箇所を `std::copy_n(bits, sizeof(frame.bits), frame.bits)` に置き換え（コピー長を宛先サイズから取る）、`test/scripts/*.py` の shebang 付き 5 本に実行ビット（100755）を付与した。
 - **`compactText()` 後の `getTextLength()` がページ割り付けを読んでいた**: `compactText()` は受信済みページを `aggregated_text` の先頭へ詰めるが、`received_bitmap` と `total_pages` は受信済みのままなので、`getTextLength()` が `p * TEXT_PER_PAGE` の位置からページ長を足し、ページ境界をまたいだ本文を誤って読んでいた（`getNankaiBuffer()` 経由の長さが `aggregated_len` と一致しない）。
   `compacted` フラグを追加し、`compactText()` 後は先頭からの連続文字列として長さを返す。
   `clearAll()` でフラグを戻すため、バッファ再利用後の再受信は従来のページ経路に戻る。

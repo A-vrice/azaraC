@@ -3,6 +3,7 @@
 #include "../test_helpers.h"
 #include "../src/internal/DcxHelper.h"
 #include "doctest.h"
+#include <algorithm>
 
 using namespace azaraC;
 
@@ -82,7 +83,7 @@ static Message decodeDcxHelper(uint8_t* bits, uint32_t now_unix = 1704067200u) {
     TestDecoder decoder;
     Message msg{};
     Frame frame{};
-    memcpy(frame.bits, bits, 32);
+    std::copy_n(bits, sizeof(frame.bits), frame.bits);
     frame.svid = 193;
     decoder.decode(frame, msg, now_unix);
     return msg;
@@ -460,7 +461,7 @@ TEST_CASE("DCX B1: L-AlertメッセージでのB1解析") {
     Decoder decoder;
     Frame frame;
     frame.svid = 56;
-    memcpy(frame.bits, bits, 32);
+    std::copy_n(bits, sizeof(frame.bits), frame.bits);
 
     uint32_t report_unix = 1704067200u;
     bool result = decoder.decode(frame, msg, report_unix);
@@ -521,7 +522,7 @@ TEST_CASE("DCX B2: ハザード中心オフセットが主楕円座標に反映�
     Decoder decoder;
     Frame frame;
     frame.svid = 56;
-    memcpy(frame.bits, bits, 32);
+    std::copy_n(bits, sizeof(frame.bits), frame.bits);
 
     bool result = decoder.decode(frame, msg, 1704067200u);
 
@@ -588,7 +589,7 @@ TEST_CASE("DCX B3: 副楕円パラメータが camf に反映される") {
     Decoder decoder;
     Frame frame;
     frame.svid = 56;
-    memcpy(frame.bits, bits, 32);
+    std::copy_n(bits, sizeof(frame.bits), frame.bits);
 
     bool result = decoder.decode(frame, msg, 1704067200u);
 
