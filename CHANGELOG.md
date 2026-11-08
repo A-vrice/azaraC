@@ -52,18 +52,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **dedup ベンチを CI に戻した**（`make -C test bench-dedup`、`test/bench/run_dedup_bench.sh`）: AVR テーブル計測ハーネスが `autoresearch.sh` を置き換えた際に、旧 `make -C test bench` が回していた dedup のゲート（`NEW_RECALL` / `DUP_SUPPRESS` / `NANKAI_KEY_STABLE` / `PREAMBLE_KEY_STABLE`）と `test/bench/bench_dedup.cpp` をビルドする経路が CI から落ちていた（`bench` はフットプリント計測のまま）。
   旧ハーネスを `test/bench/run_dedup_bench.sh` として復帰させ、`bench-dedup` ターゲットと host-test ジョブのステップを追加した。
   入力は `test/data/*.json` のみ、host の g++ だけで動く。
-  実測: `NEW_CORRECT=118` / `DUP_SUPPRESS=1.0000` / `NANKAI_KEY_STABLE=1` / `PREAMBLE_KEY_STABLE=1` で exit 0。
+  実測: `NEW_CORRECT=118` / `DUP_SUPPRESS=1.0000` / `NANKAI_KEY_STABLE=1` / `PREAMBLE_KEY_STABLE=1` で exit 0 となった。
 
 ### Changed
 
-- **CI の fixture-drift とテスト集計**: fixture-drift は azarashi の再実行ではなく、コミット済み `nankai_vectors.json` から `--nankai-header-only` で C++ フィクスチャを再生成し、`git diff` でドリフトを検出する。
-  JSON 全体は `timestamp`（生成時刻）を含むため差分比較に使わず、`nmea` / `type` / `params`（`timestamp` を除く）の SHA-256 を `test/data/nankai_vectors.sha256` に固定して `test/scripts/hash_nankai_vectors.py --check` で検証する。
+- **CI の fixture-drift とテスト集計**: fixture-drift は azarashi の再実行ではなく、コミット済み `nankai_vectors.json` から `--nankai-header-only` で C++ フィクスチャを再生成し、`git diff` でドリフトを検出するようにした。
+  JSON 全体は `timestamp`（生成時刻）を含むため差分比較に使わず、`nmea` / `type` / `params`（`timestamp` を除く）の SHA-256 を `test/data/nankai_vectors.sha256` に固定して `test/scripts/hash_nankai_vectors.py --check` で検証するようにした。
   host-test は doctest のケース数・アサーション数を GitHub Actions の step summary に出力し、`docs/developer-guide.md` の固定件数を削除した。
 - **EEW 予報区アクセサの計算量を落とした**: `EewData::regionAt(i)` は毎回ビットマップ先頭から 1 bit ずつ数えていたため、`regionCount()` と組にしたループが O(N×80) になっていた。
   8bit popcount のヘルパを足し、`regionCount()` は 10 バイトの立ビット数の和、`regionAt(i)` は「各バイトの立ビット数で `i` を読み飛ばし、該当バイトだけ 8 bit 走査」にした（最悪 80 bit → 10 バイト + 8 bit）。
-  `region_bitmap[10]` の保持方針（展開配列 81B は不採用）と契約（昇順 0 始まり・範囲外 0・bit i = 予報区 i+1）は不変で、JSON の `regions` はバイト単位で同じ。
+  `region_bitmap[10]` の保持方針（展開配列 81B は不採用）と契約（昇順 0 始まり・範囲外 0・bit i = 予報区 i+1）は不変で、JSON の `regions` はバイト単位で同じだ。
   あわせて `addRegion(code)` の「テスト用」という但し書きを外し、公開 API（範囲外は無視、既存ビットは保持）として `docs/api-reference.md` に明記した。
-  回帰は `test/core/test_message_struct.cpp` に境界（範囲外 0/81・バイト跨ぎ 8→9・最終ビット 80・重複・`i >= regionCount()`）を追加し、ホスト 352 ケース / 15,180 アサーションと `make -C test run-lto` が緑。
+  回帰は `test/core/test_message_struct.cpp` に境界（範囲外 0/81・バイト跨ぎ 8→9・最終ビット 80・重複・`i >= regionCount()`）を追加し、ホスト 352 ケース / 15,180 アサーションと `make -C test run-lto` が緑になった。
 - **JSON の D フィールドを D 番号順に出力**: `detailed_info` の D1–D36 が d3, d4, d1, d2, d5… の順で出ていたのを、d1, d2, …, d36 の昇順に直した。
   キーの並びは JSON として意味を持たないので `schema_version` は 2 のまま上げない。
   既定構成の出力は並び以外バイト単位で不変（`docs/json-formats.md` §1.4 の例も追随）。
@@ -88,23 +88,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `src/definition/` の手書き2本（svid→PRN マップ、CAMF A3 提供者名）も `src/definition/manual/` へ移し、直下は生成物だけになった — 生成器の `extra_headers`、`_index.h` の include、`greptile.json` / `.codacy` の除外パターン（`src/definition/*.h`）を追随させた。
 - **手書きテーブル2本の出所表記を修正**: `qzss_dcx_camf_a3_provider_identifier.h` が「AUTO-GENERATED」と名乗っていたのを `HAND-MAINTAINED` に直し、`_index.h` の件数行を実態（138 generated + 2 hand-written）に合わせた。
 - **メモリ・CPU 最適化（第2弾）**:
-  - ① デコード熱経路: `getBits` / `getBits64` を 1bit ループからバイト一括組み立てに変更（全 start×len 組合せで旧実装と出力一致、OOB 契約は不変）。
+  - ① デコード熱経路: `getBits` / `getBits64` を 1bit ループからバイト一括組み立てに変更した（全 start×len 組合せで旧実装と出力一致、OOB 契約は不変）。
     UBX の 250bit 詰めをバイトスワップ直接ストアに（30万乱数フレームで等価検証）。
     AshFall/Weather/Flood の終端判定と Nankai 本文 18B を一括読み取りに、EEW 予報区 80bit をバイトスキャンに、SVID→PRN を数値直接参照に（AVR の共有バッファコピー+再パースを除去）。
     ホスト実測（bench-decode 追加、`make -C test bench-decode`）: MT43 SEISMIC 3,250→1,642 / EEW 3,768→1,664 / MT44 2,136→1,474 cycles/通。
-  - ② payload の RAM 削減: MT=44 拡張部 3 構造体を union 化（AVR −21B）。
-    `Mt44Decoded` のミラー 4 フィールドを削除（`target_area_code` は serializer が ex1 から再計算）。
+  - ② payload の RAM 削減: MT=44 拡張部 3 構造体を union 化した（AVR −21B）。
+    `Mt44Decoded` のミラー 4 フィールドを削除した（`target_area_code` は serializer が ex1 から再計算）。
     追加楕円を B1 精密化なしのコア型に（−16B）。
-    `TsunamiEntry` / `NwPacTsunamiEntry` をビットフィールド化、`NankaiPageBuffer::last_update_ms` を 32bit 化。
+    `TsunamiEntry` / `NwPacTsunamiEntry` をビットフィールド化し、`NankaiPageBuffer::last_update_ms` を 32bit 化した。
     ATmega328P `-Os` 実測: `Message` 89B→84B（プリセット）、全カテゴリ+DCX/CAMF 242B→199B。
-  - ③ EEW 予報区を展開配列 `regions[80]`+`region_count`（81B）から電文そのままの `region_bitmap[10]`+`regionCount()`/`regionAt()`/`addRegion()` に変更（破壊的変更、JSON 出力は不変）。
-    EEW 有効化の `Message` 127B→84B で RAM ペナルティがゼロに。
-  - ④ JSON writer: 静的キーバッファ（36B `.bss`）を廃止し Flash から直接書き出し、数値書き出しの `strlen` を除去。
-  - ⑤ 日付変換（AVR のみ）: `civil_from_days` の era 除算を引き算ループに、`days_from_civil` を u16 演算に。
-    1970..2400 の全日で旧実装（Hinnant オラクル）と完全一致する `test_time_equivalence.cpp` を追加（+2,405 アサーション）。
-  - ⑥ 非 AVR も定義テーブルの共有断片プールを使う: 生成コードを AVR/非AVR 同一テキストに統一し `FlashString.h` に非 AVR アクセサ一式を追加。
+  - ③ EEW 予報区を展開配列 `regions[80]`+`region_count`（81B）から電文そのままの `region_bitmap[10]`+`regionCount()`/`regionAt()`/`addRegion()` に変更した（破壊的変更、JSON 出力は不変）。
+    EEW 有効化の `Message` 127B→84B で RAM ペナルティがゼロになった。
+  - ④ JSON writer: 静的キーバッファ（36B `.bss`）を廃止し Flash から直接書き出し、数値書き出しの `strlen` を除去した。
+  - ⑤ 日付変換（AVR のみ）: `civil_from_days` の era 除算を引き算ループに、`days_from_civil` を u16 演算にした。
+    1970..2400 の全日で旧実装（Hinnant オラクル）と完全一致する `test_time_equivalence.cpp` を追加した（+2,405 アサーション）。
+  - ⑥ 非 AVR も定義テーブルの共有断片プールを使う: 生成コードを AVR/非AVR 同一テキストに統一し `FlashString.h` に非 AVR アクセサ一式を追加した。
     host バイナリ実測 −129,618B（全カテゴリ+両言語）。
-    ラベルは `gen_label_dump`（1,409,708 lookup）のハッシュが AVR/host 両方で `labels.golden` と完全一致、AVR 側のセクション配置は不変。
+    ラベルは `gen_label_dump`（1,409,708 lookup）のハッシュが AVR/host 両方で `labels.golden` と完全一致し、AVR 側のセクション配置は不変だった。
     AVR ベンチ実測（`make -C test bench`）: Uno Flash 15,738→15,622B / SRAM 142→108B、Mega LTO Flash 144,444→144,134B / SRAM 892→858B。
   - ⑦ テスト修正: `test_json_wellformed` の `JsonCheck` が `const char*` からの一時 `std::string` をメンバ参照に束縛して全程の終わりで破壊される dangling reference を持っていた（非AVR表の factoring がヒープレイアウトを変え、LTO 構成で顕在化）。
     入力文字列をループ内変数に置いて寿命を確保した。
@@ -214,15 +214,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `clearAll()` でフラグを戻すため、バッファ再利用後の再受信は従来のページ経路に戻る。
   回帰は `test_nankai.cpp` に「全ページ」「欠落ページあり」「clearAll 後の再受信」、`test_nankai_e2e.cpp` に 27 ページ集約と NUL 途中終端で `getNankaiBuffer()->getTextLength() == aggregated_len` を追加（ホスト 350 ケース / 15,164 アサーション）。
 - **`feed()` が `false` のとき壊れたフレームの `svid` が残っていた**: `Decoder::decode()` が `out.clear()` の直後に `out.svid = frame.svid` を書いていたため、CRC 不正で復号を中止しても NMEA/UBX ヘッダ由来の `svid` だけが `out` に残っていた。
-  CRC 失敗時に `out.svid` を 0 に戻す（書き込みを CRC 検証の後ろへ移すと `frame` が CRC 呼び出し越しに生き、host `-Os` の `Decoder::decode` スタックが 80B → 96B に増えるため）。
-  `feed()` の `out` 契約を「`true` を返したときだけメッセージとして読める（`false` 時は未定義。
-  診断用の `unsupported_reason` を除く）」と `Parser.h` / `docs/api-reference.md` に明記した。
+  CRC 失敗時に `out.svid` を 0 に戻すようにした（書き込みを CRC 検証の後ろへ移すと `frame` が CRC 呼び出し越しに生き、host `-Os` の `Decoder::decode` スタックが 80B → 96B に増えるため）。
+  `feed()` の `out` 契約を「`true` を返したときだけメッセージとして読める（`false` 時は未定義。診断用の `unsupported_reason` を除く）」と `Parser.h` / `docs/api-reference.md` に明記した。
   `Message` の一時オブジェクトを経由する案は、CHANGELOG 記載のスタック削減（host 1,112→808B / AVR 414→259B）を戻すため採らない。
   回帰は `Decoder` 単体（CRC 不正で `svid == 0`）と `Parser` 経由（正常→CRC 不正で直前の値も残らない）を追加（ホスト 351 ケース / 15,147 アサーション）。
 - **dedup の LRU が空エントリを基準に初期化されていた**: `DedupFilter::isDuplicate()` の追い出し対象 `oldest` を `&set[0]` で初期化していたため、set[0] が空だと `last_seen_ms`（0）との差が巨大になり、有効エントリが比較で選ばれない。
   空き way がある場合は `free_slot` を使うので実害は無かったが、最初の有効エントリで初期化するよう直した。
 - **`Message` のコピー ctor が `payload_storage_` を初期化していなかった**: コピー元が `payload_type == Empty` のとき、コピー先の payload 領域が不定のまま残っていた（読み出し経路は無いが、静的解析の未初期化警告になる）。
-  メンバ初期化子で `payload_storage_{}` を値初期化する。
+  メンバ初期化子で `payload_storage_{}` を値初期化するようにした。
   コピー元に payload がある場合は `copyPayloadFrom()` が上書きする。
 - **EN 専用ビルドで日本語ラベルが漏れていた**: `AZARAC_LANG_JA=0` / `AZARAC_LANG_EN=1` の構成でも、南海トラフの `info_code_label` が日本語（「巨大地震注意」など）を返していた。
   azarashi に EN 版が無い日本語専用の表 `qzss_dcr_jma_information_serial_code` に言語ガードが無く、`AZARAC_LANG_JA` を切っても表がコンパイルされたままだった。
@@ -519,7 +518,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `a11_japanese_library` / `ex1_target_area_code` / `ex9_target_area_code` は `_en`/`_ja` しか存在しないため完全一致を優先する（継承でガードが消えない）。
   EN 表の内容テストも各カテゴリのガードに合わせて `#if` で囲んだ。
 - **JA 専用テーブルが無い `_en` 表が既定構成で消えていた問題を修正**: `gen_definitions.py` が `_en` 接尾辞の表を無条件に `AZARAC_LANG_EN` でガードしていたため、日本語版を持たない英語専用表（`tsunamigenic_potential_en` / `coastal_region_en` / `northwest_pacific_tsunami_height_en` / `ambiguity_of_activity_time_en`）がライブラリ既定（`AZARAC_LANG_JA=1 / AZARAC_LANG_EN=0`）で `nullopt` スタブになり、
-  北西太平洋津波カテゴリの `potential_label` / `height_label` / `region_label` が**すべて空文字列**になっていた（実電文で実測）。
+  北西太平洋津波カテゴリの `potential_label` / `height_label` / `region_label` がすべて空文字列になっていた（実電文で実測）。
   仕様自体が英語のため日本語版が存在しない表で、CAMF の各表と同じく言語非依存として扱うべきもの。
   日本語版を持つ `_en` 表（`prefecture_en` など）は `AZARAC_LANG_EN` と翻訳元のカテゴリガードの両方でガードされる（後者は上記の継承修正で入った）。
   定義ヘッダを再生成した（4 本のガード行のみ変更）。
@@ -751,10 +750,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **IS-QZSS-DCX-004 / EWSS CAMF v1.2 対応**: コメント・ドキュメントの参照仕様を IS-QZSS-DCX-003 から IS-QZSS-DCX-004 に、EWSS CAMF v1.1 から v1.2 に更新した。
+- **IS-QZSS-DCX-004 / EWSS CAMF v1.2 対応**: コメントとドキュメントの参照仕様を IS-QZSS-DCX-003 から IS-QZSS-DCX-004 に、EWSS CAMF v1.1 から v1.2 に更新した。
 - **azarashi v0.16.4 対応**: 各種リファクタに追随し、定義ヘッダを azarashi 0.16.4 で再生成した。
-- **B1 リファインメントを修正 (EWSS CAMF v1.2 §3.7.1.3/4 準拠)**: `Message.h` の `b1_major_factor` / `b1_minor_factor` を `b1_refined_semi_major_km` / `b1_refined_semi_minor_km` に変更し、 `DcxHelper::b1InterpolationFactor()` を廃止して `b1RefinedRadiusKm()`（`base_radius_km - delta_km * (code / 8.0)`）を新設した。
-  旧実装は補間係数（0.0–0.875）を出力していたが、正しくは refinement 後の半径（km）を出力するようにした。
+- **B1 リファインメントを修正 (EWSS CAMF v1.2 §3.7.1.3/4 準拠)**: `Message.h` の `b1_major_factor` と `b1_minor_factor` を `b1_refined_semi_major_km` と `b1_refined_semi_minor_km` に変更し、 `DcxHelper::b1InterpolationFactor()` を廃止して `b1RefinedRadiusKm()`（`base_radius_km - delta_km * (code / 8.0)`）を新設した。
+  旧実装は補間係数（0.0–0.875）を出力していたが、正しくはリファインメント後の半径（km）を出力するようにした。
 - **B2/B3 のビット抽出を修正**: `DecoderDcx.cpp` で B2 C5/C6 のビットシフト位置を修正し（`>>0` → `>>8`, `>>7` → `>>1`）、B3 C7/C8/C9/C10 のビットシフト位置を修正した（`>>0` → `>>13`, `>>2` → `>>10`, `>>5` → `>>5`, `>>10` → `>>0`）。
 - **B4 を独立デコード化**: `DecoderDcx.cpp` で B4 をメイン楕円（A12–A16）の有無に関わらず独立してデコードするようにした。
 - **JSON シリアライゼーションを改善**: `JsonSerializerDcx.cpp` で `a4_hazard_definition` フィールドを追加し `a9_selection_of_library` を `a9_type_of_library` に、 `a17_specific_subject` を `a17_type_of_specific_settings` に改名し、 `c10_guidance_label` を `c10_guidance_label` + `c10_guidance_code` に分割し、
@@ -784,7 +783,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **DCX-004 の小数点以下保証に準拠**: `JsonWriter::wf_d` に `precision` パラメータを追加し（既定 3、後方互換性維持）、緯度・経度フィールド（`lat_deg`, `lon_deg` 等）を 1e-6 度（小数点以下 6 桁）に、角度フィールド（`azimuth_deg`, `bearing_deg`）を 1e-5 度（小数点以下 5 桁）に変更した。
   距離フィールド（`semi_major_km` 等）は 1m = 0.001km（小数点以下 3 桁）のまま維持した。
 - `library.properties` の `version` を `0.10.0` に更新した。
-- `README.md` の仕様書リファレンスを IS-QZSS-DCX-004 / EWSS CAMF v1.2 に更新し、JSON 出力例を DCX-004 準拠の精度に更新した。
+- `README.md` の仕様書リファレンスを IS-QZSS-DCX-004 / EWSS CAMF v1.2 に更新した。JSON 出力例を DCX-004 準拠の精度に更新した。
 - IS-QZSS-DCX-004 に準拠（May, 2026）し、General Assumptions §2.5 の丸めルールを適用した（緯度・経度: 10⁻⁶ 度、角度: 10⁻⁵ 度、距離: 1m）。
 
 ## [0.9.0] - 2026-06-25
@@ -820,14 +819,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `library.properties` の `version` を `0.8.0` に更新した。
 - `src/Parser.cpp` に南海トラフページ集約ロジックを統合した。
-- `src/internal/JsonSerializer.h` / `JsonSerializer.cpp` を JsonWriter ユーティリティと統合した。
+- `src/internal/JsonSerializer.h` と `JsonSerializer.cpp` を JsonWriter ユーティリティと統合した。
 - `examples/` 全般のサンプルを API の一般的な使い方に合わせて改善した。
 - `TimeFields.h` の時刻フィールド処理を更新した。
 - `.gitignore` にネットワーク関連ファイル・CI 関連ファイルを追加した。
 
 ### Fixed
 
-- ESP32-C3 での `Serial2` 設定を修正した。
+- ESP32-C3 における `Serial2` の設定を修正した。
 - 一部ボード定義でのオプション名を修正した。
 - `README.md` の UTF-8 文字化けを修正した。
 
@@ -847,12 +846,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `src/definition/` の重複を削除し、`library.properties` に `includes=azaraC.h` を追加した。
 - `DecoderDcx.cpp` の B2/B3 ビット抽出を B1 と同じパターン（LSB から順）に統一した。
 - `DcxHelper.cpp` の B4 各ハザード D フィールドのビット配置を EWSS CAMF v1.1 §3.7.4 と整合させた。
-- `DecoderDcx.cpp` の B2/B3/B4 フィールド初期化を追加（ゼロクリア）した。
+- `DecoderDcx.cpp` の B2/B3/B4 フィールド初期化を追加し、ゼロクリアした。
 - `DecoderDcx.cpp` の構文エラー返却コードを `ParseResultCode::Error` に変更した。
 - `DecoderDcx.h` の `parse_result` の型を `ParseResultCode` に変更し旧 `Error` 型を削除した。
 - 既定の重複除去スロット数を 8 に再設定した。
 - 言語テーブルの選択的コンパイルオプションを追加した。
-- **エラーハンドリングガイドを追加**: エラーハンドリングセクションに全エラーコード一覧（001–007, 100–109）、デコード失敗理由ごとの具体的なハンドリング方法、デコード成功・失敗のフロー図、MT44/MT43 共通の処理フローを追記し、`examples/error_handling/error_handling.ino` で実践的に解説した。
+- **エラーハンドリングガイドを追加**: エラーハンドリングセクションに全エラーコード一覧（001–007, 100–109）、デコード失敗理由ごとの具体的なハンドリング方法、デコード成功・失敗のフロー図、MT44/MT43 共通の処理フローを追記した。`examples/error_handling/error_handling.ino` で実践的に解説した。
 - EWSS CAMF v1.1 §3.7.2–3.7.4 に準拠し、A17=01 (B2) / A17=10 (B3) / A17=11 (B4) のデコードに対応した。
 
 ### Fixed
@@ -945,7 +944,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Definition headers の `static constexpr` を `inline constexpr` に変更し、linker-scope symbol として複数ソースからの参照を可能にした。
+- Definition headers の `static constexpr` を `inline constexpr` に変更した。
+   linker-scope symbol として複数ソースからの参照を可能にした。
 - `Decoder::decodeQzqsm` の unused-parameter 警告を削除した。
 
 ## [0.3.0] - 2026-04-19
@@ -983,7 +983,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- UBX (RXM-SFRBX) および NMEA (`$QZQSM`) フレーマを追加した。
+- UBX（RXM-SFRBX）および NMEA（`$QZQSM`）のフレーマを追加した。
 - CRC-24Q 検証を追加した。
 - MT=44 DCX/CAMF の全フィールド抽出（A1–A13）を追加した。
 - MT=43 外枠デコード（スケルトン）を追加した。
