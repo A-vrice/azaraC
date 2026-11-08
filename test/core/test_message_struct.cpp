@@ -64,6 +64,7 @@ TEST_CASE("Message: MT=44ペイロードの初期化とアクセス") {
 }
 #endif // AZARAC_ENABLE_DCX_CAMF
 
+#if (AZARAC_ENABLE_SEISMIC)
 TEST_CASE("Message: コピーコンストラクタ") {
     Message msg1;
     msg1.svid = 184;
@@ -89,6 +90,7 @@ TEST_CASE("Message: コピーコンストラクタ") {
     CHECK(copied->count == 1);
     CHECK(copied->entries[0].intensity_code == 4);
 }
+#endif // AZARAC_ENABLE_SEISMIC
 
 TEST_CASE("Message: コピー代入演算子") {
     Message msg1;
@@ -110,9 +112,11 @@ TEST_CASE("Message: コピー代入演算子") {
     msg1.initPayload<Mt43Data>();
     Mt43Data* src43 = msg1.getMt43();
     REQUIRE(src43 != nullptr);
+#if (AZARAC_ENABLE_SEISMIC)
     src43->initAs<SeismicData>();
     src43->getSeismic()->count = 1;
     src43->getSeismic()->entries[0].intensity_code = 4;
+#endif
 #endif
 
     Message msg2;
@@ -135,10 +139,12 @@ TEST_CASE("Message: コピー代入演算子") {
     CHECK(msg2.payload_type == MsgPayloadType::Mt43);
     const Mt43Data* copied43 = msg2.getMt43();
     REQUIRE(copied43 != nullptr);
+#if (AZARAC_ENABLE_SEISMIC)
     const SeismicData* copied = copied43->getSeismic();
     REQUIRE(copied != nullptr);
     CHECK(copied->count == 1);
     CHECK(copied->entries[0].intensity_code == 4);
+#endif
 #endif
 }
 
@@ -174,7 +180,9 @@ TEST_CASE("Mt43Data: EewDataの初期化とアクセス") {
 #if (AZARAC_ENABLE_HYPOCENTER)
     CHECK(data.getHypocenter() == nullptr);
 #endif
+#if (AZARAC_ENABLE_SEISMIC)
     CHECK(data.getSeismic() == nullptr);
+#endif
 #if (AZARAC_ENABLE_NANKAI)
     CHECK(data.getNankai() == nullptr);
 #endif
@@ -221,6 +229,7 @@ TEST_CASE("Mt43Data: NankaiDataの初期化とアクセス") {
 }
 #endif
 
+#if (AZARAC_ENABLE_TYPHOON)
 TEST_CASE("Mt43Data: TyphoonDataの初期化とアクセス") {
     Mt43Data data;
     data.initAs<TyphoonData>();
@@ -238,6 +247,7 @@ TEST_CASE("Mt43Data: TyphoonDataの初期化とアクセス") {
     CHECK(typh->max_wind == 0);
     CHECK(typh->max_gust == 0);
 }
+#endif // AZARAC_ENABLE_TYPHOON
 
 #if (AZARAC_ENABLE_EEW)
 TEST_CASE("Mt43Data: 型の切り替え") {
@@ -271,6 +281,7 @@ TEST_CASE("Mt43Data: コピーコンストラクタ") {
 }
 #endif
 
+#if (AZARAC_ENABLE_TSUNAMI)
 TEST_CASE("Mt43Data: コピー代入演算子") {
     Mt43Data data1;
     data1.report_classification = 2;
@@ -284,6 +295,7 @@ TEST_CASE("Mt43Data: コピー代入演算子") {
     CHECK(data2.active_type == Mt43Data::ActiveType::Tsunami);
     CHECK(data2.getTsunami() != nullptr);
 }
+#endif // AZARAC_ENABLE_TSUNAMI
 
 namespace {
 
@@ -306,12 +318,14 @@ void setSentinel(Mt43Data& d) {
             break;
         }
 #endif
+#if (AZARAC_ENABLE_SEISMIC)
         case Mt43Data::ActiveType::Seismic: {
             SeismicData* p = d.getSeismic();
             REQUIRE(p != nullptr);
             p->count = 1; p->entries[0].intensity_code = 4; p->entries[0].prefecture_code = 13;
             break;
         }
+#endif // AZARAC_ENABLE_SEISMIC
 #if (AZARAC_ENABLE_NANKAI)
         case Mt43Data::ActiveType::Nankai: {
             NankaiData* p = d.getNankai();
@@ -320,6 +334,7 @@ void setSentinel(Mt43Data& d) {
             break;
         }
 #endif
+#if (AZARAC_ENABLE_TSUNAMI)
         case Mt43Data::ActiveType::Tsunami: {
             TsunamiData* p = d.getTsunami();
             REQUIRE(p != nullptr);
@@ -327,6 +342,8 @@ void setSentinel(Mt43Data& d) {
             p->entries[0].region_code = 65; p->entries[0].height_code = 4;
             break;
         }
+#endif // AZARAC_ENABLE_TSUNAMI
+#if (AZARAC_ENABLE_NW_PAC_TSUNAMI)
         case Mt43Data::ActiveType::NwPacTsunami: {
             NwPacTsunamiData* p = d.getNwPac();
             REQUIRE(p != nullptr);
@@ -334,6 +351,8 @@ void setSentinel(Mt43Data& d) {
             p->entries[0].region_code = 7; p->entries[0].height_code = 9;
             break;
         }
+#endif // AZARAC_ENABLE_NW_PAC_TSUNAMI
+#if (AZARAC_ENABLE_VOLCANO)
         case Mt43Data::ActiveType::Volcano: {
             VolcanoData* p = d.getVolcano();
             REQUIRE(p != nullptr);
@@ -341,6 +360,8 @@ void setSentinel(Mt43Data& d) {
             p->lg_count = 1; p->local_govs[0] = 4600000;
             break;
         }
+#endif // AZARAC_ENABLE_VOLCANO
+#if (AZARAC_ENABLE_ASH_FALL)
         case Mt43Data::ActiveType::AshFall: {
             AshFallData* p = d.getAshFall();
             REQUIRE(p != nullptr);
@@ -348,6 +369,8 @@ void setSentinel(Mt43Data& d) {
             p->entries_code[1] = 5; p->entries_lg[1] = 1200000;
             break;
         }
+#endif // AZARAC_ENABLE_ASH_FALL
+#if (AZARAC_ENABLE_WEATHER)
         case Mt43Data::ActiveType::Weather: {
             WeatherData* p = d.getWeather();
             REQUIRE(p != nullptr);
@@ -355,24 +378,31 @@ void setSentinel(Mt43Data& d) {
             p->entries[1].sub_category = 3; p->entries[1].region_code = 12000;
             break;
         }
+#endif // AZARAC_ENABLE_WEATHER
+#if (AZARAC_ENABLE_FLOOD)
         case Mt43Data::ActiveType::Flood: {
             FloodData* p = d.getFlood();
             REQUIRE(p != nullptr);
             p->count = 1; p->entries[0].warning_level = 3; p->entries[0].region_code = 1234567ULL;
             break;
         }
+#endif // AZARAC_ENABLE_FLOOD
+#if (AZARAC_ENABLE_TYPHOON)
         case Mt43Data::ActiveType::Typhoon: {
             TyphoonData* p = d.getTyphoon();
             REQUIRE(p != nullptr);
             p->number = 21; p->pressure = 980; p->max_wind = 35; p->coords.lat_deg = 25;
             break;
         }
+#endif // AZARAC_ENABLE_TYPHOON
+#if (AZARAC_ENABLE_MARINE)
         case Mt43Data::ActiveType::Marine: {
             MarineData* p = d.getMarine();
             REQUIRE(p != nullptr);
             p->count = 1; p->entries[0].warning_code = 20; p->entries[0].region_code = 11000;
             break;
         }
+#endif // AZARAC_ENABLE_MARINE
         default: break;
     }
 }
@@ -395,6 +425,7 @@ void checkSentinel(const Mt43Data& d) {
             break;
         }
 #endif
+#if (AZARAC_ENABLE_SEISMIC)
         case Mt43Data::ActiveType::Seismic: {
             const SeismicData* p = d.getSeismic();
             REQUIRE(p != nullptr);
@@ -402,6 +433,7 @@ void checkSentinel(const Mt43Data& d) {
             CHECK(p->entries[0].prefecture_code == 13);
             break;
         }
+#endif // AZARAC_ENABLE_SEISMIC
 #if (AZARAC_ENABLE_NANKAI)
         case Mt43Data::ActiveType::Nankai: {
             const NankaiData* p = d.getNankai();
@@ -411,6 +443,7 @@ void checkSentinel(const Mt43Data& d) {
             break;
         }
 #endif
+#if (AZARAC_ENABLE_TSUNAMI)
         case Mt43Data::ActiveType::Tsunami: {
             const TsunamiData* p = d.getTsunami();
             REQUIRE(p != nullptr);
@@ -418,6 +451,8 @@ void checkSentinel(const Mt43Data& d) {
             CHECK(p->entries[0].region_code == 65); CHECK(p->entries[0].height_code == 4);
             break;
         }
+#endif // AZARAC_ENABLE_TSUNAMI
+#if (AZARAC_ENABLE_NW_PAC_TSUNAMI)
         case Mt43Data::ActiveType::NwPacTsunami: {
             const NwPacTsunamiData* p = d.getNwPac();
             REQUIRE(p != nullptr);
@@ -425,6 +460,8 @@ void checkSentinel(const Mt43Data& d) {
             CHECK(p->entries[0].region_code == 7); CHECK(p->entries[0].height_code == 9);
             break;
         }
+#endif // AZARAC_ENABLE_NW_PAC_TSUNAMI
+#if (AZARAC_ENABLE_VOLCANO)
         case Mt43Data::ActiveType::Volcano: {
             const VolcanoData* p = d.getVolcano();
             REQUIRE(p != nullptr);
@@ -432,6 +469,8 @@ void checkSentinel(const Mt43Data& d) {
             CHECK(p->lg_count == 1); CHECK(p->local_govs[0] == 4600000);
             break;
         }
+#endif // AZARAC_ENABLE_VOLCANO
+#if (AZARAC_ENABLE_ASH_FALL)
         case Mt43Data::ActiveType::AshFall: {
             const AshFallData* p = d.getAshFall();
             REQUIRE(p != nullptr);
@@ -439,6 +478,8 @@ void checkSentinel(const Mt43Data& d) {
             CHECK(p->entries_code[1] == 5); CHECK(p->entries_lg[1] == 1200000);
             break;
         }
+#endif // AZARAC_ENABLE_ASH_FALL
+#if (AZARAC_ENABLE_WEATHER)
         case Mt43Data::ActiveType::Weather: {
             const WeatherData* p = d.getWeather();
             REQUIRE(p != nullptr);
@@ -446,6 +487,8 @@ void checkSentinel(const Mt43Data& d) {
             CHECK(p->entries[1].sub_category == 3); CHECK(p->entries[1].region_code == 12000);
             break;
         }
+#endif // AZARAC_ENABLE_WEATHER
+#if (AZARAC_ENABLE_FLOOD)
         case Mt43Data::ActiveType::Flood: {
             const FloodData* p = d.getFlood();
             REQUIRE(p != nullptr);
@@ -453,6 +496,8 @@ void checkSentinel(const Mt43Data& d) {
             CHECK(p->entries[0].region_code == 1234567ULL);
             break;
         }
+#endif // AZARAC_ENABLE_FLOOD
+#if (AZARAC_ENABLE_TYPHOON)
         case Mt43Data::ActiveType::Typhoon: {
             const TyphoonData* p = d.getTyphoon();
             REQUIRE(p != nullptr);
@@ -460,6 +505,8 @@ void checkSentinel(const Mt43Data& d) {
             CHECK(p->max_wind == 35); CHECK(p->coords.lat_deg == 25);
             break;
         }
+#endif // AZARAC_ENABLE_TYPHOON
+#if (AZARAC_ENABLE_MARINE)
         case Mt43Data::ActiveType::Marine: {
             const MarineData* p = d.getMarine();
             REQUIRE(p != nullptr);
@@ -467,6 +514,7 @@ void checkSentinel(const Mt43Data& d) {
             CHECK(p->entries[0].region_code == 11000);
             break;
         }
+#endif // AZARAC_ENABLE_MARINE
         default: break;
     }
 }
@@ -480,21 +528,40 @@ static const Mt43Data::ActiveType kPayloadTypes[] = {
 #if (AZARAC_ENABLE_HYPOCENTER)
     Mt43Data::ActiveType::Hypocenter,
 #endif
+#if (AZARAC_ENABLE_SEISMIC)
     Mt43Data::ActiveType::Seismic,
+#endif // AZARAC_ENABLE_SEISMIC
 #if (AZARAC_ENABLE_NANKAI)
     Mt43Data::ActiveType::Nankai,
 #endif
+#if (AZARAC_ENABLE_TSUNAMI)
     Mt43Data::ActiveType::Tsunami,
+#endif // AZARAC_ENABLE_TSUNAMI
+#if (AZARAC_ENABLE_NW_PAC_TSUNAMI)
     Mt43Data::ActiveType::NwPacTsunami,
+#endif // AZARAC_ENABLE_NW_PAC_TSUNAMI
+#if (AZARAC_ENABLE_VOLCANO)
     Mt43Data::ActiveType::Volcano,
+#endif // AZARAC_ENABLE_VOLCANO
+#if (AZARAC_ENABLE_ASH_FALL)
     Mt43Data::ActiveType::AshFall,
+#endif // AZARAC_ENABLE_ASH_FALL
+#if (AZARAC_ENABLE_WEATHER)
     Mt43Data::ActiveType::Weather,
+#endif // AZARAC_ENABLE_WEATHER
+#if (AZARAC_ENABLE_FLOOD)
     Mt43Data::ActiveType::Flood,
+#endif // AZARAC_ENABLE_FLOOD
+#if (AZARAC_ENABLE_TYPHOON)
     Mt43Data::ActiveType::Typhoon,
+#endif // AZARAC_ENABLE_TYPHOON
+#if (AZARAC_ENABLE_MARINE)
     Mt43Data::ActiveType::Marine,
+#endif // AZARAC_ENABLE_MARINE
 };
 
 static void initAsType(Mt43Data& data, Mt43Data::ActiveType type) {
+    (void)data;   // 全カテゴリ無効では下の case がすべて消える
     switch (type) {
 #if (AZARAC_ENABLE_EEW)
         case Mt43Data::ActiveType::Eew:          data.initAs<EewData>(); break;
@@ -502,23 +569,42 @@ static void initAsType(Mt43Data& data, Mt43Data::ActiveType type) {
 #if (AZARAC_ENABLE_HYPOCENTER)
         case Mt43Data::ActiveType::Hypocenter:   data.initAs<HypocenterData>(); break;
 #endif
+#if (AZARAC_ENABLE_SEISMIC)
         case Mt43Data::ActiveType::Seismic:      data.initAs<SeismicData>(); break;
+#endif // AZARAC_ENABLE_SEISMIC
 #if (AZARAC_ENABLE_NANKAI)
         case Mt43Data::ActiveType::Nankai:       data.initAs<NankaiData>(); break;
 #endif
+#if (AZARAC_ENABLE_TSUNAMI)
         case Mt43Data::ActiveType::Tsunami:      data.initAs<TsunamiData>(); break;
+#endif // AZARAC_ENABLE_TSUNAMI
+#if (AZARAC_ENABLE_NW_PAC_TSUNAMI)
         case Mt43Data::ActiveType::NwPacTsunami: data.initAs<NwPacTsunamiData>(); break;
+#endif // AZARAC_ENABLE_NW_PAC_TSUNAMI
+#if (AZARAC_ENABLE_VOLCANO)
         case Mt43Data::ActiveType::Volcano:      data.initAs<VolcanoData>(); break;
+#endif // AZARAC_ENABLE_VOLCANO
+#if (AZARAC_ENABLE_ASH_FALL)
         case Mt43Data::ActiveType::AshFall:      data.initAs<AshFallData>(); break;
+#endif // AZARAC_ENABLE_ASH_FALL
+#if (AZARAC_ENABLE_WEATHER)
         case Mt43Data::ActiveType::Weather:      data.initAs<WeatherData>(); break;
+#endif // AZARAC_ENABLE_WEATHER
+#if (AZARAC_ENABLE_FLOOD)
         case Mt43Data::ActiveType::Flood:        data.initAs<FloodData>(); break;
+#endif // AZARAC_ENABLE_FLOOD
+#if (AZARAC_ENABLE_TYPHOON)
         case Mt43Data::ActiveType::Typhoon:      data.initAs<TyphoonData>(); break;
+#endif // AZARAC_ENABLE_TYPHOON
+#if (AZARAC_ENABLE_MARINE)
         case Mt43Data::ActiveType::Marine:       data.initAs<MarineData>(); break;
+#endif // AZARAC_ENABLE_MARINE
         default: break;
     }
 }
 
 static void checkAccessors(const Mt43Data& data) {
+    (void)data;   // 全カテゴリ無効では下の CHECK がすべて消える
 #define CHECK_ACCESSOR(Type, Active) \
     CHECK((data.active_type == Mt43Data::ActiveType::Active) == (data.get<Type>() != nullptr))
 #if (AZARAC_ENABLE_EEW)
@@ -527,18 +613,36 @@ static void checkAccessors(const Mt43Data& data) {
 #if (AZARAC_ENABLE_HYPOCENTER)
     CHECK_ACCESSOR(HypocenterData, Hypocenter);
 #endif
+#if (AZARAC_ENABLE_SEISMIC)
     CHECK_ACCESSOR(SeismicData, Seismic);
+#endif // AZARAC_ENABLE_SEISMIC
 #if (AZARAC_ENABLE_NANKAI)
     CHECK_ACCESSOR(NankaiData, Nankai);
 #endif
+#if (AZARAC_ENABLE_TSUNAMI)
     CHECK_ACCESSOR(TsunamiData, Tsunami);
+#endif // AZARAC_ENABLE_TSUNAMI
+#if (AZARAC_ENABLE_NW_PAC_TSUNAMI)
     CHECK_ACCESSOR(NwPacTsunamiData, NwPacTsunami);
+#endif // AZARAC_ENABLE_NW_PAC_TSUNAMI
+#if (AZARAC_ENABLE_VOLCANO)
     CHECK_ACCESSOR(VolcanoData, Volcano);
+#endif // AZARAC_ENABLE_VOLCANO
+#if (AZARAC_ENABLE_ASH_FALL)
     CHECK_ACCESSOR(AshFallData, AshFall);
+#endif // AZARAC_ENABLE_ASH_FALL
+#if (AZARAC_ENABLE_WEATHER)
     CHECK_ACCESSOR(WeatherData, Weather);
+#endif // AZARAC_ENABLE_WEATHER
+#if (AZARAC_ENABLE_FLOOD)
     CHECK_ACCESSOR(FloodData, Flood);
+#endif // AZARAC_ENABLE_FLOOD
+#if (AZARAC_ENABLE_TYPHOON)
     CHECK_ACCESSOR(TyphoonData, Typhoon);
+#endif // AZARAC_ENABLE_TYPHOON
+#if (AZARAC_ENABLE_MARINE)
     CHECK_ACCESSOR(MarineData, Marine);
+#endif // AZARAC_ENABLE_MARINE
 #undef CHECK_ACCESSOR
 }
 
@@ -582,7 +686,7 @@ TEST_CASE("Mt43Data: コピーコンストラクタ - 深いコピー") {
 }
 #endif // AZARAC_ENABLE_HYPOCENTER
 
-#if (AZARAC_ENABLE_EEW)
+#if (AZARAC_ENABLE_EEW) && (AZARAC_ENABLE_TYPHOON)
 TEST_CASE("Mt43Data: コピー代入演算子 - 代入先の元データが破棄される") {
     Mt43Data eew;
     eew.initAs<EewData>();
@@ -600,7 +704,7 @@ TEST_CASE("Mt43Data: コピー代入演算子 - 代入先の元データが破�
     CHECK(eew.active_type == Mt43Data::ActiveType::Typhoon);
     CHECK(eew.getTyphoon() != nullptr);
 }
-#endif // AZARAC_ENABLE_EEW
+#endif // AZARAC_ENABLE_EEW && AZARAC_ENABLE_TYPHOON
 
 TEST_CASE("Mt43Data: ムーブコンストラクタ - 全12型") {
     for (auto type : kPayloadTypes) {
@@ -619,7 +723,7 @@ TEST_CASE("Mt43Data: ムーブコンストラクタ - 全12型") {
     }
 }
 
-#if (AZARAC_ENABLE_EEW)
+#if (AZARAC_ENABLE_EEW) && (AZARAC_ENABLE_TYPHOON)
 TEST_CASE("Mt43Data: ムーブ代入演算子") {
     Mt43Data eew;
     eew.initAs<EewData>();
@@ -637,8 +741,9 @@ TEST_CASE("Mt43Data: ムーブ代入演算子") {
     // ムーブ元は None
     CHECK(typhoon.active_type == Mt43Data::ActiveType::None);
 }
-#endif // AZARAC_ENABLE_EEW
+#endif // AZARAC_ENABLE_EEW && AZARAC_ENABLE_TYPHOON
 
+#if (AZARAC_ENABLE_TYPHOON) && (AZARAC_ENABLE_VOLCANO) && (AZARAC_ENABLE_MARINE)
 TEST_CASE("Mt43Data: 型切り替えでデストラクタが呼ばれる") {
     Mt43Data data;
     data.initAs<TyphoonData>();
@@ -655,6 +760,7 @@ TEST_CASE("Mt43Data: 型切り替えでデストラクタが呼ばれる") {
     CHECK(data.getMarine() != nullptr);
     CHECK(data.getVolcano() == nullptr);
 }
+#endif // AZARAC_ENABLE_TYPHOON && AZARAC_ENABLE_VOLCANO && AZARAC_ENABLE_MARINE
 
 TEST_CASE("Mt43Data: None のコピー/ムーブは安全") {
     Mt43Data empty;

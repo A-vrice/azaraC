@@ -230,9 +230,10 @@ Arduino は `core.a` を最後にリンクするため、先頭クラスタに 1
 アドレスは 32 bit の Flash アドレスで扱う（`AZARAC_PGM_PTR` + `pgm_read_*_far` / `memcpy_PF`）。
 
 **payload 枠の大きさ**: `Mt43Data::storage_size_` は有効カテゴリの payload 型 `sizeof` の最大値（コンパイル時 `constexpr`）。
-EEW を有効にしても最大は津波（62 B）のままなので `sizeof(Mt43Data)` は 75 B、`Message` は 84 B でカテゴリ構成によらず不変（DCX/CAMF 有効時は `Mt44Data` が最大になり `Message` 199 B）。
-`EewData`（予報区は `region_bitmap[10]` 保持で 34 B）と `HypocenterData` は `AZARAC_ENABLE_EEW` / `AZARAC_ENABLE_HYPOCENTER`で定義ごとガードしてある。
-どちらも `alignas(uint64_t)` だが、AVR の `alignof(uint64_t)` は 1 なので実サイズは切り上がらない（ホストは 8）。
+AVR プリセットでは最大が津波（62 B）なので `sizeof(Mt43Data)` は 75 B、`Message` は 84 B（DCX/CAMF 有効時は `Mt44Data` が最大になり `Message` 199 B）。
+**12 種類の payload 型すべて**が `AZARAC_ENABLE_*` で定義ごとガードしてあるため、カテゴリを無効にすると RAM 枠も連動して縮む（ホスト実測: 津波系を無効で `storage_size_` 88→56 B、全無効で 1 B。全無効でも `storage_` が空配列にならないよう 1 B に切り上げる）。
+`EewData`（予報区は `region_bitmap[10]` 保持で 34 B）は `AZARAC_ENABLE_EEW` でガード。
+payload 型はどれも `alignas(uint64_t)` だが、AVR の `alignof(uint64_t)` は 1 なので実サイズは切り上がらない（ホストは 8）。
 ガードの追加箇所は開発者ガイドの「カテゴリ無効時の型ガード」を参照。
 
 **LTO の制約（AVR）**: Arduino の AVR コアは `-flto` でコンパイル・リンクする。

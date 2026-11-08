@@ -24,7 +24,7 @@
 MT=44 の B フィールド（B1–B4）と C10 は [EWSS CAMF Issue 1.2](https://www.gsc-europa.eu/electronic-library/programme-reference-documents/galileo-in-force/ewss) に基づきます。
 
 AVR（Uno・Mega を含む）は既定で SEISMIC/TSUNAMI のみ有効です。
-無効にしたカテゴリは定義テーブルがコンパイルされず、`EewData` / `HypocenterData` / `NankaiData` は型ごと除外されます（`SeismicData` / `TsunamiData` など残りの型は、そのカテゴリを無効にしても定義は残ります）。
+無効にしたカテゴリは定義テーブルがコンパイルされず、**12 種類の payload 型すべてがカテゴリ単位で除外されます**（`Mt43Data` の RAM も残ったカテゴリの最大型まで縮みます）。`AZARAC_ENABLE_DEDUP=0` で重複排除テーブル（既定 4 KB / AVR 512 B）も外せます。
 
 - `Message` のサイズは AVR（ATmega328P、avr-gcc `-Os`）で 84 B（AVR プリセット。DCR の全カテゴリを有効にしても payload 最大は津波 62 B のままで 84 B、DCX/CAMF 追加時は `Mt44Data` が最大になり 199 B）。ホスト（g++、全カテゴリ + DCX/CAMF）は 240 B
 - EEW と震源は AVR プリセットで無効なので `getEew()` / `getHypocenter()` は既定で使えません。

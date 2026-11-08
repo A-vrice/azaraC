@@ -9,8 +9,8 @@
 
 using namespace azaraC::internal;
 
-// 現在時刻（ms、非 Arduino）。
-static uint32_t currentMillis() {
+// 現在時刻（ms、非 Arduino）。NANKAI 無効時は呼び出しが消えるため maybe_unused。
+[[maybe_unused]] static uint32_t currentMillis() {
     auto now = std::chrono::steady_clock::now();
     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
         now.time_since_epoch()).count();

@@ -276,11 +276,11 @@ AVRツールチェーン（avr-gcc）はC++の標準ライブラリを一切含�
 - **RAM上の文字列と固定リテラルの比較には `AZARAC_STRNCMP_P` を使うこと**: `strncmp(buf, "QZQSM,", 6)` のリテラルは AVR では `.data`（＝SRAM）に載る。
   `AZARAC_STRNCMP_P(buf, "QZQSM,", 6)` は AVR で `strncmp_P(buf, PSTR("QZQSM,"), 6)`、非AVR で `strncmp` に展開される（マクロ側が `PSTR` を付けるので呼び出しは素のリテラルのまま）。
   `make -C test pgm-stub` は `strncmp_P` のスタブ（`test/stub/avr/pgmspace.h`）経由でこの経路を通る。
-- **カテゴリ無効時の型ガード**: `AZARAC_ENABLE_EEW` / `AZARAC_ENABLE_HYPOCENTER` / `AZARAC_ENABLE_NANKAI` は定義テーブルだけでなく payload 型と getter を消す。
-  カテゴリを追加するときは `src/Mt43Data.h` の 6 箇所（struct 定義、`Mt43Data::ActiveType` の列挙子、`storage_size_` の `sizeof`、`getXxx()` の const / 非 const、`typeFor<T>()` の特殊化）を同じマクロで囲み、decoder / serializer は定義側だけでなく **テストとサンプルも** ガードする。
-  `test/core/test_message_struct.cpp`、`test/json/test_json.cpp` の `initMt43As`、`test/json/test_json_wellformed.cpp`、`examples/*` にガードが無いと `make -C test macro` と CI の `arduino-compile-required` が落ちる。
-  `test/data/test_realdata_generated.cpp` は生成物なので手で直さず、`test/scripts/gen_realdata_vectors.py` の `DC_TYPE_GUARDS` にマクロを足す。
-  `internal/DedupWindow.h` が参照する津波・気象・洪水・海上の payload は decode 設定と無関係に dedup が使うのでガードしない。
+- **カテゴリ無効時の型ガード**: `AZARAC_ENABLE_*` は定義テーブルだけでなく payload 型と getter を消す（全 12 型）。
+  カテゴリを追加するときは `src/Mt43Data.h` の 6 箇所（struct 定義、`Mt43Data::ActiveType` の列挙子、`storage_size_` の `sizeof`、`getXxx()` の const / 非 const、`typeFor<T>()` の特殊化）と、対応する entry 型を同じマクロで囲み、decoder / serializer は定義側だけでなく **テストとサンプルも** ガードする。
+  `test/core/test_message_struct.cpp`、`test/json/test_json.cpp` の `initMt43As`、`test/json/test_json_wellformed.cpp`、`test/internal/test_dedup_window.cpp`、`test/integration/test_parser_clock.cpp`、`examples/*` にガードが無いと `make -C test macro` と CI の `arduino-compile-required` が落ちる。
+  `test/data/test_realdata_generated.cpp` は生成物なので手で直さず、`test/scripts/gen_realdata_vectors.py` の `DC_TYPE_GUARDS`（= `DISABLED_DC_MACROS`）にマクロを足す。
+  `internal/DedupWindow.h` も同じマクロで `case 5/10/11/14` と `ActiveType` 分岐をガードする（全対象カテゴリ無効時は payload 引数が未使用になるので `(void)payload;` を置く）。カテゴリ無効時にその dc の窓は `default` のフォールバックへ落ちるため、`test_dedup_window.cpp` の仕様値アサートも同じマクロで囲む。
 - **Flashが64KiBを超えるAVRではfar参照を使うこと**: 定義テーブルはリンク時に64KiBを超えて配置されるため、16bitのPROGMEMポインタでは届かない。
   配列のアドレスは `AZARAC_PGM_PTR(array)`（`FLASHEND > 0xFFFF` のデバイスでは `pgm_get_far_address`、それ以外は通常のポインタ）。
   行・プールの読み出しは `azarac_read_byte/word/dword` / `azarac_read_block` を経由する（`pgm_read_*_far` / `memcpy_PF`）。

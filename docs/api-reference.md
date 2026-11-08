@@ -514,8 +514,9 @@ if (client.connect(server, port)) {
 | `AZARAC_ENABLE_MARINE` | 1 | 海上警報 (カテゴリ14) |
 | `AZARAC_ENABLE_DCX_CAMF` | 1 | DCX/CAMF全般 (MT=44) |
 
-`AZARAC_ENABLE_EEW` / `AZARAC_ENABLE_HYPOCENTER` / `AZARAC_ENABLE_NANKAI` を 0 にすると、定義テーブルだけでなく**payload 型そのもの**（`EewData` / `HypocenterData` / `NankaiData`）と対応する取得関数（`getEew()` など）もコンパイル対象から外れる。
-また同時に`Mt43Data` のペイロードサイズ（`storage_size_`）は残ったカテゴリのうち最大の `sizeof` まで小さくなる。
+どの `AZARAC_ENABLE_*` を 0 にしても、定義テーブルだけでなく**payload 型そのもの**（`EewData` / `SeismicData` / `TsunamiData` など全 12 型）と対応する取得関数（`getEew()` など）もコンパイル対象から外れる。
+また同時に`Mt43Data` のペイロードサイズ（`storage_size_`）は残ったカテゴリのうち最大の `sizeof` まで小さくなる。全カテゴリを無効にすると 1 B まで落ちる（`Message` の `payload_type` は `Empty` のまま機能する）。
+ホスト実測: 全カテゴリ有効で `storage_size_` 88 B / `sizeof(Mt43Data)` 104 B、津波系（5・6）を無効で 56 B / 72 B、全無効で 1 B / 24 B。
 AVR プリセットは EEW・震源が既定で 0 なので `sizeof(Mt43Data)` は 75B、`Message` は 84B となる（EEW を有効にしても予報エリアは `region_bitmap[10]` 保持のため 75B / 84B のまま。DCRの全カテゴリおよび DCX/CAMF 有効時は `Mt44Data` 190B、`Message` 199Bとなる。avr-gcc `-Os`、ATmega328Pボードの設定で計測）。
 無効にしたカテゴリの型を扱うコードはコンパイルエラーになるので異なるアーキテクチャーでコードを使いまわす場合は `#if (AZARAC_ENABLE_EEW)` などで囲む必要がある（`examples/filter_by_category`・`examples/with_sntp` の EEW ブロックを参照のこと）。
 

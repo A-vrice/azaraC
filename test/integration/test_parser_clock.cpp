@@ -4,7 +4,7 @@
 #include "doctest.h"
 #include "test_helpers.h"
 
-#if defined(AZARAC_TESTING) && AZARAC_TESTING && (AZARAC_ENABLE_NANKAI || AZARAC_ENABLE_DEDUP)
+#if defined(AZARAC_TESTING) && AZARAC_TESTING && AZARAC_ENABLE_NANKAI
 namespace azaraC {
 namespace internal {
 struct ParserTestHook {
@@ -130,4 +130,4 @@ TEST_CASE("Parser clock: normal 32-bit wrap keeps duplicate suppression") {
     CHECK_FALSE(feedAt(parser, event_a, out, 0, (1ULL << 32) + 0x100));
 }
 #endif // AZARAC_ENABLE_DEDUP
-#endif // AZARAC_TESTING && (AZARAC_ENABLE_NANKAI || AZARAC_ENABLE_DEDUP)
+#endif // AZARAC_TESTING && AZARAC_ENABLE_NANKAI

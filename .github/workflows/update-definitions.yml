@@ -54,7 +54,7 @@ jobs:
         if: steps.ver.outputs.changed == 'true'
         run: |
           sudo apt-get update
-          sudo apt-get install -y g++ make gcc-avr binutils-avr avr-libc
+          sudo apt-get install -y g++ make gcc-avr binutils-avr avr-libc cppcheck
 
       - name: Gate - host unit tests
         if: steps.ver.outputs.changed == 'true'
@@ -63,6 +63,10 @@ jobs:
       - name: Gate - definition label buffer sizes
         if: steps.ver.outputs.changed == 'true'
         run: make -C test bench
+
+      - name: Gate - static analysis (cppcheck + strict warnings)
+        if: steps.ver.outputs.changed == 'true'
+        run: make -C test check
 
       - name: Show definition diff summary
         if: steps.ver.outputs.changed == 'true'
@@ -117,6 +121,6 @@ jobs:
             | Previous | `${{ steps.ver.outputs.current }}` |
             | New | `${{ steps.ver.outputs.latest }}` |
 
-            Host tests (`make -C test run`) and the AVR label-size gate (`make -C test bench`) passed before this PR was created.
+            Host tests (`make -C test run`), the AVR label-size gate (`make -C test bench`), and static analysis (`make -C test check`: cppcheck + `-Werror`) passed before this PR was created.
 
             Changes are in `src/definition/` (generated tables only; the two hand-written headers are listed in the generator's extra_headers and are not touched). Do not edit the generated files manually.

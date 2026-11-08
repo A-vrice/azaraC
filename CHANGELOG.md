@@ -29,6 +29,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 生成定義ヘッダに準拠仕様（`IS-QZSS-DCR-017 / IS-QZSS-DCX-004 Rev.004 / EWSS CAMF Issue 1.2`）を記録し、`gen_definitions.py` のテンプレートと 139 ヘッダを揃えた。
   - `update-definitions.yml` は PR 作成前に `make -C test run` と `make -C test bench` を実行する（既定 `GITHUB_TOKEN` の PR は push で CI が起動せず、`pull_request` も承認待ちになるため）。
   - CI に ASan/UBSan ジョブを追加（段階導入のため `continue-on-error`）。コアヘッダの chrono パッチは対象 0 件なら失敗させる。
+  - **全 payload 型をカテゴリマクロでガード（M7）**: `SeismicData` / `TsunamiData` / `NwPacTsunamiData` / `VolcanoData` / `AshFallData` / `WeatherData` / `FloodData` / `TyphoonData` / `MarineData` と対応する entry 型・enum 値・`getXxx()`・`typeFor<>` を `AZARAC_ENABLE_*` でガードし、`DedupWindow.h` のカテゴリ別窓計算も同じガードで囲んだ。
+    カテゴリを無効にすると RAM 枠が連動して縮む（ホスト実測: 津波系無効で `storage_size_` 88→56 B、全無効で 1 B。`storage_` が空配列にならないよう 1 B に切り上げ）。
+    `DedupWindow.h` の payload 引数は全対象カテゴリ無効時に未使用になるため `(void)payload;` を追加。
+    テスト側も同じガードで囲み（`test_message_struct` / `test_json` / `test_json_wellformed` / `test_dedup_window`）、実データ回帰は `gen_realdata_vectors.py` の `DC_TYPE_GUARDS` を全カテゴリに拡張して再生成した。
+  - **`make -C test macro` の NANKAI=0 を修正**: `test/integration/test_parser_clock.cpp` の外側ガードが `NANKAI || DEDUP` で、`NANKAI=0` でも `NankaiData` を参照してコンパイルできなかった（CI の `macro-runtime-test` が赤）。ガードを `AZARAC_ENABLE_NANKAI` のみに変更。`test_dedup_window.cpp` の dc=5/10/11/14 の payload 無し仕様値も各カテゴリマクロで囲み、カテゴリ無効時に `default` へ落ちる挙動と整合させた。
 
 - **CI に LTO ゲートを追加**: `make -C test run-lto` を新設し、host-test で `-O2 -flto` の全体再ビルド・テスト実行を必須にした。
   LTO の型不一致（`-Wlto-type-mismatch`）と ODR 違反（`-Wodr`）は GCC では既定で警告に留まり素の `-flto` では緑のままなので、この 2 つだけ `-Werror` にしてゲートで落とす（過去に `AZARAC_DEDUP_SLOTS` の配列長不一致を LTO だけが検出した事例がある）。

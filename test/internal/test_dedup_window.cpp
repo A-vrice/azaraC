@@ -27,8 +27,8 @@ uint32_t windowNoPayload(uint8_t dc, uint8_t info = 0) {
     return dedupWindowMs(FALLBACK, dc, info, nullptr);
 }
 
-// Message 版（Parser が実際に使う経路）
-uint32_t windowViaMessage(uint8_t dc, uint8_t info, Mt43Data::ActiveType type) {
+// Message 版（Parser が実際に使う経路）。津波を無効にすると呼び出しが消えるため maybe_unused。
+[[maybe_unused]] uint32_t windowViaMessage(uint8_t dc, uint8_t info, Mt43Data::ActiveType type) {
     Message m{};
     m.svid = 186;
     m.payload_type = MsgPayloadType::Mt43;
@@ -67,7 +67,9 @@ TEST_CASE("dedup window: unknown category falls back") {
 
 TEST_CASE("dedup window: tsunami (dc=5) needs announcement and warning code 3-5") {
     // payload 無しでは警報コードが読めないので 10 時間側に倒れる
+#if AZARAC_ENABLE_TSUNAMI
     CHECK(windowNoPayload(5, 0) == 10UL * HR);
+#endif
 
 #if AZARAC_ENABLE_TSUNAMI
     TsunamiData t{};
@@ -89,7 +91,9 @@ TEST_CASE("dedup window: tsunami (dc=5) needs announcement and warning code 3-5"
 }
 
 TEST_CASE("dedup window: weather (dc=10) needs Ar=1 and a special Ww") {
+#if AZARAC_ENABLE_WEATHER
     CHECK(windowNoPayload(10, 0) == 3UL * HR);
+#endif
 
 #if AZARAC_ENABLE_WEATHER
     WeatherData w{};
@@ -119,7 +123,9 @@ TEST_CASE("dedup window: weather (dc=10) needs Ar=1 and a special Ww") {
 }
 
 TEST_CASE("dedup window: flood (dc=11) needs Lv 2-4 and no cancellation") {
+#if AZARAC_ENABLE_FLOOD
     CHECK(windowNoPayload(11, 0) == 3UL * HR);
+#endif
 
 #if AZARAC_ENABLE_FLOOD
     FloodData f{};
@@ -144,7 +150,9 @@ TEST_CASE("dedup window: flood (dc=11) needs Lv 2-4 and no cancellation") {
 }
 
 TEST_CASE("dedup window: marine (dc=14) needs a warning code") {
+#if AZARAC_ENABLE_MARINE
     CHECK(windowNoPayload(14, 0) == 3UL * HR);
+#endif
 
 #if AZARAC_ENABLE_MARINE
     MarineData mi{};
@@ -167,7 +175,9 @@ TEST_CASE("dedup window: marine (dc=14) needs a warning code") {
 
 TEST_CASE("dedup window: Message overload routes MT43 payload and MT44 A8 window") {
     // Mt43: active_type に応じた payload が渡る（津波は code 依存）
+#if AZARAC_ENABLE_TSUNAMI
     CHECK(windowViaMessage(5, 0, Mt43Data::ActiveType::Tsunami) == 10UL * HR);
+#endif
 #if AZARAC_ENABLE_TSUNAMI
     {
         Message m{};
@@ -183,7 +193,9 @@ TEST_CASE("dedup window: Message overload routes MT43 payload and MT44 A8 window
     }
 #endif
     // Mt43 でも payload 未設定の型は nullptr 経由（クラッシュせず 10 時間）
+#if AZARAC_ENABLE_TSUNAMI
     CHECK(windowViaMessage(5, 0, Mt43Data::ActiveType::None) == 10UL * HR);
+#endif
     // Weather/Flood/Marine は payload を実際に埋めて条件分岐を通す（active_type だけでは payload が未設定で既定値が返り、条件の破壊を検出できない）。
 #if AZARAC_ENABLE_WEATHER
     {   // Weather: payload を実際に埋め、条件成立で DAY に伸びることを確認
