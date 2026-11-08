@@ -214,7 +214,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   1 ms 後退で抑圧が続くこと、大きな後退の後に新しい基準で窓が満了すること（旧高値へ丸めて凍結しないこと）を `test_parser_clock.cpp` に追加した。
 - **`Parser::_last_now_ms` が dedup/Nankai 無効でも 8 B 残っていた**: epoch guard の `#if` と同じ条件でメンバを囲み、`reset()` の初期化も揃えた。
 - **カテゴリ無効時に `examples/filter_by_category` がコンパイルできなかった**: `SeismicData` / `TsunamiData` / `TyphoonData` の利用が `AZARAC_ENABLE_*` でガードされておらず、AVR preset（TYPHOON=0）の Mega と全カテゴリ無効の Arduino Zero で CI が赤になっていた。各 case を型と同じマクロで囲んだ。
-- **Codacy の新規指摘 2 件**: `test_decoder_dcx.cpp` の `memcpy` 4 箇所を `std::copy_n(bits, sizeof(frame.bits), frame.bits)` に置き換え（コピー長を宛先サイズから取る）、`test/scripts/*.py` の shebang 付き 5 本に実行ビット（100755）を付与した。
+- **Codacy の新規指摘 2 件**: `test_decoder_dcx.cpp` の `memcpy` 4 箇所を `std::copy_n(bits, sizeof(frame.bits), frame.bits)` に置き換え（コピー長を宛先サイズから取る）、新規スクリプト `hash_nankai_vectors.py` の shebang を削除した（CI は `python <path>` で起動し、Codacy は git の実行ビットを見ないため）。
 - **`compactText()` 後の `getTextLength()` がページ割り付けを読んでいた**: `compactText()` は受信済みページを `aggregated_text` の先頭へ詰めるが、`received_bitmap` と `total_pages` は受信済みのままなので、`getTextLength()` が `p * TEXT_PER_PAGE` の位置からページ長を足し、ページ境界をまたいだ本文を誤って読んでいた（`getNankaiBuffer()` 経由の長さが `aggregated_len` と一致しない）。
   `compacted` フラグを追加し、`compactText()` 後は先頭からの連続文字列として長さを返す。
   `clearAll()` でフラグを戻すため、バッファ再利用後の再受信は従来のページ経路に戻る。

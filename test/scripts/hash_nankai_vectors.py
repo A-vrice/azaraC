@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """nankai_vectors.json の決まったフィールドの SHA-256 を管理する。
 
 params.timestamp は azarashi の生成時刻で毎回変わるため対象外。
