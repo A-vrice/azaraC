@@ -76,15 +76,18 @@ int main() {
     expect_len(azarac_utf8_trim_len("\xFF", 1), 0, "invalid lead byte dropped");
 
     // バッファ 64 B の打ち切り: 62 'a' + あ(3 B) = 65 B は 63 B で切れ、UTF-8 境界の 62 B に丸まる。
+    // 2 本目の断片は空。azarac_pgm_len は AZARAC_FLASH_BUF_SIZE - 1 まで走査し得るので、cppcheck が
+    // 実体サイズ（"" は 1 B）と走査上限を比較して arrayIndexOutOfBoundsCond を出さないよう、上限より大きい実体を渡す。
+    static const char kNone[1024] = {};
     std::string a(62, 'a');
     a += "\xE3\x81\x82";
-    expect_fill(azarac_pgm_join_z(a.c_str(), ""), 62, 'a', "join_z truncation");
-    expect_utf8_complete(azarac_pgm_join_z(a.c_str(), ""), "join_z output");
+    expect_fill(azarac_pgm_join_z(a.c_str(), kNone), 62, 'a', "join_z truncation");
+    expect_utf8_complete(azarac_pgm_join_z(a.c_str(), kNone), "join_z output");
 
     // 境界にちょうど収まる 63 B は切り捨てない。
     std::string b(63, 'b');
     b += "\xE3\x81\x82";
-    expect_fill(azarac_pgm_join_z(b.c_str(), ""), 63, 'b', "exact boundary kept");
+    expect_fill(azarac_pgm_join_z(b.c_str(), kNone), 63, 'b', "exact boundary kept");
 
     if (failures != 0) {
         std::printf("%d failure(s)\n", failures);
