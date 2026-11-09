@@ -84,6 +84,12 @@ jobs:
       - name: AVR ABI layout (Nankai/dedup)
         run: make -C test avr-layout
 
+      - name: NMEA accept policy (default / strict SVID / padding)
+        run: make -C test nmea-policy
+
+      - name: Flash label UTF-8 truncation
+        run: make -C test utf8-trim
+
       - name: AVR-style stub build (PROGMEM, 16-bit int)
         run: make -C test pgm-stub
 
@@ -524,6 +530,7 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - host-test
+      - sanitizer
       - fixture-drift
       - fuzz-test
       - arduino-lint
@@ -573,6 +580,7 @@ jobs:
           |-----|--------|
           EOF
           echo "| host-test | ${{ needs.host-test.result }} |" >> comment.md
+          echo "| sanitizer | ${{ needs.sanitizer.result }} |" >> comment.md
           echo "| fixture-drift | ${{ needs.fixture-drift.result }} |" >> comment.md
           echo "| fuzz-test | ${{ needs.fuzz-test.result }} |" >> comment.md
           echo "| arduino-lint | ${{ needs.arduino-lint.result }} |" >> comment.md

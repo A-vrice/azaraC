@@ -531,7 +531,7 @@ AVR プリセットは EEW・震源が既定で 0 なので `sizeof(Mt43Data)` �
 | `AZARAC_ENABLE_DEDUP` | 1 | 0 で重複排除を無効化する。`DedupFilter` が状態を持たず常に「新規」を返し、`Parser` から `AZARAC_DEDUP_SLOTS × 8 B`（既定 4 KB / AVR 512 B）が消える。同一情報の再放送もすべて受け取りたいロガー・冗長系・検証機向け。ただし Nankai のページビットマップによる同一ページの抑制は残る |
 | `AZARAC_DEDUP_SLOTS` | 512（AVR: 64） | 重複排除テーブルのスロット数。`AZARAC_DEDUP_WAYS` で割り切れ、商が 2 の冪であること。1 スロット 8 B |
 | `AZARAC_DEDUP_WAYS` | 8 | 1 セットあたりの連想度 |
-| `AZARAC_NMEA_STRICT_SVID` | 0 | `$QZQSM` の Satellite ID 検証。0=00–63 を受理（実機互換）/ 1=53–63（PRN181–191）/ 2=仕様表の 55/56/57/58/61 のみ |
+| `AZARAC_NMEA_STRICT_SVID` | 0 | `$QZQSM` の Satellite ID 検証。0=00–63 を受理（実機互換）/ 1=53–63（PRN181–191）/ 2=仕様表の 55/56/57/58/61 のみ。0–2 以外はその場で `#error` |
 | `AZARAC_NMEA_REJECT_NONZERO_PADDING` | 0 | 1 でフレーム bit 250–255（仕様上 `00`）が非 0 の NMEA 電文を拒否する。既定はマスクして受理（CRC 被覆域外のため、警報を落とさない方を優先） |
 | `AZARAC_KEY_BUF_SIZE` | 36 | AVR で JSON のキーと固定値リテラルを Flash から書き出すときのスタック上の一時バッファのバイト数（どちらも `AZARAC_KEY("...")` で包む。値は `wf_s` の `JsonKey` オーバーロードが受ける）。最長はキーの35B（`a17_type_of_specific_settings_label`）、値は20B（`unsupported_category`）で、`JsonKey` の生成時に `static_assert` が収まらないリテラルをコンパイルエラーにする。非AVRでは使われない |
 

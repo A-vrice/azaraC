@@ -35,9 +35,9 @@ bool Parser::feed(uint8_t byte, Message& out, uint32_t report_unix) {
 bool Parser::handleFrame(internal::Frame& frame, Message& out, uint32_t report_unix) {
     if (!_decoder.decode(frame, out, report_unix)) {
         // 復号に失敗したフレームで valid だけ立った中途半端な Message を残さない。
-        // decodeQzqsm() は valid=true を設定した後に oob_ で false を返す経路があるため、
-        // ここで落とす。CRC 失敗時は Decoder が svid も 0 に戻す（成功時だけ frame の svid が残る）。
-        // その他の false では out の内容は未定義なので、呼び出し側は読まないこと。
+        // decodeQzqsm() は valid=true を設定した後に oob_ で false を返す経路があるため、ここで落とす。
+        // CRC 失敗時は Decoder が svid も 0 に戻すが、プリアンブル不一致や未知 MT の false では
+        // frame 由来の svid が残る。契約どおり、呼び出し側は false のとき out を読まないこと。
         out.valid = false;
         return false;
     }
@@ -92,9 +92,8 @@ bool Parser::postDecodeAt(const Message& decoded, Message& out, uint32_t identit
             // out が decoded と同一でも安全: Complete のとき processNankaiAggregation が上書きするのは
             // is_aggregated / aggregated_* / truncated / page / total_page だけ。
             // 直後に鍵として読む info_code と report_* は不変。
-            internal::NankaiPageBuffer* completed = nullptr;
             const internal::NankaiAggregateResult aggregate = processNankaiAggregation(
-                decoded, out, mt43, now_ms64, &completed);
+                decoded, out, mt43, now_ms64);
             if (aggregate == internal::NankaiAggregateResult::Rejected ||
                 aggregate == internal::NankaiAggregateResult::NotComplete) {
                 out.clear();
@@ -104,7 +103,7 @@ bool Parser::postDecodeAt(const Message& decoded, Message& out, uint32_t identit
             // 同一性は事象そのもの（info_code + 情報種別 + Rc + 報告時刻）。
             // ページ集合を完成させた電文は到着順で変わるため、その crc24 を鍵にすると同じ事象が再送のたびに別情報として通知される。
             // 情報種別を含めるのは同一 info_code + 同一報告時刻の発表と取消を別扱いするため（NankaiPageKey 参照）。
-            // Rc を含めるのは訓練/試験が実警報を抑止・混在させないため。
+            // Rc を含めるのは訓練/試験（7）が実警報（2）を抑止・混在させないため。
             const internal::DedupKey key = internal::dedupEventKey(internal::dedupEventToken(
                 nankai->info_code, mt43->information_type, nankai->report_month, nankai->report_day,
                 nankai->report_hour, nankai->report_minute, mt43->report_classification));
@@ -136,10 +135,8 @@ bool Parser::postDecodeAt(const Message& decoded, Message& out, uint32_t identit
 
 #if AZARAC_ENABLE_NANKAI
 internal::NankaiAggregateResult Parser::processNankaiAggregation(
-    const Message& decoded, Message& out, const Mt43Data* d, uint64_t current_ms,
-    internal::NankaiPageBuffer** completed) {
+    const Message& decoded, Message& out, const Mt43Data* d, uint64_t current_ms) {
 
-    if (completed) *completed = nullptr;
     const NankaiData* nankai = d->getNankai();
     if (!nankai) return internal::NankaiAggregateResult::Rejected;
 
@@ -194,7 +191,6 @@ internal::NankaiAggregateResult Parser::processNankaiAggregation(
             }
         }
     }
-    if (completed) *completed = buffer;
     return internal::NankaiAggregateResult::Complete;
 }
 #endif

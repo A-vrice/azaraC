@@ -175,6 +175,9 @@
 #ifndef AZARAC_NMEA_STRICT_SVID
 #define AZARAC_NMEA_STRICT_SVID 0
 #endif
+#if AZARAC_NMEA_STRICT_SVID < 0 || AZARAC_NMEA_STRICT_SVID > 2
+#error "AZARAC_NMEA_STRICT_SVID must be 0 (00-63), 1 (53-63), or 2 (55/56/57/58/61)"
+#endif
 
 // 250 bit 以降（フレーム bit 250-255）が非 0 の NMEA 電文を拒否する。
 // 仕様は 250 bit の後ろに "00" を付けると定めるが、この 2 bit は CRC 被覆域（bit 0..225）の外で、

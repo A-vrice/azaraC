@@ -81,8 +81,7 @@ private:
     // Nankai のページ集約。Complete のときだけ out を出力用に設定する。
     // DuplicateComplete は完成済みイベントの再送で、呼び出し側が dedup 履歴だけ更新する。
     internal::NankaiAggregateResult processNankaiAggregation(
-        const Message& decoded, Message& out, const Mt43Data* d, uint64_t current_ms,
-        internal::NankaiPageBuffer** completed);
+        const Message& decoded, Message& out, const Mt43Data* d, uint64_t current_ms);
 #endif
 };
 

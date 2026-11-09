@@ -81,11 +81,12 @@ make -C test run
 make -C test run MINGW64_BIN=C:\mingw64\bin
 ```
 
-同じ `test/*.o` を共有するターゲット同士の同時実行は `test/scripts/with-make-lock.sh` が直列化し、`bench` と `test-time-irq` も含みます。
+同じ `test/*.o` や `test/` 直下の成果物を共有するターゲット同士の同時実行は `test/scripts/with-make-lock.sh` が直列化し、`bench` / `test-time-irq` / `avr-layout` / `nmea-policy` / `utf8-trim` も含みます。
 別の make が実行中なら exit 2 で止まるので、終わるまで待ってください（ロックは終了時に自動で解放されます）。
 ロックだけが残るのは SIGKILL などで trap を実行できなかった場合だけなので、実行中の make が無いことを確認できたときだけ `test/.make-lock` を削除してください。
 意図的にロックを迂回する場合は `make -C test AZARAC_LOCK_HELD=1 run` を使います。
 `run-lang-defaults` と `test-no-alloc` は複数行レシピのため Windows では未検証です（Linux CI で実行）。
+`nmea-policy` と `utf8-trim` も複数行レシピです。Windows の MinGW 環境で 3 構成 / 1 構成とも `ok` を実測済みで、CI の `host-test` にもステップを追加した。
 
 ### テスト結果
 
@@ -123,7 +124,9 @@ make -C test fuzz FUZZ_ITERATIONS=100000
 | `make -C test test-time-irq` | `ARDUINO=1` + `__AVR__` + スタブ `avr/io.h` で `internal::getMillis()` の割り込み状態保存・復元をホスト検証。AVR 分岐のみを対象とし、ESP32（Xtensa / RISC-V）では `noInterrupts()`/`interrupts()` が呼び出し側の状態を保存しないため、クリティカルセクション/ISR から呼ばないこと（既知の制約） |
 | `make -C test run-small-pages` | `AZARAC_NANKAI_MAX_PAGES=8` で全体を再ビルドし、ページ打ち切り経路を検証（既定 63 では打ち切りが発生せず該当テストが `#if` で除外されるため） |
 | `make -C test run-dedup-off` | `AZARAC_ENABLE_DEDUP=0` で全テストを再ビルド・実行し、dedup 無効構成でもテストがコンパイル・動作することを検証（終了時に `clean`） |
-| `make -C test avr-layout` | 実 avr-g++ で `NankaiPageKey`/`NankaiPageBuffer`/`DedupFilter` の ABI サイズと `aggregated_text` オフセットを検証（63ページと4ページの2構成、`-fsyntax-only`） |
+| `make -C test avr-layout` | 実 avr-g++ で `NankaiPageKey`/`NankaiPageBuffer`/`DedupFilter`/`Message` の ABI サイズと `aggregated_text` オフセットを検証（63ページ・4ページ・DCX/CAMF 有効の3構成、`-fsyntax-only`。`Message` は 84 B / DCX 有効 199 B） |
+| `make -C test nmea-policy` | `AZARAC_NMEA_STRICT_SVID` / `AZARAC_NMEA_REJECT_NONZERO_PADDING` の受理表を、既定・`STRICT_SVID=1`・`STRICT_SVID=2` + パディング拒否の3構成でビルド・実行して assert（`test/tools/nmea_policy_probe.cpp`）。マクロで分岐が消えるため `.o` は共有しない |
+| `make -C test utf8-trim` | `AZARAC_FLASH_BUF_SIZE=64` で `azarac_utf8_trim_len` / `azarac_pgm_join_z` の打ち切りと UTF-8 境界の丸めを assert（`test/tools/utf8_trim_probe.cpp`）。既定 800 B では最長ラベル 769 B に届かず切り詰め経路が踏まれない |
 | `make -C test run-lto` | `-O2 -flto -Werror=lto-type-mismatch -Werror=odr` で全体を再ビルド・実行し、リンク時最適化での型不一致・ODR 違反・インライン後 codegen の退行を検証（終了時に `clean`） |
 | `make -C test decode` | decode_to_jsonのCLIビルド（azarashi 比較用） |
 | `make -C test dedup-realday` | 実日の `.l1s`（`realdata/`）に対する重複判定の再現計測。フレーム数・distinct・生存ピーク・再通知/取りこぼしを METRIC 行で出す。`REALDAY_CAT<n>_*` はカテゴリ別の内訳（`MISSED`=取りこぼし、`FALSE_RE`=再通知）、`REALDAY_UNALIGNED` は非整列フレーム数。`REALDAY_INPUT` で入力、`CXXFLAGS_EXTRA="-DAZARAC_DEDUP_SLOTS=…"` + `-B` で容量を変えて反復（**`CXXFLAGS_EXTRA` は依存関係に載らないため、スイープ後は `make -C test clean`** で残った `.o` を消す） |

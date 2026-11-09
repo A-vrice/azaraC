@@ -128,7 +128,8 @@ VPATH = ../src:../src/decoder:../src/framer:../src/json:../src/internal
 LOCKABLE  := all run run-small-pages run-dedup-off run-lto run-lang-defaults clean \
              test-no-alloc pgm-stub macro fuzz decode dedup-realday \
              bench bench-dedup bench-decode test-time-irq test-macro-compile test-macro-sizes \
-             compare-realdata coverage check check-xml check-strict-compile
+             compare-realdata coverage check check-xml check-strict-compile \
+             avr-layout nmea-policy utf8-trim
 USER_GOALS := $(if $(MAKECMDGOALS),$(MAKECMDGOALS),all)
 # 「ロック未保持」かつ「ユーザーが直接 LOCKABLE な目標を指定した」場合のみラップする。
 NEED_LOCK := $(if $(AZARAC_LOCK_HELD),,$(filter $(LOCKABLE),$(USER_GOALS)))
@@ -143,7 +144,7 @@ endif
 
 ifeq ($(NEED_LOCK),)
 
-.PHONY: all clean run run-small-pages run-dedup-off run-lto run-lang-defaults fuzz decode dedup-realday bench bench-dedup bench-decode compare-realdata check check-xml check-strict-compile coverage test-no-alloc pgm-stub test-time-irq avr-layout
+.PHONY: all clean run run-small-pages run-dedup-off run-lto run-lang-defaults fuzz decode dedup-realday bench bench-dedup bench-decode compare-realdata check check-xml check-strict-compile coverage test-no-alloc pgm-stub test-time-irq avr-layout nmea-policy utf8-trim
 
 all: $(TEST_BIN)
 
@@ -260,6 +261,24 @@ avr-layout:
 		-DAZARAC_ENABLE_NANKAI=1 -DAZARAC_NANKAI_MAX_PAGES=63 tools/avr_layout_probe.cpp
 	avr-g++ -std=gnu++17 -Os -mmcu=atmega328p -fsyntax-only -I../src \
 		-DAZARAC_ENABLE_NANKAI=1 -DAZARAC_NANKAI_MAX_PAGES=4 tools/avr_layout_probe.cpp
+	avr-g++ -std=gnu++17 -Os -mmcu=atmega328p -fsyntax-only -I../src \
+		-DAZARAC_ENABLE_NANKAI=1 -DAZARAC_NANKAI_MAX_PAGES=63 -DAZARAC_ENABLE_DCX_CAMF=1 tools/avr_layout_probe.cpp
+
+# --- 新規コンパイル時ポリシーの実行検証 ---
+# マクロで分岐が消えるため、構成ごとにビルドし直す（.o を共有せず直接リンクする）。
+NMEA_PROBE_BIN = nmea_policy_probe
+UTF8_PROBE_BIN = utf8_trim_probe
+
+nmea-policy:
+	$(CXX) $(CXXFLAGS) -o $(NMEA_PROBE_BIN) tools/nmea_policy_probe.cpp ../src/framer/NmeaFramer.cpp && ./$(NMEA_PROBE_BIN); s0=$$?; \
+	$(CXX) $(CXXFLAGS) -DAZARAC_NMEA_STRICT_SVID=1 -o $(NMEA_PROBE_BIN) tools/nmea_policy_probe.cpp ../src/framer/NmeaFramer.cpp && ./$(NMEA_PROBE_BIN); s1=$$?; \
+	$(CXX) $(CXXFLAGS) -DAZARAC_NMEA_STRICT_SVID=2 -DAZARAC_NMEA_REJECT_NONZERO_PADDING=1 -o $(NMEA_PROBE_BIN) tools/nmea_policy_probe.cpp ../src/framer/NmeaFramer.cpp && ./$(NMEA_PROBE_BIN); s2=$$?; \
+	$(RM) $(NMEA_PROBE_BIN) $(NMEA_PROBE_BIN).exe $(NMEA_PROBE_BIN).d; \
+	[ $$s0 -eq 0 ] && [ $$s1 -eq 0 ] && [ $$s2 -eq 0 ]
+
+utf8-trim:
+	$(CXX) $(CXXFLAGS) -DAZARAC_FLASH_BUF_SIZE=64 -o $(UTF8_PROBE_BIN) tools/utf8_trim_probe.cpp && ./$(UTF8_PROBE_BIN); s=$$?; \
+	$(RM) $(UTF8_PROBE_BIN) $(UTF8_PROBE_BIN).exe $(UTF8_PROBE_BIN).d; exit $$s
 
 # --- Static Analysis ---
 # 静的解析 (時間をかけた厳格なチェック)
@@ -478,7 +497,7 @@ endif
 -include $(TEST_OBJS:.o=.d) $(LIB_OBJS:.o=.d) $(FUZZ_OBJS:.o=.d) $(DECODE_OBJS:.o=.d) $(DEDUP_REALDAY_OBJS:.o=.d)
 
 clean:
-	-@$(RM) *.o *.exe *.d *.gcno *.gcda cppcheck_report.xml cppcheck_stderr.log coverage.xml coverage_report.json macro_sizes.txt time_irq_test
+	-@$(RM) *.o *.exe *.d *.gcno *.gcda cppcheck_report.xml cppcheck_stderr.log coverage.xml coverage_report.json macro_sizes.txt time_irq_test $(NMEA_PROBE_BIN) $(UTF8_PROBE_BIN)
 	-@$(RM) $(NOALLOC_BIN)
 	-@rm -rf $(NOALLOC_TMP)
 	-@$(RM) core/*.o core/*.d core/*.gcno core/*.gcda

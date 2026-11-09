@@ -23,12 +23,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `AZARAC_ENABLE_DEDUP=0` を追加。`DedupFilter` が状態を持たず常に「新規」を返し、`Parser` から `AZARAC_DEDUP_SLOTS × 8 B`（既定 4 KB / AVR 512 B）が消える。`test-macro-compile` に `-DAZARAC_ENABLE_DEDUP=0` を加えて常時コンパイル検証する。
   - `AZARAC_NMEA_STRICT_SVID`（0=00–63 / 1=53–63 / 2=仕様表の 55/56/57/58/61）と `AZARAC_NMEA_REJECT_NONZERO_PADDING` を追加。既定は実機互換と警報の可用性を優先し、従来どおり受理する。
   - `AZARAC_FLASH_BUF_SIZE` に 64 未満を拒否する `static_assert` を追加し、ラベルの切り詰めを UTF-8 境界へ丸めるようにした（`azarac_utf8_trim_len`）。
+  - 上の 3 つの政策（`AZARAC_NMEA_STRICT_SVID` / `AZARAC_NMEA_REJECT_NONZERO_PADDING` / UTF-8 切り詰め）はどのビルドでも分岐が生きるとは限らないため、`make -C test nmea-policy`（既定 / `STRICT_SVID=1` / `STRICT_SVID=2` + パディング拒否の 3 構成で受理表を assert）、`make -C test utf8-trim`（`AZARAC_FLASH_BUF_SIZE=64` で切り詰めを assert）、`make -C test avr-layout`（DCX 有効構成を追加）と `test_message_struct.cpp` のサイズ `static_assert`（ホスト 240 / 104 B、AVR 84 / 199 B）で実行時に固定した。`AZARAC_NMEA_STRICT_SVID` は 0-2 の外を `#error` にする。
   - ファズの `invalid_crc` / `invalid_preamble` を実加算し、プリアンブルとデータ部の破損を決定的に混ぜた。両方が 0 ならファズを失敗させる。`Framer rejects` も追加。
   - `Parser::handleFrame` が復号失敗時に `valid` を落とすようにした（`decodeQzqsm()` が `valid=true` を設定した後に `oob_` で false を返す経路）。
   - `azaraC.h` の `abs`/`min`/`max` undef を `push_macro`/`pop_macro` で往復し、利用者のスケッチから恒久的に消さないようにした。
   - 生成定義ヘッダに準拠仕様（`IS-QZSS-DCR-017 / IS-QZSS-DCX-004 Rev.004 / EWSS CAMF Issue 1.2`）を記録し、`gen_definitions.py` のテンプレートと 139 ヘッダを揃えた。
   - `update-definitions.yml` は PR 作成前に `make -C test run` と `make -C test bench` を実行する（既定 `GITHUB_TOKEN` の PR は push で CI が起動せず、`pull_request` も承認待ちになるため）。
-  - CI に ASan/UBSan ジョブを追加（段階導入のため `continue-on-error`）。コアヘッダの chrono パッチは対象 0 件なら warning に留める（コア側が直った時点で全 PR を落とさない）。
+  - CI に ASan/UBSan ジョブを追加（ゲート。`summary` の `needs` に含め、結果を PR コメントの表に出す）。コアヘッダの chrono パッチは対象 0 件なら warning に留める（コア側が直った時点で全 PR を落とさない）。
   - **全 payload 型をカテゴリマクロでガード（M7）**: `SeismicData` / `TsunamiData` / `NwPacTsunamiData` / `VolcanoData` / `AshFallData` / `WeatherData` / `FloodData` / `TyphoonData` / `MarineData` と対応する entry 型・enum 値・`getXxx()`・`typeFor<>` を `AZARAC_ENABLE_*` でガードし、`DedupWindow.h` のカテゴリ別窓計算も同じガードで囲んだ。
     カテゴリを無効にすると RAM 枠が連動して縮む（ホスト実測: 津波系無効で `storage_size_` 88→56 B、全無効で 1 B。`storage_` が空配列にならないよう 1 B に切り上げ）。
     `DedupWindow.h` の payload 引数は全対象カテゴリ無効時に未使用になるため `(void)payload;` を追加。

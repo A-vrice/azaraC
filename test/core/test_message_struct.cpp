@@ -19,6 +19,17 @@ static_assert(alignof(azaraC::Mt43Data) <= alignof(uint64_t),
 static_assert(alignof(azaraC::Mt44Data) <= alignof(uint64_t),
               "Mt44Data over-aligns the alignas(uint64_t) payload buffer");
 
+// README / docs/architecture.md / docs/api-reference.md が引用する既定構成のサイズ。
+// 全カテゴリ + DCX が有効な 64 bit ホストでのみ固定する（カテゴリを無効にすると payload 枠が縮む）。
+#if !defined(__AVR__) && AZARAC_ENABLE_DCX_CAMF && \
+    AZARAC_ENABLE_EEW && AZARAC_ENABLE_HYPOCENTER && AZARAC_ENABLE_SEISMIC && \
+    AZARAC_ENABLE_NANKAI && AZARAC_ENABLE_TSUNAMI && AZARAC_ENABLE_NW_PAC_TSUNAMI && \
+    AZARAC_ENABLE_VOLCANO && AZARAC_ENABLE_ASH_FALL && AZARAC_ENABLE_WEATHER && \
+    AZARAC_ENABLE_FLOOD && AZARAC_ENABLE_TYPHOON && AZARAC_ENABLE_MARINE
+static_assert(sizeof(void*) != 8 || sizeof(azaraC::Mt43Data) == 104, "host Mt43Data size drift");
+static_assert(sizeof(void*) != 8 || sizeof(azaraC::Message) == 240, "host Message size drift");
+#endif
+
 // Message構造体のテスト
 
 TEST_CASE("Message: デフォルトコンストラクタ") {
@@ -64,7 +75,6 @@ TEST_CASE("Message: MT=44ペイロードの初期化とアクセス") {
 }
 #endif // AZARAC_ENABLE_DCX_CAMF
 
-#if (AZARAC_ENABLE_SEISMIC)
 TEST_CASE("Message: コピーコンストラクタ") {
     Message msg1;
     msg1.svid = 184;
@@ -74,9 +84,10 @@ TEST_CASE("Message: コピーコンストラクタ") {
     msg1.initPayload<Mt43Data>();
     Mt43Data* src = msg1.getMt43();
     REQUIRE(src != nullptr);
-    src->initAs<SeismicData>();
-    src->getSeismic()->count = 1;
-    src->getSeismic()->entries[0].intensity_code = 4;
+    // カテゴリ無効構成でも走るよう、payload の型ではなく全構成に存在するヘッダフィールドで値を置く。
+    src->report_classification = 1;
+    src->disaster_category = 3;
+    src->information_type = 0;
 
     Message msg2(msg1);
     CHECK(msg2.svid == 184);
@@ -85,12 +96,27 @@ TEST_CASE("Message: コピーコンストラクタ") {
     CHECK(msg2.valid == true);
     CHECK(msg2.payload_type == MsgPayloadType::Mt43);
     REQUIRE(msg2.getMt43() != nullptr);
-    const SeismicData* copied = msg2.getMt43()->getSeismic();
+    CHECK(msg2.getMt43()->report_classification == 1);
+    CHECK(msg2.getMt43()->disaster_category == 3);
+    CHECK(msg2.getMt43()->active_type == Mt43Data::ActiveType::None);
+
+#if AZARAC_ENABLE_SEISMIC
+    // 上の 3 つは storage_ の外のヘッダなので、payload のバイト列が Message のコピーで運ばれることは別に確かめる。
+    // カテゴリ型を使うため SEISMIC 有効構成だけに置く（SEISMIC=0 ではヘッダ側の検証だけが走る）。
+    Message msg3;
+    msg3.initPayload<Mt43Data>();
+    msg3.getMt43()->initAs<SeismicData>();
+    msg3.getMt43()->getSeismic()->count = 1;
+    msg3.getMt43()->getSeismic()->entries[0].intensity_code = 4;
+
+    Message msg4(msg3);
+    REQUIRE(msg4.getMt43() != nullptr);
+    const SeismicData* copied = msg4.getMt43()->getSeismic();
     REQUIRE(copied != nullptr);
     CHECK(copied->count == 1);
     CHECK(copied->entries[0].intensity_code == 4);
+#endif
 }
-#endif // AZARAC_ENABLE_SEISMIC
 
 TEST_CASE("Message: コピー代入演算子") {
     Message msg1;
