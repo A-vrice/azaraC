@@ -179,6 +179,9 @@ inline void azarac_copy_string(char* dst, azarac_pgm_ptr src, size_t n) {
 }
 inline size_t azarac_pgm_len(azarac_pgm_ptr src) {
     size_t n = 0;
+    // NUL を読んだ時点で止まるので、走査上限より短い実体でも範囲外は読まない。
+    // cppcheck は実体サイズと上限を比較して誤検知するため抑制する。
+    // cppcheck-suppress arrayIndexOutOfBoundsCond
     while (n < AZARAC_FLASH_BUF_SIZE - 1 && src[n] != '\0') ++n;
     return n;
 }
