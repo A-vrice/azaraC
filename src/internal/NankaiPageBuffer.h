@@ -371,14 +371,15 @@ private:
         return -1;
     }
 
-    // LRU 追い出し: 最も古いバッファから（符号なし減算でラップに強い）
+    // 追い出し: 最終更新が最も古いバッファを選ぶ（同値なら先頭スロット。真の LRU ではない）。
+    // 呼び出し元は findEmptyBuffer() < 0 のときだけ呼ぶので、空バッファは存在しない（age 0 分岐は不要）。
+    // 符号なし減算でラップに強い。expireBuffers() が毎回 60s 超を回収するので age は常に 60s 以下。
     int8_t findOldestBuffer(uint64_t current_ms) {
         uint32_t max_age = 0;
         int8_t oldest_idx = 0;
 
         for (uint8_t i = 0; i < MAX_BUFFERS; ++i) {
-            // 空バッファの age は 0（他に古いものが無い場合のみ選ばれる）
-            const uint32_t age = _buffers[i].isEmpty() ? 0 : (uint32_t)(current_ms - _buffers[i].last_update_ms);
+            const uint32_t age = (uint32_t)(current_ms - _buffers[i].last_update_ms);
             if (age > max_age) {
                 max_age = age;
                 oldest_idx = i;
