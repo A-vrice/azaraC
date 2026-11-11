@@ -364,7 +364,7 @@ static Phase phaseChurn(const Corpus& c) {
 
 // 集約後の Nankai は 1 情報なので、その identity はどのページが集合を完成させたかに依存してはならない（最後のページは到着順の産物）。Parser を通して挙動で測る:
 //   1) event A (27 pages, file order)      → 1 回通知
-//   2) event B (same pages, other event)   → 通知（AZARAC_NANKAI_BUFFERS=1 なので A のバッファは追い出される）
+//   2) event B (same pages, other event)   → 通知（別事象。BUFFERS>=2 なら A のバッファは残る）
 //   3) event A again, reversed page order  → 通知しない
 // step 3 が判定点: 完成フレームの CRC で識別していると A は別ページで完成し 2 度目が通知される。 1 = stable, 0 = unstable, -1 = fixture unusable.
 static int nankaiKeyStable(const std::vector<std::string>& pages, uint32_t& key_used) {

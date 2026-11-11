@@ -210,6 +210,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **南海トラフの訓練/実警報が同時進行すると互いに追い出し合っていた**: `NankaiPageKey` が Rc（訓練=7/実警報=2）を区別するため別バッファを要求するが、ホスト既定 `AZARAC_NANKAI_BUFFERS=1` では交互到着のたびに LRU 追い出しが起き、どちらも永久に集約できなかった。
+  ホスト既定を 2 に変更（`sizeof(Parser)` 5,464→6,624 B、`static_assert` 上限 5500→6700）。AVR preset は NANKAI 自体が無効で、有効化時の既定は 1 のまま。`findOldestBuffer` の到達しない空バッファ分岐を削除し、追い出しは「最古・同値は先頭スロット」（真の LRU ではない）であることをコメント明記。
+  `test_nankai_e2e.cpp` に完全交互到着で両事象が完成する回帰（BUFFERS>=2）と、BUFFERS=1 の限界を固定する回帰を追加。3 イベント以上の交互到着は依然未完成＝DoS 限界は docs に明記（60s タイムアウトがメモリ上限を保証）。
 - **南海トラフ集約テキストの不正 UTF-8 が JSON へ素通りしていた**: 衛星由来の生バイト（CRC 通過後の破損・非 UTF-8 ペイロード・ページ打ち切り時の末尾切断）が `text_utf8` に無検証で出力され、厳格な下流 JSON パーサが文書全体を拒否しうる状態だった（生バイトが JSON 文字列に入る経路はここ1箇所）。
   `writeStrUtf8` を追加し、UTF-8 として検証して不正シーケンスを U+FFFD に置換する（Python `errors="replace"` と同じ maximal subpart 規則）。出力は常に valid UTF-8。`AZARAC_ENABLE_NANKAI` ガード付きで AVR preset の Flash は不変。テーブルラベルは従来どおり `writeStr` を使い、全 JSON への per-byte コスト増を避ける。
   `test_json_utf8.cpp` に Python オラクル一致・全1/2バイト入力の出力妥当性網羅（約6.5万）・独立コードポイント検証器・JSON エスケープ併存・Nankai E2E を追加。AVR（atmega2560, NANKAI=1）コンパイル成功。
