@@ -5,6 +5,10 @@
 #include <WiFi.h>
 #include <time.h>
 
+#if !defined(ESP32)
+#error "with_sntp uses the ESP32 Arduino core (WiFi.h / configTime / Serial1)."
+#endif
+
 // Wi-Fi 設定を自分の環境に合わせて書き換えてください
 #ifndef WIFI_SSID
   #warning "Please set WIFI_SSID in with_sntp.ino"
