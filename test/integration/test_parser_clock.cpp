@@ -125,14 +125,37 @@ TEST_CASE("Parser clock: 2^32 gap resets stale dedup and Nankai state") {
     CHECK(feedAt(parser, event_a, out, 0, t0 + (1ULL << 32)));
 }
 
-TEST_CASE("Parser clock: normal 32-bit wrap keeps duplicate suppression") {
+TEST_CASE("Parser clock: 32-bit generation boundary resets history and re-notifies") {
     azaraC::Parser parser;
     Message out;
     const Message event_a = makeNankai(5, 1, 1, 2, "A", 1);
-    const uint64_t t0 = 0xFFFFFF00ULL;
+    const uint64_t t0 = 0xFFFFFF00ULL;   // 世代 0
 
     CHECK(feedAt(parser, event_a, out, 0, t0));
-    CHECK_FALSE(feedAt(parser, event_a, out, 0, (1ULL << 32) + 0x100));
+    // 2^32 ms 境界を跨ぐと経過が短くても世代が変わり、履歴を捨てて再通知する
+    // （古い last_seen が巻き戻って「最近」に見える偽重複による抑止を防ぐ）。
+    CHECK(feedAt(parser, event_a, out, 0, (1ULL << 32) + 0x100));   // 世代 1
+}
+
+TEST_CASE("Parser clock: generation boundary re-notifies even with 1 ms gap") {
+    azaraC::Parser parser;
+    Message out;
+    const Message event_a = makeNankai(9, 1, 1, 2, "A", 1);
+    CHECK(feedAt(parser, event_a, out, 0, 0xFFFFFFFFULL));      // 世代 0 の最終 ms
+    CHECK(feedAt(parser, event_a, out, 0, 0x100000000ULL));     // 世代 1 の先頭（gap 1 ms）
+}
+
+TEST_CASE("Parser clock: continuous operation across 49.7 days does not suppress stale event") {
+    // 事象 A 受信後、別事象 B の連続受信（各 gap < 2^32）で 49.7 日経過する。
+    // 旧実装は A の年齢が 2^32 で巻き戻って偽重複 → 抑止していた。世代 guard で再通知する。
+    azaraC::Parser parser;
+    Message out;
+    const Message event_a = makeNankai(10, 1, 1, 2, "A", 1);
+    const Message event_b = makeNankai(11, 1, 1, 2, "B", 1);
+    CHECK(feedAt(parser, event_a, out, 0, 1000));                 // 世代 0
+    CHECK(feedAt(parser, event_b, out, 0, (1ULL << 31)));         // 世代 0, gap < 2^32
+    CHECK(feedAt(parser, event_b, out, 0, (1ULL << 32) + 5000));  // 世代 1 へ（gap < 2^32）→ reset
+    CHECK(feedAt(parser, event_a, out, 0, (1ULL << 32) + 6000));  // A は再通知（抑止されない）
 }
 
 TEST_CASE("Parser clock: 1 ms rollback keeps duplicate suppression") {
