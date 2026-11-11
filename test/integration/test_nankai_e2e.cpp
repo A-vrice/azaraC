@@ -279,6 +279,49 @@ TEST_CASE("Nankai E2E: training and real pages do not share an aggregate buffer"
 }
 #endif
 
+#if AZARAC_NANKAI_BUFFERS >= 2
+TEST_CASE("Nankai E2E: training and real both complete when fully interleaved (BUFFERS>=2)") {
+    azaraC::Parser parser;
+    azaraC::Message msg;
+    uint8_t bits[32];
+    const uint8_t d1[] = {'D', '1'}, d2[] = {'D', '2'};
+    const uint8_t r1[] = {'R', '1'}, r2[] = {'R', '2'};
+    // 訓練(Rc=7)と実警報(Rc=2)を完全交互に到着させる。別バッファなので両方完成する。
+    buildNankaiPage(1, 2, 1, d1, sizeof(d1), bits, 6, 15, 12, 30, 0, 7);
+    CHECK_FALSE(feedAll(parser, msg, makeNmeaQzqsm(58, bits)));
+    buildNankaiPage(1, 2, 1, r1, sizeof(r1), bits, 6, 15, 12, 30, 0, 2);
+    CHECK_FALSE(feedAll(parser, msg, makeNmeaQzqsm(58, bits)));
+    buildNankaiPage(2, 2, 1, d2, sizeof(d2), bits, 6, 15, 12, 30, 0, 7);
+    REQUIRE(feedAll(parser, msg, makeNmeaQzqsm(58, bits)));   // 訓練が完成
+    CHECK(std::string(msg.getMt43()->getNankai()->aggregated_text_ptr,
+                      msg.getMt43()->getNankai()->aggregated_len) == "D1D2");
+    buildNankaiPage(2, 2, 1, r2, sizeof(r2), bits, 6, 15, 12, 30, 0, 2);
+    REQUIRE(feedAll(parser, msg, makeNmeaQzqsm(58, bits)));   // 実警報が完成
+    CHECK(std::string(msg.getMt43()->getNankai()->aggregated_text_ptr,
+                      msg.getMt43()->getNankai()->aggregated_len) == "R1R2");
+}
+#endif
+
+#if AZARAC_NANKAI_BUFFERS == 1
+TEST_CASE("Nankai E2E: BUFFERS=1 cannot track interleaved training and real (limitation)") {
+    // BUFFERS=1 では訓練と実警報が交互到着すると互いに追い出し合い、どちらも完成しない。
+    // RAM 制約下の既知の限界（ホスト既定は 2）。DoS 耐性を含め docs に明記している。
+    azaraC::Parser parser;
+    azaraC::Message msg;
+    uint8_t bits[32];
+    const uint8_t d1[] = {'D', '1'}, d2[] = {'D', '2'};
+    const uint8_t r1[] = {'R', '1'}, r2[] = {'R', '2'};
+    buildNankaiPage(1, 2, 1, d1, sizeof(d1), bits, 6, 15, 12, 30, 0, 7);
+    CHECK_FALSE(feedAll(parser, msg, makeNmeaQzqsm(58, bits)));
+    buildNankaiPage(1, 2, 1, r1, sizeof(r1), bits, 6, 15, 12, 30, 0, 2);
+    CHECK_FALSE(feedAll(parser, msg, makeNmeaQzqsm(58, bits)));
+    buildNankaiPage(2, 2, 1, d2, sizeof(d2), bits, 6, 15, 12, 30, 0, 7);
+    CHECK_FALSE(feedAll(parser, msg, makeNmeaQzqsm(58, bits)));
+    buildNankaiPage(2, 2, 1, r2, sizeof(r2), bits, 6, 15, 12, 30, 0, 2);
+    CHECK_FALSE(feedAll(parser, msg, makeNmeaQzqsm(58, bits)));
+}
+#endif
+
 TEST_CASE("Nankai E2E: getNankaiBuffer exposes an incomplete buffer") {
     azaraC::Parser parser;
     azaraC::Message msg;

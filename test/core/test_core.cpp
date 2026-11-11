@@ -838,7 +838,8 @@ TEST_CASE("Memory: sizeof guards for embedded targets") {
     CHECK(sizeof(Mt43Data) <= 240);
     CHECK(sizeof(Mt44Data) <= 420);
     // Parser = NankaiPageBufferManager（AZARAC_NANKAI_BUFFERS × sizeof(NankaiPageBuffer)）+ フレーマ・デコーダ・dedup
-    CHECK(sizeof(Parser) <= 5500);
+    // ホスト既定 BUFFERS=2（63 ページ 1,160 B × 2）で実測 6,624 B。
+    CHECK(sizeof(Parser) <= 6700);
 #else
     // アーキで sizeof が変わり得るので非 GCC / 組込みではスキップ
     INFO("sizeof guard skipped (non-GCC or ARDUINO target)");

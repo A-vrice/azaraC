@@ -208,12 +208,13 @@
 #endif
 
 // 南海トラフ前沿のページバッファ MAX_PAGES 63 は仕様の最大ページ数（Pn/Pm は 6 bit、1-63）なので、既定ではページ打ち切りが構造的に起きない（実観測の最大は 27）。
-// BUFFERS 1: 南海トラフは 1 電文として連続放送され、複数イベントが同時には進行しない。同時追跡する場合だけ増やす（RAM はバッファ数に比例）。
+// BUFFERS 2: 訓練（Rc=7）と実警報（Rc=2）は別事象として同時進行し得るため、ホスト既定は 2（1 だと交互到着で互いに追い出し合い両方未完成になる）。
+// RAM はバッファ数に比例（ホスト 63 ページで 1,160 B/個）。AVR preset は NANKAI 自体が無効で、有効化時の既定は 1（下方の AVR 分岐）。
 #ifndef AZARAC_NANKAI_MAX_PAGES
 #define AZARAC_NANKAI_MAX_PAGES 63
 #endif
 #ifndef AZARAC_NANKAI_BUFFERS
-#define AZARAC_NANKAI_BUFFERS 1
+#define AZARAC_NANKAI_BUFFERS 2
 #endif
 
 #if AZARAC_NANKAI_BUFFERS > 2 && defined(ARDUINO_AVR_UNO)
