@@ -210,6 +210,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`getMillis()` が TU ごとに別カウンタを持っていた**: `static inline`（内部リンケージ）のためヘッダを include した TU ごとに `s_last` が別実体になり、複数 TU から呼ぶと相互に矛盾する時刻を返す潜在問題があった（本番呼び出しは Parser.cpp のみで顕在化せず）。
+  `inline`（外部リンケージ）に変更し C++17 で `s_last` を単一実体化。`test_time_irq` に第2 TU（`test_time_irq_b.cpp`）を追加し、折返し後に別 TU から呼んでも同じ上位ビットを観測することを固定（static inline では失敗する）。
 - **南海トラフの訓練/実警報が同時進行すると互いに追い出し合っていた**: `NankaiPageKey` が Rc（訓練=7/実警報=2）を区別するため別バッファを要求するが、ホスト既定 `AZARAC_NANKAI_BUFFERS=1` では交互到着のたびに LRU 追い出しが起き、どちらも永久に集約できなかった。
   ホスト既定を 2 に変更（`sizeof(Parser)` 5,464→6,624 B、`static_assert` 上限 5500→6700）。AVR preset は NANKAI 自体が無効で、有効化時の既定は 1 のまま。`findOldestBuffer` の到達しない空バッファ分岐を削除し、追い出しは「最古・同値は先頭スロット」（真の LRU ではない）であることをコメント明記。
   `test_nankai_e2e.cpp` に完全交互到着で両事象が完成する回帰（BUFFERS>=2）と、BUFFERS=1 の限界を固定する回帰を追加。3 イベント以上の交互到着は依然未完成＝DoS 限界は docs に明記（60s タイムアウトがメモリ上限を保証）。
