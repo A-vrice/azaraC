@@ -66,6 +66,7 @@ TEST_SRCS = \
 	json/test_json.cpp \
 	json/test_json_dcx_b1b4.cpp \
 	json/test_json_wellformed.cpp \
+	json/test_json_utf8.cpp \
 	integration/test_decoder_dcx.cpp \
 	integration/test_parser.cpp \
 	integration/test_nankai.cpp \

@@ -210,6 +210,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **南海トラフ集約テキストの不正 UTF-8 が JSON へ素通りしていた**: 衛星由来の生バイト（CRC 通過後の破損・非 UTF-8 ペイロード・ページ打ち切り時の末尾切断）が `text_utf8` に無検証で出力され、厳格な下流 JSON パーサが文書全体を拒否しうる状態だった（生バイトが JSON 文字列に入る経路はここ1箇所）。
+  `writeStrUtf8` を追加し、UTF-8 として検証して不正シーケンスを U+FFFD に置換する（Python `errors="replace"` と同じ maximal subpart 規則）。出力は常に valid UTF-8。`AZARAC_ENABLE_NANKAI` ガード付きで AVR preset の Flash は不変。テーブルラベルは従来どおり `writeStr` を使い、全 JSON への per-byte コスト増を避ける。
+  `test_json_utf8.cpp` に Python オラクル一致・全1/2バイト入力の出力妥当性網羅（約6.5万）・独立コードポイント検証器・JSON エスケープ併存・Nankai E2E を追加。AVR（atmega2560, NANKAI=1）コンパイル成功。
 - **49.7 日連続運転で古い dedup 履歴が偽重複化し警報を抑止していた**: epoch guard が「呼び出し間隔 ≥ 2^32 ms」でしか発火せず、連続受信ではエントリの年齢が 2^32 ms（約 49.7 日）を超えて符号なし差分が小さく巻き戻り、古い履歴が「最近」に見えて新規警報を抑止していた。
   guard を `now_ms64` の上位 32 bit（世代）比較 `(now_ms64 >> 32) != (_last_now_ms >> 32)` に変更。世代境界を跨げば経過が短くても履歴を捨て、再通知に倒す（安全方向）。RAM 増分ゼロ・`DedupFilter::Entry` 8 B / `static_assert` 維持。`Dedup.cpp` の年齢差コメントも実態（世代内では 49.7 日未満で厳密）に修正。
   `test_parser_clock.cpp` の折返しテストを「世代境界で再通知」に意味反転し、1 ms gap での世代跨ぎ・49.7 日連続運転後の stale 事象再通知の回帰を追加。
