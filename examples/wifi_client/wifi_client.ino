@@ -18,6 +18,10 @@
 #include <azaraC.h>
 #include <WiFi.h>
 
+#if !defined(ESP32)
+#error "wifi_client uses the ESP32 Arduino core (WiFi.h / Serial1)."
+#endif
+
 #ifndef WIFI_SSID
   #define WIFI_SSID "YOUR_SSID"
 #endif
