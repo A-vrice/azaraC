@@ -38,9 +38,18 @@ static constexpr uint32_t kOutputTaskStackSize = 4096;
 static constexpr UBaseType_t kRxTaskPriority = 2;
 static constexpr UBaseType_t kOutputTaskPriority = 1;
 
-// ピン定義例 (ESP32-C3 DevKitM-1)。他の ESP32 系ではボードの配線に合わせて変更する。
+// ピン定義 (ボード別)。C3 DevKitM-1 は GPIO20/21、C6 は GPIO4/5（16/17 は UART0）、classic ESP32 は GPIO16/17（UART2 既定）。
+// S3 など他の ESP32 系はボードの配線に合わせて変更する。
+#if defined(ARDUINO_ESP32C3_DEV) || defined(CONFIG_IDF_TARGET_ESP32C3)
 #define RX_PIN 20
 #define TX_PIN 21
+#elif defined(CONFIG_IDF_TARGET_ESP32C6) || defined(ARDUINO_ESP32C6_DEV)
+#define RX_PIN 4
+#define TX_PIN 5
+#else
+#define RX_PIN 16
+#define TX_PIN 17
+#endif
 #define SERIAL_GNSS Serial1
 
 

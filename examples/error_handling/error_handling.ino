@@ -156,10 +156,16 @@ void setup() {
     uint32_t start = millis();
     while (!Serial && (millis() - start < 5000)) { delay(10); } // 5秒タイムアウト
 
-    #if defined(ESP32)
+    #if defined(ARDUINO_ESP32C3_DEV) || defined(CONFIG_IDF_TARGET_ESP32C3)
         Serial1.begin(9600, SERIAL_8N1, /*rx=*/20, /*tx=*/21);
+    #elif defined(CONFIG_IDF_TARGET_ESP32C6) || defined(ARDUINO_ESP32C6_DEV)
+        // ESP32-C6 は GPIO16/17 が UART0（Serial 出力）なので別ピンを使う
+        Serial1.begin(9600, SERIAL_8N1, /*rx=*/4, /*tx=*/5);
+    #elif defined(ESP32)
+        // classic ESP32 は GPIO16/17 が UART2 の既定。S3 などは配線に合わせて変更する
+        Serial1.begin(9600, SERIAL_8N1, /*rx=*/16, /*tx=*/17);
     #else
-        Serial1.begin(9600, SERIAL_8N1);
+        Serial1.begin(9600, SERIAL_8N1);   // Mega など Serial1 を持つ非 ESP32 ボードの既定ピン
     #endif
     Serial.println(F("[azaraC] error_handling ready"));
     Serial.println(F("Waiting for QZSS messages..."));
