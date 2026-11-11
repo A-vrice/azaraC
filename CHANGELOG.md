@@ -210,6 +210,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **津波/北西太平洋津波のリスト終端判定が Pl のみだった**: IS-QZSS-DCR-017 Table 4.1.2-21 / 4.1.2-26 は未使用エントリを Ta/Th/Pl すべて 0 と定めるが、Pl=0 だけで打ち切っていたため、Pl=0 かつ Ta/Th 非0の非準拠電文で後続エントリを取りこぼしていた（azarashi はエントリ全体で判定）。
+  津波は 26 bit・北西太平洋は 28 bit のエントリ全体の 0 で終端するよう修正。仕様準拠電文の出力は変わらない。`test_tsunami_list.cpp` に全0終端／Pl=0&Ta≠0 は終端しない／Pl≠0&Ta=Th=0 は含む、の回帰を追加した。
 - **J-Alert 市区町村コードリストの順序が送信順と逆だった**: `decodeCityCodeList` が ex9 を LSB 先頭で読んでいたため、4 コードの並びが送信順（MSB 先頭、IS-QZSS-DCX-004 §4.2.4.2.2）と逆転していた（例: 送信 [札幌中央, 千代田, 大阪, 那覇] → [那覇, 大阪, 千代田, 札幌中央]）。
   `ex9 >> (48 - i*16)` で送信順に復号するよう修正した。JSON `data.jalert_target.cities[]` の順序も送信順になる（`schema_version` 2 のまま、キー構造の変更なし）。
   期待値が実装の LSB 仮定を写していた `test_dcx_helper.cpp` / `test_error_handling.cpp` を送信順に直し、`test_azarashi_dcx.cpp` に azarashi 0.17.1 生成の実電文 4 件（1/2/3/4 コード）の順序回帰（struct＋JSON）を追加した。

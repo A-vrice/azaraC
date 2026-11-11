@@ -73,6 +73,7 @@ TEST_SRCS = \
 	integration/test_parser_clock.cpp \
 	integration/test_error_handling.cpp \
 	integration/test_time_resolution.cpp \
+	integration/test_tsunami_list.cpp \
 	integration/test_dcx_edge_cases.cpp \
 	integration/test_azarashi_dcr.cpp \
 	integration/test_azarashi_dcx.cpp \
