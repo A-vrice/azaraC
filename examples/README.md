@@ -29,6 +29,8 @@ NMEAフォーマットの$QZQSMメッセージを受信し、JSONに変換して
 | RX | GPIO21 |
 | GND | GND |
 
+> ESP32 の Serial1 ピンはボード別に自動選択されます（C3=GPIO20/21、C6=GPIO4/5、classic ESP32=GPIO16/17）。S3 など他の ESP32 系はスケッチの `#elif` を配線に合わせて変更してください。
+
 ---
 
 ### basic_ubx - UBX-RXM-SFRBX 入力
