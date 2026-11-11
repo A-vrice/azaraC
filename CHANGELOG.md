@@ -210,6 +210,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **J-Alert 市区町村コードリストの順序が送信順と逆だった**: `decodeCityCodeList` が ex9 を LSB 先頭で読んでいたため、4 コードの並びが送信順（MSB 先頭、IS-QZSS-DCX-004 §4.2.4.2.2）と逆転していた（例: 送信 [札幌中央, 千代田, 大阪, 那覇] → [那覇, 大阪, 千代田, 札幌中央]）。
+  `ex9 >> (48 - i*16)` で送信順に復号するよう修正した。JSON `data.jalert_target.cities[]` の順序も送信順になる（`schema_version` 2 のまま、キー構造の変更なし）。
+  期待値が実装の LSB 仮定を写していた `test_dcx_helper.cpp` / `test_error_handling.cpp` を送信順に直し、`test_azarashi_dcx.cpp` に azarashi 0.17.1 生成の実電文 4 件（1/2/3/4 コード）の順序回帰（struct＋JSON）を追加した。
 - **時計の小さな後退で dedup/Nankai 履歴が全消去されていた**: `getMillis()` は FreeRTOS のマルチコアで数 ms 逆行し得るが、epoch guard が任意の後退で履歴を捨てていたため、生きた警報が再通知され、集約中の南海トラフも消えていた。
   1 秒以内の後退は最終観測時刻に丸め、1 秒を超える後退だけ履歴を捨てるようにした。
   1 ms 後退で抑圧が続くこと、大きな後退の後に新しい基準で窓が満了すること（旧高値へ丸めて凍結しないこと）を `test_parser_clock.cpp` に追加した。
