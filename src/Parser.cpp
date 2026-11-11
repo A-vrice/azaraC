@@ -56,9 +56,10 @@ bool Parser::postDecodeAt(const Message& decoded, Message& out, uint32_t identit
     // dedup 有効期間の受信時刻（手順④'）。
     // 下の Nankai 集約も同じ時計を使うので、両段階で「現在」が一致する。
     // 通常の 32 bit 折り返しは DedupFilter/NankaiPageBuffer の符号なし差分で扱えるが、
-    // 2^32 ms 以上の空白や時計の再設定では 32 bit の last_seen が「最近」に見えてしまう。
-    // 小さな後退は受信順序の揺らぎとして丸め、それを超える後退と 2^32 ms 以上の空白だけ履歴を捨てる
-    // （再通知は許容し、生きた警報の抑止は避ける）。
+    // エントリの年齢が 2^32 ms（約 49.7 日）を超えると差分が小さく巻き戻り「最近」に見えてしまう。
+    // そこで now_ms64 の上位 32 bit（世代）が変わったら履歴を捨てる。連続受信で 49.7 日経過しても
+    // 世代境界で確実に reset され、古い履歴の偽重複による抑止を防ぐ（再通知は許容し、生きた警報の抑止を避ける）。
+    // 小さな後退は受信順序の揺らぎとして丸め、それを超える後退（時計の再設定）でも履歴を捨てる。
 #if AZARAC_ENABLE_DEDUP || AZARAC_ENABLE_NANKAI
     if (now_ms64 < _last_now_ms) {
         if (_last_now_ms - now_ms64 > kClockRollbackToleranceMs) {
@@ -70,7 +71,8 @@ bool Parser::postDecodeAt(const Message& decoded, Message& out, uint32_t identit
         } else {
             now_ms64 = _last_now_ms;   // 受信順序の揺らぎは丸める
         }
-    } else if ((now_ms64 - _last_now_ms) >= (1ULL << 32)) {
+    } else if ((now_ms64 >> 32) != (_last_now_ms >> 32)) {
+        // 世代（2^32 ms 境界）を跨いだ。経過が短くても古い履歴は巻き戻って見えるため捨てる。
         _dedup.reset();
 #if AZARAC_ENABLE_NANKAI
         _nankaiBuffers.clearAll();

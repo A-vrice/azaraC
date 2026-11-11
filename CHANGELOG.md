@@ -210,6 +210,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **49.7 日連続運転で古い dedup 履歴が偽重複化し警報を抑止していた**: epoch guard が「呼び出し間隔 ≥ 2^32 ms」でしか発火せず、連続受信ではエントリの年齢が 2^32 ms（約 49.7 日）を超えて符号なし差分が小さく巻き戻り、古い履歴が「最近」に見えて新規警報を抑止していた。
+  guard を `now_ms64` の上位 32 bit（世代）比較 `(now_ms64 >> 32) != (_last_now_ms >> 32)` に変更。世代境界を跨げば経過が短くても履歴を捨て、再通知に倒す（安全方向）。RAM 増分ゼロ・`DedupFilter::Entry` 8 B / `static_assert` 維持。`Dedup.cpp` の年齢差コメントも実態（世代内では 49.7 日未満で厳密）に修正。
+  `test_parser_clock.cpp` の折返しテストを「世代境界で再通知」に意味反転し、1 ms gap での世代跨ぎ・49.7 日連続運転後の stale 事象再通知の回帰を追加。
 - **暦に存在しない日付を黙って別月日へ正規化していた**: `resolveTime` の検証が day>31 までで月別日数・閏年を検査せず、2/30・4/31・平年 2/29 を `days_from_civil` の正規化で別月日（例: 2/30→3/2、12月基準の 2/30→翌年3/2）として出力していた。MDHM 経路は未来クランプが無く最大 +76 日のずれも生じていた。
   月長判定（`daysInMonth`、閏年込み・SRAM 不使用）を追加し、暦外日付は `unix_time=0` の未解決（生フィールド保持）に倒す。DHM の候補ループは暦外候補を失格させ、stale 分岐は有効月だけを遡る bounded search に置き換えて未来日付の生成を防ぐ。検証済み日付の正規化ラウンドトリップは削除（`civil_from_days` 1 回減）。
   `test_time_resolution.cpp` に暦外日付の未解決化・閏年 2/29・年跨ぎ・未来日付防止の回帰と、約 1.4 万組の不変条件掃引（解決済みなら月日が化けない／DHM は base+3日を超えない）を追加。`make -C test avr-layout` 3 構成コンパイル成功。

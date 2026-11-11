@@ -27,9 +27,10 @@ bool DedupFilter::isDuplicate(const DedupKey& key, uint32_t now_ms, uint32_t win
             if (!free_slot) free_slot = &e;
             continue;
         }
-        // 経過 = now - last_seen を符号なしで取る: 2^32 ms 未満の折り返しをまたいでも正しい。
-        // 2^32 ms 以上の空白や時計後退は Parser::postDecodeAt() の epoch guard が履歴を消す。
-        // last_seen 同士の比較は 2 件が 24.8 日以上離れると巻き戻り、生きている方を追い出してしまう。
+        // 経過 = now - last_seen を符号なしで取る。Parser::postDecodeAt() の世代 guard により
+        // 生存エントリの last_seen はすべて現在世代（now_ms64 の上位 32 bit）と同一なので、
+        // 年齢差は常に 2^32 ms（約 49.7 日）未満で厳密に正しい。
+        // oldest 比較も同じ年齢差で行う（世代内では巻き戻らない）。
         if (!oldest || (uint32_t)(now_ms - e.last_seen_ms) > (uint32_t)(now_ms - oldest->last_seen_ms)) oldest = &e;
         if (e.content != content) continue;
         if ((uint32_t)(now_ms - e.last_seen_ms) <= window_ms) {
