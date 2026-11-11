@@ -26,22 +26,25 @@ void setup() {
 
     WiFi.begin(WIFI_SSID, WIFI_PASS);
     Serial.print(F("[wifi] connecting"));
-    while (WiFi.status() != WL_CONNECTED) { delay(500); Serial.print('.'); }
-    Serial.println(F(" OK"));
+    // 最大 15 秒で打ち切る。AP が無くても受信は開始する（時刻未解決でも生データは出力される）。
+    for (int i = 0; i < 30 && WiFi.status() != WL_CONNECTED; ++i) { delay(500); Serial.print('.'); }
+    Serial.println(WiFi.status() == WL_CONNECTED ? F(" OK") : F(" FAILED (continue without Wi-Fi)"));
 
-    // SNTP (pool.ntp.org, JST+9)
+    // SNTP (pool.ntp.org, JST+9)。最大 30 秒で打ち切り、未同期なら report_unix=0 で受信開始。
+    // 同期が完了すれば loop 内の time() が有効値を返し、以降の電文で年が解決する。
     configTime(9 * 3600, 0, "pool.ntp.org", "time.cloudflare.com");
     Serial.print(F("[sntp] syncing"));
     struct tm ti{};
     time_t now;
-    while (true) {
+    bool synced = false;
+    for (int i = 0; i < 30; ++i) {
         time(&now);
         localtime_r(&now, &ti);
-        if (ti.tm_year > (2016 - 1900)) break;
+        if (ti.tm_year > (2016 - 1900)) { synced = true; break; }
         Serial.print('.');
         delay(1000);
     }
-    Serial.println(F(" OK"));
+    Serial.println(synced ? F(" OK") : F(" TIMEOUT (continue, year unresolved)"));
 
 #if defined(ARDUINO_ESP32C3_DEV) || defined(CONFIG_IDF_TARGET_ESP32C3)
     Serial1.begin(9600, SERIAL_8N1, /*rx=*/20, /*tx=*/21);
@@ -58,6 +61,12 @@ void setup() {
 }
 
 void loop() {
+    // Wi-Fi 切断時は 5 秒間隔で再接続を試みる（SNTP 同期のため）。受信ループはブロックしない。
+    if (WiFi.status() != WL_CONNECTED) {
+        static uint32_t lastAttempt = 0;
+        uint32_t nowMs = millis();
+        if (nowMs - lastAttempt > 5000) { lastAttempt = nowMs; WiFi.begin(WIFI_SSID, WIFI_PASS); }
+    }
     while (Serial1.available()) {
         // SNTP 同期の現在時刻を UNIX 秒で渡す。
         // 未同期で 2000 年以前の値でも、azaraC が年解決をスキップするので電文の生データ（月・日・時・分）は正しく取れる。
