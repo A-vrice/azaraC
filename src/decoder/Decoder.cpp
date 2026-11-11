@@ -180,6 +180,20 @@ static_assert(civilMonth(0u)  == 3u,  "civilMonth March");
 static_assert(civilMonth(9u)  == 12u, "civilMonth December");
 static_assert(civilMonth(10u) == 1u,  "civilMonth January must not wrap on 16-bit int");
 static_assert(civilMonth(11u) == 2u,  "civilMonth February must not wrap on 16-bit int");
+
+// 月別日数（閏年込み）。表を持たず AVR の SRAM を使わない。m は 1..12。
+constexpr uint8_t daysInMonth(uint32_t y, uint32_t m) {
+    if (m == 2u) {
+        return ((y % 4u == 0u && y % 100u != 0u) || y % 400u == 0u) ? 29u : 28u;
+    }
+    return (m == 4u || m == 6u || m == 9u || m == 11u) ? 30u : 31u;
+}
+static_assert(daysInMonth(2024u, 2u) == 29u, "leap February");
+static_assert(daysInMonth(2023u, 2u) == 28u, "common February");
+static_assert(daysInMonth(2000u, 2u) == 29u, "400-year leap");
+static_assert(daysInMonth(1900u, 2u) == 28u, "100-year common");
+static_assert(daysInMonth(2024u, 4u) == 30u, "April");
+static_assert(daysInMonth(2024u, 12u) == 31u, "December");
 } // namespace
 
 // 非AVR: Hinnant era 法 (u32)。定数除算はコンパイラが乗算展開するためこの形が最速。
@@ -249,68 +263,78 @@ TimeFields Decoder::extractDHM(const uint8_t* buf, uint16_t start, uint32_t repo
 
 TimeFields Decoder::resolveTime(uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint32_t report_unix) {
     TimeFields t{month, day, hour, minute, 0};
+    // 範囲外（day 1-31 / hour 0-23 / minute 0-59 / month 0-12）はフィールドを 0 化して拒否。
     if (day < 1 || day > 31 || hour > 23 || minute > 59 || (month > 12 && month != 0)) {
         t.day = t.hour = t.minute = 0;
         return t;
     }
 
-    // 基準時刻が無効（< 2000-01-01）なら年解決を飛ばす。unix_time は 0 のまま。
+    // 基準時刻が無効（< 2000-01-01）なら年解決を飛ばす。unix_time は 0 のまま（生フィールドは保持）。
     if (report_unix < 946684800u) {
         return t;
     }
 
-    uint32_t base_unix = report_unix;
-
-    uint32_t base_days = base_unix / 86400u;
+    const uint32_t base_unix = report_unix;
+    const uint32_t base_days = base_unix / 86400u;
     uint32_t y, m, d;
     civil_from_days(base_days, y, m, d);
 
-    if (month == 0) {
-        // 月なし（DHM のみ）: report_unix に最も近い (day,hour,minute) を選ぶ。
-        // 数日の余裕は時計のずれと月境界を吸収する（01/31 23:00 の通報 + 02/01 02:00 の事象 → 2 月）。
-        // 余裕を超えたら古い通報とみなし、直近の過去の出現へ落とす。
-        static constexpr uint32_t MARGIN_SEC = 3u * 86400u;
-        uint32_t best_y = y, best_m = m;
-        uint32_t best_diff = 0xFFFFFFFFu;
-        for (int8_t dm = -1; dm <= 1; ++dm) {
-            int32_t cm = (int32_t)m + dm;
-            uint32_t cy = y, cand_m;
-            if      (cm <= 0) { cand_m = 12; cy = y - 1; }
-            else if (cm >= 13) { cand_m = 1;  cy = y + 1; }
-            else              { cand_m = (uint32_t)cm; }
-            uint32_t ts = days_from_civil(cy, cand_m, day) * 86400u
-                        + (uint32_t)hour * 3600u + (uint32_t)minute * 60u;
-            uint32_t diff = ts > base_unix ? ts - base_unix : base_unix - ts;
-            if (diff < best_diff) { best_diff = diff; best_y = cy; best_m = cand_m; }
-        }
-        if (best_diff <= MARGIN_SEC) {
-            y = best_y;
-            m = best_m;
-        } else {
-            // 古い通報: report_unix 以前の直近の出現へ落とす（未来には置かない）。
-            uint32_t cur_ts = days_from_civil(y, m, day) * 86400u
-                            + (uint32_t)hour * 3600u + (uint32_t)minute * 60u;
-            if (cur_ts > base_unix) {
-                if (m == 1) { m = 12; y--; } else { m--; }
-            }
-        }
-    } else {
+    // 暦に存在しない日付（2/30・4/31・平年 2/29 等）は未解決（unix_time=0、生フィールド保持）に倒す。
+    // 黙って別月日へ正規化すると誤った日付が「確定値」として出力されるため（仕様 Table 4.1.2-5 等の範囲は月別日数）。
+    // 検証済みの (ry,rm,day) は正規化不要なので days_from_civil を直接使う。
+    auto finish = [&](uint32_t ry, uint32_t rm) -> TimeFields {
+        t.month = rm;
+        t.day = day;
+        t.unix_time = days_from_civil(ry, rm, day) * 86400u
+                    + (uint32_t)hour * 3600u + (uint32_t)minute * 60u;
+        return t;
+    };
+
+    if (month != 0) {
         // 月あり（MDHM）: 基準時刻から年を決め、月跨ぎを補正する。
-        uint32_t cur_m = m;
-        m = month;
-        int32_t diff = (int32_t)month - (int32_t)cur_m;
+        int32_t diff = (int32_t)month - (int32_t)m;
         if      (diff >  6) y--;
         else if (diff < -6) y++;
+        if (day > daysInMonth(y, month)) return t;   // 暦外 → 未解決
+        return finish(y, month);
     }
 
-    // 日付を正規化する（例: 平年の 2 月 29 日は 3 月 1 日になる）。
-    uint32_t resolved_days = days_from_civil(y, m, day);
-    civil_from_days(resolved_days, y, m, d);
+    // 月なし（DHM のみ）: report_unix に最も近い有効な (day,hour,minute) を選ぶ。
+    // 数日の余裕は時計のずれと月境界を吸収する（01/31 23:00 の通報 + 02/01 02:00 の事象 → 2 月）。
+    // 余裕を超えたら古い通報とみなし、直近の過去の出現へ落とす。
+    static constexpr uint32_t MARGIN_SEC = 3u * 86400u;
+    uint32_t best_y = y, best_m = m;
+    uint32_t best_diff = 0xFFFFFFFFu;
+    bool have_best = false;
+    for (int8_t dm = -1; dm <= 1; ++dm) {
+        int32_t cm = (int32_t)m + dm;
+        uint32_t cy = y, cand_m;
+        if      (cm <= 0) { cand_m = 12; cy = y - 1; }
+        else if (cm >= 13) { cand_m = 1;  cy = y + 1; }
+        else              { cand_m = (uint32_t)cm; }
+        if (day > daysInMonth(cy, cand_m)) continue;   // 暦外の候補は失格（閏年は候補年で判定）
+        uint32_t ts = days_from_civil(cy, cand_m, day) * 86400u
+                    + (uint32_t)hour * 3600u + (uint32_t)minute * 60u;
+        uint32_t diff = ts > base_unix ? ts - base_unix : base_unix - ts;
+        if (diff < best_diff) { best_diff = diff; best_y = cy; best_m = cand_m; have_best = true; }
+    }
+    if (!have_best) return t;   // 防御: 3 候補すべて暦外（通常は到達しない）
+    if (best_diff <= MARGIN_SEC) {
+        return finish(best_y, best_m);
+    }
 
-    t.unix_time = resolved_days * 86400u + (uint32_t)hour * 3600u + (uint32_t)minute * 60u;
-    t.day = d;
-    t.month = m;
-    return t;
+    // 古い通報: report_unix 以前の直近の有効な出現へ落とす（未来には置かない）。
+    // 暦外日を正規化で飛ばさないよう有効月だけを遡る（13 か月＝1 年で必ず day≤31 の有効月がある）。
+    uint32_t sy = y, sm = m;
+    for (uint8_t k = 0; k < 13; ++k) {
+        if (day <= daysInMonth(sy, sm)) {
+            uint32_t ts = days_from_civil(sy, sm, day) * 86400u
+                        + (uint32_t)hour * 3600u + (uint32_t)minute * 60u;
+            if (ts <= base_unix) return finish(sy, sm);
+        }
+        if (sm == 1u) { sm = 12u; sy--; } else { sm--; }
+    }
+    return t;   // 防御: 有効な過去が見つからない → 未解決
 }
 
 TimeFields Decoder::resolveArrivalTime(uint16_t raw, uint32_t base_unix) {
