@@ -6,7 +6,7 @@
 //   GND             → GND
 //
 // 設定 (u-blox):
-//   CFG-MSGOUT-NMEA_ID_GGA_UART1 = 1 //NMEAの場合
+//   CFG-MSGOUT-NMEA_ID_QZQSM_UART1 = 1 //NMEAの場合（$QZQSM を出す。GGA は測位文で災危通報を含まない）
 //   CFG-MSGOUT-UBX_RXM_SFRBX_UART1 = 1 //UBXの場合
 //   CFG-SIGNAL-QZSS_L1S_ENA      = 1
 //   CFG-UART1-BAUDRATE            = 9600
