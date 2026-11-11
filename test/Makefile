@@ -537,7 +537,7 @@ pgm-stub:
 # このターゲットは __AVR__ と stub_arduino のヘッダでそれをコンパイルし、
 # getMillis() が呼び出し側の SREG 状態を保存することを確認する。
 test-time-irq:
-	$(CXX) -std=c++17 -Wall -Wextra -Istub_arduino -I../src -DARDUINO=1 -D__AVR__ -DAZARAC_AVR_STUB internal/test_time_irq.cpp -o time_irq_test
+	$(CXX) -std=c++17 -Wall -Wextra -Istub_arduino -I../src -DARDUINO=1 -D__AVR__ -DAZARAC_AVR_STUB internal/test_time_irq.cpp internal/test_time_irq_b.cpp -o time_irq_test
 	./time_irq_test; t=$$?; $(RM) time_irq_test time_irq_test.exe; exit $$t
 
 # 実規則セクション全体の条件の終わり（冒頭の並行 make 排他ロック参照）。
