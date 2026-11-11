@@ -1,6 +1,7 @@
 // MT=44 DCX の azarashi 比較テスト（データ駆動）参照ベクタは azarashi 0.17.1 の test_dcx、照合はその定義テーブルによる
 
 #include "../test_helpers.h"
+#include "../src/internal/PrintShim.h"
 #include "doctest.h"
 #include <cstring>
 #include <string>
@@ -176,6 +177,54 @@ TEST_CASE("DCX E2E: Satellite ID 53/54 は PRN181/182 に正規化される") {
         REQUIRE(decodeNmea(c.nmea, msg));
         CHECK(msg.msg_type == 44);
         CHECK(msg.svid == c.expected_prn);
+    }
+}
+
+// J-Alert 市区町村コードリストの送信順（MSB 先頭）回帰。
+// 実電文は test/data/dcx_vectors.json（azarashi 0.17.1 生成）の "Cities, towns and villages code" 4 電文。
+// 期待コードは azarashi の ex9_target_area_list ラベルに対応する JIS コードで、実装のシフト式に依存しない独立オラクル:
+//   1101=札幌市中央区, 13101=東京都千代田区, 27100=大阪市, 47201=那覇市。
+
+TEST_CASE("DCX E2E: J-Alert city code list is in transmission order") {
+    struct Case { const char* nmea; uint8_t count; uint16_t codes[4]; };
+    const Case cases[] = {
+        {"$QZQSM,55,9AB0840DE3E20920208800000000000000002089A0000000000000119E3B904*7C",
+         1, {1101, 0, 0, 0}},
+        {"$QZQSM,55,53B0840DE3E20921208800000000000000002089A665A000000000138EE8998*7D",
+         2, {1101, 13101, 0, 0}},
+        {"$QZQSM,55,9AB0840DE3E20921208800000000000000002089A665AD3B800000112C7DF28*7A",
+         3, {1101, 13101, 27100, 0}},
+        {"$QZQSM,55,53B0840DE3E20922208800000000000000002089A665AD3B970C20130DFADC8*70",
+         4, {1101, 13101, 27100, 47201}},
+    };
+    for (const auto& c : cases) {
+        Message msg{};
+        INFO("nmea=", c.nmea);
+        REQUIRE(decodeNmea(c.nmea, msg));
+        const Mt44Data* mt44 = msg.getMt44();
+        REQUIRE(mt44 != nullptr);
+        CHECK(mt44->service_kind == Mt44ServiceKind::JAlert);
+        CHECK(mt44->mt44_decoded.jalert_prefecture_mode == false);
+        CHECK(mt44->mt44_decoded.city_code_count == c.count);
+        for (uint8_t i = 0; i < c.count; ++i) {
+            CAPTURE(i);
+            CHECK(mt44->mt44_decoded.city_codes[i] == c.codes[i]);
+        }
+
+        // JSON の cities[] も送信順で出力される（code の出現位置が昇順）。
+        StringPrint sp;
+        internal::JsonSerializer::serialize(msg, sp);
+        const std::string& s = sp.str();
+        size_t prev = 0;
+        for (uint8_t i = 0; i < c.count; ++i) {
+            const std::string key = "\"code\":" + std::to_string(c.codes[i]);
+            size_t pos = s.find(key, prev);
+            CAPTURE(i);
+            CAPTURE(key);
+            REQUIRE(pos != std::string::npos);
+            CHECK(pos >= prev);
+            prev = pos + key.size();
+        }
     }
 }
 #endif

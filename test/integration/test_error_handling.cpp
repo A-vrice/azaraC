@@ -316,13 +316,13 @@ TEST_CASE("Decoder: MT=44 EX8=1 (city code list mode)") {
     setBits(bits, 47, 2, 3);         // a5=3
     // EX8 = bit 146（1 bit）を 1 にして市区町村コードリストモード
     setBits(bits, 146, 1, 1);
-    // EX9 は bit 147 から（64 ビット）= 4 つの市区町村コード（各 16 ビット）。
-// ex9 = (ex9_hi << 32) | ex9_lo、ex9_hi = bit 147..178、ex9_lo = bit 179..210:
-// code1 = ex9[0:15] = bit 179..194、code2 = ex9[16:31] = bit 195..210、code3 = ex9[32:47] = bit 147..162、code4 = ex9[48:63] = bit 163..178
-    setBits(bits, 179, 16, 1100);    // city 1 (ex9[0:15])
-    setBits(bits, 195, 16, 1101);    // city 2 (ex9[16:31])
-    setBits(bits, 147, 16, 1102);    // city 3 (ex9[32:47])
-    setBits(bits, 163, 16, 1103);    // city 4 (ex9[48:63])
+    // EX9 は bit 147 から（64 ビット）= 4 つの市区町村コード（各 16 ビット）が送信順（MSB 先頭）に並ぶ。
+    // ex9 = (ex9_hi << 32) | ex9_lo、ex9_hi = bit 147..178、ex9_lo = bit 179..210。
+    // 送信順: bit 147..162 が先頭、bit 163..178、bit 179..194、bit 195..210 が末尾。
+    setBits(bits, 147, 16, 1102);    // city 1（送信先頭, ex9[63:48]）
+    setBits(bits, 163, 16, 1103);    // city 2（ex9[47:32]）
+    setBits(bits, 179, 16, 1100);    // city 3（ex9[31:16]）
+    setBits(bits, 195, 16, 1101);    // city 4（送信末尾, ex9[15:0]）
     setBits(bits, 214, 6, 1);        // version
     uint32_t crc = crc24qRef(bits, 226);
     setBits(bits, 226, 24, crc);
@@ -339,11 +339,11 @@ TEST_CASE("Decoder: MT=44 EX8=1 (city code list mode)") {
     REQUIRE(mt44 != nullptr);
     CHECK(mt44->mt44_decoded.jalert_prefecture_mode == false);
     CHECK(mt44->mt44_decoded.city_code_count == 4);
-    // city_codes[] は ex9 のビット順（ex9[0:15], [16:31], [32:47], [48:63]）に従う。このフィクスチャでは [1101, 1100, 1103, 1102] になる。
-    CHECK(mt44->mt44_decoded.city_codes[0] == 1101);
-    CHECK(mt44->mt44_decoded.city_codes[1] == 1100);
-    CHECK(mt44->mt44_decoded.city_codes[2] == 1103);
-    CHECK(mt44->mt44_decoded.city_codes[3] == 1102);
+    // city_codes[] は送信順（MSB 先頭）。このフィクスチャでは [1102, 1103, 1100, 1101] になる。
+    CHECK(mt44->mt44_decoded.city_codes[0] == 1102);
+    CHECK(mt44->mt44_decoded.city_codes[1] == 1103);
+    CHECK(mt44->mt44_decoded.city_codes[2] == 1100);
+    CHECK(mt44->mt44_decoded.city_codes[3] == 1101);
 }
 
 TEST_CASE("Decoder: MT=44 Outside Japan ex11_raw JSON output") {

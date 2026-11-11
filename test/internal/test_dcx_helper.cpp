@@ -94,10 +94,11 @@ TEST_CASE("decodeB2HazardCenter: C5/C6 table and >63 rounding branch") {
 }
 
 TEST_CASE("decodeCityCodeList: layout, zero skip and order") {
-    // EX8=1: 16 bit コード 4 個を ex9[0:15],[16:31],[32:47],[48:63] に置く
+    // EX8=1: 16 bit コード 4 個は送信順（MSB 先頭）。ex9[63:48] が先頭コード。
+    // 期待値は送信順そのもの（実装のシフト式を写さない）。
     uint16_t codes[4] = {0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF};
-    uint64_t ex9 = ((uint64_t)0x1234) | ((uint64_t)0x5678 << 16) |
-                   ((uint64_t)0x9ABC << 32) | ((uint64_t)0xDEF0 << 48);
+    uint64_t ex9 = ((uint64_t)0x1234 << 48) | ((uint64_t)0x5678 << 32) |
+                   ((uint64_t)0x9ABC << 16) | ((uint64_t)0xDEF0);
     uint8_t n = decodeCityCodeList(ex9, codes);
     CHECK(n == 4);
     CHECK(codes[0] == 0x1234);
@@ -105,10 +106,9 @@ TEST_CASE("decodeCityCodeList: layout, zero skip and order") {
     CHECK(codes[2] == 0x9ABC);
     CHECK(codes[3] == 0xDEF0);
 
-    // ゼロのコードは飛ばし、残りは相対順序を保つ。
+    // ゼロのコードは飛ばし、残りは送信順の相対順序を保つ（送信 [0, 7, 0, 9] → [7, 9]）。
     codes[0] = codes[1] = codes[2] = codes[3] = 0xFFFF;
-    uint64_t ex9_zero = ((uint64_t)0x0000) | ((uint64_t)0x0007 << 16) |
-                        ((uint64_t)0x0000 << 32) | ((uint64_t)0x0009 << 48);
+    uint64_t ex9_zero = ((uint64_t)0x0007 << 32) | ((uint64_t)0x0009);
     n = decodeCityCodeList(ex9_zero, codes);
     CHECK(n == 2);
     CHECK(codes[0] == 0x0007);
