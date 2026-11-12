@@ -11,7 +11,7 @@ reviews:
   review_status: true
   collapse_walkthrough: false
   path_filters:
-    - "!src/definition/**"
+    - "!src/definition/*.h"
     - "!test/doctest.h"
     - "!test/data/**"
     - "!test/cppcheck_report.xml"
