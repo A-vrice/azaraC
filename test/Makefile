@@ -290,6 +290,8 @@ check:
 	cppcheck $(CPPCHECK_OPTS)
 	@echo "Compiling library with strict warnings..."
 	$(CXX) $(ANALYSIS_CXXFLAGS) -c $(LIB_SRCS)
+	@# 解析フラグの .o が既定構成と同名で残るのを防ぐ（CXXFLAGS は依存に載らない）。
+	@$(MAKE) clean
 
 # cppcheck の XML レポートをファイルに保存（サマリー生成用）。
 # --error-exitcode=1 で所見があれば失敗させる（CI ゲート）。
@@ -303,6 +305,7 @@ check-xml:
 check-strict-compile:
 	@echo "Compiling library with strict warnings..."
 	$(CXX) $(ANALYSIS_CXXFLAGS) -c $(LIB_SRCS)
+	@$(MAKE) clean
 
 # --- Coverage ---
 # カバレッジ測定
@@ -314,6 +317,8 @@ coverage:
 	$(RUN_PREFIX)$(TEST_BIN)
 	@echo "----------------------------------------"
 	gcovr . --filter=../src/ --exclude='.*test_.*\.cpp' --exclude='.*definition.*' --txt
+	@# instrumentation 付き .o が既定構成で再利用されるのを防ぐ。
+	@$(MAKE) clean
 
 # --- 動的確保ゼロ検証 (test-no-alloc) ---
 # GNU ld の --wrap は未解決参照しか差し替えないため、ライブラリとテストを 1 つの実行ファイルにリンクする。
@@ -446,6 +451,7 @@ macro:
 
 clean:
 	-@$(RM) *.o *.exe *.d *.gcno *.gcda cppcheck_report.xml cppcheck_stderr.log coverage.xml coverage_report.json macro_sizes.txt time_irq_test $(NMEA_PROBE_BIN) $(UTF8_PROBE_BIN)
+	-@$(RM) $(TEST_BIN) $(FUZZ_BIN) $(DECODE_BIN) $(DEDUP_REALDAY_BIN)
 	-@$(RM) $(NOALLOC_BIN)
 	-@rm -rf $(NOALLOC_TMP)
 	-@$(RM) core/*.o core/*.d core/*.gcno core/*.gcda
