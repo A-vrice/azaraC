@@ -149,7 +149,7 @@ jobs:
         # 自動でフル CI も走らせたい場合は GitHub App トークン（contents: write / pull-requests: write）を
         # `token:` に渡す。既定の GITHUB_TOKEN では push が CI を起動せず、pull_request も承認待ちになる。
         # pull_request_target は使わない（フォーク由来コードに write トークン/シークレットを渡す pwn-request になる）。
-        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8
+        uses: peter-evans/create-pull-request@3ffccacd46053766916f087ce41d627c0b8cf2d1 # v8
         with:
           title: "chore: update definitions (azarashi ${{ needs.generate.outputs.latest }})"
           branch: "auto/azarashi-${{ needs.generate.outputs.latest }}"
