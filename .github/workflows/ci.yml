@@ -516,12 +516,6 @@ jobs:
       - name: Build & run with coverage
         run: make -C test coverage
 
-      - name: Generate gcovr reports
-        run: |
-          cd test && gcovr . --filter='../src/' --exclude='.*test_.*\.cpp' --exclude='.*definition.*' \
-            --json coverage_report.json --json-pretty \
-            --xml coverage.xml --xml-pretty
-
       - name: Generate coverage step summary
         run: python scripts/analysis/gcovr_summary.py --input test/coverage_report.json >> $GITHUB_STEP_SUMMARY
 

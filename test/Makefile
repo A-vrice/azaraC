@@ -318,7 +318,8 @@ check:
 	@echo "Compiling library with strict warnings..."
 	$(CXX) $(ANALYSIS_CXXFLAGS) -c $(LIB_SRCS)
 	@# 解析フラグの .o が既定構成と同名で残るのを防ぐ（CXXFLAGS は依存に載らない）。
-	@$(MAKE) clean
+	@# clean は使わない: cppcheck_report.xml / *.gcda まで消して CI の後続ステップを壊すため。
+	@$(RM) $(notdir $(LIB_SRCS:.cpp=.o)) $(notdir $(LIB_SRCS:.cpp=.d))
 
 # cppcheck の XML レポートをファイルに保存（サマリー生成用）。
 # --error-exitcode=1 で所見があれば失敗させる（CI ゲート）。
@@ -332,7 +333,8 @@ check-xml:
 check-strict-compile:
 	@echo "Compiling library with strict warnings..."
 	$(CXX) $(ANALYSIS_CXXFLAGS) -c $(LIB_SRCS)
-	@$(MAKE) clean
+	@# clean は使わない: cppcheck_report.xml / *.gcda まで消して CI の後続ステップを壊すため。
+	@$(RM) $(notdir $(LIB_SRCS:.cpp=.o)) $(notdir $(LIB_SRCS:.cpp=.d))
 
 # --- Coverage ---
 # カバレッジ測定
@@ -343,7 +345,8 @@ coverage:
 	@echo "Running tests with coverage..."
 	$(RUN_PREFIX)$(TEST_BIN)
 	@echo "----------------------------------------"
-	gcovr . --filter=../src/ --exclude='.*test_.*\.cpp' --exclude='.*definition.*' --txt
+	gcovr . --filter=../src/ --exclude='.*test_.*\.cpp' --exclude='.*definition.*' --txt \
+	      --json coverage_report.json --json-pretty --xml coverage.xml --xml-pretty
 	@# instrumentation 付き .o が既定構成で再利用されるのを防ぐ。
 	@$(MAKE) clean
 
@@ -477,7 +480,7 @@ macro:
 -include $(TEST_OBJS:.o=.d) $(LIB_OBJS:.o=.d) $(FUZZ_OBJS:.o=.d) $(DECODE_OBJS:.o=.d) $(DEDUP_REALDAY_OBJS:.o=.d)
 
 clean:
-	-@$(RM) *.o *.exe *.d *.gcno *.gcda cppcheck_report.xml cppcheck_stderr.log coverage.xml coverage_report.json macro_sizes.txt time_irq_test $(NMEA_PROBE_BIN) $(UTF8_PROBE_BIN)
+	-@$(RM) *.o *.exe *.d *.gcno *.gcda cppcheck_report.xml cppcheck_stderr.log macro_sizes.txt time_irq_test $(NMEA_PROBE_BIN) $(UTF8_PROBE_BIN)
 	-@$(RM) $(TEST_BIN) $(FUZZ_BIN) $(DECODE_BIN) $(DEDUP_REALDAY_BIN)
 	-@$(RM) $(NOALLOC_BIN)
 	-@rm -rf $(NOALLOC_TMP)
