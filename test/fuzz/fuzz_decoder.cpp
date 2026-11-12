@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <algorithm>
 #include <cstdio>
 #include <ctime>
 #include <cerrno>
@@ -229,7 +230,7 @@ static void test_random_raw_data(FuzzStats& stats, std::mt19937& rng, int iterat
 
             Frame frame;
             frame.svid = 193;
-            memcpy(frame.bits, bits, 32);
+            std::copy(bits, bits + 32, frame.bits);
 
             Decoder decoder;
             Message msg;
@@ -255,7 +256,7 @@ static void test_valid_preamble(FuzzStats& stats, std::mt19937& rng, int iterati
 
             Frame frame;
             frame.svid = 193;
-            memcpy(frame.bits, bits, 32);
+            std::copy(bits, bits + 32, frame.bits);
 
             Decoder decoder;
             Message msg;
@@ -283,7 +284,7 @@ static void test_valid_preamble_and_type(FuzzStats& stats, std::mt19937& rng, in
 
             Frame frame;
             frame.svid = 193;
-            memcpy(frame.bits, bits, 32);
+            std::copy(bits, bits + 32, frame.bits);
 
             Decoder decoder;
             Message msg;
@@ -317,7 +318,7 @@ static void test_valid_frames_mt43(FuzzStats& stats, std::mt19937& rng, int iter
 
             Frame frame;
             frame.svid = 193;
-            memcpy(frame.bits, bits, 32);
+            std::copy(bits, bits + 32, frame.bits);
 
             Decoder decoder;
             Message msg;
@@ -359,7 +360,7 @@ static void test_valid_frames_mt44(FuzzStats& stats, std::mt19937& rng, int iter
 
             Frame frame;
             frame.svid = 193;
-            memcpy(frame.bits, bits, 32);
+            std::copy(bits, bits + 32, frame.bits);
 
             Decoder decoder;
             Message msg;
@@ -470,7 +471,7 @@ static void test_boundary_values(FuzzStats& stats, std::mt19937& rng) {
             uint8_t bits[32] = {0};
             Frame frame;
             frame.svid = 193;
-            memcpy(frame.bits, bits, 32);
+            std::copy(bits, bits + 32, frame.bits);
 
             Decoder decoder;
             Message msg;
@@ -487,7 +488,7 @@ static void test_boundary_values(FuzzStats& stats, std::mt19937& rng) {
             memset(bits, 0xFF, sizeof(bits));
             Frame frame;
             frame.svid = 193;
-            memcpy(frame.bits, bits, 32);
+            std::copy(bits, bits + 32, frame.bits);
 
             Decoder decoder;
             Message msg;
@@ -505,7 +506,7 @@ static void test_boundary_values(FuzzStats& stats, std::mt19937& rng) {
             bits[0] = preamble;
             Frame frame;
             frame.svid = 193;
-            memcpy(frame.bits, bits, 32);
+            std::copy(bits, bits + 32, frame.bits);
 
             Decoder decoder;
             Message msg;
@@ -531,7 +532,7 @@ static void test_boundary_values(FuzzStats& stats, std::mt19937& rng) {
 
             Frame frame;
             frame.svid = 193;
-            memcpy(frame.bits, bits, 32);
+            std::copy(bits, bits + 32, frame.bits);
 
             Decoder decoder;
             Message msg;
@@ -553,7 +554,7 @@ static void test_boundary_values(FuzzStats& stats, std::mt19937& rng) {
 
             Frame frame;
             frame.svid = svid;
-            memcpy(frame.bits, bits, 32);
+            std::copy(bits, bits + 32, frame.bits);
 
             Decoder decoder;
             Message msg;
@@ -585,7 +586,7 @@ static void test_boundary_values(FuzzStats& stats, std::mt19937& rng) {
 
             Frame frame;
             frame.svid = 193;
-            memcpy(frame.bits, bits, 32);
+            std::copy(bits, bits + 32, frame.bits);
 
             Decoder decoder;
             Message msg;
@@ -669,7 +670,7 @@ static void test_corrupted_frames(FuzzStats& stats, std::mt19937& rng, int itera
 
             Frame frame;
             frame.svid = 193;
-            memcpy(frame.bits, bits, 32);
+            std::copy(bits, bits + 32, frame.bits);
 
             Decoder decoder;
             Message msg;
@@ -807,7 +808,7 @@ static void test_decode_failure_state(FuzzStats& stats, std::mt19937& rng, int i
 
             Frame frame;
             frame.svid = 193;
-            memcpy(frame.bits, bits, 32);
+            std::copy(bits, bits + 32, frame.bits);
 
             Decoder decoder;
             Message msg;
@@ -931,7 +932,7 @@ static void test_boundary_report_unix_svid(FuzzStats& stats, std::mt19937& rng) 
 
             Frame frame;
             frame.svid = svid;
-            memcpy(frame.bits, bits, 32);
+            std::copy(bits, bits + 32, frame.bits);
 
             Decoder decoder;
             Message msg;
@@ -1005,7 +1006,7 @@ static void test_decode_serialize(FuzzStats& stats, std::mt19937& rng, int itera
 
             Frame frame;
             frame.svid = 193;
-            memcpy(frame.bits, bits, 32);
+            std::copy(bits, bits + 32, frame.bits);
 
             Decoder decoder;
             Message msg;
@@ -1182,7 +1183,7 @@ static void test_json_utf8_wellformed(FuzzStats& stats, std::mt19937& rng, int i
             set_valid_preamble(bits, rng);
             set_valid_msg_type(bits, rng);
             set_valid_crc(bits);
-            Frame frame; frame.svid = 193; memcpy(frame.bits, bits, 32);
+            Frame frame; frame.svid = 193; std::copy(bits, bits + 32, frame.bits);
             Decoder decoder; Message msg;
             if (decoder.decode(frame, msg, 1704067200u)) {
                 StringPrint sp; JsonSerializer::serialize(msg, sp);
