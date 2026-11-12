@@ -210,6 +210,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Wi-Fi 例の非 ESP32 ガードが効いていなかった**: `#error` が `#include <WiFi.h>` の後ろにあり、`WiFi.h` を持たないボードでは先に「ファイルが無い」エラーになっていた。ガードを include の前に移し、CI の Wi-Fi 例スキップ条件をボード名の列挙から FQBN の `esp32:` 判定へ揃えた（拡張マトリクスの `Arduino GIGA R1 WiFi` と `RP2040 Pico W` が落ちていた）。
 - **CI の cppcheck レポートとカバレッジが空だった**: `check` / `check-strict-compile` の末尾が `$(MAKE) clean` だったため、`check-xml` が書いた `cppcheck_report.xml` と `coverage` の `*.gcda` を後続ステップの前に消していた（`static-analysis` のサマリーが ERROR 行のみ、`coverage` の gcovr がデータ 0 件で 100% 表示）。
   後始末を解析ビルドが作る lib の `.o`/`.d` の削除に限定した。`make -C test coverage` が `coverage_report.json` と `coverage.xml` も書き出し、`clean` はその 2 つを消さない（`ci.yml` の重複した gcovr ステップは削除）。
 - **`getMillis()` が TU ごとに別カウンタを持っていた**: `static inline`（内部リンケージ）のためヘッダを include した TU ごとに `s_last` が別実体になり、複数 TU から呼ぶと相互に矛盾する時刻を返す潜在問題があった（本番呼び出しは Parser.cpp のみで顕在化せず）。
