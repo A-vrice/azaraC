@@ -210,6 +210,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **CI の cppcheck レポートとカバレッジが空だった**: `check` / `check-strict-compile` の末尾が `$(MAKE) clean` だったため、`check-xml` が書いた `cppcheck_report.xml` と `coverage` の `*.gcda` を後続ステップの前に消していた（`static-analysis` のサマリーが ERROR 行のみ、`coverage` の gcovr がデータ 0 件で 100% 表示）。
+  後始末を解析ビルドが作る lib の `.o`/`.d` の削除に限定した。`make -C test coverage` が `coverage_report.json` と `coverage.xml` も書き出し、`clean` はその 2 つを消さない（`ci.yml` の重複した gcovr ステップは削除）。
 - **`getMillis()` が TU ごとに別カウンタを持っていた**: `static inline`（内部リンケージ）のためヘッダを include した TU ごとに `s_last` が別実体になり、複数 TU から呼ぶと相互に矛盾する時刻を返す潜在問題があった（本番呼び出しは Parser.cpp のみで顕在化せず）。
   `inline`（外部リンケージ）に変更し C++17 で `s_last` を単一実体化。`test_time_irq` に第2 TU（`test_time_irq_b.cpp`）を追加し、折返し後に別 TU から呼んでも同じ上位ビットを観測することを固定（static inline では失敗する）。
 - **南海トラフの訓練/実警報が同時進行すると互いに追い出し合っていた**: `NankaiPageKey` が Rc（訓練=7/実警報=2）を区別するため別バッファを要求するが、ホスト既定 `AZARAC_NANKAI_BUFFERS=1` では交互到着のたびに LRU 追い出しが起き、どちらも永久に集約できなかった。
