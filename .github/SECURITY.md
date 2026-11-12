@@ -40,18 +40,18 @@ All dependency updates are reviewed and merged only after passing CI tests.
 ### Verifying a release
 
 ```bash
-# 1. Download the release assets (e.g. v1.0.2)
-gh release download v1.0.2 --repo A-vrice/azaraC
-# contains: azaraC-1.0.2.tar.gz, azaraC-1.0.2.zip, multiple.intoto.jsonl
+# 1. Download the release assets (e.g. v2.0.0)
+gh release download v2.0.0 --repo A-vrice/azaraC
+# contains: azaraC-2.0.0.tar.gz, azaraC-2.0.0.zip, multiple.intoto.jsonl
 
 # 2. Verify SLSA provenance (requires slsa-verifier)
-slsa-verifier verify-artifact azaraC-1.0.2.tar.gz \
+slsa-verifier verify-artifact azaraC-2.0.0.tar.gz \
   --provenance-path multiple.intoto.jsonl \
   --source-uri github.com/A-vrice/azaraC \
-  --source-tag v1.0.2
+  --source-tag v2.0.0
 
 # 3. (alternative) Verify Sigstore attestation
-gh attestation verify azaraC-1.0.2.tar.gz --repo A-vrice/azaraC
+gh attestation verify azaraC-2.0.0.tar.gz --repo A-vrice/azaraC
 ```
 
 ## Scope
