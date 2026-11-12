@@ -27,6 +27,7 @@
 #include "framer/UbxFramer.h"
 #include "json/JsonSerializer.h"
 #include "internal/PrintShim.h"
+#include "json/JsonCheck.h"
 #include "test_helpers.h"
 
 using namespace azaraC;
@@ -1115,6 +1116,112 @@ static void test_parser_stateful(FuzzStats& stats, std::mt19937& rng, int iterat
     printf("  Completed.\n");
 }
 
+// テスト19: 任意バイト列をフレーマ / Parser に投入（整形フレームではない真のランダム入力）。
+// 既存のフレーマ fuzz は正常生成文の1文字破損が中心で、任意バイト列・超過長・再同期の
+// 状態ストームが未カバーだった。クラッシュ・ハングしないことを確認する。
+static void test_framer_raw_bytes(FuzzStats& stats, std::mt19937& rng, int iterations) {
+    printf("Test 19: Framer raw random byte streams (%d iterations)...\n", iterations);
+    for (int i = 0; i < iterations; i++) {
+        try {
+            const size_t len = 1 + (rng() % 512);
+            std::vector<uint8_t> data(len);
+            for (auto& b : data) b = static_cast<uint8_t>(rng() & 0xFF);
+
+            NmeaFramer nf; UbxFramer uf; Frame f;
+            for (uint8_t b : data) nf.feed(b, f);
+            for (uint8_t b : data) uf.feed(b, f);
+            Parser parser; Message msg;
+            for (uint8_t b : data) parser.feed(b, msg, 0);
+
+            stats.total_iterations++;
+        } catch (...) {
+            stats.log_exception("test_framer_raw_bytes", i);
+        }
+    }
+    printf("  Completed.\n");
+}
+
+// 独立な UTF-8 妥当性検証（コードポイント復号＋overlong/サロゲート/範囲検査）。
+static bool fuzzIsValidUtf8(const std::string& s) {
+    const uint8_t* p = reinterpret_cast<const uint8_t*>(s.data());
+    const size_t n = s.size();
+    size_t i = 0;
+    while (i < n) {
+        const uint8_t b = p[i];
+        if (b < 0x80) { ++i; continue; }
+        uint32_t cp; int extra;
+        if      (b >= 0xC2 && b <= 0xDF) { cp = b & 0x1Fu; extra = 1; }
+        else if (b >= 0xE0 && b <= 0xEF) { cp = b & 0x0Fu; extra = 2; }
+        else if (b >= 0xF0 && b <= 0xF4) { cp = b & 0x07u; extra = 3; }
+        else return false;
+        if (i + static_cast<size_t>(extra) >= n) return false;
+        for (int k = 1; k <= extra; ++k) {
+            const uint8_t c = p[i + k];
+            if ((c & 0xC0) != 0x80) return false;
+            cp = (cp << 6) | (c & 0x3Fu);
+        }
+        if (extra == 1 && cp < 0x80) return false;
+        if (extra == 2 && cp < 0x800) return false;
+        if (extra == 3 && cp < 0x10000) return false;
+        if (cp >= 0xD800 && cp <= 0xDFFF) return false;
+        if (cp > 0x10FFFF) return false;
+        i += static_cast<size_t>(extra) + 1;
+    }
+    return true;
+}
+
+// テスト20: シリアライズ結果の JSON 妥当性＋UTF-8 妥当性。
+// 南海集約テキストにランダム生バイト（不正 UTF-8 を含む）を入れ、writeStrUtf8 経路が
+// 常に valid UTF-8 な JSON を出すことを検査する（M-1 の回帰）。
+static void test_json_utf8_wellformed(FuzzStats& stats, std::mt19937& rng, int iterations) {
+    printf("Test 20: JSON well-formedness + UTF-8 validity (%d iterations)...\n", iterations);
+    for (int i = 0; i < iterations; i++) {
+        try {
+            uint8_t bits[32];
+            generate_random_nav_bits(bits, sizeof(bits), rng);
+            set_valid_preamble(bits, rng);
+            set_valid_msg_type(bits, rng);
+            set_valid_crc(bits);
+            Frame frame; frame.svid = 193; memcpy(frame.bits, bits, 32);
+            Decoder decoder; Message msg;
+            if (decoder.decode(frame, msg, 1704067200u)) {
+                StringPrint sp; JsonSerializer::serialize(msg, sp);
+                const std::string& s = sp.str();
+                JsonCheck jc(s);
+                if (!jc.run()) stats.log_warning("json_malformed", i);
+                if (!fuzzIsValidUtf8(s)) stats.log_warning("json_invalid_utf8", i);
+            }
+#if AZARAC_ENABLE_NANKAI
+            {
+                Message m; m.msg_type = 43; m.initPayload<Mt43Data>();
+                Mt43Data* d = m.getMt43();
+                if (d) {
+                    d->disaster_category = 4; d->initAs<NankaiData>();
+                    NankaiData* nk = d->getNankai();
+                    if (nk) {
+                        uint8_t raw[64];
+                        for (auto& b : raw) b = static_cast<uint8_t>(rng() & 0xFF);
+                        nk->is_aggregated = true;
+                        nk->aggregated_text_ptr = reinterpret_cast<const char*>(raw);
+                        nk->aggregated_len = static_cast<uint8_t>(rng() % sizeof(raw));
+                        nk->page = 1; nk->total_page = 1;
+                        StringPrint sp; JsonSerializer::serialize(m, sp);
+                        const std::string& s = sp.str();
+                        JsonCheck jc(s);
+                        if (!jc.run()) stats.log_warning("nankai_json_malformed", i);
+                        if (!fuzzIsValidUtf8(s)) stats.log_warning("nankai_json_invalid_utf8", i);
+                    }
+                }
+            }
+#endif
+            stats.total_iterations++;
+        } catch (...) {
+            stats.log_exception("test_json_utf8_wellformed", i);
+        }
+    }
+    printf("  Completed.\n");
+}
+
 int main(int argc, char* argv[]) {
     printf("=== azaraC Fuzz Testing ===\n");
     printf("Starting fuzz tests...\n\n");
@@ -1203,6 +1310,10 @@ int main(int argc, char* argv[]) {
     test_decode_serialize(stats, rng, iterations / 2);
     mem_tracker.checkpoint();
     test_parser_stateful(stats, rng, iterations / 2);
+    mem_tracker.checkpoint();
+    test_framer_raw_bytes(stats, rng, iterations / 2);
+    mem_tracker.checkpoint();
+    test_json_utf8_wellformed(stats, rng, iterations / 2);
     mem_tracker.checkpoint();
 
     // メモリレポートは mem_tracker のデストラクタで自動出力
