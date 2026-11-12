@@ -26,8 +26,9 @@ ifeq ($(OS),Windows_NT)
       export PATH := $(MINGW64_BIN);$(PATH)
     endif
   endif
-  # /dev/null fallback — Windows では NUL
-  DEVNULL = NUL
+  # /dev/null fallback — レシピは MSYS sh で実行されるため POSIX の /dev/null を使う。
+  # NUL は cmd.exe のデバイス名で、sh ではリテラルの NUL ファイルが生成される（test/NUL の原因）。
+  DEVNULL = /dev/null
   # メモリ割り当て増加: 256MBスタック + 512MBヒープ (MinGW)
   LDFLAGS = -Wl,--stack,268435456 -Wl,--heap,536870912
 else
@@ -377,8 +378,7 @@ DCX_SRC   = ../src/decoder/DecoderDcx.cpp
 JSON_SRC  = ../src/json/JsonSerializerQzqsm.cpp
 JSON_DCX_SRC = ../src/json/JsonSerializerDcx.cpp
 
-# ---- Macro size impact measurement (Unix/Linux only; requires sh + size) ----
-ifneq ($(OS),Windows_NT)
+# ---- Macro size impact measurement (requires POSIX sh + size; Windows は MSYS sh 前提) ----
 test-macro-sizes:
 	@echo "=== AZARAC_ENABLE_* Macro Size Impact ==="
 	@echo ""
@@ -417,32 +417,6 @@ test-macro-sizes:
 	@echo "|---------------|-------------|------------|-------------|-----------|"
 	@echo "===== Measurement complete ====="
 	@rm -rf $(MACRO_TMP)
-else
-# Windows fallback: just compile and show raw size output
-test-macro-sizes:
-	@echo "=== AZARAC_ENABLE_* Macro Size Impact (Windows, raw sizes) ==="
-	@if not exist $(MACRO_TMP) mkdir $(MACRO_TMP)
-	$(CXX) $(CXXFLAGS) -c $(QZQSM_SRC) -o $(MACRO_TMP)/bl_qzqsm.o
-	$(CXX) $(CXXFLAGS) -c $(DCX_SRC) -o $(MACRO_TMP)/bl_dcx.o
-	$(CXX) $(CXXFLAGS) -c $(JSON_SRC) -o $(MACRO_TMP)/bl_json.o
-	$(CXX) $(CXXFLAGS) -c $(JSON_DCX_SRC) -o $(MACRO_TMP)/bl_json_dcx.o
-	@echo "Baseline (all ON):"
-	-@size $(MACRO_TMP)/bl_qzqsm.o
-	-@size $(MACRO_TMP)/bl_dcx.o
-	-@size $(MACRO_TMP)/bl_json.o
-	-@size $(MACRO_TMP)/bl_json_dcx.o
-	@echo "Individual macros disabled (compiling & sizing):"
-	-@for %%m in (EEW HYPOCENTER SEISMIC NANKAI TSUNAMI NW_PAC_TSUNAMI VOLCANO ASH_FALL WEATHER FLOOD TYPHOON MARINE) do @( \
-		$(CXX) $(CXXFLAGS) -DAZARAC_ENABLE_%%m=0 -c $(QZQSM_SRC) -o $(MACRO_TMP)/%%m.o 2>nul & \
-		echo DecoderQzqsm with %%%%m=0: & \
-		size $(MACRO_TMP)/%%m.o )
-	-@$(CXX) $(CXXFLAGS) -DAZARAC_ENABLE_DCX_CAMF=0 -c $(DCX_SRC) -o $(MACRO_TMP)/dcx_off.o 2>nul
-	-@echo DecoderDcx with DCX_CAMF=0: & size $(MACRO_TMP)/dcx_off.o
-	-@$(CXX) $(CXXFLAGS) -DAZARAC_ENABLE_DCX_CAMF=0 -c $(JSON_DCX_SRC) -o $(MACRO_TMP)/json_dcx_off.o 2>nul
-	-@echo JsonSerializerDcx with DCX_CAMF=0: & size $(MACRO_TMP)/json_dcx_off.o
-	@echo "===== Measurement complete ====="
-	@-rmdir /s /q $(MACRO_TMP) 2>nul
-endif
 
 # ---- Macro disable runtime tests (compile + run for each disabled macro) ----
 # 各マクロを個別に無効化してビルド・実行し、無効化されたデコーダが
@@ -454,34 +428,7 @@ MACRO_NAMES = EEW HYPOCENTER SEISMIC NANKAI TSUNAMI NW_PAC_TSUNAMI VOLCANO ASH_F
 .PHONY: macro
 
 # Individual macro disabled test: clean → rebuild with macro=0 → run
-# 各マクロの無効化ビルドは独立して行う（clean → build → run）
-ifeq ($(OS),Windows_NT)
-macro:
-	@echo === AZARAC_ENABLE_* Macro Runtime Tests ===
-	@echo Testing all $(words $(MACRO_NAMES)) macros individually...
-	@$(MAKE) _macro-test-one M=EEW
-	@$(MAKE) _macro-test-one M=HYPOCENTER
-	@$(MAKE) _macro-test-one M=SEISMIC
-	@$(MAKE) _macro-test-one M=NANKAI
-	@$(MAKE) _macro-test-one M=TSUNAMI
-	@$(MAKE) _macro-test-one M=NW_PAC_TSUNAMI
-	@$(MAKE) _macro-test-one M=VOLCANO
-	@$(MAKE) _macro-test-one M=ASH_FALL
-	@$(MAKE) _macro-test-one M=WEATHER
-	@$(MAKE) _macro-test-one M=FLOOD
-	@$(MAKE) _macro-test-one M=TYPHOON
-	@$(MAKE) _macro-test-one M=MARINE
-	@$(MAKE) _macro-test-one M=DCX_CAMF
-	@$(MAKE) clean 2>$(DEVNULL)
-	@echo ===== All macro runtime tests passed =====
-
-.PHONY: _macro-test-one
-
-_macro-test-one:
-	@echo Testing AZARAC_ENABLE_$(M)=0...
-	@$(MAKE) clean 2>$(DEVNULL)
-	@$(MAKE) -B CXXFLAGS="$(CXXFLAGS) -DAZARAC_ENABLE_$(M)=0" run
-else
+# 各マクロの無効化ビルドは独立して行う（clean → build → run）。POSIX sh 前提（Windows は MSYS sh）。
 macro:
 	@echo "=== AZARAC_ENABLE_* Macro Runtime Tests ==="
 	@echo "Testing all $(words $(MACRO_NAMES)) macros individually..."
@@ -493,7 +440,6 @@ macro:
 	done
 	@$(MAKE) clean 2>$(DEVNULL)
 	@echo "===== All macro runtime tests passed ====="
-endif
 
 # Include dependency files
 -include $(TEST_OBJS:.o=.d) $(LIB_OBJS:.o=.d) $(FUZZ_OBJS:.o=.d) $(DECODE_OBJS:.o=.d) $(DEDUP_REALDAY_OBJS:.o=.d)
