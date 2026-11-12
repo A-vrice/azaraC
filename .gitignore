@@ -46,6 +46,8 @@ qzssmsg.txt
 # OS files
 Thumbs.db
 .DS_Store
+# 旧 Makefile の DEVNULL=NUL が作った残骸。Windows では git clean で消せない（\\?\ パスが必要）
+test/NUL
 
 # cppcheck --dump の一時出力
 *.dump

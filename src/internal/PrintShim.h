@@ -22,7 +22,7 @@ public:
     virtual void println()             { write('\n'); }
     virtual void println(const char* s){ print(s); write('\n'); }
     virtual void println(std::string_view s) { print(s); write('\n'); }
-    virtual void print(const void* s)  { if (s) fputs(static_cast<const char*>(s), stdout); }
+    virtual void print(const void* s)  { if (s) print(static_cast<const char*>(s)); }
 };
 
 // 動的バッファ（オーバーフローフリー）
