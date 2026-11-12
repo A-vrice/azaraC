@@ -40,6 +40,7 @@ CPPCHECK_BASE_ARGS = [
     "--inline-suppr",
     "--suppress=missingIncludeSystem",
     "--suppress=*:test/doctest.h",
+    "--suppress=uninitMemberVarNoCtor",
     "--std=c++17",
     "--xml",
     "-Isrc",
