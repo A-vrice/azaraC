@@ -421,6 +421,16 @@ azaraC が出さないもの: コード体系の明示（`table`）、単位（`
 失うのは主に**メタ情報**で、電文が運んだコード値そのものはほぼ全て残る（`arrival_time_raw`、生の `magnitude`、`ambiguity`、`sd_sdm` 等）。
 未定義コードは `_label: null`、時刻の状態は `unix: null` と `arrival_status` で表す。
 
+### azarashi との既知の意味論差（仕様準拠電文では実害なし）
+
+- **EEW 仮定震源**: De=10 かつ Ma=10 の「仮定震源」を azarashi は `status:"assumed"` で区別するが、azaraC は区別しない（`depth`/`magnitude` の生コードは残る）。
+- **火山 `activity_time` の曖昧さ（Du）**: azarashi は Du≥6 で時刻を None、Du≥5 で時分を 0 にするが、azaraC は Du を `activity_time` に適用しない（`ambiguity` は別途出力）。Du≥6 でも `unix` が非 null で出るため、消費側は `ambiguity` を見て判断すること。
+- **津波 `Ta=0`**: azarashi は 00:00 を有効な到着時刻として扱うが、azaraC は `Ta` raw=0 を未定義コードとして `null` 扱いにする。
+- **暦に存在しない日付**: 2/30・4/31・平年 2/29 等は azarashi が電文拒否（2/29 は最寄り閏年）するのに対し、azaraC は `unix: null` の未解決とする（生フィールドは保持。黙って別月日へ正規化しない）。
+- **DCX `Vn`/`A1`**: azarashi 準拠でバージョン無検証（将来バージョンでも v1 配置で復号しうる）。MT=43 の `ver!=1` 拒否とは非対称な設計判断。
+- **楕円半径 code 29**: azaraC は仕様表（Table 4.2-17）の 1367.116 km（1367116 m）を使う。azarashi は対数式の丸めで 1367.117 km になり 1 m 異なる（他 31 コードは一致）。
+- **南海トラフの同時追跡**: `AZARAC_NANKAI_BUFFERS`（ホスト既定 2）を超える事象が同時進行すると集約できない限界がある（API リファレンス参照）。
+
 方針: **形は azaraC のまま、azarashi の意味論のうち azaraC が落としている部分だけを取り込む。**
 azarashi の出力（`table`/`labels`/`range`）をそのまま真似るとサイズが 2.35 倍になり組込みでの利点を失う。
 
