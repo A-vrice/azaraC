@@ -30,6 +30,7 @@ AVR（Uno・Mega を含む）は既定で SEISMIC/TSUNAMI のみ有効です。
 - EEW と震源は AVR プリセットで無効なので `getEew()` / `getHypocenter()` は既定で使えません。
   有効化する場合は `-DAZARAC_ENABLE_EEW=1` / `-DAZARAC_ENABLE_HYPOCENTER=1`
 - MT=44 は `-DAZARAC_AVR_LARGE_FLASH=1` または `-DAZARAC_ENABLE_DCX_CAMF=1` で有効化します（Flash が 64KB を超えるボードが対象）
+- ラベルの言語は `-DAZARAC_LANG_JA=0 -DAZARAC_LANG_EN=1` で英語に切り替えられます（既定は日本語。両方 1 で `_label_en` 併記）
 - 南海トラフの集約テキスト（`NankaiData::aggregated_text_ptr`）は `Parser` 内部への**借用ポインタ**です。`Message` をコピーしても所有権は移らず、次の `feed()` / `reset()` で内容が変わります。`feed()` が `true` を返した直後にコピーするか、`toJson()` で出力してください（[API リファレンス](docs/api-reference.md#集約テキストの借用ポインタ重要)、[Examples の RTOS 実装](examples/rtos_freertos/rtos_freertos.ino)）
 
 ## インストール
@@ -73,7 +74,7 @@ git clone https://github.com/A-vrice/azaraC <PROJECT_DIR>/.pio/libdeps/<TARGET_B
 本ライブラリは非公式なものであり，準天頂衛星システムサービス株式会社，JAXA，その他公共機関など「みちびき」に関連する組織，ならびにNBTK氏の提供するazarashiとは一切関係ありません。
 また本ライブラリは現状有姿で提供され，あるふぁ米およびそのコントリビューターは，受信したメッセージや本ライブラリの出力内容の正確性，完全性，その他のいかなるものについても保証しません。
 本ライブラリを使用したことによるいかなる損害についても責任は負いかねます。
-また，本ライブラリを利用される際はQSSの免責条項[参考](https://qzss.go.jp/technical/dod/dc-report/users-manual_agree.html)を確認することを推奨します。
+また，本ライブラリを利用される際はQZSSの免責条項[参考](https://qzss.go.jp/technical/dod/dc-report/users-manual_agree.html)を確認することを推奨します。
 
 ## 問い合わせ
 
