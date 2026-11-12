@@ -15,12 +15,12 @@
 //   GNSS RX → GPIO21 (Serial1 TX)
 //   GND     → GND
 
-#include <azaraC.h>
-#include <WiFi.h>
-
 #if !defined(ESP32)
 #error "wifi_client uses the ESP32 Arduino core (WiFi.h / Serial1)."
 #endif
+
+#include <azaraC.h>
+#include <WiFi.h>
 
 #ifndef WIFI_SSID
   #define WIFI_SSID "YOUR_SSID"
