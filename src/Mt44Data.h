@@ -97,7 +97,7 @@ struct DecodedEllipseCore {
     int32_t lon_microdeg;              // microdegrees (×1,000,000)
     int32_t semi_major_m;              // meters (×1,000 from km)
     int32_t semi_minor_m;              // meters (×1,000 from km)
-    int32_t azimuth_decideg;           // decidegrees (×100,000)
+    int32_t azimuth_decideg;           // 1e-5 degrees (×100,000)。フィールド名は歴史的経緯（3.0.0 で改名検討）
 };
 
 struct DecodedEllipse : DecodedEllipseCore {

@@ -70,7 +70,7 @@ private:
     // decoded と out が同一オブジェクトならコピーは行わない。
     bool postDecode(const Message& decoded, Message& out, uint32_t identity);
 
-    // テストから時刻を注入するための実体。public postDecode は getMillis() を渡すだけ。
+    // テストから時刻を注入するための実体。postDecode は getMillis() を渡すだけ。
     bool postDecodeAt(const Message& decoded, Message& out, uint32_t identity, uint64_t now_ms64);
 
     // decode → postDecode を `out` 自体に対して行う。decode() が先に out をクリアするため、復号失敗で前の payload が残らない。
