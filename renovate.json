@@ -6,5 +6,11 @@
     "group:allNonMajor",
     "group:linters"
   ],
-  "dependencyDashboard": false
+  "dependencyDashboard": false,
+  "packageRules": [
+    {
+      "matchPackageNames": ["slsa-framework/slsa-github-generator"],
+      "pinDigests": false
+    }
+  ]
 }
