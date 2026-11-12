@@ -4,7 +4,7 @@
 
 #include "../test_helpers.h"
 #include "doctest.h"
-#include <cstring>
+#include <algorithm>
 
 using namespace azaraC;
 
@@ -26,10 +26,10 @@ void mt43Header(uint8_t* bits, uint8_t category) {
 
 Message decodeBits(const uint8_t* bits) {
     uint8_t buf[32];
-    memcpy(buf, bits, 32);
+    std::copy(bits, bits + 32, buf);
     setBits(buf, 226, 24, crc24qRef(buf, 226));
     Frame frame{};
-    memcpy(frame.bits, buf, 32);
+    std::copy(buf, buf + 32, frame.bits);
     frame.svid = 193;
     Decoder dec;
     Message msg{};
