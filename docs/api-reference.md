@@ -108,26 +108,28 @@ const internal::NankaiPageBuffer* getNankaiBuffer(const internal::NankaiPageKey&
 | マクロ | デフォルト | 説明 |
 |--------|-----------|------|
 | `AZARAC_NANKAI_MAX_PAGES` | 63 | 1 電文あたりの最大ページ数（仕様上の最大も 63） |
-| `AZARAC_NANKAI_BUFFERS` | 1 | 同時に追跡可能な南海トラフ地震の数 |
+| `AZARAC_NANKAI_BUFFERS` | 2 | 同時に追跡可能な南海トラフ地震の数（AVR preset は 1。訓練/実警報の同時進行に 2 必要） |
 
 #### メモリ使用量
 
 各バッファはページを`aggregated_text[MAX_PAGES * 18 + 1]`に保管します：
 - バッファあたり: メタデータ24B（AVRは23B）+ `MAX_PAGES×18+1` B（既定63ページで1,135B、構造体サイズはアラインメント込み1,160B、AVRは1,158B）
-- バッファ: 既定1バッファで約1.16KB。バッファ数を増やすと比例して増加（4バッファ・63ページで4,640B）
+- バッファ: 既定2バッファで約2.32KB。バッファ数を増やすと比例して増加（4バッファ・63ページで4,640B）
 
-#### LRU エビクション
+#### 追い出し（エビクション）
 
-全てのバッファが使用中の場合、最も古いバッファが自動的に解放されます。
+全てのバッファが使用中の場合、最終更新が最も古いバッファが解放されます（同値なら先頭スロット。厳密な LRU ではありません）。
+なお `BUFFERS=1` では訓練（Rc=7）と実警報（Rc=2）が交互到着すると互いに追い出し合い、どちらも集約できません。3 つ以上の事象が同時進行する場合も同様の限界があります（60 秒タイムアウトがメモリ上限を保証）。
 
 #### 集約テキストの借用ポインタ（重要）
 
 `NankaiData::aggregated_text_ptr` は **`Parser` 内部の `NankaiPageBuffer::aggregated_text[]` を指す借用ポインタ**です。所有権はありません。
 
 - **有効期間**: `feed()` が `true` を返した直後から、**次に `feed()` / `reset()` を呼ぶまで**。
-- `Parser` が生きている間はアドレス自体は有効ですが、**内容は次の事象で上書き・ゼロ埋めされます**（LRU でスロットが再利用され、`clearAll()` が `memset` します）。真の dangling になるのは `Parser` を破棄した後です。
+- `Parser` が生きている間はアドレス自体は有効ですが、**内容は次の事象で上書き・ゼロ埋めされます**（追い出しでスロットが再利用され、`clearAll()` が `memset` します）。真の dangling になるのは `Parser` を破棄した後です。
 - `Message` は値コピー可能ですが、コピーしてもポインタが複製されるだけです。`std::vector` に入れる、FreeRTOS キューへ積む、`Print` 出力を遅延させる、といった使い方はできません。
 - 必要な場合は `feed()` が `true` を返した直後にコピーするか、`toJson()` でシリアライズしてください。
+- **本文はプロトコル生バイト**です。UTF-8 妥当性は `toJson()` の `text_utf8` 出力で保証します（不正シーケンスは U+FFFD に置換）。`aggregated_text_ptr` を直接読む場合は不正 UTF-8 を含み得ます。
 
 ```cpp
 if (parser.feed(b, msg)) {
@@ -236,7 +238,7 @@ struct EewData {
     uint16_t notification[3];     // 防災気象情報通知 (3×9bits)
     uint8_t  notification_count;  // 通知数
     TimeFields quake_time;        // 発震時刻
-    uint16_t depth;               // 震源の深さ (×10km)
+    uint16_t depth;               // 震源の深さ (km、コード値＝km)
     uint8_t  magnitude;           // マグニチュード (×0.1)
     uint16_t epicenter;           // 震央地名コード
     uint8_t  intensity_lower;     // 震度下限 (4bits)
@@ -350,7 +352,7 @@ struct DecodedEllipse {
     int32_t lon_microdeg;              // microdegrees (×1,000,000)
     int32_t semi_major_m;              // meters (×1,000 from km)
     int32_t semi_minor_m;              // meters (×1,000 from km)
-    int32_t azimuth_decideg;           // dexadegrees (×100,000)
+    int32_t azimuth_decideg;           // 1e-5 degrees (×100,000)。フィールド名は歴史的経緯（3.0.0 で改名検討）
     int32_t b1_lat_offset_microdeg;    // microdegrees (×1,000,000)
     int32_t b1_lon_offset_microdeg;    // microdegrees (×1,000,000)
     int32_t b1_refined_semi_major_m;   // meters (×1,000 from km)
@@ -516,7 +518,8 @@ if (client.connect(server, port)) {
 | `AZARAC_ENABLE_MARINE` | 1 | 海上警報 (カテゴリ14) |
 | `AZARAC_ENABLE_DCX_CAMF` | 1 | DCX/CAMF全般 (MT=44) |
 
-どの `AZARAC_ENABLE_*` を 0 にしても、定義テーブルだけでなく**payload 型そのもの**（`EewData` / `SeismicData` / `TsunamiData` など全 12 型）と対応する取得関数（`getEew()` など）もコンパイル対象から外れる。
+DCR のカテゴリマクロ（`AZARAC_ENABLE_EEW` など 12 個）を 0 にすると、定義テーブルだけでなく**payload 型そのもの**（`EewData` / `SeismicData` / `TsunamiData` など全 12 型）と対応する取得関数（`getEew()` など）もコンパイル対象から外れる。
+なお `AZARAC_ENABLE_DCX_CAMF=0` は別扱いで、`Mt44Data` 型と `getMt44()` はコンパイル対象に残り、`getMt44()` は常に `nullptr` を返す（型ガードではなく実行時無効化）。
 また同時に`Mt43Data` のペイロードサイズ（`storage_size_`）は残ったカテゴリのうち最大の `sizeof` まで小さくなる。全カテゴリを無効にすると 1 B まで落ちる（`Message` の `payload_type` は `Empty` のまま機能する）。
 ホスト実測: 全カテゴリ有効で `storage_size_` 88 B / `sizeof(Mt43Data)` 104 B、津波系（5・6）を無効で 56 B / 72 B、全無効で 1 B / 24 B。
 AVR プリセットは EEW・震源が既定で 0 なので `sizeof(Mt43Data)` は 75B、`Message` は 84B となる（EEW を有効にしても予報エリアは `region_bitmap[10]` 保持のため 75B / 84B のまま。DCRの全カテゴリおよび DCX/CAMF 有効時は `Mt44Data` 190B、`Message` 199Bとなる。avr-gcc `-Os`、ATmega328Pボードの設定で計測）。
