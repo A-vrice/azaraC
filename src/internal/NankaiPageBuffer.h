@@ -72,7 +72,7 @@ struct NankaiPageKey {
 // 7 バイト（パディングなし）を固定する: 鍵はページ受信のたびにコピーされ、バッファごとに 1 個常駐する。
 static_assert(sizeof(NankaiPageKey) == 7, "NankaiPageKey must stay 7 bytes");
 
-// addPageEx の結果。Duplicate は受信済みページで、状態は変更していない。
+// addPageEx の結果。Duplicate は受信済みページで、本文・受信数は変えないが last_update_ms は更新する。
 enum class NankaiPageAddResult : uint8_t {
     Rejected,
     Added,
@@ -130,7 +130,7 @@ struct NankaiPageBuffer {
         return addPageEx(page_num, total_pages_in, text_data, current_ms) == NankaiPageAddResult::Added;
     }
 
-    // 追加結果を区別する実体。Duplicate は受信済みページで、状態を変更していない。
+    // 追加結果を区別する実体。Duplicate は受信済みページで、本文・受信数は変えず last_update_ms だけ更新する。
     NankaiPageAddResult addPageEx(uint8_t page_num, uint8_t total_pages_in,
                                   const uint8_t* text_data, uint64_t current_ms) {
         // 検証を状態変更より先に行う。不正ページで既存の total_pages/truncated を汚さない。
@@ -155,6 +155,9 @@ struct NankaiPageBuffer {
         // bitmap による重複判定 O(1)
         uint64_t mask = 1ULL << (page_num - 1);
         if (received_bitmap & mask) {
+            // F-2: 重複ページの再送でも集約の寿命を延ばす。
+            // 本文・受信数は変えない。再出力の抑止は dedup 側で別に扱う。
+            last_update_ms = (uint32_t)current_ms;
             return NankaiPageAddResult::Duplicate;
         }
 
