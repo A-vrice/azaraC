@@ -319,7 +319,11 @@ public:
         if (idx < 0) {
             idx = findEmptyBuffer();
             if (idx < 0) {
-                idx = findOldestBuffer(current_ms);
+                idx = findEvictionVictim(key, current_ms);
+                if (idx < 0) {
+                    // F-1: 訓練・試験の新規ページは、実警報のバッファを追い出してまで割り当てない。
+                    return NankaiAggregateResult::Rejected;
+                }
             }
             _buffers[idx].clearAll();
             _buffers[idx].setKey(key);
@@ -374,16 +378,34 @@ private:
         return -1;
     }
 
-    // 追い出し: 最終更新が最も古いバッファを選ぶ（同値なら先頭スロット。真の LRU ではない）。
-    // 呼び出し元は findEmptyBuffer() < 0 のときだけ呼ぶので、空バッファは存在しない（age 0 分岐は不要）。
+    // 追い出し先の決定（F-1）。訓練・試験（Rc=7）のバッファを先に捨て、実警報（Rc=2）を守る。
+    // 訓練バッファがあれば、その中で最も古いものを返す。無ければ、到来ページが訓練のときは
+    // 実警報を追い出さないため -1（割り当てない）、それ以外は全体で最も古いものを返す。
+    int8_t findEvictionVictim(const NankaiPageKey& incoming, uint64_t current_ms) {
+        const int8_t training = findOldestBuffer(current_ms, true);
+        if (training >= 0) {
+            return training;
+        }
+        if (incoming.report_classification == 7) {
+            return -1;
+        }
+        return findOldestBuffer(current_ms, false);
+    }
+
+    // 最終更新が最も古いバッファを選ぶ（同値なら先頭スロット。真の LRU ではない）。
+    // training_only のときは訓練・試験（Rc=7）のバッファだけを対象にし、無ければ -1 を返す。
+    // 呼び出し元は findEmptyBuffer() < 0 のときだけ呼ぶので、空バッファは存在しない。
     // 符号なし減算でラップに強い。expireBuffers() が毎回 60s 超を回収するので age は常に 60s 以下。
-    int8_t findOldestBuffer(uint64_t current_ms) {
+    int8_t findOldestBuffer(uint64_t current_ms, bool training_only) {
         uint32_t max_age = 0;
-        int8_t oldest_idx = 0;
+        int8_t oldest_idx = -1;
 
         for (uint8_t i = 0; i < MAX_BUFFERS; ++i) {
+            if (training_only && _buffers[i].key.report_classification != 7) {
+                continue;
+            }
             const uint32_t age = (uint32_t)(current_ms - _buffers[i].last_update_ms);
-            if (age > max_age) {
+            if (oldest_idx < 0 || age > max_age) {
                 max_age = age;
                 oldest_idx = i;
             }

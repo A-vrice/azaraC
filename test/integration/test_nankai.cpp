@@ -375,6 +375,64 @@ TEST_CASE("NankaiPageBufferManager buffer limit") {
     }
 }
 
+#if AZARAC_NANKAI_BUFFERS >= 2
+TEST_CASE("NankaiPageBufferManager eviction respects report_classification (F-1)") {
+    NankaiPageBufferManager manager;
+    uint8_t text[18] = {'T', 'e', 's', 't', 0};
+    const NankaiPageKey realAlert = {1, 9, 14, 19, 1, 0, 2};   // 実警報 Rc=2
+    const NankaiPageKey realAlert2 = {2, 9, 14, 19, 3, 0, 2};  // 別の実警報 Rc=2
+    const NankaiPageKey training = {3, 9, 14, 19, 5, 0, 7};    // 訓練 Rc=7
+    const NankaiPageKey training2 = {4, 9, 14, 19, 9, 0, 7};   // 別の訓練 Rc=7
+
+    SUBCASE("Training event evicts training, not the older real alert") {
+        manager.addPageEx(realAlert, 1, 10, text, 0, nullptr);
+        manager.addPageEx(training, 1, 10, text, 10000, nullptr);
+        manager.addPageEx(training2, 1, 10, text, 20000, nullptr);
+
+        CHECK(manager.getBuffer(realAlert) != nullptr);
+        CHECK(manager.getBuffer(training) == nullptr);
+        CHECK(manager.getBuffer(training2) != nullptr);
+
+        // 実警報の集約はリセットされず、続きから集まる。
+        manager.addPageEx(realAlert, 2, 10, text, 24000, nullptr);
+        REQUIRE(manager.getBuffer(realAlert) != nullptr);
+        CHECK(manager.getBuffer(realAlert)->received_count == 2);
+    }
+
+    SUBCASE("Training page is dropped rather than evicting a real alert") {
+        manager.addPageEx(realAlert, 1, 10, text, 0, nullptr);
+        manager.addPageEx(realAlert2, 1, 10, text, 10000, nullptr);
+
+        CHECK(manager.addPageEx(training, 1, 10, text, 20000, nullptr) ==
+              NankaiAggregateResult::Rejected);
+        CHECK(manager.getBuffer(realAlert) != nullptr);
+        CHECK(manager.getBuffer(realAlert2) != nullptr);
+        CHECK(manager.getBuffer(training) == nullptr);
+    }
+
+    SUBCASE("Real alert evicts the oldest training buffer") {
+        manager.addPageEx(training, 1, 10, text, 0, nullptr);
+        manager.addPageEx(training2, 1, 10, text, 10000, nullptr);
+        manager.addPageEx(realAlert, 1, 10, text, 20000, nullptr);
+
+        CHECK(manager.getBuffer(training) == nullptr);
+        CHECK(manager.getBuffer(training2) != nullptr);
+        CHECK(manager.getBuffer(realAlert) != nullptr);
+    }
+
+    SUBCASE("Eviction among real alerts stays oldest-first") {
+        const NankaiPageKey realAlert3 = {5, 9, 14, 19, 12, 0, 2};
+        manager.addPageEx(realAlert, 1, 10, text, 0, nullptr);
+        manager.addPageEx(realAlert2, 1, 10, text, 10000, nullptr);
+        manager.addPageEx(realAlert3, 1, 10, text, 20000, nullptr);
+
+        CHECK(manager.getBuffer(realAlert) == nullptr);
+        CHECK(manager.getBuffer(realAlert2) != nullptr);
+        CHECK(manager.getBuffer(realAlert3) != nullptr);
+    }
+}
+#endif // AZARAC_NANKAI_BUFFERS >= 2
+
 TEST_CASE("NankaiPageBufferManager empty slots never match") {
     NankaiPageBufferManager manager;
     NankaiPageKey zero;  // all-zero identity
