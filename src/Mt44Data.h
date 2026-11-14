@@ -137,10 +137,15 @@ struct Mt44Data {
     ExtendedKind        ex_kind = {};
     // 拡張部は ex_kind で排他（decoder は active 枝だけ書き、serializer も ex_kind で分岐して active 枝だけ読む）。
     // 3 構造体を並列に持つと AVR で 36 B 常時消費なので union にする（最大枝 15 B）。
-    // NSDMI は代表枝 1 つだけ（C++17 では複数の variant メンバに初期化子を持てない）。
+    // NSDMI は先頭の raw_ だけ（C++17 では複数の variant メンバに初期化子を持てない）。
     // 非 active 枝は未規定値だが、ex_kind で排他なので読まれない。
     union Mt44Extended {
-        Mt44ExLAlertOrLocal ex_lalert_local{};
+        // 最大枝はプラットフォームで変わる（AVR は LAlert、ホストは整列で JAlert）。
+        // 先頭に最大サイズのバイト列を置き、{} で union 全体がゼロ初期化されるようにする。
+        uint8_t             raw_[sizeof(Mt44ExLAlertOrLocal) > sizeof(Mt44ExJAlert)
+                                 ? (sizeof(Mt44ExLAlertOrLocal) > sizeof(Mt44ExOutside) ? sizeof(Mt44ExLAlertOrLocal) : sizeof(Mt44ExOutside))
+                                 : (sizeof(Mt44ExJAlert) > sizeof(Mt44ExOutside) ? sizeof(Mt44ExJAlert) : sizeof(Mt44ExOutside))]{};
+        Mt44ExLAlertOrLocal ex_lalert_local;
         Mt44ExJAlert        ex_jalert;
         Mt44ExOutside       ex_outside;
     };
