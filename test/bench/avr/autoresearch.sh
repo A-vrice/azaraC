@@ -327,10 +327,14 @@ echo "METRIC MEGA_COMPILE_OK=$mega_ok"
 # avr-nm は Windows で CRLF を出すので、パターンは行末に固定しない。
 image_has_path() {  # $1 = elf
     "$AVR_NM" -C "$1" 2>/dev/null | awk '
-        /Decoder::decode/ { d++ }
-        /JsonSerializer/ { s++ }
-        /_POOL|_TABLE/ { t++ }
-        END { exit !(d > 0 && s > 0 && t > 0) }'
+        # 目印関数（probe.cpp）は LTO でも inline されない。
+        # decode 本体は handleFrame へ inline されうるので、decode 専用の補助（crc24q / getBits）で中身の存在を確かめる。
+        / azarac_probe_decode$/ { md++ }
+        / azarac_probe_serialize$/ { ms++ }
+        /Decoder::(decode|crc24q|getBits)/ { d++ }
+        /JsonSerializer|write(Escaped|DHM|Key)/ { s++ }
+        /_POOL$|_TABLE$/ { t++ }
+        END { exit !(md > 0 && ms > 0 && d > 0 && s > 0 && t > 0) }'
 }
 
 # ゲート
