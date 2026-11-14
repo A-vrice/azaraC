@@ -384,8 +384,20 @@ TEST_CASE("NankaiPageBufferManager eviction respects report_classification (F-1)
     const NankaiPageKey training = {3, 9, 14, 19, 5, 0, 7};    // 訓練 Rc=7
     const NankaiPageKey training2 = {4, 9, 14, 19, 9, 0, 7};   // 別の訓練 Rc=7
 
+    // 各 SUBCASE は「2 スロットが埋まった状態で 3 本目が来る」前提。バッファ数が 2 より多い構成
+    // （pgm-stub は 4）でも同じ状況にするため、余分なスロットを実警報（Rc=2）で先に埋める。
+    // 追い出し候補にならないよう、各 SUBCASE で最古のページより後の時刻で入れる。
+    auto fillExtraSlots = [&](uint64_t at_ms) {
+        for (uint8_t i = 0; i + 2 < AZARAC_NANKAI_BUFFERS; ++i) {
+            const NankaiPageKey filler = {static_cast<uint8_t>(6 + (i % 8)), 9, 14, 20,
+                                          static_cast<uint8_t>(i / 8), 0, 2};
+            manager.addPageEx(filler, 1, 10, text, at_ms + i, nullptr);
+        }
+    };
+
     SUBCASE("Training event evicts training, not the older real alert") {
         manager.addPageEx(realAlert, 1, 10, text, 0, nullptr);
+        fillExtraSlots(1000);
         manager.addPageEx(training, 1, 10, text, 10000, nullptr);
         manager.addPageEx(training2, 1, 10, text, 20000, nullptr);
 
@@ -401,6 +413,7 @@ TEST_CASE("NankaiPageBufferManager eviction respects report_classification (F-1)
 
     SUBCASE("Training page is dropped rather than evicting a real alert") {
         manager.addPageEx(realAlert, 1, 10, text, 0, nullptr);
+        fillExtraSlots(1000);
         manager.addPageEx(realAlert2, 1, 10, text, 10000, nullptr);
 
         CHECK(manager.addPageEx(training, 1, 10, text, 20000, nullptr) ==
@@ -412,6 +425,7 @@ TEST_CASE("NankaiPageBufferManager eviction respects report_classification (F-1)
 
     SUBCASE("Real alert evicts the oldest training buffer") {
         manager.addPageEx(training, 1, 10, text, 0, nullptr);
+        fillExtraSlots(1000);
         manager.addPageEx(training2, 1, 10, text, 10000, nullptr);
         manager.addPageEx(realAlert, 1, 10, text, 20000, nullptr);
 
@@ -423,6 +437,7 @@ TEST_CASE("NankaiPageBufferManager eviction respects report_classification (F-1)
     SUBCASE("Eviction among real alerts stays oldest-first") {
         const NankaiPageKey realAlert3 = {5, 9, 14, 19, 12, 0, 2};
         manager.addPageEx(realAlert, 1, 10, text, 0, nullptr);
+        fillExtraSlots(1000);
         manager.addPageEx(realAlert2, 1, 10, text, 10000, nullptr);
         manager.addPageEx(realAlert3, 1, 10, text, 20000, nullptr);
 
