@@ -241,7 +241,7 @@ payload 型はどれも `alignas(uint64_t)` だが、AVR の `alignof(uint64_t)`
 **LTO の制約（AVR）**: Arduino の AVR コアは `-flto` でコンパイル・リンクする。
 inline 関数内の `static const char[]` は one-only シンボルになり、LTO では `__section__` が落ちて `.rodata`（リンカスクリプト上 `.data`、実体は SRAM）へ移る。
 そのため生成ヘッダの switch 戦略は case リテラルを名前空間スコープの配列として出す。
-`make -C test bench` の stage 5b が LTO 画像の SRAM を計測する（ゲートではなくレポート）。
+`make -C test bench` の stage 5 が Arduino レシピ（`-flto`）でリンクした Mega 画像の SRAM をゲートする（`MEGA_RAM_BYTES` ≤ 892B）。
 
 ## 関連ドキュメント
 
