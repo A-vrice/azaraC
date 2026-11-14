@@ -67,18 +67,36 @@ static void initMt43As(Message& m, uint8_t dc) {
 #if (AZARAC_ENABLE_HYPOCENTER)
         case 2: mt43->initAs<HypocenterData>(); break;
 #endif
+#if (AZARAC_ENABLE_SEISMIC)
         case 3: mt43->initAs<SeismicData>(); break;
+#endif // AZARAC_ENABLE_SEISMIC
 #if (AZARAC_ENABLE_NANKAI)
         case 4: mt43->initAs<NankaiData>(); break;
 #endif
+#if (AZARAC_ENABLE_TSUNAMI)
         case 5: mt43->initAs<TsunamiData>(); break;
+#endif // AZARAC_ENABLE_TSUNAMI
+#if (AZARAC_ENABLE_NW_PAC_TSUNAMI)
         case 6: mt43->initAs<NwPacTsunamiData>(); break;
+#endif // AZARAC_ENABLE_NW_PAC_TSUNAMI
+#if (AZARAC_ENABLE_VOLCANO)
         case 8: mt43->initAs<VolcanoData>(); break;
+#endif // AZARAC_ENABLE_VOLCANO
+#if (AZARAC_ENABLE_ASH_FALL)
         case 9: mt43->initAs<AshFallData>(); break;
+#endif // AZARAC_ENABLE_ASH_FALL
+#if (AZARAC_ENABLE_WEATHER)
         case 10: mt43->initAs<WeatherData>(); break;
+#endif // AZARAC_ENABLE_WEATHER
+#if (AZARAC_ENABLE_FLOOD)
         case 11: mt43->initAs<FloodData>(); break;
+#endif // AZARAC_ENABLE_FLOOD
+#if (AZARAC_ENABLE_TYPHOON)
         case 12: mt43->initAs<TyphoonData>(); break;
+#endif // AZARAC_ENABLE_TYPHOON
+#if (AZARAC_ENABLE_MARINE)
         case 14: mt43->initAs<MarineData>(); break;
+#endif // AZARAC_ENABLE_MARINE
         default: break;
     }
 }

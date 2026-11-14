@@ -32,8 +32,10 @@
 
 namespace azaraC {
 
-// 繰返しエントリの要素型（各カテゴリの entries[] に並ぶ）
+// 繰返しエントリの要素型（各カテゴリの entries[] に並ぶ）。
+// カテゴリを無効にすると payload 型ごとコンパイル対象から外れるため、要素型も同じマクロで囲む。
 
+#if AZARAC_ENABLE_TSUNAMI
 struct TsunamiEntry {
     // Ta(12b) は単独の 16 bit ユニットを使う。Th(4b)+Pl(10b) が次のユニットを共有する（間の TimeFields がユニットを分断する）。
     uint16_t   arrival_time_raw : 12;
@@ -41,27 +43,37 @@ struct TsunamiEntry {
     uint16_t   height_code      : 4;
     uint16_t   region_code      : 10;
 };
+#endif
 
+#if AZARAC_ENABLE_SEISMIC
 struct SeismicEntry {
     uint8_t intensity_code;
     uint8_t prefecture_code;
 };
+#endif
 
+#if AZARAC_ENABLE_WEATHER
 struct WeatherEntry {
     uint8_t  sub_category;
     uint32_t region_code;
 };
+#endif
 
+#if AZARAC_ENABLE_FLOOD
 struct FloodEntry {
     uint8_t  warning_level;
     uint64_t region_code;
 };
+#endif
 
+#if AZARAC_ENABLE_MARINE
 struct MarineEntry {
     uint8_t  warning_code;
     uint16_t region_code;
 };
+#endif
 
+#if AZARAC_ENABLE_NW_PAC_TSUNAMI
 struct NwPacTsunamiEntry {
     // 同様に Th(9b)+Pl(7b) が 1 ユニットを共有する（Ta は単独、間の TimeFields が分断する）。
     uint16_t   arrival_time_raw : 12;
@@ -69,6 +81,7 @@ struct NwPacTsunamiEntry {
     uint16_t   height_code      : 9;
     uint16_t   region_code      : 7;
 };
+#endif
 
 // MT=43 payload
 
@@ -90,30 +103,36 @@ struct EewData {
     // 対象予報区の個数
     uint8_t regionCount() const {
         uint8_t n = 0;
-        for (uint8_t i = 0; i < 10; ++i) {
-            uint8_t v = region_bitmap[i];
-            while (v) { v = (uint8_t)(v & (uint8_t)(v - 1u)); ++n; }
-        }
+        for (uint8_t byt = 0; byt < 10; ++byt) n = (uint8_t)(n + popcount8(region_bitmap[byt]));
         return n;
     }
     // 昇順 i 番目 (0 始まり) の対象予報区コード (1..80)。i >= regionCount() は 0。
+    // 各バイトの立ビット数を数え、i がそのバイトに無ければ丸ごと読み飛ばす（最悪 80 bit 走査 → 10 バイト + 8 bit）。
     uint8_t regionAt(uint8_t i) const {
-        uint8_t seen = 0;
         for (uint8_t byt = 0; byt < 10; ++byt) {
             const uint8_t v = region_bitmap[byt];
+            const uint8_t n = popcount8(v);
+            if (i >= n) { i = (uint8_t)(i - n); continue; }
             for (uint8_t bit = 0; bit < 8; ++bit) {
-                if (v & (0x80u >> bit)) {
-                    if (seen == i) return (uint8_t)(byt * 8u + bit + 1u);
-                    ++seen;
-                }
+                if (!(v & (0x80u >> bit))) continue;
+                if (i == 0) return (uint8_t)(byt * 8u + bit + 1u);
+                --i;
             }
         }
         return 0;
     }
-    // テスト用: 予報区 code (1..80) を対象にする
+    // 予報区 code (1..80) を対象に加える。範囲外は無視し、既に立っているビットはそのまま。
     void addRegion(uint8_t code) {
         if (code == 0 || code > 80) return;
         region_bitmap[(code - 1u) >> 3] = (uint8_t)(region_bitmap[(code - 1u) >> 3] | (0x80u >> ((code - 1u) & 7u)));
+    }
+
+  private:
+    // 1 バイト中の立っているビット数（Kernighan 法）
+    static uint8_t popcount8(uint8_t v) {
+        uint8_t n = 0;
+        while (v) { v = (uint8_t)(v & (uint8_t)(v - 1u)); ++n; }
+        return n;
     }
 };
 #endif // AZARAC_ENABLE_EEW
@@ -130,11 +149,13 @@ struct HypocenterData {
 };
 #endif // AZARAC_ENABLE_HYPOCENTER
 
+#if AZARAC_ENABLE_SEISMIC
 struct SeismicData {
     TimeFields   quake_time;
     SeismicEntry entries[16];
     uint8_t      count;
 };
+#endif
 
 #if AZARAC_ENABLE_NANKAI
 // 南海トラフ前沿のページ集約。
@@ -159,18 +180,23 @@ struct NankaiData {
 };
 #endif
 
+#if AZARAC_ENABLE_TSUNAMI
 struct TsunamiData {
     uint8_t      warning_code;
     TsunamiEntry entries[5];
     uint8_t      count;
 };
+#endif
 
+#if AZARAC_ENABLE_NW_PAC_TSUNAMI
 struct NwPacTsunamiData {
     uint8_t            potential;
     NwPacTsunamiEntry entries[5];
     uint8_t            count;
 };
+#endif
 
+#if AZARAC_ENABLE_VOLCANO
 struct VolcanoData {
     uint8_t    ambiguity;
     TimeFields activity_time;
@@ -179,7 +205,9 @@ struct VolcanoData {
     uint32_t   local_govs[5];
     uint8_t    lg_count;
 };
+#endif
 
+#if AZARAC_ENABLE_ASH_FALL
 struct AshFallData {
     TimeFields activity_time;
     uint8_t    warning_type;
@@ -189,18 +217,24 @@ struct AshFallData {
     uint32_t   entries_lg[4];
     uint8_t    count;
 };
+#endif
 
+#if AZARAC_ENABLE_WEATHER
 struct WeatherData {
     uint8_t      warning_state;
     WeatherEntry entries[6];
     uint8_t      count;
 };
+#endif
 
+#if AZARAC_ENABLE_FLOOD
 struct FloodData {
     FloodEntry entries[3];
     uint8_t    count;
 };
+#endif
 
+#if AZARAC_ENABLE_TYPHOON
 struct TyphoonData {
     TimeFields reference_time;
     uint8_t    ref_type;
@@ -213,11 +247,14 @@ struct TyphoonData {
     uint8_t    max_wind;
     uint8_t    max_gust;
 };
+#endif
 
+#if AZARAC_ENABLE_MARINE
 struct MarineData {
     MarineEntry entries[8];
     uint8_t     count;
 };
+#endif
 
 // 災害カテゴリ別 payload の tagged union
 
@@ -236,17 +273,42 @@ struct Mt43Data {
 #if AZARAC_ENABLE_HYPOCENTER
         Hypocenter,
 #endif
+#if AZARAC_ENABLE_SEISMIC
         Seismic,
+#endif
 #if AZARAC_ENABLE_NANKAI
         Nankai,
 #endif
-        Tsunami, NwPacTsunami,
-        Volcano, AshFall, Weather, Flood, Typhoon, Marine
+#if AZARAC_ENABLE_TSUNAMI
+        Tsunami,
+#endif
+#if AZARAC_ENABLE_NW_PAC_TSUNAMI
+        NwPacTsunami,
+#endif
+#if AZARAC_ENABLE_VOLCANO
+        Volcano,
+#endif
+#if AZARAC_ENABLE_ASH_FALL
+        AshFall,
+#endif
+#if AZARAC_ENABLE_WEATHER
+        Weather,
+#endif
+#if AZARAC_ENABLE_FLOOD
+        Flood,
+#endif
+#if AZARAC_ENABLE_TYPHOON
+        Typhoon,
+#endif
+#if AZARAC_ENABLE_MARINE
+        Marine,
+#endif
     };
 
     ActiveType active_type = ActiveType::None;
 
     static constexpr size_t storage_size_ = []() -> size_t {
+        // 末尾の 0 は「全カテゴリ無効」でも配列を空にしないための番兵（下で 1 B に切り上げる）。
         constexpr size_t sizes[] = {
 #if AZARAC_ENABLE_EEW
             sizeof(EewData),
@@ -254,22 +316,41 @@ struct Mt43Data {
 #if AZARAC_ENABLE_HYPOCENTER
             sizeof(HypocenterData),
 #endif
+#if AZARAC_ENABLE_SEISMIC
             sizeof(SeismicData),
+#endif
 #if AZARAC_ENABLE_NANKAI
             sizeof(NankaiData),
 #endif
+#if AZARAC_ENABLE_TSUNAMI
             sizeof(TsunamiData),
+#endif
+#if AZARAC_ENABLE_NW_PAC_TSUNAMI
             sizeof(NwPacTsunamiData),
+#endif
+#if AZARAC_ENABLE_VOLCANO
             sizeof(VolcanoData),
+#endif
+#if AZARAC_ENABLE_ASH_FALL
             sizeof(AshFallData),
+#endif
+#if AZARAC_ENABLE_WEATHER
             sizeof(WeatherData),
+#endif
+#if AZARAC_ENABLE_FLOOD
             sizeof(FloodData),
+#endif
+#if AZARAC_ENABLE_TYPHOON
             sizeof(TyphoonData),
-            sizeof(MarineData)
+#endif
+#if AZARAC_ENABLE_MARINE
+            sizeof(MarineData),
+#endif
+            0
         };
         size_t m = 0;
         for (auto x : sizes) if (x > m) m = x;
-        return m;
+        return m == 0 ? 1 : m;
     }();
     // uint64_t を含む型（FloodEntry 等）が入るため境界指定が必要。AVR の alignof(uint64_t) は 1 なので実質要求なし（8 の倍数への切り上げが起きない）、ホストは 8。
     alignas(uint64_t) unsigned char storage_[storage_size_];
@@ -368,18 +449,36 @@ struct Mt43Data {
 #if AZARAC_ENABLE_HYPOCENTER
     HypocenterData* getHypocenter() { return get<HypocenterData>(); }
 #endif
+#if AZARAC_ENABLE_SEISMIC
     SeismicData* getSeismic() { return get<SeismicData>(); }
+#endif
 #if AZARAC_ENABLE_NANKAI
     NankaiData* getNankai() { return get<NankaiData>(); }
 #endif
+#if AZARAC_ENABLE_TSUNAMI
     TsunamiData* getTsunami() { return get<TsunamiData>(); }
+#endif
+#if AZARAC_ENABLE_NW_PAC_TSUNAMI
     NwPacTsunamiData* getNwPac() { return get<NwPacTsunamiData>(); }
+#endif
+#if AZARAC_ENABLE_VOLCANO
     VolcanoData* getVolcano() { return get<VolcanoData>(); }
+#endif
+#if AZARAC_ENABLE_ASH_FALL
     AshFallData* getAshFall() { return get<AshFallData>(); }
+#endif
+#if AZARAC_ENABLE_WEATHER
     WeatherData* getWeather() { return get<WeatherData>(); }
+#endif
+#if AZARAC_ENABLE_FLOOD
     FloodData* getFlood() { return get<FloodData>(); }
+#endif
+#if AZARAC_ENABLE_TYPHOON
     TyphoonData* getTyphoon() { return get<TyphoonData>(); }
+#endif
+#if AZARAC_ENABLE_MARINE
     MarineData* getMarine() { return get<MarineData>(); }
+#endif
 
 #if AZARAC_ENABLE_EEW
     const EewData* getEew() const { return get<EewData>(); }
@@ -387,18 +486,36 @@ struct Mt43Data {
 #if AZARAC_ENABLE_HYPOCENTER
     const HypocenterData* getHypocenter() const { return get<HypocenterData>(); }
 #endif
+#if AZARAC_ENABLE_SEISMIC
     const SeismicData* getSeismic() const { return get<SeismicData>(); }
+#endif
 #if AZARAC_ENABLE_NANKAI
     const NankaiData* getNankai() const { return get<NankaiData>(); }
 #endif
+#if AZARAC_ENABLE_TSUNAMI
     const TsunamiData* getTsunami() const { return get<TsunamiData>(); }
+#endif
+#if AZARAC_ENABLE_NW_PAC_TSUNAMI
     const NwPacTsunamiData* getNwPac() const { return get<NwPacTsunamiData>(); }
+#endif
+#if AZARAC_ENABLE_VOLCANO
     const VolcanoData* getVolcano() const { return get<VolcanoData>(); }
+#endif
+#if AZARAC_ENABLE_ASH_FALL
     const AshFallData* getAshFall() const { return get<AshFallData>(); }
+#endif
+#if AZARAC_ENABLE_WEATHER
     const WeatherData* getWeather() const { return get<WeatherData>(); }
+#endif
+#if AZARAC_ENABLE_FLOOD
     const FloodData* getFlood() const { return get<FloodData>(); }
+#endif
+#if AZARAC_ENABLE_TYPHOON
     const TyphoonData* getTyphoon() const { return get<TyphoonData>(); }
+#endif
+#if AZARAC_ENABLE_MARINE
     const MarineData* getMarine() const { return get<MarineData>(); }
+#endif
 
 private:
     template<typename T> static ActiveType typeFor();
@@ -423,17 +540,35 @@ template<> inline Mt43Data::ActiveType Mt43Data::typeFor<EewData>() { return Act
 #if AZARAC_ENABLE_HYPOCENTER
 template<> inline Mt43Data::ActiveType Mt43Data::typeFor<HypocenterData>() { return ActiveType::Hypocenter; }
 #endif
+#if AZARAC_ENABLE_SEISMIC
 template<> inline Mt43Data::ActiveType Mt43Data::typeFor<SeismicData>() { return ActiveType::Seismic; }
+#endif
 #if AZARAC_ENABLE_NANKAI
 template<> inline Mt43Data::ActiveType Mt43Data::typeFor<NankaiData>() { return ActiveType::Nankai; }
 #endif
+#if AZARAC_ENABLE_TSUNAMI
 template<> inline Mt43Data::ActiveType Mt43Data::typeFor<TsunamiData>() { return ActiveType::Tsunami; }
+#endif
+#if AZARAC_ENABLE_NW_PAC_TSUNAMI
 template<> inline Mt43Data::ActiveType Mt43Data::typeFor<NwPacTsunamiData>() { return ActiveType::NwPacTsunami; }
+#endif
+#if AZARAC_ENABLE_VOLCANO
 template<> inline Mt43Data::ActiveType Mt43Data::typeFor<VolcanoData>() { return ActiveType::Volcano; }
+#endif
+#if AZARAC_ENABLE_ASH_FALL
 template<> inline Mt43Data::ActiveType Mt43Data::typeFor<AshFallData>() { return ActiveType::AshFall; }
+#endif
+#if AZARAC_ENABLE_WEATHER
 template<> inline Mt43Data::ActiveType Mt43Data::typeFor<WeatherData>() { return ActiveType::Weather; }
+#endif
+#if AZARAC_ENABLE_FLOOD
 template<> inline Mt43Data::ActiveType Mt43Data::typeFor<FloodData>() { return ActiveType::Flood; }
+#endif
+#if AZARAC_ENABLE_TYPHOON
 template<> inline Mt43Data::ActiveType Mt43Data::typeFor<TyphoonData>() { return ActiveType::Typhoon; }
+#endif
+#if AZARAC_ENABLE_MARINE
 template<> inline Mt43Data::ActiveType Mt43Data::typeFor<MarineData>() { return ActiveType::Marine; }
+#endif
 
 } // namespace azaraC

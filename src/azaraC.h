@@ -4,15 +4,24 @@
 #error "This tool requires C++17 or later"
 #endif
 
-// std の名前と衝突する Arduino コアの `abs`/`min`/`max` マクロを undef する（mbed の pinDefinitions.h は abs、Arduino.h は min/max を定義する）。
+// std の名前と衝突する Arduino コアの `abs`/`min`/`max` マクロを、このヘッダを取り込む間だけ undef する
+// （mbed の pinDefinitions.h は abs、Arduino.h は min/max を定義する）。
+// 利用者のスケッチから恒久的に消さないよう push_macro / pop_macro で往復する
+// （未対応のプリプロセッサでは pragma が無視され、従来どおり undef のままになる）。
 #if defined(ARDUINO)
 #  if defined(abs)
+#    define AZARAC_RESTORE_ABS 1
+#    pragma push_macro("abs")
 #    undef abs
 #  endif
 #  if defined(min)
+#    define AZARAC_RESTORE_MIN 1
+#    pragma push_macro("min")
 #    undef min
 #  endif
 #  if defined(max)
+#    define AZARAC_RESTORE_MAX 1
+#    pragma push_macro("max")
 #    undef max
 #  endif
 #endif
@@ -36,3 +45,17 @@ inline void toJson(const Message& msg, Print& out) {
 }
 
 } // namespace azaraC
+
+// 取り込み前に存在した Arduino コアのマクロを戻す（利用者のスケッチの挙動を変えない）。
+#if defined(AZARAC_RESTORE_ABS)
+#  pragma pop_macro("abs")
+#  undef AZARAC_RESTORE_ABS
+#endif
+#if defined(AZARAC_RESTORE_MIN)
+#  pragma pop_macro("min")
+#  undef AZARAC_RESTORE_MIN
+#endif
+#if defined(AZARAC_RESTORE_MAX)
+#  pragma pop_macro("max")
+#  undef AZARAC_RESTORE_MAX
+#endif

@@ -1,7 +1,7 @@
 # test/Makefile — ホストビルド
 
 CXX      = g++
-CXXFLAGS = -std=c++17 -Wall -Wextra -I../src -I. -DARDUINO=0 -DAZARAC_LANG_JA=1 -DAZARAC_LANG_EN=1 -MMD -MP
+CXXFLAGS = -std=c++17 -Wall -Wextra -I../src -I. -DARDUINO=0 -DAZARAC_TESTING=1 -DAZARAC_LANG_JA=1 -DAZARAC_LANG_EN=1 -MMD -MP
 
 # --- Static Analysis and Coverage ---
 # -Wconversion / -Wsign-conversion はビット演算を多用する組み込み向けコードでは修正コストが見合わないため使わない。
@@ -26,8 +26,9 @@ ifeq ($(OS),Windows_NT)
       export PATH := $(MINGW64_BIN);$(PATH)
     endif
   endif
-  # /dev/null fallback — Windows では NUL
-  DEVNULL = NUL
+  # /dev/null fallback — レシピは MSYS sh で実行されるため POSIX の /dev/null を使う。
+  # NUL は cmd.exe のデバイス名で、sh ではリテラルの NUL ファイルが生成される（test/NUL の原因）。
+  DEVNULL = /dev/null
   # メモリ割り当て増加: 256MBスタック + 512MBヒープ (MinGW)
   LDFLAGS = -Wl,--stack,268435456 -Wl,--heap,536870912
 else
@@ -66,12 +67,15 @@ TEST_SRCS = \
 	json/test_json.cpp \
 	json/test_json_dcx_b1b4.cpp \
 	json/test_json_wellformed.cpp \
+	json/test_json_utf8.cpp \
+	integration/test_decoder_dcx.cpp \
 	integration/test_parser.cpp \
-	integration/test_parser_integration.cpp \
 	integration/test_nankai.cpp \
 	integration/test_nankai_e2e.cpp \
+	integration/test_parser_clock.cpp \
 	integration/test_error_handling.cpp \
 	integration/test_time_resolution.cpp \
+	integration/test_tsunami_list.cpp \
 	integration/test_dcx_edge_cases.cpp \
 	integration/test_azarashi_dcr.cpp \
 	integration/test_azarashi_dcx.cpp \
@@ -124,10 +128,11 @@ VPATH = ../src:../src/decoder:../src/framer:../src/json:../src/internal
 #
 # 残リスク: 強制 kill（SIGKILL/プロセスクラッシュ）では trap を実行できないためロックが残る。
 # その場合は test/.make-lock を手動で削除する（スクリプトのエラーにも記載）。
-LOCKABLE  := all run run-small-pages run-lto run-lang-defaults clean \
-             test-no-alloc pgm-stub macro fuzz decode dedup-realday \
+LOCKABLE  := all run run-small-pages run-dedup-off run-lto run-lang-defaults clean \
+             test-no-alloc pgm-stub macro fuzz fuzz-sanitize decode dedup-realday \
              bench bench-dedup bench-decode test-time-irq test-macro-compile test-macro-sizes \
-             compare-realdata coverage check check-xml check-strict-compile
+             compare-realdata coverage check check-xml check-strict-compile \
+             avr-layout nmea-policy utf8-trim
 USER_GOALS := $(if $(MAKECMDGOALS),$(MAKECMDGOALS),all)
 # 「ロック未保持」かつ「ユーザーが直接 LOCKABLE な目標を指定した」場合のみラップする。
 NEED_LOCK := $(if $(AZARAC_LOCK_HELD),,$(filter $(LOCKABLE),$(USER_GOALS)))
@@ -142,7 +147,7 @@ endif
 
 ifeq ($(NEED_LOCK),)
 
-.PHONY: all clean run run-small-pages run-lto run-lang-defaults fuzz decode dedup-realday bench bench-dedup bench-decode compare-realdata check check-xml check-strict-compile coverage test-no-alloc pgm-stub test-time-irq
+.PHONY: all clean run run-small-pages run-dedup-off run-lto run-lang-defaults fuzz fuzz-sanitize decode dedup-realday bench bench-dedup bench-decode compare-realdata check check-xml check-strict-compile coverage test-no-alloc pgm-stub test-time-irq avr-layout nmea-policy utf8-trim
 
 all: $(TEST_BIN)
 
@@ -164,6 +169,11 @@ run: all
 # check-strict-compile 後に混在リンクして落ちる。必ず clean する。
 run-small-pages:
 	$(MAKE) -B CXXFLAGS_EXTRA="-DAZARAC_NANKAI_MAX_PAGES=8" run; status=$$?; $(MAKE) clean; exit $$status
+
+# dedup 無効構成でも全テストがコンパイル・実行できることを検証する。
+# CXXFLAGS_EXTRA は依存関係に載らないため -B と事後の clean が必須。
+run-dedup-off:
+	$(MAKE) -B CXXFLAGS_EXTRA="-DAZARAC_ENABLE_DEDUP=0" run; status=$$?; $(MAKE) clean; exit $$status
 
 # リンク時最適化（LTO）の検証。
 # -O2 と併用しないと LTO の codegen 経路がほぼ通らないため -O2 -flto で全体を再ビルドする。
@@ -194,6 +204,33 @@ fuzz: $(FUZZ_BIN)
 
 $(FUZZ_BIN): $(FUZZ_OBJS) $(LIB_OBJS)
 	$(CXX) $(CXXFLAGS) $(CXXFLAGS_EXTRA) $^ -o $@ $(LDFLAGS)
+
+# --- Fuzz with sanitizers (ASan/UBSan) ---
+# 専用 obj dir (.fuzzsan/) を使う（既定の .o と混在させるとサニタイザ有り無しが混ざる）。
+# -fno-sanitize-recover=all で UB 検出時に即 abort してゲート化する。
+# CXXFLAGS は依存関係に載らないため実行後は clean する。ASan ランタイムが必要（CI の Linux が主ターゲット）。
+FUZZ_SAN_TMP = .fuzzsan
+FUZZ_SAN_BIN = fuzz_decoder_san$(suffix $(TEST_BIN))
+FUZZ_SAN_FLAGS = -fsanitize=address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=all
+FUZZ_SAN_OBJS = $(addprefix $(FUZZ_SAN_TMP)/,$(notdir $(LIB_SRCS:.cpp=.o))) $(FUZZ_SAN_TMP)/fuzz_decoder.o
+
+fuzz-sanitize:
+	$(MAKE) $(FUZZ_SAN_BIN); b=$$?; if [ $$b -ne 0 ]; then $(MAKE) clean; exit $$b; fi; \
+	$(RUN_PREFIX)$(FUZZ_SAN_BIN) $(FUZZ_ITERATIONS); t=$$?; $(MAKE) clean; exit $$t
+
+$(FUZZ_SAN_TMP):
+	@mkdir -p $@
+
+$(FUZZ_SAN_BIN): $(FUZZ_SAN_OBJS) | $(FUZZ_SAN_TMP)
+	$(CXX) $(CXXFLAGS) $(FUZZ_SAN_FLAGS) $^ -o $@ $(LDFLAGS) $(FUZZ_SAN_FLAGS)
+
+$(FUZZ_SAN_OBJS): | $(FUZZ_SAN_TMP)
+
+$(FUZZ_SAN_TMP)/fuzz_decoder.o: fuzz/fuzz_decoder.cpp
+	$(CXX) $(CXXFLAGS) $(FUZZ_SAN_FLAGS) -c $< -o $@
+
+$(FUZZ_SAN_TMP)/%.o: %.cpp
+	$(CXX) $(CXXFLAGS) $(FUZZ_SAN_FLAGS) -c $< -o $@
 
 # Decode-to-JSON CLI tool (for azarashi comparison)
 DECODE_BIN = decode_to_json
@@ -247,6 +284,32 @@ bench-dedup:
 bench-decode:
 	@bash bench/run_decode_bench.sh
 
+# 実 avr-g++ で Nankai/dedup の ABI レイアウトを固定する（オブジェクトは残さない）。
+# Nankai の 63 ページ構成と AVR プリセット 4 ページ構成の両方を見る。
+avr-layout:
+	avr-g++ -std=gnu++17 -Os -mmcu=atmega328p -fsyntax-only -I../src \
+		-DAZARAC_ENABLE_NANKAI=1 -DAZARAC_NANKAI_MAX_PAGES=63 tools/avr_layout_probe.cpp
+	avr-g++ -std=gnu++17 -Os -mmcu=atmega328p -fsyntax-only -I../src \
+		-DAZARAC_ENABLE_NANKAI=1 -DAZARAC_NANKAI_MAX_PAGES=4 tools/avr_layout_probe.cpp
+	avr-g++ -std=gnu++17 -Os -mmcu=atmega328p -fsyntax-only -I../src \
+		-DAZARAC_ENABLE_NANKAI=1 -DAZARAC_NANKAI_MAX_PAGES=63 -DAZARAC_ENABLE_DCX_CAMF=1 tools/avr_layout_probe.cpp
+
+# --- 新規コンパイル時ポリシーの実行検証 ---
+# マクロで分岐が消えるため、構成ごとにビルドし直す（.o を共有せず直接リンクする）。
+NMEA_PROBE_BIN = nmea_policy_probe
+UTF8_PROBE_BIN = utf8_trim_probe
+
+nmea-policy:
+	$(CXX) $(CXXFLAGS) -o $(NMEA_PROBE_BIN) tools/nmea_policy_probe.cpp ../src/framer/NmeaFramer.cpp && ./$(NMEA_PROBE_BIN); s0=$$?; \
+	$(CXX) $(CXXFLAGS) -DAZARAC_NMEA_STRICT_SVID=1 -o $(NMEA_PROBE_BIN) tools/nmea_policy_probe.cpp ../src/framer/NmeaFramer.cpp && ./$(NMEA_PROBE_BIN); s1=$$?; \
+	$(CXX) $(CXXFLAGS) -DAZARAC_NMEA_STRICT_SVID=2 -DAZARAC_NMEA_REJECT_NONZERO_PADDING=1 -o $(NMEA_PROBE_BIN) tools/nmea_policy_probe.cpp ../src/framer/NmeaFramer.cpp && ./$(NMEA_PROBE_BIN); s2=$$?; \
+	$(RM) $(NMEA_PROBE_BIN) $(NMEA_PROBE_BIN).exe $(NMEA_PROBE_BIN).d; \
+	[ $$s0 -eq 0 ] && [ $$s1 -eq 0 ] && [ $$s2 -eq 0 ]
+
+utf8-trim:
+	$(CXX) $(CXXFLAGS) -DAZARAC_FLASH_BUF_SIZE=64 -o $(UTF8_PROBE_BIN) tools/utf8_trim_probe.cpp && ./$(UTF8_PROBE_BIN); s=$$?; \
+	$(RM) $(UTF8_PROBE_BIN) $(UTF8_PROBE_BIN).exe $(UTF8_PROBE_BIN).d; exit $$s
+
 # --- Static Analysis ---
 # 静的解析 (時間をかけた厳格なチェック)
 check:
@@ -254,6 +317,9 @@ check:
 	cppcheck $(CPPCHECK_OPTS)
 	@echo "Compiling library with strict warnings..."
 	$(CXX) $(ANALYSIS_CXXFLAGS) -c $(LIB_SRCS)
+	@# 解析フラグの .o が既定構成と同名で残るのを防ぐ（CXXFLAGS は依存に載らない）。
+	@# clean は使わない: cppcheck_report.xml / *.gcda まで消して CI の後続ステップを壊すため。
+	@$(RM) $(notdir $(LIB_SRCS:.cpp=.o)) $(notdir $(LIB_SRCS:.cpp=.d))
 
 # cppcheck の XML レポートをファイルに保存（サマリー生成用）。
 # --error-exitcode=1 で所見があれば失敗させる（CI ゲート）。
@@ -267,6 +333,8 @@ check-xml:
 check-strict-compile:
 	@echo "Compiling library with strict warnings..."
 	$(CXX) $(ANALYSIS_CXXFLAGS) -c $(LIB_SRCS)
+	@# clean は使わない: cppcheck_report.xml / *.gcda まで消して CI の後続ステップを壊すため。
+	@$(RM) $(notdir $(LIB_SRCS:.cpp=.o)) $(notdir $(LIB_SRCS:.cpp=.d))
 
 # --- Coverage ---
 # カバレッジ測定
@@ -277,7 +345,10 @@ coverage:
 	@echo "Running tests with coverage..."
 	$(RUN_PREFIX)$(TEST_BIN)
 	@echo "----------------------------------------"
-	gcovr . --filter=../src/ --exclude='.*test_.*\.cpp' --exclude='.*definition.*' --txt
+	gcovr . --filter=../src/ --exclude='.*test_.*\.cpp' --exclude='.*definition.*' --txt \
+	      --json coverage_report.json --json-pretty --xml coverage.xml --xml-pretty
+	@# instrumentation 付き .o が既定構成で再利用されるのを防ぐ。
+	@$(MAKE) clean
 
 # --- 動的確保ゼロ検証 (test-no-alloc) ---
 # GNU ld の --wrap は未解決参照しか差し替えないため、ライブラリとテストを 1 つの実行ファイルにリンクする。
@@ -324,7 +395,8 @@ MACRO_OFF_FLAGS = \
 	-DAZARAC_ENABLE_VOLCANO=0 -DAZARAC_ENABLE_ASH_FALL=0 \
 	-DAZARAC_ENABLE_WEATHER=0 -DAZARAC_ENABLE_FLOOD=0 \
 	-DAZARAC_ENABLE_TYPHOON=0 -DAZARAC_ENABLE_MARINE=0 \
-	-DAZARAC_ENABLE_DCX_CAMF=0
+	-DAZARAC_ENABLE_DCX_CAMF=0 -DAZARAC_ENABLE_DEDUP=0 \
+	-DAZARAC_NMEA_STRICT_SVID=2 -DAZARAC_NMEA_REJECT_NONZERO_PADDING=1
 
 .PHONY: test-macro-compile test-macro-sizes
 
@@ -341,8 +413,7 @@ DCX_SRC   = ../src/decoder/DecoderDcx.cpp
 JSON_SRC  = ../src/json/JsonSerializerQzqsm.cpp
 JSON_DCX_SRC = ../src/json/JsonSerializerDcx.cpp
 
-# ---- Macro size impact measurement (Unix/Linux only; requires sh + size) ----
-ifneq ($(OS),Windows_NT)
+# ---- Macro size impact measurement (requires POSIX sh + size; Windows は MSYS sh 前提) ----
 test-macro-sizes:
 	@echo "=== AZARAC_ENABLE_* Macro Size Impact ==="
 	@echo ""
@@ -381,32 +452,6 @@ test-macro-sizes:
 	@echo "|---------------|-------------|------------|-------------|-----------|"
 	@echo "===== Measurement complete ====="
 	@rm -rf $(MACRO_TMP)
-else
-# Windows fallback: just compile and show raw size output
-test-macro-sizes:
-	@echo "=== AZARAC_ENABLE_* Macro Size Impact (Windows, raw sizes) ==="
-	@if not exist $(MACRO_TMP) mkdir $(MACRO_TMP)
-	$(CXX) $(CXXFLAGS) -c $(QZQSM_SRC) -o $(MACRO_TMP)/bl_qzqsm.o
-	$(CXX) $(CXXFLAGS) -c $(DCX_SRC) -o $(MACRO_TMP)/bl_dcx.o
-	$(CXX) $(CXXFLAGS) -c $(JSON_SRC) -o $(MACRO_TMP)/bl_json.o
-	$(CXX) $(CXXFLAGS) -c $(JSON_DCX_SRC) -o $(MACRO_TMP)/bl_json_dcx.o
-	@echo "Baseline (all ON):"
-	-@size $(MACRO_TMP)/bl_qzqsm.o
-	-@size $(MACRO_TMP)/bl_dcx.o
-	-@size $(MACRO_TMP)/bl_json.o
-	-@size $(MACRO_TMP)/bl_json_dcx.o
-	@echo "Individual macros disabled (compiling & sizing):"
-	-@for %%m in (EEW HYPOCENTER SEISMIC NANKAI TSUNAMI NW_PAC_TSUNAMI VOLCANO ASH_FALL WEATHER FLOOD TYPHOON MARINE) do @( \
-		$(CXX) $(CXXFLAGS) -DAZARAC_ENABLE_%%m=0 -c $(QZQSM_SRC) -o $(MACRO_TMP)/%%m.o 2>nul & \
-		echo DecoderQzqsm with %%%%m=0: & \
-		size $(MACRO_TMP)/%%m.o )
-	-@$(CXX) $(CXXFLAGS) -DAZARAC_ENABLE_DCX_CAMF=0 -c $(DCX_SRC) -o $(MACRO_TMP)/dcx_off.o 2>nul
-	-@echo DecoderDcx with DCX_CAMF=0: & size $(MACRO_TMP)/dcx_off.o
-	-@$(CXX) $(CXXFLAGS) -DAZARAC_ENABLE_DCX_CAMF=0 -c $(JSON_DCX_SRC) -o $(MACRO_TMP)/json_dcx_off.o 2>nul
-	-@echo JsonSerializerDcx with DCX_CAMF=0: & size $(MACRO_TMP)/json_dcx_off.o
-	@echo "===== Measurement complete ====="
-	@-rmdir /s /q $(MACRO_TMP) 2>nul
-endif
 
 # ---- Macro disable runtime tests (compile + run for each disabled macro) ----
 # 各マクロを個別に無効化してビルド・実行し、無効化されたデコーダが
@@ -418,34 +463,7 @@ MACRO_NAMES = EEW HYPOCENTER SEISMIC NANKAI TSUNAMI NW_PAC_TSUNAMI VOLCANO ASH_F
 .PHONY: macro
 
 # Individual macro disabled test: clean → rebuild with macro=0 → run
-# 各マクロの無効化ビルドは独立して行う（clean → build → run）
-ifeq ($(OS),Windows_NT)
-macro:
-	@echo === AZARAC_ENABLE_* Macro Runtime Tests ===
-	@echo Testing all $(words $(MACRO_NAMES)) macros individually...
-	@$(MAKE) _macro-test-one M=EEW
-	@$(MAKE) _macro-test-one M=HYPOCENTER
-	@$(MAKE) _macro-test-one M=SEISMIC
-	@$(MAKE) _macro-test-one M=NANKAI
-	@$(MAKE) _macro-test-one M=TSUNAMI
-	@$(MAKE) _macro-test-one M=NW_PAC_TSUNAMI
-	@$(MAKE) _macro-test-one M=VOLCANO
-	@$(MAKE) _macro-test-one M=ASH_FALL
-	@$(MAKE) _macro-test-one M=WEATHER
-	@$(MAKE) _macro-test-one M=FLOOD
-	@$(MAKE) _macro-test-one M=TYPHOON
-	@$(MAKE) _macro-test-one M=MARINE
-	@$(MAKE) _macro-test-one M=DCX_CAMF
-	@$(MAKE) clean 2>$(DEVNULL)
-	@echo ===== All macro runtime tests passed =====
-
-.PHONY: _macro-test-one
-
-_macro-test-one:
-	@echo Testing AZARAC_ENABLE_$(M)=0...
-	@$(MAKE) clean 2>$(DEVNULL)
-	@$(MAKE) -B CXXFLAGS="$(CXXFLAGS) -DAZARAC_ENABLE_$(M)=0" run
-else
+# 各マクロの無効化ビルドは独立して行う（clean → build → run）。POSIX sh 前提（Windows は MSYS sh）。
 macro:
 	@echo "=== AZARAC_ENABLE_* Macro Runtime Tests ==="
 	@echo "Testing all $(words $(MACRO_NAMES)) macros individually..."
@@ -457,15 +475,17 @@ macro:
 	done
 	@$(MAKE) clean 2>$(DEVNULL)
 	@echo "===== All macro runtime tests passed ====="
-endif
 
 # Include dependency files
 -include $(TEST_OBJS:.o=.d) $(LIB_OBJS:.o=.d) $(FUZZ_OBJS:.o=.d) $(DECODE_OBJS:.o=.d) $(DEDUP_REALDAY_OBJS:.o=.d)
 
 clean:
-	-@$(RM) *.o *.exe *.d *.gcno *.gcda cppcheck_report.xml cppcheck_stderr.log coverage.xml coverage_report.json macro_sizes.txt time_irq_test
+	-@$(RM) *.o *.exe *.d *.gcno *.gcda cppcheck_report.xml cppcheck_stderr.log macro_sizes.txt time_irq_test $(NMEA_PROBE_BIN) $(UTF8_PROBE_BIN)
+	-@$(RM) $(TEST_BIN) $(FUZZ_BIN) $(DECODE_BIN) $(DEDUP_REALDAY_BIN)
 	-@$(RM) $(NOALLOC_BIN)
 	-@rm -rf $(NOALLOC_TMP)
+	-@$(RM) $(FUZZ_SAN_BIN)
+	-@rm -rf $(FUZZ_SAN_TMP)
 	-@$(RM) core/*.o core/*.d core/*.gcno core/*.gcda
 	-@$(RM) decoder/*.o decoder/*.d decoder/*.gcno decoder/*.gcda
 	-@$(RM) framer/*.o framer/*.d framer/*.gcno framer/*.gcda
@@ -494,14 +514,14 @@ clean:
 # 成功時はテストの終了コードを返す。
 pgm-stub:
 	$(MAKE) clean
-	$(MAKE) CXXFLAGS="-std=c++17 -Wall -Wextra -Istub -I../src -I. -DARDUINO=0 -D__AVR__ -DAZARAC_AVR_STUB -DAZARAC_LANG_JA=1 -DAZARAC_LANG_EN=1 -DAZARAC_NANKAI_MAX_PAGES=63 -DAZARAC_NANKAI_BUFFERS=4 -DAZARAC_DEDUP_SLOTS=64 -DAZARAC_ENABLE_EEW=1 -DAZARAC_ENABLE_HYPOCENTER=1 -DAZARAC_ENABLE_SEISMIC=1 -DAZARAC_ENABLE_NANKAI=1 -DAZARAC_ENABLE_TSUNAMI=1 -DAZARAC_ENABLE_NW_PAC_TSUNAMI=1 -DAZARAC_ENABLE_VOLCANO=1 -DAZARAC_ENABLE_ASH_FALL=1 -DAZARAC_ENABLE_WEATHER=1 -DAZARAC_ENABLE_FLOOD=1 -DAZARAC_ENABLE_TYPHOON=1 -DAZARAC_ENABLE_MARINE=1 -DAZARAC_ENABLE_DCX_CAMF=1 -MMD -MP -g" $(TEST_BIN); b=$$?; if [ $$b -ne 0 ]; then $(MAKE) clean; exit $$b; fi; ./$(TEST_BIN); t=$$?; $(MAKE) clean; exit $$t
+	$(MAKE) CXXFLAGS="-std=c++17 -Wall -Wextra -Istub -I../src -I. -DARDUINO=0 -DAZARAC_TESTING=1 -D__AVR__ -DAZARAC_AVR_STUB -DAZARAC_LANG_JA=1 -DAZARAC_LANG_EN=1 -DAZARAC_NANKAI_MAX_PAGES=63 -DAZARAC_NANKAI_BUFFERS=4 -DAZARAC_DEDUP_SLOTS=64 -DAZARAC_ENABLE_EEW=1 -DAZARAC_ENABLE_HYPOCENTER=1 -DAZARAC_ENABLE_SEISMIC=1 -DAZARAC_ENABLE_NANKAI=1 -DAZARAC_ENABLE_TSUNAMI=1 -DAZARAC_ENABLE_NW_PAC_TSUNAMI=1 -DAZARAC_ENABLE_VOLCANO=1 -DAZARAC_ENABLE_ASH_FALL=1 -DAZARAC_ENABLE_WEATHER=1 -DAZARAC_ENABLE_FLOOD=1 -DAZARAC_ENABLE_TYPHOON=1 -DAZARAC_ENABLE_MARINE=1 -DAZARAC_ENABLE_DCX_CAMF=1 -MMD -MP -g" $(TEST_BIN); b=$$?; if [ $$b -ne 0 ]; then $(MAKE) clean; exit $$b; fi; ./$(TEST_BIN); t=$$?; $(MAKE) clean; exit $$t
 
 # ---- Arduino の割り込み状態テスト（ARDUINO=1、host 上で AVR 分岐） ----
 # 通常のスイートは ARDUINO=0 なので、TimeFields.h の Arduino 分岐はコンパイルされない。
 # このターゲットは __AVR__ と stub_arduino のヘッダでそれをコンパイルし、
 # getMillis() が呼び出し側の SREG 状態を保存することを確認する。
 test-time-irq:
-	$(CXX) -std=c++17 -Wall -Wextra -Istub_arduino -I../src -DARDUINO=1 -D__AVR__ -DAZARAC_AVR_STUB internal/test_time_irq.cpp -o time_irq_test
+	$(CXX) -std=c++17 -Wall -Wextra -Istub_arduino -I../src -DARDUINO=1 -D__AVR__ -DAZARAC_AVR_STUB internal/test_time_irq.cpp internal/test_time_irq_b.cpp -o time_irq_test
 	./time_irq_test; t=$$?; $(RM) time_irq_test time_irq_test.exe; exit $$t
 
 # 実規則セクション全体の条件の終わり（冒頭の並行 make 排他ロック参照）。

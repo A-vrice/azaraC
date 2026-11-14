@@ -31,6 +31,8 @@ coverage.xml
 # Project-specific
 .roo/
 .agents/
+.freebuff/
+.workbuddy*/
 plans/
 .plans
 .pl/
@@ -44,6 +46,7 @@ qzssmsg.txt
 # OS files
 Thumbs.db
 .DS_Store
+# 旧 Makefile の DEVNULL=NUL が作った残骸。Windows では git clean で消せない（\\?\ パスが必要）
 test/NUL
 
 # cppcheck --dump の一時出力
@@ -66,3 +69,11 @@ test/bench/*.cxxid
 test/bench/avr/out/
 test/bench/avr/*.log
 .mega/
+
+# ローカル作業メモ（エージェントの記憶・ルート直下の日付付きレビュー）
+/REVIEW-*.md
+
+# make の一時ディレクトリ（中断時に残る）
+test/.noalloc/
+test/.fuzzsan/
+test/.macro_tmp/

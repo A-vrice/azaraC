@@ -51,7 +51,7 @@ graph TD
 - **フレーマー自動判別**: 入力バイトストリームからUBX/NMEAを自動判別（UBX同期文字`0xB5 0x62`、NMEA`$`文字で判定）
 - **メッセージデコード**: フレームの復号とCRC検証
 - **重複除去（全メッセージ）+ 南海トラフ集約**: `postDecode()` が全メッセージ共通の重複チェックとメッセージ出力を担当。
-  また、MT=43 cat.4 のページ集約（`NankaiPageBuffer`）と事象鍵（`info_code` + 報告時刻）生成も一元管理。
+  また、MT=43 cat.4 のページ集約（`NankaiPageBuffer`）と事象鍵（`info_code` + 情報種別 + Rc + 報告時刻）生成も一元管理。
   重複判定は南海トラフの集約結果だけでなく、電文すべてに適用される
 
 ```mermaid
@@ -165,17 +165,24 @@ Satellite ID は「PRN を表す 8bit の下位 6bit」（IS-QZSS-DCR-017 §4.3.
   256×8 でも再通知が残るのは最悪日（同時327件）だけなので、余裕を見るなら 512 スロット、受信カテゴリを絞れるなら 128 スロットでも足ります。
   AVRプリセットは 64×8 = 512B。
   対象は震度・津波に絞られるため、気象・台風が主体の日であふれることはありません。
-- **南海トラフでの重複判定**: 集約メッセージは情報一件ごと（`info_code` + `information_type` + 報告時刻）で識別します。
+- **南海トラフでの重複判定**: 集約メッセージは情報一件ごと（`info_code` + `information_type` + `report_classification` + 報告時刻）で識別します。
   到着順でどのページが最後になるかは変わるため、集約済みテキストによる判定では同じ事象を再放送のたびに別情報と判定してしまいます。
   電文鍵とは `DedupKey::synthetic` で名前空間を分けるので、値が一致しても衝突しません。
-  事象鍵は6フィールド26ビット（`dedupEventToken`）で、集約バッファの鍵（`NankaiPageKey`）と同一です。
+  事象鍵は7フィールド29ビット（`dedupEventToken`）で、集約バッファの鍵（`NankaiPageKey`）と同一です。
   `information_type` を含むのは、同一 `info_code` + 同一報告時刻の発表（窓24時間）と取消（窓2時間）を別の情報として扱い、取消が発表の履歴に潰されないようにするためです（含めないと集約バッファでも両者のページが混ざります）。
+  `report_classification`（Rc）を含めるのは、訓練/試験（7）が実警報（2）を抑止したり、両者のページ本文が同じ集約バッファで連結されたりするのを防ぐためです。
+  完成済み事象の再送ページは本文を再出力せず、dedup の履歴だけを更新します。`AZARAC_ENABLE_DEDUP=0` でも Nankai のページビットマップによる重複抑制は残ります。
+- **32 bit 時刻の折り返し**: `Parser` は 64 bit の受信時刻を監視し、通常の 32 bit 折り返しは `DedupFilter`/`NankaiPageBuffer` の符号なし差分で扱います。
+  1,000 ms（1 秒）以内の時計後退は受信順序の揺らぎとして丸め、それを超える後退（時計の再設定）、または 64 bit 時刻の上位 32 bit（世代）が変わったときに dedup/Nankai の履歴を捨てます（再通知は許容し、生きた警報の抑止を避けるため）。
+  世代比較により、連続受信で 49.7 日（2³² ms）経過してエントリの年齢が巻き戻る場合も確実に履歴を捨て、古い履歴の偽重複による抑止を防ぎます。
+  dedup と Nankai を両方無効にすると `Parser` の 64 bit 最終観測時刻メンバは存在しなくなり、8 B 分減ります。
+  `DedupFilter::Entry` は 8 B、AVR の dedup RAM は 512 B のままです。
 
 ### 5. NankaiPageBuffer (南海トラフページ集約)
 
 [`NankaiPageBuffer`](https://github.com/A-vrice/azaraC/tree/main/src/internal/NankaiPageBuffer.h)は最大63ページに分割される南海トラフ地震メッセージを集約します。
 `MAX_PAGES×18+1` バイトを確保し、受信したページをビットマップで管理しながら直接書き込みます（ソート不要）。
-バッファが全て使用中なら LRU で最も古いバッファから解放します。
+バッファが全て使用中なら、最終更新が最も古いバッファから解放します（同値なら先頭スロット。厳密な LRU ではありません）。ホスト既定は 2 バッファ（約 2.32 KB）で、訓練/実警報の同時進行を追跡できます。
 
 ### 6. JsonSerializer (JSONシリアライザ)
 
@@ -183,8 +190,9 @@ Satellite ID は「PRN を表す 8bit の下位 6bit」（IS-QZSS-DCR-017 §4.3.
 ヒープ割り当てはせず、`Print&` 経由で出力（Serial、WiFiClient 等）。
 日本語/英語ラベルは選択的コンパイルに対応します。
 キーと固定値リテラルは `internal::JsonKey`（`AZARAC_KEY("...")`）で受け、AVR では `PSTR` で Flash に置きます（素のリテラルは avr-libc のリンカスクリプトが `.rodata` ごと `.data`＝SRAM に置くため）。
-書き出しはキーも値も Flash から走査し、必要ならスタックの一時バッファ（`AZARAC_KEY_BUF_SIZE`）へ 1 度写して出す。
-静的な共有バッファを持たないので、書き出し順序の制約はありません。
+書き出しはキーも値も Flash から走査し、キーは必要ならスタックの一時バッファ（`AZARAC_KEY_BUF_SIZE`）へ 1 度写して出す。
+日本語/英語ラベルは、非 AVR の単一ラベルの引き当てがゼロコピーの `string_view`、それ以外（AVR の lookup と 2/3 分割ラベルの連結）は共有バッファ（`AZARAC_FLASH_BUF_SIZE`）へ 1 度コピーして扱う。
+共有バッファは 1 本なので、`toJson()` と定義テーブルの lookup を複数のタスク/スレッドから同時に呼ばないこと。
 
 ## データフロー
 
@@ -208,7 +216,7 @@ graph TD
 |---------------|-------------|------|
 | DedupFilter | `AZARAC_DEDUP_SLOTS × 8` B | 既定 4,096 B（512スロット）／AVRプリセット 512 B。1エントリ = identity 4 B + 受信時刻 4 B |
 | Message | 84 B（AVR。DCX/CAMF 追加で 199 B）／240 B（ホスト・全カテゴリ） | payload 枠は有効カテゴリ最大の `sizeof` に `alignas(uint64_t)` を付けた `Mt43Data`。スケッチがグローバルに 1 個持つとそのまま `.bss` になる |
-| NankaiPageBuffer | メタ 24 B（ホスト）／22 B（AVR）+ `MAX_PAGES × 18 + 1` B | 既定 63 ページで 1,160 B。AVR 既定 4 ページで 95 B。LRU で追い出し |
+| NankaiPageBuffer | メタ 24 B（ホスト）／23 B（AVR）+ `MAX_PAGES × 18 + 1` B | 既定 63 ページで 1,160 B（AVR 1,158 B）。AVR 既定 4 ページで 96 B。LRU で追い出し |
 | 定義テーブル | 293,152 B（エントリ行 105,488 + 文字列・断片プール 187,664、285 セクション） | 読み取り専用セクション合計は 336,304 B。AVRプリセット（SEISMIC/TSUNAMI、JA）は表 + プールで 3,011 B |
 
 計測条件: 全カテゴリ + 日英ラベル有効、64 bit ホスト `g++ 15.2 -std=c++17 -O2 -fdata-sections`（生成対象外の4表を含む）。
@@ -224,15 +232,16 @@ Arduino は `core.a` を最後にリンクするため、先頭クラスタに 1
 アドレスは 32 bit の Flash アドレスで扱う（`AZARAC_PGM_PTR` + `pgm_read_*_far` / `memcpy_PF`）。
 
 **payload 枠の大きさ**: `Mt43Data::storage_size_` は有効カテゴリの payload 型 `sizeof` の最大値（コンパイル時 `constexpr`）。
-EEW を有効にしても最大は津波（62 B）のままなので `sizeof(Mt43Data)` は 75 B、`Message` は 84 B でカテゴリ構成によらず不変（DCX/CAMF 有効時は `Mt44Data` が最大になり `Message` 199 B）。
-`EewData`（予報区は `region_bitmap[10]` 保持で 34 B）と `HypocenterData` は `AZARAC_ENABLE_EEW` / `AZARAC_ENABLE_HYPOCENTER`で定義ごとガードしてある。
-どちらも `alignas(uint64_t)` だが、AVR の `alignof(uint64_t)` は 1 なので実サイズは切り上がらない（ホストは 8）。
+AVR プリセットでは最大が津波（62 B）なので `sizeof(Mt43Data)` は 75 B、`Message` は 84 B（DCX/CAMF 有効時は `Mt44Data` が最大になり `Message` 199 B）。
+**12 種類の payload 型すべて**が `AZARAC_ENABLE_*` で定義ごとガードしてあるため、カテゴリを無効にすると RAM 枠も連動して縮む（ホスト実測: 津波系を無効で `storage_size_` 88→56 B、全無効で 1 B。全無効でも `storage_` が空配列にならないよう 1 B に切り上げる）。
+`EewData`（予報区は `region_bitmap[10]` 保持で 34 B）は `AZARAC_ENABLE_EEW` でガード。
+payload 型はどれも `alignas(uint64_t)` だが、AVR の `alignof(uint64_t)` は 1 なので実サイズは切り上がらない（ホストは 8）。
 ガードの追加箇所は開発者ガイドの「カテゴリ無効時の型ガード」を参照。
 
 **LTO の制約（AVR）**: Arduino の AVR コアは `-flto` でコンパイル・リンクする。
 inline 関数内の `static const char[]` は one-only シンボルになり、LTO では `__section__` が落ちて `.rodata`（リンカスクリプト上 `.data`、実体は SRAM）へ移る。
 そのため生成ヘッダの switch 戦略は case リテラルを名前空間スコープの配列として出す。
-`make -C test bench` の stage 5b が LTO 画像の SRAM を計測する（ゲートではなくレポート）。
+`make -C test bench` の stage 5 が Arduino レシピ（`-flto`）でリンクした Mega 画像の SRAM をゲートする（`MEGA_RAM_BYTES` ≤ 892B）。
 
 ## 関連ドキュメント
 

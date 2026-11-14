@@ -1,4 +1,8 @@
-// Wi-Fi クライアントとして JSON メッセージを TCP サーバーに送信する例。 MQTT ブローカーや HTTP エンドポイントへの転送に使える。
+// Wi-Fi クライアントとして JSON メッセージを TCP サーバーに送信する例。
+// 送信内容は「1 行 JSON」の TCP ストリームで、MQTT プロトコルではない。MQTT ブローカーへ
+// 転送するには PubSubClient 等で CONNECT/PUBLISH を実装する必要がある（ポート 1883 に
+// 生 JSON を送ってもブローカーは切断する）。HTTP エンドポイントへは別途 POST 実装が必要。
+// WAN など信頼できない経路へ転送する場合は WiFiClientSecure（TLS）を使うこと。
 //
 // 必要な設定:
 //   - WIFI_SSID: Wi-Fiネットワーク名
@@ -10,6 +14,10 @@
 //   GNSS TX → GPIO20 (Serial1 RX)
 //   GNSS RX → GPIO21 (Serial1 TX)
 //   GND     → GND
+
+#if !defined(ESP32)
+#error "wifi_client uses the ESP32 Arduino core (WiFi.h / Serial1)."
+#endif
 
 #include <azaraC.h>
 #include <WiFi.h>
@@ -24,7 +32,7 @@
   #define SERVER_HOST "192.168.1.100"
 #endif
 #ifndef SERVER_PORT
-  #define SERVER_PORT 1883
+  #define SERVER_PORT 1883   // 送信先 TCP ポート（1883 は MQTT の慣習だが本例は生 JSON 行を送る）
 #endif
 
 azaraC::Parser  parser;
@@ -104,15 +112,20 @@ bool sendJson(const azaraC::Message& msg) {
     return true;
 }
 
-// ステータスLED制御（ESP32-C3 DevKitM-1内蔵LED）
+// ステータスLED制御。ESP32-C3 DevKitM-1 内蔵 LED は GPIO8 (active low)。
+// classic ESP32 の GPIO6-11 は SPI Flash 接続なので GPIO8 を駆動しない（起動不能の恐れ）。
+// 他のボードは内蔵 LED のピンが異なるため駆動しない（配線に合わせて変更すること）。
 void setStatusLED(bool on) {
-    // ESP32-C3 DevKitM-1: GPIO8 (active low)
+#if defined(ARDUINO_ESP32C3_DEV) || defined(CONFIG_IDF_TARGET_ESP32C3)
     static bool initialized = false;
     if (!initialized) {
         pinMode(8, OUTPUT);
         initialized = true;
     }
     digitalWrite(8, on ? LOW : HIGH);
+#else
+    (void)on;
+#endif
 }
 
 void setup() {
@@ -124,8 +137,14 @@ void setup() {
 
     connectWiFi();
 
-#if defined(ESP32)
+#if defined(ARDUINO_ESP32C3_DEV) || defined(CONFIG_IDF_TARGET_ESP32C3)
     Serial1.begin(9600, SERIAL_8N1, /*rx=*/20, /*tx=*/21);
+#elif defined(CONFIG_IDF_TARGET_ESP32C6) || defined(ARDUINO_ESP32C6_DEV)
+    // ESP32-C6 は GPIO16/17 が UART0（Serial 出力）なので別ピンを使う
+    Serial1.begin(9600, SERIAL_8N1, /*rx=*/4, /*tx=*/5);
+#elif defined(ESP32)
+    // classic ESP32 は GPIO16/17 が UART2 の既定。S3 などは配線に合わせて変更する
+    Serial1.begin(9600, SERIAL_8N1, /*rx=*/16, /*tx=*/17);
 #else
     Serial1.begin(9600, SERIAL_8N1);
 #endif

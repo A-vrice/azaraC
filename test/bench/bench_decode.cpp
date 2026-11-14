@@ -135,9 +135,10 @@ int main() {
     size_t total_outputs = 0;
 
     std::vector<const Sentence*> per_sentence;
-    std::vector<const Sentence*> nankai;
-    for (const Sentence& s : sentences) {
-        if (std::strcmp(s.group, "MT43_NANKAI") == 0) nankai.push_back(&s);
+    std::vector<size_t> nankai;  // sentences への添字（ポインタだと cppcheck objectIndex が誤検知する）
+    for (size_t i = 0; i < sentences.size(); ++i) {
+        const Sentence& s = sentences[i];
+        if (std::strcmp(s.group, "MT43_NANKAI") == 0) nankai.push_back(i);
         else per_sentence.push_back(&s);
     }
 
@@ -164,7 +165,7 @@ int main() {
             Parser p;
             azaraC::Message msg;
             for (size_t i = 0; i < nankai.size(); ++i) {
-                if (feedSentence(p, msg, nankai[i]->nmea)) {
+                if (feedSentence(p, msg, sentences[nankai[i]].nmea)) {
                     ++total_outputs; ++group_outputs["MT43_NANKAI"];
                     if (complete_at == nankai.size()) complete_at = i;
                 }
@@ -176,9 +177,9 @@ int main() {
             for (int rep = 0; rep < 15; ++rep) {
                 Parser p;
                 azaraC::Message msg;
-                for (size_t i = 0; i < complete_at; ++i) feedSentence(p, msg, nankai[i]->nmea);
+                for (size_t i = 0; i < complete_at; ++i) feedSentence(p, msg, sentences[nankai[i]].nmea);
                 const uint64_t t0 = readCycles();
-                feedSentence(p, msg, nankai[complete_at]->nmea);
+                feedSentence(p, msg, sentences[nankai[complete_at]].nmea);
                 const uint64_t dt = readCycles() - t0;
                 if (dt < best) best = dt;
             }

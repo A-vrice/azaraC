@@ -1,12 +1,12 @@
 // FreeRTOS タスクベースの NMEA / UBX デコーダこのスケッチは loop() を使わず、FreeRTOS タスクで全ての処理を行います。
 // ESP32 系 Arduino コア専用です（xTaskCreatePinnedToCore を使用）。
 //
-// アーキテクチャ: UART RX Task ──(Message Queue)──▶ Output Task 配線 (例: ESP32-C3 DevKitM-1):
+// アーキテクチャ: UART RX Task ──(Message index queue)──▶ Output Task 配線 (例: ESP32-C3 DevKitM-1):
 //   GNSS TX → GPIO20 (Serial1 RX)
 //   GND             → GND
 //
 // 設定 (u-blox):
-//   CFG-MSGOUT-NMEA_ID_GGA_UART1 = 1 //NMEAの場合
+//   CFG-MSGOUT-NMEA_ID_QZQSM_UART1 = 1 //NMEAの場合（$QZQSM を出す。GGA は測位文で災危通報を含まない）
 //   CFG-MSGOUT-UBX_RXM_SFRBX_UART1 = 1 //UBXの場合
 //   CFG-SIGNAL-QZSS_L1S_ENA      = 1
 //   CFG-UART1-BAUDRATE            = 9600
@@ -38,16 +38,27 @@ static constexpr uint32_t kOutputTaskStackSize = 4096;
 static constexpr UBaseType_t kRxTaskPriority = 2;
 static constexpr UBaseType_t kOutputTaskPriority = 1;
 
-// ピン定義例 (ESP32-C3 DevKitM-1)。他の ESP32 系ではボードの配線に合わせて変更する。
+// ピン定義 (ボード別)。C3 DevKitM-1 は GPIO20/21、C6 は GPIO4/5（16/17 は UART0）、classic ESP32 は GPIO16/17（UART2 既定）。
+// S3 など他の ESP32 系はボードの配線に合わせて変更する。
+#if defined(ARDUINO_ESP32C3_DEV) || defined(CONFIG_IDF_TARGET_ESP32C3)
 #define RX_PIN 20
 #define TX_PIN 21
+#elif defined(CONFIG_IDF_TARGET_ESP32C6) || defined(ARDUINO_ESP32C6_DEV)
+#define RX_PIN 4
+#define TX_PIN 5
+#else
+#define RX_PIN 16
+#define TX_PIN 17
+#endif
 #define SERIAL_GNSS Serial1
 
 
-// メッセージキュー (azaraC::Message をやり取り) FreeRTOS のキューはバイトコピーで、Message のコピー ctor/dtor は通らない。
-// payload のサブオブジェクトは trivially copyable で所有ポインタを持たないため、この example ではオブジェクト表現のコピーとして扱う（標準のコピー意味論ではない）。
+// Message はコピー ctor/dtor を持つため、FreeRTOS キューのバイトコピーには載せない。
+// 固定スロットを静的確保し、ready/free のインデックスキューで所有権をやり取りする。
 // Nankai の aggregated_text_ptr は Parser 内部への借用ポインタなのでキューには載せない（processByte を参照）。
-static QueueHandle_t g_messageQueue = nullptr;
+static QueueHandle_t g_readyQueue = nullptr;
+static QueueHandle_t g_freeQueue = nullptr;
+static azaraC::Message g_messageSlots[kQueueSize];
 
 // Serial は RX タスク（集約済み南海トラフ）と Output タスク（キュー・統計）の両方から書く。
 // 1 レコードが途中で混ざらないよう、JSON 1 通・統計行・起動行を丸ごとミューテックスで囲む。
@@ -106,9 +117,16 @@ static void processByte(uint8_t b, azaraC::Parser& parser) {
             return;
         }
 #endif
-        // キューに送信 (待たない)
-        if (xQueueSend(g_messageQueue, &msg, 0) != pdTRUE) {
+        // 空きスロットを取得し、Message のコピー代入で所有権を移す（バイトコピーしない）。
+        uint8_t index = 0;
+        if (xQueueReceive(g_freeQueue, &index, 0) != pdTRUE) {
             g_stats.queueFullErrors++;
+            return;
+        }
+        g_messageSlots[index] = msg;
+        if (xQueueSend(g_readyQueue, &index, 0) != pdTRUE) {
+            g_stats.queueFullErrors++;
+            (void)xQueueSend(g_freeQueue, &index, 0);
         } else {
             g_stats.Messages++;
         }
@@ -142,14 +160,15 @@ static void uartRxTask(void* pvParameters) {
 static void outputTask(void* pvParameters) {
     (void)pvParameters;
 
-    azaraC::Message msg;
+    uint8_t index = 0;
 
     printLine(F("[RTOS] Output task started"));
 
     for (;;) {
-        // キューからメッセージを待機 (最大 100ms)
-        if (xQueueReceive(g_messageQueue, &msg, pdMS_TO_TICKS(100)) == pdTRUE) {
-            printJson(msg);
+        // ready キューのインデックスを待機し、スロットの Message を出力して free に戻す。
+        if (xQueueReceive(g_readyQueue, &index, pdMS_TO_TICKS(100)) == pdTRUE) {
+            printJson(g_messageSlots[index]);
+            (void)xQueueSend(g_freeQueue, &index, 0);
         }
 
         // 統計情報の定期出力 (約10秒ごと)
@@ -192,15 +211,19 @@ void setup() {
         }
     }
 
-    g_messageQueue = xQueueCreate(kQueueSize, sizeof(azaraC::Message));
-    if (g_messageQueue == nullptr) {
+    g_readyQueue = xQueueCreate(kQueueSize, sizeof(uint8_t));
+    g_freeQueue = xQueueCreate(kQueueSize, sizeof(uint8_t));
+    if (g_readyQueue == nullptr || g_freeQueue == nullptr) {
         Serial.println(F("[ERROR] Failed to create message queue!"));
         // エラー時は停止
         for (;;) {
             vTaskDelay(pdMS_TO_TICKS(1000));
         }
     }
-    Serial.print(F("[INIT] Message queue created (size="));
+    for (uint8_t i = 0; i < kQueueSize; ++i) {
+        (void)xQueueSend(g_freeQueue, &i, 0);
+    }
+    Serial.print(F("[INIT] Message queues created (size="));
     Serial.print(kQueueSize);
     Serial.println(F(")"));
 

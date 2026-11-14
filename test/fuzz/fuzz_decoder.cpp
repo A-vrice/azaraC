@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <algorithm>
 #include <cstdio>
 #include <ctime>
 #include <cerrno>
@@ -27,6 +28,7 @@
 #include "framer/UbxFramer.h"
 #include "json/JsonSerializer.h"
 #include "internal/PrintShim.h"
+#include "json/JsonCheck.h"
 #include "test_helpers.h"
 
 using namespace azaraC;
@@ -124,11 +126,13 @@ struct FuzzStats {
     uint64_t valid_frames = 0;
     uint64_t invalid_crc = 0;
     uint64_t invalid_preamble = 0;
+    uint64_t framer_rejected = 0;
     uint64_t decode_success = 0;
     uint64_t decode_fail = 0;
     uint64_t mt43_count = 0;
     uint64_t mt44_count = 0;
     uint64_t exceptions = 0;
+    uint64_t warnings = 0;
     uint64_t nmea_frames = 0;
     uint64_t ubx_frames = 0;
     uint64_t serialized = 0;
@@ -144,6 +148,13 @@ struct FuzzStats {
         exceptions++;
     }
 
+    void log_warning(const char* test_name, uint64_t iter) {
+        if (exception_log_count < MAX_EXCEPTION_LOG) {
+            exception_log[exception_log_count++] = {test_name, iter};
+        }
+        warnings++;
+    }
+
     void print() const {
         printf("\n=== Fuzz Test Statistics ===\n");
         printf("Total iterations:    %llu\n", (unsigned long long)total_iterations);
@@ -154,12 +165,14 @@ struct FuzzStats {
         printf("  UBX frames:        %llu\n", (unsigned long long)ubx_frames);
         printf("Invalid CRC:         %llu\n", (unsigned long long)invalid_crc);
         printf("Invalid preamble:    %llu\n", (unsigned long long)invalid_preamble);
+        printf("Framer rejects:      %llu\n", (unsigned long long)framer_rejected);
         printf("Decode success:      %llu\n", (unsigned long long)decode_success);
         printf("  MT=43:             %llu\n", (unsigned long long)mt43_count);
         printf("  MT=44:             %llu\n", (unsigned long long)mt44_count);
         printf("Decode fail:         %llu\n", (unsigned long long)decode_fail);
         printf("Serialized:          %llu\n", (unsigned long long)serialized);
         printf("Exceptions caught:   %llu\n", (unsigned long long)exceptions);
+        printf("Warnings:            %llu\n", (unsigned long long)warnings);
 
         if (exception_log_count > 0) {
             printf("\n--- Exception Details (first %d) ---\n", exception_log_count);
@@ -217,7 +230,7 @@ static void test_random_raw_data(FuzzStats& stats, std::mt19937& rng, int iterat
 
             Frame frame;
             frame.svid = 193;
-            memcpy(frame.bits, bits, 32);
+            std::copy(bits, bits + 32, frame.bits);
 
             Decoder decoder;
             Message msg;
@@ -243,7 +256,7 @@ static void test_valid_preamble(FuzzStats& stats, std::mt19937& rng, int iterati
 
             Frame frame;
             frame.svid = 193;
-            memcpy(frame.bits, bits, 32);
+            std::copy(bits, bits + 32, frame.bits);
 
             Decoder decoder;
             Message msg;
@@ -271,7 +284,7 @@ static void test_valid_preamble_and_type(FuzzStats& stats, std::mt19937& rng, in
 
             Frame frame;
             frame.svid = 193;
-            memcpy(frame.bits, bits, 32);
+            std::copy(bits, bits + 32, frame.bits);
 
             Decoder decoder;
             Message msg;
@@ -305,7 +318,7 @@ static void test_valid_frames_mt43(FuzzStats& stats, std::mt19937& rng, int iter
 
             Frame frame;
             frame.svid = 193;
-            memcpy(frame.bits, bits, 32);
+            std::copy(bits, bits + 32, frame.bits);
 
             Decoder decoder;
             Message msg;
@@ -347,7 +360,7 @@ static void test_valid_frames_mt44(FuzzStats& stats, std::mt19937& rng, int iter
 
             Frame frame;
             frame.svid = 193;
-            memcpy(frame.bits, bits, 32);
+            std::copy(bits, bits + 32, frame.bits);
 
             Decoder decoder;
             Message msg;
@@ -458,7 +471,7 @@ static void test_boundary_values(FuzzStats& stats, std::mt19937& rng) {
             uint8_t bits[32] = {0};
             Frame frame;
             frame.svid = 193;
-            memcpy(frame.bits, bits, 32);
+            std::copy(bits, bits + 32, frame.bits);
 
             Decoder decoder;
             Message msg;
@@ -475,7 +488,7 @@ static void test_boundary_values(FuzzStats& stats, std::mt19937& rng) {
             memset(bits, 0xFF, sizeof(bits));
             Frame frame;
             frame.svid = 193;
-            memcpy(frame.bits, bits, 32);
+            std::copy(bits, bits + 32, frame.bits);
 
             Decoder decoder;
             Message msg;
@@ -493,7 +506,7 @@ static void test_boundary_values(FuzzStats& stats, std::mt19937& rng) {
             bits[0] = preamble;
             Frame frame;
             frame.svid = 193;
-            memcpy(frame.bits, bits, 32);
+            std::copy(bits, bits + 32, frame.bits);
 
             Decoder decoder;
             Message msg;
@@ -519,7 +532,7 @@ static void test_boundary_values(FuzzStats& stats, std::mt19937& rng) {
 
             Frame frame;
             frame.svid = 193;
-            memcpy(frame.bits, bits, 32);
+            std::copy(bits, bits + 32, frame.bits);
 
             Decoder decoder;
             Message msg;
@@ -541,7 +554,7 @@ static void test_boundary_values(FuzzStats& stats, std::mt19937& rng) {
 
             Frame frame;
             frame.svid = svid;
-            memcpy(frame.bits, bits, 32);
+            std::copy(bits, bits + 32, frame.bits);
 
             Decoder decoder;
             Message msg;
@@ -573,7 +586,7 @@ static void test_boundary_values(FuzzStats& stats, std::mt19937& rng) {
 
             Frame frame;
             frame.svid = 193;
-            memcpy(frame.bits, bits, 32);
+            std::copy(bits, bits + 32, frame.bits);
 
             Decoder decoder;
             Message msg;
@@ -647,17 +660,32 @@ static void test_corrupted_frames(FuzzStats& stats, std::mt19937& rng, int itera
             set_valid_msg_type(bits, rng);
             set_valid_crc(bits);
 
-            // ランダムなビットを反転（CRC破損）
-            int corrupt_pos = bit_dist(rng);
+            // ランダムなビットを反転（CRC破損）。
+            // 1/8 はプリアンブル、1/8 はデータ部を確実に壊し、両方の拒否経路が必ず観測されるようにする。
+            int corrupt_pos;
+            if (i % 8 == 0)      corrupt_pos = (i / 8) % 8;      // bit 0..7（プリアンブル）
+            else if (i % 8 == 1) corrupt_pos = 8 + (i % 218);    // bit 8..225（CRC 被覆域）
+            else                 corrupt_pos = bit_dist(rng);
             bits[corrupt_pos / 8] ^= (0x80 >> (corrupt_pos % 8));
 
             Frame frame;
             frame.svid = 193;
-            memcpy(frame.bits, bits, 32);
+            std::copy(bits, bits + 32, frame.bits);
 
             Decoder decoder;
             Message msg;
-            decoder.decode(frame, msg, 1704067200u);
+            const bool ok = decoder.decode(frame, msg, 1704067200u);
+
+            const uint8_t pre = bits[0];
+            const bool pre_ok = (pre == 0x53 || pre == 0x9A || pre == 0xC6);
+            if (!pre_ok) stats.invalid_preamble++;
+            else         stats.invalid_crc++;
+
+            // 1 bit 反転で CRC-24Q が通ることはない（線形符号）。通ったら実装のバグ。
+            if (ok) {
+                printf("  FAIL: corrupted frame decoded successfully at iteration %d\n", i);
+                stats.log_exception("test_corrupted_frames_unexpected_success", i);
+            }
 
             stats.total_iterations++;
         } catch (...) {
@@ -704,7 +732,9 @@ static void test_corrupted_nmea(FuzzStats& stats, std::mt19937& rng, int iterati
             if (found) {
                 Decoder decoder;
                 Message msg;
-                decoder.decode(frame, msg, 1704067200u);
+                if (!decoder.decode(frame, msg, 1704067200u)) stats.invalid_crc++;
+            } else {
+                stats.framer_rejected++;
             }
 
             stats.total_iterations++;
@@ -752,7 +782,9 @@ static void test_corrupted_ubx(FuzzStats& stats, std::mt19937& rng, int iteratio
             if (found) {
                 Decoder decoder;
                 Message msg;
-                decoder.decode(frame, msg, 1704067200u);
+                if (!decoder.decode(frame, msg, 1704067200u)) stats.invalid_crc++;
+            } else {
+                stats.framer_rejected++;
             }
 
             stats.total_iterations++;
@@ -776,7 +808,7 @@ static void test_decode_failure_state(FuzzStats& stats, std::mt19937& rng, int i
 
             Frame frame;
             frame.svid = 193;
-            memcpy(frame.bits, bits, 32);
+            std::copy(bits, bits + 32, frame.bits);
 
             Decoder decoder;
             Message msg;
@@ -784,7 +816,8 @@ static void test_decode_failure_state(FuzzStats& stats, std::mt19937& rng, int i
 
             // CRC不一致で false。CRC失敗時は svid 未設定のまま false が返る（正常）ため、ここでは valid==false のみ検証する。
             if (!result && msg.valid) {
-                printf("  WARNING: valid should be false on decode failure at iteration %d\n", i);
+                stats.log_warning("test_decode_failure_state", i);
+                printf("  FAIL: valid should be false on decode failure at iteration %d\n", i);
             }
 
             stats.total_iterations++;
@@ -899,7 +932,7 @@ static void test_boundary_report_unix_svid(FuzzStats& stats, std::mt19937& rng) 
 
             Frame frame;
             frame.svid = svid;
-            memcpy(frame.bits, bits, 32);
+            std::copy(bits, bits + 32, frame.bits);
 
             Decoder decoder;
             Message msg;
@@ -973,7 +1006,7 @@ static void test_decode_serialize(FuzzStats& stats, std::mt19937& rng, int itera
 
             Frame frame;
             frame.svid = 193;
-            memcpy(frame.bits, bits, 32);
+            std::copy(bits, bits + 32, frame.bits);
 
             Decoder decoder;
             Message msg;
@@ -993,6 +1026,198 @@ static void test_decode_serialize(FuzzStats& stats, std::mt19937& rng, int itera
             stats.total_iterations++;
         } catch (...) {
             stats.log_exception("test_decode_serialize", i);
+        }
+    }
+    printf("  Completed.\n");
+}
+
+// テスト18: Parser の状態遷移（Nankai ページ集約、Rc、dedup、reset）を含む入力。
+// 既存の fuzz は Decoder を直接呼ぶため、状態付きのバグを検出できない。
+static void test_parser_stateful(FuzzStats& stats, std::mt19937& rng, int iterations) {
+    printf("Test 18: Stateful Parser (%d iterations)...\n", iterations);
+    Parser parser;
+    Message msg;
+    std::uniform_int_distribution<int> byte_dist(0, 255);
+    std::uniform_int_distribution<int> rc_dist(0, 7);
+    std::uniform_int_distribution<int> page_dist(0, 64);
+    std::uniform_int_distribution<int> info_dist(0, 15);
+    std::uniform_int_distribution<int> it_dist(0, 3);
+
+    for (int i = 0; i < iterations; ++i) {
+        try {
+            uint8_t bits[32];
+            generate_random_nav_bits(bits, sizeof(bits), rng);
+            set_valid_preamble(bits, rng);
+            setBits(bits, 8, 6, 43);
+            setBits(bits, 14, 3, static_cast<uint32_t>(rc_dist(rng)));
+            setBits(bits, 17, 4, 4);  // Nankai
+            setBits(bits, 21, 4, static_cast<uint32_t>(byte_dist(rng) & 0x0F));
+            setBits(bits, 25, 5, static_cast<uint32_t>(byte_dist(rng) & 0x1F));
+            setBits(bits, 30, 5, static_cast<uint32_t>(byte_dist(rng) & 0x1F));
+            setBits(bits, 35, 6, static_cast<uint32_t>(byte_dist(rng) & 0x3F));
+            setBits(bits, 41, 2, static_cast<uint32_t>(it_dist(rng)));
+            setBits(bits, 53, 4, static_cast<uint32_t>(info_dist(rng)));
+            for (int t = 0; t < 18; ++t) {
+                setBits(bits, static_cast<uint16_t>(57 + t * 8), 8,
+                        static_cast<uint32_t>(byte_dist(rng)));
+            }
+            setBits(bits, 201, 6, static_cast<uint32_t>(page_dist(rng)));
+            setBits(bits, 207, 6, static_cast<uint32_t>(page_dist(rng)));
+            setBits(bits, 214, 6, 1);  // version
+            set_valid_crc(bits);
+
+            const std::string nmea = makeNmeaQzqsm(58, bits);
+            bool emitted = false;
+            for (char c : nmea) {
+                if (parser.feed(static_cast<uint8_t>(c), msg, 1704067200u)) {
+                    emitted = true;
+                    break;
+                }
+            }
+            if (emitted) {
+                if (!msg.valid) {
+                    stats.log_warning("test_parser_stateful_invalid", i);
+                }
+                if (msg.payload_type == MsgPayloadType::Mt43) {
+                    const Mt43Data* d = msg.getMt43();
+                    if (!d) {
+                        stats.log_warning("test_parser_stateful_missing_mt43", i);
+                    } else if (d->disaster_category == 4) {
+                        const NankaiData* n = d->getNankai();
+                        if (!n) {
+                            stats.log_warning("test_parser_stateful_missing_nankai", i);
+                        } else if (n->is_aggregated &&
+                                   (!n->aggregated_text_ptr || n->aggregated_len > 63 * 18)) {
+                            stats.log_warning("test_parser_stateful_bad_aggregate", i);
+                        }
+                        if (n && (n->page < 1 || n->total_page < 1 || n->page > n->total_page)) {
+                            stats.log_warning("test_parser_stateful_bad_page", i);
+                        }
+                    }
+                }
+            }
+
+            // 同じ電文の再送も Parser の状態（ページ重複・dedup）を通す。
+            if (i % 17 == 0) {
+                for (char c : nmea) {
+                    if (parser.feed(static_cast<uint8_t>(c), msg, 1704067200u) && !msg.valid) {
+                        stats.log_warning("test_parser_stateful_repeat_invalid", i);
+                        break;
+                    }
+                }
+            }
+            // 長時間同じ Parser だけを使い続けないよう、時々状態を初期化する。
+            if (i % 997 == 0) parser.reset();
+
+            stats.total_iterations++;
+        } catch (...) {
+            stats.log_exception("test_parser_stateful", i);
+        }
+    }
+    printf("  Completed.\n");
+}
+
+// テスト19: 任意バイト列をフレーマ / Parser に投入（整形フレームではない真のランダム入力）。
+// 既存のフレーマ fuzz は正常生成文の1文字破損が中心で、任意バイト列・超過長・再同期の
+// 状態ストームが未カバーだった。クラッシュ・ハングしないことを確認する。
+static void test_framer_raw_bytes(FuzzStats& stats, std::mt19937& rng, int iterations) {
+    printf("Test 19: Framer raw random byte streams (%d iterations)...\n", iterations);
+    for (int i = 0; i < iterations; i++) {
+        try {
+            const size_t len = 1 + (rng() % 512);
+            std::vector<uint8_t> data(len);
+            for (auto& b : data) b = static_cast<uint8_t>(rng() & 0xFF);
+
+            NmeaFramer nf; UbxFramer uf; Frame f;
+            for (uint8_t b : data) nf.feed(b, f);
+            for (uint8_t b : data) uf.feed(b, f);
+            Parser parser; Message msg;
+            for (uint8_t b : data) parser.feed(b, msg, 0);
+
+            stats.total_iterations++;
+        } catch (...) {
+            stats.log_exception("test_framer_raw_bytes", i);
+        }
+    }
+    printf("  Completed.\n");
+}
+
+// 独立な UTF-8 妥当性検証（コードポイント復号＋overlong/サロゲート/範囲検査）。
+static bool fuzzIsValidUtf8(const std::string& s) {
+    const uint8_t* p = reinterpret_cast<const uint8_t*>(s.data());
+    const size_t n = s.size();
+    size_t i = 0;
+    while (i < n) {
+        const uint8_t b = p[i];
+        if (b < 0x80) { ++i; continue; }
+        uint32_t cp; int extra;
+        if      (b >= 0xC2 && b <= 0xDF) { cp = b & 0x1Fu; extra = 1; }
+        else if (b >= 0xE0 && b <= 0xEF) { cp = b & 0x0Fu; extra = 2; }
+        else if (b >= 0xF0 && b <= 0xF4) { cp = b & 0x07u; extra = 3; }
+        else return false;
+        if (i + static_cast<size_t>(extra) >= n) return false;
+        for (int k = 1; k <= extra; ++k) {
+            const uint8_t c = p[i + k];
+            if ((c & 0xC0) != 0x80) return false;
+            cp = (cp << 6) | (c & 0x3Fu);
+        }
+        if (extra == 1 && cp < 0x80) return false;
+        if (extra == 2 && cp < 0x800) return false;
+        if (extra == 3 && cp < 0x10000) return false;
+        if (cp >= 0xD800 && cp <= 0xDFFF) return false;
+        if (cp > 0x10FFFF) return false;
+        i += static_cast<size_t>(extra) + 1;
+    }
+    return true;
+}
+
+// テスト20: シリアライズ結果の JSON 妥当性＋UTF-8 妥当性。
+// 南海集約テキストにランダム生バイト（不正 UTF-8 を含む）を入れ、writeStrUtf8 経路が
+// 常に valid UTF-8 な JSON を出すことを検査する（M-1 の回帰）。
+static void test_json_utf8_wellformed(FuzzStats& stats, std::mt19937& rng, int iterations) {
+    printf("Test 20: JSON well-formedness + UTF-8 validity (%d iterations)...\n", iterations);
+    for (int i = 0; i < iterations; i++) {
+        try {
+            uint8_t bits[32];
+            generate_random_nav_bits(bits, sizeof(bits), rng);
+            set_valid_preamble(bits, rng);
+            set_valid_msg_type(bits, rng);
+            set_valid_crc(bits);
+            Frame frame; frame.svid = 193; std::copy(bits, bits + 32, frame.bits);
+            Decoder decoder; Message msg;
+            if (decoder.decode(frame, msg, 1704067200u)) {
+                StringPrint sp; JsonSerializer::serialize(msg, sp);
+                const std::string& s = sp.str();
+                JsonCheck jc(s);
+                if (!jc.run()) stats.log_warning("json_malformed", i);
+                if (!fuzzIsValidUtf8(s)) stats.log_warning("json_invalid_utf8", i);
+            }
+#if AZARAC_ENABLE_NANKAI
+            {
+                Message m; m.msg_type = 43; m.initPayload<Mt43Data>();
+                Mt43Data* d = m.getMt43();
+                if (d) {
+                    d->disaster_category = 4; d->initAs<NankaiData>();
+                    NankaiData* nk = d->getNankai();
+                    if (nk) {
+                        uint8_t raw[64];
+                        for (auto& b : raw) b = static_cast<uint8_t>(rng() & 0xFF);
+                        nk->is_aggregated = true;
+                        nk->aggregated_text_ptr = reinterpret_cast<const char*>(raw);
+                        nk->aggregated_len = static_cast<uint8_t>(rng() % sizeof(raw));
+                        nk->page = 1; nk->total_page = 1;
+                        StringPrint sp; JsonSerializer::serialize(m, sp);
+                        const std::string& s = sp.str();
+                        JsonCheck jc(s);
+                        if (!jc.run()) stats.log_warning("nankai_json_malformed", i);
+                        if (!fuzzIsValidUtf8(s)) stats.log_warning("nankai_json_invalid_utf8", i);
+                    }
+                }
+            }
+#endif
+            stats.total_iterations++;
+        } catch (...) {
+            stats.log_exception("test_json_utf8_wellformed", i);
         }
     }
     printf("  Completed.\n");
@@ -1085,22 +1310,43 @@ int main(int argc, char* argv[]) {
     mem_tracker.checkpoint();
     test_decode_serialize(stats, rng, iterations / 2);
     mem_tracker.checkpoint();
+    test_parser_stateful(stats, rng, iterations / 2);
+    mem_tracker.checkpoint();
+    test_framer_raw_bytes(stats, rng, iterations / 2);
+    mem_tracker.checkpoint();
+    test_json_utf8_wellformed(stats, rng, iterations / 2);
+    mem_tracker.checkpoint();
 
     // メモリレポートは mem_tracker のデストラクタで自動出力
     stats.print();
 
     printf("\n=== Summary ===\n");
-    if (stats.exceptions == 0) {
-        printf("PASS: No exceptions caught during fuzz testing.\n");
+    if (stats.exceptions == 0 && stats.warnings == 0) {
+        printf("PASS: No exceptions or invariant warnings during fuzz testing.\n");
     } else {
-        printf("FAIL: %llu exceptions caught during fuzz testing.\n",
-               (unsigned long long)stats.exceptions);
+        printf("FAIL: %llu exceptions and %llu warnings during fuzz testing.\n",
+               (unsigned long long)stats.exceptions,
+               (unsigned long long)stats.warnings);
         // catch できないクラッシュ（segfault 等）で死んだ場合も、シードを固定して再実行すれば同じ入力列を辿れる。
         printf("Reproduce with: FUZZ_SEED=%llu make -C test fuzz FUZZ_ITERATIONS=%lld\n",
                (unsigned long long)seed, iterations);
     }
 
+    // 破損テストが実際に「拒否」を観測できているか。カウンタが 0 のままなら
+    // 入力生成か判定が壊れている（計測が嘘をついている）ので、成功扱いにしない。
+    const bool corruption_observed = (stats.invalid_crc > 0 && stats.invalid_preamble > 0);
+    if (corruption_observed) {
+        printf("Corruption rejections: crc=%llu, preamble=%llu, framer=%llu\n",
+               (unsigned long long)stats.invalid_crc,
+               (unsigned long long)stats.invalid_preamble,
+               (unsigned long long)stats.framer_rejected);
+    } else {
+        printf("FAIL: corruption counters were not exercised (crc=%llu, preamble=%llu).\n",
+               (unsigned long long)stats.invalid_crc,
+               (unsigned long long)stats.invalid_preamble);
+    }
+
     printf("Fuzz testing completed.\n");
 
-    return stats.exceptions > 0 ? 1 : 0;
+    return (stats.exceptions > 0 || stats.warnings > 0 || !corruption_observed) ? 1 : 0;
 }

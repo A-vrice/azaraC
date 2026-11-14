@@ -9,8 +9,8 @@
 
 using namespace azaraC::internal;
 
-// 現在時刻（ms、非 Arduino）。
-static uint32_t currentMillis() {
+// 現在時刻（ms、非 Arduino）。NANKAI 無効時は呼び出しが消えるため maybe_unused。
+[[maybe_unused]] static uint32_t currentMillis() {
     auto now = std::chrono::steady_clock::now();
     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
         now.time_since_epoch()).count();
@@ -19,13 +19,14 @@ static uint32_t currentMillis() {
 
 #if (AZARAC_ENABLE_NANKAI)
 TEST_CASE("NankaiPageKey equality") {
-    // identity = info_code + information_type + report_time DHM（月/日/時/分）。
-    NankaiPageKey key1 = {1, 4, 10, 30, 15};
-    NankaiPageKey key2 = {1, 4, 10, 30, 15};
-    NankaiPageKey key3 = {2, 4, 10, 30, 15};  // different info_code
-    NankaiPageKey key4 = {1, 4, 10, 30, 16};  // different minute
-    NankaiPageKey key5 = {1, 5, 10, 30, 15};  // different month
-    NankaiPageKey key6 = {1, 4, 10, 30, 15, 2};  // different information_type (取消)
+    // identity = info_code + information_type + report_classification + report_time DHM（月/日/時/分）。
+    NankaiPageKey key1 = {1, 4, 10, 30, 15, 0, 2};
+    NankaiPageKey key2 = {1, 4, 10, 30, 15, 0, 2};
+    NankaiPageKey key3 = {2, 4, 10, 30, 15, 0, 2};  // different info_code
+    NankaiPageKey key4 = {1, 4, 10, 30, 16, 0, 2};  // different minute
+    NankaiPageKey key5 = {1, 5, 10, 30, 15, 0, 2};  // different month
+    NankaiPageKey key6 = {1, 4, 10, 30, 15, 2, 2};  // different information_type (取消)
+    NankaiPageKey key7 = {1, 4, 10, 30, 15, 0, 7};  // different report_classification (訓練)
 
     SUBCASE("Same keys are equal") {
         CHECK(key1 == key2);
@@ -43,6 +44,11 @@ TEST_CASE("NankaiPageKey equality") {
     SUBCASE("Different information_type") {
         // 発表(0) と取消(2) は同一 info_code + 同一報告時刻でも別の情報。
         CHECK(!(key1 == key6));
+    }
+
+    SUBCASE("Different report_classification") {
+        // 訓練/試験(7) と実警報(2) は同一 info_code + 同一報告時刻でも別の情報。
+        CHECK(!(key1 == key7));
     }
 }
 
@@ -159,6 +165,14 @@ TEST_CASE("NankaiPageBuffer truncation") {
         CHECK_FALSE(result);
     }
     
+    SUBCASE("Invalid first page does not set truncated or total_pages") {
+        uint8_t text[18] = {'T', 'e', 's', 't', 0};
+        CHECK_FALSE(buffer.addPage(2, 1, text, now));
+        CHECK_FALSE(buffer.truncated);
+        CHECK(buffer.total_pages == 0);
+        CHECK(buffer.isEmpty());
+    }
+
     SUBCASE("Normal (non-truncated) buffer has truncated=false") {
         uint8_t text[18] = {'T', 'e', 's', 't', 0};
         buffer.addPage(1, 1, text, now);
@@ -192,6 +206,49 @@ TEST_CASE("NankaiPageBuffer text aggregation") {
         CHECK(buffer.aggregated_text[0] == 'A');
         CHECK(buffer.aggregated_text[1] == 'B');
     }
+
+    SUBCASE("getTextLength after compactText uses the contiguous text") {
+        uint8_t text1[18] = {'P', '1', 0};
+        uint8_t text2[18] = {'P', '2', 0};
+        uint8_t text3[18] = {'P', '3', 0};
+        buffer.addPage(1, 3, text1, now);
+        buffer.addPage(2, 3, text2, now);
+        buffer.addPage(3, 3, text3, now);
+        CHECK(buffer.getTextLength() == 6);
+
+        CHECK(buffer.compactText() == 6);
+        CHECK(buffer.compacted);
+        CHECK(buffer.getTextLength() == 6);  // ページ割り付けではなく連続文字列として読む
+        CHECK(memcmp(buffer.aggregated_text, "P1P2P3", 6) == 0);
+    }
+
+    SUBCASE("getTextLength after compactText with a missing page") {
+        uint8_t text1[18] = {'P', '1', 0};
+        uint8_t text3[18] = {'P', '3', 0};
+        CHECK(buffer.addPage(1, 3, text1, now));
+        CHECK(buffer.addPage(3, 3, text3, now));
+        CHECK_FALSE(buffer.isComplete());
+
+        CHECK(buffer.compactText() == 4);
+        CHECK(buffer.getTextLength() == 4);
+        CHECK(memcmp(buffer.aggregated_text, "P1P3", 4) == 0);
+    }
+
+    SUBCASE("clearAll restores the page-offset length path") {
+        uint8_t text[18] = {'P', '1', 0};
+        buffer.addPage(1, 1, text, now);
+        CHECK(buffer.compactText() == 2);
+        CHECK(buffer.compacted);
+
+        buffer.clearAll();
+        CHECK_FALSE(buffer.compacted);
+        CHECK(buffer.getTextLength() == 0);
+
+        uint8_t page2[18] = {'A', 'B', 0};
+        CHECK(buffer.addPage(2, 3, page2, now));
+        CHECK_FALSE(buffer.compacted);
+        CHECK(buffer.getTextLength() == 2);  // 空のページ 1 を飛ばしてページ 2 を読む
+    }
 }
 
 
@@ -223,6 +280,26 @@ TEST_CASE("NankaiPageBufferManager") {
         NankaiPageBuffer* result2 = manager.addPage(key, 2, 2, text2, currentMillis());
         CHECK(result2 != nullptr);
     }
+
+    SUBCASE("Invalid page for a new key does not evict an in-progress event") {
+        NankaiPageKey keyA = {1};
+        NankaiPageKey keyB = {2};
+        uint8_t text1[18] = {'A', '1', 0};
+        uint8_t text2[18] = {'A', '2', 0};
+        const uint32_t now = currentMillis();
+
+        CHECK(manager.addPage(keyA, 1, 2, text1, now) == nullptr);
+        REQUIRE(manager.getBuffer(keyA) != nullptr);
+
+        // page > total の不正ページは、別鍵の新規バッファを割り当ててはいけない。
+        CHECK(manager.addPage(keyB, 2, 1, text1, now) == nullptr);
+        CHECK(manager.getBuffer(keyA) != nullptr);
+        CHECK(manager.getBuffer(keyB) == nullptr);
+        CHECK(manager.getBuffer(keyA)->received_count == 1);
+
+        // 事象Aの残りページは引き続き完成できる。
+        CHECK(manager.addPage(keyA, 2, 2, text2, now) != nullptr);
+    }
     
 #if AZARAC_NANKAI_BUFFERS >= 2
     SUBCASE("Multiple events") {
@@ -249,6 +326,32 @@ TEST_CASE("NankaiPageBufferManager") {
     }
 }
 
+TEST_CASE("NankaiPageBufferManager aggregate status") {
+    NankaiPageBufferManager manager;
+    NankaiPageKey key = {1};
+    uint8_t text[18] = {'T', 'e', 's', 't', 0};
+    NankaiPageBuffer* completed = nullptr;
+
+    CHECK(manager.addPageEx(key, 1, 2, text, 1000, &completed) ==
+          NankaiAggregateResult::NotComplete);
+    CHECK(completed == nullptr);
+
+    // 未完成バッファの重複ページは Complete ではない。
+    CHECK(manager.addPageEx(key, 1, 2, text, 1001, &completed) ==
+          NankaiAggregateResult::NotComplete);
+    CHECK(completed == nullptr);
+
+    CHECK(manager.addPageEx(key, 2, 2, text, 1002, &completed) ==
+          NankaiAggregateResult::Complete);
+    REQUIRE(completed != nullptr);
+
+    // 完成済みバッファの受信済みページ再送。
+    completed = nullptr;
+    CHECK(manager.addPageEx(key, 1, 2, text, 1003, &completed) ==
+          NankaiAggregateResult::DuplicateComplete);
+    CHECK(completed == nullptr);
+}
+
 TEST_CASE("NankaiPageBufferManager buffer limit") {
     NankaiPageBufferManager manager;
     
@@ -271,6 +374,79 @@ TEST_CASE("NankaiPageBufferManager buffer limit") {
         CHECK(manager.getBuffer(key_new) != nullptr);
     }
 }
+
+#if AZARAC_NANKAI_BUFFERS >= 2
+TEST_CASE("NankaiPageBufferManager eviction respects report_classification (F-1)") {
+    NankaiPageBufferManager manager;
+    uint8_t text[18] = {'T', 'e', 's', 't', 0};
+    const NankaiPageKey realAlert = {1, 9, 14, 19, 1, 0, 2};   // 実警報 Rc=2
+    const NankaiPageKey realAlert2 = {2, 9, 14, 19, 3, 0, 2};  // 別の実警報 Rc=2
+    const NankaiPageKey training = {3, 9, 14, 19, 5, 0, 7};    // 訓練 Rc=7
+    const NankaiPageKey training2 = {4, 9, 14, 19, 9, 0, 7};   // 別の訓練 Rc=7
+
+    // 各 SUBCASE は「2 スロットが埋まった状態で 3 本目が来る」前提。バッファ数が 2 より多い構成
+    // （pgm-stub は 4）でも同じ状況にするため、余分なスロットを実警報（Rc=2）で先に埋める。
+    // 追い出し候補にならないよう、各 SUBCASE で最古のページより後の時刻で入れる。
+    auto fillExtraSlots = [&](uint64_t at_ms) {
+        for (uint8_t i = 0; i + 2 < AZARAC_NANKAI_BUFFERS; ++i) {
+            const NankaiPageKey filler = {static_cast<uint8_t>(6 + (i % 8)), 9, 14, 20,
+                                          static_cast<uint8_t>(i / 8), 0, 2};
+            manager.addPageEx(filler, 1, 10, text, at_ms + i, nullptr);
+        }
+    };
+
+    SUBCASE("Training event evicts training, not the older real alert") {
+        manager.addPageEx(realAlert, 1, 10, text, 0, nullptr);
+        fillExtraSlots(1000);
+        manager.addPageEx(training, 1, 10, text, 10000, nullptr);
+        manager.addPageEx(training2, 1, 10, text, 20000, nullptr);
+
+        CHECK(manager.getBuffer(realAlert) != nullptr);
+        CHECK(manager.getBuffer(training) == nullptr);
+        CHECK(manager.getBuffer(training2) != nullptr);
+
+        // 実警報の集約はリセットされず、続きから集まる。
+        manager.addPageEx(realAlert, 2, 10, text, 24000, nullptr);
+        REQUIRE(manager.getBuffer(realAlert) != nullptr);
+        CHECK(manager.getBuffer(realAlert)->received_count == 2);
+    }
+
+    SUBCASE("Training page is dropped rather than evicting a real alert") {
+        manager.addPageEx(realAlert, 1, 10, text, 0, nullptr);
+        fillExtraSlots(1000);
+        manager.addPageEx(realAlert2, 1, 10, text, 10000, nullptr);
+
+        CHECK(manager.addPageEx(training, 1, 10, text, 20000, nullptr) ==
+              NankaiAggregateResult::Rejected);
+        CHECK(manager.getBuffer(realAlert) != nullptr);
+        CHECK(manager.getBuffer(realAlert2) != nullptr);
+        CHECK(manager.getBuffer(training) == nullptr);
+    }
+
+    SUBCASE("Real alert evicts the oldest training buffer") {
+        manager.addPageEx(training, 1, 10, text, 0, nullptr);
+        fillExtraSlots(1000);
+        manager.addPageEx(training2, 1, 10, text, 10000, nullptr);
+        manager.addPageEx(realAlert, 1, 10, text, 20000, nullptr);
+
+        CHECK(manager.getBuffer(training) == nullptr);
+        CHECK(manager.getBuffer(training2) != nullptr);
+        CHECK(manager.getBuffer(realAlert) != nullptr);
+    }
+
+    SUBCASE("Eviction among real alerts stays oldest-first") {
+        const NankaiPageKey realAlert3 = {5, 9, 14, 19, 12, 0, 2};
+        manager.addPageEx(realAlert, 1, 10, text, 0, nullptr);
+        fillExtraSlots(1000);
+        manager.addPageEx(realAlert2, 1, 10, text, 10000, nullptr);
+        manager.addPageEx(realAlert3, 1, 10, text, 20000, nullptr);
+
+        CHECK(manager.getBuffer(realAlert) == nullptr);
+        CHECK(manager.getBuffer(realAlert2) != nullptr);
+        CHECK(manager.getBuffer(realAlert3) != nullptr);
+    }
+}
+#endif // AZARAC_NANKAI_BUFFERS >= 2
 
 TEST_CASE("NankaiPageBufferManager empty slots never match") {
     NankaiPageBufferManager manager;

@@ -88,9 +88,12 @@ if (parser.feed(byte, msg, now)) { ... }
 | `AZARAC_DEDUP_WAYS` | 8 | 重複判定表の連想度 |
 | `AZARAC_DEDUP_WINDOW_MS` | 86400000 | 情報有効時間(ms)のフォールバック。災害種別ごとの配信終了条件と MT=44 の A8 由来の窓に無いカテゴリだけが使う |
 | `AZARAC_DEDUP_MT44_MAX_WINDOW_MS` | 300000 | MT=44 の情報有効時間(ms)の上限。AVRのみ定義（ホストは A8 由来の窓をそのまま使用） |
-| `AZARAC_NANKAI_MAX_PAGES` / `AZARAC_NANKAI_BUFFERS` | 63 / 1 | 防災気象情報(南海トラフ地震)の最大収集ページ数(1-63)と最大同時追跡数(1-32) |
+| `AZARAC_NANKAI_MAX_PAGES` / `AZARAC_NANKAI_BUFFERS` | 63 / 2 | 防災気象情報(南海トラフ地震)の最大収集ページ数(1-63)と最大同時追跡数(1-32)。AVR preset は 4 / 1 |
 | `AZARAC_LANG_JA` / `AZARAC_LANG_EN` | 1 / 0 | 定義テーブルの言語選択 |
 | `AZARAC_ENABLE_*`（13個） | 1（AVR は SEISMIC/TSUNAMI のみ） | 災害カテゴリ別のデコード有効化/無効化。AVR で DCX/CAMF を使うには `-DAZARAC_AVR_LARGE_FLASH=1` または `-DAZARAC_ENABLE_DCX_CAMF=1` を明示する |
+| `AZARAC_ENABLE_DEDUP` | 1 | 重複排除テーブルの有効化。0 で `AZARAC_DEDUP_SLOTS × 8 B`（既定 4 KB / AVR 512 B）が消える |
+| `AZARAC_NMEA_STRICT_SVID` | 0 | NMEA の svid 受理範囲（0=00–63 / 1=53–63 / 2=仕様表の 55/56/57/58/61）。既定は実機互換優先 |
+| `AZARAC_NMEA_REJECT_NONZERO_PADDING` | 0 | NMEA の詰め物ビット非零を拒否するか。既定は受理（実機互換優先） |
 | `AZARAC_FLASH_BUF_SIZE` | AVR: カテゴリ連鎖（既定=64）/ 非 AVR: 800 | ラベル引き当て用RAMバッファのサイズ。AVRでは有効カテゴリに応じて 64 / 80 / 96 / 540 / 640 / 800 に自動選択（有効なカテゴリの最長ラベルを収める）。非AVRでも分割ラベルの連結と長さ取得に使う |
 
 AVR（Arduino Uno等）では専用プリセットにより有効カテゴリが SEISMIC/TSUNAMI のみに絞られ、バッファサイズも縮小されます。

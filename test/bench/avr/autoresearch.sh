@@ -29,23 +29,27 @@
 #             想定内のベースラインで、報告のみ（ゲートしない）— それがこの指標が直すバグ。
 #   crosscheck 主要指標が、avr-gcc が実際に配置したシンボルのサイズと一致すること。
 #   uno       既定の AVR 設定がコンパイル・リンクできること。
-#   mega      DCX/CAMF 設定（256 KB 品と同じく有効化したもの）がコンパイル・リンクでき、
-#             DCX/CAMF テーブルを有効にし、全テーブルを Flash に置き、far Flash 読み出し
-#             (elpm/RAMPZ) を使うこと — なければ 64 KB 超のテーブルが壊れる。
+#   mega      DCX/CAMF 設定（256 KB 品と同じく有効化したもの）が、Mega スケッチが実際に
+#             受ける Arduino のレシピ（-flto）でコンパイル・リンクでき、DCX/CAMF テーブルを
+#             有効にし、全テーブルを Flash に置き、far Flash 読み出し (elpm/RAMPZ) を使う
+#             こと — なければ 64 KB 超のテーブルが壊れる。
 #             *near* 16 ビットポインタで読むテーブル（CRC24Q、radius、B4 レイアウト）は
 #             0xFFFF 未満に収まること。超えると黙ってゴミを返す。
 #   ram       SRAM が増えないこと（UNO_RAM_BYTES と MEGA_RAM_BYTES <= ベースライン）、
 #             かつテーブルが Flash ではなく RAM に住まないこと: SRAM を食って Flash を
 #             減らすのは損失で、AVR 経路は既に持つ共有 800 B バッファでしかラベルを連結できない。
-#   mega-lto  同じ DCX/CAMF 設定を Arduino のレシピ（-flto。Mega スケッチが実際に受けるビルド）
-#             でリンクでき、ATmega2560 の SRAM に収まること。
 #   path      リンクした各イメージが decode 経路・シリアライザ・定義テーブルを保持していること:
 #             LTO がそれらを落とすと flash の数値は「スケッチが払う額」を意味しなくなる。
 #
 # 決定的: ツールチェーンフラグ固定、入力固定、ネットワーク・時計なし。
 # avr-gcc/avr-size/avr-nm と g++ が PATH に必要。
 # Uno イメージは Arduino AVR コアの `-flto -fuse-linker-plugin`（AVR_LTO）でリンクする。
-# Mega イメージは stage 5 で LTO なし、stage 5b で Arduino レシピでリンクし、stage 5b のイメージはゲート対象（リンクでき、品の SRAM に収まること）。
+# Mega イメージも同じ Arduino レシピでリンクし、そのイメージがゲート対象（リンクでき、品の SRAM に収まること）。
+# 以前は Mega を LTO なしでもリンクし、その数値をゲートしていたが、その ~150 KB のイメージは
+# 16 ビット関数ポインタの届く 128 KiB を超え、R_AVR_16_PM が溢れる。binutils 2.26 は警告で
+# 壊れた ELF を通し、2.43 はエラーにする（CI ランナーの 26.04 化で顕在化）。実スケッチが
+# 受けないレシピの数値をゲートする意味はないため、LTO なしの Mega は廃止し、near/far/配置の
+# ゲートも Arduino レシピのイメージへ移した。
 #
 # `bash test/bench/avr/autoresearch.sh --bless-labels` は golden のラベルハッシュを再記録する — ラベル変更が意図どおりだと確認した後のみ。
 
@@ -73,10 +77,8 @@ AVR_BUILD=(-mmcu="$MCU" -Os -std=gnu++17 -fno-exceptions
            -I src -I "$BENCH/shim" -DARDUINO=1)
 
 # Arduino AVR コアは `-flto -fuse-linker-plugin` でコンパイル・リンクする（platform.txt）。
-# stage 4 の Uno イメージ — スケッチが実際に配布される設定 — もこれを使う。
+# stage 4 の Uno イメージと stage 5 の Mega イメージ — スケッチが実際に配布される設定 — もこれを使う。
 # stage 3 は意図的に LTO なしのレシピを使う: LTO オブジェクトはシンボルのサイズを持たず、avr-gcc との突き合わせに何も残らないため。
-# stage 5 も別の理由で LTO なしのまま。
-# その箇所の注記を参照。
 AVR_LTO=(-flto -fuse-linker-plugin)
 
 # テーブルの最悪ケース: 全カテゴリ・両言語。
@@ -102,10 +104,11 @@ MAX_UNO_RAM_BYTES=142
 # payload アラインメント修正前が 896 B、現在 892 B（data 44 + bss 848）: DCX の値リテラル（invalid_mt44、NULL/L_ALERT/J_ALERT/LOCAL_GOV/OUTSIDE_JAPAN/UNKNOWN、unsupported_*）も同様に .data を出て、Flash は +154 B（146,518 → 146,672）。プローブの不透明シンクが 18 B を足す: d55cb12 時点で 146,690 B、HEAD で 146,700 B。その後、シムの print()→write() で数値整形経路が画像に残り、現在 148,552 B。
 # キーバッファはここでも 36 B で、payload のストレージは alignas(uint64_t): AVR ではそれはアラインメントにならない（avr-gcc の __alignof__(unsigned long long) は 1）ので、純粋なパディングを削っただけ。host は 8 バイト境界を維持する。
 # この上限に余裕はない: 892 B が現在の実測値なので、SRAM が回帰すればここで落ちる（SRAM を増やして Flash を減らすのが、これが存在する理由の失敗）。
+# 上の履歴は LTO なしイメージでの実測だが、ゲート対象を Arduino レシピ（-flto）のイメージへ移した時点でも実測は同じ 892 B（生成リテラルが名前空間スコープにあり LTO でも Flash に残るため）。
 MAX_MEGA_RAM_BYTES=892
 
 # 品の SRAM。
-# スケッチが実際に受けるイメージ（stage 5b、Arduino レシピ）向け: LTO ビルドがリンクでき ATmega2560 に収まらなければ、その設定は出荷できない。
+# スケッチが実際に受けるイメージ（stage 5、Arduino レシピ）向け: LTO ビルドがリンクでき ATmega2560 に収まらなければ、その設定は出荷できない。
 ATMEGA2560_SRAM_BYTES=8192
 
 mkdir -p "$OUT"
@@ -258,11 +261,12 @@ echo "METRIC UNO_COMPILE_OK=$uno_ok"
 # 大容量フラッシュのイメージ: DCX/CAMF を明示的に有効化した 256 KB 品（プリセットはもうチップ名で有効化しないので、Mega ユーザーがするようにこの stage で定義する）。
 # テーブルが 64 KB 超に置かれるため、この stage は実デバイス上で far アドレッシングを証明できる。
 #
-# stage 4 と違いここでは ${AVR_LTO[@]} を付けない:
-# この stage は下のゲートが比較する数値（MAX_MEGA_RAM_BYTES、near シンボルの窓、far 読み出し）を記録するので、素のレシピのままにする。
-# stage 5b が同じプリセットを Arduino レシピでリンクして結果を報告し、両者の差はゲートではなく警告。
+# リンクは Arduino のレシピ（${AVR_LTO[@]}）: Mega スケッチが実際に受けるビルドであり、
+# 下のゲートが比較する数値（MAX_MEGA_RAM_BYTES、near シンボルの窓、far 読み出し、コア
+# PROGMEM の配置）はすべてこのイメージから採る。LTO なしの Mega イメージは廃止した
+# （ヘッダの注記参照）。
 mega_ok=0
-mega_build=(-mmcu="$MCU" -Os -std=gnu++17 -fno-exceptions
+mega_build=(-mmcu="$MCU" -Os -std=gnu++17 -fno-exceptions "${AVR_LTO[@]}"
             -ffunction-sections -fdata-sections -Wl,--gc-sections -Werror=overflow
             -DAZARAC_ENABLE_DCX_CAMF=1
             -I src -I "$BENCH/shim" -DARDUINO=1)
@@ -317,48 +321,20 @@ echo "METRIC MEGA_COMPILE_OK=$mega_ok"
 [[ -n "${near_sym_addr:-}" ]] && echo "METRIC MEGA_NEAR_SYM_ADDR=0x$near_sym_addr"
 [[ -n "${mega_core_pgm:-}" ]] && echo "METRIC MEGA_CORE_PGM_ADDR=0x$mega_core_pgm"
 
-# --------------------------------------------------------------- stage 5b ---
-# スケッチが実際にビルドされるレシピでの同じプリセット: Arduino AVR コアは `-flto`（${AVR_LTO[@]}）でコンパイル・リンクする。
-# これがボードの見る数値なので、下でイメージ自体をゲートする（リンクでき ATmega2560 の SRAM に収まること）。
-# LTO なしの stage 5 の値も追従すること — ジェネレータは switch 方式のリテラルを名前空間スコープに持ち上げて LTO でも Flash に残すので、
-# 差が出るのはそれらが .data に落ちたとき。
-mega_lto_ok=0
-mega_lto_build=(-mmcu="$MCU" -Os -std=gnu++17 -fno-exceptions "${AVR_LTO[@]}"
-                -ffunction-sections -fdata-sections -Wl,--gc-sections -Werror=overflow
-                -DAZARAC_ENABLE_DCX_CAMF=1
-                -I src -I "$BENCH/shim" -DARDUINO=1)
-mega_lto_objs=()
-rm -rf "$OUT/obj_mega_lto"
-mkdir -p "$OUT/obj_mega_lto"
-for src in src/*.cpp src/*/*.cpp "$BENCH/probe.cpp"; do
-    obj="$OUT/obj_mega_lto/$(echo "$src" | tr '/' '_').o"
-    if "$AVR_CC" "${mega_lto_build[@]}" -c "$src" -o "$obj"; then
-        mega_lto_objs+=("$obj")
-    else
-        mega_lto_objs=()
-        break
-    fi
-done
-if [[ ${#mega_lto_objs[@]} -gt 0 ]] \
-   && "$AVR_CC" "${mega_lto_build[@]}" "${mega_lto_objs[@]}" -o "$OUT/mega_lto.elf"; then
-    mega_lto_ok=1
-    mega_lto_flash="$("$AVR_SIZE" "$OUT/mega_lto.elf" | awk 'NR == 2 { print $1 + $2 }')"
-    mega_lto_ram="$("$AVR_SIZE" "$OUT/mega_lto.elf" | awk 'NR == 2 { print $2 + $3 }')"
-fi
-echo "METRIC MEGA_LTO_COMPILE_OK=$mega_lto_ok"
-[[ -n "${mega_lto_flash:-}" ]] && echo "METRIC MEGA_LTO_FLASH_BYTES=$mega_lto_flash"
-[[ -n "${mega_lto_ram:-}" ]] && echo "METRIC MEGA_LTO_RAM_BYTES=$mega_lto_ram"
-
 # プローブは decode + serialize 経路 — そしてそれが読む定義テーブル — を
 # リンク済みイメージに残すために存在する。これがそれが残ったことの確認で、
 # LTO が落とすと上の flash 数値は「スケッチが払う額」を意味しなくなる。
 # avr-nm は Windows で CRLF を出すので、パターンは行末に固定しない。
 image_has_path() {  # $1 = elf
     "$AVR_NM" -C "$1" 2>/dev/null | awk '
-        /Decoder::decode/ { d++ }
-        /JsonSerializer/ { s++ }
-        /_POOL|_TABLE/ { t++ }
-        END { exit !(d > 0 && s > 0 && t > 0) }'
+        # 目印関数（probe.cpp）は LTO でも inline されない。
+        # decode 本体は handleFrame へ inline されうるので、decode 専用の補助（crc24q / getBits）で中身の存在を確かめる。
+        / azarac_probe_decode$/ { md++ }
+        / azarac_probe_serialize$/ { ms++ }
+        /Decoder::(decode|crc24q|getBits)/ { d++ }
+        /JsonSerializer|write(Escaped|DHM|Key)/ { s++ }
+        /_POOL$|_TABLE$/ { t++ }
+        END { exit !(md > 0 && ms > 0 && d > 0 && s > 0 && t > 0) }'
 }
 
 # ゲート
@@ -393,25 +369,15 @@ if [[ -n "${mega_ram:-}" ]] && (( mega_ram > MAX_MEGA_RAM_BYTES )); then
     status=15
 fi
 
-# stage 5b のイメージは Mega スケッチが実際に受け取るもの（コアが -flto を付ける）なので、ゲートする: リンクでき、品に収まること。
-# LTO なしの値との差はゲートせず警告に留める — 生成リテラルがすべて LTO を生き残る間は一致し（ジェネレータが switch 方式のリテラルを名前空間スコープに出すのはまさにそのため）。
-# 差自体がツールチェーン依存だから。
-if (( mega_lto_ok == 0 )); then
-    echo "autoresearch: the DCX/CAMF configuration no longer builds with the Arduino recipe (-flto)" >&2
+# Mega イメージは Mega スケッチが実際に受け取るもの（コアが -flto を付ける）なので、品の SRAM に収まることもゲートする（リンク可否は下の mega ブロックが status=12 で見る）。
+if [[ -n "${mega_ram:-}" ]] && (( mega_ram > ATMEGA2560_SRAM_BYTES )); then
+    echo "autoresearch: the Arduino recipe (-flto) makes the Mega image cost $mega_ram B of SRAM — over the ATmega2560's $ATMEGA2560_SRAM_BYTES B" >&2
     status=16
-elif [[ -n "${mega_lto_ram:-}" ]] && (( mega_lto_ram > ATMEGA2560_SRAM_BYTES )); then
-    echo "autoresearch: the Arduino recipe (-flto) makes the Mega image cost $mega_lto_ram B of SRAM — over the ATmega2560's $ATMEGA2560_SRAM_BYTES B" >&2
-    status=16
-fi
-
-if [[ -n "${mega_lto_ram:-}" && -n "${mega_ram:-}" ]] \
-   && (( mega_lto_ram > mega_ram + 64 )); then
-    echo "autoresearch: the Arduino recipe (-flto) makes the Mega image cost $mega_lto_ram B of SRAM against the LTO-free $mega_ram B — generated literals are landing in .data instead of Flash (not gated: the fix is the generator emitting namespace-scope literals)" >&2
 fi
 
 # プローブはリンク済みの各イメージで decode + serialize 経路と定義テーブルを保持し続けなければならない。
 # でなければ上の flash 数値はスケッチが決して走らせないイメージを測っている。
-for img in "$OUT/uno.elf" "$OUT/mega.elf" "$OUT/mega_lto.elf"; do
+for img in "$OUT/uno.elf" "$OUT/mega.elf"; do
     if [[ -f "$img" ]] && ! image_has_path "$img"; then
         echo "autoresearch: $(basename "$img") lost the decode path, the serializer or the definition tables — its flash number no longer reflects a sketch" >&2
         status=17

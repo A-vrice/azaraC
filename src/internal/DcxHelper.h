@@ -37,7 +37,8 @@ int32_t decodeAzimuth7(uint8_t code);
 // out_positions（47 バイト以上）を埋め、書いた件数を返す。
 uint8_t decodePrefectureBitmask(uint64_t ex9, uint8_t* out_positions);
 
-// EX8=1: 16 bit コードを 4 個。out_codes（4 要素以上）を埋めて書いた件数を返す。
+// EX8=1: 16 bit コードを 4 個、送信順（MSB 先頭、ex9[63:48] が先頭）。
+// out_codes（4 要素以上）を埋めて書いた件数を返す。コード 0 は飛ばす。
 uint8_t decodeCityCodeList(uint64_t ex9, uint16_t* out_codes);
 
 // B1 (A17=00) - Improved Resolution of Main Ellipse (EWSS CAMF v1.2 §3.7.1)

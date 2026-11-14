@@ -24,12 +24,14 @@
 MT=44 の B フィールド（B1–B4）と C10 は [EWSS CAMF Issue 1.2](https://www.gsc-europa.eu/electronic-library/programme-reference-documents/galileo-in-force/ewss) に基づきます。
 
 AVR（Uno・Mega を含む）は既定で SEISMIC/TSUNAMI のみ有効です。
-無効にしたカテゴリは定義テーブルがコンパイルされず、`EewData` / `HypocenterData` / `NankaiData` は型ごと除外されます（`SeismicData` / `TsunamiData` など残りの型は、そのカテゴリを無効にしても定義は残ります）。
+無効にしたカテゴリは定義テーブルがコンパイルされず、**12 種類の payload 型すべてがカテゴリ単位で除外されます**（`Mt43Data` の RAM も残ったカテゴリの最大型まで縮みます）。`AZARAC_ENABLE_DEDUP=0` で重複排除テーブル（既定 4 KB / AVR 512 B）も外せます。
 
-- `Message` のサイズは 84 B（全カテゴリ有効時も 84 B、DCX/CAMF 追加時は 199 B ／ ATmega328P の `sizeof` 実測）
+- `Message` のサイズは AVR（ATmega328P、avr-gcc `-Os`）で 84 B（AVR プリセット。DCR の全カテゴリを有効にしても payload 最大は津波 62 B のままで 84 B、DCX/CAMF 追加時は `Mt44Data` が最大になり 199 B）。ホスト（g++、全カテゴリ + DCX/CAMF）は 240 B
 - EEW と震源は AVR プリセットで無効なので `getEew()` / `getHypocenter()` は既定で使えません。
   有効化する場合は `-DAZARAC_ENABLE_EEW=1` / `-DAZARAC_ENABLE_HYPOCENTER=1`
 - MT=44 は `-DAZARAC_AVR_LARGE_FLASH=1` または `-DAZARAC_ENABLE_DCX_CAMF=1` で有効化します（Flash が 64KB を超えるボードが対象）
+- ラベルの言語は `-DAZARAC_LANG_JA=0 -DAZARAC_LANG_EN=1` で英語に切り替えられます（既定は日本語。両方 1 で `_label_en` 併記）
+- 南海トラフの集約テキスト（`NankaiData::aggregated_text_ptr`）は `Parser` 内部への**借用ポインタ**です。`Message` をコピーしても所有権は移らず、次の `feed()` / `reset()` で内容が変わります。`feed()` が `true` を返した直後にコピーするか、`toJson()` で出力してください（[API リファレンス](docs/api-reference.md#集約テキストの借用ポインタ重要)、[Examples の RTOS 実装](examples/rtos_freertos/rtos_freertos.ino)）
 
 ## インストール
 
@@ -61,6 +63,8 @@ git clone https://github.com/A-vrice/azaraC <PROJECT_DIR>/.pio/libdeps/<TARGET_B
 - [はじめに（クイックスタート・Examples・コンパイル時設定）](docs/getting-started.md)
 - [API リファレンス](docs/api-reference.md)
 - [アーキテクチャ](docs/architecture.md)
+- [JSON 出力フォーマット（azarashi との差分）](docs/json-formats.md)
+- [Examples 一覧](examples/README.md)
 - [開発者ガイド（ビルド・テストなど）](docs/developer-guide.md)
 
 ## ライセンス
@@ -70,7 +74,7 @@ git clone https://github.com/A-vrice/azaraC <PROJECT_DIR>/.pio/libdeps/<TARGET_B
 本ライブラリは非公式なものであり，準天頂衛星システムサービス株式会社，JAXA，その他公共機関など「みちびき」に関連する組織，ならびにNBTK氏の提供するazarashiとは一切関係ありません。
 また本ライブラリは現状有姿で提供され，あるふぁ米およびそのコントリビューターは，受信したメッセージや本ライブラリの出力内容の正確性，完全性，その他のいかなるものについても保証しません。
 本ライブラリを使用したことによるいかなる損害についても責任は負いかねます。
-また，本ライブラリを利用される際はQSSの免責条項[参考](https://qzss.go.jp/technical/dod/dc-report/users-manual_agree.html)を確認することを推奨します。
+また，本ライブラリを利用される際はQZSSの免責条項[参考](https://qzss.go.jp/technical/dod/dc-report/users-manual_agree.html)を確認することを推奨します。
 
 ## 問い合わせ
 

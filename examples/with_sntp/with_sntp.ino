@@ -1,6 +1,10 @@
 // Wi-Fi + SNTP で UNIX 時刻を取得し DCR/DCX の「年」を解決する例。すべてのメッセージを JSON で出力し、EEW と MT=44 DCX は詳細ログも出す。
 
 // (AZARAC_DEDUP_SLOTS: 上書き不要 — 既定値は QZSS アーカイブ 30 日分から決めている。src/azaraC_config.h を参照。)
+#if !defined(ESP32)
+#error "with_sntp uses the ESP32 Arduino core (WiFi.h / configTime / Serial1)."
+#endif
+
 #include <azaraC.h>
 #include <WiFi.h>
 #include <time.h>
@@ -26,25 +30,34 @@ void setup() {
 
     WiFi.begin(WIFI_SSID, WIFI_PASS);
     Serial.print(F("[wifi] connecting"));
-    while (WiFi.status() != WL_CONNECTED) { delay(500); Serial.print('.'); }
-    Serial.println(F(" OK"));
+    // 最大 15 秒で打ち切る。AP が無くても受信は開始する（時刻未解決でも生データは出力される）。
+    for (int i = 0; i < 30 && WiFi.status() != WL_CONNECTED; ++i) { delay(500); Serial.print('.'); }
+    Serial.println(WiFi.status() == WL_CONNECTED ? F(" OK") : F(" FAILED (continue without Wi-Fi)"));
 
-    // SNTP (pool.ntp.org, JST+9)
+    // SNTP (pool.ntp.org, JST+9)。最大 30 秒で打ち切り、未同期なら report_unix=0 で受信開始。
+    // 同期が完了すれば loop 内の time() が有効値を返し、以降の電文で年が解決する。
     configTime(9 * 3600, 0, "pool.ntp.org", "time.cloudflare.com");
     Serial.print(F("[sntp] syncing"));
     struct tm ti{};
     time_t now;
-    while (true) {
+    bool synced = false;
+    for (int i = 0; i < 30; ++i) {
         time(&now);
         localtime_r(&now, &ti);
-        if (ti.tm_year > (2016 - 1900)) break;
+        if (ti.tm_year > (2016 - 1900)) { synced = true; break; }
         Serial.print('.');
         delay(1000);
     }
-    Serial.println(F(" OK"));
+    Serial.println(synced ? F(" OK") : F(" TIMEOUT (continue, year unresolved)"));
 
-#if defined(ESP32)
+#if defined(ARDUINO_ESP32C3_DEV) || defined(CONFIG_IDF_TARGET_ESP32C3)
     Serial1.begin(9600, SERIAL_8N1, /*rx=*/20, /*tx=*/21);
+#elif defined(CONFIG_IDF_TARGET_ESP32C6) || defined(ARDUINO_ESP32C6_DEV)
+    // ESP32-C6 は GPIO16/17 が UART0（Serial 出力）なので別ピンを使う
+    Serial1.begin(9600, SERIAL_8N1, /*rx=*/4, /*tx=*/5);
+#elif defined(ESP32)
+    // classic ESP32 は GPIO16/17 が UART2 の既定。S3 などは配線に合わせて変更する
+    Serial1.begin(9600, SERIAL_8N1, /*rx=*/16, /*tx=*/17);
 #else
     Serial1.begin(9600, SERIAL_8N1);
 #endif
@@ -52,6 +65,12 @@ void setup() {
 }
 
 void loop() {
+    // Wi-Fi 切断時は 5 秒間隔で再接続を試みる（SNTP 同期のため）。受信ループはブロックしない。
+    if (WiFi.status() != WL_CONNECTED) {
+        static uint32_t lastAttempt = 0;
+        uint32_t nowMs = millis();
+        if (nowMs - lastAttempt > 5000) { lastAttempt = nowMs; WiFi.begin(WIFI_SSID, WIFI_PASS); }
+    }
     while (Serial1.available()) {
         // SNTP 同期の現在時刻を UNIX 秒で渡す。
         // 未同期で 2000 年以前の値でも、azaraC が年解決をスキップするので電文の生データ（月・日・時・分）は正しく取れる。

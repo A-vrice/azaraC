@@ -9,11 +9,16 @@ permissions:
   contents: read
 
 jobs:
-  update:
+  # 生成と検証は read 権限のみで実行する。PyPI 由来の azarashi（信頼外コード）を
+  # import・実行するのはこのジョブだけ。write トークンを持つジョブには渡さない。
+  generate:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
-      pull-requests: write
+      contents: read
+    outputs:
+      changed: ${{ steps.ver.outputs.changed }}
+      latest: ${{ steps.ver.outputs.latest }}
+      current: ${{ steps.ver.outputs.current }}
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -46,6 +51,32 @@ jobs:
         if: steps.ver.outputs.changed == 'true'
         run: python scripts/gen/gen_definitions.py --out-dir src/definition
 
+      # 生成物の検証ゲート。
+      # 既定の GITHUB_TOKEN で作った PR は push では CI が起動せず、pull_request も
+      # 「承認待ち」で止まる（GitHub の仕様）。無人実行では誰も承認しないため、
+      # PR を作る前にここで落とす。トークン種別に依存しないのが利点。
+      - name: Install host + AVR toolchain
+        if: steps.ver.outputs.changed == 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y g++ make gcc-avr binutils-avr avr-libc cppcheck
+
+      - name: Gate - host unit tests
+        if: steps.ver.outputs.changed == 'true'
+        run: make -C test run
+
+      - name: Gate - definition label buffer sizes
+        if: steps.ver.outputs.changed == 'true'
+        run: make -C test bench
+
+      - name: Gate - static analysis (cppcheck + strict warnings)
+        if: steps.ver.outputs.changed == 'true'
+        run: make -C test check
+
+      - name: Show definition diff summary
+        if: steps.ver.outputs.changed == 'true'
+        run: git diff --stat -- src/definition .azarashi-version
+
       - name: Setup Arduino CLI
         if: steps.ver.outputs.changed == 'true'
         uses: ./.github/actions/setup-arduino-cli
@@ -77,19 +108,60 @@ jobs:
               --build-property "compiler.cpp.extra_flags=-std=gnu++17"
           done
 
-      - name: Create Pull Request
+      # 生成物（データのみ）を artifact にして write ジョブへ渡す。
+      # tar で src/definition と .azarashi-version のパス構造を保つ。
+      - name: Package generated definitions
         if: steps.ver.outputs.changed == 'true'
+        run: tar czf definitions.tar.gz src/definition .azarashi-version
+
+      - name: Upload generated definitions
+        if: steps.ver.outputs.changed == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: generated-definitions
+          path: definitions.tar.gz
+          retention-days: 1
+
+  # write 権限を持つのはこのジョブだけ。信頼外コード（pip/python/make）は一切実行せず、
+  # 検証済み artifact を展開して PR を作るだけにする。
+  pr:
+    needs: generate
+    if: needs.generate.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Download generated definitions
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: generated-definitions
+
+      - name: Extract generated definitions
+        run: tar xzf definitions.tar.gz
+
+      - name: Create Pull Request
+        # 自動でフル CI も走らせたい場合は GitHub App トークン（contents: write / pull-requests: write）を
+        # `token:` に渡す。既定の GITHUB_TOKEN では push が CI を起動せず、pull_request も承認待ちになる。
+        # pull_request_target は使わない（フォーク由来コードに write トークン/シークレットを渡す pwn-request になる）。
         uses: peter-evans/create-pull-request@3ffccacd46053766916f087ce41d627c0b8cf2d1 # v8
         with:
-          title: "chore: update definitions (azarashi ${{ steps.ver.outputs.latest }})"
-          branch: "auto/azarashi-${{ steps.ver.outputs.latest }}"
-          commit-message: "auto-gen: definitions from azarashi ${{ steps.ver.outputs.latest }}"
+          title: "chore: update definitions (azarashi ${{ needs.generate.outputs.latest }})"
+          branch: "auto/azarashi-${{ needs.generate.outputs.latest }}"
+          commit-message: "auto-gen: definitions from azarashi ${{ needs.generate.outputs.latest }}"
           body: |
             ## Auto-generated definition update
 
             | | |
             |---|---|
-            | Previous | `${{ steps.ver.outputs.current }}` |
-            | New | `${{ steps.ver.outputs.latest }}` |
+            | Previous | `${{ needs.generate.outputs.current }}` |
+            | New | `${{ needs.generate.outputs.latest }}` |
+
+            Host tests (`make -C test run`), the AVR label-size gate (`make -C test bench`), and static analysis (`make -C test check`: cppcheck + `-Werror`) passed in the read-only `generate` job before this PR was created. The `pr` job only extracts the verified artifact and opens the PR; it runs no untrusted code.
 
             Changes are in `src/definition/` (generated tables only; the two hand-written headers are listed in the generator's extra_headers and are not touched). Do not edit the generated files manually.

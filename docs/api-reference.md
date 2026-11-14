@@ -52,15 +52,10 @@ bool feed(uint8_t byte, Message& out, uint32_t report_unix = 0);
 
 **戻り値:** `bool` - フレームが完成し、デコードに成功し、重複でもない場合に `true`。
 フレーム未完成・CRC誤り・未対応バージョン（Vn≠1）・コンパイル時に無効なカテゴリ・仕様上未定義のカテゴリ（7/13）・43/44 以外の MT・重複受信・南海トラフのページ集約途中は `false`。
-完成フレームを復号器が拒否した場合、`out` は有効な出力ではないが全体がゼロになるわけではない。
-`Decoder::decode` が `out.clear()` の後に `svid` を書き戻すため `svid` は必ず残る。
-`crc24` は CRC 通過後に拒否された場合に残り、`msg_type` はさらにプリアンブル検証を通過した後の拒否（43/44 以外の MT など）でのみ残る。
-重複時は `out` 全体がクリアされる。
-南海トラフ（カテゴリ 4）のページ集約途中と、カテゴリ 4 で `getNankai()` が nullptr になる電文も `out` 全体をクリアする。
-フレーム未完成の時は `out` は書き換えられない。
-`msg.unsupported_reason` に値が入るのは、復号器が完成フレームを拒否した場合だけ（`DisabledAtCompileTime` / `UnknownCategory` / `UnsupportedVersion`）。
-CRC誤り・重複では `unsupported_reason` は `None` になる（重複時は `out` も全体クリア、CRC誤りでは書き戻された `svid` だけが残る）。
-フレーム未完成では `out` を書き換えないため、直前に完成フレームで設定された値は残る。
+`out` をメッセージとして読めるのは戻り値が `true` のときだけです。`false` を返したときの `out` の内容は未定義で、直前に完成フレームで設定された値や復号途中のフィールドが残ることがあります（フレーム未完成では `out` を書き換えないため、直前の値がそのまま残ります）。個々のフィールドの残留に依存しないでください。
+診断用の `msg.unsupported_reason` だけは、復号器が完成フレームを拒否した場合に理由（`DisabledAtCompileTime` / `UnknownCategory` / `UnsupportedVersion`）が入ります。それ以外の `false`（フレーム未完成・CRC誤り・重複・南海トラフのページ集約途中）では `None` のことが多いですが、値は保証されません。
+
+復号に失敗したフレーム（CRC誤りなど）では `msg.valid` は `false` に落ちます（CRC 失敗時は `Decoder` が `svid` も 0 に戻します）。`false` のときは `valid` を含め `msg` を読まないでください。
 
 **使用例:**
 ```cpp
@@ -96,8 +91,8 @@ void reset();
 const internal::NankaiPageBuffer* getNankaiBuffer(const internal::NankaiPageKey& key) const;
 ```
 
-`NankaiPageKey`の識別子は`{info_code, information_type, report_timeのmonth/day/hour/minute}`です（`information_type`は発表=0/取消=2で、同一`info_code`+報告時刻の発表と取消を別情報として扱うために含めます）。
-呼び出しキーは`NankaiPageKey{info_code, month, day, hour, minute, information_type}`で生成が可能です（`information_type`は末尾の既定引数で省略可）。
+`NankaiPageKey`の識別子は`{info_code, information_type, report_classification, report_timeのmonth/day/hour/minute}`です（`information_type`は発表=0/取消=2、`report_classification`は実警報=2/訓練・試験=7で、それぞれ同一`info_code`+報告時刻の発表と取消、訓練と実警報を別情報として扱うために含めます）。
+呼び出しキーは`NankaiPageKey{info_code, month, day, hour, minute, information_type, report_classification}`で生成が可能です（末尾2つは既定引数で省略可）。既存の6引数呼び出しは`report_classification=0`になるため、実バッファを`getNankaiBuffer()`で検索するときは受信したRcも渡してください。
 `report_time`はそのまま渡すこと（`resolveTime`の正規化でキーが変わらないようにするため）。
 
 返るバッファは受信途中でもよく、完了判定は `isComplete()` で行います。返却ポインタは次の `feed()` / `reset()` までのみ有効です。
@@ -113,17 +108,40 @@ const internal::NankaiPageBuffer* getNankaiBuffer(const internal::NankaiPageKey&
 | マクロ | デフォルト | 説明 |
 |--------|-----------|------|
 | `AZARAC_NANKAI_MAX_PAGES` | 63 | 1 電文あたりの最大ページ数（仕様上の最大も 63） |
-| `AZARAC_NANKAI_BUFFERS` | 1 | 同時に追跡可能な南海トラフ地震の数 |
+| `AZARAC_NANKAI_BUFFERS` | 2 | 同時に追跡可能な南海トラフ地震の数（AVR preset は 1。訓練/実警報の同時進行に 2 必要） |
 
 #### メモリ使用量
 
 各バッファはページを`aggregated_text[MAX_PAGES * 18 + 1]`に保管します：
-- バッファあたり: メタデータ24B + `MAX_PAGES×18+1` B（既定63ページで1,135B、構造体サイズはアラインメント込み1,160B）
-- バッファ: 既定1バッファで約1.16KB。バッファ数を増やすと比例して増加（4バッファ・63ページで4,640B）
+- バッファあたり: メタデータ24B（AVRは23B）+ `MAX_PAGES×18+1` B（既定63ページで1,135B、構造体サイズはアラインメント込み1,160B、AVRは1,158B）
+- バッファ: 既定2バッファで約2.32KB。バッファ数を増やすと比例して増加（4バッファ・63ページで4,640B）
 
-#### LRU エビクション
+#### 追い出し（エビクション）
 
-全てのバッファが使用中の場合、最も古いバッファが自動的に解放されます。
+全てのバッファが使用中の場合、追い出し先には訓練・試験（Rc=7）のバッファが優先して選ばれ、その中で最終更新が最も古いものが解放されます。訓練バッファが無い場合、到着した訓練のページは実警報を守るため破棄され、実警報のページであれば実警報同士で最終更新が最も古いものが解放されます（同値なら先頭スロット。厳密な LRU ではありません）。
+そのため `BUFFERS=1` でも、進行中の実警報が訓練によって中断されることはありません。バッファ数を超える実警報が同時進行する場合は従来どおりの限界があります（60 秒タイムアウトがメモリ上限を保証）。
+
+#### 集約テキストの借用ポインタ（重要）
+
+`NankaiData::aggregated_text_ptr` は **`Parser` 内部の `NankaiPageBuffer::aggregated_text[]` を指す借用ポインタ**です。所有権はありません。
+
+- **有効期間**: `feed()` が `true` を返した直後から、**次に `feed()` / `reset()` を呼ぶまで**。
+- `Parser` が生きている間はアドレス自体は有効ですが、**内容は次の事象で上書き・ゼロ埋めされます**（追い出しでスロットが再利用され、`clearAll()` が `memset` します）。真の dangling になるのは `Parser` を破棄した後です。
+- `Message` は値コピー可能ですが、コピーしてもポインタが複製されるだけです。`std::vector` に入れる、FreeRTOS キューへ積む、`Print` 出力を遅延させる、といった使い方はできません。
+- 必要な場合は `feed()` が `true` を返した直後にコピーするか、`toJson()` でシリアライズしてください。
+- **本文はプロトコル生バイト**です。UTF-8 妥当性は `toJson()` の `text_utf8` 出力で保証します（不正シーケンスは U+FFFD に置換）。`aggregated_text_ptr` を直接読む場合は不正 UTF-8 を含み得ます。
+
+```cpp
+if (parser.feed(b, msg)) {
+    const Mt43Data* m = msg.getMt43();
+    const NankaiData* n = m ? m->getNankai() : nullptr;
+    if (n && n->is_aggregated) {
+        text.assign(n->aggregated_text_ptr, n->aggregated_len);  // ここでコピーする
+    }
+}
+```
+
+`examples/rtos_freertos` は、集約済みの南海トラフだけキューに載せず、そのタスクで JSON 化してから送る実装例です。`test/integration/test_nankai_e2e.cpp` の「copied Message keeps a borrowed pointer」が、コピー後に内容が別の警報文へ変わることを回帰で固定しています。
 
 ---
 
@@ -139,7 +157,7 @@ const internal::NankaiPageBuffer* getNankaiBuffer(const internal::NankaiPageKey&
 | `msg_type` | `uint8_t` | メッセージタイプ (43=DCR, 44=DCX) |
 | `crc24` | `uint32_t` | CRC-24Qチェックサム |
 | `valid` | `bool` | メッセージの妥当性フラグ。`feed()` が `true` を返したときは常に `true` |
-| `unsupported_reason` | `UnsupportedReason` | 復号器が電文を拒否した理由（`None` / `DisabledAtCompileTime` / `UnknownCategory` / `UnsupportedVersion`）。`UnknownCategory` は仕様上未定義のカテゴリと 43/44 以外の MT。CRC誤り・重複では `None`（重複時は `out` も全体クリア、CRC誤りでは `svid` が残る）。フレーム未完成では `out` を書き換えないため直前の値が残る |
+| `unsupported_reason` | `UnsupportedReason` | 復号器が完成フレームを拒否した理由（`None` / `DisabledAtCompileTime` / `UnknownCategory` / `UnsupportedVersion`）。`UnknownCategory` は仕様上未定義のカテゴリと 43/44 以外の MT。`feed()` が `false` でも診断用に入ることがあるが、`out` の他のフィールドは未定義（`feed()` の戻り値の説明を参照） |
 | `payload_type` | `MsgPayloadType` | ペイロードタイプ |
 
 #### 安全なアクセサ
@@ -190,13 +208,15 @@ JMA DC Reportメッセージのデータ構造。
 #### 災害カテゴリ
 
 `Mt43Data` はタグ付きユニオンで、有効なペイロードは対応する getter で取得します（`active_type` が一致しなければ `nullptr`）。
+`AZARAC_ENABLE_<カテゴリ>` を 0 にすると、その行の payload 型（`EewData` など）と getter 自体が存在しません。
+参照するコードは `#if (AZARAC_ENABLE_<カテゴリ>)` で囲んでください。
 
 | カテゴリID | 名称 | アクセサ |
 |-----------|------|-----------|
-| 1 | 緊急地震速報 (EEW) | `getEew()`（`AZARAC_ENABLE_EEW=1` のときのみ。0 では `EewData` 型自体が存在しない） |
-| 2 | 震源情報 | `getHypocenter()`（`AZARAC_ENABLE_HYPOCENTER=1` のときのみ。0 では `HypocenterData` 型自体が存在しない） |
+| 1 | 緊急地震速報 (EEW) | `getEew()` |
+| 2 | 震源情報 | `getHypocenter()` |
 | 3 | 震度情報 | `getSeismic()` |
-| 4 | 南海トラフ地震 | `getNankai()`（`AZARAC_ENABLE_NANKAI=1` のときのみ） |
+| 4 | 南海トラフ地震 | `getNankai()` |
 | 5 | 津波警報・注意報 | `getTsunami()` |
 | 6 | 北太平洋津波 | `getNwPac()` |
 | 8 | 火山情報 | `getVolcano()` |
@@ -209,7 +229,7 @@ JMA DC Reportメッセージのデータ構造。
 #### EEWデータ (`EewData`)
 
 `AZARAC_ENABLE_EEW=1`（非AVRの既定）のときだけ定義されます。
-0のときはこの型と `getEew()` は存在しないため、コードで参照する場合は `#if (AZARAC_ENABLE_EEW)` で囲む必要があります（`HypocenterData` / `NankaiData` についてもそれぞれ同様の処理が必要）。
+0のときはこの型と `getEew()` は存在しないため、コードで参照する場合は `#if (AZARAC_ENABLE_EEW)` で囲む必要があります（同じ規則がすべてのカテゴリ payload 型に当てはまります）。
 
 ```cpp
 struct EewData {
@@ -218,14 +238,16 @@ struct EewData {
     uint16_t notification[3];     // 防災気象情報通知 (3×9bits)
     uint8_t  notification_count;  // 通知数
     TimeFields quake_time;        // 発震時刻
-    uint16_t depth;               // 震源の深さ (×10km)
+    uint16_t depth;               // 震源の深さ (km、コード値＝km)
     uint8_t  magnitude;           // マグニチュード (×0.1)
     uint16_t epicenter;           // 震央地名コード
     uint8_t  intensity_lower;     // 震度下限 (4bits)
     uint8_t  intensity_upper;     // 震度上限 (4bits)
     uint8_t  region_bitmap[10];   // 予報区 80 区のビットマップ（bit i = 予報区 i+1）
-    // アクセサ: regionCount() = 対象予報区数、regionAt(i) = 昇順 i 番目の予報区コード
-    // (1..80、範囲外は 0)、addRegion(code) = テスト等で予報区を追加
+    // 予報区アクセサ:
+    //   regionCount()   … 対象予報区数
+    //   regionAt(i)     … 昇順 i 番目 (0 始まり) の予報区コード (1..80)。i >= regionCount() は 0
+    //   addRegion(code) … 予報区コード (1..80) を対象に追加する。範囲外は無視
 };
 ```
 
@@ -330,7 +352,7 @@ struct DecodedEllipse {
     int32_t lon_microdeg;              // microdegrees (×1,000,000)
     int32_t semi_major_m;              // meters (×1,000 from km)
     int32_t semi_minor_m;              // meters (×1,000 from km)
-    int32_t azimuth_decideg;           // dexadegrees (×100,000)
+    int32_t azimuth_decideg;           // 1e-5 degrees (×100,000)。フィールド名は歴史的経緯（3.0.0 で改名検討）
     int32_t b1_lat_offset_microdeg;    // microdegrees (×1,000,000)
     int32_t b1_lon_offset_microdeg;    // microdegrees (×1,000,000)
     int32_t b1_refined_semi_major_m;   // meters (×1,000 from km)
@@ -496,8 +518,10 @@ if (client.connect(server, port)) {
 | `AZARAC_ENABLE_MARINE` | 1 | 海上警報 (カテゴリ14) |
 | `AZARAC_ENABLE_DCX_CAMF` | 1 | DCX/CAMF全般 (MT=44) |
 
-`AZARAC_ENABLE_EEW` / `AZARAC_ENABLE_HYPOCENTER` / `AZARAC_ENABLE_NANKAI` を 0 にすると、定義テーブルだけでなく**payload 型そのもの**（`EewData` / `HypocenterData` / `NankaiData`）と対応する取得関数（`getEew()` など）もコンパイル対象から外れる。
-また同時に`Mt43Data` のペイロードサイズ（`storage_size_`）は残ったカテゴリのうち最大の `sizeof` まで小さくなる。
+DCR のカテゴリマクロ（`AZARAC_ENABLE_EEW` など 12 個）を 0 にすると、定義テーブルだけでなく**payload 型そのもの**（`EewData` / `SeismicData` / `TsunamiData` など全 12 型）と対応する取得関数（`getEew()` など）もコンパイル対象から外れる。
+なお `AZARAC_ENABLE_DCX_CAMF=0` は別扱いで、`Mt44Data` 型と `getMt44()` はコンパイル対象に残り、`getMt44()` は常に `nullptr` を返す（型ガードではなく実行時無効化）。
+また同時に`Mt43Data` のペイロードサイズ（`storage_size_`）は残ったカテゴリのうち最大の `sizeof` まで小さくなる。全カテゴリを無効にすると 1 B まで落ちる（`Message` の `payload_type` は `Empty` のまま機能する）。
+ホスト実測: 全カテゴリ有効で `storage_size_` 88 B / `sizeof(Mt43Data)` 104 B、津波系（5・6）を無効で 56 B / 72 B、全無効で 1 B / 24 B。
 AVR プリセットは EEW・震源が既定で 0 なので `sizeof(Mt43Data)` は 75B、`Message` は 84B となる（EEW を有効にしても予報エリアは `region_bitmap[10]` 保持のため 75B / 84B のまま。DCRの全カテゴリおよび DCX/CAMF 有効時は `Mt44Data` 190B、`Message` 199Bとなる。avr-gcc `-Os`、ATmega328Pボードの設定で計測）。
 無効にしたカテゴリの型を扱うコードはコンパイルエラーになるので異なるアーキテクチャーでコードを使いまわす場合は `#if (AZARAC_ENABLE_EEW)` などで囲む必要がある（`examples/filter_by_category`・`examples/with_sntp` の EEW ブロックを参照のこと）。
 
@@ -505,8 +529,13 @@ AVR プリセットは EEW・震源が既定で 0 なので `sizeof(Mt43Data)` �
 
 | マクロ | デフォルト | 説明 |
 |-------|-----------|------|
-| `AZARAC_FLASH_BUF_SIZE` | AVR: カテゴリ連鎖（既定=64）/ 非 AVR: 800 | ラベル引き当て用の共有RAMバッファサイズ (バイト)。AVRでは有効カテゴリに応じて 64（SEISMIC/TSUNAMI など）/ 80（＋北西太平洋津波）/ 96（＋火山・洪水）/ 540（＋南海トラフ）/ 640（＋緊急地震速報・震源）/ 800（＋DCX/CAMF）に自動選択。有効なカテゴリの最長ラベルを必ず収める（`make -C test bench` の `FLASH_BUF_OK` ゲート）。非 AVR でも join 系（`azarac_pgm_join_z` / `azarac_pgm_join3`）と `azarac_pgm_len` の打ち切りに使う |
+| `AZARAC_FLASH_BUF_SIZE` | AVR: カテゴリ連鎖（既定=64）/ 非 AVR: 800 | ラベル引き当て用の共有RAMバッファサイズ (バイト)。AVRでは有効カテゴリに応じて 64（SEISMIC/TSUNAMI など）/ 80（＋北西太平洋津波）/ 96（＋火山・洪水）/ 540（＋南海トラフ）/ 640（＋緊急地震速報・震源）/ 800（＋DCX/CAMF）に自動選択。有効なカテゴリの最長ラベルを必ず収める（`make -C test bench` の `FLASH_BUF_OK` ゲート）。64 未満は `static_assert` で拒否。非 AVR でも join 系（`azarac_pgm_join_z` / `azarac_pgm_join3`）と `azarac_pgm_len` の打ち切りに使う。切り詰め位置が UTF-8 の途中なら、不完全な末尾シーケンスを捨てて境界まで戻す |
 | `AZARAC_DEDUP_MT44_MAX_WINDOW_MS` | 300000 | MT=44 の情報有効時間(ms)の上限。`__AVR__`のみ定義され、常に A8 由来の窓（最短6時間）を置き換える。ホストは上限を設けず A8 の窓をそのまま使う |
+| `AZARAC_ENABLE_DEDUP` | 1 | 0 で重複排除を無効化する。`DedupFilter` が状態を持たず常に「新規」を返し、`Parser` から `AZARAC_DEDUP_SLOTS × 8 B`（既定 4 KB / AVR 512 B）が消える。同一情報の再放送もすべて受け取りたいロガー・冗長系・検証機向け。ただし Nankai のページビットマップによる同一ページの抑制は残る |
+| `AZARAC_DEDUP_SLOTS` | 512（AVR: 64） | 重複排除テーブルのスロット数。`AZARAC_DEDUP_WAYS` で割り切れ、商が 2 の冪であること。1 スロット 8 B |
+| `AZARAC_DEDUP_WAYS` | 8 | 1 セットあたりの連想度 |
+| `AZARAC_NMEA_STRICT_SVID` | 0 | `$QZQSM` の Satellite ID 検証。0=00–63 を受理（実機互換）/ 1=53–63（PRN181–191）/ 2=仕様表の 55/56/57/58/61 のみ。0–2 以外はその場で `#error` |
+| `AZARAC_NMEA_REJECT_NONZERO_PADDING` | 0 | 1 でフレーム bit 250–255（仕様上 `00`）が非 0 の NMEA 電文を拒否する。既定はマスクして受理（CRC 被覆域外のため、警報を落とさない方を優先） |
 | `AZARAC_KEY_BUF_SIZE` | 36 | AVR で JSON のキーと固定値リテラルを Flash から書き出すときのスタック上の一時バッファのバイト数（どちらも `AZARAC_KEY("...")` で包む。値は `wf_s` の `JsonKey` オーバーロードが受ける）。最長はキーの35B（`a17_type_of_specific_settings_label`）、値は20B（`unsupported_category`）で、`JsonKey` の生成時に `static_assert` が収まらないリテラルをコンパイルエラーにする。非AVRでは使われない |
 
 **AVRプリセット**: `__AVR__`では`azaraC_config.h`のプリセットがAVR専用のものに置き換わる。具体的には以下の変更が行われる。
@@ -571,8 +600,8 @@ public:
 
 ```cpp
 // feed() が true を返したメッセージだけを渡す（msg.valid はそこで保証される）。
-// false のときは、完成フレームをデコーダが拒否した場合だけ msg.unsupported_reason に理由が入る。
-// 未完成では out を書き換えないため直前の値が残り、重複では out が全体クリアされ、CRC の誤りでは書き戻された svid だけが残る（いずれも unsupported_reason は None）。
+// false のときの out は未定義（直前の値や復号途中のフィールドが残り得る）。
+// 診断用に msg.unsupported_reason だけは復号器の拒否理由が入ることがある。
 void processMessage(const azaraC::Message& msg) {
     // SVID範囲チェック（PRN は 181-191: 53/54 -> 181/182 も実データに存在）
     if (msg.svid < 181 || msg.svid > 191) {

@@ -603,6 +603,7 @@ constexpr uint32_t DEDUP_TEST_WINDOW = 300000;   // 5分
 constexpr uint32_t DEDUP_TEST_BASE   = 1000000;  // 適当な受信開始時刻
 } // namespace
 
+#if AZARAC_ENABLE_DEDUP
 TEST_CASE("DedupFilter: 新規メッセージは重複しない") {
     DedupFilter filter;
     DedupKey key{43, 0xABCDEF};
@@ -643,24 +644,31 @@ TEST_CASE("DedupFilter: 事象トークンの鍵は電文の鍵と衝突しな�
     CHECK(filter.isDuplicate(DedupKey{0, token}, DEDUP_TEST_BASE + 1, DEDUP_TEST_WINDOW));
 }
 
+#endif // AZARAC_ENABLE_DEDUP
+
 TEST_CASE("DedupFilter: 事象トークンは事象ごとに決まる") {
-    CHECK(dedupEventToken(5, 0, 6, 15, 12, 30) == dedupEventToken(5, 0, 6, 15, 12, 30));
-    CHECK(dedupEventToken(5, 0, 6, 15, 12, 30) != dedupEventToken(5, 0, 6, 15, 12, 31));
-    CHECK(dedupEventToken(5, 0, 6, 15, 12, 30) != dedupEventToken(4, 0, 6, 15, 12, 30));
+    CHECK(dedupEventToken(5, 0, 6, 15, 12, 30, 2) == dedupEventToken(5, 0, 6, 15, 12, 30, 2));
+    CHECK(dedupEventToken(5, 0, 6, 15, 12, 30, 2) != dedupEventToken(5, 0, 6, 15, 12, 31, 2));
+    CHECK(dedupEventToken(5, 0, 6, 15, 12, 30, 2) != dedupEventToken(4, 0, 6, 15, 12, 30, 2));
     // 情報種別が違えば別の事象: 同一 info_code + 同一報告時刻の発表(0)と取消(2)を潰さない。
-    CHECK(dedupEventToken(5, 0, 6, 15, 12, 30) != dedupEventToken(5, 2, 6, 15, 12, 30));
+    CHECK(dedupEventToken(5, 0, 6, 15, 12, 30, 2) != dedupEventToken(5, 2, 6, 15, 12, 30, 2));
+    // 訓練/試験(7)と実警報(2)も別の事象。Rc を含めないと訓練が実警報を抑止する。
+    CHECK(dedupEventToken(5, 0, 6, 15, 12, 30, 2) != dedupEventToken(5, 0, 6, 15, 12, 30, 7));
 }
 
-TEST_CASE("DedupKey: 26 bit の事象トークンは電文の鍵と衝突しない") {
-    // 合成鍵の payload は bits 0..29（26 bit のトークンは丸ごと入る）。bit 30 の判別子が効いているかを最大値で固定する。
+TEST_CASE("DedupKey: 29 bit の事象トークンは電文の鍵と衝突しない") {
+    // 合成鍵の payload は bits 0..29（29 bit のトークンは丸ごと入る）。bit 30 の判別子が効いているかを最大値で固定する。
     const uint32_t token = kSyntheticPayloadMask;
     CHECK((dedupEventKey(token).packed() & kSyntheticPayloadMask) == token);
     CHECK(dedupEventKey(token).packed() != DedupKey{0, token}.packed());
-    // 最上位に載る情報種別（bit 24-25）だけが違っても、鍵は別。
-    CHECK(dedupEventKey(dedupEventToken(5, 2, 6, 15, 12, 30)).packed() !=
-          dedupEventKey(dedupEventToken(5, 0, 6, 15, 12, 30)).packed());
+    // 最上位に載る情報種別（bit 24-25）と Rc（bit 26-28）だけが違っても、鍵は別。
+    CHECK(dedupEventKey(dedupEventToken(5, 2, 6, 15, 12, 30, 2)).packed() !=
+          dedupEventKey(dedupEventToken(5, 0, 6, 15, 12, 30, 2)).packed());
+    CHECK(dedupEventKey(dedupEventToken(5, 0, 6, 15, 12, 30, 2)).packed() !=
+          dedupEventKey(dedupEventToken(5, 0, 6, 15, 12, 30, 7)).packed());
 }
 
+#if AZARAC_ENABLE_DEDUP
 TEST_CASE("DedupFilter: 異なるcrc24は別情報") {
     DedupFilter filter;
     CHECK_FALSE(filter.isDuplicate(DedupKey{43, 0xABCDEF}, DEDUP_TEST_BASE, DEDUP_TEST_WINDOW));
@@ -821,6 +829,8 @@ TEST_CASE("DedupFilter: 大量のメッセージを処理できる") {
 
 // sizeof 回帰ガード: RAM制限のある組込みターゲットで構造体が肥大化した場合に検出する。
 
+#endif // AZARAC_ENABLE_DEDUP
+
 TEST_CASE("Memory: sizeof guards for embedded targets") {
 #if defined(__GNUC__) && ARDUINO == 0
     // Message の payload_storage_ = max(sizeof(Mt43Data), sizeof(Mt44Data))
@@ -828,7 +838,8 @@ TEST_CASE("Memory: sizeof guards for embedded targets") {
     CHECK(sizeof(Mt43Data) <= 240);
     CHECK(sizeof(Mt44Data) <= 420);
     // Parser = NankaiPageBufferManager（AZARAC_NANKAI_BUFFERS × sizeof(NankaiPageBuffer)）+ フレーマ・デコーダ・dedup
-    CHECK(sizeof(Parser) <= 5500);
+    // ホスト既定 BUFFERS=2（63 ページ 1,160 B × 2）で実測 6,624 B。
+    CHECK(sizeof(Parser) <= 6700);
 #else
     // アーキで sizeof が変わり得るので非 GCC / 組込みではスキップ
     INFO("sizeof guard skipped (non-GCC or ARDUINO target)");
