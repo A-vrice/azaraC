@@ -120,7 +120,8 @@ uint32_t Decoder::messageIdentity(uint8_t* bits) {
 uint32_t Decoder::getBits(const uint8_t* buf, uint16_t start, uint8_t len) {
     // OOB は 0 を返して oob_ を立て、decode() 側で弾く（組込みなので assert は使わない）。
     // 上限は 250 ではなく 256: Frame::bits は 256 bit 幅で、bit 250-255 は詰め物。
-    if (start + len > 256) { oob_ = true; return 0; }
+    // len > 32 は戻り値型に収まらない（AVR の 16bit start+len ラップも (uint32_t) ワイド化で防ぐ）。
+    if (len > 32 || (uint32_t)start + len > 256u) { oob_ = true; return 0; }
     // 1 bit ずつ詰める代わりに「先頭の中途バイト → フルバイト列 → 末尾の中途バイト」で組み立てる。
     // AVR の可変シフトは回転ループに展開され 50-60 cycles/bit かかるため、固定シフト数回へ置き換えて呼び出しごとのコストをビット長にほぼ比例させる。
     uint32_t val = 0;
@@ -148,7 +149,7 @@ uint32_t Decoder::getBits(const uint8_t* buf, uint16_t start, uint8_t len) {
 // 64 bit 抽出（MSB-first, 0 始まり）— 32 bit を超えるフィールド用
 uint64_t Decoder::getBits64(const uint8_t* buf, uint16_t start, uint8_t len) {
     // getBits() と同じく、範囲外は 0 を返して oob_ を立てる
-    if (start + len > 256) { oob_ = true; return 0; }
+    if (len > 64 || (uint32_t)start + len > 256u) { oob_ = true; return 0; }
     uint64_t val = 0;
     uint8_t  rem = len;
     uint16_t pos = start;
@@ -285,8 +286,10 @@ TimeFields Decoder::resolveTime(uint8_t month, uint8_t day, uint8_t hour, uint8_
     auto finish = [&](uint32_t ry, uint32_t rm) -> TimeFields {
         t.month = rm;
         t.day = day;
-        t.unix_time = days_from_civil(ry, rm, day) * 86400u
-                    + (uint32_t)hour * 3600u + (uint32_t)minute * 60u;
+        // u32 epoch 飽和（F5）: 2106 年超は unix_time だけ 0 にし、暦フィールドは保持する。
+        const uint64_t ts64 = (uint64_t)days_from_civil(ry, rm, day) * 86400u
+                            + (uint32_t)hour * 3600u + (uint32_t)minute * 60u;
+        t.unix_time = ts64 > 0xFFFFFFFFull ? 0u : (uint32_t)ts64;
         return t;
     };
 
@@ -313,9 +316,11 @@ TimeFields Decoder::resolveTime(uint8_t month, uint8_t day, uint8_t hour, uint8_
         else if (cm >= 13) { cand_m = 1;  cy = y + 1; }
         else              { cand_m = (uint32_t)cm; }
         if (day > daysInMonth(cy, cand_m)) continue;   // 暦外の候補は失格（閏年は候補年で判定）
-        uint32_t ts = days_from_civil(cy, cand_m, day) * 86400u
-                    + (uint32_t)hour * 3600u + (uint32_t)minute * 60u;
-        uint32_t diff = ts > base_unix ? ts - base_unix : base_unix - ts;
+        const uint64_t ts64 = (uint64_t)days_from_civil(cy, cand_m, day) * 86400u
+                            + (uint32_t)hour * 3600u + (uint32_t)minute * 60u;
+        if (ts64 > 0xFFFFFFFFull) continue;   // u32 を超える候補は選ばない
+        const uint32_t ts = (uint32_t)ts64;
+        const uint32_t diff = ts > base_unix ? ts - base_unix : base_unix - ts;
         if (diff < best_diff) { best_diff = diff; best_y = cy; best_m = cand_m; have_best = true; }
     }
     if (!have_best) return t;   // 防御: 3 候補すべて暦外（通常は到達しない）
@@ -328,9 +333,9 @@ TimeFields Decoder::resolveTime(uint8_t month, uint8_t day, uint8_t hour, uint8_
     uint32_t sy = y, sm = m;
     for (uint8_t k = 0; k < 13; ++k) {
         if (day <= daysInMonth(sy, sm)) {
-            uint32_t ts = days_from_civil(sy, sm, day) * 86400u
-                        + (uint32_t)hour * 3600u + (uint32_t)minute * 60u;
-            if (ts <= base_unix) return finish(sy, sm);
+            const uint64_t ts64 = (uint64_t)days_from_civil(sy, sm, day) * 86400u
+                                + (uint32_t)hour * 3600u + (uint32_t)minute * 60u;
+            if (ts64 <= base_unix) return finish(sy, sm);
         }
         if (sm == 1u) { sm = 12u; sy--; } else { sm--; }
     }
@@ -363,7 +368,8 @@ TimeFields Decoder::resolveArrivalTime(uint16_t raw, uint32_t base_unix) {
     t.month = m;
     t.hour = hour;
     t.minute = min;
-    t.unix_time = arrival_days * 86400u + (uint32_t)hour * 3600u + (uint32_t)min * 60u;
+    const uint64_t ts64 = (uint64_t)arrival_days * 86400u + (uint32_t)hour * 3600u + (uint32_t)min * 60u;
+    t.unix_time = ts64 > 0xFFFFFFFFull ? 0u : (uint32_t)ts64;   // 超過時は hour/minute/month/day を保持
     return t;
 }
 

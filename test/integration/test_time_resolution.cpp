@@ -110,6 +110,24 @@ TEST_CASE("Time: resolveTime report_unix < 2000-01-01 returns unix_time=0") {
     CHECK(t.unix_time == 0);  // below 2000-01-01
 }
 
+// u32 epoch 飽和（F5）: 2106 年超は unix_time だけ 0、暦フィールドは保持
+
+TEST_CASE("Time: resolveTime saturates unix_time beyond u32 epoch") {
+    TimeFields t = TestDecoder::testResolveTime(6, 15, 12, 30, 0xFFFFFFFFu - 3600u);
+    CHECK(t.unix_time == 0);
+    CHECK(t.month == 6);
+    CHECK(t.day == 15);
+    CHECK(t.hour == 12);
+    CHECK(t.minute == 30);
+}
+
+TEST_CASE("Time: resolveArrivalTime saturates unix_time beyond u32 epoch") {
+    TimeFields t = TestDecoder::testResolveArrivalTime(0x0800u, 0xFFFFFFFFu - 3600u);
+    CHECK(t.unix_time == 0);
+    CHECK(t.hour == 0);
+    CHECK(t.minute == 0);
+}
+
 // 津波到着時刻解決 E2E テスト
 
 #if (AZARAC_ENABLE_TSUNAMI)
@@ -205,6 +223,37 @@ TEST_CASE("Time: DCX onset_time resolved with valid report_unix") {
     CHECK(mt44->onset_time.unix_time == report_unix + 60);
     CHECK(mt44->onset_time.minute == 1);
     CHECK(mt44->onset_time.hour == 0);
+}
+
+TEST_CASE("Time: DCX onset_time saturates unix_time beyond u32 epoch") {
+    // 上の解決テストと同じフレームで a6=1（翌週）にする。report_unix = 0xFFFFFFFF（2106-02-07 日曜）の翌週月曜 00:01 は u32 を超える。
+    uint8_t bits[32] = {};
+    setBits(bits, 0, 8, 0x53);
+    setBits(bits, 8, 6, 44);
+    setBits(bits, 14, 1, 0);
+    setBits(bits, 15, 9, 0x1FF);
+    setBits(bits, 24, 2, 1);
+    setBits(bits, 26, 9, 111);
+    setBits(bits, 35, 5, 1);
+    setBits(bits, 40, 7, 10);
+    setBits(bits, 47, 2, 3);
+    setBits(bits, 49, 1, 1);     // a6=1 → 翌週
+    setBits(bits, 50, 14, 2);    // a7=2 → 翌週月曜 00:01 UTC
+    setBits(bits, 214, 6, 1);
+    setBits(bits, 226, 24, crc24qRef(bits, 226));
+
+    Frame frame{};
+    memcpy(frame.bits, bits, 32);
+    frame.svid = 193;
+    Decoder dec;
+    Message msg{};
+    REQUIRE(dec.decode(frame, msg, 0xFFFFFFFFu));
+
+    const Mt44Data* mt44 = msg.getMt44();
+    REQUIRE(mt44 != nullptr);
+    CHECK(mt44->onset_time.unix_time == 0);
+    CHECK(mt44->onset_time.hour == 0);
+    CHECK(mt44->onset_time.minute == 1);
 }
 
 TEST_CASE("Time: DCX onset_time A7 boundary (16-bit overflow guard)") {

@@ -95,12 +95,12 @@ bool Decoder::decodeDcx(const uint8_t* bits, Message& out, uint32_t report_unix)
             monday_days += 7u;  // 翌週
         }
 
-        uint32_t monday_unix = monday_days * 86400u;
-        uint32_t onset_unix  = monday_unix + onsetOffsetSec(d->camf.a7);
-        d->onset_time.unix_time = onset_unix;
+        // u32 epoch 飽和（F5）: 2106 年超は unix_time だけ 0 にし、暦フィールドは保持する。
+        const uint64_t ts64 = (uint64_t)monday_days * 86400u + onsetOffsetSec(d->camf.a7);
+        d->onset_time.unix_time = ts64 > 0xFFFFFFFFull ? 0u : (uint32_t)ts64;
 
         uint32_t y, m, day_val;
-        Decoder::civil_from_days(onset_unix / 86400u, y, m, day_val);
+        Decoder::civil_from_days((uint32_t)(ts64 / 86400u), y, m, day_val);
         d->onset_time.month  = m;
         d->onset_time.day    = day_val;
         d->onset_time.hour   = ((d->camf.a7 - 1u) % 1440u) / 60u;
