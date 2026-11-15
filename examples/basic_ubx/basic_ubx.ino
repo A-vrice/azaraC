@@ -45,6 +45,7 @@ void setup() {
 }
 
 void loop() {
+    parser.updateClock();  // 無受信期間でも 32 bit 時刻の折り返しを観測する
     // AVR: GNSSはUARTの Serial、それ以外は Serial1
 #if defined(ARDUINO_ARCH_AVR)
     Stream& gnss = Serial;

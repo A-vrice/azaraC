@@ -61,6 +61,7 @@ void setup() {
 }
 
 void loop() {
+    parser.updateClock();  // 無受信期間でも 32 bit 時刻の折り返しを観測する
     while (Serial1.available()) {
         if (parser.feed(Serial1.read(), msg)) {
             azaraC::toJson(msg, Serial);
@@ -71,6 +72,8 @@ void loop() {
 ```
 
 UNIX時刻を渡すと発生時刻の年月日も解決/推測できます。
+
+受信が無い期間が長く空く可能性がある場合は、`loop()` から `parser.updateClock()` を呼んでください。AVR など 32 bit `millis()` のみの環境で 49.7 日以上受信が無いと、時刻の折り返し回数が失われ、古い履歴が同じ警報を抑止し得ます。ESP32 は 64 bit の `esp_timer` を使うため不要です。
 
 ```cpp
 uint32_t now = (uint32_t)time(nullptr);

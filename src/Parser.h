@@ -41,6 +41,11 @@ public:
 
     void reset();
 
+    // 受信が無い間も 64 bit 時計を観測する。loop() から定期的に呼ぶことで、
+    // 2^32 ms（約 49.7 日）以上の空白でも折り返しを検出して dedup/Nankai 履歴を捨てられる。
+    // dedup/Nankai が両方無効な構成では何もしない。ESP32 の getMillis() は 64 bit 源なので必須ではない。
+    void updateClock();
+
 #if AZARAC_ENABLE_NANKAI
     // 鍵に一致するバッファを返す（受信途中でも返る。完了判定は isComplete()）。無ければ nullptr。
     const internal::NankaiPageBuffer* getNankaiBuffer(const internal::NankaiPageKey& key) const;
@@ -69,6 +74,9 @@ private:
     // identity: 手順③ の照合範囲（MT～VN）の digest。ビット範囲と除外対象は呼び出し側に記す。
     // decoded と out が同一オブジェクトならコピーは行わない。
     bool postDecode(const Message& decoded, Message& out, uint32_t identity);
+
+    // 世代・後退の epoch guard を適用し、丸めた現在時刻を返す。postDecodeAt と updateClock で共有する。
+    uint64_t observeClock(uint64_t now_ms64);
 
     // テストから時刻を注入するための実体。postDecode は getMillis() を渡すだけ。
     bool postDecodeAt(const Message& decoded, Message& out, uint32_t identity, uint64_t now_ms64);

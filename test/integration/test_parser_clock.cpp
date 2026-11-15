@@ -13,6 +13,10 @@ struct ParserTestHook {
                            uint32_t identity, uint64_t now_ms) {
         return parser.postDecodeAt(decoded, out, identity, now_ms);
     }
+
+    static uint64_t observeClock(Parser& parser, uint64_t now_ms) {
+        return parser.observeClock(now_ms);
+    }
 };
 } // namespace internal
 } // namespace azaraC
@@ -135,6 +139,21 @@ TEST_CASE("Parser clock: 32-bit generation boundary resets history and re-notifi
     // 2^32 ms 境界を跨ぐと経過が短くても世代が変わり、履歴を捨てて再通知する
     // （古い last_seen が巻き戻って「最近」に見える偽重複による抑止を防ぐ）。
     CHECK(feedAt(parser, event_a, out, 0, (1ULL << 32) + 0x100));   // 世代 1
+}
+
+TEST_CASE("Parser clock: observing a new generation clears Nankai buffers without a frame") {
+    // updateClock() が受信ゼロでも同じ epoch guard を通ることを固定する。
+    azaraC::Parser parser;
+    Message out;
+    const Message event_a = makeNankai(12, 1, 1, 2, "A", 1, 6, 15, 12, 30);
+
+    CHECK(feedAt(parser, event_a, out, 0, 0xFFFFFF00ULL));   // 世代 0
+    const azaraC::internal::NankaiPageKey key{12, 6, 15, 12, 30, 0, 2};
+    REQUIRE(parser.getNankaiBuffer(key) != nullptr);
+
+    // フレームを挟まずに世代 1 を観測する（updateClock() の共有ロジック）。
+    (void)ParserTestHook::observeClock(parser, (1ULL << 32) + 0x100);
+    CHECK(parser.getNankaiBuffer(key) == nullptr);
 }
 
 TEST_CASE("Parser clock: generation boundary re-notifies even with 1 ms gap") {

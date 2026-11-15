@@ -83,6 +83,27 @@ void loop() {
 void reset();
 ```
 
+##### `updateClock()`
+
+受信が無い間も 64 bit 時計を観測し、epoch guard（世代境界・大きな時計後退）を適用します。
+
+```cpp
+void updateClock();
+```
+
+`loop()` から定期的に呼ぶことで、2³² ms（約 49.7 日）以上の無受信期間を跨いでも折り返しを検出し、古い dedup/Nankai 履歴による偽の重複抑止を防ぎます。`AZARAC_ENABLE_DEDUP` と `AZARAC_ENABLE_NANKAI` が両方無効な構成では何もしません。
+ESP32 の `getMillis()` は 64 bit の `esp_timer` を使うため、この呼び出しは必須ではありません。AVR など 32 bit `millis()` のみの環境では、周期的な観測が無いまま 2³² ms 以上空くと折り返し回数を復元できません。
+
+**使用例:**
+```cpp
+void loop() {
+    parser.updateClock();
+    while (Serial1.available()) {
+        if (parser.feed(Serial1.read(), msg)) { ... }
+    }
+}
+```
+
 ##### `getNankaiBuffer()`
 
 南海トラフメッセージのページ集約バッファを取得します。

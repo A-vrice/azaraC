@@ -142,6 +142,7 @@ static void uartRxTask(void* pvParameters) {
     printLine(F("[RTOS] UART RX task started"));
 
     for (;;) {
+        g_Parser.updateClock();  // 無受信期間でも 32 bit 時刻の折り返しを観測する
         size_t Available = SERIAL_GNSS.available();
         if (Available > 0) {
             size_t toRead = (Available < kUartBufferSize) ? Available : kUartBufferSize;
