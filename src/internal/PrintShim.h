@@ -12,7 +12,9 @@ class Print {
 public:
     virtual ~Print() = default;
     virtual size_t write(uint8_t c) { putchar(c); return 1; }
-    virtual size_t write(const char* s, size_t size) { if (s && size) return fwrite(s, 1, size, stdout); return 0; }
+    // 実コアと同じ形: 仮想なのは write(const uint8_t*, size_t)。char* 版は非仮想の中継。
+    virtual size_t write(const uint8_t* s, size_t size) { if (s && size) return fwrite(s, 1, size, stdout); return 0; }
+    size_t write(const char* s, size_t size) { return write(reinterpret_cast<const uint8_t*>(s), size); }
     virtual void print(char c)         { write(c); }
     // 実コアの Print と同じく print() は write() へ流す（write のみ override する sink で取りこぼさない）。
     virtual void print(const char* s)  { if (s) write(s, strlen(s)); }
@@ -35,9 +37,11 @@ public:
         return 1;
     }
 
-    size_t write(const char* s, size_t size) override {
+    using Print::write;
+
+    size_t write(const uint8_t* s, size_t size) override {
         if (s && size) {
-            _buf.append(s, size);
+            _buf.append(reinterpret_cast<const char*>(s), size);
             return size;
         }
         return 0;
