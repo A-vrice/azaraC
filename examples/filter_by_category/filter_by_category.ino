@@ -64,7 +64,7 @@ const __FlashStringHelper* getCategoryLabel(uint8_t category) {
     }
 }
 
-// 数量コードのセンチネル/境界を考慮して表示する（docs/api-reference.md の数量ラベル表参照）。
+// 数量コードのセンチネル/境界を考慮して表示する（docs/json-formats.md の「ラベルの言語選択」の数量ラベル表参照）。
 // 生コードに単位を付けて出すと 511km / 12.7 のような誤表示になるため、ここで吸収する。
 void printMagnitude(uint16_t mag) {
     if (mag == 127) { Serial.print(F("不明")); return; }
@@ -198,7 +198,6 @@ void setup() {
 }
 
 void loop() {
-    parser.updateClock();  // 無受信期間でも 32 bit 時刻の折り返しを観測する
     while (Serial1.available()) {
         uint8_t b = static_cast<uint8_t>(Serial1.read());
 

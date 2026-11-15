@@ -166,7 +166,55 @@ azarashi は同コードを `status: "undefined"` として区別する。
 `AZARAC_LANG_JA=1` かつ `AZARAC_LANG_EN=1` の構成では、文字列リテラルのキーを持つ `_label` の後に `_label_en` も出力される。
 `_label_en` を持たないのは汎用キー（`keys::label` / `keys::region_label`）で出力するラベル（`notifications[].label`, `regions[].label`, `prefectures[].label`, `cities[].label`, `local_govs[].label`, `entries[].region_label`）です。
 固定の文字列リテラルキー（`AZARAC_LABEL`）は配列要素でも `_label_en` を併記します（例: 震度の `entries[].intensity_label`）。
-詳細は[API リファレンス](api-reference.md#言語選択)を参照。
+ラベルの言語選択は §1.6 を参照。
+
+### 1.6 ラベルの言語選択
+
+ラベルの言語は `AZARAC_LANG_JA`（既定 1）と `AZARAC_LANG_EN`（既定 0）で選びます。
+
+両方が 1 のときは日本語を優先し、その項目に日本語テーブルが無ければ代わりに英語を使います。
+`AZARAC_LANG_JA=0 / AZARAC_LANG_EN=1` では英語ラベルを出力します。
+英語テーブルを持たない項目（例: 南海トラフの情報番号）は `AZARAC_LANG_JA=1` の間だけ日本語で出ます。
+`AZARAC_LANG_JA=0` ではその日本語表がコンパイルされないので `null` になります（生コードは残ります）。
+どちらも 0 のときは原則ラベルを出力しません。
+欠落時は `null`、定義済みで空文字列のラベルは `""` として出力されます。
+ただし言語非依存表（北西太平洋津波の 3 表など）は値があれば 0/0 でも解決して返します。
+
+英語ラベルは azarashi 0.17.1 の定義テーブルに由来します。
+`AZARAC_LANG_EN` で有効になるのは `_en` という接尾辞のヘッダで、対応する日本語表と対で生成されます。
+
+逆に日本語版を持たない英語専用表（北西太平洋津波の `potential` / `height` / `region`）は言語非依存で、`AZARAC_LANG_EN` の設定に関係なく常に出力されます。
+これは CAMF 自体が英語で日本語メッセージの定義が存在しないためで、同じ仕様を参照する他のテーブルも同様の処理がなされる場合があります。
+（定義テーブルの `_en` のうち、言語切替の対象になるのは対応する日本語テーブルが存在する場合のみ）
+
+両方 1 のときの併記: `AZARAC_LANG_JA=1` かつ `AZARAC_LANG_EN=1` のとき、文字列リテラルのキーを持つ `_label` フィールドには `_label_en` が併記されます。
+`_label` は日本語優先（無ければ英語）、`_label_en` は常に英語です。
+
+```json
+{ "depth": 60, "depth_label": "60km", "depth_label_en": "60 km" }
+```
+
+配列要素のうち、汎用キー（`notifications[].label` / `regions[].label` / `prefectures[].label` / `cities[].label` / `local_govs[].label` / `entries[].region_label`）の要素は `_label_en` を持ちません（要素ごとにコード体系が異なり、固定キー名では併記できないため）。
+逆に固定の文字列リテラルキー（`AZARAC_LABEL`）は配列要素でも `_label_en` を併記します（例: 震度の `entries[].intensity_label`）。
+要素ごとに言語を選びたい場合は `AZARAC_LANG_JA=0 / AZARAC_LANG_EN=1` 構成を使ってください。
+
+数量フィールド（`depth` / `magnitude` / `pressure` / `max_wind` / `max_gust` / `elapsed` / `number`）についても `_label` / `_label_en` が含まれます。
+生のコード値だけでは意味が取れない値もあります（以下の表参照）。
+
+| コード | ラベル | 意味 |
+|---|---|---|
+| `depth` 501 | `500kmより深い` / `Deeper than 500 km` | 範囲の境界 |
+| `magnitude` 101 | `10.0より大きい` / `Over 10.0` | 範囲の境界 |
+| `magnitude` 126（震源情報のみ） | `不明(8.0より大きい)` / `Unknown (Over 8.0)` | 範囲の境界 |
+| `depth` 511 / `magnitude` 127 | `不明` / `Unknown` | センチネル |
+| `max_wind` 0 / `max_gust` 0 | `不明` / `Unknown` | センチネル |
+
+センチネルは全フィールド共通ではなく、例えば `depth` の 0 は `0km`、`pressure` の 0 は `0hPa`、`elapsed` の 0 は `0時間後` で、それぞれ実値として意味を持ちます。
+ただし `number` の 0 は `typhoon_number` 表（1 スタート）に無いため `number_label` は `null` となります。
+
+`AZARAC_LANG_EN=0`（既定）では `_label_en` は出力されません。
+`AZARAC_LANG_JA=0 / AZARAC_LANG_EN=1` の場合、`_label` 自体がすべて英語になるため `_label_en` ではなく `_label` に英語が出力されます。
+`_label_en` が出るのは日本語/英語ともに有効にした構成のみです。
 
 ---
 
