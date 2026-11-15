@@ -54,7 +54,8 @@ namespace {
 struct CountingPrint : Print {
     unsigned long bytes = 0;
     size_t write(uint8_t) override { ++bytes; return 1; }
-    size_t write(const char*, size_t n) override { bytes += n; return n; }
+    using Print::write;
+    size_t write(const uint8_t*, size_t n) override { bytes += n; return n; }
     void print(char) override { ++bytes; }
     void print(const char* s) override { while (s && *s) { ++bytes; ++s; } }
 };
