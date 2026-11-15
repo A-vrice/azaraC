@@ -88,10 +88,10 @@ Satellite ID は「PRN を表す 8bit の下位 6bit」（IS-QZSS-DCR-017 §4.3.
 **共通処理**: CRC-24Q検証（IS-QZSS-L1S-009 §4.1.1.3）、MSB-firstビット抽出、UNIX時刻ベースの年月補正。
 
 **MT=43**: `DecoderQzqsm`がX-macroテーブル`AZARAC_DC_CATEGORIES`から全12カテゴリのサポート判定・ディスパッチを生成。
-カテゴリ一覧は[APIリファレンス](api-reference.md#azaracmt43data-mt43-qzqsm)を参照。
+カテゴリ一覧は[APIリファレンス](api-reference.md#mt43datamt43-qzqsm)を参照。
 
 **MT=44**: 階層構造のCAMFフォーマット（A1-A18 + B1-B4拡張）を解析。
-サービス種別（L-Alert, J-Alert等）の判定条件は[APIリファレンス](api-reference.md#azaracmt44data-mt44-dcxcamf)を参照。
+サービス種別（L-Alert, J-Alert等）の判定条件は[APIリファレンス](api-reference.md#mt44datamt44-dcxcamf)を参照。
 
 ### 4. DedupFilter (重複除去)
 
@@ -175,7 +175,6 @@ Satellite ID は「PRN を表す 8bit の下位 6bit」（IS-QZSS-DCR-017 §4.3.
 - **32 bit 時刻の折り返し**: `Parser` は 64 bit の受信時刻を監視し、通常の 32 bit 折り返しは `DedupFilter`/`NankaiPageBuffer` の符号なし差分で扱います。
   1,000 ms（1 秒）以内の時計後退は受信順序の揺らぎとして丸め、それを超える後退（時計の再設定）、または 64 bit 時刻の上位 32 bit（世代）が変わったときに dedup/Nankai の履歴を捨てます（再通知は許容し、生きた警報の抑止を避けるため）。
   世代比較により、連続受信で 49.7 日（2³² ms）経過してエントリの年齢が巻き戻る場合も確実に履歴を捨て、古い履歴の偽重複による抑止を防ぎます。
-  受信が無い期間は `Parser::updateClock()` を `loop()` などから定期的に呼んでください。AVR など 32 bit `millis()` だけの環境では、周期的な観測が無いまま 2³² ms 以上空くと折り返し回数を復元できません（ESP32 は 64 bit の `esp_timer` を使うため不要です）。
   dedup と Nankai を両方無効にすると `Parser` の 64 bit 最終観測時刻メンバは存在しなくなり、8 B 分減ります。
   `DedupFilter::Entry` は 8 B、AVR の dedup RAM は 512 B のままです。
 
@@ -183,7 +182,17 @@ Satellite ID は「PRN を表す 8bit の下位 6bit」（IS-QZSS-DCR-017 §4.3.
 
 [`NankaiPageBuffer`](https://github.com/A-vrice/azaraC/tree/main/src/internal/NankaiPageBuffer.h)は最大63ページに分割される南海トラフ地震メッセージを集約します。
 `MAX_PAGES×18+1` バイトを確保し、受信したページをビットマップで管理しながら直接書き込みます（ソート不要）。
-バッファが全て使用中なら、最終更新が最も古いバッファから解放します（同値なら先頭スロット。厳密な LRU ではありません）。ホスト既定は 2 バッファ（約 2.32 KB）で、訓練/実警報の同時進行を追跡できます。
+管理は `NankaiPageBufferManager` が担い、集約キーは `{info_code, information_type, report_classification, report_time（month/day/hour/minute）}` です（訓練/実警報の分離は PR #45 の F-1/F-2 を参照）。
+
+| マクロ | 既定 | 説明 |
+|--------|------|------|
+| `AZARAC_NANKAI_MAX_PAGES` | 63 | 1 電文あたりの最大ページ数（仕様上の最大も 63） |
+| `AZARAC_NANKAI_BUFFERS` | 2 | 同時に追跡できる事象の数（AVR preset は 1。訓練/実警報の同時進行に 2 必要） |
+
+メモリ使用量: バッファあたりメタデータ 24 B（AVR は 23 B）+ `MAX_PAGES×18+1` B。既定 63 ページで構造体サイズはアラインメント込み 1,160 B（AVR は 1,158 B）、2 バッファで約 2.32 KB。バッファ数に比例します（4 バッファ・63 ページで 4,640 B）。
+
+追い出し（エビクション）: 全バッファ使用中は、まず訓練・試験（Rc=7）のバッファから最終更新が最も古いものを解放します。訓練バッファが無い場合、到着した訓練のページは実警報を守るため破棄され、実警報のページであれば実警報同士で最終更新が最も古いものを解放します（同値なら先頭スロット。厳密な LRU ではありません）。
+そのため `BUFFERS=1` でも進行中の実警報が訓練で中断されることはありません。バッファ数を超える実警報の同時進行には従来どおりの限界があり、60 秒タイムアウトがメモリ上限を保証します。
 
 ### 6. JsonSerializer (JSONシリアライザ)
 

@@ -61,7 +61,6 @@ void setup() {
 }
 
 void loop() {
-    parser.updateClock();  // 無受信期間でも 32 bit 時刻の折り返しを観測する
     while (Serial1.available()) {
         if (parser.feed(Serial1.read(), msg)) {
             azaraC::toJson(msg, Serial);
@@ -73,8 +72,6 @@ void loop() {
 
 UNIX時刻を渡すと発生時刻の年月日も解決/推測できます。
 
-受信が無い期間が長く空く可能性がある場合は、`loop()` から `parser.updateClock()` を呼んでください。AVR など 32 bit `millis()` のみの環境で 49.7 日以上受信が無いと、時刻の折り返し回数が失われ、古い履歴が同じ警報を抑止し得ます。ESP32 は 64 bit の `esp_timer` を使うため不要です。
-
 ```cpp
 uint32_t now = (uint32_t)time(nullptr);
 if (parser.feed(byte, msg, now)) { ... }
@@ -85,22 +82,43 @@ if (parser.feed(byte, msg, now)) { ... }
 ビルドフラグ（PlatformIO の `build_flags`、arduino-cli の `--build-property compiler.cpp.extra_flags=...` など）で `-D` を渡して指定します。
 スケッチ冒頭の `#define` はライブラリ側で認識されず、`Parser` などのサイズが TU(翻訳単位) 間でずれるため使えません。
 
-| マクロ | デフォルト | 説明 |
+よく使うものだけ挙げます。全マクロの表は [API リファレンス](api-reference.md#コンパイル時設定) を参照してください。
+
+| マクロ | 既定 | 説明 |
 | ------ | ---------- | ---- |
-| `AZARAC_DEDUP_SLOTS` | 512 | 重複判定表のエントリ数（1エントリ8B。AVRプリセットは64） |
-| `AZARAC_DEDUP_WAYS` | 8 | 重複判定表の連想度 |
-| `AZARAC_DEDUP_WINDOW_MS` | 86400000 | 情報有効時間(ms)のフォールバック。災害種別ごとの配信終了条件と MT=44 の A8 由来の窓に無いカテゴリだけが使う |
-| `AZARAC_DEDUP_MT44_MAX_WINDOW_MS` | 300000 | MT=44 の情報有効時間(ms)の上限。AVRのみ定義（ホストは A8 由来の窓をそのまま使用） |
-| `AZARAC_NANKAI_MAX_PAGES` / `AZARAC_NANKAI_BUFFERS` | 63 / 2 | 防災気象情報(南海トラフ地震)の最大収集ページ数(1-63)と最大同時追跡数(1-32)。AVR preset は 4 / 1 |
-| `AZARAC_LANG_JA` / `AZARAC_LANG_EN` | 1 / 0 | 定義テーブルの言語選択 |
 | `AZARAC_ENABLE_*`（13個） | 1（AVR は SEISMIC/TSUNAMI のみ） | 災害カテゴリ別のデコード有効化/無効化。AVR で DCX/CAMF を使うには `-DAZARAC_AVR_LARGE_FLASH=1` または `-DAZARAC_ENABLE_DCX_CAMF=1` を明示する |
+| `AZARAC_LANG_JA` / `AZARAC_LANG_EN` | 1 / 0 | 定義テーブルの言語選択 |
+| `AZARAC_DEDUP_SLOTS` | 512 | 重複判定表のエントリ数（1エントリ8B。AVRプリセットは64） |
 | `AZARAC_ENABLE_DEDUP` | 1 | 重複排除テーブルの有効化。0 で `AZARAC_DEDUP_SLOTS × 8 B`（既定 4 KB / AVR 512 B）が消える |
+| `AZARAC_NANKAI_MAX_PAGES` / `AZARAC_NANKAI_BUFFERS` | 63 / 2 | 南海トラフ地震の最大収集ページ数(1-63)と最大同時追跡数。AVR preset は 4 / 1 |
 | `AZARAC_NMEA_STRICT_SVID` | 0 | NMEA の svid 受理範囲（0=00–63 / 1=53–63 / 2=仕様表の 55/56/57/58/61）。既定は実機互換優先 |
-| `AZARAC_NMEA_REJECT_NONZERO_PADDING` | 0 | NMEA の詰め物ビット非零を拒否するか。既定は受理（実機互換優先） |
-| `AZARAC_FLASH_BUF_SIZE` | AVR: カテゴリ連鎖（既定=64）/ 非 AVR: 800 | ラベル引き当て用RAMバッファのサイズ。AVRでは有効カテゴリに応じて 64 / 80 / 96 / 540 / 640 / 800 に自動選択（有効なカテゴリの最長ラベルを収める）。非AVRでも分割ラベルの連結と長さ取得に使う |
 
 AVR（Arduino Uno等）では専用プリセットにより有効カテゴリが SEISMIC/TSUNAMI のみに絞られ、バッファサイズも縮小されます。
 プリセット値とメモリ要件の詳細は [アーキテクチャ](architecture.md#メモリ設計) を参照してください。
+
+## 使い方のパターン
+
+前提はひとつだけで、`feed()` が `true` を返したメッセージだけを処理することです。そのとき `msg.valid` は保証されます。`false` のときの `out` は未定義です（直前の値や復号途中のフィールドが残り得ます）。診断用に `msg.unsupported_reason` だけは、復号器の拒否理由が入ることがあります。
+
+```cpp
+void processMessage(const azaraC::Message& msg) {
+    // SVID範囲チェック（PRN は 181-191: 53/54 -> 181/182 も実データに存在）
+    if (msg.svid < 181 || msg.svid > 191) {
+        Serial.print(F("[WARN] Unexpected SVID: "));
+        Serial.println(msg.svid);
+    }
+
+    // メッセージタイプ別処理
+    if (msg.msg_type == 43) {
+        const azaraC::Mt43Data* mt43 = msg.getMt43();
+        // EEW 無効ビルド（AVR プリセットの既定）では dc=1 の電文は復号されず feed() が false を返すので、ここには来ない。
+        if (mt43 && mt43->disaster_category == 1) {
+            // EEW処理（handleEEW は EewData を触るなら #if (AZARAC_ENABLE_EEW) で囲む）
+            handleEEW(*mt43);
+        }
+    }
+}
+```
 
 ## Examples
 
