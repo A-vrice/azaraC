@@ -76,4 +76,8 @@ test/bench/avr/*.log
 # make の一時ディレクトリ（中断時に残る）
 test/.noalloc/
 test/.fuzzsan/
+test/.fuzzlf/
+test/fuzz/crashes/
+test/fuzz_libfuzzer
+test/fuzz_libfuzzer.exe
 test/.macro_tmp/
