@@ -221,6 +221,13 @@
 #warning "Nankai buffers may exhaust SRAM on Arduino Uno. Consider AZARAC_NANKAI_BUFFERS=1"
 #endif
 
+// JSON のキー／値リテラルの 1 次コピー先の長さ（json/JsonWriter.h の JsonKey が使う）。
+// 最長はキーの 35 B（a17_type_of_specific_settings_label）、値は 20 B（unsupported_category）。
+// 収まらないリテラルは JsonKey の生成時に static_assert でコンパイルエラーになる。非 AVR ではコピーは起きないが、長さ検査には使う。
+#ifndef AZARAC_KEY_BUF_SIZE
+#define AZARAC_KEY_BUF_SIZE 36
+#endif
+
 // PROGMEM 抽象化: AVR では const データを Flash に置く（デスクトップでは何もしない）。
 // 使い方: const char s[] AZARAC_PROGMEM = "...";
 // AZARAC_PGM_READ_* / AZARAC_STRCPY_P は 16 bit の progmem ポインタで Flash を指すため、先頭 64 KiB にしか届かない。
