@@ -67,6 +67,31 @@ void loop() {
 }
 ```
 
+### feed()（一括）
+
+```cpp
+bool feed(const uint8_t* data, size_t len, Message& out, uint32_t report_unix = 0);
+```
+
+| 引数 | 型 | 説明 |
+|---|---|---|
+| `data` | `const uint8_t*` | 入力バッファ。`nullptr` は `false` |
+| `len` | `size_t` | バイト数。0 は `false` |
+| `out` | `Message&` | 出力先。読めるのは戻り値が `true` のときだけ |
+| `report_unix` | `uint32_t` | 時刻解決に使う報告の UNIX epoch。0 は未解決 |
+
+受信バッファをそのまま渡す形です。内部では 1 バイト版の `feed()` を順に呼ぶだけで、南海トラフの集約や重複除去を含め、挙動は同じです。
+1 通以上成立したら `true` を返し、`out` の中身は 1 バイト版を順に呼んだ場合と同一です。ただし、成立した後に重複などで `false` になった場合は中身がクリアされることがあります。
+複数の電文が入っているバッファでは最後に成立した 1 通だけが残るので、取りこぼしたくないときは 1 バイト版を使ってください。
+
+```cpp
+uint8_t buf[512];
+size_t n = client.read(buf, sizeof(buf));
+if (parser.feed(buf, n, msg, now)) {
+    azaraC::toJson(msg, Serial);
+}
+```
+
 ### reset()
 
 ```cpp
@@ -74,6 +99,25 @@ void reset();
 ```
 
 フレーマ、デコーダ、重複除去フィルタ、南海トラフの集約バッファを初期状態に戻します。
+
+### updateClock()
+
+```cpp
+void updateClock();
+```
+
+受信が無い間も 64 bit 時計を観測し、epoch guard（世代境界と大きな時計後退）を適用します。
+`loop()` から定期的に呼ぶことで、2³² ms（約 49.7 日）以上の無受信期間を跨いでも折り返しを検出でき、古い dedup や南海トラフの履歴による偽の重複抑止を防ぎます。`AZARAC_ENABLE_DEDUP` と `AZARAC_ENABLE_NANKAI` が両方無効な構成では何もしません。
+ESP32 の `getMillis()` は 64 bit の `esp_timer` を使うため、この呼び出しは必須ではありません。AVR など 32 bit `millis()` のみの環境では、周期的な観測が無いまま 2³² ms 以上空くと折り返し回数を復元できません。
+
+```cpp
+void loop() {
+    parser.updateClock();
+    while (Serial1.available()) {
+        if (parser.feed(Serial1.read(), msg)) { ... }
+    }
+}
+```
 
 ---
 
@@ -486,15 +530,46 @@ struct LatLon {
 
 ```cpp
 void toJson(const Message& msg, Print& out);
+size_t toJson(const Message& msg, char* buf, size_t len);
 ```
 
 `Message` を JSON 形式で `out`（Serial、WiFiClient 等）へ書き出します。JSON の形式そのものは [JSON 出力仕様](json-formats.md) を参照してください。
+
+バッファ版は `Print` を持たない呼び出し側（`String`、固定バッファ、独自の送信キュー）向けです。
+`len > 0` なら必ず NUL 終端し、入り切らない分は捨てます。バッファの外へは書きません。
+戻り値は書き込んだバイト数（NUL を除く）で、`buf[戻り値] == '\0'` が成り立ちます。
+必要な長さは事前には分からないため、完全な JSON が要る場合は十分な `len` を渡すか `Print` 版を使ってください。
+
+```cpp
+char json[512];
+size_t n = azaraC::toJson(msg, json, sizeof(json));   // n == strlen(json)
+```
 
 スレッド安全性: ラベル用の共有バッファ（`AZARAC_FLASH_BUF_SIZE` の 1 本）を使うため、`toJson()` と定義テーブルの lookup を複数のタスク/スレッドから同時に呼ばないでください。FreeRTOS では呼び出し側で排他します（`examples/rtos_freertos` の `printJson()` を参照）。
 
 ```cpp
 azaraC::toJson(msg, Serial);
 Serial.println();
+```
+
+---
+
+### crc24q()
+
+CRC-24Q（IS-QZSS-L1S-009 §4.1.1.3）を計算します。受信経路が使うのと同じ実装です。
+
+```cpp
+uint32_t crc24q(const uint8_t* data, uint16_t bit_len);
+```
+
+`data[0]` の MSB から `bit_len` ビットを処理し、24 bit の CRC を返します。
+受信した `Message` の `crc24` は `Decoder` が入れた値なので通常は不要ですが、自前の電文生成（テスト送信器、リピータ）や、外部で組み立てた 250 bit フレームの検証に使えます。
+
+```cpp
+uint8_t bits[32] = {};
+// ... 0..225 bit を組み立てる ...
+uint32_t crc = azaraC::crc24q(bits, 226);
+setBits(bits, 226, 24, crc);   // 226..249 bit に CRC を置く
 ```
 
 ---
