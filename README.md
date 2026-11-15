@@ -30,6 +30,7 @@ AVR（Uno・Mega を含む）は既定で SEISMIC/TSUNAMI のみ有効です。
 - EEW と震源は AVR プリセットで無効なので `getEew()` / `getHypocenter()` は既定で使えません。
   有効化する場合は `-DAZARAC_ENABLE_EEW=1` / `-DAZARAC_ENABLE_HYPOCENTER=1`
 - MT=44 は `-DAZARAC_AVR_LARGE_FLASH=1` または `-DAZARAC_ENABLE_DCX_CAMF=1` で有効化します（Flash が 64KB を超えるボードが対象）
+- Flash/SRAM の実測値は avr-gcc の版で動きます。`make -C test bench` がゲートするのは「SRAM が増えないこと」と「コア/自前の表が 64 KiB 窓に残ること」で、絶対バイト数ではありません（手元の avr-gcc 15.2 実測: Uno プリセット Flash 18,552 B / RAM 108 B、Mega + DCX/CAMF 146,906 B / 858 B）
 - ラベルの言語は `-DAZARAC_LANG_JA=0 -DAZARAC_LANG_EN=1` で英語に切り替えられます（既定は日本語。両方 1 で `_label_en` 併記）
 - 南海トラフの集約テキスト（`NankaiData::aggregated_text_ptr`）は `Parser` 内部への**借用ポインタ**です。`Message` をコピーしても所有権は移らず、次の `feed()` / `reset()` で内容が変わります。`feed()` が `true` を返した直後にコピーするか、`toJson()` で出力してください（[API リファレンス](docs/api-reference.md#nankaidata南海トラフ地震)、[Examples の RTOS 実装](examples/rtos_freertos/rtos_freertos.ino)）
 
