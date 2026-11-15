@@ -121,7 +121,7 @@ make -C test fuzz FUZZ_ITERATIONS=100000
 | ターゲット | 用途 |
 |----------|------|
 | `make -C test pgm-stub` | `__AVR__` + スタブ `avr/pgmspace.h` で全テストをコンパイルし PROGMEM 分岐をホスト検証 |
-| `make -C test test-time-irq` | `ARDUINO=1` + `__AVR__` + スタブ `avr/io.h` で `internal::getMillis()` の割り込み状態保存・復元をホスト検証。AVR 分岐のみを対象とし、ESP32（Xtensa / RISC-V）では `noInterrupts()`/`interrupts()` が呼び出し側の状態を保存しないため、クリティカルセクション/ISR から呼ばないこと（既知の制約） |
+| `make -C test test-time-irq` | `ARDUINO=1` + `__AVR__` + スタブ `avr/io.h` で `internal::getMillis()` の割り込み状態保存・復元と 32 bit 折り返しの 64 bit 拡張をホスト検証。ESP32 は `esp_timer_get_time()` の 64 bit 分岐を使うため、このテストの対象外 |
 | `make -C test run-small-pages` | `AZARAC_NANKAI_MAX_PAGES=8` で全体を再ビルドし、ページ打ち切り経路を検証（既定 63 では打ち切りが発生せず該当テストが `#if` で除外されるため） |
 | `make -C test run-dedup-off` | `AZARAC_ENABLE_DEDUP=0` で全テストを再ビルド・実行し、dedup 無効構成でもテストがコンパイル・動作することを検証（終了時に `clean`） |
 | `make -C test avr-layout` | 実 avr-g++ で `NankaiPageKey`/`NankaiPageBuffer`/`DedupFilter`/`Message` の ABI サイズと `aggregated_text` オフセットを検証（63ページ・4ページ・DCX/CAMF 有効の3構成、`-fsyntax-only`。`Message` は 84 B / DCX 有効 199 B） |

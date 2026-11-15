@@ -1,6 +1,8 @@
 #pragma once
 // プラットフォーム非依存のオーバーフロー安全な millis()。外部依存なし。
-// - Arduino: millis()（約 49.7 日で巻き戻る）を volatile カウンタで uint64_t へ拡張する。<atomic> を使わない（32 bit MCU の libatomic リンク問題を避ける）。
+// - ESP32: esp_timer_get_time()（64 bit マイクロ秒）をそのまま使う。呼び出し間隔が 2^32 ms を超えても折り返しを失わない。
+// - その他の Arduino: millis()（約 49.7 日で巻き戻る）を volatile カウンタで uint64_t へ拡張する。<atomic> を使わない（32 bit MCU の libatomic リンク問題を避ける）。
+//   この拡張は呼び出し時にしか折り返しを数えないため、2^32 ms 以上の無受信期間を跨ぐ可能性がある用途は Parser::updateClock() で定期的に観測する。
 // - ホスト: std::chrono::steady_clock。
 // volatile + read-compute-write は同期していない: マルチコアの呼び出し側では非単調な値を見得るが、単一タスクでの使用は安全。
 // AVR と Cortex-M では、割り込みを無条件に許可するのではなく、呼び出し側の割り込み状態を保存して復元する。
@@ -11,6 +13,9 @@
 #endif
 #if defined(ARDUINO) && ARDUINO >= 1
 #include <Arduino.h>
+#if defined(ARDUINO_ARCH_ESP32)
+#include <esp_timer.h>
+#endif
 #else
 #include <chrono>
 #endif
@@ -22,8 +27,14 @@ namespace internal {
 // inline（外部リンケージ）: 関数内 static の s_last を全 TU で単一実体にする（C++17）。
 // static inline だと TU ごとに s_last が別になり、複数 TU から呼ぶと相互に矛盾する時刻を返す。
 inline uint64_t getMillis() {
-#if defined(ARDUINO) && ARDUINO >= 1
+#if defined(ARDUINO_ARCH_ESP32)
+    // ESP32 は 64 bit の esp_timer を直接使う。32 bit millis() の拡張と違い、
+    // 呼び出し間隔が 2^32 ms を超えても折り返しを取りこぼさない。
+    return static_cast<uint64_t>(esp_timer_get_time() / 1000);
+#elif defined(ARDUINO) && ARDUINO >= 1
     // 上位 32 bit = 巻き戻り回数、下位 32 bit = 直近の生の millis() 値。
+    // この方式は呼び出し時にしか折り返しを数えないため、無受信期間が 2^32 ms 以上に
+    // なる用途は Parser::updateClock() を loop() から定期的に呼ぶこと。
     // 同期しない read-compute-write はマルチコア / FreeRTOS で逆行し得るが、単一タスクの粗い計時には十分。
     static volatile uint64_t s_last = 0;
 

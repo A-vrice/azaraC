@@ -65,6 +65,7 @@ void setup() {
 }
 
 void loop() {
+    parser.updateClock();  // 無受信期間でも 32 bit 時刻の折り返しを観測する
     // Wi-Fi 切断時は 5 秒間隔で再接続を試みる（SNTP 同期のため）。受信ループはブロックしない。
     if (WiFi.status() != WL_CONNECTED) {
         static uint32_t lastAttempt = 0;

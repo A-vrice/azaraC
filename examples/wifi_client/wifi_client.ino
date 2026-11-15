@@ -151,6 +151,7 @@ void setup() {
 }
 
 void loop() {
+    parser.updateClock();  // 無受信期間でも 32 bit 時刻の折り返しを観測する
     if (WiFi.status() != WL_CONNECTED) {
         setStatusLED(false);
         serverConnected = false;  // サーバー接続も切断

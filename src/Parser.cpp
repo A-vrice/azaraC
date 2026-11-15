@@ -52,7 +52,8 @@ bool Parser::postDecode(const Message& decoded, Message& out, uint32_t identity)
     return postDecodeAt(decoded, out, identity, internal::getMillis());
 }
 
-bool Parser::postDecodeAt(const Message& decoded, Message& out, uint32_t identity, uint64_t now_ms64) {
+uint64_t Parser::observeClock(uint64_t now_ms64) {
+#if AZARAC_ENABLE_DEDUP || AZARAC_ENABLE_NANKAI
     // dedup 有効期間の受信時刻（手順④'）。
     // 下の Nankai 集約も同じ時計を使うので、両段階で「現在」が一致する。
     // 通常の 32 bit 折り返しは DedupFilter/NankaiPageBuffer の符号なし差分で扱えるが、
@@ -60,7 +61,6 @@ bool Parser::postDecodeAt(const Message& decoded, Message& out, uint32_t identit
     // そこで now_ms64 の上位 32 bit（世代）が変わったら履歴を捨てる。連続受信で 49.7 日経過しても
     // 世代境界で確実に reset され、古い履歴の偽重複による抑止を防ぐ（再通知は許容し、生きた警報の抑止を避ける）。
     // 小さな後退は受信順序の揺らぎとして丸め、それを超える後退（時計の再設定）でも履歴を捨てる。
-#if AZARAC_ENABLE_DEDUP || AZARAC_ENABLE_NANKAI
     if (now_ms64 < _last_now_ms) {
         if (_last_now_ms - now_ms64 > kClockRollbackToleranceMs) {
             _dedup.reset();
@@ -80,6 +80,17 @@ bool Parser::postDecodeAt(const Message& decoded, Message& out, uint32_t identit
     }
     _last_now_ms = now_ms64;
 #endif
+    return now_ms64;
+}
+
+void Parser::updateClock() {
+#if AZARAC_ENABLE_DEDUP || AZARAC_ENABLE_NANKAI
+    (void)observeClock(internal::getMillis());
+#endif
+}
+
+bool Parser::postDecodeAt(const Message& decoded, Message& out, uint32_t identity, uint64_t now_ms64) {
+    now_ms64 = observeClock(now_ms64);
     const uint32_t now_ms = static_cast<uint32_t>(now_ms64);
     const uint32_t window_ms = internal::dedupWindowMs(decoded);
 
