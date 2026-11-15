@@ -10,7 +10,9 @@ ANALYSIS_CXXFLAGS = $(CXXFLAGS) -Wpedantic -Wshadow -Wnull-dereference -Wdouble-
 COVERAGE_FLAGS    = -O0 -fprofile-arcs -ftest-coverage
 # check / check-xml で共有する cppcheck オプション（ドリフト防止）。
 # uninitMemberVarNoCtor は POD 集約体を memset + placement new で扱う設計（Mt43Data/Mt44Data の payload 共用体、Dedup.h のキー構造体）で常に誤検知になるため抑制する（実測 24 件はすべて手書き集約体と test/ のベンチ・ファズ構造体。生成定義テーブルには出ない）。
-CPPCHECK_OPTS = --enable=warning,performance,portability --check-level=exhaustive --inline-suppr --suppress=missingIncludeSystem --suppress=*:doctest.h --suppress=uninitMemberVarNoCtor --error-exitcode=1 --std=c++17 -I../src -I. -DAZARAC_NANKAI_MAX_PAGES=63 ../src .
+# -D__CPPCHECK__ は cppcheck 自身を識別させる定義で、avr-g++ 専用の tools/avr_layout_probe.cpp の #error ガードを解析時だけ無効化する。
+# 抑制（--suppress=preprocessorErrorDirective:...）だと同じファイルに後から入る本物の #error も隠れるため、定義で外す。
+CPPCHECK_OPTS = --enable=warning,performance,portability --check-level=exhaustive --inline-suppr --suppress=missingIncludeSystem --suppress=*:doctest.h --suppress=uninitMemberVarNoCtor --error-exitcode=1 --std=c++17 -D__CPPCHECK__ -I../src -I. -DAZARAC_NANKAI_MAX_PAGES=63 ../src .
 
 # MinGW-w64 bin path (opt-in; set on the command line if g++ is not on PATH,
 # e.g. make MINGW64_BIN=C:\mingw64\bin)

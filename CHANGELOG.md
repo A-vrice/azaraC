@@ -210,6 +210,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **cppcheck が `avr_layout_probe.cpp` の `#error` で落ちていた**: `-DAZARAC_NANKAI_MAX_PAGES=63` を渡すと cppcheck は「ユーザー定義あり」とみなして `#error` を報告する（`Preprocessor::handleErrors` の `showerror = !userDefines.empty() && !force`）。`avr-g++` 専用の `test/tools/avr_layout_probe.cpp` に `__AVR__` ガードを足した時点で、`static-analysis` ジョブが `preprocessorErrorDirective` で常時赤になった。
+  `CPPCHECK_OPTS` と `scripts/analysis/cppcheck_summary.py` に `-D__CPPCHECK__` を追加し、ガードを `!defined(__AVR__) && !defined(__CPPCHECK__)` に変更した。`--suppress=preprocessorErrorDirective:tools/avr_layout_probe.cpp` ではなく定義で外すのは、抑制がファイル単位で将来の本物の `#error` 退行まで隠すため（`-D__CPPCHECK__` は cppcheck 自身の selfcheck も使う慣用句で、実コンパイラに対してはガードが生きたまま残る）。
 - **Wi-Fi 例の非 ESP32 ガードが効いていなかった**: `#error` が `#include <WiFi.h>` の後ろにあり、`WiFi.h` を持たないボードでは先に「ファイルが無い」エラーになっていた。ガードを include の前に移し、CI の Wi-Fi 例スキップ条件をボード名の列挙から FQBN の `esp32:` 判定へ揃えた（拡張マトリクスの `Arduino GIGA R1 WiFi` と `RP2040 Pico W` が落ちていた）。
 - **CI の cppcheck レポートとカバレッジが空だった**: `check` / `check-strict-compile` の末尾が `$(MAKE) clean` だったため、`check-xml` が書いた `cppcheck_report.xml` と `coverage` の `*.gcda` を後続ステップの前に消していた（`static-analysis` のサマリーが ERROR 行のみ、`coverage` の gcovr がデータ 0 件で 100% 表示）。
   後始末を解析ビルドが作る lib の `.o`/`.d` の削除に限定した。`make -C test coverage` が `coverage_report.json` と `coverage.xml` も書き出し、`clean` はその 2 つを消さない（`ci.yml` の重複した gcovr ステップは削除）。
