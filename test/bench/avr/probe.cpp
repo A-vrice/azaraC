@@ -37,7 +37,8 @@ public:
         asm volatile("" ::: "memory");
         return 1;
     }
-    size_t write(const char* s, size_t n) override {
+    using Print::write;
+    size_t write(const uint8_t* s, size_t n) override {
         asm volatile("" : : "r"(s), "r"(n) : "memory");
         return n;
     }
