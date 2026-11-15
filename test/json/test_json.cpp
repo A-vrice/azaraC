@@ -706,6 +706,55 @@ TEST_CASE("JSON Serialization: MT=43 NW Pacific Tsunami") {
     CHECK(hasField(s, "\"region\":1,\"region_label\":\"Ust-Kamchatsk (East Coasts of Kamchatka Peninsula)\""));
 }
 
+// 到着時刻が未解決になるコードは arrival_time を null にし、状態を arrival_status で出す。
+// （Print の出し分けなので、値をそのまま書くと JSON の型が変わってしまう。）
+TEST_CASE("JSON Serialization: MT=43 NW Pacific Tsunami 未解決の到着時刻") {
+    Message m{};
+    initMt43As(m, 6);
+    NwPacTsunamiData* nw = m.getMt43()->getNwPac();
+    REQUIRE(nw != nullptr);
+
+    nw->potential = 2;
+    nw->count = 3;
+    // hour=31, min=63 → 到着済み/不明
+    nw->entries[0].region_code = 1;
+    nw->entries[0].height_code = 3;
+    nw->entries[0].arrival_time_raw = static_cast<uint16_t>((31u << 6) | 63u);
+    // hour=24 は範囲外 → 未認識コード
+    nw->entries[1].region_code = 2;
+    nw->entries[1].height_code = 3;
+    nw->entries[1].arrival_time_raw = static_cast<uint16_t>(24u << 6);
+    // 通常時刻は今までどおりオブジェクトで出る（対象行）
+    nw->entries[2].region_code = 1;
+    nw->entries[2].height_code = 1;
+    nw->entries[2].arrival_time_raw = static_cast<uint16_t>((7u << 6) | 40u);
+
+    StringPrint sp;
+    internal::JsonSerializer::serialize(m, sp);
+    const auto& s = sp.str();
+
+    CHECK(hasField(s, "\"arrival_status\":\"arrived_or_unknown\""));
+    CHECK(hasField(s, "\"arrival_status\":\"unrecognized_code\""));
+    CHECK(has(s, "\"arrival_time\":null"));
+    CHECK_FALSE(has(s, "\"arrival_status\":\"arrival_estimated\""));
+}
+
+// 表に無い高さコード（北西太平洋）は両端 null になる（NW-PAC の default 分岐）。
+TEST_CASE("JSON Serialization: MT=43 NW Pacific Tsunami 表に無い高さコード") {
+    Message m{};
+    initMt43As(m, 6);
+    NwPacTsunamiData* nw = m.getMt43()->getNwPac();
+    REQUIRE(nw != nullptr);
+    nw->potential = 2;
+    nw->count = 1;
+    nw->entries[0].region_code = 1;
+    nw->entries[0].height_code = 7;   // 仕様表に無いコード
+
+    StringPrint sp;
+    internal::JsonSerializer::serialize(m, sp);
+    CHECK(hasField(sp.str(), "\"height_lower\":null,\"height_upper\":null"));
+}
+
 // 北西太平洋も全コード（508 は上端なし）。
 TEST_CASE("JSON Serialization: MT=43 NW Pacific Tsunami height bounds (全コード)") {
     static const struct { uint16_t code; const char* bounds; } cases[] = {
@@ -1789,3 +1838,53 @@ TEST_CASE("JSON v2: J-Alert objects") {
     }
 }
 #endif // AZARAC_ENABLE_DCX_CAMF
+
+// 境界付きバッファ版 toJson()（Print を持たない呼び出し側向け）。
+// カテゴリに依存しないよう、未対応 MT の診断 JSON で検証する。
+TEST_CASE("toJson(buffer): Print 出力とバイト一致し、境界を越えない") {
+    Message m{};
+    m.svid = 193;
+    m.msg_type = 49;   // 43/44 以外
+    m.crc24 = 0x123456;
+
+    StringPrint sp;
+    toJson(m, sp);
+    const std::string full = sp.str();
+    REQUIRE(!full.empty());
+
+    char buf[256];
+    const size_t n = toJson(m, buf, sizeof(buf));
+    CHECK(n == full.size());
+    CHECK(buf[n] == '\0');
+    CHECK(std::string(buf, n) == full);
+}
+
+TEST_CASE("toJson(buffer): 切り詰めでも NUL 終端しバッファ外へ書かない") {
+    Message m{};
+    m.svid = 193;
+    m.msg_type = 49;
+    m.crc24 = 0x123456;
+
+    StringPrint sp;
+    toJson(m, sp);
+    const std::string full = sp.str();
+
+    char buf[18];
+    memset(buf, 'X', sizeof(buf));
+    const size_t n = toJson(m, buf, 16);
+    CHECK(n == 15);
+    CHECK(buf[15] == '\0');
+    CHECK(std::string(buf, n) == full.substr(0, 15));
+    CHECK(buf[16] == 'X');   // 番兵（境界の外）は不変
+
+    // len=1 は空文字列、len=0 / nullptr は何も書かない。
+    char one[2] = {'Z', 'Z'};
+    CHECK(toJson(m, one, 1) == 0);
+    CHECK(one[0] == '\0');
+    CHECK(one[1] == 'Z');
+
+    char tiny[1] = {'Y'};
+    CHECK(toJson(m, tiny, 0) == 0);
+    CHECK(tiny[0] == 'Y');
+    CHECK(toJson(m, nullptr, 10) == 0);
+}

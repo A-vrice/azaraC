@@ -32,6 +32,16 @@ bool Parser::feed(uint8_t byte, Message& out, uint32_t report_unix) {
     return handleFrame(frame, out, report_unix);
 }
 
+bool Parser::feed(const uint8_t* data, size_t len, Message& out, uint32_t report_unix) {
+    if (!data) return false;
+    bool any = false;
+    for (size_t i = 0; i < len; ++i) {
+        // 1 バイト版と同じ経路（Nankai 集約・dedup を含む）。成立した電文は out に残る。
+        if (feed(data[i], out, report_unix)) any = true;
+    }
+    return any;
+}
+
 bool Parser::handleFrame(internal::Frame& frame, Message& out, uint32_t report_unix) {
     if (!_decoder.decode(frame, out, report_unix)) {
         // 復号に失敗したフレームで valid だけ立った中途半端な Message を残さない。

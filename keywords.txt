@@ -1,7 +1,53 @@
 # Syntax Coloring Map for azaraC
+# 形式: <名前><TAB>KEYWORD1(型/クラス) / KEYWORD2(関数) / LITERAL1(定数)
+
+# --- 型・クラス ---
 Parser	KEYWORD1
 Message	KEYWORD1
+Mt43Data	KEYWORD1
+Mt44Data	KEYWORD1
+TimeFields	KEYWORD1
+LatLon	KEYWORD1
+UnsupportedReason	KEYWORD1
+MsgPayloadType	KEYWORD1
+Mt44ServiceKind	KEYWORD1
+ExtendedKind	KEYWORD1
+Decoder	KEYWORD1
+Frame	KEYWORD1
+IFramer	KEYWORD1
+NankaiPageKey	KEYWORD1
+NankaiPageBuffer	KEYWORD1
+
+# --- 関数 ---
 feed	KEYWORD2
 reset	KEYWORD2
-toJson	KEYWORD2
+updateClock	KEYWORD2
 getNankaiBuffer	KEYWORD2
+getMt43	KEYWORD2
+getMt44	KEYWORD2
+getEew	KEYWORD2
+getHypocenter	KEYWORD2
+getSeismic	KEYWORD2
+getNankai	KEYWORD2
+getTsunami	KEYWORD2
+getNwPac	KEYWORD2
+getVolcano	KEYWORD2
+getAshFall	KEYWORD2
+getWeather	KEYWORD2
+getFlood	KEYWORD2
+getTyphoon	KEYWORD2
+getMarine	KEYWORD2
+initPayload	KEYWORD2
+initAs	KEYWORD2
+clear	KEYWORD2
+isComplete	KEYWORD2
+toJson	KEYWORD2
+crc24q	KEYWORD2
+
+# --- 列挙値 ---
+DisabledAtCompileTime	LITERAL1
+UnknownCategory	LITERAL1
+UnsupportedVersion	LITERAL1
+Empty	LITERAL1
+Mt43	LITERAL1
+Mt44	LITERAL1

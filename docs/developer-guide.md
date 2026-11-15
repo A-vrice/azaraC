@@ -79,7 +79,13 @@ make -C test run
 
 # Windows (MinGW-w64)
 make -C test run MINGW64_BIN=C:\mingw64\bin
+
+# 動的リンクしたテストバイナリが起動しない Windows 環境（0xC0000139 / 出力なし / exit 127）
+make -C test run STATIC=1
 ```
+
+`STATIC=1` は libstdc++ / libgcc を静的リンクします（`LDFLAGS` に `-static` を足すだけ）。
+Linux CI では不要です。
 
 同じ `test/*.o` や `test/` 直下の成果物を共有するターゲット同士の同時実行は `test/scripts/with-make-lock.sh` が直列化し、`bench` / `test-time-irq` / `avr-layout` / `nmea-policy` / `utf8-trim` も含みます。
 別の make が実行中なら exit 2 で止まるので、終わるまで待ってください（ロックは終了時に自動で解放されます）。
@@ -98,6 +104,21 @@ $ make -C test run
 [doctest] Status: SUCCESS!
 ```
 件数はテストを追加するたびに変わるため、ここには固定値を書きません。CI の host-test は同じ集計を GitHub Actions の step summary に出力します。
+
+### カバレッジの見方
+
+`make -C test coverage` は既定構成（全カテゴリ + DCX/CAMF + dedup + Nankai）の行カバレッジを測ります。
+未到達行の多くは「その構成でしかコンパイルされない」もので、別ターゲットが担保します。
+
+| 未到達の例 | 担当するターゲット |
+|---|---|
+| `DecoderQzqsm.cpp` の `DisabledAtCompileTime` 経路 | `make -C test macro`（13 構成） |
+| `PROGMEM` / far Flash 分岐 | `make -C test pgm-stub`、`make -C test bench` |
+| `azarac_utf8_trim_len` の打ち切り・不正先頭バイト | `make -C test utf8-trim` |
+| `src/internal/avr_std/*`、`PrintShim.h` | AVR/ホストのシム専用（既定構成では通らない。対象外） |
+
+残る未到達行は設計上の防御コード（`Decoder::resolveArrivalTime` の終端 `return`、`Parser` の `if (!buffer)` など）だけです。
+逆に **既定構成で到達し得るのに未到達ならテストの穴**なので、追加対象にします。
 
 ### テストカテゴリ
 

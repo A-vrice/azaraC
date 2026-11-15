@@ -39,6 +39,12 @@ public:
     // report_unix: 時刻解決に使う報告の UNIX epoch。0 は未解決（DHM フィールドは残るが unix_time は 0 のまま）。
     bool feed(uint8_t byte, Message& out, uint32_t report_unix = 0);
 
+    // data の len バイトを順に feed(byte) する（通信バッファをそのまま流す用途）。
+    // 1 適以上成立すれば true で、out には最後に成立した電文が残る。
+    // 途中で成立した電文は上書きされるので、取りこぼしたくないときは従来の 1 バイト版を使うこと。
+    // 戻り値の契約は feed(byte) と同じ（false のとき out は未定義）。
+    bool feed(const uint8_t* data, size_t len, Message& out, uint32_t report_unix = 0);
+
     void reset();
 
     // 受信が無い間も 64 bit 時計を観測する。loop() から定期的に呼ぶことで、

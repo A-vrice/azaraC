@@ -399,4 +399,23 @@ TEST_CASE("JSON DCX EX1 city codes multiple entries") {
         CHECK(arr.find("null") == std::string::npos);
     }
 }
+
+// MT=44 なのに Mt44Data を持たない Message（外部で組み立てたもの、あるいは将来のビルド構成）を
+// 直列化したときの診断。受信経路では起きないが、公開 API としては落ちずに note を返す必要がある。
+TEST_CASE("JSON DCX: MT=44 with no payload emits invalid_mt44") {
+    Message m{};
+    m.svid = 193;
+    m.msg_type = 44;
+    m.crc24 = 0x123456;
+    m.valid = true;
+    REQUIRE(m.getMt44() == nullptr);
+
+    StringPrint sp;
+    internal::JsonSerializer::serialize(m, sp);
+    const std::string& s = sp.str();
+
+    CHECK(hasField(s, "\"msg_type\":44"));
+    CHECK(hasField(s, "\"note\":\"invalid_mt44\""));
+    CHECK(s.find("\"data\"") == std::string::npos);
+}
 #endif

@@ -42,6 +42,14 @@ else
   DEVNULL = /dev/null
 endif
 
+# STATIC=1: libstdc++ / libgcc を静的リンクする。
+# MinGW の一部の環境では、動的リンクしたテストバイナリが起動時に 0xC0000139
+# （エントリポイント未解決）で落ち、テストが 1 件も実行されない（出力なし・exit 127）。
+# その場合は `make -C test run STATIC=1` を使う。Linux CI では不要。
+ifdef STATIC
+  LDFLAGS += -static
+endif
+
 # Optimization profile: make RELEASE=1 for -Os (smaller code, no debug symbols)
 ifdef RELEASE
   CXXFLAGS += -Os -fdata-sections -ffunction-sections
