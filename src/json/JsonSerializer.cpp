@@ -153,7 +153,7 @@ void JsonSerializer::serialize(const Message& msg, Print& out) {
 
 namespace {
 // 固定長バッファへ書く Print。溢れた分は捨てる（バッファ外へは書かない）。
-// シリアライザが Print に使うのは write(uint8_t) / write(const char*, size_t) / print(char) だけで、
+// シリアライザが Print に使うのは write(uint8_t) / write(const char*, size_t)（→ write(const uint8_t*, size_t)）/ print(char) だけで、
 // print(char) は実コアもホストのシムも write(uint8_t) へ流すので write の 2 本で足りる。
 class BufferPrint : public Print {
 public:
@@ -167,7 +167,11 @@ public:
         return 1;
     }
 
-    size_t write(const char* s, size_t size) override {
+    // 実コアの Print で仮想なのは write(const uint8_t*, size_t) で、write(const char*, size_t) は
+    // それへ流す非仮想の中継。上書きするのは前者にし、using で char* 版の名前隠しを防ぐ。
+    using Print::write;
+
+    size_t write(const uint8_t* s, size_t size) override {
         total_ += size;
         if (cap_ == 0 || !s) return size;
         const size_t room = (cap_ - 1) - used_;
