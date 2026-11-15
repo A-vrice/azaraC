@@ -33,11 +33,12 @@ namespace {
 // asm はポインタと長さを生かしたまま何も格納しない: カウンタに SRAM を使わない。
 class ProbePrint : public Print {
 public:
+    using Print::write;
+
     size_t write(uint8_t) override {
         asm volatile("" ::: "memory");
         return 1;
     }
-    using Print::write;
     size_t write(const uint8_t* s, size_t n) override {
         asm volatile("" : : "r"(s), "r"(n) : "memory");
         return n;

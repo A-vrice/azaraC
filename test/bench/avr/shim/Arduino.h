@@ -28,9 +28,15 @@ public:
     virtual ~Print() = default;
 
     virtual size_t write(uint8_t) { return 1; }
-    // 実コアと同じ形: 仮想なのは write(const uint8_t*, size_t)。char* 版は非仮想の中継。
-    virtual size_t write(const uint8_t*, size_t n) { return n; }
-    size_t write(const char* s, size_t n) { return write(reinterpret_cast<const uint8_t*>(s), n); }
+    // 実コアの Print と同じ形: バッファ版の virtual は uint8_t* のみで、既定実装は 1 バイト版へ流す。
+    // const char* 版は virtual ではなく、uint8_t* 版へ転送するだけ。
+    virtual size_t write(const uint8_t* buffer, size_t size) {
+        size_t n = 0;
+        while (size--) { if (write(*buffer++)) ++n; else break; }
+        return n;
+    }
+    size_t write(const char* str) { return str ? write(str, strlen(str)) : 0; }
+    size_t write(const char* buffer, size_t size) { return write(reinterpret_cast<const uint8_t*>(buffer), size); }
 
     // 実コアと同じく print() は write() へ流す。
     // ここで捨てると LTO が出力を作る側の処理（writeUint32 の桁変換など）ごと消し、計測した Flash がスケッチの実費より小さくなる。
