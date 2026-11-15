@@ -32,6 +32,9 @@ jobs:
             exit 1
           fi
           echo "Version sync OK: $JSON_VER"
+
+      - name: Check keywords.txt covers public API
+        run: python scripts/analysis/keywords_check.py
   host-test:
     name: Host unit tests (g++)
     runs-on: ubuntu-latest

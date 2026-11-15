@@ -139,7 +139,7 @@ VPATH = ../src:../src/decoder:../src/framer:../src/json:../src/internal
 # 残リスク: 強制 kill（SIGKILL/プロセスクラッシュ）では trap を実行できないためロックが残る。
 # その場合は test/.make-lock を手動で削除する（スクリプトのエラーにも記載）。
 LOCKABLE  := all run run-small-pages run-dedup-off run-lto run-lang-defaults clean \
-             test-no-alloc pgm-stub macro fuzz fuzz-sanitize decode dedup-realday \
+             test-no-alloc pgm-stub macro fuzz fuzz-sanitize fuzz-libfuzzer decode dedup-realday \
              bench bench-dedup bench-decode test-time-irq test-macro-compile test-macro-sizes \
              compare-realdata coverage check check-xml check-strict-compile \
              avr-layout nmea-policy utf8-trim
@@ -157,7 +157,7 @@ endif
 
 ifeq ($(NEED_LOCK),)
 
-.PHONY: all clean run run-small-pages run-dedup-off run-lto run-lang-defaults fuzz fuzz-sanitize decode dedup-realday bench bench-dedup bench-decode compare-realdata check check-xml check-strict-compile coverage test-no-alloc pgm-stub test-time-irq avr-layout nmea-policy utf8-trim
+.PHONY: all clean run run-small-pages run-dedup-off run-lto run-lang-defaults fuzz fuzz-sanitize fuzz-libfuzzer decode dedup-realday bench bench-dedup bench-decode compare-realdata check check-xml check-strict-compile coverage test-no-alloc pgm-stub test-time-irq avr-layout nmea-policy utf8-trim
 
 all: $(TEST_BIN)
 
@@ -241,6 +241,36 @@ $(FUZZ_SAN_TMP)/fuzz_decoder.o: fuzz/fuzz_decoder.cpp
 
 $(FUZZ_SAN_TMP)/%.o: %.cpp
 	$(CXX) $(CXXFLAGS) $(FUZZ_SAN_FLAGS) -c $< -o $@
+
+# --- Coverage-guided fuzz (libFuzzer, clang 専用) ---
+# 専用 obj dir (.fuzzlf/) でサニタイザ構成を分離（.fuzzsan と同じ理由）。
+# Windows は clang++ が無ければ SKIP（test-no-alloc の macOS スキップと同流儀）。
+FUZZ_LF_TMP   = .fuzzlf
+FUZZ_LF_BIN   = fuzz_libfuzzer$(suffix $(TEST_BIN))
+FUZZ_LF_FLAGS = -fsanitize=fuzzer,address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=all
+FUZZ_LF_TIME  ?= 120
+CLANGXX       ?= clang++
+FUZZ_LF_OBJS  = $(addprefix $(FUZZ_LF_TMP)/,$(notdir $(LIB_SRCS:.cpp=.o))) $(FUZZ_LF_TMP)/fuzz_libfuzzer.o
+
+fuzz-libfuzzer:
+	@command -v $(CLANGXX) >/dev/null 2>&1 || { echo "fuzz-libfuzzer: SKIP - $(CLANGXX) not found (Linux/CI target)"; exit 0; }; \
+	$(MAKE) $(FUZZ_LF_BIN); b=$$?; if [ $$b -ne 0 ]; then $(MAKE) clean; exit $$b; fi; \
+	mkdir -p fuzz/crashes; \
+	$(RUN_PREFIX)$(FUZZ_LF_BIN) -max_total_time=$(FUZZ_LF_TIME) -artifact_prefix=fuzz/crashes/ fuzz/corpus; t=$$?; $(MAKE) clean; exit $$t
+
+$(FUZZ_LF_TMP):
+	@mkdir -p $@
+
+$(FUZZ_LF_BIN): $(FUZZ_LF_OBJS) | $(FUZZ_LF_TMP)
+	$(CLANGXX) $(CXXFLAGS) $(FUZZ_LF_FLAGS) $^ -o $@ $(LDFLAGS) $(FUZZ_LF_FLAGS)
+
+$(FUZZ_LF_OBJS): | $(FUZZ_LF_TMP)
+
+$(FUZZ_LF_TMP)/fuzz_libfuzzer.o: fuzz/fuzz_libfuzzer.cpp
+	$(CLANGXX) $(CXXFLAGS) $(FUZZ_LF_FLAGS) -c $< -o $@
+
+$(FUZZ_LF_TMP)/%.o: %.cpp
+	$(CLANGXX) $(CXXFLAGS) $(FUZZ_LF_FLAGS) -c $< -o $@
 
 # Decode-to-JSON CLI tool (for azarashi comparison)
 DECODE_BIN = decode_to_json
@@ -496,6 +526,8 @@ clean:
 	-@rm -rf $(NOALLOC_TMP)
 	-@$(RM) $(FUZZ_SAN_BIN)
 	-@rm -rf $(FUZZ_SAN_TMP)
+	-@$(RM) $(FUZZ_LF_BIN)
+	-@rm -rf $(FUZZ_LF_TMP)
 	-@$(RM) core/*.o core/*.d core/*.gcno core/*.gcda
 	-@$(RM) decoder/*.o decoder/*.d decoder/*.gcno decoder/*.gcda
 	-@$(RM) framer/*.o framer/*.d framer/*.gcno framer/*.gcda
