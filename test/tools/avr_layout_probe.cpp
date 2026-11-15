@@ -1,6 +1,7 @@
 // 実 avr-g++ で NankaiPageBuffer/DedupFilter/Message の ABI レイアウトを固定する。
 // Makefile の avr-layout が 63 ページ・4 ページ・DCX 有効の 3 構成で -fsyntax-only する。
-#if !defined(__AVR__)
+// cppcheck は -D__CPPCHECK__ 付きで解析するため、このガードは実コンパイラだけを止める。
+#if !defined(__AVR__) && !defined(__CPPCHECK__)
 #error "avr_layout_probe.cpp is AVR-only; build it with avr-g++ -mmcu=... (make -C test avr-layout)"
 #endif
 #include "internal/avr_std/cstddef"

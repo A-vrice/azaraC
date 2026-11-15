@@ -45,6 +45,7 @@ CPPCHECK_BASE_ARGS = [
     "--xml",
     "-Isrc",
     "-Itest",
+    "-D__CPPCHECK__",
     "-DAZARAC_NANKAI_MAX_PAGES=63",
     "src",
     "test",
