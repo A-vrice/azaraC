@@ -407,6 +407,61 @@ TEST_CASE("UBX: Two consecutive frames decoded") {
 
 // NMEA 部分フレーム復帰テスト
 
+// NMEA: SVID フィールドの非数字と、3 桁で 255 を超える値は拒否される。
+// パースはチェックサム検証の後に走るので、文は正しいチェックサム付きで組み立てる。
+namespace {
+std::string nmeaWithChecksum(const std::string& body) {
+    std::string s = "$" + body;
+    uint8_t x = 0;
+    for (size_t i = 1; i < s.size(); ++i) x ^= static_cast<uint8_t>(s[i]);
+    char tail[6];
+    snprintf(tail, sizeof(tail), "*%02X\r\n", x);
+    return s + tail;
+}
+} // namespace
+
+TEST_CASE("NMEA: SVID の非数字と 255 超は拒否される") {
+    const std::string payload(63, '0');
+    Frame out;
+
+    // 非数字（パースの else 分岐）
+    CHECK_FALSE(feedNmeaRaw(nmeaWithChecksum("QZQSM,1a," + payload).c_str(), out));
+    // 3 桁は 255 を超えるので引数として弾く
+    CHECK_FALSE(feedNmeaRaw(nmeaWithChecksum("QZQSM,256," + payload).c_str(), out));
+    // 対照: 同じ組み立てで 2 桁の SVID は受理される
+    CHECK(feedNmeaRaw(nmeaWithChecksum("QZQSM,55," + payload).c_str(), out));
+    CHECK(out.svid == 183);
+}
+
+// ペイロードの 16 進は大文字しか来ない前提にしない。小文字も同じ値として復号すること。
+TEST_CASE("NMEA: 小文字の 16 進も大文字と同じに解釈される") {
+    uint8_t bits[32] = {};
+    setBits(bits, 0, 8, 0x53);
+    setBits(bits, 8, 6, 43);
+    setBits(bits, 17, 4, 5);       // 津波
+    setBits(bits, 214, 6, 1);
+    setBits(bits, 226, 24, crc24qRef(bits, 226));
+
+    std::string body = "QZQSM,55,";
+    for (int i = 0; i < 31; ++i) {
+        char h[3];
+        snprintf(h, sizeof(h), "%02x", bits[i]);
+        body += h;
+    }
+    char last[2];
+    snprintf(last, sizeof(last), "%x", (bits[31] >> 4) & 0xF);
+    body += last;
+
+    Frame lower;
+    REQUIRE(feedNmeaRaw(nmeaWithChecksum(body).c_str(), lower));
+    Frame upper;
+    REQUIRE(feedNmeaRaw(makeNmeaQzqsm(55, bits).c_str(), upper));
+
+    CHECK(memcmp(lower.bits, upper.bits, sizeof(lower.bits)) == 0);
+    CHECK(lower.svid == upper.svid);
+    CHECK(upper.svid == 183);
+}
+
 TEST_CASE("UBX: SYNC2 resync on stray 0xB5") {
     uint8_t bits[32] = {0x53};
     auto pkt = makeUbxSfrbx(2, bits);

@@ -31,6 +31,7 @@
 
 #include "Message.h"
 #include "Parser.h"
+#include "decoder/Decoder.h"
 #include "json/JsonSerializer.h"
 
 #if defined(ARDUINO) && ARDUINO >= 1
@@ -42,6 +43,22 @@ namespace azaraC {
 // msg を JSON 化して任意の Print&（Serial、WiFiClient 等）へ書き出す。
 inline void toJson(const Message& msg, Print& out) {
     internal::JsonSerializer::serialize(msg, out);
+}
+
+// msg を境界付きバッファへ JSON 化する（Print を持たない呼び出し側、String や固定バッファ向け）。
+// buf は len > 0 なら必ず NUL 終端。入り切らない残りは捨て、バッファ外へは書かない。
+// 戻り値は書き込んだバイト数（NUL を除く）で、buf[返り値] が NUL。
+// 完全な JSON が必要なときは十分な大きさを渡すこと（必要な長さは事前に分からない）。
+inline size_t toJson(const Message& msg, char* buf, size_t len) {
+    return internal::JsonSerializer::serialize(msg, buf, len);
+}
+
+// CRC-24Q（IS-QZSS-L1S-009 §4.1.1.3）。data[0] の MSB から bit_len ビットを処理する。
+// 受信経路が使うのと同じ実装で、自前の電文生成（テスト送信器、リピータ）や
+// 外部で組み立てたフレームの検証に使う。
+// 受信した Message の crc24 は Decoder が入れた値なので、通常はこちらを呼ぶ必要はない。
+inline uint32_t crc24q(const uint8_t* data, uint16_t bit_len) {
+    return internal::Decoder::crc24q(data, bit_len);
 }
 
 } // namespace azaraC

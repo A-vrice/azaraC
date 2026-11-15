@@ -74,6 +74,26 @@ DCX/CAMF を使う場合は `-DAZARAC_ENABLE_DCX_CAMF=1`（または `-DAZARAC_A
 
 ---
 
+### basic_dcx - MT=44（DCX / CAMF）表示
+
+MT=44 の L-Alert / J-Alert / 地方自治体 / 国外 メッセージを、JSON と 1 行要約の両方で出力します。
+MT=44 は定義表が約 100 KB あるため既定の AVR プリセットでは無効です。有効化が必要です。
+
+```bash
+# ESP32 / RP2040 など（非 AVR の既定は DCX 有効）。そのままビルドできます
+# AVR の大型品（Mega など）
+-DAZARAC_ENABLE_DCX_CAMF=1   # または -DAZARAC_AVR_LARGE_FLASH=1
+```
+
+**出力例**:
+
+```
+[MT44] svid=184 service=J-Alert a1=1 a2=111 a3=2 center=35.681236,139.767125 radius_km=120 prefectures=3 cities=0
+{"schema_version":2,"svid":184,"msg_type":44,"crc24":"0x00074DAD","data":{...}}
+```
+
+---
+
 ### with_sntp - SNTP時刻解決付き
 
 Wi-FiとSNTPを使用してUNIX時刻を取得し、DCR/DCXメッセージの年を正確に解決します。
@@ -242,6 +262,26 @@ ESP32 で UART RX タスクと出力タスクを分離し、キューでメッ�
 
 ---
 
+### custom_framer - 独自フレーマ（`IFramer`）の差し込み
+
+受信機が `$QZQSM` でも `RXM-SFRBX` でもない場合に、`azaraC::internal::IFramer` を実装して
+1 フレーム分の 250 bit と SVID を `Parser` へ渡す例です。
+例ではデバッグ用の 1 行テキスト `AZC,<svid>,<64 桁の 16 進>\n` を 1 フレームとして扱います。
+
+```cpp
+class MyFramer : public azaraC::internal::IFramer {
+    bool feed(uint8_t byte, azaraC::internal::Frame& out) override;
+    void reset() override;
+};
+
+MyFramer framer;
+azaraC::Parser parser(framer);   // UBX/NMEA の自動判定は行わない
+```
+
+**契約**: `feed()` はフレーム完成時だけ `true` を返し、`svid` と `bits[32]` を全て埋めてから返します（部分書きのまま `true` を返すと全ゼロのフレームとして復号されます）。
+
+---
+
 ## Example一覧
 
 | Example            | 入力          | 出力                   | 特徴               |
@@ -253,6 +293,8 @@ ESP32 で UART RX タスクと出力タスクを分離し、キューでメッ�
 | error_handling     | NMEA/UBX      | Serial JSON + 統計     | エラーハンドリング |
 | wifi_client        | NMEA/UBX      | Serial + TCP           | ネットワーク出力   |
 | basic_uno          | NMEA/UBX      | Serial JSON            | AVR 最小構成 (Uno) |
+| basic_dcx          | NMEA/UBX      | Serial JSON + 要約     | MT=44 (DCX/CAMF)   |
+| custom_framer      | 独自テキスト  | Serial JSON            | `IFramer` 差し込み |
 | rtos_freertos      | NMEA/UBX      | Serial JSON            | FreeRTOS タスクベース |
 
 ---

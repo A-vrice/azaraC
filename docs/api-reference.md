@@ -75,6 +75,32 @@ void loop() {
 }
 ```
 
+##### `feed()`（一括）
+
+受信バッファをそのまま流し込みます。内部では 1 バイト版の `feed()` を順に呼ぶだけで、Nankai 集約・重複除去を含め挙動は同じです。
+
+```cpp
+bool feed(const uint8_t* data, size_t len, Message& out, uint32_t report_unix = 0);
+```
+
+| パラメータ | 型 | 説明 |
+|-----------|-----|------|
+| `data` | `const uint8_t*` | 入力バッファ（`nullptr` は `false`） |
+| `len` | `size_t` | バイト数（0 は `false`） |
+| `out` | `Message&` | 出力（1 通以上成立したときだけ有効） |
+| `report_unix` | `uint32_t` | UNIX時刻 (省略時: 0 = 未解決) |
+
+**戻り値:** `bool` - 1 通以上成立したら `true`。`out` の内容は 1 バイト版を順に呼んだ場合と同一で、成立した後に重複などで `false` になった場合は中身がクリアされ得ます。
+複数の電文が入っているバッファでは最後に成立した 1 通だけが残るので、取りこぼしたくないときは 1 バイト版を使ってください。
+
+```cpp
+uint8_t buf[512];
+size_t n = client.read(buf, sizeof(buf));
+if (parser.feed(buf, n, msg, now)) {
+    azaraC::toJson(msg, Serial);
+}
+```
+
 ##### `reset()`
 
 パーサーの状態をリセットします。フレーマー、デコーダー、重複除去フィルタ、**NankaiPageBufferManager**が初期化されます。
@@ -426,6 +452,7 @@ MessageをJSON形式で出力します。
 
 ```cpp
 void toJson(const Message& msg, Print& out);
+size_t toJson(const Message& msg, char* buf, size_t len);
 ```
 
 **パラメータ:**
@@ -433,6 +460,17 @@ void toJson(const Message& msg, Print& out);
 |-----------|-----|------|
 | `msg` | `const Message&` | シリアライズするメッセージ |
 | `out` | `Print&` | 出力先 (Serial, WiFiClient等) |
+| `buf` / `len` | `char*` / `size_t` | 境界付きバッファとその長さ |
+
+バッファ版は `Print` を持たない呼び出し側（`String`、固定バッファ、独自の送信キュー）向けです。
+`len > 0` なら必ず NUL 終端し、入り切らない残りは捨てます（バッファ外へは書きません）。
+戻り値は書き込んだバイト数（NUL を除く）で、`buf[戻り値] == '\0'` が成り立ちます。
+必要な長さは事前に分からないため、完全な JSON が要る場合は十分な `len` を渡すか `Print` 版を使ってください。
+
+```cpp
+char json[512];
+size_t n = azaraC::toJson(msg, json, sizeof(json));   // n == strlen(json)
+```
 
 **スレッド安全性:** AVR / 非 AVR のどちらもラベル用の共有バッファ（`AZARAC_FLASH_BUF_SIZE` の 1 本）を使うため、`toJson()` と定義テーブルの lookup を複数のタスク/スレッドから同時に呼ばないこと。AVR では lookup のたびに Flash からこのバッファへコピーする。
 FreeRTOS では呼び出し側で排他する（`examples/rtos_freertos` の `printJson()` を参照）。
@@ -449,6 +487,26 @@ if (client.connect(server, port)) {
     azaraC::toJson(msg, client);
     client.println();
 }
+```
+
+---
+
+### `crc24q()`
+
+CRC-24Q（IS-QZSS-L1S-009 §4.1.1.3）を計算します。受信経路が使うのと同じ実装です。
+
+```cpp
+uint32_t crc24q(const uint8_t* data, uint16_t bit_len);
+```
+
+`data[0]` の MSB から `bit_len` ビットを処理し、24 bit の CRC を返します。
+受信した `Message` の `crc24` は `Decoder` が入れた値なので通常は不要ですが、自前の電文生成（テスト送信器、リピータ）や、外部で組み立てた 250 bit フレームの検証に使えます。
+
+```cpp
+uint8_t bits[32] = {};
+// ... 0..225 bit を組み立てる ...
+uint32_t crc = azaraC::crc24q(bits, 226);
+setBits(bits, 226, 24, crc);   // 226..249 bit に CRC を置く
 ```
 
 ---

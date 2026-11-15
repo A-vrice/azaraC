@@ -4,6 +4,7 @@
 
 #include "doctest.h"
 #include "test_helpers.h"
+#include "internal/TimeFields.h"
 
 #if defined(AZARAC_TESTING) && AZARAC_TESTING
 namespace azaraC {
@@ -237,5 +238,88 @@ TEST_CASE("Parser clock: 1 ms rollback keeps dedup suppression without Nankai") 
     CHECK_FALSE(feedAt(parser, event, out, 42, t0 - 1));
     CHECK(feedAt(parser, event, out, 42, t0 + window + 1));
 }
+
+namespace {
+// updateClock() は getMillis() を直に呼ぶので、時刻を注入しないと公開 API の
+// 「フレーム無しで折り返し・後退を観測する」経路を決定的に検証できない。
+uint64_t g_fake_millis = 0;
+uint64_t fakeMillis() { return g_fake_millis; }
+} // namespace
+
+// 公開 API の updateClock() を直接通す回帰。
+// 受信が 2^32 ms 以上空いても loop() から呼ばれていれば古い履歴が捨てられ、
+// 生きている警報を偽の重複で抑止しないことを固定する。
+// （これまでのテストは friend の observeClock() を直接叩いており、wrapper は未実行だった。）
+TEST_CASE("Parser clock: updateClock() observes a generation change without any frame") {
+    azaraC::internal::TestMillisScope scope(&fakeMillis);
+    azaraC::Parser parser;
+    Message out;
+    const Message event = makeHypocenter();
+
+    g_fake_millis = 0xFFFFFF00ULL;              // 世代 0 の末尾で受信
+    CHECK(feedAt(parser, event, out, 42, g_fake_millis));
+
+    g_fake_millis = (1ULL << 32) + 0x100;       // 世代 1（フレームは 1 バイトも与えない）
+    parser.updateClock();
+
+    // 履歴が捨てられたので同じ情報が再通知される（捨てなければ窓内なので抑止される）。
+    CHECK(feedAt(parser, event, out, 42, g_fake_millis));
+    CHECK_FALSE(feedAt(parser, event, out, 42, g_fake_millis + 1));
+}
+
+TEST_CASE("Parser clock: updateClock() rounds a 1 ms rollback and keeps suppression") {
+    azaraC::internal::TestMillisScope scope(&fakeMillis);
+    azaraC::Parser parser;
+    Message out;
+    const Message event = makeHypocenter();
+    const uint64_t window = 2ULL * 60 * 60 * 1000;
+
+    g_fake_millis = 100000;
+    CHECK(feedAt(parser, event, out, 42, g_fake_millis));
+
+    g_fake_millis = 99999;                      // 受信順序の揺らぎ程度の逆行
+    parser.updateClock();
+    CHECK_FALSE(feedAt(parser, event, out, 42, 100001));   // 窓内 → 抑止
+
+    // 丸めで時計が凍らないこと: 窓を超えれば再通知される。
+    g_fake_millis = 100001 + window + 1;
+    parser.updateClock();
+    CHECK(feedAt(parser, event, out, 42, g_fake_millis));
+}
+
+// 時刻を注入しない経路（呼び出し側が実クロックのまま loop() から呼ぶ形）でも
+// 状態を壊さず、直後の受信が通常どおり処理されること。
+TEST_CASE("Parser clock: updateClock() with the real clock keeps the parser usable") {
+    azaraC::Parser parser;
+    Message out;
+    const Message event = makeHypocenter();
+
+    parser.updateClock();
+    // updateClock() が見た実時刻以降で受信する（逆行させない）。
+    const uint64_t now = azaraC::internal::getMillis();
+    CHECK(feedAt(parser, event, out, 42, now));
+    CHECK_FALSE(feedAt(parser, event, out, 42, now + 1));
+}
 #endif // AZARAC_ENABLE_DEDUP
+
+#if !AZARAC_ENABLE_DEDUP
+// dedup 無効構成（make -C test run-dedup-off）でも updateClock() がコンパイルされ、
+// 状態を持たない（毎回「新規」を返す）ことを固定する。
+TEST_CASE("Parser clock: updateClock() is stateless when dedup is disabled") {
+    azaraC::Parser parser;
+    Message out;
+    parser.updateClock();
+    parser.updateClock();
+
+    Message m;
+    m.valid = true;
+    m.msg_type = 43;
+    m.initPayload<Mt43Data>();
+    REQUIRE(m.getMt43() != nullptr);
+    m.getMt43()->disaster_category = 2;   // 南海トラフ以外（集約を通さない）
+
+    CHECK(feedAt(parser, m, out, 7, 1000));
+    CHECK(feedAt(parser, m, out, 7, 1001));   // 重複排除が無いので両方 true
+}
+#endif // !AZARAC_ENABLE_DEDUP
 #endif // AZARAC_TESTING

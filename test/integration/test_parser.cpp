@@ -19,6 +19,52 @@ TEST_CASE("Parser getNankaiBuffer returns nullptr for unknown key") {
 }
 #endif
 
+// 一括入力の等価性（カテゴリ非依存）。
+// 逐次 feed(byte) と feed(data, len) が同じ結果を返し、同じ電文を残すことを固定する。
+#if (AZARAC_ENABLE_SEISMIC)
+TEST_CASE("Parser: bulk feed is equivalent to byte-by-byte feed") {
+    uint8_t bits[32] = {};
+    setBits(bits, 0, 8, 0x53);
+    setBits(bits, 8, 6, 43);
+    setBits(bits, 14, 3, 2);       // 報告分類
+    setBits(bits, 17, 4, 3);       // 震度
+    setBits(bits, 214, 6, 1);      // Vn
+    setBits(bits, 226, 24, crc24qRef(bits, 226));
+    const std::string nmea = makeNmeaQzqsm(58, bits);
+
+    Parser byte_parser;
+    Message byte_msg;
+    bool byte_out = false;
+    for (char c : nmea) {
+        if (byte_parser.feed(static_cast<uint8_t>(c), byte_msg, 0)) byte_out = true;
+    }
+    REQUIRE(byte_out);
+
+    Parser bulk_parser;
+    Message bulk_msg;
+    const bool bulk_out = bulk_parser.feed(
+        reinterpret_cast<const uint8_t*>(nmea.data()), nmea.size(), bulk_msg, 0);
+
+    CHECK(bulk_out);
+    CHECK(bulk_msg.valid == byte_msg.valid);
+    CHECK(bulk_msg.msg_type == byte_msg.msg_type);
+    CHECK(bulk_msg.svid == byte_msg.svid);
+    CHECK(bulk_msg.crc24 == byte_msg.crc24);
+    CHECK(bulk_msg.payload_type == byte_msg.payload_type);
+}
+
+TEST_CASE("Parser: bulk feed reports no message for incomplete input") {
+    Parser parser;
+    Message msg;
+    // 途中で切れた文（完成すれば 1 通だが、ここでは '$QZQSM,55,' まで）。
+    static const char partial[] = "$QZQSM,55,00";
+    CHECK_FALSE(parser.feed(reinterpret_cast<const uint8_t*>(partial), sizeof(partial) - 1, msg, 0));
+    // nullptr / len=0 は何もせず false。
+    CHECK_FALSE(parser.feed(nullptr, 0, msg, 0));
+    CHECK_FALSE(parser.feed(reinterpret_cast<const uint8_t*>(""), 0, msg, 0));
+}
+#endif // (AZARAC_ENABLE_SEISMIC)
+
 // EEW 依存のテスト（dc=1）
 
 #if (AZARAC_ENABLE_EEW)

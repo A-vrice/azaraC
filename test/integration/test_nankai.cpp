@@ -515,4 +515,30 @@ TEST_CASE("NankaiPageBufferManager: zero key follows its buffer across slot reus
 }
 #endif // AZARAC_NANKAI_BUFFERS >= 2
 
+TEST_CASE("NankaiPageBufferManager: 進行中バッファと総ページ数が違うページは Rejected") {
+    // pageInRange() は通る（page=1, total=3）が、進行中バッファの original_total_pages（2）と
+    // 一致しないため NankaiPageBuffer::addPageEx() が拒否する経路。
+    // manager がこれを Rejected として伝え、進行中の集約（本文・受信数）を壊さないことを固定する。
+    NankaiPageBufferManager manager;
+    const NankaiPageKey key = {3, 6, 15, 12, 30, 0, 2};
+    uint8_t text1[18] = {'A', 0};
+    uint8_t text2[18] = {'B', 0};
+    const uint32_t now = currentMillis();
+
+    NankaiPageBuffer* completed = nullptr;
+    CHECK(manager.addPageEx(key, 1, 2, text1, now, &completed) == NankaiAggregateResult::NotComplete);
+    CHECK(completed == nullptr);
+
+    CHECK(manager.addPageEx(key, 1, 3, text2, now + 1, &completed) == NankaiAggregateResult::Rejected);
+    CHECK(completed == nullptr);
+    REQUIRE(manager.getBuffer(key) != nullptr);
+    CHECK(manager.getBuffer(key)->received_count == 1);
+    CHECK_FALSE(manager.getBuffer(key)->truncated);
+
+    // 元の総ページ数なら引き続き完成できる。
+    CHECK(manager.addPageEx(key, 2, 2, text2, now + 2, &completed) == NankaiAggregateResult::Complete);
+    REQUIRE(completed != nullptr);
+    CHECK(completed->isComplete());
+}
+
 #endif // AZARAC_ENABLE_NANKAI

@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **公開APIの追加（未テスト経路の回帰と組み込み向けの小口 API）**:
+  - `azaraC::crc24q(data, bit_len)` を公開した。受信経路が使う `internal::Decoder::crc24q` への薄い inline で、自前の電文生成（テスト送信器・リピータ）や外部で組み立てた 250 bit フレームの検証に使える。既知ベクタ（`"123456789"` = 0xCDE703）、0 bit / 8 bit / 226 bit / 250 bit で参照実装と一致することを固定した。
+  - `Parser::feed(const uint8_t* data, size_t len, Message& out, uint32_t report_unix = 0)` を追加した。受信バッファをそのまま流せる。内部は 1 バイト版のループで、挙動（Nankai 集約・dedup を含む）は逐次呼び出しと同一であることを等価性テストで固定した。メンバは増やしていない。
+  - `azaraC::toJson(msg, char* buf, size_t len)` を追加した。`Print` を持たない呼び出し側向けの境界付き出力で、`len > 0` なら必ず NUL 終端し、バッファ外へは書かない。`Print` 版とバイト一致すること、切り詰め時も `buf[戻り値] == '\0'` になることをテストした。
+  - `test/integration/test_parser_clock.cpp` に `Parser::updateClock()`（公開 API）を通す回帰を追加した。これまでは friend の `observeClock()` を直接叩いており、wrapper は未実行だった。`AZARAC_TESTING` 限定の時刻ソース注入（`internal::testSetMillisSource` / `TestMillisScope`）で、フレームを 1 バイトも与えずに世代境界（2³² ms）・1 ms 後退の丸め・窓満了を決定的に検証する。リリースの `getMillis()` 分岐（AVR の SREG、Cortex-M の PRIMASK、ESP32 の `esp_timer`）には触れていない。
+  - 未到達だったエラー経路のテストを追加した: NMEA の SVID 非数字／255 超の拒否、`invalid_mt44` の note（MT=44 で payload 無し）、NW-PAC の表に無い高さコードと未解決到着時刻（`arrival_time:null` + `arrival_status`）、Nankai manager 経由の `Rejected`（総ページ数不一致で進行中の集約を壊さない）。
+  - `keywords.txt` を公開 API 全体（型・アクセサ・列挙値）へ拡張し、`examples/custom_framer`（`IFramer` 差し込み）と `examples/basic_dcx`（MT=44 の表示）を追加した。
+  - `test/Makefile` に `STATIC=1` を追加（MinGW で libstdc++/libgcc を静的リンクする。動的リンクしたテストバイナリが起動時に 0xC0000139 で落ちる環境向け）。
+  - README の AVR 実測値に「avr-gcc の版依存であり、`bench` がゲートするのは SRAM 非増加と 64 KiB 窓である」旨を追記した。
+
 - **南海トラフの訓練/実警報の分離と集約状態の修正**:
   - `NankaiPageKey` と `dedupEventToken` に `report_classification`（Rc、3 bit）を追加した。訓練/試験（Rc=7）と実警報（Rc=2）が同じ事象として抑止・混在するのを防ぐ。事象トークンは 26 bit から 29 bit になり、合成鍵の payload 30 bit に収まる。`NankaiPageKey` は 7 B、AVR の `NankaiPageBuffer` は 1,158 B（4 ページ構成は 96 B）、ホストは 1,160 B のまま。
   - `NankaiPageBufferManager` がページ範囲を割り当て・LRU 追い出しより前に検証するようにした。別事象の不正ページが進行中の正常な集約を消さない。

@@ -104,6 +104,27 @@ TEST_CASE("CRC-24Q: known-answer 226-bit messages") {
     }
 }
 
+// 公開 API の CRC-24Q（azaraC::crc24q）。自前の電文生成・外部フレーム検証用に公開している。
+TEST_CASE("Public crc24q agrees with the reference and the internal decoder") {
+    uint8_t buf[32] = {};
+    CHECK(crc24q(buf, 226) == TestDecoder::calcCRC(buf, 226));
+    CHECK(crc24q(buf, 226) == crc24qRef(buf, 226));
+
+    // 0 bit は 0（初期値も XOR も無い CRC なので全 0）。
+    CHECK(crc24q(buf, 0) == 0);
+
+    // バイト境界（8 bit）
+    uint8_t one[1] = {0x00};
+    CHECK(crc24q(one, 8) == crc24qRef(one, 8));
+    one[0] = 0x80;
+    CHECK(crc24q(one, 8) == crc24qRef(one, 8));
+
+    // L1S フレームのビット長（250 bit）と、端数を含む 226 bit
+    for (int i = 0; i < 32; ++i) buf[i] = static_cast<uint8_t>(i * 7 + 1);
+    CHECK(crc24q(buf, 250) == crc24qRef(buf, 250));
+    CHECK(crc24q(buf, 226) == crc24qRef(buf, 226));
+}
+
 TEST_CASE("getBits extraction") {
     uint8_t buf[2] = {0xAB, 0xCD};
 

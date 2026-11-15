@@ -23,6 +23,29 @@
 namespace azaraC {
 namespace internal {
 
+#if defined(AZARAC_TESTING) && AZARAC_TESTING
+// テスト専用の時刻ソース（AZARAC_TESTING のときだけコンパイルされる）。
+// Parser::updateClock() は getMillis() を直に呼ぶため、時刻を注入できないと
+// 「フレームを 1 バイトも与えずに折り返し・時計の後退を観測する」経路（公開 API）を
+// 回帰テストできない。ホスト分岐にだけ差し込み、AVR/ESP32 の実装には触れない。
+using TestMillisSource = uint64_t (*)();
+inline TestMillisSource& testMillisSource() {
+    static TestMillisSource fn = nullptr;
+    return fn;
+}
+inline void testSetMillisSource(TestMillisSource fn) { testMillisSource() = fn; }
+
+// テスト終了時に必ず元のソースへ戻す RAII（失敗したアサーションで戻し忘れない）。
+struct TestMillisScope {
+    explicit TestMillisScope(TestMillisSource fn) : prev_(testMillisSource()) { testMillisSource() = fn; }
+    ~TestMillisScope() { testMillisSource() = prev_; }
+    TestMillisScope(const TestMillisScope&) = delete;
+    TestMillisScope& operator=(const TestMillisScope&) = delete;
+private:
+    TestMillisSource prev_;
+};
+#endif
+
 // 現在時刻（ミリ秒、uint64_t、巻き戻し安全）。
 // inline（外部リンケージ）: 関数内 static の s_last を全 TU で単一実体にする（C++17）。
 // static inline だと TU ごとに s_last が別になり、複数 TU から呼ぶと相互に矛盾する時刻を返す。
@@ -74,6 +97,9 @@ inline uint64_t getMillis() {
 #endif
     return current;
 #else
+#if defined(AZARAC_TESTING) && AZARAC_TESTING
+    if (TestMillisSource fn = testMillisSource()) return fn();
+#endif
     auto now = std::chrono::steady_clock::now();
     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
         now.time_since_epoch()
