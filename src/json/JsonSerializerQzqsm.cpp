@@ -238,6 +238,16 @@ bool serializeTsunami(const Mt43Data* d, Print& out) {
     AZARAC_LABEL(out, "warning_code_label",
         qzss_dcr_jma_tsunami_warning_code_lookup,
         qzss_dcr_jma_tsunami_warning_code_en_lookup, tsunami->warning_code, false);
+    wk(out, AZARAC_KEY("notifications")); out.print('[');
+    for (uint8_t i = 0; i < tsunami->notification_count; ++i) {
+        if (i) writeChar(out, ',');
+        uint16_t code = tsunami->notification[i];
+        out.print('{');
+        wf_u(out, AZARAC_KEY("code"), code);
+        wf_s(out, AZARAC_KEY("label"), AZARAC_LOOKUP_LANG(qzss_dcr_jma_notification_on_disaster_prevention_lookup, qzss_dcr_jma_notification_on_disaster_prevention_en_lookup, code), /*last=*/true);
+        out.print('}');
+    }
+    writeRaw(out, AZARAC_KEY("],"));
     wk(out, AZARAC_KEY("entries")); out.print('[');
     for (uint8_t i = 0; i < tsunami->count; ++i) {
         if (i) writeChar(out, ',');

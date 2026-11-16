@@ -185,6 +185,9 @@ struct TsunamiData {
     uint8_t      warning_code;
     TsunamiEntry entries[5];
     uint8_t      count;
+    // 防災通知コード Co_1..Co_3（Table 4.1.2-21, bit 53..79）。0 終端・最大 3。
+    uint16_t     notification[3];
+    uint8_t      notification_count;
 };
 #endif
 

@@ -455,6 +455,7 @@ TEST_CASE("Nankai E2E: 27-page full aggregation with real text data") {
             const azaraC::NankaiData* nankai = mt43->getNankai();
             REQUIRE(nankai != nullptr);
             CHECK(nankai->is_aggregated == true);
+            CHECK(nankai->page == 1);
             CHECK(nankai->aggregated_len == EXPECTED_AGG_LEN);
             // 既定構成で実メッセージが打ち切られないことを固定
             CHECK(nankai->truncated == false);
@@ -491,6 +492,7 @@ TEST_CASE("Nankai E2E: 27-page full aggregation with real text data") {
     internal::JsonSerializer::serialize(msg, sp);
     const auto& s = sp.str();
     CHECK(s.find("\"text_utf8\":") != std::string::npos);
+    CHECK(s.find("\"page\":1") != std::string::npos);
     CHECK(s.find("\"text_hex\"") == std::string::npos);
 }
 #endif // AZARAC_NANKAI_MAX_PAGES >= 27
@@ -717,6 +719,7 @@ TEST_CASE("Nankai E2E: Page missing prevents aggregation") {
         const azaraC::NankaiData* nankai = mt43->getNankai();
         REQUIRE(nankai != nullptr);
         CHECK(nankai->is_aggregated == true);
+        CHECK(nankai->page == 1);
         CHECK(nankai->aggregated_len > 0);
 
         uint8_t expected_body[27 * azaraC::internal::NankaiPageBuffer::TEXT_PER_PAGE] = {};
@@ -919,6 +922,7 @@ TEST_CASE("Nankai E2E: 63-page maximum aggregation (protocol limit)") {
             const azaraC::NankaiData* nankai = mt43->getNankai();
             REQUIRE(nankai != nullptr);
             CHECK(nankai->is_aggregated == true);
+            CHECK(nankai->page == 1);
             CHECK(nankai->aggregated_len == EXPECTED_AGG_LEN_63);
             CHECK(memcmp(nankai->aggregated_text_ptr, expected_body_63, EXPECTED_AGG_LEN_63) == 0);
         }
@@ -944,5 +948,59 @@ TEST_CASE("Nankai E2E: 63-page maximum aggregation (protocol limit)") {
     CHECK(s.find("\"text_utf8\":") != std::string::npos);
     CHECK(s.find("\"text_hex\"") == std::string::npos);
 }
+
+// 逆順（27→1）で完成しても代表ページは page=1。
+#if AZARAC_NANKAI_MAX_PAGES >= 27
+TEST_CASE("Nankai E2E: reversed completion still reports page 1") {
+    azaraC::Parser parser;
+    azaraC::Message msg;
+    uint8_t bits[32];
+
+    bool completed = false;
+    for (uint8_t i = 0; i < 27; ++i) {
+        const uint8_t page = static_cast<uint8_t>(27 - i);
+        buildNankaiPage(page, 27, /*info_code=*/5,
+                        nankai_page_data[page - 1], NankaiPageBuffer::TEXT_PER_PAGE, bits,
+                        /*rt_month=*/6, /*rt_day=*/15, /*rt_hour=*/12, /*rt_minute=*/30);
+        std::string nmea = makeNmeaQzqsm(58, bits);
+        for (size_t k = 0; k < nmea.length(); ++k) {
+            if (parser.feed(nmea[k], msg, 0)) {
+                completed = true;
+                const azaraC::NankaiData* nankai = msg.getMt43()->getNankai();
+                REQUIRE(nankai != nullptr);
+                CHECK(nankai->is_aggregated == true);
+                CHECK(nankai->page == 1);
+            }
+        }
+    }
+    CHECK(completed);
+}
+#endif // AZARAC_NANKAI_MAX_PAGES >= 27
+
 #endif // AZARAC_NANKAI_MAX_PAGES >= 63
+
+// ゼロ長集約（全ページ本文が 0）は is_aggregated=false のまま、完成ページ番号を provenance として保つ。
+TEST_CASE("Nankai E2E: zero-length aggregation keeps completing page number") {
+    azaraC::Parser parser;
+    azaraC::Message msg;
+    uint8_t bits[32];
+    const uint8_t zeros[18] = {};
+
+    buildNankaiPage(1, 2, 5, zeros, 18, bits);
+    CHECK_FALSE(feedAll(parser, msg, makeNmeaQzqsm(58, bits)));
+    buildNankaiPage(2, 2, 5, zeros, 18, bits);
+    CHECK(feedAll(parser, msg, makeNmeaQzqsm(58, bits)));
+
+    const azaraC::NankaiData* nankai = msg.getMt43()->getNankai();
+    REQUIRE(nankai != nullptr);
+    CHECK(nankai->is_aggregated == false);
+    CHECK(nankai->page == 2);
+    CHECK(nankai->total_page == 2);
+
+    StringPrint sp;
+    internal::JsonSerializer::serialize(msg, sp);
+    const auto& s = sp.str();
+    CHECK(s.find("\"page\":2") != std::string::npos);
+    CHECK(s.find("\"text_hex\"") != std::string::npos);
+}
 #endif // AZARAC_ENABLE_NANKAI

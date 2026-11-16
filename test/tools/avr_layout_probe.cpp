@@ -28,10 +28,10 @@ static_assert(offsetof(azaraC::internal::NankaiPageBuffer, aggregated_text) == 2
 #error "avr_layout_probe expects AZARAC_NANKAI_MAX_PAGES=63 or 4"
 #endif
 
-// README / docs/architecture.md が引用する AVR プリセットのサイズ（Mt43Data 75 B + ヘッダ）。
+// README / docs/architecture.md が引用する AVR プリセットのサイズ（Mt43Data 82 B + ヘッダ）。
 // ページ数には依存しないので、上の #if 連鎖の外（ファイルスコープ）に置く。
 #if AZARAC_ENABLE_DCX_CAMF
 static_assert(sizeof(azaraC::Message) == 199, "Message AVR + DCX layout changed");
 #else
-static_assert(sizeof(azaraC::Message) == 84, "Message AVR preset layout changed");
+static_assert(sizeof(azaraC::Message) == 91, "Message AVR preset layout changed");
 #endif

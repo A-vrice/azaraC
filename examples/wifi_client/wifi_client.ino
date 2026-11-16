@@ -94,9 +94,18 @@ bool connectServer() {
 class WifiPrint : public Print {
 public:
     WiFiClient& client;
+    bool failed = false;
     explicit WifiPrint(WiFiClient& c) : client(c) {}
-    size_t write(uint8_t c) override { return client.write(c); }
-    size_t write(const uint8_t* buf, size_t len) override { return client.write(buf, len); }
+    size_t write(uint8_t c) override {
+        size_t n = client.write(c);
+        if (n != 1) failed = true;
+        return n;
+    }
+    size_t write(const uint8_t* buf, size_t len) override {
+        size_t n = client.write(buf, len);
+        if (n != len) failed = true;
+        return n;
+    }
 };
 
 bool sendJson(const azaraC::Message& msg) {
@@ -109,6 +118,11 @@ bool sendJson(const azaraC::Message& msg) {
     azaraC::toJson(msg, wifiPrint);
     wifiPrint.println();
 
+    // toJson() は Print::write() の戻り値を検査しないため、シンク側で全バイト書き込みと接続維持を確認する。
+    if (wifiPrint.failed || !wifiClient.connected()) {
+        serverConnected = false;
+        return false;
+    }
     return true;
 }
 

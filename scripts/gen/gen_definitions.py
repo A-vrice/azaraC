@@ -48,7 +48,7 @@ GUARD_MAP = {
     "qzss_dcr_jma_typhoon_scale_category": "AZARAC_ENABLE_TYPHOON",
     "qzss_dcr_jma_marine_forecast_region": "AZARAC_ENABLE_MARINE",
     "qzss_dcr_jma_marine_warning_code": "AZARAC_ENABLE_MARINE",
-    "qzss_dcr_jma_notification_on_disaster_prevention": "(AZARAC_ENABLE_EEW || AZARAC_ENABLE_HYPOCENTER)",
+    "qzss_dcr_jma_notification_on_disaster_prevention": "(AZARAC_ENABLE_EEW || AZARAC_ENABLE_HYPOCENTER || AZARAC_TSUNAMI_NOTIFICATION_LABELS)",
     "qzss_dcx_camf_a1_message_type": "AZARAC_ENABLE_DCX_CAMF",
     "qzss_dcx_camf_a2_country_region_name": "AZARAC_ENABLE_DCX_CAMF",
     "qzss_dcx_camf_a3_provider_identifier": "AZARAC_ENABLE_DCX_CAMF",

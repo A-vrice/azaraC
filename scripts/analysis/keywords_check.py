@@ -21,7 +21,8 @@ HEADERS = [
 TYPE_RE = re.compile(r"^[ \t]*(?:struct|class|union|enum[ \t]+class)[ \t]+([A-Za-z_]\w*)[^\n]*\{", re.MULTILINE)
 MACRO_RE = re.compile(
     r"^#define[ \t]+(AZARAC_(?:ENABLE_[A-Z_0-9]+|LANG_[A-Z]+|NANKAI_[A-Z_]+|"
-    r"DEDUP_[A-Z_0-9]+|NMEA_[A-Z_]+|AVR_LARGE_FLASH|FLASH_BUF_SIZE))[ \t]", re.MULTILINE)
+    r"DEDUP_[A-Z_0-9]+|NMEA_[A-Z_]+|AVR_LARGE_FLASH|FLASH_BUF_SIZE|"
+    r"TSUNAMI_NOTIFICATION_LABELS))[ \t]", re.MULTILINE)
 
 
 def main():

@@ -145,7 +145,8 @@ make -C test fuzz FUZZ_ITERATIONS=100000
 | `make -C test test-time-irq` | `ARDUINO=1` + `__AVR__` + スタブ `avr/io.h` で `internal::getMillis()` の割り込み状態保存・復元と32 bit折り返しの64 bit拡張をホスト検証。ESP32は `esp_timer_get_time()` の64 bit分岐を使うため、このテストの対象外 |
 | `make -C test run-small-pages` | `AZARAC_NANKAI_MAX_PAGES=8` で全体を再ビルドし、ページ打ち切り経路を検証（既定63では打ち切りが発生せず該当テストが `#if` で除外されるため） |
 | `make -C test run-dedup-off` | `AZARAC_ENABLE_DEDUP=0` で全テストを再ビルド・実行し、dedup無効構成でもテストがコンパイル・動作することを検証（終了時に `clean`） |
-| `make -C test avr-layout` | 実avr-g++ で `NankaiPageKey`/`NankaiPageBuffer`/`DedupFilter`/`Message` のABIサイズと `aggregated_text` オフセットを検証（63ページ・4ページ・DCX/CAMF有効の3構成、`-fsyntax-only`。`Message` は84 B / DCX有効199 B） |
+| `make -C test run-tsunami-labels-off` | `AZARAC_TSUNAMI_NOTIFICATION_LABELS=0` + EEW/震源無効で全テストを再ビルド・実行し、津波通知がコードのみ（`label:null`）になる構成を検証（終了時に `clean`） |
+| `make -C test avr-layout` | 実avr-g++ で `NankaiPageKey`/`NankaiPageBuffer`/`DedupFilter`/`Message` のABIサイズと `aggregated_text` オフセットを検証（63ページ・4ページ・DCX/CAMF有効の3構成、`-fsyntax-only`。`Message` は91 B / DCX有効199 B） |
 | `make -C test nmea-policy` | `AZARAC_NMEA_STRICT_SVID` / `AZARAC_NMEA_REJECT_NONZERO_PADDING` の受理表を、既定・`STRICT_SVID=1`・`STRICT_SVID=2` + パディング拒否の3構成でビルド・実行してassert（`test/tools/nmea_policy_probe.cpp`）。マクロで分岐が消えるため `.o` は共有しない |
 | `make -C test utf8-trim` | `AZARAC_FLASH_BUF_SIZE=64` で `azarac_utf8_trim_len` / `azarac_pgm_join_z` の打ち切りとUTF-8境界の丸めをassert（`test/tools/utf8_trim_probe.cpp`）。既定800 Bでは最長ラベル769 Bに届かず切り詰め経路が踏まれない |
 | `make -C test run-lto` | `-O2 -flto -Werror=lto-type-mismatch -Werror=odr` で全体を再ビルド・実行し、リンク時最適化での型不一致・ODR違反・インライン後codegenの退行を検証（終了時に `clean`） |

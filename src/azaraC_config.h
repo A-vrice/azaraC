@@ -83,6 +83,13 @@
 #define AZARAC_ENABLE_DCX_CAMF AZARAC_AVR_LARGE_FLASH
 #endif
 
+// 津波（dc=5）の防災通知コードのラベル。表は JA 5.8 KB / EN 5.2 KB で、AVR プリセットの
+// 共有バッファ（64 B）には収まらない。コードは常に復号するが、ラベルは既定で出さない。
+// 有効化する場合は AZARAC_FLASH_BUF_SIZE が 640 B になる（Uno では +576 B SRAM）。
+#ifndef AZARAC_TSUNAMI_NOTIFICATION_LABELS
+#define AZARAC_TSUNAMI_NOTIFICATION_LABELS 0
+#endif
+
 // 定義表引き当て用の共有バッファ（internal/FlashString.h 参照）。
 // カテゴリマクロより後に置く（preset でもサイズを選べるようにするため）。
 // 収めるべき長さは「ラベルの出どころとなる全カテゴリの最長ラベル」。
@@ -93,8 +100,9 @@
 #if AZARAC_ENABLE_DCX_CAMF
 // DCX/CAMF はさらに長いラベルを足す（a4_hazard_definition: 683 B）→ 800 B。
 #define AZARAC_FLASH_BUF_SIZE 800
-#elif AZARAC_ENABLE_EEW || AZARAC_ENABLE_HYPOCENTER
+#elif AZARAC_ENABLE_EEW || AZARAC_ENABLE_HYPOCENTER || AZARAC_TSUNAMI_NOTIFICATION_LABELS
 // 最長は 596 B（notification_on_disaster_prevention、JA）/ 515 B（EN）。
+// 津波の通知ラベルも同じ表を使う（AZARAC_TSUNAMI_NOTIFICATION_LABELS 有効時）。
 #define AZARAC_FLASH_BUF_SIZE 640
 #elif AZARAC_ENABLE_NANKAI
 // NANKAI の info-code 最長ラベルは 509 B（"調査中B"）。540 で余裕を持つ。
@@ -155,6 +163,11 @@
 #endif
 #ifndef AZARAC_ENABLE_DCX_CAMF
 #define AZARAC_ENABLE_DCX_CAMF 1
+#endif
+
+// 非 AVR の既定は津波カテゴリに追従する（表が Flash を食うだけで、共有バッファは無い）。
+#ifndef AZARAC_TSUNAMI_NOTIFICATION_LABELS
+#define AZARAC_TSUNAMI_NOTIFICATION_LABELS (AZARAC_ENABLE_TSUNAMI)
 #endif
 
 // 重複排除の有効/無効。0 にすると DedupFilter は状態を持たず、常に「新規」を返す。

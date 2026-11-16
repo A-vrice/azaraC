@@ -32,7 +32,11 @@ CATEGORIES = (
     "VOLCANO", "ASH_FALL", "WEATHER", "FLOOD", "TYPHOON", "MARINE", "DCX_CAMF",
 )
 # ユーザーが設定できるフラグ。AVR プリセットが固定するものは別途扱う。
-TUNABLE = [c for c in CATEGORIES if c not in ("SEISMIC", "TSUNAMI")]
+# TSUNAMI_LABELS は AZARAC_ENABLE_* ではなく AZARAC_TSUNAMI_NOTIFICATION_LABELS で、
+# 津波通知ラベルの表（EEW/震源と共有）を有効にする。AVR プリセット既定は 0。
+TUNABLE = [c for c in CATEGORIES if c not in ("SEISMIC", "TSUNAMI")] + ["TSUNAMI_LABELS"]
+# 擬似カテゴリ → 実際のマクロ名（crosscheck の -D 用）。
+FLAG_DEFINES = {"TSUNAMI_LABELS": "AZARAC_TSUNAMI_NOTIFICATION_LABELS"}
 
 # test/bench/avr/check_flash_buf.py -> repository root
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -86,8 +90,14 @@ def unescape(text):
 
 
 def parse_condition(expr):
-    """生成ガードの (categories, language)。例: '(A || B) && (AZARAC_LANG_JA)'。"""
+    """生成ガードの (categories, language)。例: '(A || B) && (AZARAC_LANG_JA)'。
+
+    AZARAC_TSUNAMI_NOTIFICATION_LABELS は擬似カテゴリ TSUNAMI_LABELS として扱う
+    （津波通知ラベルの表は EEW/HYPOCENTER と共有で、このマクロでも有効になる）。
+    """
     cats = frozenset(re.findall(r'AZARAC_ENABLE_(\w+)', expr))
+    if "AZARAC_TSUNAMI_NOTIFICATION_LABELS" in expr:
+        cats = cats | {"TSUNAMI_LABELS"}
     lang = None
     if "AZARAC_LANG_EN" in expr:
         lang = "EN"
@@ -254,7 +264,7 @@ def crosscheck_ladder(chain, avr_gcc, configs):
         args = [avr_gcc, "-E", "-dM", "-mmcu=" + mcu, "-I", os.path.join(REPO, "src"), "-x", "c++",
                 CONFIG_H]
         for cat in TUNABLE:
-            args.append("-DAZARAC_ENABLE_%s=%d" % (cat, flags.get(cat, 0)))
+            args.append("-D%s=%d" % (FLAG_DEFINES.get(cat, "AZARAC_ENABLE_" + cat), flags.get(cat, 0)))
         args.append("-DAZARAC_LANG_JA=%d" % flags.get("LANG_JA", 1))
         args.append("-DAZARAC_LANG_EN=%d" % flags.get("LANG_EN", 0))
         # args はスクリプト内で組み立てる argv で、シェルは経由しない。
@@ -304,6 +314,7 @@ def main():
 
     samples = [("atmega328p", {"LANG_JA": 1, "LANG_EN": 0, **{c: 0 for c in TUNABLE}, "DCX_CAMF": 0}),
                ("atmega328p", {"LANG_JA": 1, "LANG_EN": 0, **{c: 0 for c in TUNABLE}, "EEW": 1}),
+               ("atmega328p", {"LANG_JA": 1, "LANG_EN": 0, **{c: 0 for c in TUNABLE}, "TSUNAMI_LABELS": 1}),
                ("atmega328p", {"LANG_JA": 1, "LANG_EN": 0, **{c: 0 for c in TUNABLE}, "VOLCANO": 1}),
                ("atmega328p", {"LANG_JA": 1, "LANG_EN": 0, **{c: 1 for c in TUNABLE}}),
                ("atmega2560", {"LANG_JA": 1, "LANG_EN": 0, **{c: 0 for c in TUNABLE}, "DCX_CAMF": 1}),

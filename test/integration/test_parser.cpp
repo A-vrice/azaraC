@@ -151,6 +151,69 @@ TEST_CASE("Parser: CRC 不正のフレームは svid を残さない") {
     CHECK(msg.svid == 0);  // 直前の 186 も、壊れたフレームの 189 も残らない
 }
 
+// F1 契約: 不完全入力は feed=false を返し続け、完成フレームでフレーマ状態が回復する。
+// 回復フレームは別 identity（report minute を変更）にして、dedup 有効でも抑止されず全ビルドで回復を検証する。
+TEST_CASE("Parser: incomplete input never reports success and recovers") {
+    Parser parser;
+    Message msg;
+
+    const std::string good = makeEewNmea58();
+    bool output = false;
+    for (size_t i = 0; i < good.length(); ++i) {
+        if (parser.feed(good[i], msg, 0)) { output = true; break; }
+    }
+    REQUIRE(output);
+    CHECK(msg.valid == true);
+
+    // 不完全な $QZQSM 文（チェックサム無し）を 1 バイトずつ投入 → すべて false。
+    const std::string partial = "$QZQSM,58,9AAF";
+    for (size_t i = 0; i < partial.length(); ++i) {
+        INFO("partial byte ", i);
+        CHECK_FALSE(parser.feed(partial[i], msg, 0));
+    }
+
+    // 別 identity の完成フレームで状態が回復する（同一再投入は dedup が抑止するのが正しいため minute を変える）。
+    uint8_t rbits[32] = {};
+    setBits(rbits, 0, 8, 0x53);
+    setBits(rbits, 8, 6, 43);
+    setBits(rbits, 14, 3, 1);
+    setBits(rbits, 17, 4, 1);
+    setBits(rbits, 35, 6, 1);   // report minute=1 → 先頭フレームと別の dedup identity
+    setBits(rbits, 214, 6, 1);
+    setBits(rbits, 226, 24, crc24qRef(rbits, 226));
+    const std::string recovery = makeNmeaQzqsm(58, rbits);
+    bool recovered = false;
+    for (size_t i = 0; i < recovery.length(); ++i) {
+        if (parser.feed(recovery[i], msg, 0)) { recovered = true; break; }
+    }
+    CHECK(recovered);
+    CHECK(msg.valid == true);
+}
+
+// F1 契約: 完成フレーム＋CRC 失敗は valid=false・svid=0（ヘッダ由来の値を残さない）。
+TEST_CASE("Parser: complete frame with bad CRC clears valid and svid") {
+    Parser parser;
+    Message msg;
+
+    uint8_t bits[32] = {};
+    setBits(bits, 0, 8, 0x53);
+    setBits(bits, 8, 6, 43);
+    setBits(bits, 14, 3, 1);
+    setBits(bits, 17, 4, 1);
+    setBits(bits, 214, 6, 1);
+    setBits(bits, 226, 24, crc24qRef(bits, 226));   // 正しい CRC を設定
+    bits[10] ^= 0x01;                              // ペイロードを破壊（CRC 対象内）→ CRC 不一致
+    const std::string bad = makeNmeaQzqsm(58, bits);   // NMEA チェックサムは再計算される
+
+    bool accepted = false;
+    for (size_t i = 0; i < bad.length(); ++i) {
+        if (parser.feed(bad[i], msg, 0)) accepted = true;
+    }
+    CHECK_FALSE(accepted);
+    CHECK(msg.valid == false);
+    CHECK(msg.svid == 0);
+}
+
 TEST_CASE("Parser AUTO mode: UBX message decoded") {
     Parser parser;
     Message msg;

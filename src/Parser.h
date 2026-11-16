@@ -16,7 +16,7 @@ namespace internal {
 struct ParserTestHook;
 } // namespace internal
 
-// RAM: Parser 実体は静的確保で約 5.4 KB（既定: dedup 4 KB + Nankai 管理部 1.2 KB + framer/decoder）、推奨 5.8 KB。
+// RAM: Parser 実体は静的確保で約 6.6 KB（実測 6,624 B。既定: dedup 4 KB + Nankai 2×1,160 B + framer/decoder）、推奨 7.0 KB。
 // dedup/Nankai 有効時は 64 bit epoch guard 用に 8 B を追加する（両方無効ならメンバ自体が存在しない）。
 // AVR preset（Nankai/DCX off、dedup 64x8）では約 0.7 KB。2 KB SRAM のターゲットでは Nankai/DCX を無効のままにすること。
 // スタック上限: feed() が host -Os で 808 B / AVR preset で 259 B。JSON 出力は別チェーン（host 1,600 B）。

@@ -3,8 +3,11 @@
 // 終端はエントリ全体の 0 で判定する（Pl のみだと Ta/Th 非0の非準拠電文でエントリを取りこぼす）。
 
 #include "../test_helpers.h"
+#include "../src/internal/PrintShim.h"
+#include "../src/json/JsonSerializer.h"
 #include "doctest.h"
 #include <algorithm>
+#include <string>
 
 using namespace azaraC;
 
@@ -82,6 +85,29 @@ TEST_CASE("Tsunami list: termination is whole-entry zero, not Pl only") {
     CHECK(t3->count == 1);
     CHECK(t3->entries[0].region_code == 100);
     CHECK(t3->entries[0].arrival_time_raw == 0);
+}
+
+TEST_CASE("Tsunami notifications: Co_1..Co_3 decoded and serialized") {
+    // Table 4.1.2-21: Co_1..Co_3 は bit 53..79（9 bit × 3、0 終端）。
+    uint8_t bits[32] = {};
+    mt43Header(bits, 5);
+    setBits(bits, 53, 9, 122);   // Co_1 = 122（表にあるコード）
+    setBits(bits, 62, 9, 0);     // Co_2 = 0 → 終端
+    Message msg = decodeBits(bits);
+    const TsunamiData* t = msg.getMt43()->getTsunami();
+    REQUIRE(t != nullptr);
+    CHECK(t->notification_count == 1);
+    CHECK(t->notification[0] == 122);
+
+    StringPrint sp;
+    internal::JsonSerializer::serialize(msg, sp);
+    const std::string& s = sp.str();
+    CHECK(s.find("\"notifications\"") != std::string::npos);
+    CHECK(s.find("\"code\":122") != std::string::npos);
+    // 表が有効な構成（非 AVR 既定、または EEW/震源有効）ではラベルも出る。
+#if (AZARAC_ENABLE_EEW || AZARAC_ENABLE_HYPOCENTER || AZARAC_TSUNAMI_NOTIFICATION_LABELS)
+    CHECK(s.find("\"label\":null") == std::string::npos);
+#endif
 }
 #endif // AZARAC_ENABLE_TSUNAMI
 

@@ -193,10 +193,11 @@ internal::NankaiAggregateResult Parser::processNankaiAggregation(
             outNankai->aggregated_len = 0;
             outNankai->aggregated_text_ptr = nullptr;
             outNankai->truncated = buffer->truncated;
-            outNankai->page = 1;
             outNankai->total_page = buffer->original_total_pages;
 
             uint16_t textLen = buffer->compactText();
+            // 集約本文があれば page=1（完成イベントの代表ページ）。ゼロ長なら完成ページ番号を保つ（provenance）。
+            outNankai->page = (textLen > 0) ? 1 : nankai->page;
             if (textLen > 0) {
                 // ゼロコピー: NankaiPageBuffer の内部ストレージを指す。
                 // 次の feed() または reset() まで有効（NankaiData の説明参照）。
