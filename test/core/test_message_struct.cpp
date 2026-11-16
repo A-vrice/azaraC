@@ -26,7 +26,7 @@ static_assert(alignof(azaraC::Mt44Data) <= alignof(uint64_t),
     AZARAC_ENABLE_NANKAI && AZARAC_ENABLE_TSUNAMI && AZARAC_ENABLE_NW_PAC_TSUNAMI && \
     AZARAC_ENABLE_VOLCANO && AZARAC_ENABLE_ASH_FALL && AZARAC_ENABLE_WEATHER && \
     AZARAC_ENABLE_FLOOD && AZARAC_ENABLE_TYPHOON && AZARAC_ENABLE_MARINE
-static_assert(sizeof(void*) != 8 || sizeof(azaraC::Mt43Data) == 104, "host Mt43Data size drift");
+static_assert(sizeof(void*) != 8 || sizeof(azaraC::Mt43Data) == 112, "host Mt43Data size drift");
 static_assert(sizeof(void*) != 8 || sizeof(azaraC::Message) == 240, "host Message size drift");
 #endif
 

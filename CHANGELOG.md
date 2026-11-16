@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **津波通知ラベルのガードと生成物の同期（2026-11-16）**: 津波の通知ラベルを `AZARAC_TSUNAMI_NOTIFICATION_LABELS` で制御するようにした。生成ガード（`gen_definitions.py`）と `AZARAC_FLASH_BUF_SIZE` の640 B分岐を同じマクロで駆動し、非AVR既定は `AZARAC_ENABLE_TSUNAMI`、AVRプリセット既定は0。表はEEW/震源と共有されるため、どちらかが有効なら0でもラベルは出る。`check_flash_buf.py` はこのマクロを擬似カテゴリとして扱い、AVRで有効化した場合の596 Bラベルも検証する。`keywords.txt` と `keywords_check.py` にも追加した（設定マクロ27）。
+  津波通知の実アンカー（azarashiの `notifications_on_disaster_prevention_raw` = 122/123/124、warning 3、regions 600/610/760）とCAMF A7上限を `test_realdata_anchors.cpp` に追加し、生成ファイル `test_realdata_generated.cpp` の手書き不変条件を撤去した（再生成で消えるため）。
+  `make -C test run-tsunami-labels-off` を追加し、ラベル無効構成（EEW/震源も無効）をCIで回す。
+  ドキュメントの実測・実挙動との同期: Parser RAM 6,624 B、未解決時刻の月日は生値、津波 `notifications` の記載、`Message` 91 B、Nankai集約時の `page` 規約。
+
 ### Changed
 
 - **ClusterFuzzLiteのfuzzを3つのコンパイル時構成で実行する**: `.clusterfuzzlite/build.sh` が既定構成に加え、AVR相当の縮小構成（Nankaiバッファ1個・最大4ページ、dedup 64スロット、有効カテゴリは震度・南海トラフ・津波のみ）と検証厳格構成（dedup無効、SVID検証レベル2、NMEAの非0パディングを拒否）を別ターゲットとしてビルドする。バッファ追い出しや受理/拒否の分岐は構成で変わるため、既定構成だけでは届かない経路をfuzzで踏む。既定ターゲットの名前と定義は不変で、corpusの継続性は保たれる。fuzz時間はターゲットあたりPR 300秒・週次batch 1200秒とし、ジョブ合計は従来と同程度に保った。

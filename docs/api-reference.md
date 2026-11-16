@@ -288,8 +288,12 @@ if (parser.feed(b, msg)) {
 | フィールド | 型 | 説明 |
 |---|---|---|
 | `warning_code` | `uint8_t` | 津波警報コード |
+| `notification[3]` | `uint16_t` | 防災通知コード Co_1..Co_3（9 bit、0終端） |
+| `notification_count` | `uint8_t` | 有効な通知コード数（最大3） |
 | `entries[5]` | `TsunamiEntry` | 予報区ごとの組 |
 | `count` | `uint8_t` | エントリ数 |
+
+`notification` のラベルは定義表（EEW/震源と共有）が有効なときだけ解決する。非AVRの既定では有効、AVRプリセット（EEW/震源も無効）では `notifications[].label` が `null` になる。津波単独でも有効にするには `AZARAC_TSUNAMI_NOTIFICATION_LABELS=1` を指定する。
 
 `TsunamiEntry` のフィールドは `arrival_time_raw`（到達時刻の生コード、12 bits）、`arrival_time`（解決済みの到達時刻）、`height_code`（津波の高さコード、4 bits）、`region_code`（津波予報区コード、10 bits）です。
 
@@ -628,7 +632,8 @@ DCRのカテゴリマクロ（12個）を0にすると、定義テーブルだ�
 |---|---|---|
 | `AZARAC_NANKAI_MAX_PAGES` | 63（AVR: 4） | 南海トラフ1電文あたりの最大ページ数（仕様上の最大も63） |
 | `AZARAC_NANKAI_BUFFERS` | 2（AVR: 1） | 同時に追跡できる南海トラフ事象の数。訓練（Rc=7）と実警報（Rc=2）の同時進行に2必要 |
-| `AZARAC_FLASH_BUF_SIZE` | AVR: カテゴリ連鎖（既定64）/ 非AVR: 800 | ラベル引き当て用の共有RAMバッファ（バイト）。AVRでは有効カテゴリに応じて64 / 80 / 96 / 540 / 640 / 800に自動選択され、有効なカテゴリの最長ラベルを必ず収める（`make -C test bench` の `FLASH_BUF_OK` ゲート）。64未満は `static_assert` で拒否。非AVRでも分割ラベルの連結と長さ取得に使う。切り詰め位置がUTF-8の途中なら、不完全な末尾を捨てて境界まで戻す |
+| `AZARAC_TSUNAMI_NOTIFICATION_LABELS` | 非AVR: 1（= `AZARAC_ENABLE_TSUNAMI`）/ AVR: 0 | 津波カテゴリだけで通知ラベルの表を有効にする。表はJA約5.8 KB / EN約5.2 KBでEEW/震源と共有され、EEWか震源が有効なら0でもラベルは出る。AVRで1にすると `AZARAC_FLASH_BUF_SIZE` が640 Bになる（Unoでは+576 B SRAM）。EEW/震源/このマクロが全て無効な構成ではコードのみで `label` は `null` |
+| `AZARAC_FLASH_BUF_SIZE` | AVR: カテゴリ連鎖（既定64）/ 非AVR: 800 | ラベル引き当て用の共有RAMバッファ（バイト）。AVRでは有効カテゴリに応じて64 / 80 / 96 / 540 / 640 / 800に自動選択され（津波通知ラベルが有効なら640）、有効なカテゴリの最長ラベルを必ず収める（`make -C test bench` の `FLASH_BUF_OK` ゲート）。64未満は `static_assert` で拒否。非AVRでも分割ラベルの連結と長さ取得に使う。切り詰め位置がUTF-8の途中なら、不完全な末尾を捨てて境界まで戻す |
 | `AZARAC_DEDUP_MT44_MAX_WINDOW_MS` | 300000 | MT=44の情報有効時間（ms）の上限。`__AVR__` のみ定義され、常にA8由来の窓（最短6時間）を置き換える。ホストは上限を設けずA8の窓をそのまま使う |
 | `AZARAC_NMEA_STRICT_SVID` | 0 | `$QZQSM` のSatellite ID検証。0 = 00–63を受理（実機互換）/ 1 = 53–63（PRN 181–191）/ 2 = 仕様表の55/56/57/58/61のみ。0–2以外はその場で `#error` |
 | `AZARAC_NMEA_REJECT_NONZERO_PADDING` | 0 | 1でフレームbit 250–255（仕様上 `00`）が非0のNMEA電文を拒否する。既定はマスクして受理（CRC被覆域の外なので、警報を落とさない方を優先） |

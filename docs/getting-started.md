@@ -91,6 +91,7 @@ if (parser.feed(byte, msg, now)) { ... }
 | ------ | ---------- | ---- |
 | `AZARAC_ENABLE_*`（13個） | 1（AVRはSEISMIC/TSUNAMIのみ） | 災害カテゴリ別のデコード有効化/無効化。AVRでDCX/CAMFを使うには `-DAZARAC_AVR_LARGE_FLASH=1` または `-DAZARAC_ENABLE_DCX_CAMF=1` を明示する |
 | `AZARAC_LANG_JA` / `AZARAC_LANG_EN` | 1 / 0 | 定義テーブルの言語選択 |
+| `AZARAC_TSUNAMI_NOTIFICATION_LABELS` | 非 AVR: 1 / AVR: 0 | 津波単独でも通知ラベルの表（`notifications[].label`）を有効にする。EEW/震源が有効なら 0 でもラベルは出る。AVR で 1 にすると Flash 約 5.8 KB と 640 B の共有バッファ（Uno では SRAM 2 KB のうち +576 B）が要る |
 | `AZARAC_DEDUP_SLOTS` | 512 | 重複判定表のエントリ数（1エントリ8B。AVRプリセットは64） |
 | `AZARAC_ENABLE_DEDUP` | 1 | 重複排除テーブルの有効化。0で `AZARAC_DEDUP_SLOTS × 8 B`（既定4 KB / AVR 512 B）が消える |
 | `AZARAC_NANKAI_MAX_PAGES` / `AZARAC_NANKAI_BUFFERS` | 63 / 2 | 南海トラフ地震の最大収集ページ数(1-63)と最大同時追跡数。AVRプリセットは4 / 1 |

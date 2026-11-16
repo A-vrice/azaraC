@@ -51,14 +51,15 @@ MT=44のルートは `crc24` までで、Aフィールド・拡張部・`sd_sdmt
 ### 1.2 MT=43の `data`（カテゴリ別）
 
 `(+_label)` は `_label`が付くキー。
+津波の `notifications[].label` は定義表（EEW/震源と共有）が有効なときだけ解決し、EEW/震源/`AZARAC_TSUNAMI_NOTIFICATION_LABELS` がすべて無効な構成（AVRプリセットなど）では `null`。
 
 | カテゴリ | ラベル | `data` のキー |
 |---|---|---|
 | 1 | 緊急地震速報 | `long_period_lower/upper`(+`_label`), `notifications[]{code,label}`, `quake_time`, `depth`(+`_label`), `magnitude`(+`_label`), `epicenter`(+`_label`), `intensity_lower/upper`(+`_label`), `regions[]{code,label}` |
-| 2 | 震源 | `coords{lat_deg,lat_min,lat_sec,lat_ns,lon_deg,lon_min,lon_sec,lon_ew}`, `depth`(+`_label`), `magnitude`(+`_label`), `epicenter`(+`_label`), `notifications[]`, `quake_time` |
+| 2 | 震源 | `coords{lat_ns,lat_deg,lat_min,lat_sec,lon_ew,lon_deg,lon_min,lon_sec}`, `depth`(+`_label`), `magnitude`(+`_label`), `epicenter`(+`_label`), `notifications[]`, `quake_time` |
 | 3 | 震度 | `entries[]{prefecture(+_label),intensity(+_label)}`, `quake_time` |
 | 4 | 南海トラフ地震 | `info_code`(+`_label`), `page`, `total_page`, `truncated`, `text_utf8`（ページ集約後）/ `text_hex[]`（ページ単体） |
-| 5 | 津波 | `warning_code`(+`_label`), `entries[]{arrival_time_raw,arrival_status?,arrival_time?,height(+`_label`),height_lower,height_upper,region(+`_label`)}` |
+| 5 | 津波 | `warning_code`(+`_label`), `notifications[]{code,label}`, `entries[]{arrival_time_raw,arrival_status?,arrival_time?,height(+`_label`),height_lower,height_upper,region(+`_label`)}` |
 | 6 | 北西太平洋津波 | `potential`(+`_label`), `entries[]{…cat5 と同形}` |
 | 8 | 火山 | `ambiguity`(+`_label`), `activity_time`, `warning_code`(+`_label`), `volcano_name`(+`_label`), `local_govs[]{code,label}` |
 | 9 | 降灰 | `activity_time`, `warning_type`(+`_label`), `volcano_name`(+`_label`), `entries[]{arrival_time_code,arrival_time_label,warning_code(+`_label`),local_gov(+`_label`)}` |
@@ -364,8 +365,8 @@ A9=1 / A2=71が5通、A9=0 / A2=111（Null Message）が1通。
 ```
 
 **azaraC** — `{month, day, hour, min, unix}` の5項目。
-`unix` は `unix_time == 0`（未解決）のとき `null`、解決済みのときは数値。
-`month` / `day` / `hour` / `min` は生の分解値のまま（未解決時は0）。
+`unix` は `unix_time == 0`（未解決）のとき **`null`**、解決済みのときは数値。
+未解決（`report_unix` が2000-01-01未満）でも `month` / `day` / `hour` / `min` は生値のまま保持し、`unix` だけが `null`。範囲外の `day` / `hour` / `min` は0、`month` は与えられた値のまま。
 
 - 津波の到着時刻は §1.2の `arrival_status` で状態を明示する。
   例（`test/data/test_realdata_generated.cpp` の `$QZQSM,56,53ADA8BECF…`、Ta = 2047 = hour 31, min 63）:

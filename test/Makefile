@@ -138,7 +138,7 @@ VPATH = ../src:../src/decoder:../src/framer:../src/json:../src/internal
 #
 # 残リスク: 強制 kill（SIGKILL/プロセスクラッシュ）では trap を実行できないためロックが残る。
 # その場合は test/.make-lock を手動で削除する（スクリプトのエラーにも記載）。
-LOCKABLE  := all run run-small-pages run-dedup-off run-lto run-lang-defaults clean \
+LOCKABLE  := all run run-small-pages run-dedup-off run-tsunami-labels-off run-lto run-lang-defaults clean \
              test-no-alloc pgm-stub macro fuzz fuzz-sanitize fuzz-libfuzzer decode dedup-realday \
              bench bench-dedup bench-decode test-time-irq test-macro-compile test-macro-sizes \
              compare-realdata coverage check check-xml check-strict-compile \
@@ -157,7 +157,7 @@ endif
 
 ifeq ($(NEED_LOCK),)
 
-.PHONY: all clean run run-small-pages run-dedup-off run-lto run-lang-defaults fuzz fuzz-sanitize fuzz-libfuzzer decode dedup-realday bench bench-dedup bench-decode compare-realdata check check-xml check-strict-compile coverage test-no-alloc pgm-stub test-time-irq avr-layout nmea-policy utf8-trim
+.PHONY: all clean run run-small-pages run-dedup-off run-tsunami-labels-off run-lto run-lang-defaults fuzz fuzz-sanitize fuzz-libfuzzer decode dedup-realday bench bench-dedup bench-decode compare-realdata check check-xml check-strict-compile coverage test-no-alloc pgm-stub test-time-irq avr-layout nmea-policy utf8-trim
 
 all: $(TEST_BIN)
 
@@ -184,6 +184,11 @@ run-small-pages:
 # CXXFLAGS_EXTRA は依存関係に載らないため -B と事後の clean が必須。
 run-dedup-off:
 	$(MAKE) -B CXXFLAGS_EXTRA="-DAZARAC_ENABLE_DEDUP=0" run; status=$$?; $(MAKE) clean; exit $$status
+
+# 津波通知ラベル無効構成（AVR プリセット相当 + EEW/震源も無効）でも全テストが通ることを検証する。
+# コードは常に出てラベルだけが null になる経路を、ホストで実際に踏む。
+run-tsunami-labels-off:
+	$(MAKE) -B CXXFLAGS_EXTRA="-DAZARAC_TSUNAMI_NOTIFICATION_LABELS=0 -DAZARAC_ENABLE_EEW=0 -DAZARAC_ENABLE_HYPOCENTER=0" run; status=$$?; $(MAKE) clean; exit $$status
 
 # リンク時最適化（LTO）の検証。
 # -O2 と併用しないと LTO の codegen 経路がほぼ通らないため -O2 -flto で全体を再ビルドする。

@@ -26,10 +26,11 @@ MT=44のBフィールド（B1–B4）とC10は [EWSS CAMF Issue 1.2](https://www
 AVR（Uno・Megaを含む）は既定でSEISMIC/TSUNAMIのみ有効です。
 無効にしたカテゴリは定義テーブルがコンパイルされず、12種類のpayload型すべてがカテゴリ単位で除外されます。`Mt43Data` のRAMも、残ったカテゴリの最大型まで縮みます。`AZARAC_ENABLE_DEDUP=0` で重複排除テーブル（既定4 KB / AVR 512 B）も外せます。
 
-- `Message` のサイズはAVR（ATmega328P、avr-gcc `-Os`）で84 Bです。
-  AVRプリセットの値で、DCRの全カテゴリを有効にしてもpayloadの最大は津波の62 Bのままなので、84 Bは変わりません。
+- `Message` のサイズはAVR（ATmega328P、avr-gcc `-Os`）で91 Bです。
+  AVRプリセットの値で、DCRの全カテゴリを有効にしてもpayloadの最大は津波の69 Bのままなので、91 Bは変わりません。
   DCX/CAMFを追加すると `Mt44Data` が最大になり199 Bです。
   ホスト（g++、全カテゴリ + DCX/CAMF）では240 Bです。
+- 津波の通知ラベル（`notifications[].label`）はAVRプリセット（EEW/震源も無効）では既定で出ません（コードは出ます）。津波単独で有効化するには `-DAZARAC_TSUNAMI_NOTIFICATION_LABELS=1`（Flash約5.8 KB、共有バッファ640 B）。EEWか震源を有効にすると表が共有されラベルも出ます
 - EEWと震源はAVRプリセットで無効なので `getEew()` / `getHypocenter()` は既定で使えません。
   有効化する場合は `-DAZARAC_ENABLE_EEW=1` / `-DAZARAC_ENABLE_HYPOCENTER=1`
 - MT=44は `-DAZARAC_AVR_LARGE_FLASH=1` または `-DAZARAC_ENABLE_DCX_CAMF=1` で有効化します（Flashが64KBを超えるボードが対象）

@@ -1248,7 +1248,7 @@ int main(int argc, char* argv[]) {
     std::mt19937 rng(seed);
     printf("Seed: %llu\n", (unsigned long long)seed);
 
-    // イテレーション数（環境変数 > コマンドライン引数 > デフォルト）。atoi は不正入力で 0 を返し 0 回の「無検査 PASS」になるため、値域を検証して落とす。
+    // イテレーション数（argv[1] > 環境変数 > デフォルト）。atoi は不正入力で 0 を返し 0 回の「無検査 PASS」になるため、値域を検証して落とす。
     long long iterations = 10000;
     const char* env_iter = std::getenv("FUZZ_ITERATIONS");
     const char* source = "default";

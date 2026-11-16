@@ -71,7 +71,7 @@ void printStatistics() {
 }
 
 // 注意: Parser::feed() が true を返した時点で msg.valid == true は保証されている。
-// この関数は feed() の前にしか呼ばれないので、msg.valid のチェックはデッドコード。
+// この関数は feed() が true を返した後に呼ばれるので、msg.valid のチェックはデッドコード。
 bool validateMessage(const azaraC::Message& msg) {
     // SVIDの範囲チェック (QZSS L1S PRN: 181-191)
     if (msg.svid < QZSS_SVID_MIN || msg.svid > QZSS_SVID_MAX) {
