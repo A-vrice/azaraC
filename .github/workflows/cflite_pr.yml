@@ -35,7 +35,7 @@ jobs:
         uses: google/clusterfuzzlite/actions/run_fuzzers@884713a6c30a92e5e8544c39945cd7cb630abcd1 # v1
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          fuzz-seconds: 300 # ターゲット1つあたりの秒数（3構成を逐次実行し、ジョブ合計は約900秒）
+          fuzz-seconds: 900 # ジョブ全体の予算で、3構成に均等に配分される（実測: 300指定で各構成約107秒）。各構成あたり約300秒
           mode: 'code-change'
           sanitizer: ${{ matrix.sanitizer }}
           output-sarif: true
