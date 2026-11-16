@@ -9,7 +9,7 @@
 
 ## Reporting a Vulnerability
 
-**Developed for safety-critical applications (disaster warning systems).**
+Developed for safety-critical applications (disaster warning systems).
 Responsible disclosure protects all users of this library.
 
 If you discover a security vulnerability:
