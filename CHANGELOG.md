@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.1.0] - 2026-11-15
 
 ### Added
 
@@ -64,6 +64,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   旧ハーネスを `test/bench/run_dedup_bench.sh` として復帰させ、`bench-dedup` ターゲットと host-test ジョブのステップを追加した。
   入力は `test/data/*.json` のみ、host の g++ だけで動く。
   実測: `NEW_CORRECT=118` / `DUP_SUPPRESS=1.0000` / `NANKAI_KEY_STABLE=1` / `PREAMBLE_KEY_STABLE=1` で exit 0 となった。
+- **libFuzzer のカバレッジ誘導 fuzz を追加**: `test/fuzz/fuzz_libfuzzer.cpp` は Parser AUTO / NmeaFramer / UbxFramer / toJson+JsonCheck の4経路を `data[0] & 3` で切り替える薄い入口で、`make -C test fuzz-libfuzzer` でビルド・実行する（clang++ が無い環境は SKIP して exit 0）。
+  シードは `test/scripts/gen_fuzz_corpus.py` がテストベクタから生成した 682 ファイルを `test/fuzz/corpus/` にコミットした（`.gitattributes` で `-text` 指定。改行変換でバイトが変わるとシードが壊れるため）。
+  `.github/workflows/fuzz-libfuzzer.yml` は PR 120 秒・週次 600 秒のベストエフォートジョブで、クラッシュ入力を artifact として 14 日保持する。
+  あわせて `keywords.txt` を公開 API（型 46・メソッド 35・設定マクロ 26）へ同期し直し、公開ヘッダの型定義と `azaraC_config.h` のユーザーマクロを双方向照合する `scripts/analysis/keywords_check.py` を CI の version-sync でゲートにした。
 
 ### Changed
 
@@ -220,6 +224,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Printシムが実コアと食い違っていた**: ホスト用 `PrintShim.h` とAVRベンチのシムが `write(const char*, size_t)` を virtual にしており、実コア（virtual は `write(const uint8_t*, size_t)` のみ）では上書きされない経路をホストテストが通してしまっていた。シムを実コアの形に揃え、シンク側は `write(const uint8_t*, size_t)` の override と `using Print::write;` に統一した（`src/json/JsonSerializer.cpp` の呼び出し側も同じ形に統一）。
 - **cppcheck が `avr_layout_probe.cpp` の `#error` で落ちていた**: `-DAZARAC_NANKAI_MAX_PAGES=63` を渡すと cppcheck は「ユーザー定義あり」とみなして `#error` を報告する（`Preprocessor::handleErrors` の `showerror = !userDefines.empty() && !force`）。`avr-g++` 専用の `test/tools/avr_layout_probe.cpp` に `__AVR__` ガードを足した時点で、`static-analysis` ジョブが `preprocessorErrorDirective` で常時赤になった。
   `CPPCHECK_OPTS` と `scripts/analysis/cppcheck_summary.py` に `-D__CPPCHECK__` を追加し、ガードを `!defined(__AVR__) && !defined(__CPPCHECK__)` に変更した。`--suppress=preprocessorErrorDirective:tools/avr_layout_probe.cpp` ではなく定義で外すのは、抑制がファイル単位で将来の本物の `#error` 退行まで隠すため（`-D__CPPCHECK__` は cppcheck 自身の selfcheck も使う慣用句で、実コンパイラに対してはガードが生きたまま残る）。
 - **Wi-Fi 例の非 ESP32 ガードが効いていなかった**: `#error` が `#include <WiFi.h>` の後ろにあり、`WiFi.h` を持たないボードでは先に「ファイルが無い」エラーになっていた。ガードを include の前に移し、CI の Wi-Fi 例スキップ条件をボード名の列挙から FQBN の `esp32:` 判定へ揃えた（拡張マトリクスの `Arduino GIGA R1 WiFi` と `RP2040 Pico W` が落ちていた）。
