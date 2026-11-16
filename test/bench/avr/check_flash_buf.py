@@ -136,7 +136,7 @@ def scan_tables():
         for key, lines in blocks.items():
             text = "".join(lines)
 
-            def put(n):
+            def put(n, key=key):
                 if n > out.get(key, (0, ""))[0]:
                     out[key] = (n, name)
 
@@ -257,7 +257,8 @@ def crosscheck_ladder(chain, avr_gcc, configs):
             args.append("-DAZARAC_ENABLE_%s=%d" % (cat, flags.get(cat, 0)))
         args.append("-DAZARAC_LANG_JA=%d" % flags.get("LANG_JA", 1))
         args.append("-DAZARAC_LANG_EN=%d" % flags.get("LANG_EN", 0))
-        proc = subprocess.run(args, capture_output=True, text=True)
+        # args はスクリプト内で組み立てる argv で、シェルは経由しない。
+        proc = subprocess.run(args, capture_output=True, text=True)  # nosemgrep
         if proc.returncode != 0:
             print("check_flash_buf: avr-gcc failed:\n" + proc.stderr[-500:], file=sys.stderr)
             return 2
@@ -326,7 +327,6 @@ def main():
         return 0
 
     failures.sort(key=lambda f: f[1] - f[0], reverse=True)
-    worst = failures[0]
     print("check_flash_buf: %d configuration(s) return a truncated label; worst:" % len(failures))
     for size, need, who, mcu, on in failures[:5]:
         print("  %s  buffer %d < label %d B (%s)  categories: %s"
