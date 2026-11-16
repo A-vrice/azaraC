@@ -1,6 +1,9 @@
 #!/bin/bash -eu
 # ClusterFuzzLite (OSS-Fuzz 互換) のビルド。$SRC / $OUT / $WORK / $CXX / $CXXFLAGS /
 # $LIB_FUZZING_ENGINE は builder イメージが渡す。
+# $CXXFLAGS などは空白区切りのフラグ列で単語分割が前提（SC2086）。$SRC は
+# builder が渡す環境変数で、このスクリプトでは代入しない（SC2153）。
+# shellcheck disable=SC2086,SC2153
 # ソースと定義は test/Makefile の fuzz-libfuzzer ターゲットと揃えてある
 # （-Itest はハーネスが使う test/json/JsonCheck.h のため）。
 # 3つのコンパイル時構成を別ターゲットとしてビルドする。バッファ追い出しや
