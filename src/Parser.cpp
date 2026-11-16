@@ -64,13 +64,9 @@ bool Parser::postDecode(const Message& decoded, Message& out, uint32_t identity)
 
 uint64_t Parser::observeClock(uint64_t now_ms64) {
 #if AZARAC_ENABLE_DEDUP || AZARAC_ENABLE_NANKAI
-    // dedup 有効期間の受信時刻（手順④'）。
-    // 下の Nankai 集約も同じ時計を使うので、両段階で「現在」が一致する。
-    // 通常の 32 bit 折り返しは DedupFilter/NankaiPageBuffer の符号なし差分で扱えるが、
-    // エントリの年齢が 2^32 ms（約 49.7 日）を超えると差分が小さく巻き戻り「最近」に見えてしまう。
-    // そこで now_ms64 の上位 32 bit（世代）が変わったら履歴を捨てる。連続受信で 49.7 日経過しても
-    // 世代境界で確実に reset され、古い履歴の偽重複による抑止を防ぐ（再通知は許容し、生きた警報の抑止を避ける）。
-    // 小さな後退は受信順序の揺らぎとして丸め、それを超える後退（時計の再設定）でも履歴を捨てる。
+    // dedup と Nankai 集約で共有する受信時刻（手順④'）。
+    // 年齢が 2^32 ms（約 49.7 日）を超えると符号なし差分が巻き戻って新しく見えるため、世代（上位 32 bit）が変わったら履歴を捨てる。
+    // 後退は許容量まで丸め、超えた場合も時計の再設定として履歴を捨てる。いずれも再通知を許容し、生きた警報の抑止を避ける。
     if (now_ms64 < _last_now_ms) {
         if (_last_now_ms - now_ms64 > kClockRollbackToleranceMs) {
             _dedup.reset();
@@ -123,10 +119,8 @@ bool Parser::postDecodeAt(const Message& decoded, Message& out, uint32_t identit
                 return false;
             }
 
-            // 同一性は事象そのもの（info_code + 情報種別 + Rc + 報告時刻）。
-            // ページ集合を完成させた電文は到着順で変わるため、その crc24 を鍵にすると同じ事象が再送のたびに別情報として通知される。
-            // 情報種別を含めるのは同一 info_code + 同一報告時刻の発表と取消を別扱いするため（NankaiPageKey 参照）。
-            // Rc を含めるのは訓練/試験（7）が実警報（2）を抑止・混在させないため。
+            // 同一性は事象そのもの（info_code + 情報種別 + Rc + 報告時刻）。完成したページ集合の crc24 を鍵にすると、
+            // 到着順で値が変わり同じ事象が再送のたびに別情報として通知される（鍵の内訳は NankaiPageKey 参照）。
             const internal::DedupKey key = internal::dedupEventKey(internal::dedupEventToken(
                 nankai->info_code, mt43->information_type, nankai->report_month, nankai->report_day,
                 nankai->report_hour, nankai->report_minute, mt43->report_classification));
@@ -163,9 +157,7 @@ internal::NankaiAggregateResult Parser::processNankaiAggregation(
     const NankaiData* nankai = d->getNankai();
     if (!nankai) return internal::NankaiAggregateResult::Rejected;
 
-    // 事象の identity = info_code + information_type + Rc + report_time（月/日/時/分）。
-    // 正規化済みの Mt43Data::event_time は使わず電文の生ビット（NankaiData::report_*）から取る。
-    // resolveTime() は暦外の日付を書き換え（2/30 → 3/1）月=0 に近い月を割り当てるため、放送途中で report_unix が現れると 1 つの事象が複数バッファに分裂する（NankaiPageKey 参照）。
+    // identity は電文の生ビット（NankaiData::report_*）から取る。正規化済みの event_time を使わない理由は NankaiPageKey 参照。
     internal::NankaiPageKey key;
     key.info_code       = nankai->info_code;
     key.information_type = d->information_type;

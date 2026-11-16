@@ -1,7 +1,6 @@
 #pragma once
 // 南海トラフ地震の複数ページ集約バッファページは aggregated_text[] の (page_num-1)*TEXT_PER_PAGE へ直接書き、受信済みページは 64 bit の bitmap で管理する。
 // PageData 配列を持たないので（MAX_PAGES=63 で約 1 KB 節約）ソートも不要で、重複判定は O(1)。
-// total_pages > MAX_PAGES なら打ち切る。
 
 #if defined(__AVR__)
 #include "avr_std/cstdint"
@@ -23,14 +22,10 @@
 namespace azaraC {
 namespace internal {
 
-// 事象の鍵。svid は除外（複数衛星が同一電文を中継するため重複する）。
-// identity = {info_code, information_type, report_classification, 生の report_time DHM}。
-// DHM は正規化前の生プロトコルビット（NankaiData::report_*）:
-// Mt43Data::event_time は resolveTime() が 2/30→3/1 を書き換え月 0 を補完するため、report_unix の有無でハッシュが割れ、1 事象が複数バッファに分かれる。
-// information_type（It: 0=発表 / 2=取消）も鍵に必要（無いと発表と取消が同じ Pn を先着優先で潰し合い文面が混ざる）。
-// report_classification（Rc: 2=実警報 / 7=訓練・試験）も鍵に必要。含めないと訓練が実警報を抑止し、
-// 訓練ページと実警報ページが同じ集約バッファで連結される。
-// dedup 側も同じ 7 フィールドを使う（Dedup.h dedupEventToken）。
+// 事象の鍵は {info_code, information_type, report_classification, 生の report_time DHM}。dedup 側も同じ 7 フィールドを使う（Dedup.h dedupEventToken）。
+// svid は除外する（複数衛星が同一電文を中継するため）。
+// DHM は正規化前の生プロトコルビット（NankaiData::report_*）を使う。解決済みの event_time は resolveTime() が日付を書き換えるため、同じ事象でも値が割れてバッファが分かれる。
+// It を含めないと発表と取消が潰し合い、Rc を含めないと訓練と実警報が混ざる。
 struct NankaiPageKey {
     uint8_t  info_code = 0;             // 1B — Is（情報系列コード、4b）
     uint8_t  report_month  = 0;         // 1B — 生の report_time 月 (4b)
@@ -117,20 +112,18 @@ struct NankaiPageBuffer {
         clearAll();
     }
 
-    // ページ番号と総ページ数の組が集約対象として妥当か。
     // total > MAX_PAGES は現行契約どおり受け付け、総ページ数を MAX_PAGES に丸める（呼び出し側で truncated を立てる）。
     static constexpr bool pageInRange(uint8_t page_num, uint8_t total_pages_in) {
         const uint8_t effective_total = total_pages_in > MAX_PAGES ? MAX_PAGES : total_pages_in;
         return page_num >= 1 && page_num <= SPEC_MAX_PAGES && page_num <= effective_total;
     }
 
-    // ページを追加する（page_num は 1 始まり、total_pages_in は Pm 由来、text_data は 18 バイト）。
-    // 追加できたら true。既存テストとの互換用ラッパー。
+    // 既存テストとの互換用ラッパー。page_num は 1 始まり、total_pages_in は Pm 由来、text_data は 18 バイト。
     bool addPage(uint8_t page_num, uint8_t total_pages_in, const uint8_t* text_data, uint64_t current_ms) {
         return addPageEx(page_num, total_pages_in, text_data, current_ms) == NankaiPageAddResult::Added;
     }
 
-    // 追加結果を区別する実体。Duplicate は受信済みページで、本文・受信数は変えず last_update_ms だけ更新する。
+    // 追加結果を区別する実体（Duplicate の意味は NankaiPageAddResult 参照）。
     NankaiPageAddResult addPageEx(uint8_t page_num, uint8_t total_pages_in,
                                   const uint8_t* text_data, uint64_t current_ms) {
         // 検証を状態変更より先に行う。不正ページで既存の total_pages/truncated を汚さない。
@@ -155,8 +148,7 @@ struct NankaiPageBuffer {
         // bitmap による重複判定 O(1)
         uint64_t mask = 1ULL << (page_num - 1);
         if (received_bitmap & mask) {
-            // F-2: 重複ページの再送でも集約の寿命を延ばす。
-            // 本文・受信数は変えない。再出力の抑止は dedup 側で別に扱う。
+            // F-2: 重複ページの再送でも集約の寿命を延ばす。再出力の抑止は dedup 側で別に扱う。
             last_update_ms = (uint32_t)current_ms;
             return NankaiPageAddResult::Duplicate;
         }
@@ -289,8 +281,7 @@ public:
         }
     }
 
-    // ページを追加し、全ページ受信ならそのバッファへのポインタ、そうでなければ nullptr を返す。
-    // 既存呼び出しとの互換用ラッパー。
+    // 既存呼び出しとの互換用ラッパー。Complete のときだけバッファへのポインタを返す。
     NankaiPageBuffer* addPage(const NankaiPageKey& key, uint8_t page_num,
                                uint8_t total_pages, const uint8_t* text_data,
                                uint64_t current_ms) {
