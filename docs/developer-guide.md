@@ -1,8 +1,8 @@
-# azaraC 開発者ガイド
+# azaraC開発者ガイド
 
 ## 概要
 
-azaraCライブラリの開発に貢献する開発者向けのガイドです。
+azaraCライブラリの開発に貢献する開発者向けのガイドである。
 
 ## 開発環境のセットアップ
 
@@ -14,7 +14,7 @@ azaraCライブラリの開発に貢献する開発者向けのガイドです�
 | Python | 3.9+ | 定義ファイル生成 |
 | make | - | ビルド自動化 |
 
-mingw 等の make でも動作します。
+mingw等のmakeでも動作する。
 
 ### リポジトリのクローン
 
@@ -84,48 +84,48 @@ make -C test run MINGW64_BIN=C:\mingw64\bin
 make -C test run STATIC=1
 ```
 
-`STATIC=1` は libstdc++ / libgcc を静的リンクします（`LDFLAGS` に `-static` を足すだけ）。
-Linux CI では不要です。
+`STATIC=1` はlibstdc++ / libgccを静的リンクする（`LDFLAGS` に `-static` を足すだけ）。
+Linux CIでは不要である。
 
 同じ `test/*.o` や `test/` 直下の成果物を共有するターゲット同士の同時実行は `test/scripts/with-make-lock.sh` が直列化し、`bench` / `test-time-irq` / `avr-layout` / `nmea-policy` / `utf8-trim` も含みます。
-別の make が実行中なら exit 2 で止まるので、終わるまで待ってください（ロックは終了時に自動で解放されます）。
-ロックだけが残るのは SIGKILL などで trap を実行できなかった場合だけなので、実行中の make が無いことを確認できたときだけ `test/.make-lock` を削除してください。
-意図的にロックを迂回する場合は `make -C test AZARAC_LOCK_HELD=1 run` を使います。
-`run-lang-defaults` と `test-no-alloc` は複数行レシピのため Windows では未検証です（Linux CI で実行）。
-`nmea-policy` と `utf8-trim` も複数行レシピです。Windows の MinGW 環境で 3 構成 / 1 構成とも `ok` を実測済みで、CI の `host-test` にもステップを追加した。
+別のmakeが実行中ならexit 2で止まるので、終わるまで待つこと（ロックは終了時に自動で解放される）。
+ロックだけが残るのはSIGKILLなどでtrapを実行できなかった場合だけなので、実行中のmakeが無いことを確認できたときだけ `test/.make-lock` を削除すること。
+意図的にロックを迂回する場合は `make -C test AZARAC_LOCK_HELD=1 run` を使う。
+`run-lang-defaults` と `test-no-alloc` は複数行レシピのためWindowsでは未検証である（Linux CIで実行）。
+`nmea-policy` と `utf8-trim` も複数行レシピである。WindowsのMinGW環境で3構成 / 1構成とも `ok` を実測済みで、CIの `host-test` にもステップを追加した。
 
 ### テスト結果
 
-`make -C test run` の最後に doctest がケース数・アサーション数・成否を出力します。
+`make -C test run` の最後にdoctestがケース数・アサーション数・成否を出力する。
 ```
 $ make -C test run
 [doctest] test cases:    ... |    ... passed | 0 failed | 0 skipped
 [doctest] assertions: ... | ... passed | 0 failed |
 [doctest] Status: SUCCESS!
 ```
-件数はテストを追加するたびに変わるため、ここには固定値を書きません。CI の host-test は同じ集計を GitHub Actions の step summary に出力します。
+件数はテストを追加するたびに変わるため、ここには固定値を書かない。CIのhost-testは同じ集計をGitHub Actionsのstep summaryに出力する。
 
 ### カバレッジの見方
 
-`make -C test coverage` は既定構成（全カテゴリ + DCX/CAMF + dedup + Nankai）の行カバレッジを測ります。
-未到達行の多くは「その構成でしかコンパイルされない」もので、別ターゲットが担保します。
+`make -C test coverage` は既定構成（全カテゴリ + DCX/CAMF + dedup + Nankai）の行カバレッジを測る。
+未到達行の多くは「その構成でしかコンパイルされない」もので、別ターゲットが担保する。
 
 | 未到達の例 | 担当するターゲット |
 |---|---|
-| `DecoderQzqsm.cpp` の `DisabledAtCompileTime` 経路 | `make -C test macro`（13 構成） |
-| `PROGMEM` / far Flash 分岐 | `make -C test pgm-stub`、`make -C test bench` |
+| `DecoderQzqsm.cpp` の `DisabledAtCompileTime` 経路 | `make -C test macro`（13構成） |
+| `PROGMEM` / far Flash分岐 | `make -C test pgm-stub`、`make -C test bench` |
 | `azarac_utf8_trim_len` の打ち切り・不正先頭バイト | `make -C test utf8-trim` |
 | `src/internal/avr_std/*`、`PrintShim.h` | AVR/ホストのシム専用（既定構成では通らない。対象外） |
 
-残る未到達行は設計上の防御コード（`Decoder::resolveArrivalTime` の終端 `return`、`Parser` の `if (!buffer)` など）だけです。
-逆に **既定構成で到達し得るのに未到達ならテストの穴**なので、追加対象にします。
+残る未到達行は設計上の防御コード（`Decoder::resolveArrivalTime` の終端 `return`、`Parser` の `if (!buffer)` など）だけである。
+逆に 既定構成で到達し得るのに未到達ならテストの穴なので、追加対象にする。
 
 ### テストカテゴリ
 
 | ディレクトリ | 内容 |
 |-------------|------|
 | `core/` | CRC, 時間, 緯度経度, 重複除去 |
-| `internal/` | 内部ヘルパ（DcxHelper, 情報有効時間 DedupWindow, avr_std シム） |
+| `internal/` | 内部ヘルパ（DcxHelper, 情報有効時間DedupWindow, avr_stdシム） |
 | `framer/` | NMEA/UBXフレーマー |
 | `json/` | JSON出力検証 |
 | `integration/` | エンドツーエンドテスト |
@@ -141,22 +141,22 @@ make -C test fuzz FUZZ_ITERATIONS=100000
 
 | ターゲット | 用途 |
 |----------|------|
-| `make -C test pgm-stub` | `__AVR__` + スタブ `avr/pgmspace.h` で全テストをコンパイルし PROGMEM 分岐をホスト検証 |
-| `make -C test test-time-irq` | `ARDUINO=1` + `__AVR__` + スタブ `avr/io.h` で `internal::getMillis()` の割り込み状態保存・復元と 32 bit 折り返しの 64 bit 拡張をホスト検証。ESP32 は `esp_timer_get_time()` の 64 bit 分岐を使うため、このテストの対象外 |
-| `make -C test run-small-pages` | `AZARAC_NANKAI_MAX_PAGES=8` で全体を再ビルドし、ページ打ち切り経路を検証（既定 63 では打ち切りが発生せず該当テストが `#if` で除外されるため） |
-| `make -C test run-dedup-off` | `AZARAC_ENABLE_DEDUP=0` で全テストを再ビルド・実行し、dedup 無効構成でもテストがコンパイル・動作することを検証（終了時に `clean`） |
-| `make -C test avr-layout` | 実 avr-g++ で `NankaiPageKey`/`NankaiPageBuffer`/`DedupFilter`/`Message` の ABI サイズと `aggregated_text` オフセットを検証（63ページ・4ページ・DCX/CAMF 有効の3構成、`-fsyntax-only`。`Message` は 84 B / DCX 有効 199 B） |
-| `make -C test nmea-policy` | `AZARAC_NMEA_STRICT_SVID` / `AZARAC_NMEA_REJECT_NONZERO_PADDING` の受理表を、既定・`STRICT_SVID=1`・`STRICT_SVID=2` + パディング拒否の3構成でビルド・実行して assert（`test/tools/nmea_policy_probe.cpp`）。マクロで分岐が消えるため `.o` は共有しない |
-| `make -C test utf8-trim` | `AZARAC_FLASH_BUF_SIZE=64` で `azarac_utf8_trim_len` / `azarac_pgm_join_z` の打ち切りと UTF-8 境界の丸めを assert（`test/tools/utf8_trim_probe.cpp`）。既定 800 B では最長ラベル 769 B に届かず切り詰め経路が踏まれない |
-| `make -C test run-lto` | `-O2 -flto -Werror=lto-type-mismatch -Werror=odr` で全体を再ビルド・実行し、リンク時最適化での型不一致・ODR 違反・インライン後 codegen の退行を検証（終了時に `clean`） |
-| `make -C test decode` | decode_to_jsonのCLIビルド（azarashi 比較用） |
-| `make -C test dedup-realday` | 実日の `.l1s`（`realdata/`）に対する重複判定の再現計測。フレーム数・distinct・生存ピーク・再通知/取りこぼしを METRIC 行で出す。`REALDAY_CAT<n>_*` はカテゴリ別の内訳（`MISSED`=取りこぼし、`FALSE_RE`=再通知）、`REALDAY_UNALIGNED` は非整列フレーム数。`REALDAY_INPUT` で入力、`CXXFLAGS_EXTRA="-DAZARAC_DEDUP_SLOTS=…"` + `-B` で容量を変えて反復（**`CXXFLAGS_EXTRA` は依存関係に載らないため、スイープ後は `make -C test clean`** で残った `.o` を消す） |
-| `make -C test bench` | 定義テーブルの AVR フットプリント計測（`test/bench/avr/autoresearch.sh` + `test/bench/avr/`）。avr-gcc / avr-libc と g++ / python が必要。ラベル一致（AVR far / AVR 16bit / ホスト）、ATmega2560 での全カテゴリのコンパイル、Uno と Mega の実リンク、SRAM 非増加、そして**コアの PROGMEM と azaraC 自身の CRC24Q 表がどちらも16bit窓（64KiB）内に残る**ことをゲートする。CI の host-test でも実行 |
-| `make -C test bench-dedup` | dedup フィルタのベンチ（`test/bench/bench_dedup.cpp`、`test/bench/run_dedup_bench.sh`）。`NEW_RECALL` / `DUP_SUPPRESS` / `*_KEY_STABLE` をゲート。host の g++ だけで動く。CI の host-test でも実行 |
-| `make -C test compare-realdata` | azarashiとの処理比較（`pip install azarashi`が必要）。CI 外（手動。azarashi パッケージが必要） |
+| `make -C test pgm-stub` | `__AVR__` + スタブ `avr/pgmspace.h` で全テストをコンパイルしPROGMEM分岐をホスト検証 |
+| `make -C test test-time-irq` | `ARDUINO=1` + `__AVR__` + スタブ `avr/io.h` で `internal::getMillis()` の割り込み状態保存・復元と32 bit折り返しの64 bit拡張をホスト検証。ESP32は `esp_timer_get_time()` の64 bit分岐を使うため、このテストの対象外 |
+| `make -C test run-small-pages` | `AZARAC_NANKAI_MAX_PAGES=8` で全体を再ビルドし、ページ打ち切り経路を検証（既定63では打ち切りが発生せず該当テストが `#if` で除外されるため） |
+| `make -C test run-dedup-off` | `AZARAC_ENABLE_DEDUP=0` で全テストを再ビルド・実行し、dedup無効構成でもテストがコンパイル・動作することを検証（終了時に `clean`） |
+| `make -C test avr-layout` | 実avr-g++ で `NankaiPageKey`/`NankaiPageBuffer`/`DedupFilter`/`Message` のABIサイズと `aggregated_text` オフセットを検証（63ページ・4ページ・DCX/CAMF有効の3構成、`-fsyntax-only`。`Message` は84 B / DCX有効199 B） |
+| `make -C test nmea-policy` | `AZARAC_NMEA_STRICT_SVID` / `AZARAC_NMEA_REJECT_NONZERO_PADDING` の受理表を、既定・`STRICT_SVID=1`・`STRICT_SVID=2` + パディング拒否の3構成でビルド・実行してassert（`test/tools/nmea_policy_probe.cpp`）。マクロで分岐が消えるため `.o` は共有しない |
+| `make -C test utf8-trim` | `AZARAC_FLASH_BUF_SIZE=64` で `azarac_utf8_trim_len` / `azarac_pgm_join_z` の打ち切りとUTF-8境界の丸めをassert（`test/tools/utf8_trim_probe.cpp`）。既定800 Bでは最長ラベル769 Bに届かず切り詰め経路が踏まれない |
+| `make -C test run-lto` | `-O2 -flto -Werror=lto-type-mismatch -Werror=odr` で全体を再ビルド・実行し、リンク時最適化での型不一致・ODR違反・インライン後codegenの退行を検証（終了時に `clean`） |
+| `make -C test decode` | decode_to_jsonのCLIビルド（azarashi比較用） |
+| `make -C test dedup-realday` | 実日の `.l1s`（`realdata/`）に対する重複判定の再現計測。フレーム数・distinct・生存ピーク・再通知/取りこぼしをMETRIC行で出す。`REALDAY_CAT<n>_*` はカテゴリ別の内訳（`MISSED`=取りこぼし、`FALSE_RE`=再通知）、`REALDAY_UNALIGNED` は非整列フレーム数。`REALDAY_INPUT` で入力、`CXXFLAGS_EXTRA="-DAZARAC_DEDUP_SLOTS=…"` + `-B` で容量を変えて反復（`CXXFLAGS_EXTRA` は依存関係に載らないため、スイープ後は `make -C test clean` で残った `.o` を消す） |
+| `make -C test bench` | 定義テーブルのAVRフットプリント計測（`test/bench/avr/autoresearch.sh` + `test/bench/avr/`）。avr-gcc / avr-libcとg++ / pythonが必要。ラベル一致（AVR far / AVR 16bit / ホスト）、ATmega2560での全カテゴリのコンパイル、UnoとMegaの実リンク、SRAM非増加、そしてコアのPROGMEMとazaraC自身のCRC24Q表がどちらも16bit窓（64KiB）内に残ることをゲートする。CIのhost-testでも実行 |
+| `make -C test bench-dedup` | dedupフィルタのベンチ（`test/bench/bench_dedup.cpp`、`test/bench/run_dedup_bench.sh`）。`NEW_RECALL` / `DUP_SUPPRESS` / `*_KEY_STABLE` をゲート。hostのg++ だけで動く。CIのhost-testでも実行 |
+| `make -C test compare-realdata` | azarashiとの処理比較（`pip install azarashi`が必要）。CI外（手動。azarashiパッケージが必要） |
 | `make -C test check` / `check-xml` | 静的解析（cppcheck）と厳格コンパイルチェック |
 | `make -C test coverage` | カバレッジ測定 |
-| `make -C test test-no-alloc` | 公開 API が動的確保を行わないことの検証（GNU ld の `--wrap`。macOS ではスキップ） |
+| `make -C test test-no-alloc` | 公開APIが動的確保を行わないことの検証（GNU ldの `--wrap`。macOSではスキップ） |
 
 ## 定義ファイルの自動生成
 
@@ -177,44 +177,44 @@ pip install --upgrade azarashi
 python scripts/gen/gen_definitions.py --out-dir src/definition
 ```
 
-生成ヘッダには `// Specs: IS-QZSS-DCR-017 / IS-QZSS-DCX-004 Rev.004 / EWSS CAMF Issue 1.2` が入ります（`scripts/gen/gen_definitions.py` の `SPEC_BASELINE`）。仕様を改訂したらここを更新してください。azarashi の版だけでは「どの仕様に追随した更新か」が `git diff` から読めないためです。
+生成ヘッダには `// Specs: IS-QZSS-DCR-017 / IS-QZSS-DCX-004 Rev.004 / EWSS CAMF Issue 1.2` が入る（`scripts/gen/gen_definitions.py` の `SPEC_BASELINE`）。仕様を改訂したらここを更新すること。azarashiの版だけでは「どの仕様に追随した更新か」が `git diff` から読めないためである。
 
-自動更新 PR は、作成前に `make -C test run` と `make -C test bench` を実行します（`.github/workflows/update-definitions.yml`）。既定の `GITHUB_TOKEN` で作った PR は `push` で CI が起動せず、`pull_request` も承認待ちで止まるため、ゲートは PR 作成前に置いています。
+自動更新PRは、作成前に `make -C test run` と `make -C test bench` を実行する（`.github/workflows/update-definitions.yml`）。既定の `GITHUB_TOKEN` で作ったPRは `push` でCIが起動せず、`pull_request` も承認待ちで止まるため、ゲートはPR作成前に置いている。
 
 ### 手書きの定義ヘッダ（`src/definition/manual/`）
 
-`src/definition/` 直下の `*.h` はすべて自動生成物です。
-自動で生成できない定義は `src/definition/manual/` に置きます。
+`src/definition/` 直下の `*.h` はすべて自動生成物である。
+自動で生成できない定義は `src/definition/manual/` に置く。
 
 | ファイル | 手書きである理由 |
 |---|---|
 | `manual/ublox_qzss_svid_prn_map.h` | 生成される表の形（id → ラベル）に合わない小さな固定マップ |
-| `manual/qzss_dcx_camf_a3_provider_identifier.h` | 生成器は 1 キーの lookup しか出さないが、CAMF A3 は `(country, provider)` の 2 キーで、戻り値も `std::optional` である必要がある |
+| `manual/qzss_dcx_camf_a3_provider_identifier.h` | 生成器は1キーの参照しか出さないが、CAMF A3は `(country, provider)` の2キーで、戻り値も `std::optional` である必要がある |
 
-`manual/` 以外は手編集してはいけません（先頭コメントにも `HAND-MAINTAINED` / `AUTO-GENERATED` と明記）。
-`src/definition/*.h` が生成物だけであることは、lint・静的解析の除外パターン（`src/definition/*.h`）とレビューボットの ignore がこの区切りに依存しているため。`manual/` を直下へ移動させないでください。
+`manual/` 以外は手編集してはいけない（先頭コメントにも `HAND-MAINTAINED` / `AUTO-GENERATED` と明記）。
+`src/definition/*.h` が生成物だけであることは、lint・静的解析の除外パターン（`src/definition/*.h`）とレビューボットのignoreがこの区切りに依存しているため。`manual/` を直下へ移動させないこと。
 
 ### 言語ガードの規則
 
-生成器は表が日本語か英語かで `AZARAC_LANG_JA` / `AZARAC_LANG_EN` のガードを付けます。判定は変数名から行います。
+生成器は表が日本語か英語かで `AZARAC_LANG_JA` / `AZARAC_LANG_EN` のガードを付ける。判定は変数名から行う。
 
 | 表の形 | ガード |
 |---|---|
 | `_en` が付く表で、同じ番号の `_ja` か無印のペアがある | `AZARAC_LANG_EN` |
 | `_ja` が付く表、または同じ番号の `_en` ペアがある | `AZARAC_LANG_JA` |
 | `qzss_dcr_jma_` 系統で `_en` ペアが無い（例: `information_serial_code`） | `AZARAC_LANG_JA` |
-| それ以外（CAMF 系など仕様自体が英語の表） | ガードなし（常にコンパイル） |
+| それ以外（CAMF系など仕様自体が英語の表） | ガードなし（常にコンパイル） |
 
-3 行目が無いと、`AZARAC_LANG_JA=0` の構成でも日本語の表が生きていてラベルが漏れる。
-`AZARAC_LANG_JA=0` の構成では該当の `_label` が `null` になる（3 値規則の「表が無い」に相当）。
-表を足すときはこの 4 行のどれに当たるか必ず確認してください。
+3行目が無いと、`AZARAC_LANG_JA=0` の構成でも日本語の表が生きていてラベルが漏れる。
+`AZARAC_LANG_JA=0` の構成では該当の `_label` が `null` になる（3値規則の「表が無い」に相当）。
+表を足すときはこの4行のどれに当たるか必ず確認すること。
 
 ### テストベクタの生成
 
-`test/data/*_vectors.json` は azarashi の出力を参照ベクタとして固定したものです。
-南海トラフ用の`test/data/nankai_pages_generated.h`は`gen_all_vectors.py` の `gen_nankai()` が同じ `nankai_vectors.json` から生成する派生物です。
-いずれも直接編集せず更新の際はスクリプトで再生成してください。
-ただし参照ベクタ（JSON）は azarashi のバージョンで形式が変わるため書き換えません。
+`test/data/*_vectors.json` はazarashiの出力を参照ベクタとして固定したものである。
+南海トラフ用の`test/data/nankai_pages_generated.h`は`gen_all_vectors.py` の `gen_nankai()` が同じ `nankai_vectors.json` から生成する派生物である。
+いずれも直接編集せず更新の際はスクリプトで再生成すること。
+ただし参照ベクタ（JSON）はazarashiのバージョンで形式が変わるため書き換えない。
 
 ```bash
 # nankai_pages_generated.h だけを既存の JSON から再生成する（azarashi 不要・JSON は書き換えない）
@@ -226,32 +226,32 @@ python test/scripts/gen_all_vectors.py
 git checkout -- test/data/dcr_vectors.json test/data/dcx_vectors.json test/data/nankai_vectors.json
 ```
 
-`*_vectors.json` は azarashi 0.17.1 で `params` の形が変わり（`type` の改名、`satellite_svid` の追加、`report_time` のタイムゾーン付与など）。
-さらに `timestamp` と暦年の解決が `datetime.now()` に依存するため、再生成のたびに内容が変わります。
-`*_vectors.json` は `make -C test bench-dedup`（`test/bench/bench_dedup.cpp`）や `compare_nankai_aggregation.py` が読む参照データとしてリポジトリに残すため、**再生成後にコミットするのは `nankai_pages_generated.h` のみ**とします。
-JSON は上のコマンドで元に戻します。
-（同ヘッダは azarashi 0.17.0 と 0.17.1 で同一。`.github/workflows/ci.yml` の fixture-drift も JSON は検査せずヘッダだけを見ます）。
+`*_vectors.json` はazarashi 0.17.1で `params` の形が変わり（`type` の改名、`satellite_svid` の追加、`report_time` のタイムゾーン付与など）。
+さらに `timestamp` と暦年の解決が `datetime.now()` に依存するため、再生成のたびに内容が変わる。
+`*_vectors.json` は `make -C test bench-dedup`（`test/bench/bench_dedup.cpp`）や `compare_nankai_aggregation.py` が読む参照データとしてリポジトリに残すため、再生成後にコミットするのは `nankai_pages_generated.h` のみとします。
+JSONは上のコマンドで元に戻す。
+同ヘッダはazarashi 0.17.0と0.17.1で同一である。`.github/workflows/ci.yml` のfixture-driftもJSONは検査せずヘッダだけを見る。
 
-## AVR 開発
+## AVR開発
 
-AVRツールチェーン（avr-gcc）はC++の標準ライブラリを一切含まないため、それらへの依存は`src/internal/avr_std/`にあるシム（`optional` / `string_view` / `std::move` 等）が自動で適用されます。
-シムは`test/internal/test_avr_std_shim.cpp`で検証します。
+AVRツールチェーン（avr-gcc）はC++の標準ライブラリを一切含まないため、それらへの依存は`src/internal/avr_std/`にあるシム（`optional` / `string_view` / `std::move` 等）が自動で適用される。
+シムは`test/internal/test_avr_std_shim.cpp`で検証する。
 
-- **PROGMEM 分岐のホスト検証**: `make -C test pgm-stub`が`__AVR__`とスタブ`test/stub/avr/pgmspace.h`で全テストをコンパイルします。
-  PROGMEMコードパスをホストで検証します。
-- **定義ヘッダの再生成**: `scripts/gen/gen_definitions.py --out-dir src/definition`で再生成できます。
-- **定義テーブルは CI（`.github/workflows/update-definitions.yml`）でazarashiから自動生成されるため手編集禁止**です（例外は上記「手書きの定義ヘッダ」の2本のみ）。
-- **AVR プリセット**（`src/azaraC_config.h`）: 有効カテゴリはボードによらずSEISMIC/TSUNAMIのみで、DCX/CAMFはオプトイン（`AZARAC_AVR_LARGE_FLASH=1` / `AZARAC_ENABLE_DCX_CAMF=1`。他10カテゴリは無効）。
+- **PROGMEM分岐のホスト検証**: `make -C test pgm-stub`が`__AVR__`とスタブ`test/stub/avr/pgmspace.h`で全テストをコンパイルする。
+  PROGMEMコードパスをホストで検証する。
+- **定義ヘッダの再生成**: `scripts/gen/gen_definitions.py --out-dir src/definition`で再生成できる。
+- **定義テーブルはCI（`.github/workflows/update-definitions.yml`）でazarashiから自動生成されるため手編集禁止**である（例外は上記「手書きの定義ヘッダ」の2本のみである）。
+- **AVRプリセット**（`src/azaraC_config.h`）: 有効カテゴリはボードによらずSEISMIC/TSUNAMIのみで、DCX/CAMFはオプトイン（`AZARAC_AVR_LARGE_FLASH=1` / `AZARAC_ENABLE_DCX_CAMF=1`。他10カテゴリは無効）。
   `AZARAC_DEDUP_SLOTS=64`（`AZARAC_DEDUP_WAYS=8`、512B）、`AZARAC_NANKAI_MAX_PAGES=4`、`AZARAC_NANKAI_BUFFERS=1`。
-  `arduino-compile-required`（`.github/workflows/ci.yml`）はAVRをUnoとMega 2560の2台で見ます — Unoは`basic_ubx` / `basic_nmea` / `basic_uno`の3つ、MegaはWiFi/RTOSを除く全exampleを既定カテゴリ（DCX/CAMF無効）でコンパイル/検証します。
-  DCX/CAMF入りのfar-Flash構成は`make -C test bench`（`test/bench/avr/autoresearch.sh` stage 5）が Arduino の実レシピ（`-flto`）でリンクしてゲートします（SRAM 実測 892B。switch 戦略のリテラルは LTO で `.data` に落ちないよう名前空間スコープに置いています）。
-  LTO 無しの Mega リンクは廃止しました: 非LTO 画像は約150KBで16bit関数ポインタの届く128KiBを超え、binutils 2.43 ではリンクエラーになるためです（旧 binutils は警告で壊れた ELF を通していました）。
-- **64 KiB を超える Flash を持つ AVR**: 定義テーブルは 64 KiB を超えて配置されるため、`AZARAC_PGM_READ_*` / `AZARAC_STRCPY_P`（16 bit の PROGMEM ポインタ）では範囲外になります。
-  このとき定義テーブル自身は `internal/FlashString.h` が far 参照へ切り替わります。
-  RAM 上の文字列と固定リテラルを比較するときは `AZARAC_STRNCMP_P(a, "literal", n)` を使ってください（AVR では `strncmp_P(a, PSTR(b), n)` になり、リテラルが SRAM に載りません。非 AVR では `strncmp`）。
-  16 bit 読み出しを使うのは一部 progmem クラスタに置く表（`AZARAC_PROGMEM_NEAR`: CRC24Q・半径・B4 レイアウト）と JSON キー（`PSTR`）のみです。
-  自前のデータを追加で置く場合も avr-libc の far API（`pgm_get_far_address` + `pgm_read_*_far` / `memcpy_PF`）が必要です。
-  64 KiB 超のデバイスでは `AZARAC_PROGMEM` の配置先が Arduino コア（`core.a`）と競合するため、`.text.azaraC.<N>` に置きます（配置の理由は `azaraC_config.h` のコメントとアーキテクチャの「メモリ設計」を参照）。
+  `arduino-compile-required`（`.github/workflows/ci.yml`）はAVRをUnoとMega 2560の2台で見る — Unoは`basic_ubx` / `basic_nmea` / `basic_uno`の3つ、MegaはWiFi/RTOSを除く全exampleを既定カテゴリ（DCX/CAMF無効）でコンパイル/検証します。
+  DCX/CAMF入りのfar-Flash構成は`make -C test bench`（`test/bench/avr/autoresearch.sh` stage 5）がArduinoの実レシピ（`-flto`）でリンクしてゲートする。SRAMの実測は892Bである。switch戦略のリテラルは、LTOで `.data` に落ちないよう名前空間スコープに置いている。
+  LTO無しのMegaリンクは廃止した: 非LTO画像は約150KBで16bit関数ポインタの届く128KiBを超え、binutils 2.43ではリンクエラーになるためである（旧binutilsは警告で壊れたELFを通していました）。
+- **64 KiBを超えるFlashを持つAVR**: 定義テーブルは64 KiBを超えて配置されるため、`AZARAC_PGM_READ_*` / `AZARAC_STRCPY_P`（16 bitのPROGMEMポインタ）では範囲外になる。
+  このとき定義テーブル自身は `internal/FlashString.h` がfar参照へ切り替わる。
+  RAM上の文字列と固定リテラルを比較するときは `AZARAC_STRNCMP_P(a, "literal", n)` を使うこと（AVRでは `strncmp_P(a, PSTR(b), n)` になり、リテラルがSRAMに載らない。非AVRでは `strncmp`）。
+  16 bit読み出しを使うのは一部progmemクラスタに置く表（`AZARAC_PROGMEM_NEAR`: CRC24Q・半径・B4レイアウト）とJSONキー（`PSTR`）のみである。
+  自前のデータを追加で置く場合もavr-libcのfar API（`pgm_get_far_address` + `pgm_read_*_far` / `memcpy_PF`）が必要である。
+  64 KiB超のデバイスでは `AZARAC_PROGMEM` の配置先がArduinoコア（`core.a`）と競合するため、`.text.azaraC.<N>` に置く（配置の理由は `azaraC_config.h` のコメントとアーキテクチャの「メモリ設計」を参照）。
 
 ## コーディング規約
 
@@ -273,14 +273,14 @@ AVRツールチェーン（avr-gcc）はC++の標準ライブラリを一切含�
   - **Flashが64KiBを超えるデバイスは配置先が変わる**: avr-libcのリンカスクリプトは `*(.progmem.*)` を `.text` の先頭にリンク順（Arduinoは `core.a`が最後）で並べる。
     ここに116KiBの表を置くとコア自身のPROGMEM（`digital_pin_to_port_PGM` など）が16bit窓の外へ押し出され、`pinMode`/`digitalWrite` が誤ったポートを読む。
     そこで `FLASHEND > 0xFFFF` では `AZARAC_PROGMEM` が `.text.azaraC.<N>`（progmemクラスタより後ろの `*(.text.*)`）を指す。
-    `.progmemx.*` は binutils 2.29 以降にしか無く、同梱の atmel 2.26 では広い `*(.progmem*)` に取り込まれて同じ失敗になる。
-  - **宣言ごとに節を分ける**: 関数内の静的リテラル（switch戦略の `s[]`）は one-only（weak）。
+    `.progmemx.*` はbinutils 2.29以降にしか無く、同梱のatmel 2.26では広い `*(.progmem*)` に取り込まれて同じ失敗になる。
+  - **宣言ごとに節を分ける**: 関数内の静的リテラル（switch戦略の `s[]`）はone-only（weak）。
     `AZARAC_PROGMEM` は `__COUNTER__` で節名を分ける（`-fdata-sections` と同じ粒度）。
     1つの節にまとめると、そのTUの1表が参照されただけで節全体が `--gc-sections` に残り、weakと通常配列も同居できない。
-  - **16bitで読む表は `AZARAC_PROGMEM_NEAR`**: azaraC 自身が `AZARAC_PGM_READ_*`（16bit）で読む表 — `src/decoder/Decoder.cpp`の CRC24Q ニブル表、`src/internal/DcxHelper.cpp` の `RADIUS_TABLE` / `B4_LAYOUT_TABLE`— は低い progmem クラスタに置く（far アクセサは要らない）。
-  - **ゲート**: `autoresearch.sh` はコア側 PROGMEM を模したオブジェクト（`test/bench/avr/core_progmem.c`）を最後にリンクし、そのアドレスが64KiB以内であることを確かめる。
-    near 表も `avr-nm` でアドレスを採って窓内を検査する（`MEGA_NEAR_SYM_ADDR`。表が消えた／別の節へ移った場合も失敗させる）。
-  - **付け忘れは SRAM を食う**: `AZARAC_PROGMEM` / `AZARAC_PROGMEM_NEAR` を付け忘れた `const` 配列は、avr-libc が `.rodata` を `.data`に含めるためそのまま SRAM に入る。
+  - **16bitで読む表は `AZARAC_PROGMEM_NEAR`**: azaraC自身が `AZARAC_PGM_READ_*`（16bit）で読む表 — `src/decoder/Decoder.cpp`のCRC24Qニブル表、`src/internal/DcxHelper.cpp` の `RADIUS_TABLE` / `B4_LAYOUT_TABLE`— は低いprogmemクラスタに置く（farアクセサは要らない）。
+  - **ゲート**: `autoresearch.sh` はコア側PROGMEMを模したオブジェクト（`test/bench/avr/core_progmem.c`）を最後にリンクし、そのアドレスが64KiB以内であることを確かめる。
+    near表も `avr-nm` でアドレスを採って窓内を検査する。検査には `MEGA_NEAR_SYM_ADDR` を使い、表が消えた場合や別の節へ移った場合も失敗させる。
+  - **付け忘れはSRAMを食う**: `AZARAC_PROGMEM` / `AZARAC_PROGMEM_NEAR` を付け忘れた `const` 配列は、avr-libcが `.rodata` を `.data`に含めるためそのままSRAMに入る。
   - 16エントリ程度の小さな表は作らずに計算する（`src/json/JsonWriter.cpp` の16進1文字は三項演算）。
 - **定義テーブルの格納は効率よく**: AVRは文字列プール + `{offset}`（長さはプールのNUL区切りから `azarac_pgm_len` が取るので行に持たない）＋ 共有断片を使う表は親の添字（`0xFF`＝親なし、`<GUARD>_PARENT_POOL` の1件を参照）。
   非AVRは `const char*` 配列（4B/エントリ、32bit機）。
@@ -296,21 +296,21 @@ AVRツールチェーン（avr-gcc）はC++の標準ライブラリを一切含�
   Flashを削るためにSRAMを増やす変更は不可（`test/bench/avr/autoresearch.sh` が `UNO_RAM_BYTES` と `AVR_TABLES_IN_RAM` でゲートする）。
   テーブル変数名は `_TABLE` / `_POOL` で終えること（ゲートはその接尾辞で表を数える）。
 - **JSONのキーは `AZARAC_KEY("key")` で包むこと**: `wf_u` / `wf_s` / `wk` / `writeDHM` などのキー引数は `internal::JsonKey` を取り、生の `const char*`からは暗黙変換できない。
-  包み忘れはホスト（RAMリテラル）では正しく動き AVR だけ文字化けするので、コンパイルエラーにしてある。
-  `AZARAC_KEY` は AVR では `PSTR` を通してリテラルを Flash に置き（長さは `sizeof` で決まるので実行時の走査も切り詰めも無い）、非AVR では素のポインタになる。
-  固定の値リテラル（`"invalid_mt43"`、`arrival_status` の語、DCX の `dcx_type` ラベルなど）も同じ理由で `AZARAC_KEY("...")` で包む。
+  包み忘れはホスト（RAMリテラル）では正しく動きAVRだけ文字化けするので、コンパイルエラーにしてある。
+  `AZARAC_KEY` はAVRでは `PSTR` を通してリテラルをFlashに置き（長さは `sizeof` で決まるので実行時の走査も切り詰めも無い）、非AVRでは素のポインタになる。
+  固定の値リテラル（`"invalid_mt43"`、`arrival_status` の語、DCXの `dcx_type` ラベルなど）も同じ理由で `AZARAC_KEY("...")` で包む。
   `wf_s(out, key, AZARAC_KEY("..."))`（`JsonKey` オーバーロード）で出す。
   ルックアップ結果のように実行時に決まる文字列は `std::optional<std::string_view>` / `const char*` のオーバーロードに渡す（生成ヘッダの `_lookup` には `const char*`を返すものがある）。
-  書き出しはキーも値も Flash から走査し、必要なら**スタック**の一時バッファ（`AZARAC_KEY_BUF_SIZE`、既定36B）へ 1 度写して出す。
+  書き出しはキーも値もFlashから走査し、必要ならスタックの一時バッファ（`AZARAC_KEY_BUF_SIZE`、既定36B）へ1度写して出す。
   静的な共有バッファを持たないので、書き出し順序の制約はない。
-- **RAM上の文字列と固定リテラルの比較には `AZARAC_STRNCMP_P` を使うこと**: `strncmp(buf, "QZQSM,", 6)` のリテラルは AVR では `.data`（＝SRAM）に載る。
-  `AZARAC_STRNCMP_P(buf, "QZQSM,", 6)` は AVR で `strncmp_P(buf, PSTR("QZQSM,"), 6)`、非AVR で `strncmp` に展開される（マクロ側が `PSTR` を付けるので呼び出しは素のリテラルのまま）。
+- **RAM上の文字列と固定リテラルの比較には `AZARAC_STRNCMP_P` を使うこと**: `strncmp(buf, "QZQSM,", 6)` のリテラルはAVRでは `.data`（＝SRAM）に載る。
+  `AZARAC_STRNCMP_P(buf, "QZQSM,", 6)` はAVRで `strncmp_P(buf, PSTR("QZQSM,"), 6)`、非AVRで `strncmp` に展開される（マクロ側が `PSTR` を付けるので呼び出しは素のリテラルのまま）。
   `make -C test pgm-stub` は `strncmp_P` のスタブ（`test/stub/avr/pgmspace.h`）経由でこの経路を通る。
-- **カテゴリ無効時の型ガード**: `AZARAC_ENABLE_*` は定義テーブルだけでなく payload 型と getter を消す（全 12 型）。
-  カテゴリを追加するときは `src/Mt43Data.h` の 6 箇所（struct 定義、`Mt43Data::ActiveType` の列挙子、`storage_size_` の `sizeof`、`getXxx()` の const / 非 const、`typeFor<T>()` の特殊化）と、対応する entry 型を同じマクロで囲み、decoder / serializer は定義側だけでなく **テストとサンプルも** ガードする。
-  `test/core/test_message_struct.cpp`、`test/json/test_json.cpp` の `initMt43As`、`test/json/test_json_wellformed.cpp`、`test/internal/test_dedup_window.cpp`、`test/integration/test_parser_clock.cpp`、`examples/*` にガードが無いと `make -C test macro` と CI の `arduino-compile-required` が落ちる。
+- **カテゴリ無効時の型ガード**: `AZARAC_ENABLE_*` は定義テーブルだけでなくpayload型とgetterを消す（全12型）。
+  カテゴリを追加するときは `src/Mt43Data.h` の6箇所（struct定義、`Mt43Data::ActiveType` の列挙子、`storage_size_` の `sizeof`、`getXxx()` のconst / 非const、`typeFor<T>()` の特殊化）と、対応するentry型を同じマクロで囲み、decoder / serializerは定義側だけでなく テストとサンプルも ガードする。
+  `test/core/test_message_struct.cpp`、`test/json/test_json.cpp` の `initMt43As`、`test/json/test_json_wellformed.cpp`、`test/internal/test_dedup_window.cpp`、`test/integration/test_parser_clock.cpp`、`examples/*` にガードが無いと `make -C test macro` とCIの `arduino-compile-required` が落ちる。
   `test/data/test_realdata_generated.cpp` は生成物なので手で直さず、`test/scripts/gen_realdata_vectors.py` の `DC_TYPE_GUARDS`（= `DISABLED_DC_MACROS`）にマクロを足す。
-  `internal/DedupWindow.h` も同じマクロで `case 5/10/11/14` と `ActiveType` 分岐をガードする（全対象カテゴリ無効時は payload 引数が未使用になるので `(void)payload;` を置く）。カテゴリ無効時にその dc の窓は `default` のフォールバックへ落ちるため、`test_dedup_window.cpp` の仕様値アサートも同じマクロで囲む。
+  `internal/DedupWindow.h` も同じマクロで `case 5/10/11/14` と `ActiveType` 分岐をガードする（全対象カテゴリ無効時はpayload引数が未使用になるので `(void)payload;` を置く）。カテゴリ無効時にそのdcの窓は `default` のフォールバックへ落ちるため、`test_dedup_window.cpp` の仕様値アサートも同じマクロで囲む。
 - **Flashが64KiBを超えるAVRではfar参照を使うこと**: 定義テーブルはリンク時に64KiBを超えて配置されるため、16bitのPROGMEMポインタでは届かない。
   配列のアドレスは `AZARAC_PGM_PTR(array)`（`FLASHEND > 0xFFFF` のデバイスでは `pgm_get_far_address`、それ以外は通常のポインタ）。
   行・プールの読み出しは `azarac_read_byte/word/dword` / `azarac_read_block` を経由する（`pgm_read_*_far` / `memcpy_PF`）。
@@ -318,23 +318,23 @@ AVRツールチェーン（avr-gcc）はC++の標準ライブラリを一切含�
   `make -C test pgm-stub` は「64KiB超のデバイス」を装ったホストビルドなので、far経路はそこで実行検証される。
 - **AVRでの標準ライブラリ**： 基本azaraCで実装したシム(`src/internal/avr_std/`)のみ利用するため、`std::`の新規関数の仕様はシムへの追加が必要
 
-## Issue / PR へのラベル付け
+## Issue / PRへのラベル付け
 
-ラベルは `.github/workflows/labeler.yml` が自動付与します（付与のみで削除はしません）。
+ラベルは `.github/workflows/labeler.yml` が自動付与する（付与のみで削除はしない）。
 
 | ラベル | 付与条件 | 定義 |
 |-------|---------|------|
-| `dependencies` | PR のブランチ名が `renovate/` で始まる、または `renovate.json` を変更 | `.github/labeler.yml` |
+| `dependencies` | PRのブランチ名が `renovate/` で始まる、または `renovate.json` を変更 | `.github/labeler.yml` |
 | `ci` | `.github/**`、`platformio.ini.example`、`library.json`、`library.properties`、`keywords.txt` を変更 | 同上 |
 | `test` | `test/**` を変更 | 同上 |
-| `definition` | `src/definition/**` を変更（azarashi 生成物 + 手書き2本） | 同上 |
+| `definition` | `src/definition/**` を変更（azarashi生成物 + 手書き2本） | 同上 |
 | `documentation` | `docs/**`、`README.md`、`CHANGELOG.md` を変更 | 同上 |
-| `dependencies` / `bug` / `documentation` / `enhancement` / `question` | Issue のタイトル・本文のキーワード（日本語・英語） | `.github/issue-labeler.yml` |
+| `dependencies` / `bug` / `documentation` / `enhancement` / `question` | Issueのタイトル・本文のキーワード（日本語・英語） | `.github/issue-labeler.yml` |
 
 - 条件を変えるときは上記の設定ファイルだけを変更すること（ワークフロー本体は触らない）。
 - 追加するラベルは先にリポジトリへ作成しておくこと（未作成の場合、そのラベルは無警告でスキップされる）。
-- `issues` イベントのワークフローはデフォルトブランチ（`main`）の内容で動くため、Issue の自動ラベルは `main` にマージされてから有効になる。
-  PR 側は PR 時点の内容で動く。
+- `issues` イベントのワークフローはデフォルトブランチ（`main`）の内容で動くため、Issueの自動ラベルは `main` にマージされてから有効になる。
+  PR側はPR時点の内容で動く。
 - 付与のみで削除はしない（`sync-labels` は無効）。よって手動で付与したラベルが自動で消えることはない。
 
 ```bash
@@ -344,18 +344,18 @@ gh label create <name> --color <hex> --description "<説明>"
 ## 文章とコメントの折り返し
 
 - 固定桁での折り返しはしない。エディタやビューワのソフトウェアラップに任せる。
-- Markdown は1文1行。段落内の改行はレンダラで空白になるため、文末以外で折らない。
-- 1文が長い場合は、文を分割し、句点などで改行する。目安は表示幅 160 桁（全角 80 字）。
-- それでもまだ文が長い場合は、読点などの節境界で折る。Markdown では改行位置に空白が入ることを許容する。
+- Markdownは1文1行。段落内の改行はレンダラで空白になるため、文末以外で折らない。
+- 1文が長い場合は、文を分割し、句点などで改行する。目安は表示幅160桁（全角80字）。
+- それでもまだ文が長い場合は、読点などの節境界で折る。Markdownでは改行位置に空白が入ることを許容する。
 - コードコメントも同じ。原則1文1行で書き、固定桁で折らない。
 - 表・コードブロック・URL・生成物・第三者コード（`test/doctest.h` など）は対象外。
 - ツール設定:
-  - markdownlint の MD013（line length）は無効にする。
-  - Prettier は `proseWrap: "preserve"` を使う。
-  - clang-format を使う場合は `ReflowComments: false` にする。
+  - markdownlintのMD013（line length）は無効にする。
+  - Prettierは `proseWrap: "preserve"` を使う。
+  - clang-formatを使う場合は `ReflowComments: false` にする。
 
 ## 関連ドキュメント
 
-- [API リファレンス](api-reference.md)
+- [APIリファレンス](api-reference.md)
 - [アーキテクチャドキュメント](architecture.md)
-- [JSON 出力仕様](json-formats.md)
+- [JSON出力仕様](json-formats.md)
