@@ -213,7 +213,7 @@ jobs:
             fqbn: arduino:avr:mega
             additional_urls: ""
             # Mega の場合 Flash 自体は 256 KB あるものの、アーキテクチャは AVR のためプリセットでは DCX/CAMF は Uno と同じく既定で無効
-            # Mega での DCX/CAMF のコンパイルは別工程で検証
+            # Mega での DCX/CAMF のコンパイルは、ループの後で basic_dcx だけを有効化してコンパイルするステップで検証する
             build_flags: ""
 
     steps:
@@ -243,6 +243,11 @@ jobs:
               echo "skip $sketch_name on ${{ matrix.name }} (not AVR-aware)"
               continue
             fi
+            # basic_dcx は DCX/CAMF 有効ビルド専用で、無効だとスケッチ冒頭の #error で落ちる。Mega はプリセットで無効なのでループでは飛ばし、後段のステップで有効化してコンパイルする。
+            if [[ "${{ matrix.name }}" == "Arduino Mega 2560" && "$sketch_name" == "basic_dcx" ]]; then
+              echo "skip $sketch_name on ${{ matrix.name }} (compiled separately with DCX/CAMF enabled)"
+              continue
+            fi
             # Wi-Fi 例は ESP32 コア専用（WiFi.h / configTime / Serial1）。examples 側も非 ESP32 では #error で弾く。
             if [[ "${{ matrix.fqbn }}" != esp32:* && ("$sketch_name" == "wifi_client" || "$sketch_name" == "with_sntp") ]]; then
               echo "skip $sketch_name on ${{ matrix.name }} (requires ESP32 core)"
@@ -257,6 +262,12 @@ jobs:
             # Added --clean to invalidate build cache
             arduino-cli compile --clean --fqbn "${{ matrix.fqbn }}" "$sketch" --build-property "compiler.cpp.extra_flags=$CPP_EXTRA_FLAGS"
           done
+
+      # Mega のみ: basic_dcx を DCX/CAMF 有効でコンパイルする。ライブラリの symlink は Compile examples ステップで作成済み。
+      - name: Compile basic_dcx with DCX/CAMF enabled (Mega)
+        if: matrix.name == 'Arduino Mega 2560'
+        run: |
+          arduino-cli compile --clean --fqbn "${{ matrix.fqbn }}" examples/basic_dcx --build-property "compiler.cpp.extra_flags=-std=gnu++17 -DAZARAC_ENABLE_DCX_CAMF=1 -DAZARAC_AVR_LARGE_FLASH=1"
 
   # 拡張コンパイルチェック（ベストエフォート）: required 以外のボード。こちらはCIをブロックしない
   arduino-compile-extended:
@@ -380,6 +391,11 @@ jobs:
             # Skip RTOS example on non-ESP32 boards (requires FreeRTOS)
             if [[ "$sketch_name" == "rtos_freertos" && "${{ matrix.name }}" != "ESP32-C3" && "${{ matrix.name }}" != "ESP32-S3" ]]; then
               echo "skip $sketch_name on ${{ matrix.name }} (requires ESP32 FreeRTOS)"
+              continue
+            fi
+            # basic_dcx は DCX/CAMF 有効ビルド専用で、無効だとスケッチ冒頭の #error で落ちる。build_flags で無効化しているボード（Arduino Zero）では飛ばす。
+            if [[ "$sketch_name" == "basic_dcx" && "${{ matrix.build_flags }}" == *"AZARAC_ENABLE_DCX_CAMF=0"* ]]; then
+              echo "skip $sketch_name on ${{ matrix.name }} (DCX/CAMF disabled by build flags)"
               continue
             fi
             CPP_EXTRA_FLAGS="-std=gnu++17 ${{ matrix.build_flags }}"
