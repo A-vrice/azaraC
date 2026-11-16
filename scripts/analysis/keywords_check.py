@@ -18,10 +18,10 @@ HEADERS = [
 ]
 # 定義のみ拾う（同一行に { が必須）。前方宣言 struct ParserTestHook; は除外される。
 # スキャン対象ヘッダは全て開き括弧が同一行にあることを確認済み。
-TYPE_RE = re.compile(r"^[ \t]*(?:struct|class|union|enum[ \t]+class)[ \t]+([A-Za-z_]\w*)[^\n]*\{", re.M)
+TYPE_RE = re.compile(r"^[ \t]*(?:struct|class|union|enum[ \t]+class)[ \t]+([A-Za-z_]\w*)[^\n]*\{", re.MULTILINE)
 MACRO_RE = re.compile(
     r"^#define[ \t]+(AZARAC_(?:ENABLE_[A-Z_0-9]+|LANG_[A-Z]+|NANKAI_[A-Z_]+|"
-    r"DEDUP_[A-Z_0-9]+|NMEA_[A-Z_]+|AVR_LARGE_FLASH|FLASH_BUF_SIZE))[ \t]", re.M)
+    r"DEDUP_[A-Z_0-9]+|NMEA_[A-Z_]+|AVR_LARGE_FLASH|FLASH_BUF_SIZE))[ \t]", re.MULTILINE)
 
 
 def main():
