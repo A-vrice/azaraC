@@ -1497,7 +1497,8 @@ TEST_CASE("JSON Serialization: Nankai incomplete text_hex output") {
     nankai->total_page = 27;
     const uint8_t known[18] = {0x00, 0x0A, 0xA5, 0xFF, 0x10, 0x2F, 0x30, 0x4B, 0x50,
                                0x6D, 0x70, 0x8E, 0x90, 0xAB, 0xB0, 0xCD, 0xD0, 0xEF};
-    memcpy(nankai->text, known, sizeof(known));
+    // known と text はどちらも 18 バイトで、コピー長は sizeof(known) に固定される。
+    memcpy(nankai->text, known, sizeof(known));  // nosemgrep
 
     StringPrint sp;
     internal::JsonSerializer::serialize(m, sp);

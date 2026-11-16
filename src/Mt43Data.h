@@ -524,12 +524,13 @@ private:
         active_type = ActiveType::None;  // payload 型はすべて trivially destructible なので破棄は不要
     }
 
+    // コピー元と先は同じ型で、storage_ は両辺とも storage_size_ バイトの固定配列。
     void copyFrom(const Mt43Data& other) {
-        memcpy(storage_, other.storage_, storage_size_);  // payload 型はすべて trivially copyable
+        memcpy(storage_, other.storage_, storage_size_);  // payload 型はすべて trivially copyable  // nosemgrep
     }
 
     void moveFrom(Mt43Data& other) {
-        memcpy(storage_, other.storage_, storage_size_);  // trivial なのでムーブはコピーと同じ
+        memcpy(storage_, other.storage_, storage_size_);  // trivial なのでムーブはコピーと同じ  // nosemgrep
         other.active_type = ActiveType::None;
     }
 };
