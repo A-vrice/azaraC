@@ -11,7 +11,7 @@ import sys
 import time
 
 sys.path.insert(0, os.path.dirname(__file__))
-from strategy import choose, key_type, uint_type, factor_parents, PARENT_NONE
+from strategy import choose, key_type, factor_parents, PARENT_NONE
 
 # 生成ヘッダが準拠する仕様の版数。azarashi の版とは独立に、レビュアーが
 # 「どの仕様に追随した更新か」を git diff だけで判断できるようにする（H1/M8）。
@@ -499,16 +499,6 @@ def emit_switch(varname, entries, guard, kt):
         "    }",
         "}",
     ])
-    non_avr_cases = "\n".join(
-        f'        case {k}: return {c_str_literal(v)};' for k, v in sorted(entries.items()))
-    non_avr_body = "\n".join([
-        f"[[nodiscard]] inline constexpr const char* {varname}_lookup({kt} id) noexcept {{",
-        "    switch (id) {",
-        non_avr_cases,
-        "        default: return nullptr;",
-        "    }",
-        "}",
-    ])
     # AVR/非AVR 同一テキスト: FlashString.h が非 AVR にも同一署名のアクセサを用意する。
     return avr_body
 
@@ -519,21 +509,6 @@ def emit_switch_optional(varname, entries, guard, kt):
         f"[[nodiscard]] inline std::optional<std::string_view> {varname}_lookup({kt} id) noexcept {{",
         "    switch (id) {",
         *avr_cases,
-        "        default: return std::nullopt;",
-        "    }",
-        "}",
-    ])
-    non_avr_cases = []
-    for k, v in sorted(entries.items()):
-        if v is not None:
-            byte_len = len(v.encode('utf-8'))
-            non_avr_cases.append(f'        case {k}: return std::string_view{{{c_str_literal(v)}, {byte_len}}};')
-        else:
-            non_avr_cases.append(f'        case {k}: return std::nullopt;')
-    non_avr_body = "\n".join([
-        f"[[nodiscard]] inline constexpr std::optional<std::string_view> {varname}_lookup({kt} id) noexcept {{",
-        "    switch (id) {",
-        *non_avr_cases,
         "        default: return std::nullopt;",
         "    }",
         "}",
