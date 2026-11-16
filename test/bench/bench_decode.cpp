@@ -67,7 +67,8 @@ struct Sentence {
 // "nmea" と "params.sentence" の両方に同じ文が入っているので、文全体で重複除去する。
 // 型は各 "nmea" の直後の "type": "..." から取る（生成された JSON では nmea が必ず type の前に来る）。
 static void scanFile(const char* path, std::vector<Sentence>& out) {
-    FILE* fp = fopen(path, "rb");
+    // ベンチ自身の引数で与えたファイルを読み取り専用で開く。
+    FILE* fp = fopen(path, "rb");  // nosemgrep
     if (!fp) { fprintf(stderr, "bench: cannot open %s\n", path); exit(2); }
     std::string buf;
     char chunk[65536];

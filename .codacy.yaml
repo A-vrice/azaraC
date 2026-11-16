@@ -8,3 +8,7 @@ engines:
   lizard:
     exclude_paths:
       - "test/**"
+  markdownlint:
+    exclude_paths:
+      # Keep a Changelog の見出し繰り返しと、接尾辞を示すコードスパン先頭の空白は形式上必要なもの。
+      - "CHANGELOG.md"

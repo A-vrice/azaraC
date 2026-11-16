@@ -284,6 +284,7 @@ AVRツールチェーン（avr-gcc）はC++の標準ライブラリを一切含�
   - 16エントリ程度の小さな表は作らずに計算する（`src/json/JsonWriter.cpp` の16進1文字は三項演算）。
 - **定義テーブルの格納は効率よく**: AVRは文字列プール + `{offset}`（長さはプールのNUL区切りから `azarac_pgm_len` が取るので行に持たない）＋ 共有断片を使う表は親の添字（`0xFF`＝親なし、`<GUARD>_PARENT_POOL` の1件を参照）。
   非AVRは `const char*` 配列（4B/エントリ、32bit機）。
+  <!-- markdownlint-disable-next-line MD038: コードスパン先頭の空白は接尾辞そのもの -->
   同じ表の中で4件以上に共通する接頭辞／接尾辞（「北海道札幌市」の`北海道`、「Sapporo City, Hokkaido Prefecture」の` City, Hokkaido Prefecture`）は `strategy.py` の `factor_parents` が切り出す。
   参照時に `azarac_pgm_join_z` が既存の共有バッファ内で連結する（表ごとに1方向）。
   切り出した親も同じ規則で再帰的に切り出せ（2段目、`_GRAND_POOL` ＋ `azarac_pgm_join3`）。
