@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **ClusterFuzzLiteのfuzzを3つのコンパイル時構成で実行する**: `.clusterfuzzlite/build.sh` が既定構成に加え、AVR相当の縮小構成（Nankaiバッファ1個・最大4ページ、dedup 64スロット、有効カテゴリは震度・南海トラフ・津波のみ）と検証厳格構成（dedup無効、SVID検証レベル2、NMEAの非0パディングを拒否）を別ターゲットとしてビルドする。バッファ追い出しや受理/拒否の分岐は構成で変わるため、既定構成だけでは届かない経路をfuzzで踏む。既定ターゲットの名前と定義は不変で、corpusの継続性は保たれる。fuzz時間はターゲットあたりPR 300秒・週次batch 1200秒とし、ジョブ合計は従来と同程度に保った。
+
 ## [2.1.0] - 2026-11-15
 
 ### Added
