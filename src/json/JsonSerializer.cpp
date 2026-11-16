@@ -177,7 +177,8 @@ public:
         const size_t room = (cap_ - 1) - used_;
         const size_t n = (size < room) ? size : room;
         if (n) {
-            memcpy(buf_ + used_, s, n);
+            // n は room 以下に丸めてあり used_ + n <= cap_ - 1 が常に成り立つ。Codacy の memcpy 指摘はこの不変条件を読めないための誤検知
+            memcpy(buf_ + used_, s, n);  // nosemgrep
             used_ += n;
         }
         return size;
