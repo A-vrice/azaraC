@@ -11,7 +11,7 @@ import sys
 import time
 
 sys.path.insert(0, os.path.dirname(__file__))
-from strategy import choose, key_type, factor_parents, PARENT_NONE
+from strategy import PARENT_NONE, choose, factor_parents, key_type
 
 # 生成ヘッダが準拠する仕様の版数。azarashi の版とは独立に、レビュアーが
 # 「どの仕様に追随した更新か」を git diff だけで判断できるようにする（H1/M8）。
