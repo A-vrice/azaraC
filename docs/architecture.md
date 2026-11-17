@@ -74,8 +74,8 @@ graph LR
 | [`NmeaFramer`](https://github.com/A-vrice/azaraC/tree/main/src/framer/NmeaFramer.h) | NMEA $QZQSM | Furuno GT-87, 汎用GNSS, Sony Spresense |
 | カスタム (IFramer) | 任意 | Sony, その他 |
 
-`Frame::svid` はQZSS L1SのPRNが入る。
-Satellite IDは「PRNを表す8bitの下位6bit」（IS-QZSS-DCR-017 §4.3.1）なので、`NmeaFramer` は受け取った値に `svid | 0x80` を適用してPRNに直します（仕様上有効なSatellite ID 53–63 → PRN 181–191）。
+`Frame::svid` にはQZSS L1SのPRNが入る。
+Satellite IDは「PRNを表す8bitの下位6bit」（IS-QZSS-DCR-017 §4.3.1）なので、`NmeaFramer` は受け取った値に `svid | 0x80` を適用してPRNに直す（仕様上有効なSatellite ID 53–63 → PRN 181–191）。
 2桁でも6bitに収まらない64–99は拒否し、0–52は6bitとしては通すがPRN 128–180でQZSSの割り当て外である。
 `UbxFramer` は `ublox_qzss_svid_prn_map` に該当する場合だけPRNへ変換し、181–191はこの変換後のQZSS PRNに限る。
 表に無い `svId` は範囲外の値を含めて入力値のまま通す。
@@ -95,7 +95,7 @@ Satellite IDは「PRNを表す8bitの下位6bit」（IS-QZSS-DCR-017 §4.3.1）�
 
 ### 4. DedupFilter (重複除去)
 
-[`DedupFilter`](https://github.com/A-vrice/azaraC/tree/main/src/internal/Dedup.h)はアプリケーションノートv2の実装にのっとって実装されている。
+[`DedupFilter`](https://github.com/A-vrice/azaraC/tree/main/src/internal/Dedup.h)はアプリケーションノートv2の方式にのっとっている。
 
 - **MT～VNで判定**: 発信元衛星によらず重複処理をするため、メッセージ本文のみを判定に使う。
   MT～VNフィールド（フレーム内bit 8..219、計212bit）のCRC-24Qを保存する。
@@ -123,7 +123,7 @@ Satellite IDは「PRNを表す8bitの下位6bit」（IS-QZSS-DCR-017 §4.3.1）�
   | 101–130 | 3 | 0 | 0 |
   | 327（2024-08-28） | 1 | 2 | 0 |
 
-  同時メッセージ数は 20〜327（中央値66）で、256×8の再通知は最悪日の2件のみ、512×8では30日すべてで取りこぼしも再通知もない。
+  同時メッセージ数は 20–327（中央値66）で、256×8の再通知は最悪日の2件のみ、512×8では30日すべてで取りこぼしも再通知もない。
   日別の内訳（`AZARAC_DEDUP_WAYS=8`）:
 
   | 日 | distinct | 最大同時メッセージ数 | 64×8 | 128×8 | 256×8 | 512×8 |
@@ -165,11 +165,11 @@ Satellite IDは「PRNを表す8bitの下位6bit」（IS-QZSS-DCR-017 §4.3.1）�
   256×8でも再通知が残るのは最悪日（同時327件）だけなので、余裕を見るなら512スロット、受信カテゴリを絞れるなら128スロットでも足りる。
   AVRプリセットは64×8 = 512B。
   対象は震度・津波に絞られるため、気象・台風が主体の日であふれることはない。
-- **南海トラフでの重複判定**: 集約メッセージは情報一件ごと（`info_code` + `information_type` + `report_classification` + 報告時刻）で識別します。
+- **南海トラフでの重複判定**: 集約メッセージは情報一件ごと（`info_code` + `information_type` + `report_classification` + 報告時刻）で識別する。
   到着順でどのページが最後になるかは変わるため、集約済みテキストによる判定では同じ事象を再放送のたびに別情報と判定してしまう。
   電文鍵とは `DedupKey::synthetic` で名前空間を分けるので、値が一致しても衝突しない。
   事象鍵は7フィールド29ビット（`dedupEventToken`）で、集約バッファの鍵（`NankaiPageKey`）と同一である。
-  `information_type` を含むのは、同一 `info_code` + 同一報告時刻の発表（窓24時間）と取消（窓2時間）を別の情報として扱い、取消が発表の履歴に潰されないようにするためでありす（含めないと集約バッファでも両者のページが混ざります）。
+  `information_type` を含むのは、同一 `info_code` + 同一報告時刻の発表（窓24時間）と取消（窓2時間）を別の情報として扱い、取消が発表の履歴に潰されないようにするためである（含めないと、集約バッファでも両者のページが混ざる）。
   `report_classification`（Rc）を含めるのは、訓練/試験（7）が実警報（2）を抑止したり、両者のページ本文が同じ集約バッファで連結されたりするのを防ぐためである。
   完成済み事象の再送ページは本文を再出力せず、dedupの履歴だけを更新する。`AZARAC_ENABLE_DEDUP=0` でもNankaiのページビットマップによる重複抑制は残る。
 - **32 bit時刻の折り返し**: `Parser` は64 bitの受信時刻を監視し、通常の32 bit折り返しは `DedupFilter`/`NankaiPageBuffer` の符号なし差分で扱う。
@@ -181,7 +181,7 @@ Satellite IDは「PRNを表す8bitの下位6bit」（IS-QZSS-DCR-017 §4.3.1）�
 
 ### 5. NankaiPageBuffer (南海トラフページ集約)
 
-[`NankaiPageBuffer`](https://github.com/A-vrice/azaraC/tree/main/src/internal/NankaiPageBuffer.h)は最大63ページに分割される南海トラフ地震メッセージを集約します。
+[`NankaiPageBuffer`](https://github.com/A-vrice/azaraC/tree/main/src/internal/NankaiPageBuffer.h)は最大63ページに分割される南海トラフ地震メッセージを集約する。
 `MAX_PAGES×18+1` バイトを確保し、受信したページをビットマップで管理しながら直接書き込む（ソート不要）。
 管理は `NankaiPageBufferManager` が担い、集約キーは `{info_code, information_type, report_classification, report_time（month/day/hour/minute）}` である（訓練/実警報の分離はPR #45のF-1/F-2を参照）。
 

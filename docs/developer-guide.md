@@ -87,7 +87,7 @@ make -C test run STATIC=1
 `STATIC=1` はlibstdc++ / libgccを静的リンクする（`LDFLAGS` に `-static` を足すだけ）。
 Linux CIでは不要である。
 
-同じ `test/*.o` や `test/` 直下の成果物を共有するターゲット同士の同時実行は `test/scripts/with-make-lock.sh` が直列化し、`bench` / `test-time-irq` / `avr-layout` / `nmea-policy` / `utf8-trim` も含みます。
+同じ `test/*.o` や `test/` 直下の成果物を共有するターゲット同士の同時実行は `test/scripts/with-make-lock.sh` が直列化し、`bench` / `test-time-irq` / `avr-layout` / `nmea-policy` / `utf8-trim` も含む。
 別のmakeが実行中ならexit 2で止まるので、終わるまで待つこと（ロックは終了時に自動で解放される）。
 ロックだけが残るのはSIGKILLなどでtrapを実行できなかった場合だけなので、実行中のmakeが無いことを確認できたときだけ `test/.make-lock` を削除すること。
 意図的にロックを迂回する場合は `make -C test AZARAC_LOCK_HELD=1 run` を使う。
@@ -229,7 +229,7 @@ git checkout -- test/data/dcr_vectors.json test/data/dcx_vectors.json test/data/
 
 `*_vectors.json` はazarashi 0.17.1で `params` の形が変わり（`type` の改名、`satellite_svid` の追加、`report_time` のタイムゾーン付与など）。
 さらに `timestamp` と暦年の解決が `datetime.now()` に依存するため、再生成のたびに内容が変わる。
-`*_vectors.json` は `make -C test bench-dedup`（`test/bench/bench_dedup.cpp`）や `compare_nankai_aggregation.py` が読む参照データとしてリポジトリに残すため、再生成後にコミットするのは `nankai_pages_generated.h` のみとします。
+`*_vectors.json` は `make -C test bench-dedup`（`test/bench/bench_dedup.cpp`）や `compare_nankai_aggregation.py` が読む参照データとしてリポジトリに残すため、再生成後にコミットするのは `nankai_pages_generated.h` のみとする。
 JSONは上のコマンドで元に戻す。
 同ヘッダはazarashi 0.17.0と0.17.1で同一である。`.github/workflows/ci.yml` のfixture-driftもJSONは検査せずヘッダだけを見る。
 
@@ -244,9 +244,9 @@ AVRツールチェーン（avr-gcc）はC++の標準ライブラリを一切含�
 - **定義テーブルはCI（`.github/workflows/update-definitions.yml`）でazarashiから自動生成されるため手編集禁止**である（例外は上記「手書きの定義ヘッダ」の2本のみである）。
 - **AVRプリセット**（`src/azaraC_config.h`）: 有効カテゴリはボードによらずSEISMIC/TSUNAMIのみで、DCX/CAMFはオプトイン（`AZARAC_AVR_LARGE_FLASH=1` / `AZARAC_ENABLE_DCX_CAMF=1`。他10カテゴリは無効）。
   `AZARAC_DEDUP_SLOTS=64`（`AZARAC_DEDUP_WAYS=8`、512B）、`AZARAC_NANKAI_MAX_PAGES=4`、`AZARAC_NANKAI_BUFFERS=1`。
-  `arduino-compile-required`（`.github/workflows/ci.yml`）はAVRをUnoとMega 2560の2台で見る — Unoは`basic_ubx` / `basic_nmea` / `basic_uno`の3つ、MegaはWiFi/RTOSを除く全exampleを既定カテゴリ（DCX/CAMF無効）でコンパイル/検証します。
+  `arduino-compile-required`（`.github/workflows/ci.yml`）はAVRをUnoとMega 2560の2台で見る — Unoは`basic_ubx` / `basic_nmea` / `basic_uno`の3つ、MegaはWiFi/RTOSを除く全exampleを既定カテゴリ（DCX/CAMF無効）でコンパイル/検証する。
   DCX/CAMF入りのfar-Flash構成は`make -C test bench`（`test/bench/avr/autoresearch.sh` stage 5）がArduinoの実レシピ（`-flto`）でリンクしてゲートする。SRAMの実測は892Bである。switch戦略のリテラルは、LTOで `.data` に落ちないよう名前空間スコープに置いている。
-  LTO無しのMegaリンクは廃止した: 非LTO画像は約150KBで16bit関数ポインタの届く128KiBを超え、binutils 2.43ではリンクエラーになるためである（旧binutilsは警告で壊れたELFを通していました）。
+  LTO無しのMegaリンクは廃止した: 非LTO画像は約150KBで16bit関数ポインタの届く128KiBを超え、binutils 2.43ではリンクエラーになるためである（旧binutilsは警告で壊れたELFを通していた）。
 - **64 KiBを超えるFlashを持つAVR**: 定義テーブルは64 KiBを超えて配置されるため、`AZARAC_PGM_READ_*` / `AZARAC_STRCPY_P`（16 bitのPROGMEMポインタ）では範囲外になる。
   このとき定義テーブル自身は `internal/FlashString.h` がfar参照へ切り替わる。
   RAM上の文字列と固定リテラルを比較するときは `AZARAC_STRNCMP_P(a, "literal", n)` を使うこと（AVRでは `strncmp_P(a, PSTR(b), n)` になり、リテラルがSRAMに載らない。非AVRでは `strncmp`）。
@@ -319,7 +319,7 @@ AVRツールチェーン（avr-gcc）はC++の標準ライブラリを一切含�
   行・プールの読み出しは `azarac_read_byte/word/dword` / `azarac_read_block` を経由する（`pgm_read_*_far` / `memcpy_PF`）。
   プール内のオフセットは16bitのままでよい（1プールは64KiB未満）。
   `make -C test pgm-stub` は「64KiB超のデバイス」を装ったホストビルドなので、far経路はそこで実行検証される。
-- **AVRでの標準ライブラリ**： 基本azaraCで実装したシム(`src/internal/avr_std/`)のみ利用するため、`std::`の新規関数の仕様はシムへの追加が必要
+- **AVRでの標準ライブラリ**: AVRではazaraC側で実装したシム（`src/internal/avr_std/`）だけを使う。そのため `std::` の新しい関数を使う場合は、シムへの追加が必要になる。
 
 ## Issue / PRへのラベル付け
 
