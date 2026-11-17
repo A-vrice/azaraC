@@ -551,16 +551,6 @@ def emit_array(varname, entries, guard, kt):
         f"    return azarac_pgm_copy(AZARAC_PGM_PTR({guard}_POOL) + off);",
         "}",
     ])
-    # 非 AVR: constexpr テーブル + lookup。
-    rows = ",\n    ".join(
-        c_str_literal(v) if v is not None else "nullptr" for v in table)
-    non_avr_body = "\n".join([
-        f"inline constexpr const char* {guard}_TABLE[] = {{",
-        f"    {rows}", "};",
-        f"[[nodiscard]] inline constexpr const char* {varname}_lookup({kt} id) noexcept {{",
-        f"    if (id < {guard}_BASE || id >= {guard}_BASE + {guard}_SIZE) return nullptr;",
-        f"    return {guard}_TABLE[id - {guard}_BASE];", "}",
-    ])
     return "\n".join([
         f"inline constexpr {kt} {guard}_BASE = {base};",
         f"inline constexpr {kt} {guard}_SIZE = {n};",
@@ -580,18 +570,6 @@ def emit_array_optional(varname, entries, guard, kt):
         f"    azarac_pgm_ptr p = AZARAC_PGM_PTR({guard}_TABLE) + static_cast<size_t>(id - {base}u) * sizeof({guard}_Entry);",
         *[f"    {line}" for line in fetch],
         "}",
-    ])
-    # 非 AVR: ペイロードは const char*（32 ビット環境で 4 B、std::optional<std::string_view> のエントリなら 12 B）。
-    # lookup は optional を返すので、不在（nullptr）と定義済みの空文字列（""）は呼び出し側で区別したまま。
-    rows = ",\n    ".join(
-        c_str_literal(v) if v is not None else "nullptr" for v in table)
-    non_avr_body = "\n".join([
-        f"inline constexpr const char* {guard}_TABLE[] = {{",
-        f"    {rows}", "};",
-        f"[[nodiscard]] inline constexpr std::optional<std::string_view> {varname}_lookup({kt} id) noexcept {{",
-        f"    if (id < {guard}_BASE || id >= {guard}_BASE + {guard}_SIZE) return std::nullopt;",
-        f"    const char* s = {guard}_TABLE[id - {guard}_BASE];",
-        "    return s ? std::optional<std::string_view>(std::string_view{s}) : std::nullopt;", "}",
     ])
     return "\n".join([
         f"inline constexpr {kt} {guard}_BASE = {base};",
@@ -631,22 +609,6 @@ def emit_bsearch(varname, entries, guard, kt):
         "    return nullptr;",
         "}",
     ])
-    # 非 AVR: constexpr テーブル + 二分探索。
-    rows = "\n".join(f'    {{{k}u, {c_str_literal(entries[k])}}},' for k in keys)
-    non_avr_body = "\n".join([
-        f"struct {guard}_Entry {{ {kt} id; const char* label; }};",
-        f"inline constexpr {guard}_Entry {guard}_TABLE[] = {{",
-        rows + "};",
-        f"[[nodiscard]] inline constexpr const char* {varname}_lookup({kt} id) noexcept {{",
-        f"    {idx_type} lo = 0, hi = {n};",
-        "    while (lo < hi) {",
-        f"        {idx_type} mid = static_cast<{idx_type}>(lo + (hi - lo) / 2);",
-        f"        if ({guard}_TABLE[mid].id == id) return {guard}_TABLE[mid].label;",
-        f"        if ({guard}_TABLE[mid].id < id) lo = mid + 1;",
-        "        else hi = mid;",
-        "    }",
-        "    return nullptr;", "}",
-    ])
     # AVR/非AVR 同一テキスト: FlashString.h が非 AVR にも同一署名のアクセサを用意する。
     return avr_body
 
@@ -681,27 +643,6 @@ def emit_bsearch_optional(varname, entries, guard, kt):
         "    }",
         "    return std::nullopt;",
         "}",
-    ])
-    # 非 AVR: ペイロードは const char* で、幅は emit_bsearch と同じ。
-    # lookup は引き続き std::optional<std::string_view> を返す。
-    # 二分探索では「鍵が無い」自体が不在の合図なので nullptr 行は要らない。
-    rows = "\n".join(f'    {{{k}u, {c_str_literal(entries[k])}}},' for k in keys)
-    non_avr_body = "\n".join([
-        f"struct {guard}_Entry {{ {kt} id; const char* label; }};",
-        f"inline constexpr {guard}_Entry {guard}_TABLE[] = {{",
-        rows + "};",
-        f"[[nodiscard]] inline constexpr std::optional<std::string_view> {varname}_lookup({kt} id) noexcept {{",
-        f"    {idx_type} lo = 0, hi = {n};",
-        "    while (lo < hi) {",
-        f"        {idx_type} mid = static_cast<{idx_type}>(lo + (hi - lo) / 2);",
-        f"        if ({guard}_TABLE[mid].id == id) {{",
-        f"            const char* s = {guard}_TABLE[mid].label;",
-        "            return s ? std::optional<std::string_view>(std::string_view{s}) : std::nullopt;",
-        "        }",
-        f"        if ({guard}_TABLE[mid].id < id) lo = mid + 1;",
-        "        else hi = mid;",
-        "    }",
-        "    return std::nullopt;", "}",
     ])
     # AVR/非AVR 同一テキスト: FlashString.h が非 AVR にも同一署名のアクセサを用意する。
     return avr_body
