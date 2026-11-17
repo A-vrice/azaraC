@@ -147,7 +147,7 @@ def scan_tables():
         for key, lines in blocks.items():
             text = "".join(lines)
 
-            def put(n, key=key):
+            def put(n, key=key, name=name):
                 if n > out.get(key, (0, ""))[0]:
                     out[key] = (n, name)
 
