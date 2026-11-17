@@ -128,20 +128,21 @@ def scan_tables():
         name = os.path.relpath(path, DEFS).replace(os.sep, "/")
         blocks = {}
         stack = []  # [(categories, language)]、開いている #if ごとに 1 エントリ
-        for line in open(path, encoding="utf-8"):
-            stripped = line.lstrip()
-            if stripped.startswith("#if"):
-                stack.append(parse_condition(stripped))
-                continue
-            if stripped.startswith("#endif"):
-                if stack:
-                    stack.pop()
-                continue
-            if stripped.startswith("#"):
-                continue  # #include "..." はラベルではない
-            key = (tuple(frozenset(c) for c, _ in stack),
-                   tuple(l for _, l in stack if l))
-            blocks.setdefault(key, []).append(line)
+        with open(path, encoding="utf-8") as f:
+            for line in f:
+                stripped = line.lstrip()
+                if stripped.startswith("#if"):
+                    stack.append(parse_condition(stripped))
+                    continue
+                if stripped.startswith("#endif"):
+                    if stack:
+                        stack.pop()
+                    continue
+                if stripped.startswith("#"):
+                    continue  # #include "..." はラベルではない
+                key = (tuple(frozenset(c) for c, _ in stack),
+                       tuple(l for _, l in stack if l))
+                blocks.setdefault(key, []).append(line)
 
         for key, lines in blocks.items():
             text = "".join(lines)
@@ -176,7 +177,7 @@ def scan_tables():
             grands = {n: (table_rows(b), fields.get(n + "_GRAND_Entry", ["offset"]))
                       for n, b in GRAND_TABLE.findall(text)}
             for base, body in CHILD_TABLE.findall(text):
-                if base.endswith("_PARENT") or base.endswith("_GRAND"):
+                if base.endswith(("_PARENT", "_GRAND")):
                     continue  # 親・祖父テーブル自体は下から参照されるだけ
                 child = pools.get(base + "_POOL")
                 parent = pools.get(base + "_PARENT_POOL")
@@ -215,7 +216,8 @@ def parse_ladder():
     連鎖は自前のもの（機械的に大小比較でき、カテゴリ群ごとに 1 分岐）なので、素直な置換で足りる。
     正しさは `crosscheck_ladder` が avr-gcc と突き合わせて示す。
     """
-    text = open(CONFIG_H, encoding="utf-8").read()
+    with open(CONFIG_H, encoding="utf-8") as f:
+        text = f.read()
     chain = re.search(r'#ifndef AZARAC_FLASH_BUF_SIZE\n(.*?)\n#endif', text, re.S)
     if not chain:
         raise SystemExit("check_flash_buf: AZARAC_FLASH_BUF_SIZE chain not found")
@@ -268,7 +270,7 @@ def crosscheck_ladder(chain, avr_gcc, configs):
         args.append("-DAZARAC_LANG_JA=%d" % flags.get("LANG_JA", 1))
         args.append("-DAZARAC_LANG_EN=%d" % flags.get("LANG_EN", 0))
         # args はスクリプト内で組み立てる argv で、シェルは経由しない。
-        proc = subprocess.run(args, capture_output=True, text=True)  # nosemgrep
+        proc = subprocess.run(args, capture_output=True, text=True, check=False)  # nosemgrep
         if proc.returncode != 0:
             print("check_flash_buf: avr-gcc failed:\n" + proc.stderr[-500:], file=sys.stderr)
             return 2
