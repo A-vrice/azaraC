@@ -1,6 +1,6 @@
 # JSON出力仕様 — azaraCとazarashiの比較
 
-azaraCの `JsonSerializer`（C++ / `Print&`）が出力するJSONと、基本的な参照実装であるazarashi（v0.17.1）の `azarashi.json.to_json_dict()` が出力するJSONは スキーマが異なる(azaraC側でazarashiよりも先に実装を始めたため)。
+azaraCの `JsonSerializer`（C++ / `Print&`）が出力するJSONと、基本的な参照実装であるazarashi（v0.17.1）の `azarashi.json.to_json_dict()` が出力するJSONはスキーマが異なる（azaraC側でazarashiよりも先に実装を始めたため）。
 両者で対象が異なる（組込み向けの最小表現か、Python側の完全レコードか）ため、優劣ではなく用途に応じた選択になる。
 本ドキュメントはazaraCのスキーマを示し、2ライブラリの差分を整理する。
 
@@ -24,7 +24,7 @@ azaraCの `JsonSerializer`（C++ / `Print&`）が出力するJSONと、基本的
 {"schema_version":2,"svid":184,"msg_type":44,"crc24":"0x00074DAD","data":{…}}
 ```
 
-デコードに失敗した場合の `note` は以下の通り
+デコードに失敗した場合の `note` は以下の通り。
 
 | note | 詳細 |
 |--|--|
@@ -33,7 +33,7 @@ azaraCの `JsonSerializer`（C++ / `Print&`）が出力するJSONと、基本的
 | `unsupported_msg_type` | MTが43/44ではない、または当該型のシリアライザがビルド無効（例: `AZARAC_ENABLE_DCX_CAMF=0` のMT=44）。`crc24`フィールドの直後に`note`を出力しそれ以降のフィールドは出力なし。 |
 | `unsupported_category`| 引き受けるシリアライザが無いカテゴリ（規格に無い7/13や、そのカテゴリの `AZARAC_ENABLE_*` が無効なビルド）の `Mt43Data` を直列化した場合。MT=43のメタ情報を出力するが`"data":{"note":"unsupported_category"}`となる。受信電文の復号では無効カテゴリは拒否される（`feed()` は `false`、`payload_type` は `Empty`）ので、このnoteは出ない |
 
-### 1.1共通ヘッダ
+### 1.1 共通ヘッダ
 
 | キー | 型 | 内容 |
 |---|---|---|
@@ -79,8 +79,8 @@ MT=44のルートは `crc24` までで、Aフィールド・拡張部・`sd_sdmt
 `AZARAC_LANG_JA=0` の構成では表ごと無いので `null` になる（生コードの `info_code` は残る）。
 
 津波の到着時刻は `arrival_time_raw`（12bit: day_offset 1 + hour 5 + min 6）だけを残す。
-`arrival_time` は解決できたときだけオブジェクトとなり、できないときは `null`となる。
-解決できなかった理由は `arrival_status` に出る（解決時の出力はなし）
+`arrival_time` は解決できたときだけオブジェクトとなり、できないときは `null` となる。
+解決できなかった理由は `arrival_status` に出る（解決時の出力はなし）。
 
 | 失敗理由(上から判定) | `arrival_status` | `arrival_time` |
 |---|---|---|
@@ -92,7 +92,7 @@ MT=44のルートは `crc24` までで、Aフィールド・拡張部・`sd_sdmt
 
 判定順はazarashiと同じ。
 範囲外チェックを先に置くと `hour == 30` の `no_information` が到達不能になる。
-`raw == 0` はazarashiが「同日00:00」に解決するのに対しazaraCの `resolveArrivalTime()` は空を返すため `unrecognized_code` になる
+`raw == 0` はazarashiが「同日00:00」に解決するのに対しazaraCの `resolveArrivalTime()` は空を返すため `unrecognized_code` になる。
 
 ### 1.3 MT=44の `data` のキー
 
@@ -151,7 +151,7 @@ Dフィールドを持たないハザード（例a4=1）では`detailed_info` �
 表外のraw（例15）は `d1_magnitude_label: null` になる。
 azarashiは同コードを `status: "undefined"` として区別する。
 
-### 1.5ラベルの3値規則
+### 1.5 ラベルの3値規則
 
 キーは常に出力する（キーごと省くことはしない）。
 
@@ -169,7 +169,7 @@ azarashiは同コードを `status: "undefined"` として区別する。
 固定の文字列リテラルキー（`AZARAC_LABEL`）は配列要素でも `_label_en` を併記する（例: 震度の `entries[].intensity_label`）。
 ラベルの言語選択は §1.6を参照。
 
-### 1.6ラベルの言語選択
+### 1.6 ラベルの言語選択
 
 ラベルの言語は `AZARAC_LANG_JA`（既定1）と `AZARAC_LANG_EN`（既定0）で選ぶ。
 
@@ -221,7 +221,7 @@ azarashiは同コードを `status: "undefined"` として区別する。
 
 ## 2. azarashiとの対応
 
-### 2.1レコード封筒
+### 2.1 レコード封筒
 
 | 概念 | azarashi 0.17.1 | azaraC | 差 |
 |---|---|---|---|
@@ -237,7 +237,7 @@ azarashiは同コードを `status: "undefined"` として区別する。
 | ペイロード | `data`（種別ごと） | `data`（種別ごと） | 同じ名前・同じ位置 |
 | 検査値 | なし | `crc24` | azaraCのみ |
 
-### 2.2コード値の表し方
+### 2.2 コード値の表し方
 
 **azarashi** — `status` / `code` / `table` / `labels` の4項目（`azarashi/json/tables.py`）。
 
@@ -272,8 +272,8 @@ azarashiは同コードを `status: "undefined"` として区別する。
 | 表そのものが無い | `status:"undefined"` | `"_label": null` |
 
 `a11_guidance_label` は元コードA11と、A9/A2で選ぶライブラリで決まる。A11の表はIS-QZSS-DCX-004 §4.2.3.11(1) Table 4.2-15（日本）/ (2) Table 4.2-16（国際）、国際ライブラリはEWSS CAMF v1.2 §3.5.3 / §11。§4.2.3.9 Table 4.2-12はA9の選択表で、A2による国別ライブラリ選択はCAMF v1.2 §3.5.1。
-A11は10bitだが、国際ライブラリ（A9=0）ではEWSS CAMF v1.2 §3.5.3 / §11のとおり List A 5bit（`a11 >> 5`）とList B 5bit（`a11 & 0x1F`）の2コード に分かれ、それぞれ別の表を引く。
-List Bのラベルは常に出力する `a11_guidance_list_b_label`に出る
+A11は10bitだが、国際ライブラリ（A9=0）ではEWSS CAMF v1.2 §3.5.3 / §11のとおり List A 5bit（`a11 >> 5`）とList B 5bit（`a11 & 0x1F`）の2コードに分かれ、それぞれ別の表を引く。
+List Bのラベルは常に出力する `a11_guidance_list_b_label` に出る。
 
 | A9 | A2 | `a11_guidance_label` が引く表 | `a11_guidance_list_b_label` |
 |---|---|---|---|
@@ -283,7 +283,7 @@ List Bのラベルは常に出力する `a11_guidance_list_b_label`に出る
 
 CAMFの表は英語のみなので `_label_en` は出ない。
 List A / List Bのcode 0は定義済みの空文字列 `""`。
-A11の10bitすべてが表の定義域なので「範囲外で `null`」は起きない（List Bは欠落コード29/30が `null`）
+A11の10bitすべてが表の定義域なので「範囲外で `null`」は起きない（List Bは欠落コード29/30が `null`）。
 
 **A11国際ライブラリのcode 0の表記。**
 azarashiのJSONは、国際ライブラリのList A / List B（およびC10）のcode 0を `status:"special"` + `labels:{en:"No instruction"}` と表記する（`azarashi/json/tables.py` が定義表の `0: ''` を `No instruction` で上書きする）。
@@ -305,7 +305,7 @@ A9=1 / A2=71が5通、A9=0 / A2=111（Null Message）が1通。
 124 + 1 + 5 = 130。
 国内表（A9=1 / A2=111）を通る124通の `a11_guidance_list_b_label` はすべて `null`（日本の表はList A / List Bを10bitの結合表で持つため）。
 
-### 2.3数量（数値＋単位）
+### 2.3 数量（数値＋単位）
 
 **azarashi** — コードオブジェクト（§2.2）に形と `unit` が加わる（`azarashi/json/model.py` の `PROFILES`）。
 
@@ -346,7 +346,7 @@ A9=1 / A2=71が5通、A9=0 / A2=111（Null Message）が1通。
 こちらは `height_label` 自体が範囲（`0.3m~1m` / `3m~5m` / …）である。
 `508` は上限なし（`height_upper: null`）で、`509`（Huge）/ `510`（High）/ `511`（Unknown）は境界を持たず両方 `null` になる。
 
-### 2.4時刻
+### 2.4 時刻
 
 **azarashi** — `status` / `value` / `precision` / `source` の4項目（`azarashi/json/model.py` の `_time_value`）。`basis` は0.17.1で無くなった。
 
@@ -354,7 +354,7 @@ A9=1 / A2=71が5通、A9=0 / A2=111（Null Message）が1通。
   `valid` なら `value` がUTC日時。
   センチネルは `special` で `value: null` とし、意味は `labels` が運ぶ（例 `津波到達中と推測` / `Tsunami arrival expected`）
 - `precision` は `value` の粒度（`minute` など）
-- `source` は常にあり、電文が運んだ生の分解値を持つ。値は `{month, day, hour, minute}` で、DCXのonsetは `{week, minute_of_week}` です
+- `source` は常にあり、電文が運んだ生の分解値を持つ。値は `{month, day, hour, minute}` で、DCXのonsetは `{week, minute_of_week}` である
 
 例（`$QZQSM,56,53ADA8BECF…`、Ta = 2047 = hour 31, min 63の国内津波）:
 
@@ -387,7 +387,7 @@ A9=1 / A2=71が5通、A9=0 / A2=111（Null Message）が1通。
 | DCX `onset` | `value`（UTC日時）+ `source:{week, minute_of_week}` | 週 + 週内分から解決（同上。CLIでは `null`） |
 | 火山の曖昧さ | `activity_time_ambiguity`（コードオブジェクト）を併記し、`Du` に応じて `activity_time` の有効範囲を解釈 | `ambiguity` + `ambiguity_label`（`Du` の0–7を明示）。`activity_time` の有効範囲は解釈しない |
 
-### 2.5繰り返し項目の組み方
+### 2.5 繰り返し項目の組み方
 
 **azarashi** — 1件1オブジェクト。並列配列を作らない。
 
@@ -417,7 +417,7 @@ azarashiも0.17.1から同じ1–47を `target_regions[].code` として出す�
 EX9の元64ビット整数はazarashiは出さない（`reception.nmea` に残る）。
 azaraCは `prefectures` / `cities` に展開する。
 
-### 2.6サイズと入れ子の深さ
+### 2.6 サイズと入れ子の深さ
 
 `test/data/dcr_vectors.json` + `test/data/dcx_vectors.json` のNMEA 228通 （MT=43 98 / MT=44 130。すべてazaraCが受理）の合計（区切り文字なしのコンパクト表現、 UTF-8バイト）。
 両者を同じ計量関数で測る。

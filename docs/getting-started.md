@@ -83,7 +83,7 @@ if (parser.feed(byte, msg, now)) { ... }
 ## コンパイル時設定
 
 ビルドフラグ（PlatformIOの `build_flags`、arduino-cliの `--build-property compiler.cpp.extra_flags=...` など）で `-D` を渡して指定します。
-スケッチ冒頭の `#define` はライブラリ側で認識されず、`Parser` などのサイズがTU(翻訳単位) 間でずれるため使えません。
+スケッチ冒頭の `#define` はライブラリ側で認識されず、`Parser` などのサイズがTU（翻訳単位）間でずれるため使えません。
 
 よく使うものだけ挙げます。全マクロの表は [APIリファレンス](api-reference.md#コンパイル時設定) を参照してください。
 

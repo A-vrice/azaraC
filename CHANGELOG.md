@@ -139,7 +139,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **無効カテゴリのpayload型をコンパイルから外した（AVRのSRAMを解放）**: `EewData`（`regions[80]` を含む105B）と `HypocenterData` を `AZARAC_ENABLE_EEW` / `AZARAC_ENABLE_HYPOCENTER` でガードし、既存の `NankaiData` と同じ扱いにした — struct定義、`Mt43Data::ActiveType` の列挙子、
   `storage_size_` の `sizeof`、`getEew()` / `getHypocenter()`（const / 非const計4定義）、`typeFor<…>()` の特殊化。
   AVRプリセットは既定で両方0なので `Mt43Data` のpayload枠は128B → 88B、`Message` は144B → 104B（avr-gcc `-Os`、ATmega328Pで `sizeof` を実測）。
-  効くのはEEWの `regions[80]` だけで、`HypocenterData`（22B）は他カテゴリの最大値（津波 / 北太平洋津波の67B）を超えないため単独では0Bの削減。
+  効くのはEEWの `regions[80]` だけで、`HypocenterData`（22B）は他カテゴリの最大値（津波 / 北西太平洋津波の67B）を超えないため単独では0Bの削減。
   `internal/DedupWindow.h` が参照する津波・気象・洪水・海上のpayloadはdecode設定と無関係にdedupが使うのでガードしない。
   decoder / serializerの呼び出し側は元からすべて `#if` 内だったが、テスト（`test_message_struct` / `test_json` / `test_json_wellformed` / `test_realdata`）と `examples/filter_by_category`・`examples/with_sntp` のEEW / 震源のcaseにガードを足した。
   `AZARAC_ENABLE_EEW=0` / `AZARAC_ENABLE_HYPOCENTER=0` の `make -C test macro` は13マクロすべて通る。

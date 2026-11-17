@@ -190,7 +190,7 @@ JMA DC Reportメッセージのデータ構造です。
 | 3 | 震度情報 | `getSeismic()` |
 | 4 | 南海トラフ地震 | `getNankai()` |
 | 5 | 津波警報・注意報 | `getTsunami()` |
-| 6 | 北太平洋津波 | `getNwPac()` |
+| 6 | 北西太平洋津波 | `getNwPac()` |
 | 8 | 火山情報 | `getVolcano()` |
 | 9 | 降灰情報 | `getAshFall()` |
 | 10 | 気象警報・注意報 | `getWeather()` |
@@ -297,7 +297,7 @@ if (parser.feed(b, msg)) {
 
 `TsunamiEntry` のフィールドは `arrival_time_raw`（到達時刻の生コード、12 bits）、`arrival_time`（解決済みの到達時刻）、`height_code`（津波の高さコード、4 bits）、`region_code`（津波予報区コード、10 bits）です。
 
-### NwPacTsunamiData（北太平洋津波）
+### NwPacTsunamiData（北西太平洋津波）
 
 | フィールド | 型 | 説明 |
 |---|---|---|
@@ -613,7 +613,7 @@ setBits(bits, 226, 24, crc);   // 226..249 bit に CRC を置く
 | `AZARAC_ENABLE_SEISMIC` | 1 | 震度情報（カテゴリ3） |
 | `AZARAC_ENABLE_NANKAI` | 1 | 南海トラフ地震（カテゴリ4） |
 | `AZARAC_ENABLE_TSUNAMI` | 1 | 津波警報（カテゴリ5） |
-| `AZARAC_ENABLE_NW_PAC_TSUNAMI` | 1 | 北太平洋津波（カテゴリ6） |
+| `AZARAC_ENABLE_NW_PAC_TSUNAMI` | 1 | 北西太平洋津波（カテゴリ6） |
 | `AZARAC_ENABLE_VOLCANO` | 1 | 火山情報（カテゴリ8） |
 | `AZARAC_ENABLE_ASH_FALL` | 1 | 降灰情報（カテゴリ9） |
 | `AZARAC_ENABLE_WEATHER` | 1 | 気象警報（カテゴリ10） |
