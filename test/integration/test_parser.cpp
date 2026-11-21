@@ -172,6 +172,21 @@ TEST_CASE("Parser: feedUntilMessage consumes everything when nothing completes")
     CHECK(parser.feedUntilMessage(nullptr, 10, msg, 0) == 0);
     CHECK_FALSE(msg.valid);
 }
+TEST_CASE("Parser: bulk feed reports the decoder's rejection reason") {
+    uint8_t bits[32] = {};
+    setBits(bits, 0, 8, 0x53);
+    setBits(bits, 8, 6, 43);
+    setBits(bits, 14, 3, 2);
+    setBits(bits, 17, 4, 3);
+    setBits(bits, 214, 6, 2);      // 未対応の Vn
+    setBits(bits, 226, 24, crc24qRef(bits, 226));
+    const std::string s = makeNmeaQzqsm(58, bits) + "\r\n";
+    Parser parser;
+    Message msg;
+    CHECK_FALSE(parser.feed(reinterpret_cast<const uint8_t*>(s.data()), s.size(), msg, 0));
+    CHECK(msg.unsupported_reason == UnsupportedReason::UnsupportedVersion);
+}
+
 #endif // (AZARAC_ENABLE_SEISMIC)
 
 // EEW 依存のテスト（dc=1）
