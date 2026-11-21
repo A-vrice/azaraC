@@ -1,15 +1,113 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "customDatasources": {
+    "teensy-index": {
+      "defaultRegistryUrlTemplate": "https://www.pjrc.com/teensy/package_teensy_index.json",
+      "format": "json",
+      "transformTemplates": [
+        "{\"releases\": packages[name=\"teensy\"].platforms[].{\"version\": version}}"
+      ]
+    }
+  },
+  "customManagers": [
+    {
+      "customType": "regex",
+      "datasourceTemplate": "github-releases",
+      "depNameTemplate": "espressif/arduino-esp32",
+      "description": "Arduino core pin: esp32:esp32",
+      "managerFilePatterns": [
+        "/(^|/)\\.github/workflows/[^/]+\\.ya?ml$/"
+      ],
+      "matchStrings": [
+        "esp32:esp32@(?<currentValue>[^\\s\"']+)"
+      ]
+    },
+    {
+      "customType": "regex",
+      "datasourceTemplate": "github-releases",
+      "depNameTemplate": "arduino/ArduinoCore-avr",
+      "description": "Arduino core pin: arduino:avr",
+      "managerFilePatterns": [
+        "/(^|/)\\.github/workflows/[^/]+\\.ya?ml$/"
+      ],
+      "matchStrings": [
+        "arduino:avr@(?<currentValue>[^\\s\"']+)"
+      ]
+    },
+    {
+      "customType": "regex",
+      "datasourceTemplate": "github-releases",
+      "depNameTemplate": "arduino/ArduinoCore-samd",
+      "description": "Arduino core pin: arduino:samd",
+      "managerFilePatterns": [
+        "/(^|/)\\.github/workflows/[^/]+\\.ya?ml$/"
+      ],
+      "matchStrings": [
+        "arduino:samd@(?<currentValue>[^\\s\"']+)"
+      ]
+    },
+    {
+      "customType": "regex",
+      "datasourceTemplate": "github-releases",
+      "depNameTemplate": "arduino/ArduinoCore-mbed",
+      "description": "Arduino core pin: arduino:mbed_giga / arduino:mbed_nano (same ArduinoCore-mbed)",
+      "managerFilePatterns": [
+        "/(^|/)\\.github/workflows/[^/]+\\.ya?ml$/"
+      ],
+      "matchStrings": [
+        "arduino:mbed_giga@(?<currentValue>[^\\s\"']+)",
+        "arduino:mbed_nano@(?<currentValue>[^\\s\"']+)"
+      ]
+    },
+    {
+      "customType": "regex",
+      "datasourceTemplate": "github-releases",
+      "depNameTemplate": "earlephilhower/arduino-pico",
+      "description": "Arduino core pin: rp2040:rp2040",
+      "managerFilePatterns": [
+        "/(^|/)\\.github/workflows/[^/]+\\.ya?ml$/"
+      ],
+      "matchStrings": [
+        "rp2040:rp2040@(?<currentValue>[^\\s\"']+)"
+      ]
+    },
+    {
+      "customType": "regex",
+      "datasourceTemplate": "github-releases",
+      "depNameTemplate": "stm32duino/Arduino_Core_STM32",
+      "description": "Arduino core pin: STMicroelectronics:stm32",
+      "managerFilePatterns": [
+        "/(^|/)\\.github/workflows/[^/]+\\.ya?ml$/"
+      ],
+      "matchStrings": [
+        "STMicroelectronics:stm32@(?<currentValue>[^\\s\"']+)"
+      ]
+    },
+    {
+      "customType": "regex",
+      "datasourceTemplate": "custom.teensy-index",
+      "depNameTemplate": "teensy:avr",
+      "description": "Arduino core pin: teensy:avr (versions come from the Teensy package index, not GitHub)",
+      "managerFilePatterns": [
+        "/(^|/)\\.github/workflows/[^/]+\\.ya?ml$/"
+      ],
+      "matchStrings": [
+        "teensy:avr@(?<currentValue>[^\\s\"']+)"
+      ]
+    }
+  ],
+  "dependencyDashboard": false,
   "extends": [
     "config:recommended",
     ":label(renovate)",
     "group:allNonMajor",
     "group:linters"
   ],
-  "dependencyDashboard": false,
   "packageRules": [
     {
-      "matchPackageNames": ["slsa-framework/slsa-github-generator"],
+      "matchPackageNames": [
+        "slsa-framework/slsa-github-generator"
+      ],
       "pinDigests": false
     }
   ]

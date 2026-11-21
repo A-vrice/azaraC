@@ -7,6 +7,7 @@
 #include "doctest.h"
 #include <cstring>
 #include <string>
+#include <vector>
 
 using namespace azaraC;
 
@@ -1911,4 +1912,47 @@ TEST_CASE("toJson(buffer): 切り詰めでも NUL 終端しバッファ外へ書
     CHECK(toJson(m, tiny, 0) == 0);
     CHECK(tiny[0] == 'Y');
     CHECK(toJson(m, nullptr, 10) == 0);
+}
+
+TEST_CASE("toJson(buffer): required で完全な長さと切り詰めを判別できる") {
+    Message m{};
+    m.svid = 193;
+    m.msg_type = 49;
+    m.crc24 = 0x123456;
+
+    StringPrint sp;
+    toJson(m, sp);
+    const size_t full = sp.str().size();
+    REQUIRE(full > 16);
+
+    // 長さだけ測る: nullptr / len=0 でも required は埋まり、何も書かない。
+    size_t need = 0;
+    CHECK(toJson(m, nullptr, 0, &need) == 0);
+    CHECK(need == full);
+    char tiny[1] = {'Y'};
+    need = 0;
+    CHECK(toJson(m, tiny, 0, &need) == 0);
+    CHECK(need == full);
+    CHECK(tiny[0] == 'Y');
+
+    // 切り詰め: required > 戻り値。
+    char small[16];
+    need = 0;
+    const size_t n = toJson(m, small, sizeof(small), &need);
+    CHECK(n == 15);
+    CHECK(need == full);
+    CHECK(need > n);
+
+    // ちょうど収まる（required + 1 バイト）: required == 戻り値。
+    std::vector<char> exact(full + 1, 'X');
+    need = 0;
+    CHECK(toJson(m, exact.data(), exact.size(), &need) == full);
+    CHECK(need == full);
+    CHECK(std::string(exact.data()) == sp.str());
+
+    // 1 バイト足りない: 切り詰めとして判別できる。
+    std::vector<char> short1(full, 'X');
+    need = 0;
+    CHECK(toJson(m, short1.data(), short1.size(), &need) == full - 1);
+    CHECK(need == full);
 }

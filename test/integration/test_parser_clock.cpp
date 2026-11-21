@@ -4,24 +4,10 @@
 
 #include "doctest.h"
 #include "test_helpers.h"
+#include "ParserTestHook.h"
 #include "internal/TimeFields.h"
 
 #if defined(AZARAC_TESTING) && AZARAC_TESTING
-namespace azaraC {
-namespace internal {
-struct ParserTestHook {
-    static bool postDecode(Parser& parser, const Message& decoded, Message& out,
-                           uint32_t identity, uint64_t now_ms) {
-        return parser.postDecodeAt(decoded, out, identity, now_ms);
-    }
-
-    static uint64_t observeClock(Parser& parser, uint64_t now_ms) {
-        return parser.observeClock(now_ms);
-    }
-};
-} // namespace internal
-} // namespace azaraC
-
 namespace {
 
 using azaraC::Message;
@@ -171,11 +157,11 @@ TEST_CASE("Parser clock: observing a new generation clears Nankai buffers withou
 
     CHECK(feedAt(parser, event_a, out, 0, 0xFFFFFF00ULL));   // 世代 0
     const azaraC::internal::NankaiPageKey key{12, 6, 15, 12, 30, 0, 2};
-    REQUIRE(parser.getNankaiBuffer(key) != nullptr);
+    REQUIRE(ParserTestHook::getBuffer(parser, key) != nullptr);
 
     // フレームを挟まずに世代 1 を観測する（updateClock() の共有ロジック）。
     (void)ParserTestHook::observeClock(parser, (1ULL << 32) + 0x100);
-    CHECK(parser.getNankaiBuffer(key) == nullptr);
+    CHECK(ParserTestHook::getBuffer(parser, key) == nullptr);
 }
 
 TEST_CASE("Parser clock: generation boundary re-notifies even with 1 ms gap") {

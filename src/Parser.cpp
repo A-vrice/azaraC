@@ -13,13 +13,13 @@ constexpr uint64_t kClockRollbackToleranceMs = 1000;
 #endif
 
 bool Parser::feed(uint8_t byte, Message& out, uint32_t report_unix) {
-    internal::Frame frame;
+    Frame frame;
 
     // カスタムフレーマ（排他モード）
     if (_custom) {
         // カスタムフレーマは全フィールドを埋めずに true を返し得る。
         // 決定的なゼロ基準を与えるが、このオプトイン経路に限る: 毎バイト 33 B をゼロ化すると、成功時に必ず Frame を埋める組み込みフレーマにコストが乗る。
-        frame = internal::Frame{};
+        frame = Frame{};
         if (!_custom->feed(byte, frame)) return false;
         return handleFrame(frame, out, report_unix);
     }
@@ -32,17 +32,37 @@ bool Parser::feed(uint8_t byte, Message& out, uint32_t report_unix) {
     return handleFrame(frame, out, report_unix);
 }
 
+size_t Parser::feedUntilMessage(const uint8_t* data, size_t len, Message& out, uint32_t report_unix) {
+    out.valid = false;
+    if (!data) return 0;
+    for (size_t i = 0; i < len; ++i) {
+        // 1 バイト版と同じ経路（Nankai 集約・dedup を含む）。
+        if (feed(data[i], out, report_unix)) return i + 1;
+    }
+    out.valid = false;   // 途中で完成して棄却されたフレームの値を成立と誤読させない
+    return len;
+}
+
 bool Parser::feed(const uint8_t* data, size_t len, Message& out, uint32_t report_unix) {
     if (!data) return false;
+    // 成立後のフレームの復号は out を clear() するので、作業用に分けて成立したものだけ out へ写す。
+    Message scratch;
     bool any = false;
-    for (size_t i = 0; i < len; ++i) {
-        // 1 バイト版と同じ経路（Nankai 集約・dedup を含む）。成立した電文は out に残る。
-        if (feed(data[i], out, report_unix)) any = true;
+    while (len > 0) {
+        const size_t n = feedUntilMessage(data, len, scratch, report_unix);
+        if (scratch.valid) {
+            out = scratch;
+            any = true;
+        }
+        data += n;
+        len -= n;
     }
+    // 成立しなかったときも、復号器が完成フレームを断った理由は 1 バイト版と同じく out で読めるようにする。
+    if (!any) out.unsupported_reason = scratch.unsupported_reason;
     return any;
 }
 
-bool Parser::handleFrame(internal::Frame& frame, Message& out, uint32_t report_unix) {
+bool Parser::handleFrame(Frame& frame, Message& out, uint32_t report_unix) {
     if (!_decoder.decode(frame, out, report_unix)) {
         // 復号に失敗したフレームで valid だけ立った中途半端な Message を残さない。
         // decodeQzqsm() は valid=true を設定した後に oob_ で false を返す経路があるため、ここで落とす。
@@ -212,8 +232,13 @@ internal::NankaiAggregateResult Parser::processNankaiAggregation(
 #endif
 
 #if AZARAC_ENABLE_NANKAI
-const internal::NankaiPageBuffer* Parser::getNankaiBuffer(const internal::NankaiPageKey& key) const {
-    return _nankaiBuffers.getBuffer(key);
+bool Parser::getNankaiProgress(const NankaiEventKey& key, NankaiProgress& out) const {
+    const auto* buffer = _nankaiBuffers.getBuffer({key.info_code, key.report_month, key.report_day,
+                                                   key.report_hour, key.report_minute,
+                                                   key.information_type, key.report_classification});
+    if (!buffer) return false;
+    out = {buffer->received_count, buffer->total_pages, buffer->original_total_pages, buffer->truncated};
+    return true;
 }
 #endif
 

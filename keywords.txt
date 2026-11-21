@@ -50,19 +50,17 @@ TimeFields	KEYWORD1
 LatLon	KEYWORD1
 IFramer	KEYWORD1
 Frame	KEYWORD1
-NankaiPageKey	KEYWORD1
-NankaiPageAddResult	KEYWORD1
-NankaiAggregateResult	KEYWORD1
-NankaiPageBuffer	KEYWORD1
-NankaiPageBufferManager	KEYWORD1
+NankaiEventKey	KEYWORD1
+NankaiProgress	KEYWORD1
 
 # --- 関数 ---
 feed	KEYWORD2
+feedUntilMessage	KEYWORD2
 reset	KEYWORD2
 updateClock	KEYWORD2
 toJson	KEYWORD2
 crc24q	KEYWORD2
-getNankaiBuffer	KEYWORD2
+getNankaiProgress	KEYWORD2
 clear	KEYWORD2
 getMt43	KEYWORD2
 getMt44	KEYWORD2
@@ -80,18 +78,7 @@ getWeather	KEYWORD2
 getFlood	KEYWORD2
 getTyphoon	KEYWORD2
 getMarine	KEYWORD2
-pageInRange	KEYWORD2
-addPage	KEYWORD2
-addPageEx	KEYWORD2
 isComplete	KEYWORD2
-getTextLength	KEYWORD2
-compactText	KEYWORD2
-isExpired	KEYWORD2
-clearAll	KEYWORD2
-isEmpty	KEYWORD2
-matchesKey	KEYWORD2
-setKey	KEYWORD2
-getBuffer	KEYWORD2
 
 # --- 設定マクロ ---
 AZARAC_LANG_JA	LITERAL1

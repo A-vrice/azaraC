@@ -193,26 +193,26 @@ jobs:
       matrix:
         include:
           - name: RP2040 Pico
-            core: rp2040:rp2040
+            core: rp2040:rp2040@6.4.0
             fqbn: rp2040:rp2040:rpipico
             additional_urls: https://github.com/earlephilhower/arduino-pico/releases/download/global/package_rp2040_index.json
             build_flags: ""
 
           - name: ESP32-C3
-            core: esp32:esp32
+            core: esp32:esp32@3.3.13
             fqbn: esp32:esp32:esp32c3
             additional_urls: https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
             build_flags: ""
 
           - name: Arduino Uno
-            core: arduino:avr
+            core: arduino:avr@1.8.8
             fqbn: arduino:avr:uno
             additional_urls: ""
             # Uno (32 KB Flash / 2 KB SRAM) cannot hold all definition pools (~248 KB all-category; docs/architecture.md): the AVR preset in azaraC_config.h keeps SEISMIC/TSUNAMI only (~3.4 KB tables) so the sketches fit.
             build_flags: ""
 
           - name: Arduino Mega 2560
-            core: arduino:avr
+            core: arduino:avr@1.8.8
             fqbn: arduino:avr:mega
             additional_urls: ""
             # Mega の場合 Flash 自体は 256 KB あるものの、アーキテクチャは AVR のためプリセットでは DCX/CAMF は Uno と同じく既定で無効
@@ -286,56 +286,56 @@ jobs:
         include:
           - name: RP2350 Pico 2
             slug: pico2
-            core: rp2040:rp2040
+            core: rp2040:rp2040@6.4.0
             fqbn: rp2040:rp2040:rpipico2
             additional_urls: https://github.com/earlephilhower/arduino-pico/releases/download/global/package_rp2040_index.json
             build_flags: ""
 
           - name: ESP32-S3
             slug: esp32s3
-            core: esp32:esp32
+            core: esp32:esp32@3.3.13
             fqbn: esp32:esp32:esp32s3
             additional_urls: https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
             build_flags: ""
 
           - name: STM32 Nucleo H563ZI
             slug: stm32h563
-            core: STMicroelectronics:stm32
+            core: STMicroelectronics:stm32@3.1.0
             fqbn: STMicroelectronics:stm32:Nucleo_144:pnum=NUCLEO_H563ZI
             additional_urls: https://github.com/stm32duino/BoardManagerFiles/raw/main/package_stmicroelectronics_index.json
             build_flags: "-DENABLE_HWSERIAL1 -DPIN_SERIAL_RX=PA9 -DPIN_SERIAL_TX=PA10"
 
           - name: Arduino GIGA R1 WiFi
             slug: giga
-            core: arduino:mbed_giga
+            core: arduino:mbed_giga@4.6.0
             fqbn: arduino:mbed_giga:giga
             additional_urls: https://downloads.arduino.cc/packages/package_index.json
             build_flags: ""
 
           - name: nRF52840 Nano 33 BLE
             slug: nano33ble
-            core: arduino:mbed_nano
+            core: arduino:mbed_nano@4.6.0
             fqbn: arduino:mbed_nano:nano33ble
             additional_urls: https://downloads.arduino.cc/packages/package_index.json
             build_flags: ""
 
           - name: Teensy 4.0
             slug: teensy40
-            core: teensy:avr
+            core: teensy:avr@1.62.0
             fqbn: teensy:avr:teensy40
             additional_urls: https://www.pjrc.com/teensy/package_teensy_index.json
             build_flags: ""
 
           - name: RP2040 Pico W
             slug: picow
-            core: rp2040:rp2040
+            core: rp2040:rp2040@6.4.0
             fqbn: rp2040:rp2040:rpipicow
             additional_urls: https://github.com/earlephilhower/arduino-pico/releases/download/global/package_rp2040_index.json
             build_flags: ""
 
           - name: Arduino Zero
             slug: zero
-            core: arduino:samd
+            core: arduino:samd@1.8.14
             fqbn: arduino:samd:arduino_zero_native
             additional_urls: https://downloads.arduino.cc/packages/package_index.json
             build_flags: "-DAZARAC_ENABLE_NANKAI=0 -DAZARAC_ENABLE_DCX_CAMF=0 -DAZARAC_ENABLE_VOLCANO=0 -DAZARAC_ENABLE_ASH_FALL=0 -DAZARAC_ENABLE_WEATHER=0 -DAZARAC_ENABLE_FLOOD=0 -DAZARAC_ENABLE_TYPHOON=0 -DAZARAC_ENABLE_MARINE=0 -DAZARAC_ENABLE_NW_PAC_TSUNAMI=0"

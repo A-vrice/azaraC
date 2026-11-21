@@ -1,14 +1,8 @@
 #pragma once
 
-#if defined(__AVR__)
-#include "../internal/avr_std/cstdint"
-#else
-#include <cstdint>
-#endif
 #include "Frame.h"
 
 namespace azaraC {
-namespace internal {
 
 class IFramer {
 public:
@@ -19,5 +13,4 @@ public:
     virtual ~IFramer() = default;
 };
 
-} // namespace internal
 } // namespace azaraC

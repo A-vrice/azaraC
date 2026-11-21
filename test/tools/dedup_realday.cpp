@@ -29,7 +29,7 @@
 using azaraC::internal::Decoder;
 using azaraC::internal::DedupFilter;
 using azaraC::internal::DedupKey;
-using azaraC::internal::Frame;
+using azaraC::Frame;
 
 namespace {
 

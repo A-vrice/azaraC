@@ -13,8 +13,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 HEADERS = [
     "src/Parser.h", "src/Message.h", "src/Mt43Data.h", "src/Mt44Data.h",
-    "src/internal/MtCommonTypes.h", "src/framer/IFramer.h", "src/framer/Frame.h",
-    "src/internal/NankaiPageBuffer.h",
+    "src/internal/MtCommonTypes.h", "src/IFramer.h", "src/Frame.h",
 ]
 # 定義のみ拾う（同一行に { が必須）。前方宣言 struct ParserTestHook; は除外される。
 # スキャン対象ヘッダは全て開き括弧が同一行にあることを確認済み。

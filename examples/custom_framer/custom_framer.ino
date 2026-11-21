@@ -1,4 +1,4 @@
-// 独自フレーマを差し込む例（Parser(internal::IFramer&)）。
+// 独自フレーマを差し込む例（Parser(IFramer&)）。
 //
 // 受信機が NMEA $QZQSM でも UBX-RXM-SFRBX でもない場合、IFramer を実装して
 // 1 フレーム分の 250 bit と SVID を Parser に渡せます。
@@ -16,9 +16,9 @@
 
 #include <azaraC.h>
 
-class AzcLineFramer : public azaraC::internal::IFramer {
+class AzcLineFramer : public azaraC::IFramer {
 public:
-    bool feed(uint8_t byte, azaraC::internal::Frame& out) override {
+    bool feed(uint8_t byte, azaraC::Frame& out) override {
         if (byte == '\r') return false;
         if (byte != '\n') {
             if (len_ < sizeof(buf_)) buf_[len_++] = static_cast<char>(byte);
@@ -33,7 +33,7 @@ public:
 
 private:
     // "AZC,<svid>,<64 hex>" を Frame へ。壊れていれば false。
-    bool parseLine(azaraC::internal::Frame& out) {
+    bool parseLine(azaraC::Frame& out) {
         buf_[len_] = '\0';
         if (len_ < 6 || strncmp(buf_, "AZC,", 4) != 0) return false;
 

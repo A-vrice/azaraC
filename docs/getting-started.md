@@ -46,8 +46,8 @@ azaraC::Message msg;
 void setup() {
     Serial.begin(115200);
 #if defined(ARDUINO_ESP32C3_DEV) || defined(CONFIG_IDF_TARGET_ESP32C3)
-    // ESP32-C3 の UART0 既定ピン（20/21）。Serial1 を持たないボード（Uno など）は examples/basic_uno を参照
-    Serial1.begin(9600, SERIAL_8N1, /*rx=*/20, /*tx=*/21);
+    // ESP32-C3 は UART0（Serial 出力）の GPIO20/21 を避ける。Serial1 がない Uno などは examples/basic_uno を参照
+    Serial1.begin(9600, SERIAL_8N1, /*rx=*/4, /*tx=*/5);
 #elif defined(CONFIG_IDF_TARGET_ESP32C6) || defined(ARDUINO_ESP32C6_DEV)
     // ESP32-C6 は GPIO16/17 が UART0（Serial 出力）なので別ピンを使う
     Serial1.begin(9600, SERIAL_8N1, /*rx=*/4, /*tx=*/5);
@@ -130,6 +130,7 @@ void processMessage(const azaraC::Message& msg) {
 |-------|----|
 | [basic_nmea](https://github.com/A-vrice/azaraC/tree/main/examples/basic_nmea/) | NMEA $QZQSMの基本的な使用例 |
 | [basic_ubx](https://github.com/A-vrice/azaraC/tree/main/examples/basic_ubx/) | UBX-RXM-SFRBXの基本的な使用例 |
+| [ublox_config](../examples/ublox_config/ublox_config.ino) | MCU から u-blox を設定し UBX-RXM-SFRBX を受信（[世代別の条件](../examples/README.md#ublox_config---mcu-から-u-blox-を設定して-ubx-入力)） |
 | [basic_uno](https://github.com/A-vrice/azaraC/tree/main/examples/basic_uno/) | Arduino Uno (AVR) 用最小例 |
 | [with_sntp](https://github.com/A-vrice/azaraC/tree/main/examples/with_sntp/) | SNTP時刻解決 + EEWフィルタ |
 | [filter_by_category](https://github.com/A-vrice/azaraC/tree/main/examples/filter_by_category/) | 災害カテゴリ別フィルタリング |

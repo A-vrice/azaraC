@@ -1,6 +1,6 @@
 // UBX-RXM-SFRBX（バイナリ）をデコードして Serial (USB) へ JSON を出す配線 (ESP32-C3 DevKitM-1):
-//   u-blox TX → GPIO20 (Serial1 RX)
-//   u-blox RX → GPIO21 (Serial1 TX)
+//   u-blox TX → GPIO4 (Serial1 RX)
+//   u-blox RX → GPIO5 (Serial1 TX)
 //   GND       → GND
 //
 // u-blox に設定が必要:
@@ -31,7 +31,7 @@ void setup() {
     while (!Serial && (millis() - start < 5000)) { delay(10); } // 5秒タイムアウト
 
 #if defined(ARDUINO_ESP32C3_DEV) || defined(CONFIG_IDF_TARGET_ESP32C3)
-    Serial1.begin(9600, SERIAL_8N1, /*rx=*/20, /*tx=*/21);
+    Serial1.begin(9600, SERIAL_8N1, /*rx=*/4, /*tx=*/5);
 #elif defined(CONFIG_IDF_TARGET_ESP32C6) || defined(ARDUINO_ESP32C6_DEV)
     // ESP32-C6 は GPIO16/17 が UART0（Serial 出力）なので別ピンを使う
     Serial1.begin(9600, SERIAL_8N1, /*rx=*/4, /*tx=*/5);
