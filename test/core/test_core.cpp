@@ -649,6 +649,7 @@ TEST_CASE("DedupFilter: 事象トークンは事象ごとに決まる") {
     CHECK(dedupEventToken(5, 0, 6, 15, 12, 30) != dedupEventToken(4, 0, 6, 15, 12, 30));
     // 情報種別が違えば別の事象: 同一 info_code + 同一報告時刻の発表(0)と取消(2)を潰さない。
     CHECK(dedupEventToken(5, 0, 6, 15, 12, 30) != dedupEventToken(5, 2, 6, 15, 12, 30));
+    CHECK(dedupEventToken(5, 0, 6, 15, 12, 30, 2) != dedupEventToken(5, 0, 6, 15, 12, 30, 7));
 }
 
 TEST_CASE("DedupKey: 26 bit の事象トークンは電文の鍵と衝突しない") {

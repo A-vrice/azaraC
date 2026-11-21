@@ -329,6 +329,33 @@ TEST_CASE("NankaiPageBufferManager empty slots never match") {
     CHECK(manager.addPage(zero, 2, 2, text, 1000) != nullptr);
 }
 
+TEST_CASE("NankaiPageBufferManager separates training and real alerts") {
+    NankaiPageBufferManager manager;
+    const NankaiPageKey real(1, 4, 10, 30, 15, 0, 2);
+    const NankaiPageKey training(1, 4, 10, 30, 15, 0, 7);
+    CHECK_FALSE(real == training);
+    uint8_t real_text[18] = {'R', 0};
+    uint8_t training_text[18] = {'T', 0};
+    CHECK(manager.addPage(real, 1, 2, real_text, 1000) == nullptr);
+    // 訓練の 2 ページ目は実警報の 1 ページ目と混ざって完成してはならない。
+    CHECK(manager.addPage(training, 2, 2, training_text, 1000) == nullptr);
+}
+
+TEST_CASE("NankaiPageBufferManager rejects invalid pages before evicting") {
+    NankaiPageBufferManager manager;
+    uint8_t text[18] = {'P', 0};
+    for (uint8_t i = 0; i < NankaiPageBufferManager::MAX_BUFFERS; ++i) {
+        manager.addPage(NankaiPageKey(1, 4, 10, 30, static_cast<uint8_t>(i)), 1, 2, text, 1000);
+    }
+    const NankaiPageKey fresh(2, 4, 10, 30, 59);
+    CHECK(manager.addPage(fresh, 0, 2, text, 1001) == nullptr);
+    CHECK(manager.addPage(fresh, 3, 2, text, 1001) == nullptr);
+    CHECK(manager.getBuffer(fresh) == nullptr);
+    for (uint8_t i = 0; i < NankaiPageBufferManager::MAX_BUFFERS; ++i) {
+        CHECK(manager.getBuffer(NankaiPageKey(1, 4, 10, 30, static_cast<uint8_t>(i))) != nullptr);
+    }
+}
+
 TEST_CASE("NankaiPageBuffer expiry") {
     SUBCASE("isExpired boundary") {
         NankaiPageBuffer buffer;
@@ -336,6 +363,17 @@ TEST_CASE("NankaiPageBuffer expiry") {
         buffer.addPage(1, 2, text, 1000);
         CHECK_FALSE(buffer.isExpired(1000 + NankaiPageBuffer::TIMEOUT_MS));
         CHECK(buffer.isExpired(1000 + NankaiPageBuffer::TIMEOUT_MS + 1));
+    }
+
+    SUBCASE("duplicate page refreshes the timeout") {
+        NankaiPageBuffer buffer;
+        uint8_t text[18] = {'P', 0};
+        buffer.addPage(1, 2, text, 1000);
+        const uint64_t resend = 1000 + NankaiPageBuffer::TIMEOUT_MS - 1;
+        CHECK_FALSE(buffer.addPage(1, 2, text, resend));
+        CHECK(buffer.received_count == 1);
+        CHECK_FALSE(buffer.isExpired(1000 + NankaiPageBuffer::TIMEOUT_MS + 1));
+        CHECK(buffer.isExpired(resend + NankaiPageBuffer::TIMEOUT_MS + 1));
     }
 
     SUBCASE("expireBuffers drops a stale buffer") {
