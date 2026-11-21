@@ -6,6 +6,58 @@
 
 using namespace azaraC;
 
+#if (AZARAC_ENABLE_SEISMIC)
+TEST_CASE("Parser: bulk feed is equivalent to byte-by-byte feed") {
+    uint8_t bits[32] = {};
+    setBits(bits, 0, 8, 0x53);
+    setBits(bits, 8, 6, 43);
+    setBits(bits, 14, 3, 2);
+    setBits(bits, 17, 4, 3);
+    setBits(bits, 214, 6, 1);
+    setBits(bits, 226, 24, crc24qRef(bits, 226));
+    const std::string nmea = makeNmeaQzqsm(58, bits);
+    std::string input = nmea;
+    SUBCASE("single frame") {}
+    SUBCASE("duplicate after success clears output") { input += nmea; }
+    SUBCASE("distinct frame after success") {
+        setBits(bits, 14, 3, 1);
+        setBits(bits, 226, 24, crc24qRef(bits, 226));
+        input += makeNmeaQzqsm(58, bits);
+    }
+    SUBCASE("invalid frame") {
+        bits[28] ^= 1;
+        input = makeNmeaQzqsm(58, bits);
+    }
+
+    Parser byte_parser;
+    Message byte_msg;
+    bool byte_out = false;
+    for (char c : input) {
+        if (byte_parser.feed(static_cast<uint8_t>(c), byte_msg, 1730000000)) byte_out = true;
+    }
+    Parser bulk_parser;
+    Message bulk_msg;
+    const bool bulk_out = bulk_parser.feed(
+        reinterpret_cast<const uint8_t*>(input.data()), input.size(), bulk_msg, 1730000000);
+    CHECK(bulk_out == byte_out);
+    CHECK(bulk_msg.valid == byte_msg.valid);
+    CHECK(bulk_msg.msg_type == byte_msg.msg_type);
+    CHECK(bulk_msg.svid == byte_msg.svid);
+    CHECK(bulk_msg.crc24 == byte_msg.crc24);
+    CHECK(bulk_msg.payload_type == byte_msg.payload_type);
+}
+
+TEST_CASE("Parser: bulk feed reports no message for incomplete input") {
+    Parser parser;
+    Message msg;
+    static const char partial[] = "$QZQSM,55,00";
+    CHECK_FALSE(parser.feed(reinterpret_cast<const uint8_t*>(partial), sizeof(partial) - 1, msg));
+    CHECK_FALSE(parser.feed(nullptr, 0, msg));
+    CHECK_FALSE(parser.feed(nullptr, 10, msg));
+    CHECK_FALSE(parser.feed(reinterpret_cast<const uint8_t*>(""), 0, msg));
+}
+#endif
+
 // EEW デコードテスト
 
 #if (AZARAC_ENABLE_EEW)

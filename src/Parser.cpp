@@ -24,6 +24,15 @@ bool Parser::feed(uint8_t byte, Message& out, uint32_t report_unix) {
     return handleFrame(frame, out, report_unix);
 }
 
+bool Parser::feed(const uint8_t* data, size_t len, Message& out, uint32_t report_unix) {
+    if (!data) return false;
+    bool any = false;
+    for (size_t i = 0; i < len; ++i) {
+        if (feed(data[i], out, report_unix)) any = true;
+    }
+    return any;
+}
+
 bool Parser::handleFrame(internal::Frame& frame, Message& out, uint32_t report_unix) {
     if (!_decoder.decode(frame, out, report_unix)) return false;
     // 手順③ の照合範囲は MT～VN（bit 8..219 = 212 bit、bit 220..225 は Reserved）。

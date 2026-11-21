@@ -32,6 +32,11 @@ public:
     // report_unix: 時刻解決に使う報告の UNIX epoch。0 は未解決（DHM フィールドは残るが unix_time は 0 のまま）。
     bool feed(uint8_t byte, Message& out, uint32_t report_unix = 0);
 
+    // data の len バイトを順に feed(byte) する（通信バッファをそのまま流す用途）。
+    // 1 通以上成立すれば true。out は後続バイトで上書き・クリアされ得る。
+    // 途中で成立した電文を取りこぼしたくないときは従来の 1 バイト版を使うこと。
+    bool feed(const uint8_t* data, size_t len, Message& out, uint32_t report_unix = 0);
+
     void reset();
 
 #if AZARAC_ENABLE_NANKAI

@@ -80,6 +80,32 @@ void loop() {
 }
 ```
 
+##### `feed()`（一括）
+
+受信バッファをそのまま流し込みます。内部では 1 バイト版の `feed()` を順に呼ぶだけで、Nankai 集約・重複除去を含め挙動は同じです。
+
+```cpp
+bool feed(const uint8_t* data, size_t len, Message& out, uint32_t report_unix = 0);
+```
+
+| パラメータ | 型 | 説明 |
+|-----------|-----|------|
+| `data` | `const uint8_t*` | 入力バッファ（`nullptr` は `false`） |
+| `len` | `size_t` | バイト数（0 は `false`） |
+| `out` | `Message&` | 出力（後続バイトで上書き・クリアされ得る） |
+| `report_unix` | `uint32_t` | UNIX時刻 (省略時: 0 = 未解決) |
+
+**戻り値:** `bool` - 1 通以上成立したら `true`。最初の成立で停止せず、全バイトを処理します。`out` の内容は 1 バイト版を順に呼んだ場合と同一で、成立した後に重複などで `false` になった場合は中身がクリアされ得ます。
+複数の電文が入っているバッファでは途中の電文は保持されないので、取りこぼしたくないときは 1 バイト版を使ってください。
+
+```cpp
+uint8_t buf[512];
+size_t n = client.read(buf, sizeof(buf));
+if (parser.feed(buf, n, msg, now)) {
+    azaraC::toJson(msg, Serial);
+}
+```
+
 ##### `reset()`
 
 パーサーの状態をリセットします。フレーマー、デコーダー、重複除去フィルタ、**NankaiPageBufferManager**が初期化されます。
