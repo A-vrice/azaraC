@@ -58,6 +58,7 @@ NankaiPageBufferManager	KEYWORD1
 
 # --- 関数 ---
 feed	KEYWORD2
+feedUntilMessage	KEYWORD2
 reset	KEYWORD2
 updateClock	KEYWORD2
 toJson	KEYWORD2
