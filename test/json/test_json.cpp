@@ -1479,8 +1479,31 @@ TEST_CASE("JSON Serialization: Nankai aggregated text_utf8 output") {
     CHECK(s.find("\"text_utf8\":") != std::string::npos);
     CHECK(s.find("\"text_hex\"") == std::string::npos);
     CHECK(has(s, aggregated));
+    // truncated は既定 false。集約済みでも打ち切られていなければ 0。
+    CHECK(hasField(s, "\"truncated\":0"));
 }
 #endif // AZARAC_ENABLE_NANKAI
+
+#if (AZARAC_ENABLE_WEATHER) && (AZARAC_ENABLE_VOLCANO)
+TEST_CASE("JSON Serialization: MT=43 category without its payload is unsupported") {
+    // disaster_category と payload の型が食い違う（防御経路）: serializer は false を返し、
+    // 呼び出し側は data の代わりに note を出す。
+    Message m{};
+    m.msg_type = 43;
+    m.initPayload<Mt43Data>();
+    Mt43Data* mt43 = m.getMt43();
+    REQUIRE(mt43 != nullptr);
+    mt43->initAs<VolcanoData>();
+    mt43->disaster_category = 10;      // Weather を名乗るが payload は Volcano
+    REQUIRE(mt43->getWeather() == nullptr);
+
+    StringPrint sp;
+    internal::JsonSerializer::serialize(m, sp);
+    const std::string& s = sp.str();
+    CHECK(has(s, "\"data\":{"));
+    CHECK(has(s, "\"note\":\"unsupported_category\""));
+}
+#endif
 
 #if (AZARAC_ENABLE_NANKAI)
 TEST_CASE("JSON Serialization: Nankai incomplete text_hex output") {

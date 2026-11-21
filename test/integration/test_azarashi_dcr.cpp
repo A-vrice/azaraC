@@ -360,3 +360,48 @@ TEST_CASE("DCR: NW Pacific Tsunami - Tsunamigenic Potential patterns") {
     }
 }
 #endif // AZARAC_ENABLE_NW_PAC_TSUNAMI
+
+#if (AZARAC_ENABLE_VOLCANO)
+// lg スロットは 0 に達した時点で打ち切る（0 は「以降に区域なし」の終端）。
+// 5 スロット中 2 番目が 0 で、その後に非 0 が続く電文を固定する。
+TEST_CASE("DCR: Volcano local governments stop at the first zero slot") {
+    uint8_t bits[32] = {};
+    setBits(bits, 0, 8, 0x53);
+    setBits(bits, 8, 6, 43);
+    setBits(bits, 14, 3, 1);       // report_classification
+    setBits(bits, 17, 4, 8);       // disaster_category = Volcano
+    setBits(bits, 21, 4, 1);       // report_time month
+    setBits(bits, 25, 5, 1);       // day
+    setBits(bits, 30, 5, 0);       // hour
+    setBits(bits, 35, 6, 0);       // minute
+    setBits(bits, 41, 2, 0);       // information_type
+    setBits(bits, 50, 3, 2);       // ambiguity
+    setBits(bits, 69, 7, 52);      // warning_code
+    setBits(bits, 76, 12, 503);    // volcano_name
+    setBits(bits, 88 + 0 * 23, 23, 4600000);
+    setBits(bits, 88 + 1 * 23, 23, 0);        // 終端
+    setBits(bits, 88 + 2 * 23, 23, 13101);    // 終端より後ろ（取り込まない）
+    setBits(bits, 88 + 3 * 23, 23, 0);
+    setBits(bits, 88 + 4 * 23, 23, 0);
+    setBits(bits, 214, 6, 1);      // Vn
+    setBits(bits, 226, 24, crc24qRef(bits, 226));
+
+    Frame frame{};
+    memcpy(frame.bits, bits, 32);
+    frame.svid = 193;
+    Decoder dec;
+    Message msg{};
+    REQUIRE(dec.decode(frame, msg, 0));
+
+    const Mt43Data* mt43 = msg.getMt43();
+    REQUIRE(mt43 != nullptr);
+    REQUIRE(mt43->disaster_category == 8);
+    const VolcanoData* vol = mt43->getVolcano();
+    REQUIRE(vol != nullptr);
+    CHECK(vol->warning_code == 52);
+    CHECK(vol->volcano_name == 503);
+    CHECK(vol->lg_count == 1);
+    CHECK(vol->local_govs[0] == 4600000);
+    CHECK(vol->local_govs[1] == 0);   // 終端より後ろは書き込まない
+}
+#endif // AZARAC_ENABLE_VOLCANO

@@ -87,6 +87,27 @@ TEST_CASE("Parser clock: partial Nankai duplicate does not reach dedup") {
     CHECK(std::string(nankai->aggregated_text_ptr, nankai->aggregated_len) == "P1P2");
 }
 
+#if AZARAC_ENABLE_VOLCANO
+// dc=4（Nankai）を名乗るのに payload が Nankai でない電文は集約できないので出力しない。
+TEST_CASE("Parser clock: Nankai category without Nankai payload is rejected") {
+    azaraC::Parser parser;
+    Message out;
+    Message decoded;
+    decoded.valid = true;
+    decoded.msg_type = 43;
+    decoded.initPayload<Mt43Data>();
+    Mt43Data* mt43 = decoded.getMt43();
+    REQUIRE(mt43 != nullptr);
+    mt43->initAs<VolcanoData>();
+    mt43->disaster_category = 4;
+    REQUIRE(mt43->getNankai() == nullptr);
+
+    CHECK_FALSE(feedAt(parser, decoded, out, 0, 1000));
+    CHECK(out.msg_type == 0);
+    CHECK(out.payload_type == azaraC::MsgPayloadType::Empty);
+}
+#endif // AZARAC_ENABLE_VOLCANO
+
 #if AZARAC_ENABLE_DEDUP
 TEST_CASE("Parser clock: completed Nankai duplicate refreshes dedup history") {
     azaraC::Parser parser;

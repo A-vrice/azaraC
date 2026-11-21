@@ -815,6 +815,45 @@ TEST_CASE("DedupFilter: 直近に受信した情報は容量超過後も重複�
     }
 }
 
+TEST_CASE("DedupFilter: 追い出すのは最終受信が最も古いエントリ（way 順ではない）") {
+    // 満杯時の victim は「最終受信が最も古い」もの。走査順の先頭／末尾を選ぶ実装は、
+    // last_seen が way 順と一致していないときに生きている情報を落とす。
+    DedupFilter filter;
+    auto setOf = [](uint32_t content) {
+        uint32_t h = content & 0xFFFFFFu;
+        h ^= h >> 8;
+        h ^= h >> 4;
+        return static_cast<uint16_t>(h & (azaraC::internal::DEDUP_SETS - 1));
+    };
+
+    const uint16_t target = setOf(DedupKey{43, 1u}.packed());
+    const int need = static_cast<int>(azaraC::internal::DEDUP_WAYS) + 1;
+    DedupKey keys[azaraC::internal::DEDUP_WAYS + 1];
+    int n = 0;
+    for (uint32_t id = 1; n < need && id < 1000000u; ++id) {
+        DedupKey k{43, id};
+        if (setOf(k.packed()) == target) keys[n++] = k;
+    }
+    REQUIRE(n == need);   // 同一セットに落ちる鍵が WAYS+1 個見つかった
+
+    // way i の最終受信時刻を散らす（way 順とは一致させない）。
+    const uint32_t base = DEDUP_TEST_BASE;
+    const uint32_t BIG_WINDOW = 1000000u;
+    for (uint8_t i = 0; i < azaraC::internal::DEDUP_WAYS; ++i) {
+        const uint32_t rank = static_cast<uint32_t>((i + 3) % azaraC::internal::DEDUP_WAYS);
+        CHECK_FALSE(filter.isDuplicate(keys[i], base + rank * 100u, BIG_WINDOW));
+    }
+    const uint8_t oldest_way =
+        static_cast<uint8_t>((azaraC::internal::DEDUP_WAYS - 3) % azaraC::internal::DEDUP_WAYS);
+
+    // 満杯のセットへ新しい鍵を入れる: 追い出されるのは最新（末尾 way）でも way0 でもなく oldest_way。
+    (void)filter.isDuplicate(keys[azaraC::internal::DEDUP_WAYS], base + 10000u, BIG_WINDOW);
+
+    CHECK_FALSE(filter.isDuplicate(keys[oldest_way], base + 10001u, BIG_WINDOW));
+    CHECK(filter.isDuplicate(keys[0], base + 10002u, BIG_WINDOW));
+    CHECK(filter.isDuplicate(keys[azaraC::internal::DEDUP_WAYS - 1], base + 10003u, BIG_WINDOW));
+}
+
 TEST_CASE("DedupFilter: 32bit 時刻のラップをまたぐ victim 選択") {
     // last_seen_ms は uint32 ミリ秒（49.7 日周期）。
     // 同一セット内の差が 2^31 ms（約 24.8 日）を超えると、生の時刻を int32 で引く実装は新しい方を「古い」と誤認し、生きている情報を追い出して再通知させる。

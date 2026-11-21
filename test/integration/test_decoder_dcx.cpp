@@ -2,6 +2,8 @@
 
 #include "../test_helpers.h"
 #include "../src/internal/DcxHelper.h"
+#include "../src/azaraC.h"
+#include "../src/internal/PrintShim.h"
 #include "doctest.h"
 #include <algorithm>
 
@@ -191,6 +193,52 @@ TEST_CASE("decodeDcx: J-Alert メッセージのデコード") {
     CHECK(mt44->ex.ex_jalert.ex8 == 0);
     CHECK(mt44->ex.ex_jalert.ex9 == 3);
     CHECK(mt44->ex.ex_jalert.vn == 1);
+}
+
+// J-Alert で EX9 の 4 コードがすべて 0 のときは追跡する市町村がない。
+// 復号結果が初期化値を必ず上書きすること（残骸が cities[] に出ないこと）を固定する。
+TEST_CASE("decodeDcx: J-Alert で市町村コードが全て 0 なら cities は空") {
+    uint8_t bits[32] = {};
+
+    setBits(bits, 0, 8, 0x53);
+    setBits(bits, 8, 6, 44);
+    setBits(bits, 14, 1, 0);
+    setBits(bits, 15, 9, 0x1FF);
+
+    setBits(bits, 24, 2, 1);
+    setBits(bits, 26, 9, 111);
+    setBits(bits, 35, 5, 2);
+    setBits(bits, 40, 7, 5);
+    setBits(bits, 47, 2, 3);
+    setBits(bits, 49, 1, 0);
+    setBits(bits, 50, 14, 0);
+    setBits(bits, 64, 2, 0);
+    setBits(bits, 66, 1, 0);
+    setBits(bits, 67, 3, 0);
+    setBits(bits, 70, 10, 0);
+    setBits(bits, 80, 16, 0);
+    setBits(bits, 96, 17, 0);
+    setBits(bits, 113, 5, 0);
+    setBits(bits, 118, 5, 0);
+    setBits(bits, 123, 6, 0);
+    setBits(bits, 129, 2, 0);
+    setBits(bits, 131, 15, 0);
+
+    setBits(bits, 146, 1, 1);   // EX8=1: 市町村コードモード
+    setBits(bits, 147, 32, 0);  // コード 1,2
+    setBits(bits, 179, 32, 0);  // コード 3,4（全て 0 = 対象なし）
+    setBits(bits, 211, 3, 0);
+    setBits(bits, 214, 6, 1);
+
+    Message msg = decodeDcxHelper(bits);
+    REQUIRE(msg.getMt44() != nullptr);
+    const Mt44Data* mt44 = msg.getMt44();
+    CHECK(mt44->mt44_decoded.jalert_prefecture_mode == false);
+    CHECK(mt44->mt44_decoded.city_code_count == 0);
+
+    StringPrint sp;
+    internal::JsonSerializer::serialize(msg, sp);
+    CHECK(sp.str().find("\"cities\":[]") != std::string::npos);
 }
 
 TEST_CASE("decodeDcx: Local Government メッセージのデコード") {
@@ -604,5 +652,50 @@ TEST_CASE("DCX B3: 副楕円パラメータが camf に反映される") {
     CHECK(mt44->camf.b3_c8  == 7);
     CHECK(mt44->camf.b3_c9  == 31);
     CHECK(mt44->camf.b3_c10 == 0);
+}
+
+// A17=00（B1）では B2/B3 が「無い」まま残る。
+// b2_present は復号前に明示的に false にしないと、前回の値や未初期化値が残る。
+TEST_CASE("DCX: A17=00 (B1) では b2/b3 が false のまま") {
+    uint8_t bits[32] = {};
+    Message msg{};
+
+    setBits(bits, 0, 8, 0x53);
+    setBits(bits, 8, 6, 44);
+    setBits(bits, 14, 1, 0);
+    setBits(bits, 15, 9, 0);
+    setBits(bits, 24, 2, 1);
+    setBits(bits, 26, 9, 111);
+    setBits(bits, 35, 5, 1);
+    setBits(bits, 40, 7, 74);
+    setBits(bits, 47, 2, 2);
+    setBits(bits, 49, 1, 0);
+    setBits(bits, 50, 14, 100);
+    setBits(bits, 80, 16, 32768);    // A12 非 0 → 主楕円あり
+    setBits(bits, 96, 17, 65536);
+    setBits(bits, 113, 5, 10);
+    setBits(bits, 118, 5, 8);
+    setBits(bits, 123, 6, 32);
+    setBits(bits, 129, 2, 0);        // A17=00 → B1（B2/B3 は無い）
+    setBits(bits, 131, 15, 0x7FFF);  // A18 は B1 のコード
+    setBits(bits, 146, 16, 1100);
+    setBits(bits, 214, 6, 1);
+    setBits(bits, 226, 24, crc24qRef(bits, 226));
+
+    Decoder decoder;
+    Frame frame;
+    frame.svid = 56;
+    std::copy_n(bits, sizeof(frame.bits), frame.bits);
+
+    REQUIRE(decoder.decode(frame, msg, 1704067200u));
+    CHECK(msg.valid == true);
+
+    const Mt44Data* mt44 = msg.getMt44();
+    REQUIRE(mt44 != nullptr);
+    CHECK(mt44->mt44_decoded.main_ellipse_present == true);
+    CHECK(mt44->camf.b2_present == false);
+    CHECK(mt44->camf.b3_present == false);
+    CHECK(mt44->camf.b2_c5 == 0);
+    CHECK(mt44->camf.b2_c6 == 0);
 }
 #endif
