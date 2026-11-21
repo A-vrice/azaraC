@@ -52,6 +52,64 @@ CFG-UART1-BAUDRATE              = 9600
 
 ---
 
+### ublox_config - MCU から u-blox を設定して UBX 入力
+
+u-center2 や USB-TTL アダプターを使わず、起動時に Serial1 から設定を送信します。
+`examples/ublox_config/ublox_config.ino` を開き、先頭の `UBLOX_GENERATION` を
+`10`（既定: M10）、`9`（F9）、`8`（M8）から選択してください。
+設定後は `basic_ubx` と同じように受信データを azaraC に渡し、Serial に JSON を出力します。
+
+**配線**: GNSS の **UART1** TX → MCU RX、UART1 RX ← MCU TX、GND 共通。
+ESP32 のピンは `basic_nmea` と同じ（C3=20/21、C6=4/5、classic=16/17）。
+その他の Serial1 搭載ボードではボードの RX1/TX1 を使います。Uno は対象外です。
+電源・I/O 電圧はモジュール仕様に従ってください。
+`GNSS_BAUD` は受信機の現在の速度に合わせます（既定 9600、受信機側の速度は変更しません）。
+UART1 の UBX 入出力が有効であることが前提です。
+
+**M10 / F9（CFG-VALSET 対応 FW）**:
+
+UBX-CFG-VALSET (`0x06 0x8A`) で次のキーをすべて `1` に設定します。
+
+| キー | ID | 型 |
+| --- | --- | --- |
+| CFG-MSGOUT-UBX_RXM_SFRBX_UART1 | `0x20910232` | U1 |
+| CFG-SIGNAL-QZSS_ENA | `0x10310024` | L |
+| CFG-SIGNAL-QZSS_L1S_ENA | `0x10310014` | L |
+
+出典: [u-blox M10 SPG 5.10 Interface description (UBX-21035062 R03)](https://content.u-blox.com/sites/default/files/u-blox-M10-SPG-5.10_InterfaceDescription_UBX-21035062.pdf)
+の CFG-MSGOUT / CFG-SIGNAL および UBX-CFG-VALSET。
+既定は RAM レイヤーのみで、電源断後は再設定します。BBR にも保持する場合は
+payload の layers を `1` から `3`（RAM + BBR）に変更します（バックアップ電源等が必要）。
+Flash への保存は行いません。
+
+プロトコル番号だけで互換性を判断せず、機種・FW の Interface description で
+CFG-VALSET と L1S 対応を確認してください（M8 の protocol 23.01 と F9/M10 は別系統）。
+**F9P は型番・FW によって L1S が非対応の場合があります**。QZSS L1C/A 対応だけでは不十分です。
+非対応キーや信号の組み合わせは NAK になり得ます。GPS 等の既存信号設定は変更しません。
+
+**M8**:
+
+UBX-CFG-MSG (`0x06 0x01`) で RXM-SFRBX (`0x02 0x13`) の UART1 rate を `1` にします。
+この例では他ポートの同メッセージ出力は `0` になります。
+**QZSS L1SAIF（L1S）の有効化は別途必要**で、CFG-GNSS は自動変更しません。
+MCU から UBX-CFG-GNSS (`0x06 0x3E`) を poll し、現在のチャネル割り当て・他 GNSS ブロックを
+保持したまま、QZSS (`gnssId=5`) ブロックの enable を有効にし、`sigCfgMask` を
+`0x05`（L1C/A=`0x01` + L1SAIF=`0x04`）にして書き戻してください。
+`sigCfgMask` は flags の bits 16–23 です。対応 FW、GPS との組み合わせ、チャネル数等の
+制約を確認し、ACK を待ちます。固定の CFG-GNSS を上書きすると他の測位設定を壊すため、
+この例は出力設定だけに留めています。
+出典: [u-blox 8 / M8 Receiver description (UBX-13003221 R28)](https://content.u-blox.com/sites/default/files/products/documents/u-blox8-M8_ReceiverDescrProtSpec_UBX-13003221.pdf)
+§4.2.2「Configuring QZSS L1SAIF」、UBX-CFG-GNSS / UBX-CFG-MSG。
+
+**結果の確認**: Fletcher チェックサムを計算して送信し、対象 class/id とチェックサムが一致する
+UBX-ACK-ACK / NAK を最大 3 秒待ちます。結果は `ACK` / `NAK` / `timeout` と表示します。
+NAK は世代・FW・信号設定、timeout は配線・速度・UBX 入出力設定や起動待ち時間を確認してください。
+世代の自動フォールバックは行いません。設定中の受信データは破棄されます。
+ACK はコマンド受理の意味であり、L1S の受信や災害電文の到来を保証しません。
+対応アンテナと受信環境も確認してください。
+
+---
+
 ### basic_uno - Arduino Uno (AVR) 入力
 
 Arduino Uno 用の最小例です。Uno には Serial1 が無いため、GNSS モジュールを Serial (pin 0=RX) に接続し、JSON も同一の Serial に出力します（ボーレート 9600）。
@@ -290,6 +348,7 @@ azaraC::Parser parser(framer);   // UBX/NMEA の自動判定は行わない
 | ------------------ | ------------- | ---------------------- | ------------------ |
 | basic_nmea         | NMEA $QZQSM   | Serial JSON            | 最もシンプル       |
 | basic_ubx          | UBX-RXM-SFRBX | Serial JSON            | u-bloxバイナリ     |
+| ublox_config       | UBX-RXM-SFRBX | Serial JSON + 設定結果 | MCU から u-blox 設定 |
 | with_sntp          | NMEA $QZQSM   | Serial JSON + 詳細ログ | SNTP時刻解決       |
 | filter_by_category | NMEA/UBX      | Serial JSON            | カテゴリフィルタ   |
 | error_handling     | NMEA/UBX      | Serial JSON + 統計     | エラーハンドリング |
