@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.1] - 2026-11-21
+
+v3 に向けた開発ブランチ（PR #45）から、既存 API を変えないバグ修正だけを取り込んだパッチ。
+
+### Fixed
+
+- **南海トラフの訓練と実警報が混ざる**: `NankaiPageKey` と `dedupEventToken` に `report_classification`（Rc）を追加し、訓練（Rc=7）と実警報（Rc=2）を別の事象として集約・重複判定する。`NankaiPageKey` は 7 B、`NankaiPageBuffer` は AVR 1,158 B になる。
+- **重複ページの再送で集約が失効する**: 受信済みページの再送でも `last_update_ms` を更新し、1 ページ欠落時の 2 巡目で途中の集約が 60 秒で捨てられないようにした。
+- **不正ページが進行中の集約を追い出す**: ページ番号の検証をバッファ割り当て（最古の追い出し）より前に行う。
+- **約 49.7 日の連続運転後に新規警報が重複扱いになる**: `getMillis()` の上位 32 bit（世代）が変わったときと 1 秒を超える時計の後退で、dedup と南海トラフの履歴を捨てる。1 秒以内の後退は丸める。
+- **dedup の LRU**: 追い出し対象を最初の有効エントリで初期化する。
+- **`Message` のコピー**: コピー ctor で `payload_storage_` を値初期化する。
+- **`feed()` が false のとき**: 壊れたフレームの svid を残さない。
+- **`compactText()` 後の `getTextLength()`**: 連続した本文の長さを返す。
+- **J-Alert 市区町村コード**: 送信順（MSB 先頭）で復号する。
+- **津波リストの終端**: エントリが全 0 のときを終端とする。
+- **暦に存在しない日付**: 未解決として扱う。
+- **`getBits` の幅検証と u32 epoch**: 戻り値型を超える幅を拒否し、2106 年超は `unix_time` だけ 0 にする。
+- **南海トラフ集約本文の不正 UTF-8**: JSON 出力で U+FFFD に置換する。
+- **`getMillis()`**: 外部リンケージの inline にして、翻訳単位ごとに別のカウンタを持たないようにした。
+
 ### Added
 
 - **CI に LTO ゲートを追加**: `make -C test run-lto` を新設し、host-test で `-O2 -flto` の全体再ビルド・テスト実行を必須にした。LTO の型不一致（`-Wlto-type-mismatch`）と ODR 違反（`-Wodr`）は GCC では既定で警告に留まり素の `-flto` では緑のままなので、この 2 つだけ `-Werror` にしてゲートで落とす（過去に `AZARAC_DEDUP_SLOTS` の配列長不一致を LTO だけが検出した事例がある）。`CXXFLAGS` は依存関係に載らないため `-B` で再ビルドし、終了時に `clean` する。あわせて `wf_deg` の桁数ループに上限 9 を明示し、`-O2 -flto` で出ていた `-Wstringop-overflow` の偽陽性を解消した（`buf[12]` に対する値域証明）。
