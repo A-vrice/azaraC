@@ -49,6 +49,10 @@ Thumbs.db
 # 旧 Makefile の DEVNULL=NUL が作った残骸。Windows では git clean で消せない（\\?\ パスが必要）
 test/NUL
 
+# ミューテーションテストの実行結果（test/scripts/mutation_test.py が生成）
+test/mutation_report.json
+test/mutation_run.log
+
 # cppcheck --dump の一時出力
 *.dump
 
