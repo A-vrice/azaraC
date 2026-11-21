@@ -82,8 +82,17 @@ bool NmeaFramer::parse(Frame& out) {
     // 1桁は仕様の2文字表記に合わない（PRN 183 = 55 は2桁）。3桁は `| 0x80` しても PRN 契約（181-191）の外の値になる（100 → 228）。
     // 64-99 は2桁だが 6bit に収まらないため拒否する（64 → 192）。
     // 0-52 は 6bit として有効だが PRN 128-180 に対応し、L1S の PRN 契約（181-191）の外になる。
-    // フレーマーは通し、利用側が svid で絞る（azarashi も長さ 2 を要求して拒否する）。
+    // 既定は実機互換のため通し、利用側が svid で絞る（azarashi も長さ 2 を要求して拒否する）。
+    // AZARAC_NMEA_STRICT_SVID でフレーマ側の受理範囲を絞れる（0=現状 / 1=53-63 / 2=仕様表の列挙）。
     if (digit_count != 2 || *p != ',' || svid_tmp > 63) return false;
+#if AZARAC_NMEA_STRICT_SVID == 1
+    if (svid_tmp < 53) return false;   // PRN 181-191 の外（L1S の契約外）
+#elif AZARAC_NMEA_STRICT_SVID == 2
+    switch (svid_tmp) {
+    case 55: case 56: case 57: case 58: case 61: break;   // PRN 183,184,185,186,189
+    default: return false;
+    }
+#endif
     uint8_t svid = static_cast<uint8_t>(svid_tmp);
     ++p;
 
@@ -112,9 +121,13 @@ bool NmeaFramer::parse(Frame& out) {
     if ((hex_count & 1) && byte_idx < 32) {
         out.bits[byte_idx++] = nibble << 4;
     }
-    // 64 hex 文字（32 バイト）: bit 252-255 をマスクする。bit 250-251 は仕様上 0 が保証される
+    // 64 hex 文字（32 バイト）: bit 252-255 をマスクする。bit 250-251 は仕様上 0 が保証される。
+    // 非 0 を拒否するかは AZARAC_NMEA_REJECT_NONZERO_PADDING（既定 0 = マスクして受理）。
     if (hex_count >= 63) {
-        out.bits[31] &= 0xC0;
+#if AZARAC_NMEA_REJECT_NONZERO_PADDING
+        if ((out.bits[31] & 0x3Fu) != 0) return false;
+#endif
+        out.bits[31] &= 0xC0u;
     }
 
     // QZQSM の Satellite ID は PRN の下位 6bit (DCR-017 §4.3.1 / DCX-004 §4.4.1)。

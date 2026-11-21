@@ -83,6 +83,13 @@
 #define AZARAC_ENABLE_DCX_CAMF AZARAC_AVR_LARGE_FLASH
 #endif
 
+// 津波（dc=5）の防災通知コードのラベル。表は JA 5.8 KB / EN 5.2 KB で、AVR プリセットの
+// 共有バッファ（64 B）には収まらない。コードは常に復号するが、ラベルは既定で出さない。
+// 有効化する場合は AZARAC_FLASH_BUF_SIZE が 640 B になる（Uno では +576 B SRAM）。
+#ifndef AZARAC_TSUNAMI_NOTIFICATION_LABELS
+#define AZARAC_TSUNAMI_NOTIFICATION_LABELS 0
+#endif
+
 // 定義表引き当て用の共有バッファ（internal/FlashString.h 参照）。
 // カテゴリマクロより後に置く（preset でもサイズを選べるようにするため）。
 // 収めるべき長さは「ラベルの出どころとなる全カテゴリの最長ラベル」。
@@ -93,8 +100,9 @@
 #if AZARAC_ENABLE_DCX_CAMF
 // DCX/CAMF はさらに長いラベルを足す（a4_hazard_definition: 683 B）→ 800 B。
 #define AZARAC_FLASH_BUF_SIZE 800
-#elif AZARAC_ENABLE_EEW || AZARAC_ENABLE_HYPOCENTER
+#elif AZARAC_ENABLE_EEW || AZARAC_ENABLE_HYPOCENTER || AZARAC_TSUNAMI_NOTIFICATION_LABELS
 // 最長は 596 B（notification_on_disaster_prevention、JA）/ 515 B（EN）。
+// 津波の通知ラベルも同じ表を使う（AZARAC_TSUNAMI_NOTIFICATION_LABELS 有効時）。
 #define AZARAC_FLASH_BUF_SIZE 640
 #elif AZARAC_ENABLE_NANKAI
 // NANKAI の info-code 最長ラベルは 509 B（"調査中B"）。540 で余裕を持つ。
@@ -157,6 +165,41 @@
 #define AZARAC_ENABLE_DCX_CAMF 1
 #endif
 
+// 非 AVR の既定は津波カテゴリに追従する（表が Flash を食うだけで、共有バッファは無い）。
+#ifndef AZARAC_TSUNAMI_NOTIFICATION_LABELS
+#define AZARAC_TSUNAMI_NOTIFICATION_LABELS (AZARAC_ENABLE_TSUNAMI)
+#endif
+
+// 重複排除の有効/無効。0 にすると DedupFilter は状態を持たず、常に「新規」を返す。
+// ロガー・冗長系・検証機など、同一情報の再放送もすべて受け取りたい用途向け。
+// 既定 1。0 では AZARAC_DEDUP_* は未使用になり、Parser から 4 KB（AVR では 512 B）が消える。
+// ただし Nankai のページビットマップによる同一ページの抑制は残る（ページ集約の重複防止は dedup とは別）。
+
+#ifndef AZARAC_ENABLE_DEDUP
+#define AZARAC_ENABLE_DEDUP 1
+#endif
+
+// NMEA $QZQSM の Satellite ID 検証レベル。
+//   0 = 仕様の 2 桁 10 進（00-63）をそのまま受理（実機互換。既定）
+//   1 = L1S の PRN 契約 181-191 に対応する 53-63 のみ受理
+//   2 = 仕様表が列挙する 55/56/57/58/61 のみ受理
+//       （DCR-017 Table 4.3.1-1 / DCX-004 Table 4.4-1。55 は PRN186 運用開始までの経過措置）
+// 実データには仕様表に無い 53/54（PRN181/182）があるため、既定は 0。
+#ifndef AZARAC_NMEA_STRICT_SVID
+#define AZARAC_NMEA_STRICT_SVID 0
+#endif
+#if AZARAC_NMEA_STRICT_SVID < 0 || AZARAC_NMEA_STRICT_SVID > 2
+#error "AZARAC_NMEA_STRICT_SVID must be 0 (00-63), 1 (53-63), or 2 (55/56/57/58/61)"
+#endif
+
+// 250 bit 以降（フレーム bit 250-255）が非 0 の NMEA 電文を拒否する。
+// 仕様は 250 bit の後ろに "00" を付けると定めるが、この 2 bit は CRC 被覆域（bit 0..225）の外で、
+// 受信機によってはゴミが入り得る。既定 0（マスクして受理）: 警報を落とすより 2 bit を無視する方が安全。
+// 1 にすると厳格に拒否する（自前の受信機・検証機向け）。
+#ifndef AZARAC_NMEA_REJECT_NONZERO_PADDING
+#define AZARAC_NMEA_REJECT_NONZERO_PADDING 0
+#endif
+
 // 重複排除 AZARAC_DEDUP_WAYS: 1 セットあたりのエントリ数（連想度）。大きいほどハッシュ衝突に強く（生きている情報を誤って「新規」にしにくい）、小さいほど 1 判定が安い。
 // AZARAC_DEDUP_SLOTS は WAYS で割り切れること。
 #ifndef AZARAC_DEDUP_WAYS
@@ -178,16 +221,24 @@
 #endif
 
 // 南海トラフ前沿のページバッファ MAX_PAGES 63 は仕様の最大ページ数（Pn/Pm は 6 bit、1-63）なので、既定ではページ打ち切りが構造的に起きない（実観測の最大は 27）。
-// BUFFERS 1: 南海トラフは 1 電文として連続放送され、複数イベントが同時には進行しない。同時追跡する場合だけ増やす（RAM はバッファ数に比例）。
+// BUFFERS 2: 訓練（Rc=7）と実警報（Rc=2）は別事象として同時進行し得るため、ホスト既定は 2（1 だと交互到着で互いに追い出し合い両方未完成になる）。
+// RAM はバッファ数に比例（ホスト 63 ページで 1,160 B/個）。AVR preset は NANKAI 自体が無効で、有効化時の既定は 1（下方の AVR 分岐）。
 #ifndef AZARAC_NANKAI_MAX_PAGES
 #define AZARAC_NANKAI_MAX_PAGES 63
 #endif
 #ifndef AZARAC_NANKAI_BUFFERS
-#define AZARAC_NANKAI_BUFFERS 1
+#define AZARAC_NANKAI_BUFFERS 2
 #endif
 
 #if AZARAC_NANKAI_BUFFERS > 2 && defined(ARDUINO_AVR_UNO)
 #warning "Nankai buffers may exhaust SRAM on Arduino Uno. Consider AZARAC_NANKAI_BUFFERS=1"
+#endif
+
+// JSON のキー／値リテラルの 1 次コピー先の長さ（json/JsonWriter.h の JsonKey が使う）。
+// 最長はキーの 35 B（a17_type_of_specific_settings_label）、値は 20 B（unsupported_category）。
+// 収まらないリテラルは JsonKey の生成時に static_assert でコンパイルエラーになる。非 AVR ではコピーは起きないが、長さ検査には使う。
+#ifndef AZARAC_KEY_BUF_SIZE
+#define AZARAC_KEY_BUF_SIZE 36
 #endif
 
 // PROGMEM 抽象化: AVR では const データを Flash に置く（デスクトップでは何もしない）。

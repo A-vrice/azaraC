@@ -1,5 +1,6 @@
 #pragma once
 // AUTO-GENERATED from azarashi 0.17.1 — do not edit
+// Specs: IS-QZSS-DCR-017 / IS-QZSS-DCX-004 Rev.004 / EWSS CAMF Issue 1.2
 // azarashi.definitions.qzss.dcr.tsunamigenic_potential → qzss_dcr_jma_tsunamigenic_potential_en: 6 entries, strategy switch
 // Unknown id returns nullptr — callers MUST null-check.
 

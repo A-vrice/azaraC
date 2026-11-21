@@ -1,5 +1,6 @@
 #pragma once
 // AUTO-GENERATED from azarashi 0.17.1 — do not edit
+// Specs: IS-QZSS-DCR-017 / IS-QZSS-DCX-004 Rev.004 / EWSS CAMF Issue 1.2
 // azarashi.definitions.camf.a4_hazard_category_and_type → qzss_dcx_camf_a4_hazard_type: 114 entries, strategy array
 // Unknown id returns nullptr — callers MUST null-check.
 

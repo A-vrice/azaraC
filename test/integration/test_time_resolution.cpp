@@ -110,6 +110,24 @@ TEST_CASE("Time: resolveTime report_unix < 2000-01-01 returns unix_time=0") {
     CHECK(t.unix_time == 0);  // below 2000-01-01
 }
 
+// u32 epoch 飽和（F5）: 2106 年超は unix_time だけ 0、暦フィールドは保持
+
+TEST_CASE("Time: resolveTime saturates unix_time beyond u32 epoch") {
+    TimeFields t = TestDecoder::testResolveTime(6, 15, 12, 30, 0xFFFFFFFFu - 3600u);
+    CHECK(t.unix_time == 0);
+    CHECK(t.month == 6);
+    CHECK(t.day == 15);
+    CHECK(t.hour == 12);
+    CHECK(t.minute == 30);
+}
+
+TEST_CASE("Time: resolveArrivalTime saturates unix_time beyond u32 epoch") {
+    TimeFields t = TestDecoder::testResolveArrivalTime(0x0800u, 0xFFFFFFFFu - 3600u);
+    CHECK(t.unix_time == 0);
+    CHECK(t.hour == 0);
+    CHECK(t.minute == 0);
+}
+
 // 津波到着時刻解決 E2E テスト
 
 #if (AZARAC_ENABLE_TSUNAMI)
@@ -207,6 +225,37 @@ TEST_CASE("Time: DCX onset_time resolved with valid report_unix") {
     CHECK(mt44->onset_time.hour == 0);
 }
 
+TEST_CASE("Time: DCX onset_time saturates unix_time beyond u32 epoch") {
+    // 上の解決テストと同じフレームで a6=1（翌週）にする。report_unix = 0xFFFFFFFF（2106-02-07 日曜）の翌週月曜 00:01 は u32 を超える。
+    uint8_t bits[32] = {};
+    setBits(bits, 0, 8, 0x53);
+    setBits(bits, 8, 6, 44);
+    setBits(bits, 14, 1, 0);
+    setBits(bits, 15, 9, 0x1FF);
+    setBits(bits, 24, 2, 1);
+    setBits(bits, 26, 9, 111);
+    setBits(bits, 35, 5, 1);
+    setBits(bits, 40, 7, 10);
+    setBits(bits, 47, 2, 3);
+    setBits(bits, 49, 1, 1);     // a6=1 → 翌週
+    setBits(bits, 50, 14, 2);    // a7=2 → 翌週月曜 00:01 UTC
+    setBits(bits, 214, 6, 1);
+    setBits(bits, 226, 24, crc24qRef(bits, 226));
+
+    Frame frame{};
+    memcpy(frame.bits, bits, 32);
+    frame.svid = 193;
+    Decoder dec;
+    Message msg{};
+    REQUIRE(dec.decode(frame, msg, 0xFFFFFFFFu));
+
+    const Mt44Data* mt44 = msg.getMt44();
+    REQUIRE(mt44 != nullptr);
+    CHECK(mt44->onset_time.unix_time == 0);
+    CHECK(mt44->onset_time.hour == 0);
+    CHECK(mt44->onset_time.minute == 1);
+}
+
 TEST_CASE("Time: DCX onset_time A7 boundary (16-bit overflow guard)") {
     // A7 は 1..10080（週頭からの分）。16 bit の unsigned int では (a7-1)*60 が 65535 を超えた時点で週内の別時刻へ折り返す（a7=1094 が最初の外れ値、a7=10080 が上限）。ここでは境界の意味（週頭 + (a7-1) 分）を固定する。
     struct Case { uint16_t a6, a7; uint32_t offset_s; uint8_t hour, minute; };
@@ -299,3 +348,96 @@ TEST_CASE("Time: EEW event_time resolved with real report_unix") {
     CHECK(mt43->event_time.unix_time == 1704092760u);   // 2024-01-01 07:06 UTC
 }
 #endif // AZARAC_ENABLE_EEW
+
+// 暦に存在しない日付の未解決化（C4）。
+// 仕様 Table 4.1.2-5 等の day 範囲は月別日数。2/30・4/31・平年 2/29 を黙って別月日へ
+// 正規化せず、unix_time=0（生フィールド保持）に倒すことを固定する。
+
+TEST_CASE("Time: MDHM calendar-invalid dates are unresolved (raw fields kept)") {
+    const uint32_t base = daysFromCivil(2024, 2, 15) * 86400u;   // 閏年 2 月
+    struct Case { uint8_t month, day; };
+    const Case invalid[] = {{2, 30}, {4, 31}, {6, 31}, {9, 31}, {11, 31}};
+    for (const Case& c : invalid) {
+        CAPTURE(c.month);
+        CAPTURE(c.day);
+        TimeFields t = TestDecoder::testResolveTime(c.month, c.day, 12, 0, base);
+        CHECK(t.unix_time == 0);
+        CHECK(t.month == c.month);   // 生フィールドは保持
+        CHECK(t.day == c.day);
+        CHECK(t.hour == 12);
+    }
+    // 平年 2/29 も未解決（最寄り閏年へ飛ばさない）。
+    const uint32_t common = daysFromCivil(2023, 2, 26) * 86400u;
+    TimeFields t = TestDecoder::testResolveTime(2, 29, 0, 0, common);
+    CHECK(t.unix_time == 0);
+    CHECK(t.month == 2);
+    CHECK(t.day == 29);
+}
+
+TEST_CASE("Time: MDHM leap 2/29 resolves, common 2/29 does not") {
+    const uint32_t leap = daysFromCivil(2024, 2, 15) * 86400u;
+    TimeFields t = TestDecoder::testResolveTime(2, 29, 0, 0, leap);
+    CHECK(t.unix_time == daysFromCivil(2024, 2, 29) * 86400u);
+    CHECK(t.month == 2);
+    CHECK(t.day == 29);
+}
+
+TEST_CASE("Time: MDHM calendar-invalid across year boundary stays unresolved") {
+    // 12 月基準で 2/30 → 旧実装は翌年 3/2 へ正規化していた（+76 日の未来）。未解決を固定。
+    const uint32_t base = daysFromCivil(2024, 12, 15) * 86400u;
+    TimeFields t = TestDecoder::testResolveTime(2, 30, 0, 0, base);
+    CHECK(t.unix_time == 0);
+    CHECK(t.month == 2);
+    CHECK(t.day == 30);
+}
+
+TEST_CASE("Time: DHM stale never fabricates a future date (base Mar 1, day 31)") {
+    // 旧実装は Feb 31 を 3/2 へ正規化して未来日付を返していた。直近の有効な過去（1/31）に落とす。
+    const uint32_t base = daysFromCivil(2024, 3, 1) * 86400u;
+    TimeFields t = TestDecoder::testResolveTime(0, 31, 0, 0, base);
+    CHECK(t.unix_time != 0);
+    CHECK(t.unix_time <= base);
+    CHECK(t.unix_time == daysFromCivil(2024, 1, 31) * 86400u);
+    CHECK(t.day == 31);
+}
+
+TEST_CASE("Time: resolveTime invariants sweep (no silent date change, no future beyond margin)") {
+    // 実装の年解決ロジックを写さない独立不変条件:
+    //  (1) 解決済みなら civil(unix/86400) の (月,日) が入力と一致（日が黙って化けない）。
+    //  (2) どの年でも暦外の日付（2/30, 4/31, 6/31, 9/31, 11/31）は常に未解決。
+    //  (3) DHM の解決済み unix は base+3日を超えない（未来クランプ）。
+    //  (4) 範囲外入力は未解決。
+    auto alwaysInvalid = [](uint8_t mo, uint8_t da) {
+        if (mo == 2 && da >= 30) return true;
+        if ((mo == 4 || mo == 6 || mo == 9 || mo == 11) && da == 31) return true;
+        return false;
+    };
+    uint32_t checked = 0;
+    for (uint32_t year = 2023; year <= 2025; ++year) {
+        for (uint32_t mo = 1; mo <= 12; ++mo) {
+            const uint32_t base = daysFromCivil(year, mo, 1) * 86400u + 12 * 3600u;
+            for (uint8_t day = 1; day <= 31; ++day) {
+                for (uint8_t month = 0; month <= 12; ++month) {
+                    TimeFields t = TestDecoder::testResolveTime(month, day, 12, 0, base);
+                    ++checked;
+                    if (t.unix_time == 0) continue;
+                    uint32_t ry, rm, rd;
+                    TestDecoder::testCivilFromDays(t.unix_time / 86400u, ry, rm, rd);
+                    CAPTURE(year); CAPTURE(mo); CAPTURE(month); CAPTURE(day);
+                    CHECK(rd == day);                       // (1) 日は化けない
+                    if (month != 0) CHECK(rm == month);     // (1) MDHM の月は化けない
+                    else CHECK(t.unix_time <= base + 3u * 86400u);   // (3) DHM 未来クランプ
+                    if (month != 0) CHECK(!alwaysInvalid(month, day));   // (2)
+                }
+            }
+        }
+    }
+    CHECK(checked > 10000);   // 掃引が実行されたことの自己検証
+    // (4) 範囲外
+    const uint32_t base = daysFromCivil(2024, 6, 15) * 86400u;
+    CHECK(TestDecoder::testResolveTime(0, 0, 12, 0, base).unix_time == 0);
+    CHECK(TestDecoder::testResolveTime(0, 32, 12, 0, base).unix_time == 0);
+    CHECK(TestDecoder::testResolveTime(13, 1, 12, 0, base).unix_time == 0);
+    CHECK(TestDecoder::testResolveTime(1, 1, 24, 0, base).unix_time == 0);
+    CHECK(TestDecoder::testResolveTime(1, 1, 12, 60, base).unix_time == 0);
+}

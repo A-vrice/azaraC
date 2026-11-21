@@ -1,5 +1,6 @@
 #pragma once
 // AUTO-GENERATED from azarashi 0.17.1 — do not edit
+// Specs: IS-QZSS-DCR-017 / IS-QZSS-DCX-004 Rev.004 / EWSS CAMF Issue 1.2
 // azarashi.definitions.camf.d_fields → qzss_dcx_camf_d3_azimuth_from_centre_of_main_ellipse_to_epicentre: 16 entries, strategy array
 // Unknown id returns nullptr — callers MUST null-check.
 

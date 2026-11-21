@@ -1,0 +1,46 @@
+name: Fuzz (libFuzzer)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "0 3 * * 1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fuzz-libfuzzer-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  libfuzzer:
+    name: Coverage-guided fuzz
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # 当初はベストエフォート（compile-extended と同じ扱い）。安定したらこの行を外してゲート昇格。
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Install clang
+        run: sudo apt-get update && sudo apt-get install -y clang
+
+      - name: Run libFuzzer
+        run: make -C test fuzz-libfuzzer FUZZ_LF_TIME=${{ github.event_name == 'schedule' && 600 || 120 }}
+
+      - name: Crash reproduction hint
+        if: failure()
+        run: echo "::warning::Crash found - download the libfuzzer-crashes artifact, reproduce with ./fuzz_libfuzzer <file>, then commit the input to test/fuzz/corpus/ as a regression seed."
+
+      - name: Upload crash artifacts
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: libfuzzer-crashes
+          path: test/fuzz/crashes/
+          if-no-files-found: ignore
+          retention-days: 14

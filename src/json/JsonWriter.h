@@ -64,11 +64,7 @@ struct JsonKey {
     uint8_t     len;
 };
 
-// キー／値の 1 次コピー先の長さ。
-// 最長はキーの 35 B（a17_type_of_specific_settings_label）、値は 20 B（unsupported_category）。
-#ifndef AZARAC_KEY_BUF_SIZE
-#define AZARAC_KEY_BUF_SIZE 36
-#endif
+// AZARAC_KEY_BUF_SIZE（キー／値の 1 次コピー先の長さ）は azaraC_config.h で定義する。
 
 template <size_t N>
 constexpr JsonKey makeKey(const char* literal) {
@@ -99,6 +95,12 @@ void writeRaw(Print& out, JsonKey k);
 void writeUint32(Print& out, uint32_t v);
 void writeUint64(Print& out, uint64_t v);
 void writeStr(Print& out, std::string_view s);
+#if AZARAC_ENABLE_NANKAI
+// 衛星由来の生バイト列（南海トラフ集約テキスト）用。UTF-8 として検証し、不正シーケンスを
+// U+FFFD に置換してから JSON エスケープする（出力は常に valid UTF-8）。テーブルラベルは
+// UTF-8 保証済みなので writeStr を使う（全 JSON への per-byte コスト増を避ける）。
+void writeStrUtf8(Print& out, std::string_view s);
+#endif
 void writeOptStr(Print& out, std::optional<std::string_view> s);
 void writeHex(Print& out, uint8_t v);
 

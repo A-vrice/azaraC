@@ -151,5 +151,59 @@ void JsonSerializer::serialize(const Message& msg, Print& out) {
     out.print('}');
 }
 
+namespace {
+// 固定長バッファへ書く Print。溢れた分は捨てる（バッファ外へは書かない）。
+// シリアライザが Print に使うのは write(uint8_t) / write(const char*, size_t)（→ write(const uint8_t*, size_t)）/ print(char) だけで、
+// print(char) は実コアもホストのシムも write(uint8_t) へ流すので write の 2 本で足りる。
+class BufferPrint : public Print {
+public:
+    BufferPrint(char* buf, size_t cap) : buf_(buf), cap_(cap) {}
+
+    size_t total() const { return total_; }
+
+    size_t write(uint8_t c) override {
+        ++total_;
+        if (cap_ != 0 && used_ + 1 < cap_) buf_[used_++] = static_cast<char>(c);
+        return 1;
+    }
+
+    // 実コアの Print で仮想なのは write(const uint8_t*, size_t) で、write(const char*, size_t) は
+    // それへ流す非仮想の中継。上書きするのは前者にし、using で char* 版の名前隠しを防ぐ。
+    using Print::write;
+
+    size_t write(const uint8_t* s, size_t size) override {
+        total_ += size;
+        if (cap_ == 0 || !s) return size;
+        const size_t room = (cap_ - 1) - used_;
+        const size_t n = (size < room) ? size : room;
+        if (n) {
+            // n は room 以下に丸めてあり used_ + n <= cap_ - 1 が常に成り立つ。Codacy の memcpy 指摘はこの不変条件を読めないための誤検知
+            memcpy(buf_ + used_, s, n);  // nosemgrep
+            used_ += n;
+        }
+        return size;
+    }
+
+private:
+    char*  buf_;
+    size_t cap_;
+    size_t used_  = 0;
+    size_t total_ = 0;
+};
+} // namespace
+
+size_t JsonSerializer::serialize(const Message& msg, char* buf, size_t len, size_t* required) {
+    if (!buf) len = 0;
+    if (len == 0 && !required) return 0;
+    BufferPrint out(buf, len);
+    serialize(msg, out);
+    if (required) *required = out.total();
+    if (len == 0) return 0;
+    // 入ったバイト数（NUL を除く）。切り詰め時も buf[返り値] == '\0' が成り立つ。
+    const size_t written = (out.total() < len - 1) ? out.total() : (len - 1);
+    buf[written] = '\0';
+    return written;
+}
+
 } // namespace internal
 } // namespace azaraC

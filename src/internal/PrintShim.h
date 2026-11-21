@@ -4,6 +4,7 @@
 #if !defined(ARDUINO) || ARDUINO < 1
 #include <cstdio>
 #include <cstdint>
+#include <cstring>
 #include <string_view>
 #include <string>
 
@@ -11,16 +12,25 @@ class Print {
 public:
     virtual ~Print() = default;
     virtual size_t write(uint8_t c) { putchar(c); return 1; }
-    virtual size_t write(const char* s, size_t size) { if (s && size) return fwrite(s, 1, size, stdout); return 0; }
+    // 実コアの Print と同じ形: バッファ版の virtual は uint8_t* のみで、既定実装は 1 バイト版へ流す。
+    // const char* 版は virtual ではなく、uint8_t* 版へ転送するだけ。
+    virtual size_t write(const uint8_t* buffer, size_t size) {
+        size_t n = 0;
+        while (size--) { if (write(*buffer++)) ++n; else break; }
+        return n;
+    }
+    size_t write(const char* str) { return str ? write(str, strlen(str)) : 0; }
+    size_t write(const char* buffer, size_t size) { return write(reinterpret_cast<const uint8_t*>(buffer), size); }
     virtual void print(char c)         { write(c); }
-    virtual void print(const char* s)  { if (s) fputs(s, stdout); }
+    // 実コアの Print と同じく print() は write() へ流す（write のみ override する sink で取りこぼさない）。
+    virtual void print(const char* s)  { if (s) write(s, strlen(s)); }
     virtual void print(std::string_view s) { if (!s.empty()) write(s.data(), s.size()); }
     virtual void print(int v)          { printf("%d", v); }
     virtual void print(unsigned int v) { printf("%u", v); }
-    virtual void println()             { putchar('\n'); }
-    virtual void println(const char* s){ if (s) fputs(s, stdout); putchar('\n'); }
-    virtual void println(std::string_view s) { print(s); putchar('\n'); }
-    virtual void print(const void* s)  { if (s) fputs(static_cast<const char*>(s), stdout); }
+    virtual void println()             { write('\n'); }
+    virtual void println(const char* s){ print(s); write('\n'); }
+    virtual void println(std::string_view s) { print(s); write('\n'); }
+    virtual void print(const void* s)  { if (s) print(static_cast<const char*>(s)); }
 };
 
 // 動的バッファ（オーバーフローフリー）
@@ -28,14 +38,16 @@ class StringPrint : public Print {
     std::string _buf;
 
 public:
+    using Print::write;
+
     size_t write(uint8_t c) override {
         _buf += static_cast<char>(c);
         return 1;
     }
 
-    size_t write(const char* s, size_t size) override {
-        if (s && size) {
-            _buf.append(s, size);
+    size_t write(const uint8_t* buffer, size_t size) override {
+        if (buffer && size) {
+            _buf.append(reinterpret_cast<const char*>(buffer), size);
             return size;
         }
         return 0;

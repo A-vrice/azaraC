@@ -297,4 +297,50 @@ TEST_CASE("DCX Edge: Vn boundaries are stored as-is") {
         CHECK(mt44->ex.ex_lalert_local.vn == c.vn);
     }
 }
+
+// MT=44 の messageIdentity（dedup 用 digest）は bit 8 から 212 bit を取り、SD（bit 14..23）を無視する。
+// 開始位置が 1 バイトずれると参照 CRC と食い違うため、値そのものを固定する。
+TEST_CASE("DCX Edge: messageIdentity starts at bit 8 and ignores SD") {
+    uint8_t a[32] = {};
+    setBits(a, 0, 8, 0x53);
+    setBits(a, 8, 6, 44);        // MT=44
+    setBits(a, 14, 1, 1);        // SDMT
+    setBits(a, 15, 9, 0x155);    // SDM
+    setBits(a, 24, 2, 1);        // A1
+    setBits(a, 26, 9, 111);      // A2 (Japan)
+    setBits(a, 35, 5, 1);        // A3
+    setBits(a, 40, 7, 74);       // A4
+    setBits(a, 214, 6, 1);       // Vn
+    setBits(a, 226, 24, crc24qRef(a, 226));
+
+    // SD だけ違うフレーム（それ以外は同一）。
+    uint8_t b[32];
+    memcpy(b, a, sizeof(b));
+    setBits(b, 14, 1, 0);
+    setBits(b, 15, 9, 0x0AA);
+    setBits(b, 226, 24, crc24qRef(b, 226));
+
+    // A4 を 1 つだけ変えたフレーム。
+    uint8_t c[32];
+    memcpy(c, a, sizeof(c));
+    setBits(c, 40, 7, 75);
+    setBits(c, 226, 24, crc24qRef(c, 226));
+
+    // 参照値: SD をゼロにしたうえで bit 8 以降 212 bit の CRC。
+    uint8_t ref[32];
+    memcpy(ref, a, sizeof(ref));
+    ref[1] &= 0xFCu;
+    ref[2] = 0x00u;
+    const uint32_t expected = TestDecoder::calcCRC(ref + 1, 212);
+
+    uint8_t work[32];
+    memcpy(work, a, sizeof(work));
+    const uint32_t id_a = Decoder::messageIdentity(work);
+    CHECK(id_a == expected);
+    // 呼び出し側から見てフレームは不変（SD を一時的にゼロにして戻す契約）。
+    CHECK(memcmp(work, a, sizeof(a)) == 0);
+
+    CHECK(Decoder::messageIdentity(b) == id_a);
+    CHECK(Decoder::messageIdentity(c) != id_a);
+}
 #endif

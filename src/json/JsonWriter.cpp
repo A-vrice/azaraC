@@ -76,6 +76,84 @@ void writeStr(Print& out, std::string_view s) {
     out.print('"'); writeEscaped(out, s); out.print('"');
 }
 
+#if AZARAC_ENABLE_NANKAI
+// UTF-8 の 1 単位を判定する。valid なら len バイトの正しいシーケンス。
+// 不正なら len は U+FFFD 1 個で置換すべき maximal subpart のバイト数（Python errors="replace" 互換）。
+// 不正バイトは再処理するので、壊れたシーケンスの残りも個別に置換される。
+struct Utf8Unit { bool valid; uint8_t len; };
+static Utf8Unit utf8Unit(const uint8_t* p, size_t n) {
+    const uint8_t b0 = p[0];
+    if (b0 < 0x80) return {true, 1};
+    auto cont = [&](size_t k) { return k < n && (p[k] & 0xC0) == 0x80; };
+    if (b0 >= 0xC2 && b0 <= 0xDF) {           // C0/C1 は overlong で不正
+        return cont(1) ? Utf8Unit{true, 2} : Utf8Unit{false, 1};
+    }
+    if (b0 >= 0xE0 && b0 <= 0xEF) {
+        const uint8_t b1 = (n > 1) ? p[1] : 0;
+        const bool b1ok = cont(1)
+            && (b0 != 0xE0 || b1 >= 0xA0)     // E0: overlong 禁止
+            && (b0 != 0xED || b1 <= 0x9F);    // ED: サロゲート禁止
+        if (!b1ok) return {false, 1};
+        return cont(2) ? Utf8Unit{true, 3} : Utf8Unit{false, 2};
+    }
+    if (b0 >= 0xF0 && b0 <= 0xF4) {           // F5-FF は不正
+        const uint8_t b1 = (n > 1) ? p[1] : 0;
+        const bool b1ok = cont(1)
+            && (b0 != 0xF0 || b1 >= 0x90)     // F0: overlong 禁止
+            && (b0 != 0xF4 || b1 <= 0x8F);    // F4: > U+10FFFF 禁止
+        if (!b1ok) return {false, 1};
+        if (!cont(2)) return {false, 2};
+        return cont(3) ? Utf8Unit{true, 4} : Utf8Unit{false, 3};
+    }
+    return {false, 1};                        //  stray continuation 等
+}
+
+// ASCII 1 バイトの JSON エスケープ（writeEscaped と同じ規則）。
+static void escapeByte(Print& out, uint8_t c) {
+    switch (c) {
+        case '"':  writeRaw(out, AZARAC_KEY("\\\"")); break;
+        case '\\': writeRaw(out, AZARAC_KEY("\\\\")); break;
+        case '\b': writeRaw(out, AZARAC_KEY("\\b"));  break;
+        case '\f': writeRaw(out, AZARAC_KEY("\\f"));  break;
+        case '\n': writeRaw(out, AZARAC_KEY("\\n"));  break;
+        case '\r': writeRaw(out, AZARAC_KEY("\\r"));  break;
+        case '\t': writeRaw(out, AZARAC_KEY("\\t"));  break;
+        default:
+            if (c < 0x20) {
+                writeRaw(out, AZARAC_KEY("\\u00"));
+                out.print(hexDigit(c >> 4));
+                out.print(hexDigit(c));
+            } else {
+                out.print(static_cast<char>(c));
+            }
+            break;
+    }
+}
+
+void writeStrUtf8(Print& out, std::string_view s) {
+    out.print('"');
+    const uint8_t* p = reinterpret_cast<const uint8_t*>(s.data());
+    const size_t n = s.size();
+    size_t i = 0;
+    while (i < n) {
+        const Utf8Unit u = utf8Unit(p + i, n - i);
+        if (u.valid) {
+            if (u.len == 1) {
+                escapeByte(out, p[i]);
+            } else {
+                // 有効なマルチバイトは全バイト >= 0x80 なのでエスケープ不要。
+                out.write(reinterpret_cast<const char*>(p + i), u.len);
+            }
+        } else {
+            // 不正シーケンスは U+FFFD (EF BF BD) 1 個に置換（Flash から直接書く）。
+            writeRaw(out, AZARAC_KEY("\xEF\xBF\xBD"));
+        }
+        i += u.len;
+    }
+    out.print('"');
+}
+#endif // AZARAC_ENABLE_NANKAI
+
 // キー（JsonKey）をエスケープ付きで書く。
 // AVR では Flash から直接走査し、エスケープ不要ならスタックへ 1 回写して 1 回の write で出す（キー引き当て用の静的 RAM バッファを持たない）。
 static void writeEscapedKey(Print& out, JsonKey k) {

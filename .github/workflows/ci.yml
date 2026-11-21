@@ -32,6 +32,9 @@ jobs:
             exit 1
           fi
           echo "Version sync OK: $JSON_VER"
+
+      - name: Check keywords.txt covers public API
+        run: python scripts/analysis/keywords_check.py
   host-test:
     name: Host unit tests (g++)
     runs-on: ubuntu-latest
@@ -41,16 +44,34 @@ jobs:
           persist-credentials: false
 
       - name: Build & run
-        run: make -C test run
+        run: |
+          set -o pipefail
+          make -C test run 2>&1 | tee host-test.log
+
+      - name: Test counts (step summary)
+        if: always()
+        run: |
+          {
+            echo '### Host tests'
+            echo '```'
+            grep -E '^\[doctest\] (test cases|assertions):' host-test.log || echo 'doctest summary not found'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Build & run (reduced page budget, AZARAC_NANKAI_MAX_PAGES=8)
         run: make -C test run-small-pages
+
+      - name: Build & run (dedup disabled, AZARAC_ENABLE_DEDUP=0)
+        run: make -C test run-dedup-off
 
       - name: Build & run (LTO, -O2 -flto)
         run: make -C test run-lto
 
       - name: Build & run (JA-only and EN-only language configs)
         run: make -C test run-lang-defaults
+
+      - name: Build & run (tsunami notification labels disabled)
+        run: make -C test run-tsunami-labels-off
 
       - name: Build & run (no dynamic allocation check)
         run: make -C test test-no-alloc
@@ -66,11 +87,36 @@ jobs:
       - name: Definition-table footprint benchmark (gates)
         run: make -C test bench
 
+      - name: AVR ABI layout (Nankai/dedup)
+        run: make -C test avr-layout
+
+      - name: NMEA accept policy (default / strict SVID / padding)
+        run: make -C test nmea-policy
+
+      - name: Flash label UTF-8 truncation
+        run: make -C test utf8-trim
+
       - name: AVR-style stub build (PROGMEM, 16-bit int)
         run: make -C test pgm-stub
 
       - name: Arduino interrupt-state test (ARDUINO=1, AVR branch)
         run: make -C test test-time-irq
+
+  sanitizer:
+    name: ASan/UBSan (g++)
+    runs-on: ubuntu-latest
+    # 動的なメモリ・UB 検出はここが唯一なのでゲートにする。
+    # cppcheck / coverage / LTO と合わせて、失敗は PR を止める。
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Build & run with ASan/UBSan
+        run: |
+          make -C test run \
+            CXXFLAGS_EXTRA="-fsanitize=address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=all" \
+            LDFLAGS="-fsanitize=address,undefined"
 
   # azarashi由来。バージョン間で互換性の内部表現があるためこちらで補正
   fixture-drift:
@@ -82,14 +128,15 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Install azarashi
-        run: pip install azarashi==0.17.1
-
-      - name: Regenerate fixtures
-        run: python test/scripts/gen_all_vectors.py
+      - name: Regenerate the Nankai page header from the committed JSON
+        run: python test/scripts/gen_all_vectors.py --nankai-header-only
 
       - name: Verify committed fixtures match the generator
         run: git diff --exit-code -- test/data/nankai_pages_generated.h
+
+      # timestamp は生成時刻で毎回変わるため、ハッシュは決まったフィールドだけを対象にする。
+      - name: Verify nankai_vectors.json deterministic fields
+        run: python test/scripts/hash_nankai_vectors.py --check
 
   fuzz-test:
     name: Fuzz testing
@@ -103,6 +150,20 @@ jobs:
 
       - name: Run fuzz test
         run: make -C test fuzz FUZZ_ITERATIONS=1000000
+
+  fuzz-sanitize:
+    name: Fuzz (ASan/UBSan)
+    runs-on: ubuntu-latest
+    needs: host-test
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      # サニタイザは実行が遅いためイテレーションは絞る。UB は -fno-sanitize-recover=all で即 abort。
+      - name: Run fuzz with ASan/UBSan
+        run: make -C test fuzz-sanitize FUZZ_ITERATIONS=100000
 
   arduino-lint:
     name: Arduino Lint
@@ -132,30 +193,30 @@ jobs:
       matrix:
         include:
           - name: RP2040 Pico
-            core: rp2040:rp2040
+            core: rp2040:rp2040@6.4.0
             fqbn: rp2040:rp2040:rpipico
             additional_urls: https://github.com/earlephilhower/arduino-pico/releases/download/global/package_rp2040_index.json
             build_flags: ""
 
           - name: ESP32-C3
-            core: esp32:esp32
+            core: esp32:esp32@3.3.13
             fqbn: esp32:esp32:esp32c3
             additional_urls: https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
             build_flags: ""
 
           - name: Arduino Uno
-            core: arduino:avr
+            core: arduino:avr@1.8.8
             fqbn: arduino:avr:uno
             additional_urls: ""
             # Uno (32 KB Flash / 2 KB SRAM) cannot hold all definition pools (~248 KB all-category; docs/architecture.md): the AVR preset in azaraC_config.h keeps SEISMIC/TSUNAMI only (~3.4 KB tables) so the sketches fit.
             build_flags: ""
 
           - name: Arduino Mega 2560
-            core: arduino:avr
+            core: arduino:avr@1.8.8
             fqbn: arduino:avr:mega
             additional_urls: ""
             # Mega の場合 Flash 自体は 256 KB あるものの、アーキテクチャは AVR のためプリセットでは DCX/CAMF は Uno と同じく既定で無効
-            # Mega での DCX/CAMF のコンパイルは別工程で検証
+            # Mega での DCX/CAMF のコンパイルは、ループの後で basic_dcx だけを有効化してコンパイルするステップで検証する
             build_flags: ""
 
     steps:
@@ -185,9 +246,14 @@ jobs:
               echo "skip $sketch_name on ${{ matrix.name }} (not AVR-aware)"
               continue
             fi
-            # Skip WiFi examples on boards without WiFi (requires WiFi.h)
-            if [[ ("${{ matrix.name }}" == "RP2040 Pico" || "${{ matrix.name }}" == "Arduino Mega 2560") && ("$sketch_name" == "wifi_client" || "$sketch_name" == "with_sntp") ]]; then
-              echo "skip $sketch_name on ${{ matrix.name }} because WiFi.h is unavailable"
+            # basic_dcx は DCX/CAMF 有効ビルド専用で、無効だとスケッチ冒頭の #error で落ちる。Mega はプリセットで無効なのでループでは飛ばし、後段のステップで有効化してコンパイルする。
+            if [[ "${{ matrix.name }}" == "Arduino Mega 2560" && "$sketch_name" == "basic_dcx" ]]; then
+              echo "skip $sketch_name on ${{ matrix.name }} (compiled separately with DCX/CAMF enabled)"
+              continue
+            fi
+            # Wi-Fi 例は ESP32 コア専用（WiFi.h / configTime / Serial1）。examples 側も非 ESP32 では #error で弾く。
+            if [[ "${{ matrix.fqbn }}" != esp32:* && ("$sketch_name" == "wifi_client" || "$sketch_name" == "with_sntp") ]]; then
+              echo "skip $sketch_name on ${{ matrix.name }} (requires ESP32 core)"
               continue
             fi
             # Skip RTOS example on non-ESP32 boards (requires FreeRTOS)
@@ -199,6 +265,12 @@ jobs:
             # Added --clean to invalidate build cache
             arduino-cli compile --clean --fqbn "${{ matrix.fqbn }}" "$sketch" --build-property "compiler.cpp.extra_flags=$CPP_EXTRA_FLAGS"
           done
+
+      # Mega のみ: basic_dcx を DCX/CAMF 有効でコンパイルする。ライブラリの symlink は Compile examples ステップで作成済み。
+      - name: Compile basic_dcx with DCX/CAMF enabled (Mega)
+        if: matrix.name == 'Arduino Mega 2560'
+        run: |
+          arduino-cli compile --clean --fqbn "${{ matrix.fqbn }}" examples/basic_dcx --build-property "compiler.cpp.extra_flags=-std=gnu++17 -DAZARAC_ENABLE_DCX_CAMF=1 -DAZARAC_AVR_LARGE_FLASH=1"
 
   # 拡張コンパイルチェック（ベストエフォート）: required 以外のボード。こちらはCIをブロックしない
   arduino-compile-extended:
@@ -214,56 +286,56 @@ jobs:
         include:
           - name: RP2350 Pico 2
             slug: pico2
-            core: rp2040:rp2040
+            core: rp2040:rp2040@6.4.0
             fqbn: rp2040:rp2040:rpipico2
             additional_urls: https://github.com/earlephilhower/arduino-pico/releases/download/global/package_rp2040_index.json
             build_flags: ""
 
           - name: ESP32-S3
             slug: esp32s3
-            core: esp32:esp32
+            core: esp32:esp32@3.3.13
             fqbn: esp32:esp32:esp32s3
             additional_urls: https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
             build_flags: ""
 
           - name: STM32 Nucleo H563ZI
             slug: stm32h563
-            core: STMicroelectronics:stm32
+            core: STMicroelectronics:stm32@3.1.0
             fqbn: STMicroelectronics:stm32:Nucleo_144:pnum=NUCLEO_H563ZI
             additional_urls: https://github.com/stm32duino/BoardManagerFiles/raw/main/package_stmicroelectronics_index.json
             build_flags: "-DENABLE_HWSERIAL1 -DPIN_SERIAL_RX=PA9 -DPIN_SERIAL_TX=PA10"
 
           - name: Arduino GIGA R1 WiFi
             slug: giga
-            core: arduino:mbed_giga
+            core: arduino:mbed_giga@4.6.0
             fqbn: arduino:mbed_giga:giga
             additional_urls: https://downloads.arduino.cc/packages/package_index.json
             build_flags: ""
 
           - name: nRF52840 Nano 33 BLE
             slug: nano33ble
-            core: arduino:mbed_nano
+            core: arduino:mbed_nano@4.6.0
             fqbn: arduino:mbed_nano:nano33ble
             additional_urls: https://downloads.arduino.cc/packages/package_index.json
             build_flags: ""
 
           - name: Teensy 4.0
             slug: teensy40
-            core: teensy:avr
+            core: teensy:avr@1.62.0
             fqbn: teensy:avr:teensy40
             additional_urls: https://www.pjrc.com/teensy/package_teensy_index.json
             build_flags: ""
 
           - name: RP2040 Pico W
             slug: picow
-            core: rp2040:rp2040
+            core: rp2040:rp2040@6.4.0
             fqbn: rp2040:rp2040:rpipicow
             additional_urls: https://github.com/earlephilhower/arduino-pico/releases/download/global/package_rp2040_index.json
             build_flags: ""
 
           - name: Arduino Zero
             slug: zero
-            core: arduino:samd
+            core: arduino:samd@1.8.14
             fqbn: arduino:samd:arduino_zero_native
             additional_urls: https://downloads.arduino.cc/packages/package_index.json
             build_flags: "-DAZARAC_ENABLE_NANKAI=0 -DAZARAC_ENABLE_DCX_CAMF=0 -DAZARAC_ENABLE_VOLCANO=0 -DAZARAC_ENABLE_ASH_FALL=0 -DAZARAC_ENABLE_WEATHER=0 -DAZARAC_ENABLE_FLOOD=0 -DAZARAC_ENABLE_TYPHOON=0 -DAZARAC_ENABLE_MARINE=0 -DAZARAC_ENABLE_NW_PAC_TSUNAMI=0"
@@ -290,8 +362,20 @@ jobs:
         run: |
           # Wrap #include <chrono> with pragma push_macro/pop_macro to isolate macro conflicts
           PATCH_SCRIPT='s/#include <chrono>/#pragma push_macro("abs")\n#pragma push_macro("min")\n#pragma push_macro("max")\n#pragma push_macro("round")\n#undef abs\n#undef min\n#undef max\n#undef round\n#include <chrono>\n#pragma pop_macro("round")\n#pragma pop_macro("max")\n#pragma pop_macro("min")\n#pragma pop_macro("abs")/'
-          # Apply to all headers and sources in the installed cores
-          find ~/.arduino15/packages/ -type f \( -name "*.h" -o -name "*.cpp" -o -name "*.c" \) -exec sed -i "$PATCH_SCRIPT" {} + 2>/dev/null || true
+          # Apply to all headers and sources in the installed cores.
+          # 0 件ならコア構成が変わってこのワークアラウンドが不要になったということなので、
+          # 失敗にはせず warning に留める（コア側が直った時点で全 PR を落とさない）。
+          patched=0
+          while IFS= read -r -d '' f; do
+            if grep -q '#include <chrono>' "$f"; then
+              sed -i "$PATCH_SCRIPT" "$f"
+              patched=$((patched + 1))
+            fi
+          done < <(find ~/.arduino15/packages/ -type f \( -name "*.h" -o -name "*.cpp" -o -name "*.c" \) -print0)
+          echo "patched $patched file(s)"
+          if [[ "$patched" -eq 0 ]]; then
+            echo "::warning::no core source contained '#include <chrono>'; the chrono macro patch may be obsolete or the core layout changed"
+          fi
 
       - name: Compile examples
         id: compile
@@ -302,20 +386,19 @@ jobs:
           for sketch in examples/*/; do
             echo "--- $sketch ---"
             sketch_name=$(basename "$sketch")
-            if [[ ("${{ matrix.name }}" == "Arduino GIGA R1 WiFi") || ("${{ matrix.name }}" == "Teensy 4.0" || "${{ matrix.name }}" == "STM32 Nucleo H563ZI" || "${{ matrix.name }}" == "nRF52840 Nano 33 BLE" || "${{ matrix.name }}" == "Arduino Zero" || "${{ matrix.name }}" == "RP2350 Pico 2") && ("$sketch_name" == "wifi_client" || "$sketch_name" == "with_sntp") ]]; then
-              if [[ "${{ matrix.name }}" == "Arduino GIGA R1 WiFi" ]]; then
-                if [[ "$sketch_name" == "with_sntp" ]]; then
-                  echo "skip $sketch_name on ${{ matrix.name }} because configTime is unavailable"
-                  continue
-                fi
-              else
-                echo "skip $sketch_name on ${{ matrix.name }} because WiFi.h is unavailable"
-                continue
-              fi
+            # Wi-Fi 例は ESP32 コア専用（WiFi.h / configTime / Serial1）。examples 側も非 ESP32 では #error で弾く。
+            if [[ "${{ matrix.fqbn }}" != esp32:* && ("$sketch_name" == "wifi_client" || "$sketch_name" == "with_sntp") ]]; then
+              echo "skip $sketch_name on ${{ matrix.name }} (requires ESP32 core)"
+              continue
             fi
             # Skip RTOS example on non-ESP32 boards (requires FreeRTOS)
             if [[ "$sketch_name" == "rtos_freertos" && "${{ matrix.name }}" != "ESP32-C3" && "${{ matrix.name }}" != "ESP32-S3" ]]; then
               echo "skip $sketch_name on ${{ matrix.name }} (requires ESP32 FreeRTOS)"
+              continue
+            fi
+            # basic_dcx は DCX/CAMF 有効ビルド専用で、無効だとスケッチ冒頭の #error で落ちる。build_flags で無効化しているボード（Arduino Zero）では飛ばす。
+            if [[ "$sketch_name" == "basic_dcx" && "${{ matrix.build_flags }}" == *"AZARAC_ENABLE_DCX_CAMF=0"* ]]; then
+              echo "skip $sketch_name on ${{ matrix.name }} (DCX/CAMF disabled by build flags)"
               continue
             fi
             CPP_EXTRA_FLAGS="-std=gnu++17 ${{ matrix.build_flags }}"
@@ -449,12 +532,6 @@ jobs:
       - name: Build & run with coverage
         run: make -C test coverage
 
-      - name: Generate gcovr reports
-        run: |
-          cd test && gcovr . --filter='../src/' --exclude='.*test_.*\.cpp' --exclude='.*definition.*' \
-            --json coverage_report.json --json-pretty \
-            --xml coverage.xml --xml-pretty
-
       - name: Generate coverage step summary
         run: python scripts/analysis/gcovr_summary.py --input test/coverage_report.json >> $GITHUB_STEP_SUMMARY
 
@@ -477,8 +554,10 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - host-test
+      - sanitizer
       - fixture-drift
       - fuzz-test
+      - fuzz-sanitize
       - arduino-lint
       - arduino-compile-required
       - arduino-compile-extended
@@ -526,8 +605,10 @@ jobs:
           |-----|--------|
           EOF
           echo "| host-test | ${{ needs.host-test.result }} |" >> comment.md
+          echo "| sanitizer | ${{ needs.sanitizer.result }} |" >> comment.md
           echo "| fixture-drift | ${{ needs.fixture-drift.result }} |" >> comment.md
           echo "| fuzz-test | ${{ needs.fuzz-test.result }} |" >> comment.md
+          echo "| fuzz-sanitize | ${{ needs.fuzz-sanitize.result }} |" >> comment.md
           echo "| arduino-lint | ${{ needs.arduino-lint.result }} |" >> comment.md
           echo "| arduino-compile-required | ${{ needs.arduino-compile-required.result }} |" >> comment.md
           failed=0; total=0

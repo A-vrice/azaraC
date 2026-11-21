@@ -8,7 +8,7 @@
 
 [![Codacy Grade](https://app.codacy.com/project/badge/Grade/b3588525b57047f89f8d2ee988d155d3)](https://app.codacy.com/gh/A-vrice/azaraC/dashboard) [![Codacy Coverage](https://app.codacy.com/project/badge/Coverage/b3588525b57047f89f8d2ee988d155d3)](https://app.codacy.com/gh/A-vrice/azaraC/dashboard) [![OSSF Scorecard](https://img.shields.io/ossf-scorecard/github.com/A-vrice/azaraC?style=flat-square&label=Scorecard)](https://scorecard.dev/viewer/?uri=github.com/A-vrice/azaraC) [![SLSA Level3](https://img.shields.io/badge/SLSA-Level3-brightgreen?style=flat-square&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3MDAgNzAwIj48cGF0aCBmaWxsPSIjZmY2NzQwIiBkPSJNMTI1IDFRODIgNiA1MCAzM0MzOSA0MyAyNCA1OSAyNSA2MWw4IDEyIDcgMTIgMzQgNDYgMjAgMjRhMTAzNCAxMDM0IDAgMCAwIDcyIDc1cTExIDExIDEyIDhhODM4IDgzOCAwIDAgMCAyMTMtODRsNTMtMzNhODI0IDgyNCAwIDAgMCA5Ni03Nmw0My00My0zLTF6bTQ5NiAzNGE4OTQgODk0IDAgMCAxLTk4IDkwbC0xNSAxMi0xOCAxMy03NyA0OGMtOCA2LTUzIDI5LTcwIDM2YTg5NyA4OTcgMCAwIDEtMTExIDQybC03IDIgOSA4IDEyIDkgNDkgMzJhODY4IDg2OCAwIDAgMCA4NSA0NWw0NiAxOSA1IDIgMTMgNSAzMyAxMSA3IDIgOC02YzktNiAzMS0yNSAzOS0zMmwxMy0xMmE5MTAgOTEwIDAgMCAwIDY2LTY5bDExLTE0YzMtMiAyOS0zOCAzMi00Mmw0MC02MSA3LTExdi0xOWwtMi0yNi0yLTEwYy0xLTctNy0yNS0xMS0zMmExNDYgMTQ2IDAgMCAwLTQ4LTU0bC0zLTJ6TTEgMTE5djQ2MmgxOGwyMi0xIDEyLTIgMTEtMSA5LTEgMTgtMiAxNC0yIDktMSA4LTEgNy0yIDIxLTMgNy0yIDctMiA3Ny0yMSA3MC0yNyAxMy02YTk3MiA5NzIgMCAwIDAgODEtNDJsMjgtMTctNi0zYTg4OSA4ODkgMCAwIDEtMjY0LTE1MWwtNy01LTctNy03LTYtMTItMTEtNjUtNjYtNTMtNjgtMTAtMTN6Ii8+PHBhdGggZmlsbD0iI2ZmNjc0MCIgZD0iTTY5OCAyNTlhOTM3IDkzNyAwIDAgMS02MSA3NyA5ODQgOTg0IDAgMCAxLTczIDc1IDg2NyA4NjcgMCAwIDEtMjQ1IDE1M2wtMTcgNy0xMyA1LTIwIDctNjAgMTlhOTM2IDkzNiAwIDAgMS0xMTUgMjNsLTkgMS0xOSAyLTEwIDEtMTQgMS0yMiAxYy0xIDIgMTIgMTggMjAgMjdsMTUgMTMgMjIgMTRxMTUgOCAzNSAxMmwxMCAzaDQ1NmwxMC0zYTE0MSAxNDEgMCAwIDAgMTEwLTExM2MyLTExIDItMTYgMi0xNjlWMjU3eiIvPjwvc3ZnPg==)](https://github.com/A-vrice/azaraC/releases)
 
-準天頂衛星みちびき(QZSS)から発信されたL1S信号の災危通報メッセージをデコードするArduino向けC++17ライブラリ。
+準天頂衛星みちびき（QZSS）が送信するL1S信号の災危通報メッセージをデコードする、Arduino向けのC++17ライブラリです。
 [azarashi](https://github.com/nbtk/azarashi)(Python)の移植です。
 外部依存はなく、ヒープの動的割り当てもしません。
 
@@ -17,19 +17,28 @@
 | msg_type | 規格            | 名称            |
 |----------|-----------------|-----------------|
 | 43       | [IS-QZSS-DCR-017](https://qzss.go.jp/technical/download/is_qzss_dcr_017_agree.html) | DCR 12種類（QZQSM） |
-| 44       | [IS-QZSS-DCX-004](https://qzss.go.jp/technical/download/is_qzss_dcx_004_agree.html) | DCX / CAMF（L-Alert, J-Alert など） |
+| 44       | [IS-QZSS-DCX-004](https://qzss.go.jp/technical/download/is_qzss_dcx_004_agree.html) | DCX / CAMF（L-Alert, J-Alertなど） |
 
 定義テーブル生成に使用したazarashiのバージョンは[`.azarashi-version`](.azarashi-version)に記載しています。
 
-MT=44 の B フィールド（B1–B4）と C10 は [EWSS CAMF Issue 1.2](https://www.gsc-europa.eu/electronic-library/programme-reference-documents/galileo-in-force/ewss) に基づきます。
+MT=44のBフィールド（B1–B4）とC10は [EWSS CAMF Issue 1.2](https://www.gsc-europa.eu/electronic-library/programme-reference-documents/galileo-in-force/ewss) に基づきます。
 
-AVR（Uno・Mega を含む）は既定で SEISMIC/TSUNAMI のみ有効です。
-無効にしたカテゴリは定義テーブルがコンパイルされず、`EewData` / `HypocenterData` / `NankaiData` は型ごと除外されます（`SeismicData` / `TsunamiData` など残りの型は、そのカテゴリを無効にしても定義は残ります）。
+AVR（Uno・Megaを含む）は既定でSEISMIC/TSUNAMIのみ有効です。
+無効にしたカテゴリは定義テーブルがコンパイルされず、12種類のpayload型すべてがカテゴリ単位で除外されます。`Mt43Data` のRAMも、残ったカテゴリの最大型まで縮みます。`AZARAC_ENABLE_DEDUP=0` で重複排除テーブル（既定4 KB / AVR 512 B）も外せます。
 
-- `Message` のサイズは 84 B（全カテゴリ有効時も 84 B、DCX/CAMF 追加時は 199 B ／ ATmega328P の `sizeof` 実測）
-- EEW と震源は AVR プリセットで無効なので `getEew()` / `getHypocenter()` は既定で使えません。
+- `Message` のサイズはAVR（ATmega328P、avr-gcc `-Os`）で91 Bです。
+  AVRプリセットの値で、DCRの全カテゴリを有効にしてもpayloadの最大は津波の69 Bのままなので、91 Bは変わりません。
+  DCX/CAMFを追加すると `Mt44Data` が最大になり199 Bです。
+  ホスト（g++、全カテゴリ + DCX/CAMF）では240 Bです。
+- 津波の通知ラベル（`notifications[].label`）はAVRプリセット（EEW/震源も無効）では既定で出ません（コードは出ます）。津波単独で有効化するには `-DAZARAC_TSUNAMI_NOTIFICATION_LABELS=1`（Flash約5.8 KB、共有バッファ640 B）。EEWか震源を有効にすると表が共有されラベルも出ます
+- EEWと震源はAVRプリセットで無効なので `getEew()` / `getHypocenter()` は既定で使えません。
   有効化する場合は `-DAZARAC_ENABLE_EEW=1` / `-DAZARAC_ENABLE_HYPOCENTER=1`
-- MT=44 は `-DAZARAC_AVR_LARGE_FLASH=1` または `-DAZARAC_ENABLE_DCX_CAMF=1` で有効化します（Flash が 64KB を超えるボードが対象）
+- MT=44は `-DAZARAC_AVR_LARGE_FLASH=1` または `-DAZARAC_ENABLE_DCX_CAMF=1` で有効化します（Flashが64KBを超えるボードが対象）
+- Flash/SRAMの実測値はavr-gccの版によって変わります。`make -C test bench` がゲートするのは「SRAMが増えないこと」と「コア/自前の表が64 KiB窓に残ること」で、絶対バイト数ではありません（手元のavr-gcc 15.2実測: UnoプリセットFlash 18,552 B / RAM 108 B、Mega + DCX/CAMF 146,906 B / 858 B）
+- ラベルの言語は `-DAZARAC_LANG_JA=0 -DAZARAC_LANG_EN=1` で英語に切り替えられます（既定は日本語。両方1で `_label_en` 併記）
+- 南海トラフの集約テキスト（`NankaiData::aggregated_text_ptr`）は `Parser` 内部への借用ポインタです。
+  `Message` をコピーしても所有権は移らず、次の `feed()` / `reset()` で内容が変わります。
+  `feed()` が `true` を返した直後にコピーするか、`toJson()` で出力してください（[APIリファレンス](docs/api-reference.md#nankaidata南海トラフ地震)、[ExamplesのRTOS実装](examples/rtos_freertos/rtos_freertos.ino)）
 
 ## インストール
 
@@ -43,7 +52,7 @@ arduino-cli lib install azaraC
 pio pkg install --library "a-vrice/azaraC"
 ```
 
-開発版は git clone でも導入できます:
+開発版はgit cloneでも導入できます:
 
 ```bash
 # Arduino IDE
@@ -53,14 +62,16 @@ git clone https://github.com/A-vrice/azaraC <PROJECT_DIR>/libraries/azaraC
 git clone https://github.com/A-vrice/azaraC <PROJECT_DIR>/.pio/libdeps/<TARGET_BOARD>/azaraC
 ```
 
-> **注:** 本ライブラリは C++17 必須です。
-> Arduino IDE / PlatformIO のビルドで `-std=gnu++17` を指定してください（設定例は [`platformio.ini.example`](platformio.ini.example) を参照）。
+> **注:** 本ライブラリはC++17必須です。
+> Arduino IDE / PlatformIOのビルドで `-std=gnu++17` を指定してください（設定例は [`platformio.ini.example`](platformio.ini.example) を参照）。
 
 ## ドキュメント
 
 - [はじめに（クイックスタート・Examples・コンパイル時設定）](docs/getting-started.md)
-- [API リファレンス](docs/api-reference.md)
+- [APIリファレンス](docs/api-reference.md)
 - [アーキテクチャ](docs/architecture.md)
+- [JSON出力フォーマット（azarashiとの差分）](docs/json-formats.md)
+- [Examples一覧](examples/README.md)
 - [開発者ガイド（ビルド・テストなど）](docs/developer-guide.md)
 
 ## ライセンス
@@ -70,7 +81,7 @@ git clone https://github.com/A-vrice/azaraC <PROJECT_DIR>/.pio/libdeps/<TARGET_B
 本ライブラリは非公式なものであり，準天頂衛星システムサービス株式会社，JAXA，その他公共機関など「みちびき」に関連する組織，ならびにNBTK氏の提供するazarashiとは一切関係ありません。
 また本ライブラリは現状有姿で提供され，あるふぁ米およびそのコントリビューターは，受信したメッセージや本ライブラリの出力内容の正確性，完全性，その他のいかなるものについても保証しません。
 本ライブラリを使用したことによるいかなる損害についても責任は負いかねます。
-また，本ライブラリを利用される際はQSSの免責条項[参考](https://qzss.go.jp/technical/dod/dc-report/users-manual_agree.html)を確認することを推奨します。
+また，本ライブラリを利用される際はQZSSの免責条項[参考](https://qzss.go.jp/technical/dod/dc-report/users-manual_agree.html)を確認することを推奨します。
 
 ## 問い合わせ
 

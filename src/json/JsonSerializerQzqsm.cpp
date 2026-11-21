@@ -110,8 +110,8 @@ bool serializeEEW(const Mt43Data* d, Print& out) {
         qzss_dcr_jma_seismic_intensity_upper_limit_lookup,
         qzss_dcr_jma_seismic_intensity_upper_limit_en_lookup, eew->intensity_upper, false);
     wk(out, AZARAC_KEY("regions")); out.print('[');
-    // regionCount()+regionAt(i) は i ごとに先頭から走査して O(N²) になる。
-    // ビットマップを 1 回走査すれば昇順のまま O(80)。
+    // regionAt(i) は i ごとに先頭バイトから数えるため、regionCount()+regionAt(i) のループより
+    // ビットマップ 1 回走査の方が速い（昇順はそのまま）。
     bool first = true;
     for (uint8_t byt = 0; byt < 10; ++byt) {
         const uint8_t v = eew->region_bitmap[byt];
@@ -212,7 +212,7 @@ bool serializeNankai(const Mt43Data* d, Print& out) {
         wf_u(out, AZARAC_KEY("page"), nankai->page);
         wf_u(out, AZARAC_KEY("total_page"), nankai->total_page);
         wk(out, AZARAC_KEY("text_utf8"));
-        writeStr(out, std::string_view(nankai->aggregated_text_ptr, nankai->aggregated_len));
+        writeStrUtf8(out, std::string_view(nankai->aggregated_text_ptr, nankai->aggregated_len));
     } else {
         wf_u(out, AZARAC_KEY("page"), nankai->page);
         wf_u(out, AZARAC_KEY("total_page"), nankai->total_page);
@@ -238,6 +238,16 @@ bool serializeTsunami(const Mt43Data* d, Print& out) {
     AZARAC_LABEL(out, "warning_code_label",
         qzss_dcr_jma_tsunami_warning_code_lookup,
         qzss_dcr_jma_tsunami_warning_code_en_lookup, tsunami->warning_code, false);
+    wk(out, AZARAC_KEY("notifications")); out.print('[');
+    for (uint8_t i = 0; i < tsunami->notification_count; ++i) {
+        if (i) writeChar(out, ',');
+        uint16_t code = tsunami->notification[i];
+        out.print('{');
+        wf_u(out, AZARAC_KEY("code"), code);
+        wf_s(out, AZARAC_KEY("label"), AZARAC_LOOKUP_LANG(qzss_dcr_jma_notification_on_disaster_prevention_lookup, qzss_dcr_jma_notification_on_disaster_prevention_en_lookup, code), /*last=*/true);
+        out.print('}');
+    }
+    writeRaw(out, AZARAC_KEY("],"));
     wk(out, AZARAC_KEY("entries")); out.print('[');
     for (uint8_t i = 0; i < tsunami->count; ++i) {
         if (i) writeChar(out, ',');

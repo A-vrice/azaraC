@@ -1,5 +1,6 @@
 #pragma once
 // AUTO-GENERATED from azarashi 0.17.1 — do not edit
+// Specs: IS-QZSS-DCR-017 / IS-QZSS-DCX-004 Rev.004 / EWSS CAMF Issue 1.2
 // azarashi.definitions.qzss.dcr.epicenter_and_hypocenter → qzss_dcr_jma_epicenter_and_hypocenter: 345 entries, strategy binary_search
 // Unknown id returns nullptr — callers MUST null-check.
 
