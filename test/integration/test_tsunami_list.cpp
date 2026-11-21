@@ -1,10 +1,10 @@
-#include <algorithm>
 // 津波 / 北西太平洋津波のリスト終端判定の回帰テスト。
 // IS-QZSS-DCR-017 Table 4.1.2-21 / 4.1.2-26: 未使用エントリは Ta/Th/Pl すべて 0。
 // 終端はエントリ全体の 0 で判定する（Pl のみだと Ta/Th 非0の非準拠電文でエントリを取りこぼす）。
 
 #include "../test_helpers.h"
 #include "doctest.h"
+#include <algorithm>
 #include <cstring>
 
 using namespace azaraC;
