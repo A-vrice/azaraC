@@ -144,6 +144,9 @@ inline void azarac_copy_string(char* dst, azarac_pgm_ptr src, size_t n) {
 }
 inline size_t azarac_pgm_len(azarac_pgm_ptr src) {
     size_t n = 0;
+    // src は NUL 終端の Flash 文字列（呼び出し側の小さなリテラル配列に対して上限 800 B の添字を
+    // cppcheck が OOB と見なすが、実際は '\0' で先に止まる）。
+    // cppcheck-suppress arrayIndexOutOfBoundsCond
     while (n < AZARAC_FLASH_BUF_SIZE - 1 && src[n] != '\0') ++n;
     return n;
 }
