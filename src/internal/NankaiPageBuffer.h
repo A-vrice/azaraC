@@ -139,8 +139,9 @@ struct NankaiPageBuffer {
         // bitmap による重複判定 O(1)
         uint64_t mask = 1ULL << (page_num - 1);
         if (received_bitmap & mask) {
-            // 重複ページの再送でも集約の寿命を延ばす。本文・受信数は変えない。
-            last_update_ms = (uint32_t)current_ms;
+            // 未完成の集約は重複ページの再送でも寿命を延ばす。本文・受信数は変えない。
+            // 完成済みは延ばさない: 失効させて再完成させ、Parser の dedup に最終受信時刻を更新させる。
+            if (!isComplete()) last_update_ms = (uint32_t)current_ms;
             return false;
         }
 

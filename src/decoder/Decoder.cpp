@@ -307,7 +307,7 @@ TimeFields Decoder::resolveTime(uint8_t month, uint8_t day, uint8_t hour, uint8_
     // 余裕を超えたら古い通報とみなし、直近の過去の出現へ落とす。
     static constexpr uint32_t MARGIN_SEC = 3u * 86400u;
     uint32_t best_y = y, best_m = m;
-    uint32_t best_diff = 0xFFFFFFFFu;
+    uint64_t best_diff = ~0ull;
     bool have_best = false;
     for (int8_t dm = -1; dm <= 1; ++dm) {
         int32_t cm = (int32_t)m + dm;
@@ -318,9 +318,8 @@ TimeFields Decoder::resolveTime(uint8_t month, uint8_t day, uint8_t hour, uint8_
         if (day > daysInMonth(cy, cand_m)) continue;   // 暦外の候補は失格（閏年は候補年で判定）
         const uint64_t ts64 = (uint64_t)days_from_civil(cy, cand_m, day) * 86400u
                             + (uint32_t)hour * 3600u + (uint32_t)minute * 60u;
-        if (ts64 > 0xFFFFFFFFull) continue;   // u32 を超える候補は選ばない
-        const uint32_t ts = (uint32_t)ts64;
-        const uint32_t diff = ts > base_unix ? ts - base_unix : base_unix - ts;
+        // 64 bit で比較し、u32 を超える候補も選べるようにする（unix_time の飽和は finish() で行う）。
+        const uint64_t diff = ts64 > base_unix ? ts64 - base_unix : base_unix - ts64;
         if (diff < best_diff) { best_diff = diff; best_y = cy; best_m = cand_m; have_best = true; }
     }
     if (!have_best) return t;   // 防御: 3 候補すべて暦外（通常は到達しない）

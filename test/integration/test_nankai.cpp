@@ -376,6 +376,15 @@ TEST_CASE("NankaiPageBuffer expiry") {
         CHECK(buffer.isExpired(resend + NankaiPageBuffer::TIMEOUT_MS + 1));
     }
 
+    SUBCASE("duplicate page does not extend a completed buffer") {
+        NankaiPageBuffer buffer;
+        uint8_t text[18] = {'P', 0};
+        buffer.addPage(1, 1, text, 1000);
+        REQUIRE(buffer.isComplete());
+        CHECK_FALSE(buffer.addPage(1, 1, text, 1000 + NankaiPageBuffer::TIMEOUT_MS - 1));
+        CHECK(buffer.isExpired(1000 + NankaiPageBuffer::TIMEOUT_MS + 1));
+    }
+
     SUBCASE("expireBuffers drops a stale buffer") {
         NankaiPageBufferManager manager;
         NankaiPageKey key = {1, 4, 10, 30, 15};
