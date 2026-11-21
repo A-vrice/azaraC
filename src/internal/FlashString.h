@@ -192,11 +192,11 @@ inline std::string_view azarac_pgm_view_z(azarac_pgm_ptr src) {
     const size_t n = azarac_pgm_len(src);
     return std::string_view(src, azarac_utf8_trim_len(src, n));
 }
+// 長さを数えてから memcpy すると、GCC の -O1 が実体サイズを超える長さの memcpy と見て -Warray-bounds を出す。
+// NUL で止まる 1 パスのコピーにし、実体の外を読まないことをコンパイラにも見える形にする。
 inline size_t azarac_pgm_append(char* buf, size_t at, azarac_pgm_ptr src) {
-    size_t n = azarac_pgm_len(src);
-    if (n > AZARAC_FLASH_BUF_SIZE - 1 - at) n = AZARAC_FLASH_BUF_SIZE - 1 - at;
-    azarac_read_block(buf + at, src, n);
-    return at + n;
+    while (at < AZARAC_FLASH_BUF_SIZE - 1 && *src != '\0') buf[at++] = *src++;
+    return at;
 }
 inline char* azarac_flash_buf() {
     static char buf[AZARAC_FLASH_BUF_SIZE];
