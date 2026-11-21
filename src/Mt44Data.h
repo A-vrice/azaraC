@@ -140,8 +140,10 @@ struct Mt44Data {
     // NSDMI は代表枝 1 つだけ（C++17 では複数の variant メンバに初期化子を持てない）。
     // 非 active 枝は未規定値だが、ex_kind で排他なので読まれない。
     union Mt44Extended {
-        Mt44ExLAlertOrLocal ex_lalert_local{};
+        // 最大枝を先頭に: `ex = {}`（union の zero-init）が先頭枝だけを初期化するため、
+        // 先頭が最大でないと union 全体のゼロ初期化を保証できない（cppcheck 2.19 UnionZeroInit）。
         Mt44ExJAlert        ex_jalert;
+        Mt44ExLAlertOrLocal ex_lalert_local{};
         Mt44ExOutside       ex_outside;
     };
     Mt44Extended    ex = {};
