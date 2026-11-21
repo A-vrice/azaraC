@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Message.h"
-#include "framer/IFramer.h"
+#include "IFramer.h"
 #include "framer/UbxFramer.h"
 #include "framer/NmeaFramer.h"
 #include "decoder/Decoder.h"
@@ -16,6 +16,27 @@ namespace internal {
 struct ParserTestHook;
 } // namespace internal
 
+#if AZARAC_ENABLE_NANKAI
+struct NankaiEventKey {
+    uint8_t info_code = 0;
+    uint8_t report_month = 0;
+    uint8_t report_day = 0;
+    uint8_t report_hour = 0;
+    uint8_t report_minute = 0;
+    uint8_t information_type = 0;
+    uint8_t report_classification = 0;
+};
+
+struct NankaiProgress {
+    uint8_t received_count = 0;
+    uint8_t total_pages = 0;
+    uint8_t original_total_pages = 0;
+    bool truncated = false;
+
+    bool isComplete() const { return total_pages != 0 && received_count == total_pages; }
+};
+#endif
+
 // RAM: Parser 実体は静的確保で約 6.6 KB（実測 6,624 B。既定: dedup 4 KB + Nankai 2×1,160 B + framer/decoder）、推奨 7.0 KB。
 // dedup/Nankai 有効時は 64 bit epoch guard 用に 8 B を追加する（両方無効ならメンバ自体が存在しない）。
 // AVR preset（Nankai/DCX off、dedup 64x8）では約 0.7 KB。2 KB SRAM のターゲットでは Nankai/DCX を無効のままにすること。
@@ -25,7 +46,7 @@ class Parser {
 public:
     Parser() = default;
     // カスタムフレーマ（Sony、Furuno 等）を注入する。オブジェクトの所有は呼び出し側。
-    explicit Parser(internal::IFramer& framer) : _custom(&framer) {}
+    explicit Parser(IFramer& framer) : _custom(&framer) {}
 
     // コピー/ムーブ禁止: dedup テーブル 4 KB と Nankai バッファを二重に確保し、_custom（ユーザー所有のフレーマ）も二重参照になるため。
     Parser(const Parser&) = delete;
@@ -60,8 +81,8 @@ public:
     void updateClock();
 
 #if AZARAC_ENABLE_NANKAI
-    // 鍵に一致するバッファを返す（受信途中でも返る。完了判定は isComplete()）。無ければ nullptr。
-    const internal::NankaiPageBuffer* getNankaiBuffer(const internal::NankaiPageKey& key) const;
+    // 保持中の集約の進捗をコピーする。鍵が見つからなければ false を返し、out は変更しない。
+    bool getNankaiProgress(const NankaiEventKey& key, NankaiProgress& out) const;
 #endif
 
 private:
@@ -72,7 +93,7 @@ private:
 #if AZARAC_ENABLE_NANKAI
     internal::NankaiPageBufferManager _nankaiBuffers;
 #endif
-    internal::IFramer*               _custom = nullptr;
+    IFramer*                         _custom = nullptr;
 #if defined(AZARAC_TESTING) && AZARAC_TESTING
     friend struct internal::ParserTestHook;
 #endif
@@ -96,7 +117,7 @@ private:
 
     // decode → postDecode を `out` 自体に対して行う。decode() が先に out をクリアするため、復号失敗で前の payload が残らない。
     // frame が非 const なのは messageIdentity が MT=44 の SD を一時的にゼロにするため。
-    bool handleFrame(internal::Frame& frame, Message& out, uint32_t report_unix);
+    bool handleFrame(Frame& frame, Message& out, uint32_t report_unix);
 
 #if AZARAC_ENABLE_NANKAI
     // Nankai のページ集約。Complete のときだけ out を出力用に設定する。

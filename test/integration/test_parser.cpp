@@ -11,12 +11,15 @@ using namespace azaraC;
 // カテゴリ非依存のテスト（常時コンパイル）
 
 #if (AZARAC_ENABLE_NANKAI)
-TEST_CASE("Parser getNankaiBuffer returns nullptr for unknown key") {
+TEST_CASE("Parser getNankaiProgress leaves the output unchanged for an unknown key") {
     Parser parser;
 
-    azaraC::internal::NankaiPageKey key = {1};
-    const azaraC::internal::NankaiPageBuffer* buf = parser.getNankaiBuffer(key);
-    CHECK(buf == nullptr);
+    NankaiProgress progress{1, 2, 3, true};
+    CHECK_FALSE(parser.getNankaiProgress(NankaiEventKey{1}, progress));
+    CHECK(progress.received_count == 1);
+    CHECK(progress.total_pages == 2);
+    CHECK(progress.original_total_pages == 3);
+    CHECK(progress.truncated);
 }
 #endif
 

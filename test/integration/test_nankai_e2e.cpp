@@ -5,6 +5,7 @@
 #include "../src/internal/NankaiPageBuffer.h"
 #include "../src/Parser.h"
 #include "../test_helpers.h"
+#include "ParserTestHook.h"
 
 using namespace azaraC::internal;
 
@@ -322,7 +323,7 @@ TEST_CASE("Nankai E2E: BUFFERS=1 cannot track interleaved training and real (lim
 }
 #endif
 
-TEST_CASE("Nankai E2E: getNankaiBuffer exposes an incomplete buffer") {
+TEST_CASE("Nankai E2E: getNankaiProgress snapshots a matching aggregation") {
     azaraC::Parser parser;
     azaraC::Message msg;
     uint8_t bits[32];
@@ -337,12 +338,27 @@ TEST_CASE("Nankai E2E: getNankaiBuffer exposes an incomplete buffer") {
     }
     CHECK_FALSE(output);
 
-    const NankaiPageKey key{1, 0, 0, 0, 0, 0, 2};
-    const NankaiPageBuffer* buf = parser.getNankaiBuffer(key);
-    REQUIRE(buf != nullptr);
-    CHECK_FALSE(buf->isComplete());
-    CHECK(buf->total_pages == 2);
-    CHECK(buf->received_count == 1);
+    const NankaiEventKey key{1, 0, 0, 0, 0, 0, 2};
+    NankaiProgress partial;
+    REQUIRE(parser.getNankaiProgress(key, partial));
+    CHECK_FALSE(partial.isComplete());
+    CHECK(partial.total_pages == 2);
+    CHECK(partial.original_total_pages == 2);
+    CHECK(partial.received_count == 1);
+    CHECK_FALSE(partial.truncated);
+    NankaiProgress progress;
+    CHECK_FALSE(parser.getNankaiProgress(NankaiEventKey{1, 0, 0, 0, 0, 0, 7}, progress));
+    CHECK_FALSE(parser.getNankaiProgress(NankaiEventKey{1, 0, 0, 0, 0, 2, 2}, progress));
+
+    buildNankaiPage(2, 2, 1, text, sizeof(text), bits);
+    REQUIRE(feedAll(parser, msg, makeNmeaQzqsm(58, bits)));
+    REQUIRE(parser.getNankaiProgress(key, progress));
+    CHECK(progress.isComplete());
+    CHECK(progress.received_count == 2);
+    parser.reset();
+    CHECK_FALSE(parser.getNankaiProgress(key, progress));
+    CHECK(progress.isComplete());
+    CHECK(partial.received_count == 1);
 }
 
 // 借用ポインタの寿命（H2）: 集約完了後に Message を値コピーしても、aggregated_text_ptr は
@@ -461,11 +477,13 @@ TEST_CASE("Nankai E2E: 27-page full aggregation with real text data") {
             CHECK(nankai->truncated == false);
             CHECK(memcmp(nankai->aggregated_text_ptr, expected_body, EXPECTED_AGG_LEN) == 0);
 
-            // compactText() 後も getNankaiBuffer() 経由の長さが集約本文と一致する。
-            const NankaiPageBuffer* buf = parser.getNankaiBuffer(NankaiPageKey{5, 0, 0, 0, 0, 0, 2});
+            // compactText() 後もバッファの長さが集約本文と一致する。
+#if defined(AZARAC_TESTING) && AZARAC_TESTING
+            const NankaiPageBuffer* buf = ParserTestHook::getBuffer(parser, {5, 0, 0, 0, 0, 0, 2});
             REQUIRE(buf != nullptr);
             CHECK(buf->compacted);
             CHECK(buf->getTextLength() == EXPECTED_AGG_LEN);
+#endif
         }
     }
 
@@ -638,9 +656,11 @@ TEST_CASE("Nankai E2E: NUL byte mid-page stops aggregation at null") {
     CHECK(nankai->aggregated_text_ptr != nullptr);
     CHECK(memcmp(nankai->aggregated_text_ptr, expected_compact, EXPECTED_LEN) == 0);
 
-    const NankaiPageBuffer* buf = parser.getNankaiBuffer(NankaiPageKey{5, 0, 0, 0, 0, 0, 2});
+#if defined(AZARAC_TESTING) && AZARAC_TESTING
+    const NankaiPageBuffer* buf = ParserTestHook::getBuffer(parser, {5, 0, 0, 0, 0, 0, 2});
     REQUIRE(buf != nullptr);
     CHECK(buf->getTextLength() == EXPECTED_LEN);
+#endif
 
     // compact 済みで embedded NUL がないため JSON は text_utf8 を使う
     StringPrint sp;
@@ -850,6 +870,13 @@ TEST_CASE("Nankai E2E: pages beyond MAX_PAGES are dropped and flagged truncated"
                   static_cast<uint16_t>(MP) * NankaiPageBuffer::TEXT_PER_PAGE);
             // 打ち切り時も total_page は電文の総ページ数（仕様値）を報告する
             CHECK(nankai->total_page == TOTAL);
+            NankaiProgress progress;
+            REQUIRE(parser.getNankaiProgress(NankaiEventKey{5, 0, 0, 0, 0, 0, 2}, progress));
+            CHECK(progress.isComplete());
+            CHECK(progress.truncated);
+            CHECK(progress.received_count == MP);
+            CHECK(progress.total_pages == MP);
+            CHECK(progress.original_total_pages == TOTAL);
         }
     }
 

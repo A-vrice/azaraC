@@ -66,7 +66,7 @@ graph LR
 
 ### 2. Framer (フレーマー)
 
-[`IFramer`](https://github.com/A-vrice/azaraC/tree/main/src/framer/IFramer.h)インターフェースを実装:
+[`IFramer`](api-reference.md#カスタムフレーマ)インターフェースを実装:
 
 | フレーマー | プロトコル | 対応デバイス |
 |-----------|-----------|-------------|

@@ -1,6 +1,6 @@
 # azaraC APIリファレンス
 
-対象バージョン: 2.1.0
+対象バージョン: v3（開発中）
 
 すべてのAPIは `azaraC` 名前空間にあります。取り込みは `#include <azaraC.h>` です。
 
@@ -27,7 +27,7 @@ GNSSモジュールからのバイト列を1バイトずつ受けて、デコー
 Parser();
 
 // カスタムフレーマを使う場合
-explicit Parser(internal::IFramer& framer);
+explicit Parser(IFramer& framer);
 ```
 
 コピーとムーブはできません。dedupテーブルや南海トラフのバッファが二重確保になることと、フレーマが呼び出し側の所有であることが理由です。
@@ -681,17 +681,17 @@ AVRツールチェーンはlibstdc++ を含まないため、`src/internal/avr_s
 
 ## 南海トラフのページ集約
 
-### getNankaiBuffer()
+### getNankaiProgress()
 
 ```cpp
-const internal::NankaiPageBuffer* getNankaiBuffer(const internal::NankaiPageKey& key) const;
+bool getNankaiProgress(const NankaiEventKey& key, NankaiProgress& out) const;
 ```
 
-受信途中のものも含め、キーに合う集約バッファを返します。そろったかどうかは、返ってきたバッファの `isComplete()` で見ます。ポインタは次の `feed()` か `reset()` まで有効です。`AZARAC_ENABLE_NANKAI=0` のときはこのメソッド自体がありません。
+受信途中のものも含め、キーに合う保持中の集約があれば進捗を `out` にコピーし、`true` を返します。見つからなければ `false` を返し、`out` は変わりません。コピーした値は後続の `feed()` や `reset()` で変化しません。`AZARAC_ENABLE_NANKAI=0` のときは、このメソッドと2つの型はありません。
 
-キーは `NankaiPageKey{info_code, month, day, hour, minute, information_type, report_classification}` の順で作ります。末尾の2つは省略できますが、省略すると `report_classification = 0` になって、実際のバッファ（実警報は2、訓練・試験は7）には一致しません。受信した電文のRcをそのまま渡してください。`information_type`（発表 = 0 / 取消 = 2）と `report_classification` をキーに含めるのは、同一 `info_code` + 報告時刻の発表と取消、訓練と実警報を別事象として扱うためです。
+`NankaiProgress` の `received_count` は受信済みのページ数、`total_pages` は設定上限を適用した集約対象のページ数、`original_total_pages` は電文上のページ総数です。設定上限を超えた場合は `truncated` が `true` です。`isComplete()` は集約対象のページがそろったときに `true` になります。完了した本文は `feed()` が返す `Message` の南海トラフデータを参照してください。
 
-時刻は `report_time` の値をそのまま使います。正規化した時刻を渡すと、キーがずれて見つからなくなります。
+キーは `NankaiEventKey{info_code, report_month, report_day, report_hour, report_minute, information_type, report_classification}` の順で作ります。時刻は正規化前の `report_time` の値を使います。`information_type`（発表 = 0 / 取消 = 2）と `report_classification`（実警報 = 2 / 訓練・試験 = 7）には受信した電文の値を指定してください。同じ情報系列・報告時刻でもこれらの値が違えば別事象です。
 
 追い出しポリシーやメモリ使用量といった管理側の話は [アーキテクチャ](architecture.md) の「NankaiPageBuffer」を参照してください。
 
@@ -713,9 +713,9 @@ public:
 `Frame` は250 bitのフレーム本体と `svid` を持ちます。フレーム本体は `bits[32]`、MSB-firstで、末尾6 bitは詰め物です。`svid` はL1SのPRN（181–191）に寄せた値を入れてください。
 
 ```cpp
-class MyFramer : public azaraC::internal::IFramer {
+class MyFramer : public azaraC::IFramer {
 public:
-    bool feed(uint8_t byte, azaraC::internal::Frame& out) override {
+    bool feed(uint8_t byte, azaraC::Frame& out) override {
         // フレーミング処理
         // フレーム完成時: return true
         return false;

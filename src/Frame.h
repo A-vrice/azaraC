@@ -1,13 +1,12 @@
 #pragma once
 
 #if defined(__AVR__)
-#include "../internal/avr_std/cstdint"
+#include "internal/avr_std/cstdint"
 #else
 #include <cstdint>
 #endif
 
 namespace azaraC {
-namespace internal {
 
 struct Frame {
     // 衛星 ID。NMEA/UBX の生 ID を L1S の PRN へ寄せる（仕様 ID 53–63 → 181–191）。
@@ -17,5 +16,4 @@ struct Frame {
     uint8_t     bits[32];   // 250 bit を MSB-first。bits[31] の下位 6 bit は詰め物のゼロ
 };
 
-} // namespace internal
 } // namespace azaraC

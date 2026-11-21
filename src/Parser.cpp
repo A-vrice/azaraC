@@ -13,13 +13,13 @@ constexpr uint64_t kClockRollbackToleranceMs = 1000;
 #endif
 
 bool Parser::feed(uint8_t byte, Message& out, uint32_t report_unix) {
-    internal::Frame frame;
+    Frame frame;
 
     // カスタムフレーマ（排他モード）
     if (_custom) {
         // カスタムフレーマは全フィールドを埋めずに true を返し得る。
         // 決定的なゼロ基準を与えるが、このオプトイン経路に限る: 毎バイト 33 B をゼロ化すると、成功時に必ず Frame を埋める組み込みフレーマにコストが乗る。
-        frame = internal::Frame{};
+        frame = Frame{};
         if (!_custom->feed(byte, frame)) return false;
         return handleFrame(frame, out, report_unix);
     }
@@ -62,7 +62,7 @@ bool Parser::feed(const uint8_t* data, size_t len, Message& out, uint32_t report
     return any;
 }
 
-bool Parser::handleFrame(internal::Frame& frame, Message& out, uint32_t report_unix) {
+bool Parser::handleFrame(Frame& frame, Message& out, uint32_t report_unix) {
     if (!_decoder.decode(frame, out, report_unix)) {
         // 復号に失敗したフレームで valid だけ立った中途半端な Message を残さない。
         // decodeQzqsm() は valid=true を設定した後に oob_ で false を返す経路があるため、ここで落とす。
@@ -232,8 +232,13 @@ internal::NankaiAggregateResult Parser::processNankaiAggregation(
 #endif
 
 #if AZARAC_ENABLE_NANKAI
-const internal::NankaiPageBuffer* Parser::getNankaiBuffer(const internal::NankaiPageKey& key) const {
-    return _nankaiBuffers.getBuffer(key);
+bool Parser::getNankaiProgress(const NankaiEventKey& key, NankaiProgress& out) const {
+    const auto* buffer = _nankaiBuffers.getBuffer({key.info_code, key.report_month, key.report_day,
+                                                   key.report_hour, key.report_minute,
+                                                   key.information_type, key.report_classification});
+    if (!buffer) return false;
+    out = {buffer->received_count, buffer->total_pages, buffer->original_total_pages, buffer->truncated};
+    return true;
 }
 #endif
 
