@@ -32,6 +32,19 @@ public:
     // report_unix: 時刻解決に使う報告の UNIX epoch。0 は未解決（DHM フィールドは残るが unix_time は 0 のまま）。
     bool feed(uint8_t byte, Message& out, uint32_t report_unix = 0);
 
+    // data を先頭から feed(byte) し、電文が 1 通成立した時点で止める。戻り値は消費したバイト数（0..len）。
+    // 戻ったとき out.valid が true なら、消費した最後のバイトで電文が成立している（false なら out は未定義）。
+    // 残り（data + 戻り値, len - 戻り値）を渡し直せば、複数の電文を取りこぼさずに順に受け取れる。
+    // data が nullptr なら 0 を返す。
+    size_t feedUntilMessage(const uint8_t* data, size_t len, Message& out, uint32_t report_unix = 0);
+
+    // data の len バイトをすべて feed(byte) する（通信バッファをそのまま流す用途）。
+    // 1 通以上成立すれば true で、out には最後に成立した電文が残る（後続の重複や他 MT のフレームでは消えない）。
+    // 途中で成立した電文は上書きされるので、取りこぼしたくないときは feedUntilMessage() を使うこと。
+    // 南海トラフ集約の aggregated_text_ptr は、同じ呼び出しの後続フレームで借用先が再利用されると無効になり得る。
+    // 戻り値の契約は feed(byte) と同じ（false のとき out は未定義）。
+    bool feed(const uint8_t* data, size_t len, Message& out, uint32_t report_unix = 0);
+
     void reset();
 
 #if AZARAC_ENABLE_NANKAI
