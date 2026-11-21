@@ -3,7 +3,6 @@
 #include "../test_helpers.h"
 #include "../src/internal/DcxHelper.h"
 #include "doctest.h"
-#include <vector>
 
 using namespace azaraC;
 
@@ -119,7 +118,8 @@ TEST_CASE("Parser: feedUntilMessage returns every message in a buffer") {
     const std::string s = a + makeOtherMtNmea() + b;
     const uint8_t* p = reinterpret_cast<const uint8_t*>(s.data());
     size_t n = s.size();
-    std::vector<uint8_t> intensities;
+    uint8_t intensities[2] = {};
+    size_t intensity_count = 0;
     size_t first_used = 0;
     while (n > 0) {
         const size_t used = parser.feedUntilMessage(p, n, msg, 0);
@@ -130,13 +130,14 @@ TEST_CASE("Parser: feedUntilMessage returns every message in a buffer") {
             const Mt43Data* d = msg.getMt43();
             REQUIRE(d != nullptr);
             REQUIRE(d->getSeismic() != nullptr);
-            intensities.push_back(d->getSeismic()->entries[0].intensity_code);
+            REQUIRE(intensity_count < sizeof(intensities) / sizeof(intensities[0]));
+            intensities[intensity_count++] = d->getSeismic()->entries[0].intensity_code;
         }
         p += used;
         n -= used;
     }
     // 他 MT は落ち、2 通が送信順に出る。最初の 1 通は先頭の文の中で止まる。
-    REQUIRE(intensities.size() == 2);
+    REQUIRE(intensity_count == 2);
     CHECK(intensities[0] == 3);
     CHECK(intensities[1] == 5);
     CHECK(first_used <= a.size());
