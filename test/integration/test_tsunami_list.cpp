@@ -1,3 +1,4 @@
+#include <algorithm>
 // 津波 / 北西太平洋津波のリスト終端判定の回帰テスト。
 // IS-QZSS-DCR-017 Table 4.1.2-21 / 4.1.2-26: 未使用エントリは Ta/Th/Pl すべて 0。
 // 終端はエントリ全体の 0 で判定する（Pl のみだと Ta/Th 非0の非準拠電文でエントリを取りこぼす）。
@@ -26,10 +27,10 @@ void mt43Header(uint8_t* bits, uint8_t category) {
 
 Message decodeBits(const uint8_t* bits) {
     uint8_t buf[32];
-    memcpy(buf, bits, 32);
+    std::copy(bits, bits + 32, buf);
     setBits(buf, 226, 24, crc24qRef(buf, 226));
     Frame frame{};
-    memcpy(frame.bits, buf, 32);
+    std::copy(buf, buf + 32, frame.bits);
     frame.svid = 193;
     Decoder dec;
     Message msg{};
