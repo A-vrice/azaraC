@@ -211,7 +211,7 @@
 #define AZARAC_PGM_STR_(x) #x
 #define AZARAC_PGM_STR(x) AZARAC_PGM_STR_(x)
 #define AZARAC_PROGMEM \
-    __attribute__((__section__(".text.azaraC." AZARAC_PGM_STR(__COUNTER__))))
+    __attribute__((__section__(".text.azaraC." AZARAC_PGM_STR(__COUNTER__)), __aligned__(2)))
 #else
 #define AZARAC_PROGMEM PROGMEM
 #endif
