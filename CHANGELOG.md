@@ -7,8 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`toJson(msg, buf, len, &required)` で完全な JSON の長さを受け取れるようにした**: 省略可能な第4引数 `size_t* required` に NUL を除く完全な長さが入る。`required > 戻り値` なら切り詰めで、ちょうど収まった場合と区別できる。`buf == nullptr` / `len == 0` でも埋まるので、長さだけ測ってからバッファを用意できる。既存の3引数呼び出しの挙動は不変。
+- **最適化ありの厳格コンパイル検査**: `make -C test check-strict-compile` が `-O0` に加えて `-O1` / `-O2` / `-Os` でも `-Werror` でビルドする。`-Warray-bounds` などは最適化時だけ出るため。
+- **EX9 都道府県ビット順の回帰テスト**: 一部の県だけ立てた J-Alert ベクタ（azarashi 0.17.1 で期待値を取得）を追加した。全47県ベクタはビット順が逆でも通っていた。現行実装の順序（EX9 先頭が沖縄県、末尾が北海道）は azarashi と一致している。
+- **`Parser::feedUntilMessage(data, len, out)` を追加した**: 電文が1通成立した時点で止め、消費したバイト数を返す。残りを渡し直せば、1つのバッファに入った複数の電文を取りこぼさずに受け取れる。
+
 ### Fixed
 
+- **`-O1` で `FlashString.h` が `-Warray-bounds` 警告を出す**: 非AVRのラベル連結が、先に数えた長さで `memcpy` していたため、GCC 11 の `-O1` が実体サイズを超えるコピーと判定していた（実際は NUL で止まるので範囲外は読んでいない）。NUL で止まる1パスのコピーにした。利用者が `-Werror` を付けても通る。
+- **一括 `feed()` が `true` を返したのに `out` が空になる不具合**: `feed(data, len, out)` は同じ `out` へ1バイト版を順に呼んでいたため、電文が成立した後に重複や43/44以外のMTのフレームが同じバッファに続くと、その復号が `out` をクリアしたまま `true` を返していた（L1Sは毎秒DCR以外のMTも流れるので、実受信で普通に起きる）。作業用の `Message` へ復号し、成立した電文だけを `out` へ写すようにした。`true` なら `out.valid` が立ち、最後に成立した1通が残る。
 - **津波通知ラベルのガードと生成物の同期（2026-11-16）**: 津波の通知ラベルを `AZARAC_TSUNAMI_NOTIFICATION_LABELS` で制御するようにした。生成ガード（`gen_definitions.py`）と `AZARAC_FLASH_BUF_SIZE` の640 B分岐を同じマクロで駆動し、非AVR既定は `AZARAC_ENABLE_TSUNAMI`、AVRプリセット既定は0。表はEEW/震源と共有されるため、どちらかが有効なら0でもラベルは出る。`check_flash_buf.py` はこのマクロを擬似カテゴリとして扱い、AVRで有効化した場合の596 Bラベルも検証する。`keywords.txt` と `keywords_check.py` にも追加した（設定マクロ27）。
   津波通知の実アンカー（azarashiの `notifications_on_disaster_prevention_raw` = 122/123/124、warning 3、regions 600/610/760）とCAMF A7上限を `test_realdata_anchors.cpp` に追加し、生成ファイル `test_realdata_generated.cpp` の手書き不変条件を撤去した（再生成で消えるため）。
   `make -C test run-tsunami-labels-off` を追加し、ラベル無効構成（EEW/震源も無効）をCIで回す。

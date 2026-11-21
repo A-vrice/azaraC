@@ -192,10 +192,13 @@ private:
 };
 } // namespace
 
-size_t JsonSerializer::serialize(const Message& msg, char* buf, size_t len) {
-    if (!buf || len == 0) return 0;
+size_t JsonSerializer::serialize(const Message& msg, char* buf, size_t len, size_t* required) {
+    if (!buf) len = 0;
+    if (len == 0 && !required) return 0;
     BufferPrint out(buf, len);
     serialize(msg, out);
+    if (required) *required = out.total();
+    if (len == 0) return 0;
     // 入ったバイト数（NUL を除く）。切り詰め時も buf[返り値] == '\0' が成り立つ。
     const size_t written = (out.total() < len - 1) ? out.total() : (len - 1);
     buf[written] = '\0';
