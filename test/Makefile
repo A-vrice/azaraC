@@ -378,6 +378,11 @@ check-xml:
 check-strict-compile:
 	@echo "Compiling library with strict warnings..."
 	$(CXX) $(ANALYSIS_CXXFLAGS) -c $(LIB_SRCS)
+	@# -Warray-bounds / -Wstringop-* は最適化時だけ出るので、利用者の典型的な最適化レベルでも -Werror で通す。
+	@for o in -O1 -O2 -Os; do \
+		echo "Compiling library with strict warnings ($$o)..."; \
+		$(CXX) $(ANALYSIS_CXXFLAGS) $$o -c $(LIB_SRCS) || exit 1; \
+	done
 	@# clean は使わない: cppcheck_report.xml / *.gcda まで消して CI の後続ステップを壊すため。
 	@$(RM) $(notdir $(LIB_SRCS:.cpp=.o)) $(notdir $(LIB_SRCS:.cpp=.d))
 
