@@ -32,12 +32,30 @@ bool Parser::feed(uint8_t byte, Message& out, uint32_t report_unix) {
     return handleFrame(frame, out, report_unix);
 }
 
+size_t Parser::feedUntilMessage(const uint8_t* data, size_t len, Message& out, uint32_t report_unix) {
+    out.valid = false;
+    if (!data) return 0;
+    for (size_t i = 0; i < len; ++i) {
+        // 1 バイト版と同じ経路（Nankai 集約・dedup を含む）。
+        if (feed(data[i], out, report_unix)) return i + 1;
+    }
+    out.valid = false;   // 途中で完成して棄却されたフレームの値を成立と誤読させない
+    return len;
+}
+
 bool Parser::feed(const uint8_t* data, size_t len, Message& out, uint32_t report_unix) {
     if (!data) return false;
+    // 成立後のフレームの復号は out を clear() するので、作業用に分けて成立したものだけ out へ写す。
+    Message scratch;
     bool any = false;
-    for (size_t i = 0; i < len; ++i) {
-        // 1 バイト版と同じ経路（Nankai 集約・dedup を含む）。成立した電文は out に残る。
-        if (feed(data[i], out, report_unix)) any = true;
+    while (len > 0) {
+        const size_t n = feedUntilMessage(data, len, scratch, report_unix);
+        if (scratch.valid) {
+            out = scratch;
+            any = true;
+        }
+        data += n;
+        len -= n;
     }
     return any;
 }
