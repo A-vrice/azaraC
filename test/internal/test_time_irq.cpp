@@ -18,7 +18,6 @@ unsigned long millis() {
     return g_millis;
 }
 
-// 別 TU（test_time_irq_b.cpp）から getMillis() を呼ぶ。s_last が単一実体であることの回帰。
 uint64_t readMillisFromOtherTU();
 
 #define CHECK(cond)                                                            \
@@ -63,8 +62,6 @@ int main() {
     CHECK(d > c);
     CHECK(SREG == 0x80);
 
-    // 別 TU からの getMillis() も同じ s_last を見る（inline は外部リンケージで単一実体）。
-    // static inline だと TU ごとに s_last が別になり、ここは 2^32 未満を返して失敗する。
     uint64_t e = readMillisFromOtherTU();
     CHECK(e >= (1ULL << 32));
     CHECK(e == d);
