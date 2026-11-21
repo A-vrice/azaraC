@@ -90,7 +90,7 @@ void setup() {
     uint32_t start = millis();
     while (!Serial && millis() - start < 5000) { delay(10); }
 #if defined(ARDUINO_ESP32C3_DEV) || defined(CONFIG_IDF_TARGET_ESP32C3)
-    Serial1.begin(GNSS_BAUD, SERIAL_8N1, /*rx=*/20, /*tx=*/21);
+    Serial1.begin(GNSS_BAUD, SERIAL_8N1, /*rx=*/4, /*tx=*/5);
 #elif defined(CONFIG_IDF_TARGET_ESP32C6) || defined(ARDUINO_ESP32C6_DEV)
     Serial1.begin(GNSS_BAUD, SERIAL_8N1, /*rx=*/4, /*tx=*/5);
 #elif defined(ESP32)
