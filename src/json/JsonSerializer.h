@@ -18,9 +18,10 @@ public:
     // 境界付きバッファへ書き出す（Print を持たない呼び出し側向け）。
     // len が 0 のときは何も書かず 0 を返す。len > 0 なら必ず NUL 終端し、
     // 入り切らない残りは捨てる（バッファ外へは 1 バイトも書かない）。
-    // 戻り値は書き込んだバイト数（NUL を除く）。必要な長さは切り詰め時も返らないので、
-    // 完全な JSON が要るなら Print 版か、十分な len を渡すこと。
-    static size_t serialize(const Message& msg, char* buf, size_t len);
+    // 戻り値は書き込んだバイト数（NUL を除く）。
+    // required が非 nullptr なら完全な JSON の長さ（NUL を除く）を入れる。*required > 戻り値 なら切り詰め。
+    // buf == nullptr / len == 0 でも required は埋まるので、長さだけ測ることもできる。
+    static size_t serialize(const Message& msg, char* buf, size_t len, size_t* required = nullptr);
 };
 
 } // namespace internal

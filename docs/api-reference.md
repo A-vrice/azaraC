@@ -564,7 +564,7 @@ struct LatLon {
 
 ```cpp
 void toJson(const Message& msg, Print& out);
-size_t toJson(const Message& msg, char* buf, size_t len);
+size_t toJson(const Message& msg, char* buf, size_t len, size_t* required = nullptr);
 ```
 
 `Message` をJSON形式で `out`（Serial、WiFiClient等）へ書き出します。JSONの形式そのものは [JSON出力仕様](json-formats.md) を参照してください。
@@ -572,11 +572,16 @@ size_t toJson(const Message& msg, char* buf, size_t len);
 バッファ版は `Print` を持たない呼び出し側（`String`、固定バッファ、独自の送信キュー）向けです。
 `len > 0` なら必ずNUL終端し、入り切らない分は捨てます。バッファの外へは書きません。
 戻り値は書き込んだバイト数（NULを除く）で、`buf[戻り値] == '\0'` が成り立ちます。
-必要な長さは事前には分からないため、完全なJSONが要る場合は十分な `len` を渡すか `Print` 版を使ってください。
+`required` を渡すと、完全なJSONの長さ（NULを除く）が入ります。`required > 戻り値` なら切り詰められています（ちょうど収まった場合は等しくなります）。
+`buf == nullptr` または `len == 0` でも `required` は埋まるので、長さだけを測れます。必要なバッファは `required + 1` バイトです。
 
 ```cpp
 char json[512];
-size_t n = azaraC::toJson(msg, json, sizeof(json));   // n == strlen(json)
+size_t need = 0;
+size_t n = azaraC::toJson(msg, json, sizeof(json), &need);   // n == strlen(json)
+if (need > n) {
+    // 切り詰め: 完全なJSONには need + 1 バイト必要
+}
 ```
 
 スレッド安全性: ラベル用の共有バッファ（`AZARAC_FLASH_BUF_SIZE` の1本）を使うため、`toJson()` と定義テーブルの参照を、複数のタスクやスレッドから同時に行わないでください。FreeRTOSでは呼び出し側で排他します（`examples/rtos_freertos` の `printJson()` を参照）。
