@@ -89,8 +89,8 @@ void reset();
 const internal::NankaiPageBuffer* getNankaiBuffer(const internal::NankaiPageKey& key) const;
 ```
 
-`NankaiPageKey`の識別子は`{info_code, information_type, report_timeのmonth/day/hour/minute}`です（`information_type`は発表=0/取消=2で、同一`info_code`+報告時刻の発表と取消を別情報として扱うために含めます）。
-呼び出しキーは`NankaiPageKey{info_code, month, day, hour, minute, information_type}`で生成が可能です（`information_type`は末尾の既定引数で省略可）。
+`NankaiPageKey`の識別子は`{info_code, information_type, report_timeのmonth/day/hour/minute, report_classification}`です（`information_type`は発表=0/取消=2で、同一`info_code`+報告時刻の発表と取消を別情報として扱うために含めます。`report_classification`は実警報=2/訓練・試験=7で、訓練と実警報を混ぜないために含めます）。
+呼び出しキーは`NankaiPageKey{info_code, month, day, hour, minute, information_type, report_classification}`で生成します。`report_classification`は電文の`Mt43Data::report_classification`と一致させてください（既定値の0では実警報・訓練のどちらのバッファにも一致しません）。
 `report_time`はそのまま渡すこと（`resolveTime`の正規化でキーが変わらないようにするため）。
 
 返るバッファは受信途中でもよく、完了判定は `isComplete()` で行います。返却ポインタは次の `feed()` / `reset()` までのみ有効です。
