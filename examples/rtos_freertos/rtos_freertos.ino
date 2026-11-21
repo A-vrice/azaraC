@@ -2,7 +2,7 @@
 // ESP32 系 Arduino コア専用です（xTaskCreatePinnedToCore を使用）。
 //
 // アーキテクチャ: UART RX Task ──(Message index queue)──▶ Output Task 配線 (例: ESP32-C3 DevKitM-1):
-//   GNSS TX → GPIO20 (Serial1 RX)
+//   GNSS TX → GPIO4 (Serial1 RX)
 //   GND             → GND
 //
 // 設定 (u-blox):
@@ -38,11 +38,11 @@ static constexpr uint32_t kOutputTaskStackSize = 4096;
 static constexpr UBaseType_t kRxTaskPriority = 2;
 static constexpr UBaseType_t kOutputTaskPriority = 1;
 
-// ピン定義 (ボード別)。C3 DevKitM-1 は GPIO20/21、C6 は GPIO4/5（16/17 は UART0）、classic ESP32 は GPIO16/17（UART2 既定）。
+// ピン定義 (ボード別)。C3 DevKitM-1 は GPIO4/5（20/21 は UART0）、C6 は GPIO4/5（16/17 は UART0）、classic ESP32 は GPIO16/17（UART2 既定）。
 // S3 など他の ESP32 系はボードの配線に合わせて変更する。
 #if defined(ARDUINO_ESP32C3_DEV) || defined(CONFIG_IDF_TARGET_ESP32C3)
-#define RX_PIN 20
-#define TX_PIN 21
+#define RX_PIN 4
+#define TX_PIN 5
 #elif defined(CONFIG_IDF_TARGET_ESP32C6) || defined(ARDUINO_ESP32C6_DEV)
 #define RX_PIN 4
 #define TX_PIN 5

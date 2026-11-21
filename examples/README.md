@@ -25,11 +25,12 @@ NMEAフォーマットの$QZQSMメッセージを受信し、JSONに変換して
 **配線 (ESP32-C3 DevKitM-1)**:
 | GNSS | ESP32-C3 |
 |------|----------|
-| TX | GPIO20 |
-| RX | GPIO21 |
+| TX | GPIO4 (Serial1 RX) |
+| RX | GPIO5 (Serial1 TX) |
 | GND | GND |
 
-> ESP32 の Serial1 ピンはボード別に自動選択されます（C3=GPIO20/21、C6=GPIO4/5、classic ESP32=GPIO16/17）。S3 など他の ESP32 系はスケッチの `#elif` を配線に合わせて変更してください。
+> ESP32 の Serial1 ピンはボード別に自動選択されます（C3=GPIO4/5、C6=GPIO4/5、classic ESP32=GPIO16/17）。S3 など他の ESP32 系はスケッチの `#elif` を配線に合わせて変更してください。
+> ESP32-C3 DevKitM-1 の GPIO20/21 は USB-UART ブリッジ経由のシリアルモニタ（UART0）用です。USB CDC On Boot が無効でも Serial 出力と衝突しないよう、GNSS には GPIO4/5 を使います。GPIO2/8/9（ストラッピング）と GPIO18/19（USB）も避けています。
 
 ---
 
@@ -60,7 +61,7 @@ u-center2 や USB-TTL アダプターを使わず、起動時に Serial1 から�
 設定後は `basic_ubx` と同じように受信データを azaraC に渡し、Serial に JSON を出力します。
 
 **配線**: GNSS の **UART1** TX → MCU RX、UART1 RX ← MCU TX、GND 共通。
-ESP32 のピンは `basic_nmea` と同じ（C3=20/21、C6=4/5、classic=16/17）。
+ESP32 のピンは `basic_nmea` と同じ（C3=4/5、C6=4/5、classic=16/17）。
 その他の Serial1 搭載ボードではボードの RX1/TX1 を使います。Uno は対象外です。
 電源・I/O 電圧はモジュール仕様に従ってください。
 `GNSS_BAUD` は受信機の現在の速度に合わせます（既定 9600、受信機側の速度は変更しません）。
@@ -367,8 +368,8 @@ azaraC::Parser parser(framer);   // UBX/NMEA の自動判定は行わない
 ```
 GNSS Module          ESP32-C3 DevKitM-1
 +--------+          +------------------+
-| TX  ---+--------→ | GPIO20 (Serial1 RX)
-| RX  ---+--------← | GPIO21 (Serial1 TX)
+| TX  ---+--------→ | GPIO4 (Serial1 RX)
+| RX  ---+--------← | GPIO5 (Serial1 TX)
 | GND ---+--------→ | GND
 | VCC ---+--------→ | 3.3V
 +--------+          +------------------+
@@ -377,8 +378,8 @@ GNSS Module          ESP32-C3 DevKitM-1
 ### ピン配置のカスタマイズ
 
 ```cpp
-// デフォルト (GPIO20, GPIO21)
-Serial1.begin(9600, SERIAL_8N1, 20, 21);
+// ESP32-C3 のデフォルト (GPIO4, GPIO5)
+Serial1.begin(9600, SERIAL_8N1, 4, 5);
 
 // カスタムピン (例: GPIO10, GPIO11)
 Serial1.begin(9600, SERIAL_8N1, 10, 11);

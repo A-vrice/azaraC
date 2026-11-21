@@ -46,8 +46,8 @@ azaraC::Message msg;
 void setup() {
     Serial.begin(115200);
 #if defined(ARDUINO_ESP32C3_DEV) || defined(CONFIG_IDF_TARGET_ESP32C3)
-    // ESP32-C3 の UART0 既定ピン（20/21）。Serial1 を持たないボード（Uno など）は examples/basic_uno を参照
-    Serial1.begin(9600, SERIAL_8N1, /*rx=*/20, /*tx=*/21);
+    // ESP32-C3 は UART0（Serial 出力）の GPIO20/21 を避ける。Serial1 がない Uno などは examples/basic_uno を参照
+    Serial1.begin(9600, SERIAL_8N1, /*rx=*/4, /*tx=*/5);
 #elif defined(CONFIG_IDF_TARGET_ESP32C6) || defined(ARDUINO_ESP32C6_DEV)
     // ESP32-C6 は GPIO16/17 が UART0（Serial 出力）なので別ピンを使う
     Serial1.begin(9600, SERIAL_8N1, /*rx=*/4, /*tx=*/5);
