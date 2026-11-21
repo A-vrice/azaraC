@@ -48,9 +48,10 @@ inline void toJson(const Message& msg, Print& out) {
 // msg を境界付きバッファへ JSON 化する（Print を持たない呼び出し側、String や固定バッファ向け）。
 // buf は len > 0 なら必ず NUL 終端。入り切らない残りは捨て、バッファ外へは書かない。
 // 戻り値は書き込んだバイト数（NUL を除く）で、buf[返り値] が NUL。
-// 完全な JSON が必要なときは十分な大きさを渡すこと（必要な長さは事前に分からない）。
-inline size_t toJson(const Message& msg, char* buf, size_t len) {
-    return internal::JsonSerializer::serialize(msg, buf, len);
+// required を渡すと完全な JSON の長さ（NUL を除く）が入り、*required > 返り値 なら切り詰め。
+// buf == nullptr / len == 0 でも required は埋まる（長さだけ測る用途）。
+inline size_t toJson(const Message& msg, char* buf, size_t len, size_t* required = nullptr) {
+    return internal::JsonSerializer::serialize(msg, buf, len, required);
 }
 
 // CRC-24Q（IS-QZSS-L1S-009 §4.1.1.3）。data[0] の MSB から bit_len ビットを処理する。
