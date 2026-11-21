@@ -86,6 +86,32 @@ TEST_CASE("DCX: J-Alert - Missile Attack") {
     }
 }
 
+// EX9 のビット順: 上の全47県ベクタはビット順が逆でも通るので、一部の県だけ立てたベクタで固定する。
+// 期待値は azarashi 0.17.1 の target_regions。EX9 の先頭（stream bit 147）が沖縄県(47)、末尾（bit 193）が北海道(1)。
+TEST_CASE("DCX: J-Alert EX9 bit order (azarashi)") {
+    struct Case { const char* nmea; uint8_t count; uint8_t codes[3]; };
+    const Case cases[] = {
+        {"$QZQSM,55,53B0840DE31188FC20860000000000000000100000000000000000121FE0C88*74", 1, {47}},
+        {"$QZQSM,55,53B0840DE31188FC20860000000000000000080000000000000000120F7DBB0*09", 1, {46}},
+        {"$QZQSM,55,53B0840DE31188FC20860000000000000000000000000000400000123689368*09", 1, {1}},
+        {"$QZQSM,55,53B0840DE31188FC208600000000000000001000800000004000001236B3534*7F", 3, {1, 34, 47}},
+    };
+    for (const Case& c : cases) {
+        CAPTURE(c.nmea);
+        Message msg{};
+        REQUIRE(decodeNmea(c.nmea, msg));
+        const Mt44Data* mt44 = msg.getMt44();
+        REQUIRE(mt44 != nullptr);
+        CHECK(mt44->service_kind == Mt44ServiceKind::JAlert);
+        CHECK(mt44->mt44_decoded.jalert_prefecture_mode == true);
+        REQUIRE(mt44->mt44_decoded.prefecture_count == c.count);
+        for (uint8_t i = 0; i < c.count; ++i) {
+            CAPTURE(i);
+            CHECK(mt44->mt44_decoded.prefecture_positions[i] == c.codes[i]);
+        }
+    }
+}
+
 // Local Government は a3=4 のみ: a2=111(日本)、非 JAlert 経路を固定。
 
 namespace {

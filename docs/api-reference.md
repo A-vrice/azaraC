@@ -80,15 +80,45 @@ bool feed(const uint8_t* data, size_t len, Message& out, uint32_t report_unix = 
 | `out` | `Message&` | 出力先。読めるのは戻り値が `true` のときだけ |
 | `report_unix` | `uint32_t` | 時刻解決に使う報告のUNIX epoch。0は未解決 |
 
-受信バッファをそのまま渡す形です。内部では1バイト版の `feed()` を順に呼ぶだけで、南海トラフの集約や重複除去を含め、挙動は同じです。
-1通以上成立したら `true` を返し、`out` の中身は1バイト版を順に呼んだ場合と同一です。ただし、成立した後に重複などで `false` になった場合は中身がクリアされることがあります。
-複数の電文が入っているバッファでは最後に成立した1通だけが残るので、取りこぼしたくないときは1バイト版を使ってください。
+受信バッファをそのまま渡す形です。内部では1バイト版の `feed()` を順に呼ぶので、南海トラフの集約や重複除去を含め、受理・棄却の判定は同じです。
+1通以上成立したら `true` を返し、`out` には最後に成立した1通が残ります。成立した後に重複や43/44以外のMTのフレームが続いても、`out` は消えません。
+複数の電文が入っているバッファでは最後の1通以外を取りこぼすので、取りこぼしたくないときは `feedUntilMessage()` を使ってください。
+南海トラフ集約の `aggregated_text_ptr` は、同じ呼び出しの後続フレームで借用先のバッファが再利用されると無効になることがあります。
 
 ```cpp
 uint8_t buf[512];
 size_t n = client.read(buf, sizeof(buf));
 if (parser.feed(buf, n, msg, now)) {
     azaraC::toJson(msg, Serial);
+}
+```
+
+### feedUntilMessage()
+
+```cpp
+size_t feedUntilMessage(const uint8_t* data, size_t len, Message& out, uint32_t report_unix = 0);
+```
+
+| 引数 | 型 | 説明 |
+|---|---|---|
+| `data` | `const uint8_t*` | 入力バッファ。`nullptr` は0を返す |
+| `len` | `size_t` | バイト数 |
+| `out` | `Message&` | 出力先。読めるのは戻ったときに `out.valid` が `true` のときだけ |
+| `report_unix` | `uint32_t` | 時刻解決に使う報告のUNIX epoch。0は未解決 |
+
+先頭から1バイト版の `feed()` を順に呼び、電文が1通成立した時点で止めます。戻り値は消費したバイト数です。
+`out.valid` が `true` なら、消費した最後のバイトで電文が成立しています。成立しなかったときは `len` を返し、`out.valid` は `false` です。
+残りのバイトを渡し直せば、1つのバッファに入った複数の電文を順にすべて受け取れます。
+
+```cpp
+uint8_t buf[512];
+size_t n = client.read(buf, sizeof(buf));
+const uint8_t* p = buf;
+while (n > 0) {
+    size_t used = parser.feedUntilMessage(p, n, msg, now);
+    if (msg.valid) azaraC::toJson(msg, Serial);
+    p += used;
+    n -= used;
 }
 ```
 
@@ -534,7 +564,7 @@ struct LatLon {
 
 ```cpp
 void toJson(const Message& msg, Print& out);
-size_t toJson(const Message& msg, char* buf, size_t len);
+size_t toJson(const Message& msg, char* buf, size_t len, size_t* required = nullptr);
 ```
 
 `Message` をJSON形式で `out`（Serial、WiFiClient等）へ書き出します。JSONの形式そのものは [JSON出力仕様](json-formats.md) を参照してください。
@@ -542,11 +572,16 @@ size_t toJson(const Message& msg, char* buf, size_t len);
 バッファ版は `Print` を持たない呼び出し側（`String`、固定バッファ、独自の送信キュー）向けです。
 `len > 0` なら必ずNUL終端し、入り切らない分は捨てます。バッファの外へは書きません。
 戻り値は書き込んだバイト数（NULを除く）で、`buf[戻り値] == '\0'` が成り立ちます。
-必要な長さは事前には分からないため、完全なJSONが要る場合は十分な `len` を渡すか `Print` 版を使ってください。
+`required` を渡すと、完全なJSONの長さ（NULを除く）が入ります。`required > 戻り値` なら切り詰められています（ちょうど収まった場合は等しくなります）。
+`buf == nullptr` または `len == 0` でも `required` は埋まるので、長さだけを測れます。必要なバッファは `required + 1` バイトです。
 
 ```cpp
 char json[512];
-size_t n = azaraC::toJson(msg, json, sizeof(json));   // n == strlen(json)
+size_t need = 0;
+size_t n = azaraC::toJson(msg, json, sizeof(json), &need);   // n == strlen(json)
+if (need > n) {
+    // 切り詰め: 完全なJSONには need + 1 バイト必要
+}
 ```
 
 スレッド安全性: ラベル用の共有バッファ（`AZARAC_FLASH_BUF_SIZE` の1本）を使うため、`toJson()` と定義テーブルの参照を、複数のタスクやスレッドから同時に行わないでください。FreeRTOSでは呼び出し側で排他します（`examples/rtos_freertos` の `printJson()` を参照）。
