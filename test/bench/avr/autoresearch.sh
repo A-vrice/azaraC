@@ -355,7 +355,7 @@ echo "METRIC MEGA_LTO_COMPILE_OK=$mega_lto_ok"
 # avr-nm は Windows で CRLF を出すので、パターンは行末に固定しない。
 image_has_path() {  # $1 = elf
     "$AVR_NM" -C "$1" 2>/dev/null | awk '
-        /Decoder::decode/ { d++ }
+        /Decoder::|Parser::feed/ { d++ }
         /JsonSerializer/ { s++ }
         /_POOL|_TABLE/ { t++ }
         END { exit !(d > 0 && s > 0 && t > 0) }'
