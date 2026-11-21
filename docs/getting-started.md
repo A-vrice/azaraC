@@ -130,6 +130,7 @@ void processMessage(const azaraC::Message& msg) {
 |-------|----|
 | [basic_nmea](https://github.com/A-vrice/azaraC/tree/main/examples/basic_nmea/) | NMEA $QZQSMの基本的な使用例 |
 | [basic_ubx](https://github.com/A-vrice/azaraC/tree/main/examples/basic_ubx/) | UBX-RXM-SFRBXの基本的な使用例 |
+| [ublox_config](../examples/ublox_config/ublox_config.ino) | MCU から u-blox を設定し UBX-RXM-SFRBX を受信（[世代別の条件](../examples/README.md#ublox_config---mcu-から-u-blox-を設定して-ubx-入力)） |
 | [basic_uno](https://github.com/A-vrice/azaraC/tree/main/examples/basic_uno/) | Arduino Uno (AVR) 用最小例 |
 | [with_sntp](https://github.com/A-vrice/azaraC/tree/main/examples/with_sntp/) | SNTP時刻解決 + EEWフィルタ |
 | [filter_by_category](https://github.com/A-vrice/azaraC/tree/main/examples/filter_by_category/) | 災害カテゴリ別フィルタリング |
