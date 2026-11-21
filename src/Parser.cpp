@@ -57,6 +57,8 @@ bool Parser::feed(const uint8_t* data, size_t len, Message& out, uint32_t report
         data += n;
         len -= n;
     }
+    // 成立しなかったときも、復号器が完成フレームを断った理由は 1 バイト版と同じく out で読めるようにする。
+    if (!any) out.unsupported_reason = scratch.unsupported_reason;
     return any;
 }
 
