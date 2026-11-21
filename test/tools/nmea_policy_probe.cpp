@@ -37,7 +37,7 @@ std::string sentence(uint8_t svid, uint8_t last) {
 
 bool accepts(const std::string& s) {
     azaraC::internal::NmeaFramer framer;
-    azaraC::internal::Frame frame;
+    azaraC::Frame frame;
     for (char c : s) {
         if (framer.feed(static_cast<uint8_t>(c), frame)) return true;
     }

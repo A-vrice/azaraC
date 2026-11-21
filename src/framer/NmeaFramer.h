@@ -1,7 +1,7 @@
 #pragma once
 // NMEA を出力する受信機からの $QZQSM 文を解析する。
 
-#include "IFramer.h"
+#include "../IFramer.h"
 
 namespace azaraC {
 namespace internal {
