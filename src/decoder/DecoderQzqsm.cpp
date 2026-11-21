@@ -241,12 +241,13 @@ void Decoder::decodeTsunami(const uint8_t* b, Message& out, uint32_t report_unix
     tsunami->count = 0;
     for (uint8_t i = 0; i < 5; ++i) {
         uint16_t off = 84 + i * 26;
-        // IS-QZSS-DCR-017 Figure 4.1.2-5, Table 4.1.2-21 — 終端判定は Pl のみ（Pl=0 でリスト終端）:
+        // IS-QZSS-DCR-017 Figure 4.1.2-5, Table 4.1.2-21 — 未使用エントリは Ta/Th/Pl すべて 0:
         //   Ta(12): Expected Tsunami Arrival Time
         //   Th(4):  Tsunami Height
         //   Pl(10): Tsunami Forecast Region (100–1000)
+        // 終端はエントリ全体（26 bit）の 0 で判定する（Pl のみだと Ta/Th 非0の非準拠電文で取りこぼす）。
+        if (getBits(b, off, 26) == 0) break;
         uint16_t region = getBits(b, off + 16, 10);
-        if (region == 0) break;
         TsunamiEntry& e = tsunami->entries[tsunami->count++];
         e.arrival_time_raw = getBits(b, off,      12);
         e.height_code      = getBits(b, off + 12,  4);
@@ -274,12 +275,13 @@ void Decoder::decodeNwPacTsu(const uint8_t* b, Message& out, uint32_t report_uni
     nw_pac->count = 0;
     for (uint8_t i = 0; i < 5; ++i) {
         uint16_t off = 56 + i * 28;
-        // IS-QZSS-DCR-017 Figure 4.1.2-6, Table 4.1.2-26 — 終端判定は Pl のみ（Pl=0 でリスト終端）:
+        // IS-QZSS-DCR-017 Figure 4.1.2-6, Table 4.1.2-26 — 未使用エントリは Ta/Th/Pl すべて 0:
         //   Ta(12): Expected Tsunami Arrival Time
         //   Th(9):  Tsunami Height (Table 4.1.2-27a)
         //   Pl(7):  Coastal Region (Table 4.1.2-28, 1–100)
+        // 終端はエントリ全体（28 bit）の 0 で判定する（Pl のみだと Ta/Th 非0の非準拠電文で取りこぼす）。
+        if (getBits(b, off, 28) == 0) break;
         uint16_t region = getBits(b, off + 21, 7);
-        if (region == 0) break;
         NwPacTsunamiEntry& e = nw_pac->entries[nw_pac->count++];
         e.arrival_time_raw = getBits(b, off,      12);
         e.height_code      = getBits(b, off + 12,  9);

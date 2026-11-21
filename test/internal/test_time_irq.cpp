@@ -18,6 +18,8 @@ unsigned long millis() {
     return g_millis;
 }
 
+uint64_t readMillisFromOtherTU();
+
 #define CHECK(cond)                                                            \
     do {                                                                       \
         if (!(cond)) {                                                         \
@@ -59,6 +61,10 @@ int main() {
     uint64_t d = azaraC::internal::getMillis();
     CHECK(d > c);
     CHECK(SREG == 0x80);
+
+    uint64_t e = readMillisFromOtherTU();
+    CHECK(e >= (1ULL << 32));
+    CHECK(e == d);
 
     if (failures == 0) std::puts("time-irq: OK");
     return failures == 0 ? 0 : 1;

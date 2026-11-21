@@ -7,12 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.1] - 2026-11-21
+
+v3 に向けた開発ブランチ（PR #45）から、既存 API を変えないバグ修正だけを取り込んだパッチ。
+
+### Fixed
+
+- **南海トラフの訓練と実警報が混ざる**: `NankaiPageKey` と `dedupEventToken` に `report_classification`（Rc）を追加し、訓練（Rc=7）と実警報（Rc=2）を別の事象として集約・重複判定する。`NankaiPageKey` は 7 B、`NankaiPageBuffer` は AVR 1,158 B になる。
+- **重複ページの再送で集約が失効する**: 受信済みページの再送でも `last_update_ms` を更新し、1 ページ欠落時の 2 巡目で途中の集約が 60 秒で捨てられないようにした。
+- **不正ページが進行中の集約を追い出す**: ページ番号の検証をバッファ割り当て（最古の追い出し）より前に行う。
+- **約 49.7 日の連続運転後に新規警報が重複扱いになる**: `getMillis()` の上位 32 bit（世代）が変わったときと 1 秒を超える時計の後退で、dedup と南海トラフの履歴を捨てる。1 秒以内の後退は丸める。
+- **dedup の LRU**: 追い出し対象を最初の有効エントリで初期化する。
+- **`Message` のコピー**: コピー ctor で `payload_storage_` を値初期化する。
+- **`feed()` が false のとき**: 壊れたフレームの svid を残さない。
+- **`compactText()` 後の `getTextLength()`**: 連続した本文の長さを返す。
+- **J-Alert 市区町村コード**: 送信順（MSB 先頭）で復号する。
+- **津波リストの終端**: エントリが全 0 のときを終端とする。
+- **暦に存在しない日付**: 未解決として扱う。
+- **`getBits` の幅検証と u32 epoch**: 戻り値型を超える幅を拒否し、2106 年超は `unix_time` だけ 0 にする。
+- **南海トラフ集約本文の不正 UTF-8**: JSON 出力で U+FFFD に置換する。
+- **`getMillis()`**: 外部リンケージの inline にして、翻訳単位ごとに別のカウンタを持たないようにした。
+
 ### Added
 
 - **CI に LTO ゲートを追加**: `make -C test run-lto` を新設し、host-test で `-O2 -flto` の全体再ビルド・テスト実行を必須にした。LTO の型不一致（`-Wlto-type-mismatch`）と ODR 違反（`-Wodr`）は GCC では既定で警告に留まり素の `-flto` では緑のままなので、この 2 つだけ `-Werror` にしてゲートで落とす（過去に `AZARAC_DEDUP_SLOTS` の配列長不一致を LTO だけが検出した事例がある）。`CXXFLAGS` は依存関係に載らないため `-B` で再ビルドし、終了時に `clean` する。あわせて `wf_deg` の桁数ループに上限 9 を明示し、`-O2 -flto` で出ていた `-Wstringop-overflow` の偽陽性を解消した（`buf[12]` に対する値域証明）。
 
 ### Fixed
 
+- **`compactText()` 後の `getTextLength()` がページ割り付けを読んでいた**: `compactText()` は受信済みページを `aggregated_text` の先頭へ詰めるが、`received_bitmap` と `total_pages` は受信済みのままなので、`getTextLength()` が `p * TEXT_PER_PAGE` の位置からページ長を足し、ページ境界をまたいだ本文を誤って読んでいた（`getNankaiBuffer()` 経由の長さが `aggregated_len` と一致しない）。`compacted` フラグを追加し、`compactText()` 後は先頭からの連続文字列として長さを返す。`clearAll()` でフラグを戻すため、バッファ再利用後の再受信は従来のページ経路に戻る。回帰は `test_nankai.cpp` に「全ページ」「欠落ページあり」「clearAll 後の再受信」、`test_nankai_e2e.cpp` に 27 ページ集約と NUL 途中終端で `getNankaiBuffer()->getTextLength() == aggregated_len` を追加（ホスト 350 ケース / 15,164 アサーション）。
 - **EN 専用ビルドで日本語ラベルが漏れていた**: `AZARAC_LANG_JA=0` / `AZARAC_LANG_EN=1` の構成でも、南海トラフの `info_code_label` が日本語（「巨大地震注意」など）を返していた。azarashi に EN 版が無い日本語専用の表 `qzss_dcr_jma_information_serial_code` に言語ガードが無く、`AZARAC_LANG_JA` を切っても表がコンパイルされたままだった。生成器（`scripts/gen/gen_definitions.py`）に「DCR/JMA 家族で `_en` 対応表が無いものは `AZARAC_LANG_JA` でガードする」規則を足し、生成ヘッダを再生成した。JA 無効の構成では `info_code_label` は `null` になる（生コードの `info_code` は残る）。回帰テストは `test/json/test_json.cpp` で言語構成ごとに期待値を切り替え、修正を戻すと JA 無効の構成で落ちることを確認済み。
 - **AVR の 1月/2月で日時解決が壊れる問題を修正**: `civil_from_days()` の月計算 `mp + (mp < 10u ? 3u : -9u)` は、AVR の 16-bit `unsigned int` で `-9u` が 65527 になり、Jan/Feb で `m=65537/65538` を作っていた。月を 32-bit の `constexpr` helper に切り出し、`static_assert` で Jan/Feb の変換を固定した。`make -C test bench` が実 `avr-gcc` でこの TU をコンパイルするため、16-bit 幅の退行は CI で落ちる。`test_time_equivalence` のオラクルも実装と同じ式を共有していたため、独立した月テーブルに変更した。
 - **Windows のテストロックと CI の補助を修正**: `test/Makefile` の複数行・非 ASCII のロックレシピが native Windows make から MSYS sh へ渡る際に壊れ、`make -C test run` が起動前に失敗していた。ロックを `test/scripts/with-make-lock.sh` に移し、`$(USER_GOALS)` 全体をロック下の再帰 make に渡すようにした。`compare-realdata` をロック対象に追加し、`update-definitions.yml` の Arduino コンパイルにも `-std=gnu++17` を明示した。`NankaiPageBuffer` の契約（未完了バッファも返る）と実測サイズ（host 1,160B / AVR 1,157B）、`Mt43Data::initAs()` のサイズ検査、ESP32 の `getMillis()` の制約もコード/ドキュメントに反映した。
