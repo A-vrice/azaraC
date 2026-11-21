@@ -42,6 +42,7 @@ public:
 #endif
 
 private:
+    friend struct ParserClockTestAccess;
     internal::UbxFramer              _ubx;
     internal::NmeaFramer             _nmea;
     internal::Decoder                _decoder;
@@ -50,12 +51,14 @@ private:
     internal::NankaiPageBufferManager _nankaiBuffers;
 #endif
     internal::IFramer*               _custom = nullptr;
+    uint64_t                         _last_now_ms = 0;
 
     // 復号後の共通経路（カスタムフレーマ経路と AUTO 経路）: Nankai 集約 → dedup → out へのコピー。
     // 妥当・非重複・集約済みで出力すべきなら true。
     // identity: 手順③ の照合範囲（MT～VN）の digest。ビット範囲と除外対象は呼び出し側に記す。
     // decoded と out が同一オブジェクトならコピーは行わない。
     bool postDecode(const Message& decoded, Message& out, uint32_t identity);
+    uint64_t observeClock(uint64_t now_ms64);
 
     // decode → postDecode を `out` 自体に対して行う。decode() が先に out をクリアするため、復号失敗で前の payload が残らない。
     // frame が非 const なのは messageIdentity が MT=44 の SD を一時的にゼロにするため。

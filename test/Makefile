@@ -71,6 +71,7 @@ TEST_SRCS = \
 	integration/test_parser_integration.cpp \
 	integration/test_nankai.cpp \
 	integration/test_nankai_e2e.cpp \
+	integration/test_parser_clock.cpp \
 	integration/test_error_handling.cpp \
 	integration/test_time_resolution.cpp \
 	integration/test_tsunami_list.cpp \
