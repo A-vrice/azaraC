@@ -61,7 +61,7 @@ bool Parser::postDecode(const Message& decoded, Message& out, uint32_t identity)
             // 情報種別を含めるのは同一 info_code + 同一報告時刻の発表と取消を別扱いするため（NankaiPageKey 参照）。
             const internal::DedupKey key = internal::dedupEventKey(internal::dedupEventToken(
                 nankai->info_code, mt43->information_type, nankai->report_month, nankai->report_day,
-                nankai->report_hour, nankai->report_minute));
+                nankai->report_hour, nankai->report_minute, mt43->report_classification));
             if (_dedup.isDuplicate(key, now_ms, window_ms)) {
                 out.clear();
                 return false;
@@ -95,6 +95,7 @@ bool Parser::processNankaiAggregation(const Message& decoded, Message& out, cons
     key.report_day      = nankai->report_day;
     key.report_hour     = nankai->report_hour;
     key.report_minute   = nankai->report_minute;
+    key.report_classification = static_cast<uint8_t>(d->report_classification & 0x7u);
 
     internal::NankaiPageBuffer* completed = _nankaiBuffers.addPage(
         key,

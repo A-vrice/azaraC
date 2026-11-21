@@ -245,7 +245,7 @@ TEST_CASE("Nankai E2E: getNankaiBuffer exposes an incomplete buffer") {
     }
     CHECK_FALSE(output);
 
-    const NankaiPageKey key{1, 0, 0, 0, 0, 0};
+    const NankaiPageKey key{1, 0, 0, 0, 0, 0, 1};
     const NankaiPageBuffer* buf = parser.getNankaiBuffer(key);
     REQUIRE(buf != nullptr);
     CHECK_FALSE(buf->isComplete());
@@ -320,7 +320,7 @@ TEST_CASE("Nankai E2E: 27-page full aggregation with real text data") {
             CHECK(memcmp(nankai->aggregated_text_ptr, expected_body, EXPECTED_AGG_LEN) == 0);
 
             // compactText() 後も getNankaiBuffer() 経由の長さが集約本文と一致する。
-            const NankaiPageBuffer* buf = parser.getNankaiBuffer(NankaiPageKey{5, 0, 0, 0, 0, 0});
+            const NankaiPageBuffer* buf = parser.getNankaiBuffer(NankaiPageKey{5, 0, 0, 0, 0, 0, 1});
             REQUIRE(buf != nullptr);
             CHECK(buf->compacted);
             CHECK(buf->getTextLength() == EXPECTED_AGG_LEN);
@@ -493,7 +493,7 @@ TEST_CASE("Nankai E2E: NUL byte mid-page stops aggregation at null") {
     CHECK(nankai->aggregated_text_ptr != nullptr);
     CHECK(memcmp(nankai->aggregated_text_ptr, expected_compact, EXPECTED_LEN) == 0);
 
-    const NankaiPageBuffer* buf = parser.getNankaiBuffer(NankaiPageKey{5, 0, 0, 0, 0, 0});
+    const NankaiPageBuffer* buf = parser.getNankaiBuffer(NankaiPageKey{5, 0, 0, 0, 0, 0, 1});
     REQUIRE(buf != nullptr);
     CHECK(buf->getTextLength() == EXPECTED_LEN);
 
