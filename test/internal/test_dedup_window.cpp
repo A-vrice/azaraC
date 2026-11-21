@@ -281,35 +281,35 @@ TEST_CASE("dedup window: Message overload routes MT43 payload and MT44 A8 window
 namespace {
 
 // 常に「フレーム無し」を返すフレーマ（Parser のカスタム排他モード経路）
-class NeverFramer : public azaraC::internal::IFramer {
+class NeverFramer : public azaraC::IFramer {
 public:
     int calls = 0;
     int resets = 0;
-    bool feed(uint8_t, azaraC::internal::Frame&) override { ++calls; return false; }
+    bool feed(uint8_t, azaraC::Frame&) override { ++calls; return false; }
     void reset() override { ++resets; }
 };
 
 // 一度だけ指定フレームを返すフレーマ
-class OneShotFramer : public azaraC::internal::IFramer {
+class OneShotFramer : public azaraC::IFramer {
 public:
-    OneShotFramer(const azaraC::internal::Frame& f, bool deliver) : _f(f), _deliver(deliver) {}
-    bool feed(uint8_t, azaraC::internal::Frame& out) override {
+    OneShotFramer(const azaraC::Frame& f, bool deliver) : _f(f), _deliver(deliver) {}
+    bool feed(uint8_t, azaraC::Frame& out) override {
         if (_deliver) { _deliver = false; out = _f; return true; }
         return false;
     }
     void reset() override {}
 private:
-    azaraC::internal::Frame _f;
+    azaraC::Frame _f;
     bool _deliver;
 };
 
 // 1 回目に Frame を汚して false を返し、2 回目の Frame がゼロ初期化されているかを見る。
-class StaleFrameFramer : public azaraC::internal::IFramer {
+class StaleFrameFramer : public azaraC::IFramer {
 public:
     bool saw_stale = false;
     int calls = 0;
     int resets = 0;
-    bool feed(uint8_t, azaraC::internal::Frame& out) override {
+    bool feed(uint8_t, azaraC::Frame& out) override {
         ++calls;
         if (!_touched) {
             _touched = true;
@@ -361,7 +361,7 @@ TEST_CASE("Parser: custom framer starts each call with a zeroed Frame") {
 }
 
 TEST_CASE("Parser: custom framer decode failure clears the previous payload") {
-    azaraC::internal::Frame bad{};
+    azaraC::Frame bad{};
     bad.svid = 186;
     // bits 全ゼロ = プリアンブル/MT 不正 → Decoder::decode が false を返す
     OneShotFramer framer(bad, /*deliver=*/true);

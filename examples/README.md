@@ -266,13 +266,13 @@ ESP32 で UART RX タスクと出力タスクを分離し、キューでメッ�
 
 ### custom_framer - 独自フレーマ（`IFramer`）の差し込み
 
-受信機が `$QZQSM` でも `RXM-SFRBX` でもない場合に、`azaraC::internal::IFramer` を実装して
+受信機が `$QZQSM` でも `RXM-SFRBX` でもない場合に、`azaraC::IFramer` を実装して
 1 フレーム分の 250 bit と SVID を `Parser` へ渡す例です。
 例ではデバッグ用の 1 行テキスト `AZC,<svid>,<64 桁の 16 進>\n` を 1 フレームとして扱います。
 
 ```cpp
-class MyFramer : public azaraC::internal::IFramer {
-    bool feed(uint8_t byte, azaraC::internal::Frame& out) override;
+class MyFramer : public azaraC::IFramer {
+    bool feed(uint8_t byte, azaraC::Frame& out) override;
     void reset() override;
 };
 

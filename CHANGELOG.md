@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **v3の公開API（破壊的変更）**: カスタムフレーマは `azaraC::IFramer` と `azaraC::Frame` を使う。南海トラフの集約状況は `getNankaiBuffer()` の代わりに `getNankaiProgress()` で取得する。進捗は値としてコピーされ、集約バッファを公開しない。
 - **ClusterFuzzLiteのfuzzを3つのコンパイル時構成で実行する**: `.clusterfuzzlite/build.sh` が既定構成に加え、AVR相当の縮小構成（Nankaiバッファ1個・最大4ページ、dedup 64スロット、有効カテゴリは震度・南海トラフ・津波のみ）と検証厳格構成（dedup無効、SVID検証レベル2、NMEAの非0パディングを拒否）を別ターゲットとしてビルドする。バッファ追い出しや受理/拒否の分岐は構成で変わるため、既定構成だけでは届かない経路をfuzzで踏む。既定ターゲットの名前と定義は不変で、corpusの継続性は保たれる。fuzz時間はターゲットあたりPR 300秒・週次batch 1200秒とし、ジョブ合計は従来と同程度に保った。
 - **CIのArduino coreをバージョン固定し、Renovateで更新する**: ci.ymlとupdate-definitions.ymlの `arduino-cli core install` はバージョン未指定で、実行時点の最新coreが常に入っていた。8種のcore（esp32:esp32、arduino:avr、arduino:samd、arduino:mbed_giga、arduino:mbed_nano、rp2040:rp2040、STMicroelectronics:stm32、teensy:avr）を現在の最新安定版にピン留めし、renovate.jsonのカスタムマネージャで更新PRを出すようにした。バージョンの参照先は各coreのGitHub Releasesで、teensyだけは配布元のpackage indexを使う。coreの新版がCIに無断で入らなくなり、ESP32 core 4.0のような大きな更新はPRで判断できる。
 
