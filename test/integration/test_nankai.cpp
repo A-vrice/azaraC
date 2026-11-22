@@ -4,6 +4,8 @@
 #include <chrono>
 #include "doctest.h"
 #include "../src/internal/NankaiPageBuffer.h"
+#include "../src/internal/Dedup.h"
+#include "../src/internal/DedupWindow.h"
 #include "../src/Parser.h"
 #include "../test_helpers.h"
 
@@ -397,6 +399,33 @@ TEST_CASE("NankaiPageBuffer expiry") {
                         1000 + NankaiPageBuffer::TIMEOUT_MS + 1);
         CHECK(manager.getBuffer(key) == nullptr);
     }
+}
+
+TEST_CASE("Nankai cancel: resends keep dedup anchored to the last receipt") {
+    // Parser::postDecode の合成を再現する: dedup を引くのはバッファが完成したときだけで、
+    // 重複ページ（addPage が nullptr を返す）では dedup の最終受信時刻は更新されない。
+    // 完成済みバッファが再送で寿命を延ばしてしまうと、dedup に二度と触れないまま窓が切れ、
+    // 最終受信から窓以内でも再通知してしまう。取消（カテゴリ 4・It=2）の窓は 2 時間。
+    NankaiPageBufferManager manager;
+    DedupFilter dedup;
+    const NankaiPageKey key = {1, 4, 10, 3, 30, 2, 2};   // 取消・実警報
+    const DedupKey dkey = dedupEventKey(dedupEventToken(1, 2, 4, 10, 3, 30, 2));
+    const uint32_t window_ms = dedupWindowMs(AZARAC_DEDUP_WINDOW_MS, 4, 2, nullptr);
+    REQUIRE(window_ms == 2UL * 3600UL * 1000UL);
+    uint8_t text[18] = {'P', 0};
+
+    // 通知されるなら true を返す（Parser が true を返す経路）。
+    auto receive = [&](uint64_t t_ms) {
+        if (!manager.addPage(key, 1, 1, text, t_ms)) return false;
+        return !dedup.isDuplicate(dkey, static_cast<uint32_t>(t_ms), window_ms);
+    };
+
+    CHECK(receive(0));                                    // 初回は通知する
+    for (uint64_t t = 30000; t <= 600000; t += 30000) {   // 10 分間、30 秒ごとの再送はすべて抑止
+        CHECK_FALSE(receive(t));
+    }
+    // 初回から 2 時間 5 分後でも、最終受信（10 分後）からは 2 時間以内なので抑止される。
+    CHECK_FALSE(receive(2ULL * 3600 * 1000 + 5ULL * 60 * 1000));
 }
 
 #if AZARAC_NANKAI_BUFFERS >= 2
