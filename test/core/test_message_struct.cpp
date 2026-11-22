@@ -4,6 +4,7 @@
 #include <utility>
 #include "../test_helpers.h"
 #include "doctest.h"
+#include <cstring>
 #include "../src/internal/TimeFields.h"
 
 using namespace azaraC;
@@ -48,6 +49,17 @@ TEST_CASE("Message: MT=43ペイロードの初期化とアクセス") {
 }
 
 #if (AZARAC_ENABLE_DCX_CAMF)
+TEST_CASE("Mt44Data: 拡張部 union は {} で全体がゼロになり、先頭枝での初期化も通る") {
+    Mt44Data::Mt44Extended filled;
+    std::memset(&filled, 0xA5, sizeof(filled));
+    filled = Mt44Data::Mt44Extended{};
+    const uint8_t* p = reinterpret_cast<const uint8_t*>(&filled);
+    for (size_t i = 0; i < sizeof(filled); ++i) CHECK(p[i] == 0);
+
+    Mt44Data::Mt44Extended first{Mt44ExLAlertOrLocal{}};
+    (void)first;
+}
+
 TEST_CASE("Message: MT=44ペイロードの初期化とアクセス") {
     Message msg;
     msg.initPayload<Mt44Data>();

@@ -9,7 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.0.1] - 2026-11-21
 
-v3 に向けた開発ブランチ（PR #45）から、既存 API を変えないバグ修正だけを取り込んだパッチ。
+2.0.0 以降に main へ入った未リリースの変更（下の Added / 2 つ目の Fixed / Changed）に、v3 に向けた開発ブランチ（PR #45）のバグ修正を加えたパッチ。#45 の新しい設定マクロと CI の拡張は含めない。
+
+### Migration
+
+- **`getNankaiBuffer()` の鍵に Rc が加わった**: `NankaiPageKey` は `report_classification`（Rc）も照合する。既定値の 0 は実警報（Rc=2）にも訓練・試験（Rc=7）にも一致しないので、`NankaiPageKey{info_code, month, day, hour, minute, information_type, report_classification}` で作り、Rc は電文の `Mt43Data::report_classification` に合わせる。
 
 ### Fixed
 
