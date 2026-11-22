@@ -140,12 +140,21 @@ struct Mt44Data {
     // NSDMI は代表枝 1 つだけ（C++17 では複数の variant メンバに初期化子を持てない）。
     // 非 active 枝は未規定値だが、ex_kind で排他なので読まれない。
     union Mt44Extended {
-        // 最大枝を先頭に: `ex = {}`（union の zero-init）が先頭枝だけを初期化するため、
-        // 先頭が最大でないと union 全体のゼロ初期化を保証できない（cppcheck 2.19 UnionZeroInit）。
+        // 先頭は従来どおり ex_lalert_local（`Mt44Extended{Mt44ExLAlertOrLocal{}}` の初期化互換）。
+        Mt44ExLAlertOrLocal ex_lalert_local;
         Mt44ExJAlert        ex_jalert;
-        Mt44ExLAlertOrLocal ex_lalert_local{};
         Mt44ExOutside       ex_outside;
+        // 最大枝はプラットフォームで変わる（AVR は LAlert、ホストは整列で JAlert）。
+        // 末尾に最大サイズのバイト列へ NSDMI を置き、{} で union 全体がゼロ初期化されるようにする
+        // （cppcheck 2.19 UnionZeroInit 対応）。
+        uint8_t             raw_[sizeof(Mt44ExLAlertOrLocal) > sizeof(Mt44ExJAlert)
+                                 ? (sizeof(Mt44ExLAlertOrLocal) > sizeof(Mt44ExOutside) ? sizeof(Mt44ExLAlertOrLocal) : sizeof(Mt44ExOutside))
+                                 : (sizeof(Mt44ExJAlert) > sizeof(Mt44ExOutside) ? sizeof(Mt44ExJAlert) : sizeof(Mt44ExOutside))]{};
     };
+    // 先頭枝（互換のため ex_lalert_local）だけがゼロ初期化されるが、読み出しは
+    // ex_kind で排他ガード済みなので未初期化枝を読まない。全体ゼロ初期化の
+    // 警告は意図的に抑制する。
+    // cppcheck-suppress UnionZeroInit
     Mt44Extended    ex = {};
     Mt44Decoded     mt44_decoded = {};
 };
