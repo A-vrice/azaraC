@@ -150,6 +150,9 @@ struct Mt44Data {
                                  ? (sizeof(Mt44ExLAlertOrLocal) > sizeof(Mt44ExOutside) ? sizeof(Mt44ExLAlertOrLocal) : sizeof(Mt44ExOutside))
                                  : (sizeof(Mt44ExJAlert) > sizeof(Mt44ExOutside) ? sizeof(Mt44ExJAlert) : sizeof(Mt44ExOutside))]{};
     };
+    // {} は NSDMI を持つ raw_（最大サイズ）を初期化するので union 全体がゼロになる（[dcl.init.aggr]）。
+    // cppcheck は先頭メンバの大きさだけを見て誤検知するため抑制する。
+    // cppcheck-suppress UnionZeroInit
     Mt44Extended    ex = {};
     Mt44Decoded     mt44_decoded = {};
 };
