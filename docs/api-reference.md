@@ -102,8 +102,8 @@ bool feed(const uint8_t* data, size_t len, Message& out, uint32_t report_unix = 
 
 ```cpp
 uint8_t buf[512];
-size_t n = client.read(buf, sizeof(buf));
-if (parser.feed(buf, n, msg, now)) {
+const int bytesRead = client.read(buf, sizeof(buf));
+if (bytesRead > 0 && parser.feed(buf, static_cast<size_t>(bytesRead), msg, now)) {
     azaraC::toJson(msg, Serial);
 }
 ```
@@ -127,7 +127,8 @@ size_t feedUntilMessage(const uint8_t* data, size_t len, Message& out, uint32_t 
 
 ```cpp
 uint8_t buf[512];
-size_t n = client.read(buf, sizeof(buf));
+const int bytesRead = client.read(buf, sizeof(buf));
+size_t n = bytesRead > 0 ? static_cast<size_t>(bytesRead) : 0;
 const uint8_t* p = buf;
 while (n > 0) {
     size_t used = parser.feedUntilMessage(p, n, msg, now);
