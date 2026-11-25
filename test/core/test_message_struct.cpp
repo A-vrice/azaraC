@@ -18,6 +18,8 @@ static_assert(alignof(azaraC::Mt43Data) <= alignof(uint64_t),
               "Mt43Data over-aligns the alignas(uint64_t) payload buffer");
 static_assert(alignof(azaraC::Mt44Data) <= alignof(uint64_t),
               "Mt44Data over-aligns the alignas(uint64_t) payload buffer");
+static_assert(Mt44Data{}.ex.ex_lalert_local.ex1 == 0 && Mt44Data{}.ex.ex_lalert_local.vn == 0,
+              "Mt44Data must start with an active, zero-initialized L-Alert branch");
 
 // Message構造体のテスト
 
@@ -735,4 +737,3 @@ TEST_CASE("getMillis: uint64_tを返す") {
     uint64_t ms = internal::getMillis();
     CHECK(ms > 0);
 }
-
