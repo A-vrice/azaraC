@@ -355,7 +355,10 @@ echo "METRIC MEGA_LTO_COMPILE_OK=$mega_lto_ok"
 # avr-nm は Windows で CRLF を出すので、パターンは行末に固定しない。
 image_has_path() {  # $1 = elf
     "$AVR_NM" -C "$1" 2>/dev/null | awk '
-        /Decoder::|Parser::feed/ { d++ }
+        # 復号ディスパッチが生きている印: decode* か、復号器からしか呼ばれない civil_from_days。
+        # GCC 14 の LTO は decode* をすべて handleFrame へ畳むが、civil_from_days は残る。
+        # Parser::feed や messageIdentity / getBits は復号経路を落としても残るので使わない。
+        /Decoder::decode|Decoder::civil_from_days/ { d++ }
         /JsonSerializer/ { s++ }
         /_POOL|_TABLE/ { t++ }
         END { exit !(d > 0 && s > 0 && t > 0) }'

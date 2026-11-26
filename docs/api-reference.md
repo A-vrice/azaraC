@@ -52,15 +52,8 @@ bool feed(uint8_t byte, Message& out, uint32_t report_unix = 0);
 
 **戻り値:** `bool` - フレームが完成し、デコードに成功し、重複でもない場合に `true`。
 フレーム未完成・CRC誤り・未対応バージョン（Vn≠1）・コンパイル時に無効なカテゴリ・仕様上未定義のカテゴリ（7/13）・43/44 以外の MT・重複受信・南海トラフのページ集約途中は `false`。
-完成フレームを復号器が拒否した場合、`out` は有効な出力ではないが全体がゼロになるわけではない。
-`Decoder::decode` が `out.clear()` の後に `svid` を書き戻すため `svid` は必ず残る。
-`crc24` は CRC 通過後に拒否された場合に残り、`msg_type` はさらにプリアンブル検証を通過した後の拒否（43/44 以外の MT など）でのみ残る。
-重複時は `out` 全体がクリアされる。
-南海トラフ（カテゴリ 4）のページ集約途中と、カテゴリ 4 で `getNankai()` が nullptr になる電文も `out` 全体をクリアする。
-フレーム未完成の時は `out` は書き換えられない。
-`msg.unsupported_reason` に値が入るのは、復号器が完成フレームを拒否した場合だけ（`DisabledAtCompileTime` / `UnknownCategory` / `UnsupportedVersion`）。
-CRC誤り・重複では `unsupported_reason` は `None` になる（重複時は `out` も全体クリア、CRC誤りでは書き戻された `svid` だけが残る）。
-フレーム未完成では `out` を書き換えないため、直前に完成フレームで設定された値は残る。
+`out` をメッセージとして読めるのは戻り値が `true` のときだけです。`false` を返したときの `out` の内容は未定義で、直前に完成フレームで設定された値や復号途中のフィールドが残ることがあります（フレーム未完成では `out` を書き換えないため、直前の値がそのまま残ります）。個々のフィールドの残留に依存しないでください。
+診断用の `msg.unsupported_reason` だけは、復号器が完成フレームを拒否した場合に理由（`DisabledAtCompileTime` / `UnknownCategory` / `UnsupportedVersion`）が入ります。それ以外の `false`（フレーム未完成・CRC誤り・重複・南海トラフのページ集約途中）では `None` のことが多いですが、値は保証されません。
 
 **使用例:**
 ```cpp
@@ -80,6 +73,64 @@ void loop() {
 }
 ```
 
+##### `feed()`（一括）
+
+受信バッファをそのまま流し込みます。内部では 1 バイト版の `feed()` を順に呼ぶだけで、Nankai 集約・重複除去を含め挙動は同じです。
+
+```cpp
+bool feed(const uint8_t* data, size_t len, Message& out, uint32_t report_unix = 0);
+```
+
+| パラメータ | 型 | 説明 |
+|-----------|-----|------|
+| `data` | `const uint8_t*` | 入力バッファ（`nullptr` は `false`） |
+| `len` | `size_t` | バイト数（0 は `false`） |
+| `out` | `Message&` | 出力（最後に成立した電文） |
+| `report_unix` | `uint32_t` | UNIX時刻 (省略時: 0 = 未解決) |
+
+**戻り値:** `bool` - 1 通以上成立したら `true`。最初の成立で停止せず、全バイトを処理します。`out` には最後に成立した電文が残り、後続の重複や43/44以外のMTでは消えません。
+複数の電文を取りこぼしたくないときは `feedUntilMessage()` を使ってください。
+南海トラフ集約の `aggregated_text_ptr` は、同じ呼び出しの後続フレームで借用先のバッファが再利用されると無効になることがあります。
+成立しなかったときも、復号器の拒否理由は `out.unsupported_reason` に残ります（`nullptr` 入力は変更しません）。
+
+```cpp
+uint8_t buf[512];
+const int bytesRead = client.read(buf, sizeof(buf));
+if (bytesRead > 0 && parser.feed(buf, static_cast<size_t>(bytesRead), msg, now)) {
+    azaraC::toJson(msg, Serial);
+}
+```
+
+##### `feedUntilMessage()`
+
+```cpp
+size_t feedUntilMessage(const uint8_t* data, size_t len, Message& out, uint32_t report_unix = 0);
+```
+
+| 引数 | 型 | 説明 |
+|---|---|---|
+| `data` | `const uint8_t*` | 入力バッファ。`nullptr` は0を返す |
+| `len` | `size_t` | バイト数 |
+| `out` | `Message&` | 出力先。読めるのは戻ったときに `out.valid` が `true` のときだけ |
+| `report_unix` | `uint32_t` | 時刻解決に使う報告のUNIX epoch。0は未解決 |
+
+先頭から1バイト版の `feed()` を順に呼び、電文が1通成立した時点で止めます。戻り値は消費したバイト数です。
+`out.valid` が `true` なら、消費した最後のバイトで電文が成立しています。成立しなかったときは `len` を返し、`out.valid` は `false` です。
+残りのバイトを渡し直せば、1つのバッファに入った複数の電文を順にすべて受け取れます。
+
+```cpp
+uint8_t buf[512];
+const int bytesRead = client.read(buf, sizeof(buf));
+size_t n = bytesRead > 0 ? static_cast<size_t>(bytesRead) : 0;
+const uint8_t* p = buf;
+while (n > 0) {
+    size_t used = parser.feedUntilMessage(p, n, msg, now);
+    if (msg.valid) azaraC::toJson(msg, Serial);
+    p += used;
+    n -= used;
+}
+```
+
 ##### `reset()`
 
 パーサーの状態をリセットします。フレーマー、デコーダー、重複除去フィルタ、**NankaiPageBufferManager**が初期化されます。
@@ -96,8 +147,8 @@ void reset();
 const internal::NankaiPageBuffer* getNankaiBuffer(const internal::NankaiPageKey& key) const;
 ```
 
-`NankaiPageKey`の識別子は`{info_code, information_type, report_timeのmonth/day/hour/minute}`です（`information_type`は発表=0/取消=2で、同一`info_code`+報告時刻の発表と取消を別情報として扱うために含めます）。
-呼び出しキーは`NankaiPageKey{info_code, month, day, hour, minute, information_type}`で生成が可能です（`information_type`は末尾の既定引数で省略可）。
+`NankaiPageKey`の識別子は`{info_code, information_type, report_timeのmonth/day/hour/minute, report_classification}`です（`information_type`は発表=0/取消=2で、同一`info_code`+報告時刻の発表と取消を別情報として扱うために含めます。`report_classification`は実警報=2/訓練・試験=7で、訓練と実警報を混ぜないために含めます）。
+呼び出しキーは`NankaiPageKey{info_code, month, day, hour, minute, information_type, report_classification}`で生成します。`report_classification`は電文の`Mt43Data::report_classification`と一致させてください（既定値の0では実警報・訓練のどちらのバッファにも一致しません）。
 `report_time`はそのまま渡すこと（`resolveTime`の正規化でキーが変わらないようにするため）。
 
 返るバッファは受信途中でもよく、完了判定は `isComplete()` で行います。返却ポインタは次の `feed()` / `reset()` までのみ有効です。
@@ -139,7 +190,7 @@ const internal::NankaiPageBuffer* getNankaiBuffer(const internal::NankaiPageKey&
 | `msg_type` | `uint8_t` | メッセージタイプ (43=DCR, 44=DCX) |
 | `crc24` | `uint32_t` | CRC-24Qチェックサム |
 | `valid` | `bool` | メッセージの妥当性フラグ。`feed()` が `true` を返したときは常に `true` |
-| `unsupported_reason` | `UnsupportedReason` | 復号器が電文を拒否した理由（`None` / `DisabledAtCompileTime` / `UnknownCategory` / `UnsupportedVersion`）。`UnknownCategory` は仕様上未定義のカテゴリと 43/44 以外の MT。CRC誤り・重複では `None`（重複時は `out` も全体クリア、CRC誤りでは `svid` が残る）。フレーム未完成では `out` を書き換えないため直前の値が残る |
+| `unsupported_reason` | `UnsupportedReason` | 復号器が完成フレームを拒否した理由（`None` / `DisabledAtCompileTime` / `UnknownCategory` / `UnsupportedVersion`）。`UnknownCategory` は仕様上未定義のカテゴリと 43/44 以外の MT。`feed()` が `false` でも診断用に入ることがあるが、`out` の他のフィールドは未定義（`feed()` の戻り値の説明を参照） |
 | `payload_type` | `MsgPayloadType` | ペイロードタイプ |
 
 #### 安全なアクセサ
@@ -571,8 +622,8 @@ public:
 
 ```cpp
 // feed() が true を返したメッセージだけを渡す（msg.valid はそこで保証される）。
-// false のときは、完成フレームをデコーダが拒否した場合だけ msg.unsupported_reason に理由が入る。
-// 未完成では out を書き換えないため直前の値が残り、重複では out が全体クリアされ、CRC の誤りでは書き戻された svid だけが残る（いずれも unsupported_reason は None）。
+// false のときの out は未定義（直前の値や復号途中のフィールドが残り得る）。
+// 診断用に msg.unsupported_reason だけは復号器の拒否理由が入ることがある。
 void processMessage(const azaraC::Message& msg) {
     // SVID範囲チェック（PRN は 181-191: 53/54 -> 181/182 も実データに存在）
     if (msg.svid < 181 || msg.svid > 191) {

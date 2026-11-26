@@ -19,7 +19,8 @@ namespace azaraC {
 namespace internal {
 
 // 現在時刻（ミリ秒、uint64_t、巻き戻し安全）。
-static inline uint64_t getMillis() {
+// inline（外部リンケージ）: 関数内 static の s_last を全 TU で単一実体にする（C++17）。
+inline uint64_t getMillis() {
 #if defined(ARDUINO) && ARDUINO >= 1
     // 上位 32 bit = 巻き戻り回数、下位 32 bit = 直近の生の millis() 値。
     // 同期しない read-compute-write はマルチコア / FreeRTOS で逆行し得るが、単一タスクの粗い計時には十分。

@@ -4,6 +4,7 @@
 #include <utility>
 #include "../test_helpers.h"
 #include "doctest.h"
+#include <cstring>
 #include "../src/internal/TimeFields.h"
 
 using namespace azaraC;
@@ -50,6 +51,15 @@ TEST_CASE("Message: MT=43ペイロードの初期化とアクセス") {
 }
 
 #if (AZARAC_ENABLE_DCX_CAMF)
+TEST_CASE("Mt44Data: 拡張部 union は LAlert 枝が有効でゼロ、先頭枝での初期化も通る") {
+    Mt44Data d{};
+    CHECK(d.ex.ex_lalert_local.ex1 == 0);
+    CHECK(d.ex.ex_lalert_local.vn == 0);
+
+    Mt44Data::Mt44Extended first{Mt44ExLAlertOrLocal{}};
+    CHECK(first.ex_lalert_local.ex1 == 0);
+}
+
 TEST_CASE("Message: MT=44ペイロードの初期化とアクセス") {
     Message msg;
     msg.initPayload<Mt44Data>();

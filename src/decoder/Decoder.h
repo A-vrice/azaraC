@@ -37,7 +37,10 @@ protected:
     // day(5)+hour(5)+min(6)=16 bit のサブフィールド -> TimeFields report_unix: GPS/SNTP の UNIX 時刻。0 は未解決。
     TimeFields extractDHM(const uint8_t* buf, uint16_t start, uint32_t report_unix);
 
-    // report_unix を基準に解決する。無効（< 2000-01-01）なら unix_time = 0。
+    // report_unix を基準に (month,day,hour,minute) を解決する。
+    // 範囲外入力（day 1-31 / hour 0-23 / minute 0-59 / month 0-12 以外）はフィールドを 0 化して拒否。
+    // 基準時刻が無効（< 2000-01-01）、または暦に存在しない日付（2/30・4/31・平年 2/29 等）は
+    // unix_time=0 の未解決（生フィールドは保持）。黙って別月日へ正規化しない。
     static TimeFields resolveTime(uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint32_t report_unix);
 
     // 12 bit の到着時刻（day_offset:1, hour:5, min:6）-> TimeFields

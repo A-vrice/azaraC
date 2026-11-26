@@ -6,6 +6,182 @@
 
 using namespace azaraC;
 
+#if (AZARAC_ENABLE_SEISMIC)
+TEST_CASE("Parser: bulk feed is equivalent to byte-by-byte feed") {
+    uint8_t bits[32] = {};
+    setBits(bits, 0, 8, 0x53);
+    setBits(bits, 8, 6, 43);
+    setBits(bits, 14, 3, 2);
+    setBits(bits, 17, 4, 3);
+    setBits(bits, 214, 6, 1);
+    setBits(bits, 226, 24, crc24qRef(bits, 226));
+    const std::string nmea = makeNmeaQzqsm(58, bits);
+    std::string input = nmea;
+    SUBCASE("single frame") {}
+    SUBCASE("distinct frame after success") {
+        setBits(bits, 14, 3, 1);
+        setBits(bits, 226, 24, crc24qRef(bits, 226));
+        input += makeNmeaQzqsm(58, bits);
+    }
+    SUBCASE("invalid frame") {
+        bits[28] ^= 1;
+        input = makeNmeaQzqsm(58, bits);
+    }
+
+    Parser byte_parser;
+    Message byte_msg;
+    bool byte_out = false;
+    for (char c : input) {
+        if (byte_parser.feed(static_cast<uint8_t>(c), byte_msg, 1730000000)) byte_out = true;
+    }
+    Parser bulk_parser;
+    Message bulk_msg;
+    const bool bulk_out = bulk_parser.feed(
+        reinterpret_cast<const uint8_t*>(input.data()), input.size(), bulk_msg, 1730000000);
+    CHECK(bulk_out == byte_out);
+    if (!byte_out) {
+        CHECK(bulk_msg.unsupported_reason == byte_msg.unsupported_reason);
+        return;
+    }
+    CHECK(bulk_msg.valid == byte_msg.valid);
+    CHECK(bulk_msg.msg_type == byte_msg.msg_type);
+    CHECK(bulk_msg.svid == byte_msg.svid);
+    CHECK(bulk_msg.crc24 == byte_msg.crc24);
+    CHECK(bulk_msg.payload_type == byte_msg.payload_type);
+}
+
+TEST_CASE("Parser: bulk feed reports no message for incomplete input") {
+    Parser parser;
+    Message msg;
+    static const char partial[] = "$QZQSM,55,00";
+    CHECK_FALSE(parser.feed(reinterpret_cast<const uint8_t*>(partial), sizeof(partial) - 1, msg));
+    CHECK_FALSE(parser.feed(nullptr, 0, msg));
+    CHECK_FALSE(parser.feed(nullptr, 10, msg));
+    CHECK_FALSE(parser.feed(reinterpret_cast<const uint8_t*>(""), 0, msg));
+}
+#endif
+
+#if AZARAC_ENABLE_SEISMIC
+static std::string makeSeismicNmea(uint8_t intensity) {
+    uint8_t bits[32] = {};
+    setBits(bits, 0, 8, 0x53);
+    setBits(bits, 8, 6, 43);
+    setBits(bits, 14, 3, 2);
+    setBits(bits, 17, 4, 3);
+    setBits(bits, 69, 3, intensity);
+    setBits(bits, 72, 6, 13);
+    setBits(bits, 214, 6, 1);
+    setBits(bits, 226, 24, crc24qRef(bits, 226));
+    return makeNmeaQzqsm(58, bits) + "\r\n";
+}
+
+static std::string makeOtherMtNmea() {
+    uint8_t bits[32] = {};
+    setBits(bits, 0, 8, 0x9A);
+    setBits(bits, 8, 6, 50);
+    setBits(bits, 226, 24, crc24qRef(bits, 226));
+    return makeNmeaQzqsm(58, bits) + "\r\n";
+}
+
+TEST_CASE("Parser: bulk feed keeps the message when a rejected frame follows") {
+    std::string input = makeSeismicNmea(3);
+    SUBCASE("duplicate follows") { input += input; }
+    SUBCASE("non-DCR MT follows") { input += makeOtherMtNmea(); }
+    SUBCASE("last of several messages") { input += makeSeismicNmea(5) + makeOtherMtNmea(); }
+    Parser parser;
+    Message msg;
+    REQUIRE(parser.feed(reinterpret_cast<const uint8_t*>(input.data()), input.size(), msg));
+    CHECK(msg.valid);
+    CHECK(msg.msg_type == 43);
+    CHECK(msg.payload_type == MsgPayloadType::Mt43);
+}
+#endif
+
+#if AZARAC_ENABLE_SEISMIC
+TEST_CASE("Parser: bulk feed leaves the last message of several") {
+    Parser parser;
+    Message msg;
+    const std::string s = makeSeismicNmea(3) + makeSeismicNmea(5) + makeOtherMtNmea();
+    REQUIRE(parser.feed(reinterpret_cast<const uint8_t*>(s.data()), s.size(), msg, 0));
+    REQUIRE(msg.valid);
+    const Mt43Data* d = msg.getMt43();
+    REQUIRE(d != nullptr);
+    REQUIRE(d->getSeismic() != nullptr);
+    CHECK(d->getSeismic()->entries[0].intensity_code == 5);
+}
+
+TEST_CASE("Parser: feedUntilMessage returns every message in a buffer") {
+    Parser parser;
+    Message msg;
+    const std::string a = makeSeismicNmea(3);
+    const std::string b = makeSeismicNmea(5);
+    const std::string s = a + makeOtherMtNmea() + b;
+    const uint8_t* p = reinterpret_cast<const uint8_t*>(s.data());
+    size_t n = s.size();
+    uint8_t intensities[2] = {};
+    size_t intensity_count = 0;
+    size_t first_used = 0;
+    while (n > 0) {
+        const size_t used = parser.feedUntilMessage(p, n, msg, 0);
+        REQUIRE(used > 0);
+        REQUIRE(used <= n);
+        if (first_used == 0) first_used = used;
+        if (msg.valid) {
+            const Mt43Data* d = msg.getMt43();
+            REQUIRE(d != nullptr);
+            REQUIRE(d->getSeismic() != nullptr);
+            REQUIRE(intensity_count < sizeof(intensities) / sizeof(intensities[0]));
+            intensities[intensity_count++] = d->getSeismic()->entries[0].intensity_code;
+        }
+        p += used;
+        n -= used;
+    }
+    // 他 MT は落ち、2 通が送信順に出る。最初の 1 通は先頭の文の中で止まる。
+    REQUIRE(intensity_count == 2);
+    CHECK(intensities[0] == 3);
+    CHECK(intensities[1] == 5);
+    CHECK(first_used <= a.size());
+}
+
+TEST_CASE("Parser: feedUntilMessage consumes everything when nothing completes") {
+    Parser parser;
+    Message msg;
+    msg.valid = true;
+    static const char partial[] = "$QZQSM,55,00";
+    CHECK(parser.feedUntilMessage(reinterpret_cast<const uint8_t*>(partial), sizeof(partial) - 1, msg, 0)
+          == sizeof(partial) - 1);
+    CHECK_FALSE(msg.valid);
+
+    const std::string other = makeOtherMtNmea();
+    msg.valid = true;
+    CHECK(parser.feedUntilMessage(reinterpret_cast<const uint8_t*>(other.data()), other.size(), msg, 0)
+          == other.size());
+    CHECK_FALSE(msg.valid);
+
+    msg.valid = true;
+    CHECK(parser.feedUntilMessage(nullptr, 10, msg, 0) == 0);
+    CHECK_FALSE(msg.valid);
+    msg.valid = true;
+    CHECK(parser.feedUntilMessage(reinterpret_cast<const uint8_t*>(partial), 0, msg, 0) == 0);
+    CHECK_FALSE(msg.valid);
+}
+TEST_CASE("Parser: bulk feed reports the decoder's rejection reason") {
+    uint8_t bits[32] = {};
+    setBits(bits, 0, 8, 0x53);
+    setBits(bits, 8, 6, 43);
+    setBits(bits, 14, 3, 2);
+    setBits(bits, 17, 4, 3);
+    setBits(bits, 214, 6, 2);      // 未対応の Vn
+    setBits(bits, 226, 24, crc24qRef(bits, 226));
+    const std::string s = makeNmeaQzqsm(58, bits) + "\r\n";
+    Parser parser;
+    Message msg;
+    CHECK_FALSE(parser.feed(reinterpret_cast<const uint8_t*>(s.data()), s.size(), msg, 0));
+    CHECK(msg.unsupported_reason == UnsupportedReason::UnsupportedVersion);
+}
+
+#endif
+
 // EEW デコードテスト
 
 #if (AZARAC_ENABLE_EEW)

@@ -4,6 +4,8 @@
 #include <chrono>
 #include "doctest.h"
 #include "../src/internal/NankaiPageBuffer.h"
+#include "../src/internal/Dedup.h"
+#include "../src/internal/DedupWindow.h"
 #include "../src/Parser.h"
 #include "../test_helpers.h"
 
@@ -192,6 +194,49 @@ TEST_CASE("NankaiPageBuffer text aggregation") {
         CHECK(buffer.aggregated_text[0] == 'A');
         CHECK(buffer.aggregated_text[1] == 'B');
     }
+
+    SUBCASE("getTextLength after compactText uses the contiguous text") {
+        uint8_t text1[18] = {'P', '1', 0};
+        uint8_t text2[18] = {'P', '2', 0};
+        uint8_t text3[18] = {'P', '3', 0};
+        buffer.addPage(1, 3, text1, now);
+        buffer.addPage(2, 3, text2, now);
+        buffer.addPage(3, 3, text3, now);
+        CHECK(buffer.getTextLength() == 6);
+
+        CHECK(buffer.compactText() == 6);
+        CHECK(buffer.compacted);
+        CHECK(buffer.getTextLength() == 6);  // ページ割り付けではなく連続文字列として読む
+        CHECK(memcmp(buffer.aggregated_text, "P1P2P3", 6) == 0);
+    }
+
+    SUBCASE("getTextLength after compactText with a missing page") {
+        uint8_t text1[18] = {'P', '1', 0};
+        uint8_t text3[18] = {'P', '3', 0};
+        CHECK(buffer.addPage(1, 3, text1, now));
+        CHECK(buffer.addPage(3, 3, text3, now));
+        CHECK_FALSE(buffer.isComplete());
+
+        CHECK(buffer.compactText() == 4);
+        CHECK(buffer.getTextLength() == 4);
+        CHECK(memcmp(buffer.aggregated_text, "P1P3", 4) == 0);
+    }
+
+    SUBCASE("clearAll restores the page-offset length path") {
+        uint8_t text[18] = {'P', '1', 0};
+        buffer.addPage(1, 1, text, now);
+        CHECK(buffer.compactText() == 2);
+        CHECK(buffer.compacted);
+
+        buffer.clearAll();
+        CHECK_FALSE(buffer.compacted);
+        CHECK(buffer.getTextLength() == 0);
+
+        uint8_t page2[18] = {'A', 'B', 0};
+        CHECK(buffer.addPage(2, 3, page2, now));
+        CHECK_FALSE(buffer.compacted);
+        CHECK(buffer.getTextLength() == 2);  // 空のページ 1 を飛ばしてページ 2 を読む
+    }
 }
 
 
@@ -286,12 +331,59 @@ TEST_CASE("NankaiPageBufferManager empty slots never match") {
     CHECK(manager.addPage(zero, 2, 2, text, 1000) != nullptr);
 }
 
+TEST_CASE("NankaiPageBufferManager separates training and real alerts") {
+    NankaiPageBufferManager manager;
+    const NankaiPageKey real(1, 4, 10, 30, 15, 0, 2);
+    const NankaiPageKey training(1, 4, 10, 30, 15, 0, 7);
+    CHECK_FALSE(real == training);
+    uint8_t real_text[18] = {'R', 0};
+    uint8_t training_text[18] = {'T', 0};
+    CHECK(manager.addPage(real, 1, 2, real_text, 1000) == nullptr);
+    // 訓練の 2 ページ目は実警報の 1 ページ目と混ざって完成してはならない。
+    CHECK(manager.addPage(training, 2, 2, training_text, 1000) == nullptr);
+}
+
+TEST_CASE("NankaiPageBufferManager rejects invalid pages before evicting") {
+    NankaiPageBufferManager manager;
+    uint8_t text[18] = {'P', 0};
+    for (uint8_t i = 0; i < NankaiPageBufferManager::MAX_BUFFERS; ++i) {
+        manager.addPage(NankaiPageKey(1, 4, 10, 30, static_cast<uint8_t>(i)), 1, 2, text, 1000);
+    }
+    const NankaiPageKey fresh(2, 4, 10, 30, 59);
+    CHECK(manager.addPage(fresh, 0, 2, text, 1001) == nullptr);
+    CHECK(manager.addPage(fresh, 3, 2, text, 1001) == nullptr);
+    CHECK(manager.getBuffer(fresh) == nullptr);
+    for (uint8_t i = 0; i < NankaiPageBufferManager::MAX_BUFFERS; ++i) {
+        CHECK(manager.getBuffer(NankaiPageKey(1, 4, 10, 30, static_cast<uint8_t>(i))) != nullptr);
+    }
+}
+
 TEST_CASE("NankaiPageBuffer expiry") {
     SUBCASE("isExpired boundary") {
         NankaiPageBuffer buffer;
         uint8_t text[18] = {'P', 0};
         buffer.addPage(1, 2, text, 1000);
         CHECK_FALSE(buffer.isExpired(1000 + NankaiPageBuffer::TIMEOUT_MS));
+        CHECK(buffer.isExpired(1000 + NankaiPageBuffer::TIMEOUT_MS + 1));
+    }
+
+    SUBCASE("duplicate page refreshes the timeout") {
+        NankaiPageBuffer buffer;
+        uint8_t text[18] = {'P', 0};
+        buffer.addPage(1, 2, text, 1000);
+        const uint64_t resend = 1000 + NankaiPageBuffer::TIMEOUT_MS - 1;
+        CHECK_FALSE(buffer.addPage(1, 2, text, resend));
+        CHECK(buffer.received_count == 1);
+        CHECK_FALSE(buffer.isExpired(1000 + NankaiPageBuffer::TIMEOUT_MS + 1));
+        CHECK(buffer.isExpired(resend + NankaiPageBuffer::TIMEOUT_MS + 1));
+    }
+
+    SUBCASE("duplicate page does not extend a completed buffer") {
+        NankaiPageBuffer buffer;
+        uint8_t text[18] = {'P', 0};
+        buffer.addPage(1, 1, text, 1000);
+        REQUIRE(buffer.isComplete());
+        CHECK_FALSE(buffer.addPage(1, 1, text, 1000 + NankaiPageBuffer::TIMEOUT_MS - 1));
         CHECK(buffer.isExpired(1000 + NankaiPageBuffer::TIMEOUT_MS + 1));
     }
 
@@ -307,6 +399,33 @@ TEST_CASE("NankaiPageBuffer expiry") {
                         1000 + NankaiPageBuffer::TIMEOUT_MS + 1);
         CHECK(manager.getBuffer(key) == nullptr);
     }
+}
+
+TEST_CASE("Nankai cancel: resends keep dedup anchored to the last receipt") {
+    // Parser::postDecode の合成を再現する: dedup を引くのはバッファが完成したときだけで、
+    // 重複ページ（addPage が nullptr を返す）では dedup の最終受信時刻は更新されない。
+    // 完成済みバッファが再送で寿命を延ばしてしまうと、dedup に二度と触れないまま窓が切れ、
+    // 最終受信から窓以内でも再通知してしまう。取消（カテゴリ 4・It=2）の窓は 2 時間。
+    NankaiPageBufferManager manager;
+    DedupFilter dedup;
+    const NankaiPageKey key = {1, 4, 10, 3, 30, 2, 2};   // 取消・実警報
+    const DedupKey dkey = dedupEventKey(dedupEventToken(1, 2, 4, 10, 3, 30, 2));
+    const uint32_t window_ms = dedupWindowMs(AZARAC_DEDUP_WINDOW_MS, 4, 2, nullptr);
+    REQUIRE(window_ms == 2UL * 3600UL * 1000UL);
+    uint8_t text[18] = {'P', 0};
+
+    // 通知されるなら true を返す（Parser が true を返す経路）。
+    auto receive = [&](uint64_t t_ms) {
+        if (!manager.addPage(key, 1, 1, text, t_ms)) return false;
+        return !dedup.isDuplicate(dkey, static_cast<uint32_t>(t_ms), window_ms);
+    };
+
+    CHECK(receive(0));                                    // 初回は通知する
+    for (uint64_t t = 30000; t <= 600000; t += 30000) {   // 10 分間、30 秒ごとの再送はすべて抑止
+        CHECK_FALSE(receive(t));
+    }
+    // 初回から 2 時間 5 分後でも、最終受信（10 分後）からは 2 時間以内なので抑止される。
+    CHECK_FALSE(receive(2ULL * 3600 * 1000 + 5ULL * 60 * 1000));
 }
 
 #if AZARAC_NANKAI_BUFFERS >= 2

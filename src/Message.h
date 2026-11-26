@@ -65,6 +65,7 @@ struct Message {
         , valid(other.valid)
         , unsupported_reason(other.unsupported_reason)
         , payload_type(other.payload_type)
+        , payload_storage_{}
     {
         copyPayloadFrom(other);
     }
