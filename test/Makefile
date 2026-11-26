@@ -66,12 +66,15 @@ TEST_SRCS = \
 	json/test_json.cpp \
 	json/test_json_dcx_b1b4.cpp \
 	json/test_json_wellformed.cpp \
+	json/test_json_utf8.cpp \
 	integration/test_parser.cpp \
 	integration/test_parser_integration.cpp \
 	integration/test_nankai.cpp \
 	integration/test_nankai_e2e.cpp \
+	integration/test_parser_clock.cpp \
 	integration/test_error_handling.cpp \
 	integration/test_time_resolution.cpp \
+	integration/test_tsunami_list.cpp \
 	integration/test_dcx_edge_cases.cpp \
 	integration/test_azarashi_dcr.cpp \
 	integration/test_azarashi_dcx.cpp \

@@ -4,6 +4,11 @@
 
 namespace azaraC {
 
+namespace {
+// FreeRTOS のマルチコアでは getMillis() が数 ms 逆行し得る。この範囲は受信順序の揺らぎとして最終観測時刻に丸める。
+constexpr uint64_t kClockRollbackToleranceMs = 1000;
+} // namespace
+
 bool Parser::feed(uint8_t byte, Message& out, uint32_t report_unix) {
     internal::Frame frame;
 
@@ -65,7 +70,7 @@ bool Parser::postDecode(const Message& decoded, Message& out, uint32_t identity)
     // 下の Nankai 集約も同じ時計を使うので、両段階で「現在」が一致する。
     // 64 bit を丸ごと保持する: NankaiPageBuffer のタイムアウトは uint64、32 bit の dedup 窓は約 49.7 日で巻き戻る。
     // ここで切り詰めると符号なしの経過時間比較がアンダーフローする。
-    const uint64_t now_ms64 = internal::getMillis();
+    const uint64_t now_ms64 = observeClock(internal::getMillis());
     const uint32_t now_ms = static_cast<uint32_t>(now_ms64);
     const uint32_t window_ms = internal::dedupWindowMs(decoded);
 
@@ -88,7 +93,7 @@ bool Parser::postDecode(const Message& decoded, Message& out, uint32_t identity)
             // 情報種別を含めるのは同一 info_code + 同一報告時刻の発表と取消を別扱いするため（NankaiPageKey 参照）。
             const internal::DedupKey key = internal::dedupEventKey(internal::dedupEventToken(
                 nankai->info_code, mt43->information_type, nankai->report_month, nankai->report_day,
-                nankai->report_hour, nankai->report_minute));
+                nankai->report_hour, nankai->report_minute, mt43->report_classification));
             if (_dedup.isDuplicate(key, now_ms, window_ms)) {
                 out.clear();
                 return false;
@@ -122,6 +127,7 @@ bool Parser::processNankaiAggregation(const Message& decoded, Message& out, cons
     key.report_day      = nankai->report_day;
     key.report_hour     = nankai->report_hour;
     key.report_minute   = nankai->report_minute;
+    key.report_classification = static_cast<uint8_t>(d->report_classification & 0x7u);
 
     internal::NankaiPageBuffer* completed = _nankaiBuffers.addPage(
         key,
@@ -166,11 +172,34 @@ const internal::NankaiPageBuffer* Parser::getNankaiBuffer(const internal::Nankai
 }
 #endif
 
+uint64_t Parser::observeClock(uint64_t now_ms64) {
+    // 年齢が 2^32 ms（約 49.7 日）を超えると 32 bit の符号なし差分が巻き戻って新しく見えるため、世代（上位 32 bit）が変わったら履歴を捨てる。
+    // 後退は許容量まで丸め、超えた場合も時計の再設定として履歴を捨てる。いずれも再通知を許容し、生きた警報の抑止を避ける。
+    if (now_ms64 < _last_now_ms) {
+        if (_last_now_ms - now_ms64 > kClockRollbackToleranceMs) {
+            _dedup.reset();
+#if AZARAC_ENABLE_NANKAI
+            _nankaiBuffers.clearAll();
+#endif
+        } else {
+            now_ms64 = _last_now_ms;   // 受信順序の揺らぎは丸める
+        }
+    } else if ((now_ms64 >> 32) != (_last_now_ms >> 32)) {
+        _dedup.reset();
+#if AZARAC_ENABLE_NANKAI
+        _nankaiBuffers.clearAll();
+#endif
+    }
+    _last_now_ms = now_ms64;
+    return now_ms64;
+}
+
 void Parser::reset() {
     _ubx.reset();
     _nmea.reset();
     if (_custom) _custom->reset();
     _dedup.reset();
+    _last_now_ms = 0;
 #if AZARAC_ENABLE_NANKAI
     _nankaiBuffers.clearAll();
 #endif

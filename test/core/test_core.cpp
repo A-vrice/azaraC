@@ -165,6 +165,44 @@ TEST_CASE("getBits64: 64-bit exact extraction") {
     CHECK(TestDecoder::checkOob() == false);
 }
 
+// 幅ガード（F4）: len が戻り値型を超える場合と AVR 16bit start+len ラップ
+
+TEST_CASE("getBits: len > 32 rejected as OOB") {
+    uint8_t buf[32] = {};
+    TestDecoder::clearOob();
+    CHECK(TestDecoder::extractBits(buf, 0, 33) == 0);
+    CHECK(TestDecoder::checkOob() == true);
+}
+
+TEST_CASE("getBits64: len > 64 rejected as OOB") {
+    uint8_t buf[32] = {};
+    TestDecoder::clearOob();
+    CHECK(TestDecoder::extractBits64(buf, 0, 65) == 0);
+    CHECK(TestDecoder::checkOob() == true);
+}
+
+TEST_CASE("getBits: start near UINT16_MAX does not wrap into range") {
+    uint8_t buf[32] = {};
+    TestDecoder::clearOob();
+    // AVR の 16bit 加算だと 65535+1==0 になり範囲内と誤判定する
+    CHECK(TestDecoder::extractBits(buf, 65535, 1) == 0);
+    CHECK(TestDecoder::checkOob() == true);
+}
+
+TEST_CASE("getBits: 32-bit field at last valid position") {
+    uint8_t buf[32] = {};
+    TestDecoder::clearOob();
+    TestDecoder::extractBits(buf, 224, 32);
+    CHECK(TestDecoder::checkOob() == false);
+}
+
+TEST_CASE("getBits: zero length is not OOB") {
+    uint8_t buf[32] = {};
+    TestDecoder::clearOob();
+    CHECK(TestDecoder::extractBits(buf, 0, 0) == 0);
+    CHECK(TestDecoder::checkOob() == false);
+}
+
 // setBits セルフテスト
 
 TEST_CASE("setBits: roundtrip with getBits") {
@@ -649,6 +687,7 @@ TEST_CASE("DedupFilter: 事象トークンは事象ごとに決まる") {
     CHECK(dedupEventToken(5, 0, 6, 15, 12, 30) != dedupEventToken(4, 0, 6, 15, 12, 30));
     // 情報種別が違えば別の事象: 同一 info_code + 同一報告時刻の発表(0)と取消(2)を潰さない。
     CHECK(dedupEventToken(5, 0, 6, 15, 12, 30) != dedupEventToken(5, 2, 6, 15, 12, 30));
+    CHECK(dedupEventToken(5, 0, 6, 15, 12, 30, 2) != dedupEventToken(5, 0, 6, 15, 12, 30, 7));
 }
 
 TEST_CASE("DedupKey: 26 bit の事象トークンは電文の鍵と衝突しない") {

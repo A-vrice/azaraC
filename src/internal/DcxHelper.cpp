@@ -114,10 +114,11 @@ uint8_t decodePrefectureBitmask(uint64_t ex9, uint8_t* out_positions) {
 uint8_t decodeCityCodeList(uint64_t ex9, uint16_t* out_codes) {
     uint8_t count = 0;
 
-    // EX8=1: 16 bit コードを 4 個、LSB 先頭。
+    // EX8=1: 16 bit コードを 4 個、送信順（MSB 先頭）。ex9[63:48] が先頭コード。
+    // IS-QZSS-DCX-004 §4.2.4.2.2: フィールドは 4 つの 16 bit コードが送信順に並ぶ。
 
     for (uint8_t i = 0; i < 4; ++i) {
-        uint16_t code = static_cast<uint16_t>((ex9 >> (i * 16)) & 0xFFFF);
+        uint16_t code = static_cast<uint16_t>((ex9 >> (48 - i * 16)) & 0xFFFF);
         if (code != 0) {
             out_codes[count++] = code;
         }

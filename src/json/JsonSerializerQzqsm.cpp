@@ -212,7 +212,7 @@ bool serializeNankai(const Mt43Data* d, Print& out) {
         wf_u(out, AZARAC_KEY("page"), nankai->page);
         wf_u(out, AZARAC_KEY("total_page"), nankai->total_page);
         wk(out, AZARAC_KEY("text_utf8"));
-        writeStr(out, std::string_view(nankai->aggregated_text_ptr, nankai->aggregated_len));
+        writeStrUtf8(out, std::string_view(nankai->aggregated_text_ptr, nankai->aggregated_len));
     } else {
         wf_u(out, AZARAC_KEY("page"), nankai->page);
         wf_u(out, AZARAC_KEY("total_page"), nankai->total_page);
