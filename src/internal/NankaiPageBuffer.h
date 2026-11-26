@@ -28,7 +28,8 @@ namespace internal {
 // DHM は正規化前の生プロトコルビット（NankaiData::report_*）:
 // Mt43Data::event_time は resolveTime() が 2/30→3/1 を書き換え月 0 を補完するため、report_unix の有無でハッシュが割れ、1 事象が複数バッファに分かれる。
 // information_type（It: 0=発表 / 2=取消）も鍵に必要（無いと発表と取消が同じ Pn を先着優先で潰し合い文面が混ざる）。
-// dedup 側も同じ 6 フィールドを使う（Dedup.h dedupEventToken）。
+// report_classification（Rc: 2=実警報 / 7=訓練・試験）も鍵に含め、訓練と実警報のページを混ぜない。
+// dedup 側も同じ 7 フィールドを使う（Dedup.h dedupEventToken）。
 struct NankaiPageKey {
     uint8_t  info_code = 0;        // 1B — Is（情報系列コード、4b）
     uint8_t  report_month  = 0;    // 1B — 生の report_time 月 (4b)
@@ -36,14 +37,15 @@ struct NankaiPageKey {
     uint8_t  report_hour   = 0;    // 1B — 生の report_time 時 (5b)
     uint8_t  report_minute = 0;    // 1B — 生の report_time 分 (6b)
     uint8_t  information_type = 0; // 1B — It (2b: 0=発表, 2=取消)
+    uint8_t  report_classification = 0; // 1B — Rc (3b: 2=実警報, 7=訓練/試験)
     // 合計 6B（パディングなし）
 
     constexpr NankaiPageKey() = default;
     // it は末尾の既定引数（既存呼び出し {ic, mo, d, h, m} の意味を変えない）。
     constexpr NankaiPageKey(uint8_t ic, uint8_t mo = 0, uint8_t d = 0, uint8_t h = 0, uint8_t m = 0,
-                            uint8_t it = 0)
+                            uint8_t it = 0, uint8_t rc = 0)
         : info_code(ic), report_month(mo), report_day(d), report_hour(h),
-          report_minute(m), information_type(it) {}
+          report_minute(m), information_type(it), report_classification(static_cast<uint8_t>(rc & 0x7u)) {}
 
     bool operator==(const NankaiPageKey& o) const {
         return info_code == o.info_code &&
@@ -51,7 +53,8 @@ struct NankaiPageKey {
                report_month  == o.report_month &&
                report_day    == o.report_day &&
                report_hour   == o.report_hour &&
-               report_minute == o.report_minute;
+               report_minute == o.report_minute &&
+               report_classification == o.report_classification;
     }
 
     void clear() {
@@ -61,11 +64,12 @@ struct NankaiPageKey {
         report_day = 0;
         report_hour = 0;
         report_minute = 0;
+        report_classification = 0;
     }
 };
 
 // 6 バイト（パディングなし）を固定する: 鍵はページ受信のたびにコピーされ、バッファごとに 1 個常駐する。
-static_assert(sizeof(NankaiPageKey) == 6, "NankaiPageKey must stay 6 bytes");
+static_assert(sizeof(NankaiPageKey) == 7, "NankaiPageKey must stay 7 bytes");
 
 // 1 事象分のページ集約バッファ。
 // 打ち切り: total_pages > MAX_PAGES なら pages 1..MAX_PAGES を残して truncated を立て、残りは静かに破棄する。
@@ -81,13 +85,14 @@ struct NankaiPageBuffer {
     static constexpr uint8_t TEXT_PER_PAGE = 18;
     static constexpr uint32_t TIMEOUT_MS = 60000;
 
-    NankaiPageKey key;                  // 6B
+    NankaiPageKey key;                  // 7B
     uint64_t received_bitmap = 0;       // 8B — bit (page_num-1) が受信済みの印
     uint32_t last_update_ms = 0;        // 4B — TIMEOUT_MS=60s なので 32 bit 差分比較で十分（49.7 日でラップ）
     uint8_t total_pages = 0;            // 1B — 実効ページ数（MAX_PAGES で頭打ち）
     uint8_t original_total_pages = 0;   // 1B — 電文が示す元のページ数
     uint8_t received_count = 0;         // 1B — 受信したページ数
-    bool truncated = false;             // 1B — total_pages > MAX_PAGES のとき true
+    bool truncated : 1;                 // 1b — total_pages > MAX_PAGES のとき true
+    bool compacted : 1;                 // 1b — compactText() がページを詰めた後 true（getTextLength の読み方を切り替える）
     // aggregated_text はオフセット 24 (host) / 22 (AVR) — char の境界は 1 なのでその前にパディングが無い
     char aggregated_text[MAX_PAGES * TEXT_PER_PAGE + 1];
 
@@ -97,6 +102,11 @@ struct NankaiPageBuffer {
 
     // ページを追加する（page_num は 1 始まり、total_pages_in は Pm 由来、text_data は 18 バイト）。
     // 追加できたら true。
+    static constexpr bool pageInRange(uint8_t page_num, uint8_t total_pages_in) {
+        return page_num >= 1 && page_num <= SPEC_MAX_PAGES &&
+               page_num <= (total_pages_in > MAX_PAGES ? MAX_PAGES : total_pages_in);
+    }
+
     bool addPage(uint8_t page_num, uint8_t total_pages_in, const uint8_t* text_data, uint64_t current_ms) {
         // Pn は 1-63 (spec)
         if (page_num == 0 || page_num > SPEC_MAX_PAGES) {
@@ -129,6 +139,9 @@ struct NankaiPageBuffer {
         // bitmap による重複判定 O(1)
         uint64_t mask = 1ULL << (page_num - 1);
         if (received_bitmap & mask) {
+            // 未完成の集約は重複ページの再送でも寿命を延ばす。本文・受信数は変えない。
+            // 完成済みは延ばさない: 失効させて再完成させ、Parser の dedup に最終受信時刻を更新させる。
+            if (!isComplete()) last_update_ms = (uint32_t)current_ms;
             return false;
         }
 
@@ -148,7 +161,14 @@ struct NankaiPageBuffer {
 
     // NUL を除いたテキスト長。ページごとに最初の 0x00 で止まる（UTF-8 に NUL は無い）。
     // 未完成のバッファでも安全（受信済みページしか読まない）。
+    // compactText() 後は本文が先頭から連続しているため、ページ割り付けではなく文字列長を返す。
     uint16_t getTextLength() const {
+        if (compacted) {
+            uint16_t n = 0;
+            while (n < (uint16_t)(MAX_PAGES * TEXT_PER_PAGE) && aggregated_text[n] != 0) ++n;
+            return n;
+        }
+
         uint16_t len = 0;
 
         uint64_t bm = received_bitmap;
@@ -178,6 +198,7 @@ struct NankaiPageBuffer {
             w += n;
         }
         aggregated_text[w] = '\0';
+        compacted = true;
         return w;
     }
 
@@ -194,6 +215,7 @@ struct NankaiPageBuffer {
         received_bitmap = 0;
         last_update_ms = 0;
         truncated = false;
+        compacted = false;
         memset(aggregated_text, 0, sizeof(aggregated_text));
     }
 
@@ -223,15 +245,15 @@ private:
 // AZARAC_AVR_STUB は __AVR__ を定義しつつホスト ABI を使うので、期待値はホスト側と同じ。
 #if AZARAC_NANKAI_MAX_PAGES == 63
 #  if defined(__AVR__) && !defined(AZARAC_AVR_STUB)
-static_assert(sizeof(NankaiPageBuffer) == 1157, "NankaiPageBuffer AVR layout");
-static_assert(offsetof(NankaiPageBuffer, aggregated_text) == 22, "aggregated_text AVR offset");
+static_assert(sizeof(NankaiPageBuffer) == 1158, "NankaiPageBuffer AVR layout");
+static_assert(offsetof(NankaiPageBuffer, aggregated_text) == 23, "aggregated_text AVR offset");
 #  else
 static_assert(sizeof(NankaiPageBuffer) == 1160, "NankaiPageBuffer host/stub layout");
 static_assert(offsetof(NankaiPageBuffer, aggregated_text) == 24, "aggregated_text host/stub offset");
 #  endif
 #elif AZARAC_NANKAI_MAX_PAGES == 4 && defined(__AVR__) && !defined(AZARAC_AVR_STUB)
-static_assert(sizeof(NankaiPageBuffer) == 95, "NankaiPageBuffer AVR preset layout");
-static_assert(offsetof(NankaiPageBuffer, aggregated_text) == 22, "aggregated_text AVR preset offset");
+static_assert(sizeof(NankaiPageBuffer) == 96, "NankaiPageBuffer AVR preset layout");
+static_assert(offsetof(NankaiPageBuffer, aggregated_text) == 23, "aggregated_text AVR preset offset");
 #endif
 
 // 複数のページバッファを bitmap 追跡 + LRU 追い出しで管理する。バッファ数 = AZARAC_NANKAI_BUFFERS（azaraC_config.h）。
@@ -253,6 +275,11 @@ public:
     NankaiPageBuffer* addPage(const NankaiPageKey& key, uint8_t page_num,
                                uint8_t total_pages, const uint8_t* text_data,
                                uint64_t current_ms) {
+        // 不正ページはバッファ割り当て（最古の追い出し）より前に弾き、進行中の集約を守る。
+        if (!NankaiPageBuffer::pageInRange(page_num, total_pages)) {
+            return nullptr;
+        }
+
         expireBuffers(current_ms);
 
         int8_t idx = findBuffer(key);

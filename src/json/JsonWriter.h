@@ -99,6 +99,12 @@ void writeRaw(Print& out, JsonKey k);
 void writeUint32(Print& out, uint32_t v);
 void writeUint64(Print& out, uint64_t v);
 void writeStr(Print& out, std::string_view s);
+#if AZARAC_ENABLE_NANKAI
+// 衛星由来の生バイト列（南海トラフ集約テキスト）用。UTF-8 として検証し、不正シーケンスを
+// U+FFFD に置換してから JSON エスケープする（出力は常に valid UTF-8）。テーブルラベルは
+// UTF-8 保証済みなので writeStr を使う（全 JSON への per-byte コスト増を避ける）。
+void writeStrUtf8(Print& out, std::string_view s);
+#endif
 void writeOptStr(Print& out, std::optional<std::string_view> s);
 void writeHex(Print& out, uint8_t v);
 

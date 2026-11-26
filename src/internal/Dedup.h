@@ -48,17 +48,19 @@ private:
 };
 
 // 情報自身のトークンで識別する情報（南海トラフ地震）の鍵。
-// identity = {info_code, information_type, report time}（NankaiPageKey 参照）。
+// identity = {info_code, information_type, report time, report_classification}（NankaiPageKey 参照）。
 constexpr inline DedupKey dedupEventKey(uint32_t token) {
     return DedupKey{0, token & kSyntheticPayloadMask, true};
 }
 
-// 事象（NankaiPageKey）の 26 ビットをそのまま鍵にする: Is 4 + It 2 + month 4 + day 5 + hour 5 + minute 6 = 26。
-// フィールド幅は電文と同じなので 6 つ揃えば衝突しない。
+// 事象（NankaiPageKey）の 29 ビットをそのまま鍵にする: Rc 3 + Is 4 + It 2 + month 4 + day 5 + hour 5 + minute 6 = 29。
+// フィールド幅は電文と同じなので 7 つ揃えば衝突しない。Rc を含めるのは訓練（Rc=7）と実警報（Rc=2）を同一事象に潰さないため。
 // It を含めるのは NankaiPageKey と同じ理由（発表と取消を同一事象に潰さない）。
 constexpr inline uint32_t dedupEventToken(uint8_t info_code, uint8_t information_type, uint8_t month,
-                                          uint8_t day, uint8_t hour, uint8_t minute) {
-    return ((uint32_t)(information_type & 0x3u) << 24)
+                                          uint8_t day, uint8_t hour, uint8_t minute,
+                                          uint8_t report_classification = 0) {
+    return ((uint32_t)(report_classification & 0x7u) << 26)
+         | ((uint32_t)(information_type & 0x3u) << 24)
          | ((uint32_t)(info_code & 0x0Fu) << 20)
          | ((uint32_t)(month & 0x0Fu) << 16)
          | ((uint32_t)(day   & 0x1Fu) << 11)
