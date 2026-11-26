@@ -747,4 +747,3 @@ TEST_CASE("getMillis: uint64_tを返す") {
     uint64_t ms = internal::getMillis();
     CHECK(ms > 0);
 }
-
