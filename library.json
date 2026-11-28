@@ -12,6 +12,6 @@
   "platforms": "*",
   "headers": ["azaraC.h"],
   "export": {
-    "include": ["src", "examples", "library.json", "library.properties", "keywords.txt", "README.md", "LICENSE"]
+    "include": ["src", "examples", "docs", "library.json", "library.properties", "keywords.txt", "README.md", "LICENSE"]
   }
 }
