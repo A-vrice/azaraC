@@ -175,8 +175,6 @@ TEST_CASE("UTF-8: Nankai aggregated text with invalid bytes serializes to valid 
     CHECK(value.find("\xEF\xBF\xBD") != std::string::npos);   // 0xFF と切断シーケンスが置換された
 }
 
-#endif // AZARAC_ENABLE_NANKAI
-
 TEST_CASE("JsonWriter: exact UTF-8 boundary codepoints and control char 0x1F vs 0x20") {
     auto encodeStr = [](const char* data, size_t len) -> std::string {
         StringPrint sp;
@@ -238,3 +236,5 @@ TEST_CASE("JsonWriter: exact UTF-8 boundary codepoints and control char 0x1F vs 
     CHECK(encodeStr("\xE0", 1) == "\"\xEF\xBF\xBD\"");
     CHECK(encodeStr("\xF0", 1) == "\"\xEF\xBF\xBD\"");
 }
+
+#endif // AZARAC_ENABLE_NANKAI

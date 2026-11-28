@@ -1912,6 +1912,7 @@ TEST_CASE("JSON: QZQSM multi-element arrays, EEW multi-byte regions, and 23:59 a
         internal::JsonSerializer::serialize(m, sp);
         return sp.str();
     };
+    (void)serializeMsg;
 
 #if (AZARAC_ENABLE_EEW)
     {
@@ -1951,6 +1952,7 @@ TEST_CASE("JSON: QZQSM multi-element arrays, EEW multi-byte regions, and 23:59 a
     }
 #endif
 
+#if (AZARAC_ENABLE_SEISMIC)
     {
         Message m{};
         m.valid = true; m.svid = 193;
@@ -1964,6 +1966,7 @@ TEST_CASE("JSON: QZQSM multi-element arrays, EEW multi-byte regions, and 23:59 a
         CHECK(has(s, "\"prefecture\":14,"));
         CHECK(s.find("\"prefecture\":0,") == std::string::npos);
     }
+#endif
 
 #if (AZARAC_ENABLE_NANKAI)
     {
@@ -1982,6 +1985,7 @@ TEST_CASE("JSON: QZQSM multi-element arrays, EEW multi-byte regions, and 23:59 a
     }
 #endif
 
+#if (AZARAC_ENABLE_NW_PAC_TSUNAMI)
     {
         Message m{};
         m.valid = true; m.svid = 193;
@@ -1998,7 +2002,9 @@ TEST_CASE("JSON: QZQSM multi-element arrays, EEW multi-byte regions, and 23:59 a
         CHECK(has(s, "\"region\":20,"));
         CHECK(s.find("\"region\":0,") == std::string::npos);
     }
+#endif
 
+#if (AZARAC_ENABLE_VOLCANO)
     {
         Message m{};
         m.valid = true; m.svid = 193;
@@ -2012,7 +2018,9 @@ TEST_CASE("JSON: QZQSM multi-element arrays, EEW multi-byte regions, and 23:59 a
         CHECK(has(s, "{\"code\":14100,"));
         CHECK(s.find("{\"code\":0,") == std::string::npos);
     }
+#endif
 
+#if (AZARAC_ENABLE_ASH_FALL)
     {
         Message m{};
         m.valid = true; m.svid = 193;
@@ -2026,7 +2034,9 @@ TEST_CASE("JSON: QZQSM multi-element arrays, EEW multi-byte regions, and 23:59 a
         CHECK(has(s, "\"local_gov\":14100,"));
         CHECK(s.find("\"local_gov\":0,") == std::string::npos);
     }
+#endif
 
+#if (AZARAC_ENABLE_WEATHER)
     {
         Message m{};
         m.valid = true; m.svid = 193;
@@ -2040,7 +2050,9 @@ TEST_CASE("JSON: QZQSM multi-element arrays, EEW multi-byte regions, and 23:59 a
         CHECK(has(s, "\"region\":140010,"));
         CHECK(s.find("\"region\":0,") == std::string::npos);
     }
+#endif
 
+#if (AZARAC_ENABLE_FLOOD)
     {
         Message m{};
         m.valid = true; m.svid = 193;
@@ -2054,7 +2066,9 @@ TEST_CASE("JSON: QZQSM multi-element arrays, EEW multi-byte regions, and 23:59 a
         CHECK(has(s, "\"region\":1002,"));
         CHECK(s.find("\"region\":0,") == std::string::npos);
     }
+#endif
 
+#if (AZARAC_ENABLE_MARINE)
     {
         Message m{};
         m.valid = true; m.svid = 193;
@@ -2068,4 +2082,5 @@ TEST_CASE("JSON: QZQSM multi-element arrays, EEW multi-byte regions, and 23:59 a
         CHECK(has(s, "\"region\":102,"));
         CHECK(s.find("\"region\":0,") == std::string::npos);
     }
+#endif
 }
