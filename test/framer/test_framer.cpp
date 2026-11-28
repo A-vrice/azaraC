@@ -513,3 +513,155 @@ TEST_CASE("UBX: SYNC2 resync on stray 0xB5") {
     CHECK(found == 1);
     CHECK(out.svid == 184);
 }
+
+TEST_CASE("UBX: resync on 0xB5 at every failure point (bad len, CK_A, CK_B, class/id, parse)") {
+    uint8_t valid_bits[32] = {};
+    valid_bits[0] = 0x53;
+    valid_bits[1] = 0xAB;
+    auto valid_pkt = makeUbxSfrbx(2, valid_bits);
+    std::vector<uint8_t> tail(valid_pkt.begin() + 1, valid_pkt.end());
+
+    auto feedAndExpectOne = [&](const std::vector<uint8_t>& prefix) {
+        UbxFramer framer;
+        Frame out{};
+        int found = 0;
+        for (auto b : prefix) {
+            if (framer.feed(b, out)) found++;
+        }
+        CHECK(found == 0);
+        for (auto b : tail) {
+            if (framer.feed(b, out)) found++;
+        }
+        CHECK(found == 1);
+        CHECK(out.bits[0] == 0x53);
+        CHECK(out.bits[1] == 0xAB);
+    };
+
+    // 1. 不正な長さ (_len > sizeof(_buf)) で上位バイトが 0xB5
+    feedAndExpectOne({0xB5, 0x62, 0x02, 0x13, 0x00, 0xB5});
+
+    // 2. CK_A 不一致バイトが 0xB5
+    {
+        auto bad_cka = makeUbxSfrbx(2, valid_bits);
+        bad_cka.pop_back();
+        if (bad_cka.back() == 0xB5) {
+            valid_bits[2] ^= 0x01;
+            bad_cka = makeUbxSfrbx(2, valid_bits);
+            bad_cka.pop_back();
+        }
+        bad_cka.back() = 0xB5;
+        feedAndExpectOne(bad_cka);
+    }
+
+    // 3. CK_B 不一致バイトが 0xB5
+    {
+        auto bad_ckb = makeUbxSfrbx(2, valid_bits);
+        if (bad_ckb.back() == 0xB5) {
+            bad_ckb[6] ^= 0x01;
+            uint8_t cka = 0;
+            for (size_t i = 2; i < bad_ckb.size() - 2; ++i) cka += bad_ckb[i];
+            bad_ckb[bad_ckb.size() - 2] = cka;
+        }
+        bad_ckb.back() = 0xB5;
+        feedAndExpectOne(bad_ckb);
+    }
+
+    // 4. 非 RXM-SFRBX (class=0x01, id=0x07) で正規 CK_B が 0xB5
+    {
+        std::vector<uint8_t> other;
+        for (uint16_t v = 0; v < 256; ++v) {
+            std::vector<uint8_t> cand = {0xB5, 0x62, 0x01, 0x07, 0x01, 0x00, static_cast<uint8_t>(v)};
+            uint8_t cka = 0, ckb = 0;
+            for (size_t i = 2; i < cand.size(); ++i) { cka += cand[i]; ckb += cka; }
+            if (ckb == 0xB5) {
+                cand.push_back(cka);
+                cand.push_back(ckb);
+                other = cand;
+                break;
+            }
+        }
+        REQUIRE(!other.empty());
+        feedAndExpectOne(other);
+    }
+
+    // 5. RXM-SFRBX だが parse() で拒否されるフレーム (len=4 < 8) で正規 CK_B が 0xB5
+    {
+        std::vector<uint8_t> bad_parse;
+        for (uint16_t v = 0; v < 256; ++v) {
+            std::vector<uint8_t> cand = {0xB5, 0x62, 0x02, 0x13, 0x04, 0x00, static_cast<uint8_t>(v), 0, 0, 0};
+            uint8_t cka = 0, ckb = 0;
+            for (size_t i = 2; i < cand.size(); ++i) { cka += cand[i]; ckb += cka; }
+            if (ckb == 0xB5) {
+                cand.push_back(cka);
+                cand.push_back(ckb);
+                bad_parse = cand;
+                break;
+            }
+        }
+        REQUIRE(!bad_parse.empty());
+        feedAndExpectOne(bad_parse);
+    }
+
+    // _len == 0 は拒否される
+    {
+        UbxFramer framer;
+        Frame out{};
+        const uint8_t zero_len[] = {0xB5, 0x62, 0x02, 0x13, 0x00, 0x00, 0x15, 0x3D};
+        for (auto b : zero_len) CHECK_FALSE(framer.feed(b, out));
+    }
+}
+
+TEST_CASE("NMEA: lowercase hex payload, SVID=255, and 63/65 hex length boundaries") {
+    auto buildRawNmea = [](const std::string& body) {
+        uint8_t xsum = 0;
+        for (char c : body) xsum ^= static_cast<uint8_t>(c);
+        char tail[8];
+        snprintf(tail, sizeof(tail), "*%02X\r\n", xsum);
+        return "$" + body + tail;
+    };
+
+    // 小文字 a-f を含む 63 文字ペイロード + SVID=63 (上限ちょうど -> PRN 191)
+    {
+        std::string hex63 = "abcdef0123456789abcdef0123456789abcdef0123456789abcdef01234567f";
+        REQUIRE(hex63.size() == 63);
+        std::string sentence = buildRawNmea("QZQSM,63," + hex63);
+        NmeaFramer framer;
+        Frame out{};
+        bool got = false;
+        for (char c : sentence) {
+            if (framer.feed(static_cast<uint8_t>(c), out)) got = true;
+        }
+        REQUIRE(got);
+        CHECK(out.svid == (63u | 0x80u));
+        CHECK(out.bits[0] == 0xAB);
+        CHECK(out.bits[1] == 0xCD);
+        CHECK(out.bits[2] == 0xEF);
+        CHECK(out.bits[31] == 0xC0);
+    }
+
+    // SVID=64 (上限超過) は拒否される
+    {
+        std::string hex63(63, 'a');
+        std::string sentence = buildRawNmea("QZQSM,64," + hex63);
+        NmeaFramer framer;
+        Frame out{};
+        bool got = false;
+        for (char c : sentence) {
+            if (framer.feed(static_cast<uint8_t>(c), out)) got = true;
+        }
+        CHECK_FALSE(got);
+    }
+
+    // 65 文字 (64 超過) は拒否される
+    {
+        std::string hex65(65, 'a');
+        std::string sentence = buildRawNmea("QZQSM,55," + hex65);
+        NmeaFramer framer;
+        Frame out{};
+        bool got = false;
+        for (char c : sentence) {
+            if (framer.feed(static_cast<uint8_t>(c), out)) got = true;
+        }
+        CHECK_FALSE(got);
+    }
+}

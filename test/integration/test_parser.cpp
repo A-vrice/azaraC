@@ -763,3 +763,30 @@ TEST_CASE("Parser: MT44 は SDMT/SDM が違っても同一内容を 1 回だけ�
 }
 #endif // AZARAC_ENABLE_DEDUP
 #endif // AZARAC_ENABLE_DCX_CAMF
+
+#if (AZARAC_ENABLE_EEW)
+TEST_CASE("Parser: bulk feed returns exact consumed byte count (i + 1)") {
+    uint8_t bits[32] = {};
+    setBits(bits, 0, 8, 0x53);
+    setBits(bits, 8, 6, 43);
+    setBits(bits, 14, 3, 1);
+    setBits(bits, 17, 4, 1);
+    setBits(bits, 21, 4, 6);
+    setBits(bits, 25, 5, 15);
+    setBits(bits, 30, 5, 12);
+    setBits(bits, 35, 6, 0);
+    setBits(bits, 214, 6, 1);
+    setBits(bits, 226, 24, crc24qRef(bits, 226));
+
+    auto pkt = makeUbxSfrbx(2, bits);
+    const size_t expected_consumed = pkt.size();
+    pkt.push_back(0x00);
+    pkt.push_back(0x00);
+
+    Parser parser;
+    Message out{};
+    size_t consumed = parser.feedUntilMessage(pkt.data(), pkt.size(), out, 1718452800u);
+    CHECK(consumed == expected_consumed);
+    CHECK(out.valid);
+}
+#endif
