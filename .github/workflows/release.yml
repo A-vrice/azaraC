@@ -41,7 +41,7 @@ jobs:
           REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
-          runs=$(gh api "repos/${REPO}/actions/workflows/ci.yml/runs?head_sha=${SOURCE_SHA}&per_page=100" \
+          runs=$(gh api "repos/${REPO}/actions/workflows/ci.yml/runs?head_sha=${SOURCE_SHA}&event=push&per_page=100" \
             --jq '[.workflow_runs[] | {status, conclusion}]')
           echo "CI runs for ${SOURCE_SHA}: ${runs}"
           ok=$(echo "$runs" | jq '[.[] | select(.status=="completed" and .conclusion=="success")] | length')
