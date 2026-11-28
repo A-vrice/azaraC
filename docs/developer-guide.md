@@ -123,6 +123,7 @@ make -C test fuzz FUZZ_ITERATIONS=100000
 | `make -C test pgm-stub` | `__AVR__` + スタブ `avr/pgmspace.h` で全テストをコンパイルし PROGMEM 分岐をホスト検証 |
 | `make -C test test-time-irq` | `ARDUINO=1` + `__AVR__` + スタブ `avr/io.h` で `internal::getMillis()` の割り込み状態保存・復元をホスト検証。ESP32 は割り込みを操作せず 64 bit の `esp_timer_get_time()` を使う |
 | `make -C test test-clock-idle` | Arduino / ESP32 時計スタブで、無受信のまま `updateClock()` が世代境界を観測し履歴・集約を破棄することを検証 |
+| `make -C test utf8-trim` | 64 B バッファの UTF-8 切り詰めをホスト・AVR near/far スタブで検証し、64 B 未満の設定がビルド失敗することも確認。`run` に含む |
 | `make -C test run-small-pages` | `AZARAC_NANKAI_MAX_PAGES=8` で全体を再ビルドし、ページ打ち切り経路を検証（既定 63 では打ち切りが発生せず該当テストが `#if` で除外されるため） |
 | `make -C test run-lto` | `-O2 -flto -Werror=lto-type-mismatch -Werror=odr` で全体を再ビルド・実行し、リンク時最適化での型不一致・ODR 違反・インライン後 codegen の退行を検証（終了時に `clean`） |
 | `make -C test decode` | decode_to_jsonのCLIビルド（azarashi 比較用） |

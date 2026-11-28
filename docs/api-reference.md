@@ -601,6 +601,8 @@ AVR プリセットは EEW・震源が既定で 0 なので `sizeof(Mt43Data)` �
 | `AZARAC_DEDUP_MT44_MAX_WINDOW_MS` | 300000 | MT=44 の情報有効時間(ms)の上限。`__AVR__`のみ定義され、常に A8 由来の窓（最短6時間）を置き換える。ホストは上限を設けず A8 の窓をそのまま使う |
 | `AZARAC_KEY_BUF_SIZE` | 36 | AVR で JSON のキーと固定値リテラルを Flash から書き出すときのスタック上の一時バッファのバイト数（どちらも `AZARAC_KEY("...")` で包む。値は `wf_s` の `JsonKey` オーバーロードが受ける）。最長はキーの35B（`a17_type_of_specific_settings_label`）、値は20B（`unsupported_category`）で、`JsonKey` の生成時に `static_assert` が収まらないリテラルをコンパイルエラーにする。非AVRでは使われない |
 
+`AZARAC_FLASH_BUF_SIZE` は 64 未満をコンパイル時に拒否します。ラベルの切り詰めでは末尾の不完全な UTF-8 文字を捨て、文字境界に戻します（ラベル全体が収まる保証ではありません）。
+
 **AVRプリセット**: `__AVR__`では`azaraC_config.h`のプリセットがAVR専用のものに置き換わる。具体的には以下の変更が行われる。
 有効カテゴリはボードによらず**SEISMIC/TSUNAMIのみ**。
 他10カテゴリは大容量ボードでも無効となる（全部同時にすると、たとえ 256KB のボードでも 250,138B/262,144B となりユーザーのコードを 12KB しか置けなくなる）。

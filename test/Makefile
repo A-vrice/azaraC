@@ -130,7 +130,7 @@ VPATH = ../src:../src/decoder:../src/framer:../src/json:../src/internal
 LOCKABLE  := all run run-small-pages run-lto run-lang-defaults clean \
              test-no-alloc pgm-stub macro fuzz decode dedup-realday \
              bench bench-dedup bench-decode test-time-irq test-clock-idle test-macro-compile test-macro-sizes \
-             compare-realdata coverage check check-xml check-strict-compile
+             compare-realdata coverage check check-xml check-strict-compile utf8-trim
 USER_GOALS := $(if $(MAKECMDGOALS),$(MAKECMDGOALS),all)
 # 「ロック未保持」かつ「ユーザーが直接 LOCKABLE な目標を指定した」場合のみラップする。
 NEED_LOCK := $(if $(AZARAC_LOCK_HELD),,$(filter $(LOCKABLE),$(USER_GOALS)))
@@ -157,7 +157,7 @@ $(TEST_BIN): $(OBJS)
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) $(CXXFLAGS_EXTRA) -c $< -o $@
 
-run: all test-clock-idle
+run: all test-clock-idle utf8-trim
 	$(RUN_PREFIX)$(TEST_BIN)
 
 # 縮小バジェット経路の検証（既定は 63 = 仕様最大）。打ち切りを含む MAX_PAGES
@@ -270,6 +270,11 @@ check-xml:
 check-strict-compile:
 	@echo "Compiling library with strict warnings..."
 	$(CXX) $(ANALYSIS_CXXFLAGS) -c $(LIB_SRCS)
+	@for o in -O1 -O2 -Os; do \
+		echo "Compiling library with strict warnings ($$o)..."; \
+		$(CXX) $(ANALYSIS_CXXFLAGS) $$o -c $(LIB_SRCS) || exit 1; \
+	done
+	@$(RM) $(notdir $(LIB_SRCS:.cpp=.o)) $(notdir $(LIB_SRCS:.cpp=.d))
 
 # --- Coverage ---
 # カバレッジ測定
@@ -506,6 +511,20 @@ pgm-stub:
 test-time-irq:
 	$(CXX) -std=c++17 -Wall -Wextra -Istub_arduino -I../src -DARDUINO=1 -D__AVR__ -DAZARAC_AVR_STUB internal/test_time_irq.cpp internal/test_time_irq_b.cpp -o time_irq_test
 	./time_irq_test; t=$$?; $(RM) time_irq_test time_irq_test.exe; exit $$t
+
+.PHONY: utf8-trim
+utf8-trim:
+	@set -e; for flags in "" "-D__AVR__ -DAZARAC_AVR_STUB" "-D__AVR__ -DAZARAC_AVR_STUB -DFLASHEND=0xFFFF"; do \
+		$(CXX) -std=c++17 -Wall -Wextra -Werror -O1 -Istub -I../src \
+			-DAZARAC_FLASH_BUF_SIZE=64 $$flags tools/utf8_trim_probe.cpp -o utf8_trim_probe; \
+		./utf8_trim_probe; \
+	done; $(RM) utf8_trim_probe utf8_trim_probe.exe
+	@if $(CXX) -std=c++17 -I../src -DAZARAC_FLASH_BUF_SIZE=63 -c tools/utf8_trim_probe.cpp -o utf8_trim_probe.o 2>utf8_trim_error.log; then \
+		echo "undersized FlashString buffer unexpectedly compiled"; exit 1; \
+	fi
+	@$(PYTHON) -c "assert 'AZARAC_FLASH_BUF_SIZE must be >= 64' in open('utf8_trim_error.log').read()"
+	@$(RM) utf8_trim_probe.o utf8_trim_error.log
+	@echo "utf8-trim: minimum buffer rejected"
 
 .PHONY: test-clock-idle
 test-clock-idle:

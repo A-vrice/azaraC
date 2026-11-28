@@ -28,8 +28,31 @@
 #define AZARAC_FLASH_BUF_SIZE 800
 #endif
 
+static_assert(AZARAC_FLASH_BUF_SIZE >= 64,
+              "AZARAC_FLASH_BUF_SIZE must be >= 64");
+
 namespace azaraC {
 namespace def {
+
+// 不完全な末尾 UTF-8 シーケンスを捨てる。
+inline size_t azarac_utf8_trim_len(const char* buf, size_t n) {
+    size_t i = n;
+    size_t back = 0;
+    while (i > 0 && back < 3 && (static_cast<unsigned char>(buf[i - 1]) & 0xC0u) == 0x80u) {
+        --i;
+        ++back;
+    }
+    if (i == 0) return 0;
+    const unsigned char lead = static_cast<unsigned char>(buf[i - 1]);
+    size_t need;
+    if ((lead & 0x80u) == 0x00u)      need = 1;
+    else if ((lead & 0xE0u) == 0xC0u) need = 2;
+    else if ((lead & 0xF0u) == 0xE0u) need = 3;
+    else if ((lead & 0xF8u) == 0xF0u) need = 4;
+    else return i - 1;
+    const size_t have = n - (i - 1);
+    return (have >= need) ? n : (i - 1);
+}
 
 #ifdef __AVR__
 #include <avr/pgmspace.h>
@@ -72,6 +95,7 @@ inline std::string_view azarac_pgm_view(azarac_pgm_ptr src, size_t n) {
     char* buf = azarac_flash_buf();
     if (n >= AZARAC_FLASH_BUF_SIZE) n = AZARAC_FLASH_BUF_SIZE - 1;
     azarac_read_block(buf, src, n);
+    n = azarac_utf8_trim_len(buf, n);
     buf[n] = '\0';
     return std::string_view(buf, n);
 }
@@ -97,6 +121,7 @@ inline std::string_view azarac_pgm_join_z(azarac_pgm_ptr a, azarac_pgm_ptr b) {
     char* buf = azarac_flash_buf();
     size_t n = azarac_pgm_append(buf, 0, a);
     n = azarac_pgm_append(buf, n, b);
+    n = azarac_utf8_trim_len(buf, n);
     buf[n] = '\0';
     return std::string_view(buf, n);
 }
@@ -107,6 +132,7 @@ inline std::string_view azarac_pgm_join3(azarac_pgm_ptr a, azarac_pgm_ptr b, aza
     size_t n = azarac_pgm_append(buf, 0, a);
     n = azarac_pgm_append(buf, n, b);
     n = azarac_pgm_append(buf, n, c);
+    n = azarac_utf8_trim_len(buf, n);
     buf[n] = '\0';
     return std::string_view(buf, n);
 }
@@ -114,6 +140,9 @@ inline const char* azarac_pgm_copy(azarac_pgm_ptr src) {
     char* buf = azarac_flash_buf();
     azarac_copy_string(buf, src, AZARAC_FLASH_BUF_SIZE - 1);
     buf[AZARAC_FLASH_BUF_SIZE - 1] = '\0';
+    size_t n = 0;
+    while (buf[n] != '\0') ++n;
+    buf[azarac_utf8_trim_len(buf, n)] = '\0';
     return buf;
 }
 #else
@@ -154,13 +183,12 @@ inline std::string_view azarac_pgm_view(azarac_pgm_ptr src, size_t n) {
     return std::string_view(src, n);
 }
 inline std::string_view azarac_pgm_view_z(azarac_pgm_ptr src) {
-    return std::string_view(src, azarac_pgm_len(src));
+    const size_t n = azarac_pgm_len(src);
+    return std::string_view(src, azarac_utf8_trim_len(src, n));
 }
 inline size_t azarac_pgm_append(char* buf, size_t at, azarac_pgm_ptr src) {
-    size_t n = azarac_pgm_len(src);
-    if (n > AZARAC_FLASH_BUF_SIZE - 1 - at) n = AZARAC_FLASH_BUF_SIZE - 1 - at;
-    azarac_read_block(buf + at, src, n);
-    return at + n;
+    while (at < AZARAC_FLASH_BUF_SIZE - 1 && *src != '\0') buf[at++] = *src++;
+    return at;
 }
 inline char* azarac_flash_buf() {
     static char buf[AZARAC_FLASH_BUF_SIZE];
@@ -170,6 +198,7 @@ inline std::string_view azarac_pgm_join_z(azarac_pgm_ptr a, azarac_pgm_ptr b) {
     char* buf = azarac_flash_buf();
     size_t n = azarac_pgm_append(buf, 0, a);
     n = azarac_pgm_append(buf, n, b);
+    n = azarac_utf8_trim_len(buf, n);
     buf[n] = '\0';
     return std::string_view(buf, n);
 }
@@ -178,6 +207,7 @@ inline std::string_view azarac_pgm_join3(azarac_pgm_ptr a, azarac_pgm_ptr b, aza
     size_t n = azarac_pgm_append(buf, 0, a);
     n = azarac_pgm_append(buf, n, b);
     n = azarac_pgm_append(buf, n, c);
+    n = azarac_utf8_trim_len(buf, n);
     buf[n] = '\0';
     return std::string_view(buf, n);
 }
