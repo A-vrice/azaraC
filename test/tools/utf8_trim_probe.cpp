@@ -6,6 +6,7 @@
 int main() {
     using namespace azaraC::def;
     assert(azarac_utf8_trim_len(nullptr, 0) == 0);
+    assert(azarac_utf8_trim_len(nullptr, 3) == 0);
     assert(azarac_utf8_trim_len("abc", 3) == 3);
     const char* samples[] = {"\xC2\xA2", "\xE3\x81\x82", "\xF0\x9F\x98\x80"};
     for (const char* s : samples) {

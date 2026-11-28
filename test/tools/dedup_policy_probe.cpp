@@ -27,11 +27,15 @@ int main() {
 #endif
     internal::DedupFilter filter;
     const auto key = internal::dedupEventKey(123);
-    assert(!filter.isDuplicate(key, 1000, 100));
-    assert(filter.isDuplicate(key, 1000, 100) == bool(AZARAC_ENABLE_DEDUP));
-    assert(!filter.isDuplicate(key, 1200, 100));
+    const bool firstDuplicate = filter.isDuplicate(key, 1000, 100);
+    assert(!firstDuplicate);
+    const bool repeatedDuplicate = filter.isDuplicate(key, 1000, 100);
+    assert(repeatedDuplicate == bool(AZARAC_ENABLE_DEDUP));
+    const bool expiredDuplicate = filter.isDuplicate(key, 1200, 100);
+    assert(!expiredDuplicate);
     filter.reset();
-    assert(!filter.isDuplicate(key, 1200, 100));
+    const bool resetDuplicate = filter.isDuplicate(key, 1200, 100);
+    assert(!resetDuplicate);
     FixedFramer framer;
     uint8_t* bits = framer.frame.bits;
     framer.frame.svid = 186;
@@ -43,16 +47,21 @@ int main() {
     setBits(bits, 226, 24, crc24q(bits, 226));
     Parser parser(framer);
     Message msg;
-    assert(!parser.feed(nullptr, 0, msg));
+    const bool emptyAccepted = parser.feed(nullptr, 0, msg);
+    assert(!emptyAccepted);
     assert(!msg.valid);
-    assert(parser.feed(uint8_t(0), msg));
+    const bool firstAccepted = parser.feed(uint8_t(0), msg);
+    assert(firstAccepted);
     assert(msg.valid);
-    assert(parser.feed(uint8_t(0), msg) == !bool(AZARAC_ENABLE_DEDUP));
+    const bool repeatedAccepted = parser.feed(uint8_t(0), msg);
+    assert(repeatedAccepted == !bool(AZARAC_ENABLE_DEDUP));
     assert(msg.valid == !bool(AZARAC_ENABLE_DEDUP));
     parser.reset();
-    assert(parser.feed(uint8_t(0), msg));
+    const bool resetAccepted = parser.feed(uint8_t(0), msg);
+    assert(resetAccepted);
     bits[10] ^= 1;
-    assert(!parser.feed(uint8_t(0), msg));
+    const bool corruptedAccepted = parser.feed(uint8_t(0), msg);
+    assert(!corruptedAccepted);
     assert(!msg.valid);
     std::printf("dedup-policy: OK (enabled=%d)\n", AZARAC_ENABLE_DEDUP);
 }

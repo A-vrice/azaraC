@@ -36,6 +36,7 @@ namespace def {
 
 // 不完全な末尾 UTF-8 シーケンスを捨てる。
 inline size_t azarac_utf8_trim_len(const char* buf, size_t n) {
+    if (!buf || n == 0) return 0;
     size_t i = n;
     size_t back = 0;
     while (i > 0 && back < 3 && (static_cast<unsigned char>(buf[i - 1]) & 0xC0u) == 0x80u) {
