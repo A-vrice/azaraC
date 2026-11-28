@@ -86,7 +86,7 @@
 // 定義表引き当て用の共有バッファ（internal/FlashString.h 参照）。
 // カテゴリマクロより後に置く（preset でもサイズを選べるようにするため）。
 // 収めるべき長さは「ラベルの出どころとなる全カテゴリの最長ラベル」。
-// 表はそれぞれのガードで有効になりこの連鎖では決まらないので、ここに無いカテゴリは黙ってラベルを切り詰める（azarac_pgm_view は AZARAC_FLASH_BUF_SIZE - 1、UTF-8 の途中でも切る）。
+// 表はそれぞれのガードで有効になりこの連鎖では決まらないので、ここに無いカテゴリはラベルを切り詰める（UTF-8 の文字境界まで戻す）。
 // 各分岐の値は test/bench/avr/check_flash_buf.py（make -C test bench）が全カテゴリの組み合わせと突き合わせ、不足すれば失敗する。
 // 不足を指摘されたら分岐を足す。
 #ifndef AZARAC_FLASH_BUF_SIZE
@@ -155,6 +155,25 @@
 #endif
 #ifndef AZARAC_ENABLE_DCX_CAMF
 #define AZARAC_ENABLE_DCX_CAMF 1
+#endif
+
+// 0 では dedup 履歴を持たない。南海トラフのページ集約は無効にならない。
+// 完成済み集約を保持中は再送ページを出力せず、完成から 60 秒超で失効した後に全ページを再受信すると再出力する。
+#ifndef AZARAC_ENABLE_DEDUP
+#define AZARAC_ENABLE_DEDUP 1
+#endif
+
+// 0: 00-63、1: PRN 181-191 に対応する 53-63、2: 仕様表の 55/56/57/58/61。
+#ifndef AZARAC_NMEA_STRICT_SVID
+#define AZARAC_NMEA_STRICT_SVID 0
+#endif
+#if AZARAC_NMEA_STRICT_SVID < 0 || AZARAC_NMEA_STRICT_SVID > 2
+#error "AZARAC_NMEA_STRICT_SVID must be 0 (00-63), 1 (53-63), or 2 (55/56/57/58/61)"
+#endif
+
+// 250 bit フレームの後ろの詰め物（bit 250-255）を、マスクせず拒否する。
+#ifndef AZARAC_NMEA_REJECT_NONZERO_PADDING
+#define AZARAC_NMEA_REJECT_NONZERO_PADDING 0
 #endif
 
 // 重複排除 AZARAC_DEDUP_WAYS: 1 セットあたりのエントリ数（連想度）。大きいほどハッシュ衝突に強く（生きている情報を誤って「新規」にしにくい）、小さいほど 1 判定が安い。

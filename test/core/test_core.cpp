@@ -7,6 +7,48 @@ using namespace azaraC;
 
 // CRC-24Q テスト
 
+TEST_CASE("Public crc24q: known vector and bit-length equivalence") {
+    const uint8_t known[] = {'1', '2', '3', '4', '5', '6', '7', '8', '9'};
+    CHECK(azaraC::crc24q(known, 72) == 0xCDE703u);
+    CHECK(azaraC::crc24q(nullptr, 0) == 0);
+    uint8_t bits[32];
+    for (size_t i = 0; i < sizeof(bits); ++i) bits[i] = static_cast<uint8_t>(i * 7 + 1);
+    for (uint16_t len = 0; len <= 256; ++len) {
+        CAPTURE(len);
+        CHECK(azaraC::crc24q(bits, len) == TestDecoder::calcCRC(bits, len));
+        CHECK(azaraC::crc24q(bits, len) == crc24qRef(bits, len));
+    }
+}
+
+#if AZARAC_ENABLE_SEISMIC
+TEST_CASE("Public crc24q: receive path accepts generated CRC and rejects corruption") {
+    class CrcFrameFramer : public internal::IFramer {
+    public:
+        internal::Frame frame{};
+        bool feed(uint8_t, internal::Frame& out) override { out = frame; return true; }
+        void reset() override {}
+    } framer;
+    framer.frame.svid = 186;
+    uint8_t* bits = framer.frame.bits;
+    setBits(bits, 0, 8, 0x53);
+    setBits(bits, 8, 6, 43);
+    setBits(bits, 14, 3, 2);
+    setBits(bits, 17, 4, 3);
+    setBits(bits, 214, 6, 1);
+    const uint32_t crc = azaraC::crc24q(bits, 226);
+    setBits(bits, 226, 24, crc);
+    Parser parser(framer);
+    Message msg;
+    REQUIRE(parser.feed(static_cast<uint8_t>(0), msg));
+    CHECK(msg.valid);
+    CHECK(msg.crc24 == crc);
+    bits[10] ^= 1;
+    CHECK_FALSE(parser.feed(static_cast<uint8_t>(0), msg));
+    CHECK_FALSE(msg.valid);
+    CHECK(msg.svid == 0);
+}
+#endif
+
 TEST_CASE("CRC-24Q vs reference") {
     uint8_t buf[29] = {};
     uint32_t a = TestDecoder::calcCRC(buf, 226);

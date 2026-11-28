@@ -1,6 +1,7 @@
 #pragma once
 // プラットフォーム非依存のオーバーフロー安全な millis()。外部依存なし。
-// - Arduino: millis()（約 49.7 日で巻き戻る）を volatile カウンタで uint64_t へ拡張する。<atomic> を使わない（32 bit MCU の libatomic リンク問題を避ける）。
+// - ESP32: esp_timer_get_time() の 64 bit マイクロ秒をミリ秒へ変換する。
+// - その他の Arduino: millis() を uint64_t へ拡張する。49.7 日未満の間隔で Parser::updateClock() を呼ぶこと。
 // - ホスト: std::chrono::steady_clock。
 // volatile + read-compute-write は同期していない: マルチコアの呼び出し側では非単調な値を見得るが、単一タスクでの使用は安全。
 // AVR と Cortex-M では、割り込みを無条件に許可するのではなく、呼び出し側の割り込み状態を保存して復元する。
@@ -14,6 +15,9 @@
 #else
 #include <chrono>
 #endif
+#if defined(ESP32) || defined(ARDUINO_ARCH_ESP32)
+#include <esp_timer.h>
+#endif
 
 namespace azaraC {
 namespace internal {
@@ -21,7 +25,9 @@ namespace internal {
 // 現在時刻（ミリ秒、uint64_t、巻き戻し安全）。
 // inline（外部リンケージ）: 関数内 static の s_last を全 TU で単一実体にする（C++17）。
 inline uint64_t getMillis() {
-#if defined(ARDUINO) && ARDUINO >= 1
+#if defined(ESP32) || defined(ARDUINO_ARCH_ESP32)
+    return static_cast<uint64_t>(esp_timer_get_time() / 1000);
+#elif defined(ARDUINO) && ARDUINO >= 1
     // 上位 32 bit = 巻き戻り回数、下位 32 bit = 直近の生の millis() 値。
     // 同期しない read-compute-write はマルチコア / FreeRTOS で逆行し得るが、単一タスクの粗い計時には十分。
     static volatile uint64_t s_last = 0;
@@ -38,7 +44,7 @@ inline uint64_t getMillis() {
     __asm__ volatile("mrs %0, primask" : "=r"(irq_state));
     __asm__ volatile("cpsid i" ::: "memory");
 #else
-    // このコア（Xtensa / RISC-V の ESP32 など）には可搬な保存/復元 API が無い。
+    // このコアには可搬な保存/復元 API が無い。
     // noInterrupts()/interrupts() は呼び出し側の割り込み状態を保存しないため、クリティカルセクション中や ISR から getMillis()（および Parser::feed()）を呼ばないこと。
     // AVR / Cortex-M は SREG / PRIMASK を退避・復元する。
     noInterrupts();

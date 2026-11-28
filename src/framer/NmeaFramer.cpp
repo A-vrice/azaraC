@@ -82,8 +82,16 @@ bool NmeaFramer::parse(Frame& out) {
     // 1桁は仕様の2文字表記に合わない（PRN 183 = 55 は2桁）。3桁は `| 0x80` しても PRN 契約（181-191）の外の値になる（100 → 228）。
     // 64-99 は2桁だが 6bit に収まらないため拒否する（64 → 192）。
     // 0-52 は 6bit として有効だが PRN 128-180 に対応し、L1S の PRN 契約（181-191）の外になる。
-    // フレーマーは通し、利用側が svid で絞る（azarashi も長さ 2 を要求して拒否する）。
+    // 既定は通し、利用側が svid で絞る。STRICT_SVID で受理範囲を狭められる。
     if (digit_count != 2 || *p != ',' || svid_tmp > 63) return false;
+#if AZARAC_NMEA_STRICT_SVID == 1
+    if (svid_tmp < 53) return false;
+#elif AZARAC_NMEA_STRICT_SVID == 2
+    switch (svid_tmp) {
+    case 55: case 56: case 57: case 58: case 61: break;
+    default: return false;
+    }
+#endif
     uint8_t svid = static_cast<uint8_t>(svid_tmp);
     ++p;
 
@@ -112,8 +120,11 @@ bool NmeaFramer::parse(Frame& out) {
     if ((hex_count & 1) && byte_idx < 32) {
         out.bits[byte_idx++] = nibble << 4;
     }
-    // 64 hex 文字（32 バイト）: bit 252-255 をマスクする。bit 250-251 は仕様上 0 が保証される
+    // 63/64 hex 文字: フレームの後ろの bit 250-255 は既定でマスクする。
     if (hex_count >= 63) {
+#if AZARAC_NMEA_REJECT_NONZERO_PADDING
+        if ((out.bits[31] & 0x3Fu) != 0) return false;
+#endif
         out.bits[31] &= 0xC0;
     }
 

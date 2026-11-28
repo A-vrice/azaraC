@@ -10,6 +10,140 @@
 
 using namespace azaraC;
 
+namespace {
+class FixedBytePrint : public Print {
+public:
+    using Print::write;
+    char bytes[4096] = {};
+    size_t used = 0;
+    size_t limit = sizeof(bytes);
+
+    size_t write(uint8_t byte) override {
+        if (used == limit) return 0;
+        bytes[used++] = static_cast<char>(byte);
+        return 1;
+    }
+};
+
+class BufferDispatchPrint : public FixedBytePrint {
+public:
+    using FixedBytePrint::write;
+    size_t buffer_calls = 0;
+
+    size_t write(const uint8_t* buffer, size_t size) override {
+        ++buffer_calls;
+        return Print::write(buffer, size);
+    }
+};
+} // namespace
+
+TEST_CASE("Print shim: print and println reach a byte-only sink") {
+    FixedBytePrint sink;
+    Print& out = sink;
+    CHECK(out.write("ab", 2) == 2);
+    out.print('c');
+    out.print("de");
+    out.print(std::string_view("fg"));
+    out.println();
+    out.println("hi");
+    out.println(std::string_view("jk"));
+    static const char expected[] = "abcdefg\nhi\njk\n";
+    REQUIRE(sink.used == sizeof(expected) - 1);
+    CHECK(std::memcmp(sink.bytes, expected, sink.used) == 0);
+}
+
+TEST_CASE("Print shim: buffer forwarding stops when a byte write fails") {
+    FixedBytePrint sink;
+    sink.limit = 2;
+    Print& out = sink;
+    CHECK(out.write("abc", 3) == 2);
+    CHECK(sink.used == 2);
+    CHECK(std::memcmp(sink.bytes, "ab", 2) == 0);
+    CHECK(out.write(static_cast<const char*>(nullptr)) == 0);
+    CHECK(out.write(static_cast<const uint8_t*>(nullptr), 0) == 0);
+    CHECK(out.write("", 0) == 0);
+    CHECK(sink.used == 2);
+}
+
+TEST_CASE("Print shim: character buffers dispatch through the virtual byte buffer overload") {
+    BufferDispatchPrint sink;
+    Print& out = sink;
+    CHECK(out.write("ab", 2) == 2);
+    out.print("cd");
+    out.print(std::string_view("ef"));
+    CHECK(sink.buffer_calls == 3);
+    REQUIRE(sink.used == 6);
+    CHECK(std::memcmp(sink.bytes, "abcdef", 6) == 0);
+}
+
+TEST_CASE("toJson(buffer): capacity boundaries match Print output and preserve guards") {
+    Message msg;
+    msg.svid = 193;
+    msg.msg_type = 49;
+    msg.crc24 = 0x123456;
+    SUBCASE("unknown message type") {}
+    SUBCASE("missing MT43 payload") { msg.msg_type = 43; }
+#if AZARAC_ENABLE_SEISMIC
+    SUBCASE("seismic payload with labels") {
+        msg.msg_type = 43;
+        msg.initPayload<Mt43Data>();
+        Mt43Data* data = msg.getMt43();
+        data->disaster_category = 3;
+        data->initAs<SeismicData>();
+        data->getSeismic()->count = 1;
+        data->getSeismic()->entries[0].prefecture_code = 13;
+        data->getSeismic()->entries[0].intensity_code = 5;
+    }
+#endif
+#if AZARAC_ENABLE_DCX_CAMF
+    SUBCASE("DCX payload") {
+        msg.msg_type = 44;
+        msg.initPayload<Mt44Data>();
+    }
+#endif
+    FixedBytePrint reference;
+    toJson(msg, reference);
+    const size_t full = reference.used;
+    REQUIRE(full > 16);
+    REQUIRE(full + 2 < sizeof(reference.bytes));
+
+    const size_t capacities[] = {0, 1, 2, 16, full, full + 1, full + 2};
+    for (size_t capacity : capacities) {
+        CAPTURE(capacity);
+        char guarded[4098];
+        std::memset(guarded, 'X', sizeof(guarded));
+        size_t required = 0;
+        const size_t written = toJson(msg, guarded + 1, capacity, &required);
+        const size_t expected = capacity == 0 ? 0 : (full < capacity ? full : capacity - 1);
+        CHECK(required == full);
+        REQUIRE(written == expected);
+        CHECK(guarded[0] == 'X');
+        CHECK(guarded[capacity + 1] == 'X');
+        CHECK(std::memcmp(guarded + 1, reference.bytes, written) == 0);
+        if (capacity > 0) CHECK(guarded[written + 1] == '\0');
+        else CHECK(guarded[1] == 'X');
+
+        std::memset(guarded, 'X', sizeof(guarded));
+        CHECK(toJson(msg, guarded + 1, capacity) == expected);
+        CHECK(std::memcmp(guarded + 1, reference.bytes, expected) == 0);
+        if (capacity > 0) CHECK(guarded[expected + 1] == '\0');
+        CHECK(guarded[0] == 'X');
+        CHECK(guarded[capacity + 1] == 'X');
+    }
+
+    for (size_t capacity : capacities) {
+        size_t required = 0;
+        CHECK(toJson(msg, nullptr, capacity, &required) == 0);
+        CHECK(required == full);
+        CHECK(toJson(msg, nullptr, capacity) == 0);
+    }
+    char untouched = 'Y';
+    size_t required = 0;
+    CHECK(toJson(msg, &untouched, 0, &required) == 0);
+    CHECK(untouched == 'Y');
+    CHECK(required == full);
+}
+
 static bool has(const std::string& s, const char* sub) {
     return s.find(sub) != std::string::npos;
 }

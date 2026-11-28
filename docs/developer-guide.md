@@ -121,7 +121,10 @@ make -C test fuzz FUZZ_ITERATIONS=100000
 | ターゲット | 用途 |
 |----------|------|
 | `make -C test pgm-stub` | `__AVR__` + スタブ `avr/pgmspace.h` で全テストをコンパイルし PROGMEM 分岐をホスト検証 |
-| `make -C test test-time-irq` | `ARDUINO=1` + `__AVR__` + スタブ `avr/io.h` で `internal::getMillis()` の割り込み状態保存・復元をホスト検証。AVR 分岐のみを対象とし、ESP32（Xtensa / RISC-V）では `noInterrupts()`/`interrupts()` が呼び出し側の状態を保存しないため、クリティカルセクション/ISR から呼ばないこと（既知の制約） |
+| `make -C test test-time-irq` | `ARDUINO=1` + `__AVR__` + スタブ `avr/io.h` で `internal::getMillis()` の割り込み状態保存・復元をホスト検証。ESP32 は割り込みを操作せず 64 bit の `esp_timer_get_time()` を使う |
+| `make -C test test-clock-idle` | Arduino / ESP32 時計スタブで、無受信のまま `updateClock()` が世代境界を観測し履歴・集約を破棄することを検証 |
+| `make -C test utf8-trim` | 64 B バッファの UTF-8 切り詰めをホスト・AVR near/far スタブで検証し、64 B 未満の設定がビルド失敗することも確認。`run` に含む |
+| `make -C test config-policies` | NMEA の SVID 3 水準 × padding 2 水準、dedup 有効/無効、Arduino マクロの復元と未定義維持、不正な SVID 設定のビルド失敗を検証。`run` に含む |
 | `make -C test run-small-pages` | `AZARAC_NANKAI_MAX_PAGES=8` で全体を再ビルドし、ページ打ち切り経路を検証（既定 63 では打ち切りが発生せず該当テストが `#if` で除外されるため） |
 | `make -C test run-lto` | `-O2 -flto -Werror=lto-type-mismatch -Werror=odr` で全体を再ビルド・実行し、リンク時最適化での型不一致・ODR 違反・インライン後 codegen の退行を検証（終了時に `clean`） |
 | `make -C test decode` | decode_to_jsonのCLIビルド（azarashi 比較用） |

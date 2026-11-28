@@ -5,8 +5,10 @@
 #include "JsonWriter.h"
 #include "definition/_index.h"
 #if defined(__AVR__)
+#include "../internal/avr_std/cstring"
 #include "../internal/avr_std/optional"
 #else
+#include <cstring>
 #include <optional>
 #endif
 #if defined(__AVR__)
@@ -149,6 +151,55 @@ void JsonSerializer::serialize(const Message& msg, Print& out) {
     }
 
     out.print('}');
+}
+
+namespace {
+class BufferPrint : public Print {
+public:
+    using Print::write;
+
+    BufferPrint(char* buf, size_t cap) : buf_(buf), cap_(cap) {}
+
+    size_t total() const { return total_; }
+
+    size_t write(uint8_t c) override {
+        ++total_;
+        if (cap_ != 0 && used_ + 1 < cap_) buf_[used_++] = static_cast<char>(c);
+        return 1;
+    }
+
+    size_t write(const uint8_t* data, size_t size) override {
+        total_ += size;
+        if (cap_ == 0 || !data) return size;
+        const size_t room = (cap_ - 1) - used_;
+        const size_t n = (size < room) ? size : room;
+        if (n) {
+            for (size_t i = 0; i < n; ++i) {
+                buf_[used_ + i] = static_cast<char>(data[i]);
+            }
+            used_ += n;
+        }
+        return size;
+    }
+
+private:
+    char* buf_;
+    size_t cap_;
+    size_t used_ = 0;
+    size_t total_ = 0;
+};
+} // namespace
+
+size_t JsonSerializer::serialize(const Message& msg, char* buf, size_t len, size_t* required) {
+    if (!buf) len = 0;
+    if (len == 0 && !required) return 0;
+    BufferPrint out(buf, len);
+    serialize(msg, out);
+    if (required) *required = out.total();
+    if (len == 0) return 0;
+    const size_t written = (out.total() < len - 1) ? out.total() : (len - 1);
+    buf[written] = '\0';
+    return written;
 }
 
 } // namespace internal

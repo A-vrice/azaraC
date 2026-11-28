@@ -44,10 +44,14 @@ public:
     // 1 通以上成立すれば true で、out には最後に成立した電文が残る（後続の重複や他 MT のフレームでは消えない）。
     // 途中で成立した電文は上書きされるので、取りこぼしたくないときは feedUntilMessage() を使うこと。
     // 南海トラフ集約の aggregated_text_ptr は、同じ呼び出しの後続フレームで借用先が再利用されると無効になり得る。
-    // 戻り値の契約は feed(byte) と同じ（false のとき out は未定義）。
+    // false のとき out.valid は false。他のフィールドは診断用の unsupported_reason を除き未定義。
+    // nullptr または len == 0 では unsupported_reason を変更しない。
     bool feed(const uint8_t* data, size_t len, Message& out, uint32_t report_unix = 0);
 
     void reset();
+
+    // 無受信期間も定期的に呼び、32 bit millis() の折り返しを観測する。
+    void updateClock();
 
 #if AZARAC_ENABLE_NANKAI
     // 鍵に一致するバッファを返す（受信途中でも返る。完了判定は isComplete()）。無ければ nullptr。

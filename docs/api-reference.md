@@ -91,7 +91,8 @@ bool feed(const uint8_t* data, size_t len, Message& out, uint32_t report_unix = 
 **戻り値:** `bool` - 1 通以上成立したら `true`。最初の成立で停止せず、全バイトを処理します。`out` には最後に成立した電文が残り、後続の重複や43/44以外のMTでは消えません。
 複数の電文を取りこぼしたくないときは `feedUntilMessage()` を使ってください。
 南海トラフ集約の `aggregated_text_ptr` は、同じ呼び出しの後続フレームで借用先のバッファが再利用されると無効になることがあります。
-成立しなかったときも、復号器の拒否理由は `out.unsupported_reason` に残ります（`nullptr` 入力は変更しません）。
+成立しなかったときは `false` を返し、`out.valid` は `false` になります（`nullptr`・長さ 0 の入力を含む）。
+復号器の拒否理由は `out.unsupported_reason` に残ります。`nullptr` または長さ 0 の入力ではこの理由を変更しません。それ以外の出力フィールドは `false` のとき未定義です。
 
 ```cpp
 uint8_t buf[512];
@@ -190,7 +191,7 @@ const internal::NankaiPageBuffer* getNankaiBuffer(const internal::NankaiPageKey&
 | `msg_type` | `uint8_t` | メッセージタイプ (43=DCR, 44=DCX) |
 | `crc24` | `uint32_t` | CRC-24Qチェックサム |
 | `valid` | `bool` | メッセージの妥当性フラグ。`feed()` が `true` を返したときは常に `true` |
-| `unsupported_reason` | `UnsupportedReason` | 復号器が完成フレームを拒否した理由（`None` / `DisabledAtCompileTime` / `UnknownCategory` / `UnsupportedVersion`）。`UnknownCategory` は仕様上未定義のカテゴリと 43/44 以外の MT。`feed()` が `false` でも診断用に入ることがあるが、`out` の他のフィールドは未定義（`feed()` の戻り値の説明を参照） |
+| `unsupported_reason` | `UnsupportedReason` | 復号器が完成フレームを拒否した理由（`None` / `DisabledAtCompileTime` / `UnknownCategory` / `UnsupportedVersion`）。`UnknownCategory` は仕様上未定義のカテゴリと 43/44 以外の MT。`feed()` が `false` でも診断用に入ることがあるが、`out` の他のフィールドは一括版の `valid == false` を除き未定義（`feed()` の戻り値の説明を参照） |
 | `payload_type` | `MsgPayloadType` | ペイロードタイプ |
 
 #### 安全なアクセサ
@@ -434,6 +435,7 @@ MessageをJSON形式で出力します。
 
 ```cpp
 void toJson(const Message& msg, Print& out);
+size_t toJson(const Message& msg, char* buf, size_t len, size_t* required = nullptr);
 ```
 
 **パラメータ:**
@@ -441,6 +443,22 @@ void toJson(const Message& msg, Print& out);
 |-----------|-----|------|
 | `msg` | `const Message&` | シリアライズするメッセージ |
 | `out` | `Print&` | 出力先 (Serial, WiFiClient等) |
+| `buf` | `char*` | 固定長の出力バッファ（`nullptr` は書き込みなし） |
+| `len` | `size_t` | `buf` の容量（NUL 終端を含む）。0 は書き込みなし |
+| `required` | `size_t*` | 省略可。完全な JSON の長さ（NUL を除く）を格納する |
+
+`Print&` 版の出力は従来どおりです。バッファ版も同じ JSON を生成し、実際に格納したバイト数（NUL を除く）を返します。
+`buf != nullptr && len > 0` なら必ず `buf[戻り値]` を NUL 終端し、容量を超える部分は捨てます。`*required > 戻り値` なら切り詰められています。完全な JSON には `*required + 1` バイトが必要です。
+`buf == nullptr` または `len == 0` の場合は何も書かず 0 を返しますが、`required` が非 `nullptr` なら完全な長さを計算します。ヒープ確保は行いません。切り詰めた出力は有効な JSON や UTF-8 とは限らないため、そのまま送信しないでください。
+
+```cpp
+char json[512];
+size_t required = 0;
+const size_t written = azaraC::toJson(msg, json, sizeof(json), &required);
+if (written == required) {
+    Serial.write(reinterpret_cast<const uint8_t*>(json), written);
+}
+```
 
 **スレッド安全性:** AVR / 非 AVR のどちらもラベル用の共有バッファ（`AZARAC_FLASH_BUF_SIZE` の 1 本）を使うため、`toJson()` と定義テーブルの lookup を複数のタスク/スレッドから同時に呼ばないこと。AVR では lookup のたびに Flash からこのバッファへコピーする。
 FreeRTOS では呼び出し側で排他する（`examples/rtos_freertos` の `printJson()` を参照）。
@@ -458,6 +476,29 @@ if (client.connect(server, port)) {
     client.println();
 }
 ```
+
+---
+
+### `Parser::updateClock()`
+
+```cpp
+void updateClock();
+```
+
+受信バイトがなくても内部時計を観測し、32 bit 世代の切り替わりや大きな時計の後退で重複履歴・南海トラフ集約をリセットします。電文は出力しません。
+32 bit `millis()` を使う Arduino では、`loop()` から 49.7 日（2^32 ms）未満の間隔で定期的に呼んでください。観測なしで一周以上すると経過した周回数を復元できません。
+ESP32 は `esp_timer_get_time()` の 64 bit 時刻を使うため、長い無受信期間でも周回を失いません。外部リンケージの `inline getMillis()` は引き続き全 TU で状態を共有します。
+他の Parser 操作と同じタスクから呼んでください。時計の観測で南海トラフ集約が破棄されると、以前返された集約本文への借用ポインタも無効になります。
+
+### `crc24q()`
+
+```cpp
+uint32_t crc24q(const uint8_t* data, uint16_t bit_len);
+```
+
+受信経路と同じ CRC-24Q 実装を公開します。`data[0]` の MSB から `bit_len` ビットを処理し、下位 24 ビットに CRC を返します（初期値 0、最終 XOR なし）。長さはバイト数ではありません。
+`bit_len == 0` は 0 を返します。それ以外では `data` に少なくとも `ceil(bit_len / 8)` バイトの読み出せる領域が必要です。ポインタや容量の検証は行いません。
+L1S フレームでは bit 0〜225 の CRC を計算し、bit 226〜249 の受信 CRC と照合します。通常の受信処理は `Parser` が行うため、自前の電文生成や検証向けです。
 
 ---
 
@@ -526,6 +567,19 @@ if (client.connect(server, port)) {
 `AZARAC_LANG_JA=0 / AZARAC_LANG_EN=1`の場合、`_label`自体がすべて英語になるため`_label_en`ではなく`_label`に英語が出力される。
 包括すると`_label_en`が出るのは**日本語/英語ともに有効にした構成のみ**。
 
+### 受信ポリシー
+
+| マクロ | デフォルト | 説明 |
+|-------|-----------|------|
+| `AZARAC_ENABLE_DEDUP` | 1 | 0 では dedup 履歴を持たず、再放送を dedup では抑止しない。南海トラフのページ集約・受信済みページの抑止は残る（下記）。`AZARAC_DEDUP_*` は未使用となり、履歴の RAM（既定でホスト 4 KB / AVR 512 B）を削減 |
+| `AZARAC_NMEA_STRICT_SVID` | 0 | `$QZQSM` の衛星 ID 受理範囲。0: 2 桁の 00–63、1: 53–63（PRN 181–191）、2: 仕様表の 55/56/57/58/61 のみ。0–2 以外はコンパイルエラー |
+| `AZARAC_NMEA_REJECT_NONZERO_PADDING` | 0 | 0: bit 250–255 の詰め物をマスクして受理、1: 非 0 なら拒否。63 桁 / 64 桁の両方の hex 表現に適用。CRC 被覆外の領域で、既定は実機互換を優先 |
+
+重複排除を無効にしても CRC 検査や南海トラフのページ集約は残り、すべてのバイトや未完成ページが出力されるわけではありません。
+南海トラフの完成済み複数ページ集合は、同じ集約バッファを保持している間、再受信しても出力しません。`NankaiPageBuffer::TIMEOUT_MS` は 60000 ms で、最後の新規ページ（完成時）から **60 秒を超える**と失効します（ちょうど 60 秒では失効しません）。完成後の重複ページはこの時刻を更新しません。失効後に全ページを再受信・再集約すると、`AZARAC_ENABLE_DEDUP=0` では再び出力されます。未完成集合は重複ページでも寿命を延長します。reset・時計補正によるクリアや、別事象によるバッファの追い出しでは、期限前でも集約状態が失われます。
+各設定はライブラリを含む全翻訳単位に同じ値を指定してください（ビルドフラグ、または `azaraC_config.h`）。
+`azaraC.h` は Arduino コアの `abs` / `min` / `max` マクロをヘッダの読み込み中だけ退避し、読み込み後に元の定義へ戻します。元々無いマクロは未定義のままです。
+
 ### 災害カテゴリ選択
 
 不要なカテゴリの定義テーブルをコンパイル時に除外することでFlash使用量を削減可能。
@@ -559,6 +613,8 @@ AVR プリセットは EEW・震源が既定で 0 なので `sizeof(Mt43Data)` �
 | `AZARAC_FLASH_BUF_SIZE` | AVR: カテゴリ連鎖（既定=64）/ 非 AVR: 800 | ラベル引き当て用の共有RAMバッファサイズ (バイト)。AVRでは有効カテゴリに応じて 64（SEISMIC/TSUNAMI など）/ 80（＋北西太平洋津波）/ 96（＋火山・洪水）/ 540（＋南海トラフ）/ 640（＋緊急地震速報・震源）/ 800（＋DCX/CAMF）に自動選択。有効なカテゴリの最長ラベルを必ず収める（`make -C test bench` の `FLASH_BUF_OK` ゲート）。非 AVR でも join 系（`azarac_pgm_join_z` / `azarac_pgm_join3`）と `azarac_pgm_len` の打ち切りに使う |
 | `AZARAC_DEDUP_MT44_MAX_WINDOW_MS` | 300000 | MT=44 の情報有効時間(ms)の上限。`__AVR__`のみ定義され、常に A8 由来の窓（最短6時間）を置き換える。ホストは上限を設けず A8 の窓をそのまま使う |
 | `AZARAC_KEY_BUF_SIZE` | 36 | AVR で JSON のキーと固定値リテラルを Flash から書き出すときのスタック上の一時バッファのバイト数（どちらも `AZARAC_KEY("...")` で包む。値は `wf_s` の `JsonKey` オーバーロードが受ける）。最長はキーの35B（`a17_type_of_specific_settings_label`）、値は20B（`unsupported_category`）で、`JsonKey` の生成時に `static_assert` が収まらないリテラルをコンパイルエラーにする。非AVRでは使われない |
+
+`AZARAC_FLASH_BUF_SIZE` は 64 未満をコンパイル時に拒否します。ラベルの切り詰めでは末尾の不完全な UTF-8 文字を捨て、文字境界に戻します（ラベル全体が収まる保証ではありません）。
 
 **AVRプリセット**: `__AVR__`では`azaraC_config.h`のプリセットがAVR専用のものに置き換わる。具体的には以下の変更が行われる。
 有効カテゴリはボードによらず**SEISMIC/TSUNAMIのみ**。

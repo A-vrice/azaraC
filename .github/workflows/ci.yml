@@ -155,7 +155,7 @@ jobs:
             fqbn: arduino:avr:mega
             additional_urls: ""
             # Mega の場合 Flash 自体は 256 KB あるものの、アーキテクチャは AVR のためプリセットでは DCX/CAMF は Uno と同じく既定で無効
-            # Mega での DCX/CAMF のコンパイルは別工程で検証
+            # basic_dcx のコンパイル時だけ DCX/CAMF を有効化する
             build_flags: ""
 
     steps:
@@ -176,6 +176,7 @@ jobs:
           LIB_DIR=$(arduino-cli config get directories.user)/libraries
           mkdir -p "$LIB_DIR"
           ln -s "$GITHUB_WORKSPACE" "$LIB_DIR/azaraC"
+          # 新しい ublox_config / basic_dcx も含め全 example を検証する。
           for sketch in examples/*/; do
             echo "--- $sketch ---"
             sketch_name=$(basename "$sketch")
@@ -196,6 +197,9 @@ jobs:
               continue
             fi
             CPP_EXTRA_FLAGS="-std=gnu++17 ${{ matrix.build_flags }}"
+            if [[ "$sketch_name" == "basic_dcx" ]]; then
+              CPP_EXTRA_FLAGS="$CPP_EXTRA_FLAGS -UAZARAC_ENABLE_DCX_CAMF -DAZARAC_ENABLE_DCX_CAMF=1"
+            fi
             # Added --clean to invalidate build cache
             arduino-cli compile --clean --fqbn "${{ matrix.fqbn }}" "$sketch" --build-property "compiler.cpp.extra_flags=$CPP_EXTRA_FLAGS"
           done
@@ -319,6 +323,9 @@ jobs:
               continue
             fi
             CPP_EXTRA_FLAGS="-std=gnu++17 ${{ matrix.build_flags }}"
+            if [[ "$sketch_name" == "basic_dcx" ]]; then
+              CPP_EXTRA_FLAGS="$CPP_EXTRA_FLAGS -UAZARAC_ENABLE_DCX_CAMF -DAZARAC_ENABLE_DCX_CAMF=1"
+            fi
             if [[ "${{ matrix.fqbn }}" == *"rpipicow"* ]]; then
               arduino-cli compile --clean --fqbn "${{ matrix.fqbn }}" "$sketch" \
                 --build-property "compiler.cpp.extra_flags=$CPP_EXTRA_FLAGS" \

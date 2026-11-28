@@ -53,8 +53,9 @@ namespace {
 // 出力先。bytes は「JSON を実際に書いたか」の確認用で、自身は確保しない。
 struct CountingPrint : Print {
     unsigned long bytes = 0;
+    using Print::write;
     size_t write(uint8_t) override { ++bytes; return 1; }
-    size_t write(const char*, size_t n) override { bytes += n; return n; }
+    size_t write(const uint8_t*, size_t n) override { bytes += n; return n; }
     void print(char) override { ++bytes; }
     void print(const char* s) override { while (s && *s) { ++bytes; ++s; } }
 };
@@ -104,6 +105,33 @@ TEST_CASE("No allocation: MT43 feed + JSON") {
 #if AZARAC_ENABLE_EEW
     CHECK(sink.bytes > 0);
 #endif
+}
+
+TEST_CASE("No allocation: bounded JSON and required length") {
+    Message msg;
+    msg.msg_type = 49;
+    char buffer[4096];
+    char tiny[1] = {'Y'};
+    size_t required = 0;
+    size_t truncated_required = 0;
+    size_t measured = 0;
+    size_t zero_required = 0;
+    const unsigned long base = noalloc::snapshot();
+    const size_t written = toJson(msg, buffer, sizeof(buffer), &required);
+    const size_t truncated = toJson(msg, tiny, sizeof(tiny), &truncated_required);
+    const size_t null_written = toJson(msg, nullptr, 10, &measured);
+    const size_t zero_written = toJson(msg, tiny, 0, &zero_required);
+    const unsigned long allocations = noalloc::delta(base);
+    CHECK(allocations == 0);
+    CHECK(written > 0);
+    CHECK(written == required);
+    CHECK(truncated == 0);
+    CHECK(tiny[0] == '\0');
+    CHECK(truncated_required == required);
+    CHECK(null_written == 0);
+    CHECK(measured == required);
+    CHECK(zero_written == 0);
+    CHECK(zero_required == required);
 }
 
 TEST_CASE("No allocation: MT44 feed + JSON") {
