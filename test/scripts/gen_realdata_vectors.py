@@ -359,11 +359,10 @@ DC_INFO = {
 }
 
 # 型そのものが AZARAC_ENABLE_* でコンパイルから外れるカテゴリ（src/Mt43Data.h）。
-# 期待値の型・添字・switch の case を同じマクロで囲まないと、カテゴリ無効ビルド（make macro）で EewData / HypocenterData が未定義になりコンパイルできない。
-DC_TYPE_GUARDS = {
-    1: 'AZARAC_ENABLE_EEW',
-    2: 'AZARAC_ENABLE_HYPOCENTER',
-}
+# 期待値の型・添字・switch の case を同じマクロで囲まないと、カテゴリ無効ビルド（make macro）で
+# 該当 payload 型が未定義になりコンパイルできない。
+# 全カテゴリの payload 型がカテゴリマクロで guard されているため、DISABLED_DC_MACROS と同一。
+DC_TYPE_GUARDS = dict(DISABLED_DC_MACROS)
 
 
 def _open_type_guard(w, dc: int) -> None:

@@ -12,6 +12,9 @@ jobs:
   build:
     name: Build source archive
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read   # タグ先コミットの CI 実行結果を遡るため
     outputs:
       artifact-name: ${{ steps.archive.outputs.name }}
       subjects: ${{ steps.hash.outputs.subjects }}
@@ -29,6 +32,26 @@ jobs:
           set -euo pipefail
           SOURCE_SHA="$(git rev-parse HEAD)"
           echo "sha=${SOURCE_SHA}" >> "$GITHUB_OUTPUT"
+
+      # タグ先コミットの CI 成功を要求する（fail-closed）。ci.yml は tag push では
+      # 走らないため、その SHA の main push / PR での CI 実行結果を API で遡る。
+      # 成功実行が見つからなければリリースしない（未検証コミットへのタグ打ちを防ぐ）。
+      - name: Require green CI on the tagged commit
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_SHA: ${{ steps.source.outputs.sha }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          runs=$(gh api "repos/${REPO}/actions/workflows/ci.yml/runs?head_sha=${SOURCE_SHA}&per_page=100" \
+            --jq '[.workflow_runs[] | {status, conclusion}]')
+          echo "CI runs for ${SOURCE_SHA}: ${runs}"
+          ok=$(echo "$runs" | jq '[.[] | select(.status=="completed" and .conclusion=="success")] | length')
+          if [[ "$ok" -lt 1 ]]; then
+            echo "::error::No successful CI run found for ${SOURCE_SHA}. Release requires green CI on the tagged commit." >&2
+            exit 1
+          fi
 
       - name: Create source archive
         id: archive

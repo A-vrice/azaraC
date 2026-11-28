@@ -5,6 +5,7 @@ import os
 import sys
 
 from _common import json_serial  # type: ignore[import-not-found]
+from hash_nankai_vectors import write_digest  # type: ignore[import-not-found]
 
 
 def decode_nmea(nmea_str):
@@ -107,6 +108,8 @@ def gen_nankai(data_dir):
               newline='\n') as f:
         json.dump(results, f, ensure_ascii=False, indent=2, default=json_serial)
     print(f"  {len(results)} Nankai messages -> nankai_vectors.json")
+    write_digest()
+    print("  nankai_vectors.sha256 updated")
 
     _write_nankai_header(data_dir, pages, total)
 

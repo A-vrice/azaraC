@@ -238,6 +238,7 @@ void Decoder::decodeTsunami(const uint8_t* b, Message& out, uint32_t report_unix
     }
     
     tsunami->warning_code = getBits(b, 80, 4);
+    tsunami->notification_count = readNotifications(b, 53, tsunami->notification);
     tsunami->count = 0;
     for (uint8_t i = 0; i < 5; ++i) {
         uint16_t off = 84 + i * 26;

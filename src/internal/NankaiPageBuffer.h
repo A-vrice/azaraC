@@ -1,7 +1,6 @@
 #pragma once
 // 南海トラフ地震の複数ページ集約バッファページは aggregated_text[] の (page_num-1)*TEXT_PER_PAGE へ直接書き、受信済みページは 64 bit の bitmap で管理する。
 // PageData 配列を持たないので（MAX_PAGES=63 で約 1 KB 節約）ソートも不要で、重複判定は O(1)。
-// total_pages > MAX_PAGES なら打ち切る。
 
 #if defined(__AVR__)
 #include "avr_std/cstdint"
@@ -23,25 +22,22 @@
 namespace azaraC {
 namespace internal {
 
-// 事象の鍵。svid は除外（複数衛星が同一電文を中継するため重複する）。
-// identity = {info_code, information_type, 生の report_time DHM}。
-// DHM は正規化前の生プロトコルビット（NankaiData::report_*）:
-// Mt43Data::event_time は resolveTime() が 2/30→3/1 を書き換え月 0 を補完するため、report_unix の有無でハッシュが割れ、1 事象が複数バッファに分かれる。
-// information_type（It: 0=発表 / 2=取消）も鍵に必要（無いと発表と取消が同じ Pn を先着優先で潰し合い文面が混ざる）。
-// report_classification（Rc: 2=実警報 / 7=訓練・試験）も鍵に含め、訓練と実警報のページを混ぜない。
-// dedup 側も同じ 7 フィールドを使う（Dedup.h dedupEventToken）。
+// 事象の鍵は {info_code, information_type, report_classification, 生の report_time DHM}。dedup 側も同じ 7 フィールドを使う（Dedup.h dedupEventToken）。
+// svid は除外する（複数衛星が同一電文を中継するため）。
+// DHM は正規化前の生プロトコルビット（NankaiData::report_*）を使う。解決済みの event_time は resolveTime() が日付を書き換えるため、同じ事象でも値が割れてバッファが分かれる。
+// It を含めないと発表と取消が潰し合い、Rc を含めないと訓練と実警報が混ざる。
 struct NankaiPageKey {
-    uint8_t  info_code = 0;        // 1B — Is（情報系列コード、4b）
-    uint8_t  report_month  = 0;    // 1B — 生の report_time 月 (4b)
-    uint8_t  report_day    = 0;    // 1B — 生の report_time 日 (5b)
-    uint8_t  report_hour   = 0;    // 1B — 生の report_time 時 (5b)
-    uint8_t  report_minute = 0;    // 1B — 生の report_time 分 (6b)
-    uint8_t  information_type = 0; // 1B — It (2b: 0=発表, 2=取消)
+    uint8_t  info_code = 0;             // 1B — Is（情報系列コード、4b）
+    uint8_t  report_month  = 0;         // 1B — 生の report_time 月 (4b)
+    uint8_t  report_day    = 0;         // 1B — 生の report_time 日 (5b)
+    uint8_t  report_hour   = 0;         // 1B — 生の report_time 時 (5b)
+    uint8_t  report_minute = 0;         // 1B — 生の report_time 分 (6b)
+    uint8_t  information_type = 0;      // 1B — It (2b: 0=発表, 2=取消)
     uint8_t  report_classification = 0; // 1B — Rc (3b: 2=実警報, 7=訓練/試験)
-    // 合計 6B（パディングなし）
+    // 合計 7B（パディングなし）
 
     constexpr NankaiPageKey() = default;
-    // it は末尾の既定引数（既存呼び出し {ic, mo, d, h, m} の意味を変えない）。
+    // it / rc は末尾の既定引数（既存呼び出し {ic, mo, d, h, m} の意味を変えない）。
     constexpr NankaiPageKey(uint8_t ic, uint8_t mo = 0, uint8_t d = 0, uint8_t h = 0, uint8_t m = 0,
                             uint8_t it = 0, uint8_t rc = 0)
         : info_code(ic), report_month(mo), report_day(d), report_hour(h),
@@ -50,26 +46,42 @@ struct NankaiPageKey {
     bool operator==(const NankaiPageKey& o) const {
         return info_code == o.info_code &&
                information_type == o.information_type &&
+               report_classification == o.report_classification &&
                report_month  == o.report_month &&
                report_day    == o.report_day &&
                report_hour   == o.report_hour &&
-               report_minute == o.report_minute &&
-               report_classification == o.report_classification;
+               report_minute == o.report_minute;
     }
 
     void clear() {
         info_code = 0;
         information_type = 0;
+        report_classification = 0;
         report_month = 0;
         report_day = 0;
         report_hour = 0;
         report_minute = 0;
-        report_classification = 0;
     }
 };
 
-// 6 バイト（パディングなし）を固定する: 鍵はページ受信のたびにコピーされ、バッファごとに 1 個常駐する。
+// 7 バイト（パディングなし）を固定する: 鍵はページ受信のたびにコピーされ、バッファごとに 1 個常駐する。
 static_assert(sizeof(NankaiPageKey) == 7, "NankaiPageKey must stay 7 bytes");
+
+// addPageEx の結果。Duplicate は受信済みページで、本文・受信数は変えないが last_update_ms は更新する。
+enum class NankaiPageAddResult : uint8_t {
+    Rejected,
+    Added,
+    Duplicate
+};
+
+// 集約結果。DuplicateComplete は完成済みバッファへの受信済みページ再送で、
+// dedup 履歴の更新だけを行い、本文は再出力しないために使う。
+enum class NankaiAggregateResult : uint8_t {
+    Rejected,
+    NotComplete,
+    Complete,
+    DuplicateComplete
+};
 
 // 1 事象分のページ集約バッファ。
 // 打ち切り: total_pages > MAX_PAGES なら pages 1..MAX_PAGES を残して truncated を立て、残りは静かに破棄する。
@@ -93,56 +105,52 @@ struct NankaiPageBuffer {
     uint8_t received_count = 0;         // 1B — 受信したページ数
     bool truncated : 1;                 // 1b — total_pages > MAX_PAGES のとき true
     bool compacted : 1;                 // 1b — compactText() がページを詰めた後 true（getTextLength の読み方を切り替える）
-    // aggregated_text はオフセット 24 (host) / 22 (AVR) — char の境界は 1 なのでその前にパディングが無い
+    // aggregated_text はオフセット 24 (host) / 23 (AVR) — char の境界は 1 なのでその前にパディングが無い
     char aggregated_text[MAX_PAGES * TEXT_PER_PAGE + 1];
 
     NankaiPageBuffer() : aggregated_text{} {
         clearAll();
     }
 
-    // ページを追加する（page_num は 1 始まり、total_pages_in は Pm 由来、text_data は 18 バイト）。
-    // 追加できたら true。
+    // total > MAX_PAGES は現行契約どおり受け付け、総ページ数を MAX_PAGES に丸める（呼び出し側で truncated を立てる）。
     static constexpr bool pageInRange(uint8_t page_num, uint8_t total_pages_in) {
-        return page_num >= 1 && page_num <= SPEC_MAX_PAGES &&
-               page_num <= (total_pages_in > MAX_PAGES ? MAX_PAGES : total_pages_in);
+        const uint8_t effective_total = total_pages_in > MAX_PAGES ? MAX_PAGES : total_pages_in;
+        return page_num >= 1 && page_num <= SPEC_MAX_PAGES && page_num <= effective_total;
     }
 
+    // 既存テストとの互換用ラッパー。page_num は 1 始まり、total_pages_in は Pm 由来、text_data は 18 バイト。
     bool addPage(uint8_t page_num, uint8_t total_pages_in, const uint8_t* text_data, uint64_t current_ms) {
-        // Pn は 1-63 (spec)
-        if (page_num == 0 || page_num > SPEC_MAX_PAGES) {
-            return false;
+        return addPageEx(page_num, total_pages_in, text_data, current_ms) == NankaiPageAddResult::Added;
+    }
+
+    // 追加結果を区別する実体（Duplicate の意味は NankaiPageAddResult 参照）。
+    NankaiPageAddResult addPageEx(uint8_t page_num, uint8_t total_pages_in,
+                                  const uint8_t* text_data, uint64_t current_ms) {
+        // 検証を状態変更より先に行う。不正ページで既存の total_pages/truncated を汚さない。
+        if (!pageInRange(page_num, total_pages_in)) {
+            return NankaiPageAddResult::Rejected;
         }
 
-        uint8_t effective_total = total_pages_in;
-        if (total_pages_in > MAX_PAGES) {
-            effective_total = MAX_PAGES;
-            // truncated は初回呼び出しで一度だけ立てる
-            if (this->total_pages == 0) {
-                truncated = true;
-            }
-        }
-
-        if (page_num > effective_total) {
-            return false;
-        }
+        uint8_t effective_total = total_pages_in > MAX_PAGES ? MAX_PAGES : total_pages_in;
 
         if (this->total_pages == 0) {
             this->total_pages = effective_total;
             this->original_total_pages = total_pages_in;
+            // truncated は有効な初回ページを受け付けたときだけ立てる。
+            truncated = (total_pages_in > MAX_PAGES);
         }
 
         // 以降の total_pages_in は初回値と一致必須
         if (this->original_total_pages != total_pages_in) {
-            return false;
+            return NankaiPageAddResult::Rejected;
         }
 
         // bitmap による重複判定 O(1)
         uint64_t mask = 1ULL << (page_num - 1);
         if (received_bitmap & mask) {
-            // 未完成の集約は重複ページの再送でも寿命を延ばす。本文・受信数は変えない。
-            // 完成済みは延ばさない: 失効させて再完成させ、Parser の dedup に最終受信時刻を更新させる。
-            if (!isComplete()) last_update_ms = (uint32_t)current_ms;
-            return false;
+            // F-2: 重複ページの再送でも集約の寿命を延ばす。再出力の抑止は dedup 側で別に扱う。
+            last_update_ms = (uint32_t)current_ms;
+            return NankaiPageAddResult::Duplicate;
         }
 
         uint16_t offset = static_cast<uint16_t>(page_num - 1) * TEXT_PER_PAGE;
@@ -151,7 +159,7 @@ struct NankaiPageBuffer {
         received_count++;
         last_update_ms = (uint32_t)current_ms;
 
-        return true;
+        return NankaiPageAddResult::Added;
     }
 
     bool isComplete() const {
@@ -204,6 +212,8 @@ struct NankaiPageBuffer {
 
     bool isExpired(uint64_t current_ms) const {
         if (total_pages == 0) return false;
+        // 通常の 32 bit 折り返しは符号なし差分で扱う。2^32 ms 以上の空白は
+        // Parser::postDecodeAt() の epoch guard が先に全バッファを消す。
         return (uint32_t)(current_ms - last_update_ms) > TIMEOUT_MS;
     }
 
@@ -271,35 +281,60 @@ public:
         }
     }
 
-    // ページを追加し、全ページ受信ならそのバッファへのポインタ、そうでなければ nullptr を返す
+    // 既存呼び出しとの互換用ラッパー。Complete のときだけバッファへのポインタを返す。
     NankaiPageBuffer* addPage(const NankaiPageKey& key, uint8_t page_num,
                                uint8_t total_pages, const uint8_t* text_data,
                                uint64_t current_ms) {
-        // 不正ページはバッファ割り当て（最古の追い出し）より前に弾き、進行中の集約を守る。
-        if (!NankaiPageBuffer::pageInRange(page_num, total_pages)) {
-            return nullptr;
-        }
+        NankaiPageBuffer* completed = nullptr;
+        const NankaiAggregateResult result = addPageEx(key, page_num, total_pages, text_data,
+                                                       current_ms, &completed);
+        return result == NankaiAggregateResult::Complete ? completed : nullptr;
+    }
 
+    // 受信結果を Complete / DuplicateComplete / NotComplete / Rejected で返す。
+    // completed は Complete のときだけ設定する。
+    NankaiAggregateResult addPageEx(const NankaiPageKey& key, uint8_t page_num,
+                                    uint8_t total_pages, const uint8_t* text_data,
+                                    uint64_t current_ms, NankaiPageBuffer** completed) {
+        if (completed) *completed = nullptr;
         expireBuffers(current_ms);
+
+        // 不正ページのために既存の進行中バッファを clearAll() しない。
+        // バッファ内の total_pages 不一致検証は既存状態が必要なので addPageEx() 側に残す。
+        if (!NankaiPageBuffer::pageInRange(page_num, total_pages)) {
+            return NankaiAggregateResult::Rejected;
+        }
 
         int8_t idx = findBuffer(key);
 
         if (idx < 0) {
             idx = findEmptyBuffer();
             if (idx < 0) {
-                idx = findOldestBuffer(current_ms);
+                idx = findEvictionVictim(key, current_ms);
+                if (idx < 0) {
+                    // F-1: 訓練・試験の新規ページは、実警報のバッファを追い出してまで割り当てない。
+                    return NankaiAggregateResult::Rejected;
+                }
             }
             _buffers[idx].clearAll();
             _buffers[idx].setKey(key);
         }
 
-        if (_buffers[idx].addPage(page_num, total_pages, text_data, current_ms)) {
-            if (_buffers[idx].isComplete()) {
-                return &_buffers[idx];
-            }
+        const NankaiPageAddResult page_result =
+            _buffers[idx].addPageEx(page_num, total_pages, text_data, current_ms);
+        if (page_result == NankaiPageAddResult::Rejected) {
+            return NankaiAggregateResult::Rejected;
         }
-
-        return nullptr;
+        if (page_result == NankaiPageAddResult::Duplicate) {
+            return _buffers[idx].isComplete()
+                ? NankaiAggregateResult::DuplicateComplete
+                : NankaiAggregateResult::NotComplete;
+        }
+        if (_buffers[idx].isComplete()) {
+            if (completed) *completed = &_buffers[idx];
+            return NankaiAggregateResult::Complete;
+        }
+        return NankaiAggregateResult::NotComplete;
     }
 
     const NankaiPageBuffer* getBuffer(const NankaiPageKey& key) const {
@@ -334,15 +369,34 @@ private:
         return -1;
     }
 
-    // LRU 追い出し: 最も古いバッファから（符号なし減算でラップに強い）
-    int8_t findOldestBuffer(uint64_t current_ms) {
+    // 追い出し先の決定（F-1）。訓練・試験（Rc=7）のバッファを先に捨て、実警報（Rc=2）を守る。
+    // 訓練バッファがあれば、その中で最も古いものを返す。無ければ、到来ページが訓練のときは
+    // 実警報を追い出さないため -1（割り当てない）、それ以外は全体で最も古いものを返す。
+    int8_t findEvictionVictim(const NankaiPageKey& incoming, uint64_t current_ms) {
+        const int8_t training = findOldestBuffer(current_ms, true);
+        if (training >= 0) {
+            return training;
+        }
+        if (incoming.report_classification == 7) {
+            return -1;
+        }
+        return findOldestBuffer(current_ms, false);
+    }
+
+    // 最終更新が最も古いバッファを選ぶ（同値なら先頭スロット。真の LRU ではない）。
+    // training_only のときは訓練・試験（Rc=7）のバッファだけを対象にし、無ければ -1 を返す。
+    // 呼び出し元は findEmptyBuffer() < 0 のときだけ呼ぶので、空バッファは存在しない。
+    // 符号なし減算でラップに強い。expireBuffers() が毎回 60s 超を回収するので age は常に 60s 以下。
+    int8_t findOldestBuffer(uint64_t current_ms, bool training_only) {
         uint32_t max_age = 0;
-        int8_t oldest_idx = 0;
+        int8_t oldest_idx = -1;
 
         for (uint8_t i = 0; i < MAX_BUFFERS; ++i) {
-            // 空バッファの age は 0（他に古いものが無い場合のみ選ばれる）
-            const uint32_t age = _buffers[i].isEmpty() ? 0 : (uint32_t)(current_ms - _buffers[i].last_update_ms);
-            if (age > max_age) {
+            if (training_only && _buffers[i].key.report_classification != 7) {
+                continue;
+            }
+            const uint32_t age = (uint32_t)(current_ms - _buffers[i].last_update_ms);
+            if (oldest_idx < 0 || age > max_age) {
                 max_age = age;
                 oldest_idx = i;
             }

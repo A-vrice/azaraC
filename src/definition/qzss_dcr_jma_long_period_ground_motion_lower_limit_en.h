@@ -1,5 +1,6 @@
 #pragma once
 // AUTO-GENERATED from azarashi 0.17.1 — do not edit
+// Specs: IS-QZSS-DCR-017 / IS-QZSS-DCX-004 Rev.004 / EWSS CAMF Issue 1.2
 // azarashi.definitions.qzss.dcr.long_period_ground_motion_lower_limit → qzss_dcr_jma_long_period_ground_motion_lower_limit_en: 7 entries, strategy switch
 // Unknown id returns nullptr — callers MUST null-check.
 

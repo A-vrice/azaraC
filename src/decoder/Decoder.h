@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../azaraC_config.h"
-#include "../framer/Frame.h"
+#include "../Frame.h"
 #include "../Message.h"
 
 namespace azaraC {

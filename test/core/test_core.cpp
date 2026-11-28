@@ -104,6 +104,27 @@ TEST_CASE("CRC-24Q: known-answer 226-bit messages") {
     }
 }
 
+// 公開 API の CRC-24Q（azaraC::crc24q）。自前の電文生成・外部フレーム検証用に公開している。
+TEST_CASE("Public crc24q agrees with the reference and the internal decoder") {
+    uint8_t buf[32] = {};
+    CHECK(crc24q(buf, 226) == TestDecoder::calcCRC(buf, 226));
+    CHECK(crc24q(buf, 226) == crc24qRef(buf, 226));
+
+    // 0 bit は 0（初期値も XOR も無い CRC なので全 0）。
+    CHECK(crc24q(buf, 0) == 0);
+
+    // バイト境界（8 bit）
+    uint8_t one[1] = {0x00};
+    CHECK(crc24q(one, 8) == crc24qRef(one, 8));
+    one[0] = 0x80;
+    CHECK(crc24q(one, 8) == crc24qRef(one, 8));
+
+    // L1S フレームのビット長（250 bit）と、端数を含む 226 bit
+    for (int i = 0; i < 32; ++i) buf[i] = static_cast<uint8_t>(i * 7 + 1);
+    CHECK(crc24q(buf, 250) == crc24qRef(buf, 250));
+    CHECK(crc24q(buf, 226) == crc24qRef(buf, 226));
+}
+
 TEST_CASE("getBits extraction") {
     uint8_t buf[2] = {0xAB, 0xCD};
 
@@ -641,6 +662,7 @@ constexpr uint32_t DEDUP_TEST_WINDOW = 300000;   // 5分
 constexpr uint32_t DEDUP_TEST_BASE   = 1000000;  // 適当な受信開始時刻
 } // namespace
 
+#if AZARAC_ENABLE_DEDUP
 TEST_CASE("DedupFilter: 新規メッセージは重複しない") {
     DedupFilter filter;
     DedupKey key{43, 0xABCDEF};
@@ -681,25 +703,31 @@ TEST_CASE("DedupFilter: 事象トークンの鍵は電文の鍵と衝突しな�
     CHECK(filter.isDuplicate(DedupKey{0, token}, DEDUP_TEST_BASE + 1, DEDUP_TEST_WINDOW));
 }
 
+#endif // AZARAC_ENABLE_DEDUP
+
 TEST_CASE("DedupFilter: 事象トークンは事象ごとに決まる") {
-    CHECK(dedupEventToken(5, 0, 6, 15, 12, 30) == dedupEventToken(5, 0, 6, 15, 12, 30));
-    CHECK(dedupEventToken(5, 0, 6, 15, 12, 30) != dedupEventToken(5, 0, 6, 15, 12, 31));
-    CHECK(dedupEventToken(5, 0, 6, 15, 12, 30) != dedupEventToken(4, 0, 6, 15, 12, 30));
+    CHECK(dedupEventToken(5, 0, 6, 15, 12, 30, 2) == dedupEventToken(5, 0, 6, 15, 12, 30, 2));
+    CHECK(dedupEventToken(5, 0, 6, 15, 12, 30, 2) != dedupEventToken(5, 0, 6, 15, 12, 31, 2));
+    CHECK(dedupEventToken(5, 0, 6, 15, 12, 30, 2) != dedupEventToken(4, 0, 6, 15, 12, 30, 2));
     // 情報種別が違えば別の事象: 同一 info_code + 同一報告時刻の発表(0)と取消(2)を潰さない。
-    CHECK(dedupEventToken(5, 0, 6, 15, 12, 30) != dedupEventToken(5, 2, 6, 15, 12, 30));
+    CHECK(dedupEventToken(5, 0, 6, 15, 12, 30, 2) != dedupEventToken(5, 2, 6, 15, 12, 30, 2));
+    // 訓練/試験(7)と実警報(2)も別の事象。Rc を含めないと訓練が実警報を抑止する。
     CHECK(dedupEventToken(5, 0, 6, 15, 12, 30, 2) != dedupEventToken(5, 0, 6, 15, 12, 30, 7));
 }
 
-TEST_CASE("DedupKey: 26 bit の事象トークンは電文の鍵と衝突しない") {
-    // 合成鍵の payload は bits 0..29（26 bit のトークンは丸ごと入る）。bit 30 の判別子が効いているかを最大値で固定する。
+TEST_CASE("DedupKey: 29 bit の事象トークンは電文の鍵と衝突しない") {
+    // 合成鍵の payload は bits 0..29（29 bit のトークンは丸ごと入る）。bit 30 の判別子が効いているかを最大値で固定する。
     const uint32_t token = kSyntheticPayloadMask;
     CHECK((dedupEventKey(token).packed() & kSyntheticPayloadMask) == token);
     CHECK(dedupEventKey(token).packed() != DedupKey{0, token}.packed());
-    // 最上位に載る情報種別（bit 24-25）だけが違っても、鍵は別。
-    CHECK(dedupEventKey(dedupEventToken(5, 2, 6, 15, 12, 30)).packed() !=
-          dedupEventKey(dedupEventToken(5, 0, 6, 15, 12, 30)).packed());
+    // 最上位に載る情報種別（bit 24-25）と Rc（bit 26-28）だけが違っても、鍵は別。
+    CHECK(dedupEventKey(dedupEventToken(5, 2, 6, 15, 12, 30, 2)).packed() !=
+          dedupEventKey(dedupEventToken(5, 0, 6, 15, 12, 30, 2)).packed());
+    CHECK(dedupEventKey(dedupEventToken(5, 0, 6, 15, 12, 30, 2)).packed() !=
+          dedupEventKey(dedupEventToken(5, 0, 6, 15, 12, 30, 7)).packed());
 }
 
+#if AZARAC_ENABLE_DEDUP
 TEST_CASE("DedupFilter: 異なるcrc24は別情報") {
     DedupFilter filter;
     CHECK_FALSE(filter.isDuplicate(DedupKey{43, 0xABCDEF}, DEDUP_TEST_BASE, DEDUP_TEST_WINDOW));
@@ -787,6 +815,45 @@ TEST_CASE("DedupFilter: 直近に受信した情報は容量超過後も重複�
     }
 }
 
+TEST_CASE("DedupFilter: 追い出すのは最終受信が最も古いエントリ（way 順ではない）") {
+    // 満杯時の victim は「最終受信が最も古い」もの。走査順の先頭／末尾を選ぶ実装は、
+    // last_seen が way 順と一致していないときに生きている情報を落とす。
+    DedupFilter filter;
+    auto setOf = [](uint32_t content) {
+        uint32_t h = content & 0xFFFFFFu;
+        h ^= h >> 8;
+        h ^= h >> 4;
+        return static_cast<uint16_t>(h & (azaraC::internal::DEDUP_SETS - 1));
+    };
+
+    const uint16_t target = setOf(DedupKey{43, 1u}.packed());
+    const int need = static_cast<int>(azaraC::internal::DEDUP_WAYS) + 1;
+    DedupKey keys[azaraC::internal::DEDUP_WAYS + 1];
+    int n = 0;
+    for (uint32_t id = 1; n < need && id < 1000000u; ++id) {
+        DedupKey k{43, id};
+        if (setOf(k.packed()) == target) keys[n++] = k;
+    }
+    REQUIRE(n == need);   // 同一セットに落ちる鍵が WAYS+1 個見つかった
+
+    // way i の最終受信時刻を散らす（way 順とは一致させない）。
+    const uint32_t base = DEDUP_TEST_BASE;
+    const uint32_t BIG_WINDOW = 1000000u;
+    for (uint8_t i = 0; i < azaraC::internal::DEDUP_WAYS; ++i) {
+        const uint32_t rank = static_cast<uint32_t>((i + 3) % azaraC::internal::DEDUP_WAYS);
+        CHECK_FALSE(filter.isDuplicate(keys[i], base + rank * 100u, BIG_WINDOW));
+    }
+    const uint8_t oldest_way =
+        static_cast<uint8_t>((azaraC::internal::DEDUP_WAYS - 3) % azaraC::internal::DEDUP_WAYS);
+
+    // 満杯のセットへ新しい鍵を入れる: 追い出されるのは最新（末尾 way）でも way0 でもなく oldest_way。
+    (void)filter.isDuplicate(keys[azaraC::internal::DEDUP_WAYS], base + 10000u, BIG_WINDOW);
+
+    CHECK_FALSE(filter.isDuplicate(keys[oldest_way], base + 10001u, BIG_WINDOW));
+    CHECK(filter.isDuplicate(keys[0], base + 10002u, BIG_WINDOW));
+    CHECK(filter.isDuplicate(keys[azaraC::internal::DEDUP_WAYS - 1], base + 10003u, BIG_WINDOW));
+}
+
 TEST_CASE("DedupFilter: 32bit 時刻のラップをまたぐ victim 選択") {
     // last_seen_ms は uint32 ミリ秒（49.7 日周期）。
     // 同一セット内の差が 2^31 ms（約 24.8 日）を超えると、生の時刻を int32 で引く実装は新しい方を「古い」と誤認し、生きている情報を追い出して再通知させる。
@@ -860,6 +927,8 @@ TEST_CASE("DedupFilter: 大量のメッセージを処理できる") {
 
 // sizeof 回帰ガード: RAM制限のある組込みターゲットで構造体が肥大化した場合に検出する。
 
+#endif // AZARAC_ENABLE_DEDUP
+
 TEST_CASE("Memory: sizeof guards for embedded targets") {
 #if defined(__GNUC__) && ARDUINO == 0
     // Message の payload_storage_ = max(sizeof(Mt43Data), sizeof(Mt44Data))
@@ -867,7 +936,8 @@ TEST_CASE("Memory: sizeof guards for embedded targets") {
     CHECK(sizeof(Mt43Data) <= 240);
     CHECK(sizeof(Mt44Data) <= 420);
     // Parser = NankaiPageBufferManager（AZARAC_NANKAI_BUFFERS × sizeof(NankaiPageBuffer)）+ フレーマ・デコーダ・dedup
-    CHECK(sizeof(Parser) <= 5500);
+    // ホスト既定 BUFFERS=2（63 ページ 1,160 B × 2）で実測 6,624 B。
+    CHECK(sizeof(Parser) <= 6700);
 #else
     // アーキで sizeof が変わり得るので非 GCC / 組込みではスキップ
     INFO("sizeof guard skipped (non-GCC or ARDUINO target)");

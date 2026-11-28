@@ -27,8 +27,8 @@ uint32_t windowNoPayload(uint8_t dc, uint8_t info = 0) {
     return dedupWindowMs(FALLBACK, dc, info, nullptr);
 }
 
-// Message 版（Parser が実際に使う経路）
-uint32_t windowViaMessage(uint8_t dc, uint8_t info, Mt43Data::ActiveType type) {
+// Message 版（Parser が実際に使う経路）。津波を無効にすると呼び出しが消えるため maybe_unused。
+[[maybe_unused]] uint32_t windowViaMessage(uint8_t dc, uint8_t info, Mt43Data::ActiveType type) {
     Message m{};
     m.svid = 186;
     m.payload_type = MsgPayloadType::Mt43;
@@ -67,7 +67,9 @@ TEST_CASE("dedup window: unknown category falls back") {
 
 TEST_CASE("dedup window: tsunami (dc=5) needs announcement and warning code 3-5") {
     // payload 無しでは警報コードが読めないので 10 時間側に倒れる
+#if AZARAC_ENABLE_TSUNAMI
     CHECK(windowNoPayload(5, 0) == 10UL * HR);
+#endif
 
 #if AZARAC_ENABLE_TSUNAMI
     TsunamiData t{};
@@ -89,7 +91,9 @@ TEST_CASE("dedup window: tsunami (dc=5) needs announcement and warning code 3-5"
 }
 
 TEST_CASE("dedup window: weather (dc=10) needs Ar=1 and a special Ww") {
+#if AZARAC_ENABLE_WEATHER
     CHECK(windowNoPayload(10, 0) == 3UL * HR);
+#endif
 
 #if AZARAC_ENABLE_WEATHER
     WeatherData w{};
@@ -119,7 +123,9 @@ TEST_CASE("dedup window: weather (dc=10) needs Ar=1 and a special Ww") {
 }
 
 TEST_CASE("dedup window: flood (dc=11) needs Lv 2-4 and no cancellation") {
+#if AZARAC_ENABLE_FLOOD
     CHECK(windowNoPayload(11, 0) == 3UL * HR);
+#endif
 
 #if AZARAC_ENABLE_FLOOD
     FloodData f{};
@@ -144,7 +150,9 @@ TEST_CASE("dedup window: flood (dc=11) needs Lv 2-4 and no cancellation") {
 }
 
 TEST_CASE("dedup window: marine (dc=14) needs a warning code") {
+#if AZARAC_ENABLE_MARINE
     CHECK(windowNoPayload(14, 0) == 3UL * HR);
+#endif
 
 #if AZARAC_ENABLE_MARINE
     MarineData mi{};
@@ -167,7 +175,9 @@ TEST_CASE("dedup window: marine (dc=14) needs a warning code") {
 
 TEST_CASE("dedup window: Message overload routes MT43 payload and MT44 A8 window") {
     // Mt43: active_type に応じた payload が渡る（津波は code 依存）
+#if AZARAC_ENABLE_TSUNAMI
     CHECK(windowViaMessage(5, 0, Mt43Data::ActiveType::Tsunami) == 10UL * HR);
+#endif
 #if AZARAC_ENABLE_TSUNAMI
     {
         Message m{};
@@ -183,7 +193,9 @@ TEST_CASE("dedup window: Message overload routes MT43 payload and MT44 A8 window
     }
 #endif
     // Mt43 でも payload 未設定の型は nullptr 経由（クラッシュせず 10 時間）
+#if AZARAC_ENABLE_TSUNAMI
     CHECK(windowViaMessage(5, 0, Mt43Data::ActiveType::None) == 10UL * HR);
+#endif
     // Weather/Flood/Marine は payload を実際に埋めて条件分岐を通す（active_type だけでは payload が未設定で既定値が返り、条件の破壊を検出できない）。
 #if AZARAC_ENABLE_WEATHER
     {   // Weather: payload を実際に埋め、条件成立で DAY に伸びることを確認
@@ -269,35 +281,35 @@ TEST_CASE("dedup window: Message overload routes MT43 payload and MT44 A8 window
 namespace {
 
 // 常に「フレーム無し」を返すフレーマ（Parser のカスタム排他モード経路）
-class NeverFramer : public azaraC::internal::IFramer {
+class NeverFramer : public azaraC::IFramer {
 public:
     int calls = 0;
     int resets = 0;
-    bool feed(uint8_t, azaraC::internal::Frame&) override { ++calls; return false; }
+    bool feed(uint8_t, azaraC::Frame&) override { ++calls; return false; }
     void reset() override { ++resets; }
 };
 
 // 一度だけ指定フレームを返すフレーマ
-class OneShotFramer : public azaraC::internal::IFramer {
+class OneShotFramer : public azaraC::IFramer {
 public:
-    OneShotFramer(const azaraC::internal::Frame& f, bool deliver) : _f(f), _deliver(deliver) {}
-    bool feed(uint8_t, azaraC::internal::Frame& out) override {
+    OneShotFramer(const azaraC::Frame& f, bool deliver) : _f(f), _deliver(deliver) {}
+    bool feed(uint8_t, azaraC::Frame& out) override {
         if (_deliver) { _deliver = false; out = _f; return true; }
         return false;
     }
     void reset() override {}
 private:
-    azaraC::internal::Frame _f;
+    azaraC::Frame _f;
     bool _deliver;
 };
 
 // 1 回目に Frame を汚して false を返し、2 回目の Frame がゼロ初期化されているかを見る。
-class StaleFrameFramer : public azaraC::internal::IFramer {
+class StaleFrameFramer : public azaraC::IFramer {
 public:
     bool saw_stale = false;
     int calls = 0;
     int resets = 0;
-    bool feed(uint8_t, azaraC::internal::Frame& out) override {
+    bool feed(uint8_t, azaraC::Frame& out) override {
         ++calls;
         if (!_touched) {
             _touched = true;
@@ -349,7 +361,7 @@ TEST_CASE("Parser: custom framer starts each call with a zeroed Frame") {
 }
 
 TEST_CASE("Parser: custom framer decode failure clears the previous payload") {
-    azaraC::internal::Frame bad{};
+    azaraC::Frame bad{};
     bad.svid = 186;
     // bits 全ゼロ = プリアンブル/MT 不正 → Decoder::decode が false を返す
     OneShotFramer framer(bad, /*deliver=*/true);

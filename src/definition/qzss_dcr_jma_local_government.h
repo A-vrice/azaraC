@@ -1,5 +1,6 @@
 #pragma once
 // AUTO-GENERATED from azarashi 0.17.1 — do not edit
+// Specs: IS-QZSS-DCR-017 / IS-QZSS-DCX-004 Rev.004 / EWSS CAMF Issue 1.2
 // azarashi.definitions.qzss.dcr.local_government → qzss_dcr_jma_local_government: 1792 entries, strategy binary_search
 // Unknown id returns nullptr — callers MUST null-check.
 

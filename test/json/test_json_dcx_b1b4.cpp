@@ -4,6 +4,7 @@
 #include "../src/azaraC.h"
 #include "../src/internal/PrintShim.h"
 #include "../test_helpers.h"
+#include "JsonCheck.h"
 #include "doctest.h"
 #include <cstring>
 #include <string>
@@ -172,6 +173,11 @@ TEST_CASE("JSON DCX B4: detailed info fields") {
     CHECK(has(s, "\"d4_vector_length\":9,\"d4_vector_length_label\":\"30\""));
     // キーは D 番号の昇順（d3/d4 が d1/d2 より前に出る退行を防ぐ）
     CHECK(s.find("\"d1_magnitude\"") < s.find("\"d3_azimuth\""));
+    // has() は部分一致なので、4 フィールドを並べたときのカンマ（先頭・二重）を検査できない。
+    JsonCheck jc(s);
+    const bool wellformed = jc.run();
+    if (!wellformed) MESSAGE("JSON malformed: ", jc.error(), " json=", s.substr(0, 400));
+    CHECK(wellformed);
 }
 
 // B4 メッセージ（ハザードコード + A18 ビットフィールド）を JSON で。
@@ -398,5 +404,24 @@ TEST_CASE("JSON DCX EX1 city codes multiple entries") {
         const auto arr = s.substr(p, q - p + 1);
         CHECK(arr.find("null") == std::string::npos);
     }
+}
+
+// MT=44 なのに Mt44Data を持たない Message（外部で組み立てたもの、あるいは将来のビルド構成）を
+// 直列化したときの診断。受信経路では起きないが、公開 API としては落ちずに note を返す必要がある。
+TEST_CASE("JSON DCX: MT=44 with no payload emits invalid_mt44") {
+    Message m{};
+    m.svid = 193;
+    m.msg_type = 44;
+    m.crc24 = 0x123456;
+    m.valid = true;
+    REQUIRE(m.getMt44() == nullptr);
+
+    StringPrint sp;
+    internal::JsonSerializer::serialize(m, sp);
+    const std::string& s = sp.str();
+
+    CHECK(hasField(s, "\"msg_type\":44"));
+    CHECK(hasField(s, "\"note\":\"invalid_mt44\""));
+    CHECK(s.find("\"data\"") == std::string::npos);
 }
 #endif

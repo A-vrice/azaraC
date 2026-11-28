@@ -1,6 +1,6 @@
 // エラーハンドリングと状態監視の例 CRCエラー、フレームエラーの統計を表示する※ 重複排除はParser内部で自動的に行われるため、example側では検出できません配線 (ESP32-C3 DevKitM-1):
-//   GNSS TX → GPIO20 (Serial1 RX)
-//   GNSS RX → GPIO21 (Serial1 TX)
+//   GNSS TX → GPIO4 (Serial1 RX)
+//   GNSS RX → GPIO5 (Serial1 TX)
 //   GND     → GND
 
 #include <azaraC.h>
@@ -71,7 +71,7 @@ void printStatistics() {
 }
 
 // 注意: Parser::feed() が true を返した時点で msg.valid == true は保証されている。
-// この関数は feed() の前にしか呼ばれないので、msg.valid のチェックはデッドコード。
+// この関数は feed() が true を返した後に呼ばれるので、msg.valid のチェックはデッドコード。
 bool validateMessage(const azaraC::Message& msg) {
     // SVIDの範囲チェック (QZSS L1S PRN: 181-191)
     if (msg.svid < QZSS_SVID_MIN || msg.svid > QZSS_SVID_MAX) {
@@ -156,16 +156,23 @@ void setup() {
     uint32_t start = millis();
     while (!Serial && (millis() - start < 5000)) { delay(10); } // 5秒タイムアウト
 
-    #if defined(ESP32)
-        Serial1.begin(9600, SERIAL_8N1, /*rx=*/20, /*tx=*/21);
+    #if defined(ARDUINO_ESP32C3_DEV) || defined(CONFIG_IDF_TARGET_ESP32C3)
+        Serial1.begin(9600, SERIAL_8N1, /*rx=*/4, /*tx=*/5);
+    #elif defined(CONFIG_IDF_TARGET_ESP32C6) || defined(ARDUINO_ESP32C6_DEV)
+        // ESP32-C6 は GPIO16/17 が UART0（Serial 出力）なので別ピンを使う
+        Serial1.begin(9600, SERIAL_8N1, /*rx=*/4, /*tx=*/5);
+    #elif defined(ESP32)
+        // classic ESP32 は GPIO16/17 が UART2 の既定。S3 などは配線に合わせて変更する
+        Serial1.begin(9600, SERIAL_8N1, /*rx=*/16, /*tx=*/17);
     #else
-        Serial1.begin(9600, SERIAL_8N1);
+        Serial1.begin(9600, SERIAL_8N1);   // Mega など Serial1 を持つ非 ESP32 ボードの既定ピン
     #endif
     Serial.println(F("[azaraC] error_handling ready"));
     Serial.println(F("Waiting for QZSS messages..."));
 }
 
 void loop() {
+    parser.updateClock();  // 無受信期間でも 32 bit 時刻の折り返しを観測する
     while (Serial1.available()) {
         uint8_t b = static_cast<uint8_t>(Serial1.read());
 

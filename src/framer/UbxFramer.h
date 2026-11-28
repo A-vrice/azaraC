@@ -2,7 +2,7 @@
 // u-blox 受信機の UBX-RXM-SFRBX（class=0x02, id=0x13）を解析する。
 // QZSS L1S のサブフレームのみ受け付ける（gnssId=5、sigId∈{0,1}）。
 
-#include "IFramer.h"
+#include "../IFramer.h"
 
 namespace azaraC {
 namespace internal {

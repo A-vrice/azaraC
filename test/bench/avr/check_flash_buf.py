@@ -32,7 +32,11 @@ CATEGORIES = (
     "VOLCANO", "ASH_FALL", "WEATHER", "FLOOD", "TYPHOON", "MARINE", "DCX_CAMF",
 )
 # ユーザーが設定できるフラグ。AVR プリセットが固定するものは別途扱う。
-TUNABLE = [c for c in CATEGORIES if c not in ("SEISMIC", "TSUNAMI")]
+# TSUNAMI_LABELS は AZARAC_ENABLE_* ではなく AZARAC_TSUNAMI_NOTIFICATION_LABELS で、
+# 津波通知ラベルの表（EEW/震源と共有）を有効にする。AVR プリセット既定は 0。
+TUNABLE = [c for c in CATEGORIES if c not in ("SEISMIC", "TSUNAMI")] + ["TSUNAMI_LABELS"]
+# 擬似カテゴリ → 実際のマクロ名（crosscheck の -D 用）。
+FLAG_DEFINES = {"TSUNAMI_LABELS": "AZARAC_TSUNAMI_NOTIFICATION_LABELS"}
 
 # test/bench/avr/check_flash_buf.py -> repository root
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -86,8 +90,14 @@ def unescape(text):
 
 
 def parse_condition(expr):
-    """生成ガードの (categories, language)。例: '(A || B) && (AZARAC_LANG_JA)'。"""
+    """生成ガードの (categories, language)。例: '(A || B) && (AZARAC_LANG_JA)'。
+
+    AZARAC_TSUNAMI_NOTIFICATION_LABELS は擬似カテゴリ TSUNAMI_LABELS として扱う
+    （津波通知ラベルの表は EEW/HYPOCENTER と共有で、このマクロでも有効になる）。
+    """
     cats = frozenset(re.findall(r'AZARAC_ENABLE_(\w+)', expr))
+    if "AZARAC_TSUNAMI_NOTIFICATION_LABELS" in expr:
+        cats = cats | {"TSUNAMI_LABELS"}
     lang = None
     if "AZARAC_LANG_EN" in expr:
         lang = "EN"
@@ -118,25 +128,26 @@ def scan_tables():
         name = os.path.relpath(path, DEFS).replace(os.sep, "/")
         blocks = {}
         stack = []  # [(categories, language)]、開いている #if ごとに 1 エントリ
-        for line in open(path, encoding="utf-8"):
-            stripped = line.lstrip()
-            if stripped.startswith("#if"):
-                stack.append(parse_condition(stripped))
-                continue
-            if stripped.startswith("#endif"):
-                if stack:
-                    stack.pop()
-                continue
-            if stripped.startswith("#"):
-                continue  # #include "..." はラベルではない
-            key = (tuple(frozenset(c) for c, _ in stack),
-                   tuple(l for _, l in stack if l))
-            blocks.setdefault(key, []).append(line)
+        with open(path, encoding="utf-8") as f:
+            for line in f:
+                stripped = line.lstrip()
+                if stripped.startswith("#if"):
+                    stack.append(parse_condition(stripped))
+                    continue
+                if stripped.startswith("#endif"):
+                    if stack:
+                        stack.pop()
+                    continue
+                if stripped.startswith("#"):
+                    continue  # #include "..." はラベルではない
+                key = (tuple(frozenset(c) for c, _ in stack),
+                       tuple(l for _, l in stack if l))
+                blocks.setdefault(key, []).append(line)
 
         for key, lines in blocks.items():
             text = "".join(lines)
 
-            def put(n):
+            def put(n, key=key, name=name):
                 if n > out.get(key, (0, ""))[0]:
                     out[key] = (n, name)
 
@@ -166,7 +177,7 @@ def scan_tables():
             grands = {n: (table_rows(b), fields.get(n + "_GRAND_Entry", ["offset"]))
                       for n, b in GRAND_TABLE.findall(text)}
             for base, body in CHILD_TABLE.findall(text):
-                if base.endswith("_PARENT") or base.endswith("_GRAND"):
+                if base.endswith(("_PARENT", "_GRAND")):
                     continue  # 親・祖父テーブル自体は下から参照されるだけ
                 child = pools.get(base + "_POOL")
                 parent = pools.get(base + "_PARENT_POOL")
@@ -205,7 +216,8 @@ def parse_ladder():
     連鎖は自前のもの（機械的に大小比較でき、カテゴリ群ごとに 1 分岐）なので、素直な置換で足りる。
     正しさは `crosscheck_ladder` が avr-gcc と突き合わせて示す。
     """
-    text = open(CONFIG_H, encoding="utf-8").read()
+    with open(CONFIG_H, encoding="utf-8") as f:
+        text = f.read()
     chain = re.search(r'#ifndef AZARAC_FLASH_BUF_SIZE\n(.*?)\n#endif', text, re.S)
     if not chain:
         raise SystemExit("check_flash_buf: AZARAC_FLASH_BUF_SIZE chain not found")
@@ -254,10 +266,11 @@ def crosscheck_ladder(chain, avr_gcc, configs):
         args = [avr_gcc, "-E", "-dM", "-mmcu=" + mcu, "-I", os.path.join(REPO, "src"), "-x", "c++",
                 CONFIG_H]
         for cat in TUNABLE:
-            args.append("-DAZARAC_ENABLE_%s=%d" % (cat, flags.get(cat, 0)))
+            args.append("-D%s=%d" % (FLAG_DEFINES.get(cat, "AZARAC_ENABLE_" + cat), flags.get(cat, 0)))
         args.append("-DAZARAC_LANG_JA=%d" % flags.get("LANG_JA", 1))
         args.append("-DAZARAC_LANG_EN=%d" % flags.get("LANG_EN", 0))
-        proc = subprocess.run(args, capture_output=True, text=True)
+        # args はスクリプト内で組み立てる argv で、シェルは経由しない。
+        proc = subprocess.run(args, capture_output=True, text=True, check=False)  # nosemgrep
         if proc.returncode != 0:
             print("check_flash_buf: avr-gcc failed:\n" + proc.stderr[-500:], file=sys.stderr)
             return 2
@@ -303,6 +316,7 @@ def main():
 
     samples = [("atmega328p", {"LANG_JA": 1, "LANG_EN": 0, **{c: 0 for c in TUNABLE}, "DCX_CAMF": 0}),
                ("atmega328p", {"LANG_JA": 1, "LANG_EN": 0, **{c: 0 for c in TUNABLE}, "EEW": 1}),
+               ("atmega328p", {"LANG_JA": 1, "LANG_EN": 0, **{c: 0 for c in TUNABLE}, "TSUNAMI_LABELS": 1}),
                ("atmega328p", {"LANG_JA": 1, "LANG_EN": 0, **{c: 0 for c in TUNABLE}, "VOLCANO": 1}),
                ("atmega328p", {"LANG_JA": 1, "LANG_EN": 0, **{c: 1 for c in TUNABLE}}),
                ("atmega2560", {"LANG_JA": 1, "LANG_EN": 0, **{c: 0 for c in TUNABLE}, "DCX_CAMF": 1}),
@@ -326,7 +340,6 @@ def main():
         return 0
 
     failures.sort(key=lambda f: f[1] - f[0], reverse=True)
-    worst = failures[0]
     print("check_flash_buf: %d configuration(s) return a truncated label; worst:" % len(failures))
     for size, need, who, mcu, on in failures[:5]:
         print("  %s  buffer %d < label %d B (%s)  categories: %s"

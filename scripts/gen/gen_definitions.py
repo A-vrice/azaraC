@@ -11,7 +11,12 @@ import sys
 import time
 
 sys.path.insert(0, os.path.dirname(__file__))
-from strategy import choose, key_type, uint_type, factor_parents, PARENT_NONE
+from strategy import PARENT_NONE, choose, factor_parents, key_type
+
+# 生成ヘッダが準拠する仕様の版数。azarashi の版とは独立に、レビュアーが
+# 「どの仕様に追随した更新か」を git diff だけで判断できるようにする（H1/M8）。
+# 仕様を改訂したらここを更新する（生成ヘッダにも同じ行が出る）。
+SPEC_BASELINE = "IS-QZSS-DCR-017 / IS-QZSS-DCX-004 Rev.004 / EWSS CAMF Issue 1.2"
 
 GUARD_MAP = {
     "qzss_dcr_jma_eew_forecast_region": "AZARAC_ENABLE_EEW",
@@ -43,7 +48,7 @@ GUARD_MAP = {
     "qzss_dcr_jma_typhoon_scale_category": "AZARAC_ENABLE_TYPHOON",
     "qzss_dcr_jma_marine_forecast_region": "AZARAC_ENABLE_MARINE",
     "qzss_dcr_jma_marine_warning_code": "AZARAC_ENABLE_MARINE",
-    "qzss_dcr_jma_notification_on_disaster_prevention": "(AZARAC_ENABLE_EEW || AZARAC_ENABLE_HYPOCENTER)",
+    "qzss_dcr_jma_notification_on_disaster_prevention": "(AZARAC_ENABLE_EEW || AZARAC_ENABLE_HYPOCENTER || AZARAC_TSUNAMI_NOTIFICATION_LABELS)",
     "qzss_dcx_camf_a1_message_type": "AZARAC_ENABLE_DCX_CAMF",
     "qzss_dcx_camf_a2_country_region_name": "AZARAC_ENABLE_DCX_CAMF",
     "qzss_dcx_camf_a3_provider_identifier": "AZARAC_ENABLE_DCX_CAMF",
@@ -494,16 +499,6 @@ def emit_switch(varname, entries, guard, kt):
         "    }",
         "}",
     ])
-    non_avr_cases = "\n".join(
-        f'        case {k}: return {c_str_literal(v)};' for k, v in sorted(entries.items()))
-    non_avr_body = "\n".join([
-        f"[[nodiscard]] inline constexpr const char* {varname}_lookup({kt} id) noexcept {{",
-        "    switch (id) {",
-        non_avr_cases,
-        "        default: return nullptr;",
-        "    }",
-        "}",
-    ])
     # AVR/非AVR 同一テキスト: FlashString.h が非 AVR にも同一署名のアクセサを用意する。
     return avr_body
 
@@ -514,21 +509,6 @@ def emit_switch_optional(varname, entries, guard, kt):
         f"[[nodiscard]] inline std::optional<std::string_view> {varname}_lookup({kt} id) noexcept {{",
         "    switch (id) {",
         *avr_cases,
-        "        default: return std::nullopt;",
-        "    }",
-        "}",
-    ])
-    non_avr_cases = []
-    for k, v in sorted(entries.items()):
-        if v is not None:
-            byte_len = len(v.encode('utf-8'))
-            non_avr_cases.append(f'        case {k}: return std::string_view{{{c_str_literal(v)}, {byte_len}}};')
-        else:
-            non_avr_cases.append(f'        case {k}: return std::nullopt;')
-    non_avr_body = "\n".join([
-        f"[[nodiscard]] inline constexpr std::optional<std::string_view> {varname}_lookup({kt} id) noexcept {{",
-        "    switch (id) {",
-        *non_avr_cases,
         "        default: return std::nullopt;",
         "    }",
         "}",
@@ -571,16 +551,6 @@ def emit_array(varname, entries, guard, kt):
         f"    return azarac_pgm_copy(AZARAC_PGM_PTR({guard}_POOL) + off);",
         "}",
     ])
-    # 非 AVR: constexpr テーブル + lookup。
-    rows = ",\n    ".join(
-        c_str_literal(v) if v is not None else "nullptr" for v in table)
-    non_avr_body = "\n".join([
-        f"inline constexpr const char* {guard}_TABLE[] = {{",
-        f"    {rows}", "};",
-        f"[[nodiscard]] inline constexpr const char* {varname}_lookup({kt} id) noexcept {{",
-        f"    if (id < {guard}_BASE || id >= {guard}_BASE + {guard}_SIZE) return nullptr;",
-        f"    return {guard}_TABLE[id - {guard}_BASE];", "}",
-    ])
     return "\n".join([
         f"inline constexpr {kt} {guard}_BASE = {base};",
         f"inline constexpr {kt} {guard}_SIZE = {n};",
@@ -600,18 +570,6 @@ def emit_array_optional(varname, entries, guard, kt):
         f"    azarac_pgm_ptr p = AZARAC_PGM_PTR({guard}_TABLE) + static_cast<size_t>(id - {base}u) * sizeof({guard}_Entry);",
         *[f"    {line}" for line in fetch],
         "}",
-    ])
-    # 非 AVR: ペイロードは const char*（32 ビット環境で 4 B、std::optional<std::string_view> のエントリなら 12 B）。
-    # lookup は optional を返すので、不在（nullptr）と定義済みの空文字列（""）は呼び出し側で区別したまま。
-    rows = ",\n    ".join(
-        c_str_literal(v) if v is not None else "nullptr" for v in table)
-    non_avr_body = "\n".join([
-        f"inline constexpr const char* {guard}_TABLE[] = {{",
-        f"    {rows}", "};",
-        f"[[nodiscard]] inline constexpr std::optional<std::string_view> {varname}_lookup({kt} id) noexcept {{",
-        f"    if (id < {guard}_BASE || id >= {guard}_BASE + {guard}_SIZE) return std::nullopt;",
-        f"    const char* s = {guard}_TABLE[id - {guard}_BASE];",
-        "    return s ? std::optional<std::string_view>(std::string_view{s}) : std::nullopt;", "}",
     ])
     return "\n".join([
         f"inline constexpr {kt} {guard}_BASE = {base};",
@@ -651,22 +609,6 @@ def emit_bsearch(varname, entries, guard, kt):
         "    return nullptr;",
         "}",
     ])
-    # 非 AVR: constexpr テーブル + 二分探索。
-    rows = "\n".join(f'    {{{k}u, {c_str_literal(entries[k])}}},' for k in keys)
-    non_avr_body = "\n".join([
-        f"struct {guard}_Entry {{ {kt} id; const char* label; }};",
-        f"inline constexpr {guard}_Entry {guard}_TABLE[] = {{",
-        rows + "};",
-        f"[[nodiscard]] inline constexpr const char* {varname}_lookup({kt} id) noexcept {{",
-        f"    {idx_type} lo = 0, hi = {n};",
-        "    while (lo < hi) {",
-        f"        {idx_type} mid = static_cast<{idx_type}>(lo + (hi - lo) / 2);",
-        f"        if ({guard}_TABLE[mid].id == id) return {guard}_TABLE[mid].label;",
-        f"        if ({guard}_TABLE[mid].id < id) lo = mid + 1;",
-        "        else hi = mid;",
-        "    }",
-        "    return nullptr;", "}",
-    ])
     # AVR/非AVR 同一テキスト: FlashString.h が非 AVR にも同一署名のアクセサを用意する。
     return avr_body
 
@@ -701,27 +643,6 @@ def emit_bsearch_optional(varname, entries, guard, kt):
         "    }",
         "    return std::nullopt;",
         "}",
-    ])
-    # 非 AVR: ペイロードは const char* で、幅は emit_bsearch と同じ。
-    # lookup は引き続き std::optional<std::string_view> を返す。
-    # 二分探索では「鍵が無い」自体が不在の合図なので nullptr 行は要らない。
-    rows = "\n".join(f'    {{{k}u, {c_str_literal(entries[k])}}},' for k in keys)
-    non_avr_body = "\n".join([
-        f"struct {guard}_Entry {{ {kt} id; const char* label; }};",
-        f"inline constexpr {guard}_Entry {guard}_TABLE[] = {{",
-        rows + "};",
-        f"[[nodiscard]] inline constexpr std::optional<std::string_view> {varname}_lookup({kt} id) noexcept {{",
-        f"    {idx_type} lo = 0, hi = {n};",
-        "    while (lo < hi) {",
-        f"        {idx_type} mid = static_cast<{idx_type}>(lo + (hi - lo) / 2);",
-        f"        if ({guard}_TABLE[mid].id == id) {{",
-        f"            const char* s = {guard}_TABLE[mid].label;",
-        "            return s ? std::optional<std::string_view>(std::string_view{s}) : std::nullopt;",
-        "        }",
-        f"        if ({guard}_TABLE[mid].id < id) lo = mid + 1;",
-        "        else hi = mid;",
-        "    }",
-        "    return std::nullopt;", "}",
     ])
     # AVR/非AVR 同一テキスト: FlashString.h が非 AVR にも同一署名のアクセサを用意する。
     return avr_body
@@ -804,6 +725,7 @@ def build_header(modname, varname, entries, ver, all_varnames, obj=None, use_opt
     return (
         f"#pragma once\n"
         f"// AUTO-GENERATED from azarashi {ver} — do not edit\n"
+        f"// Specs: {SPEC_BASELINE}\n"
         f"// {modname} → {varname}: {len(keys)} entries, strategy {strat}\n"
         f"// Unknown id returns nullptr — callers MUST null-check.\n\n"
         f"#if defined(__AVR__)\n"
@@ -889,6 +811,7 @@ def run(out_dir):
     idx = (
         "#pragma once\n"
         f"// AUTO-GENERATED from azarashi {ver} — do not edit\n"
+        f"// Specs: {SPEC_BASELINE}\n"
         f"// {len(generated)} generated + {len(extra_headers)} hand-written definition headers\n"
         "\n"
         + "\n".join(f'#include "{a}.h"' for a in sorted(generated))

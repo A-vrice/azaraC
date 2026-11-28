@@ -33,11 +33,13 @@ namespace {
 // asm はポインタと長さを生かしたまま何も格納しない: カウンタに SRAM を使わない。
 class ProbePrint : public Print {
 public:
+    using Print::write;
+
     size_t write(uint8_t) override {
         asm volatile("" ::: "memory");
         return 1;
     }
-    size_t write(const char* s, size_t n) override {
+    size_t write(const uint8_t* s, size_t n) override {
         asm volatile("" : : "r"(s), "r"(n) : "memory");
         return n;
     }
@@ -46,11 +48,22 @@ public:
 ProbePrint g_out;
 }  // namespace
 
+// 目印関数。autoresearch.sh の image_has_path() はこの名前を nm で探す。
+// gcc 14 の LTO は Decoder::decode などを呼び出し元へ inline して記号を消すため、
+// ライブラリ内部の関数名ではなく、inline されないこの 2 つで経路の存在を確かめる。
+extern "C" __attribute__((noinline)) void azarac_probe_decode(azaraC::Parser& parser, azaraC::Message& msg) {
+    volatile uint8_t byte = 0x00;
+    parser.feed(byte, msg);
+}
+
+extern "C" __attribute__((noinline)) void azarac_probe_serialize(const azaraC::Message& msg) {
+    azaraC::toJson(msg, g_out);
+}
+
 int main() {
     azaraC::Parser parser;
     azaraC::Message msg;
-    volatile uint8_t byte = 0x00;
-    parser.feed(byte, msg);
-    azaraC::toJson(msg, g_out);
+    azarac_probe_decode(parser, msg);
+    azarac_probe_serialize(msg);
     return 0;
 }

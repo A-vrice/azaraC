@@ -182,7 +182,7 @@ static void buildMt43Frame(uint8_t category, uint8_t* bits) {
     memset(bits, 0, 32);
     setBits(bits, 0, 8, 0x53);       // Preamble
     setBits(bits, 8, 6, 43);         // msg_type
-    setBits(bits, 14, 3, 1);         // report_classification = 1 (訓練)
+    setBits(bits, 14, 3, 1);         // report_classification = 1 (最大優先)
     setBits(bits, 17, 4, category);  // disaster_category
     setBits(bits, 214, 6, 1);        // version = 1
 }

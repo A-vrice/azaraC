@@ -29,12 +29,13 @@ import sys
 # プリプロセス出力は宣言を `# 12 "file.h"` マーカーで分割し、__attribute__((__progmem__)) を独立した行へ持ち上げる。
 # 意味があるのは宣言本体だけなので、まずそれを取り除く。
 # Flash が 64 KiB を超えると AZARAC_PROGMEM はインラインの `__attribute__((__section__(".text.azaraC.<n>")))` に展開される — 同じ属性で括弧が 1 段深いだけ — ので、パターンは両方を受ける（テキストは解析するだけでコンパイルしない）。
-MARKER = re.compile(r'^# \d+ "[^"]*"(?: \d+)*$', re.M)
-ATTR = re.compile(r'__attribute__\s*\(\((?:[^()]|\([^()]*\))*\)\)')
+# 対象はローカルで生成した avr-gcc の前処理出力で、外部入力は扱わない。
+MARKER = re.compile(r'^# \d+ "[^"]*"(?: \d+)*$', re.M)  # nosemgrep
+ATTR = re.compile(r'__attribute__\s*\(\((?:[^()]|\([^()]*\))*\)\)')  # nosemgrep
 LITERAL_START = re.compile(r'\[\]\s*=\s*"')
 ENTRY_STRUCT = re.compile(r'struct\s+(\w+_Entry)\s*\{([^}]*)\}\s*;')
 TABLE = re.compile(r'(\w+_TABLE)\[\]\s*=\s*\{(.*?)\n\s*\};', re.S)
-ROW = re.compile(r'\{\s*[0-9][0-9a-fA-FxXuUlL]*(?:\s*,\s*[0-9][0-9a-fA-FxXuUlL]*)*\s*\}')
+ROW = re.compile(r'\{\s*[0-9][0-9a-fA-FxXuUlL]*(?:\s*,\s*[0-9][0-9a-fA-FxXuUlL]*)*\s*\}')  # nosemgrep
 NAME = re.compile(r'(\w+)\s*$')
 
 # AVR-GCC はこれらのフィールドにバイト境界のアラインメントを与える。

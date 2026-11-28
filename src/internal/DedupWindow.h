@@ -24,12 +24,14 @@ constexpr uint32_t kDayMs    = 24UL * kHourMs;
 
 constexpr uint32_t dedupWindowMs(uint32_t fallback_ms, uint8_t disaster_category,
                                  uint8_t information_type, const void* payload) {
+    (void)payload;   // 津波/気象/洪水/海上をすべて無効にすると未使用になる
     switch (disaster_category) {
     case 1: return 5UL * kMinuteMs;                        // 緊急地震速報 5 分
     case 2: case 3: return 2UL * kHourMs;                  // 震源 / 震度 2 時間
     case 4: return (information_type == 2)                 // 南海トラフ
                        ? 2UL * kHourMs                     //   取消 2 時間
                        : kDayMs;                           //   発表 24 時間
+#if AZARAC_ENABLE_TSUNAMI
     case 5: {                                              // 津波
         // 発表かつ警報コード 3/4/5（津波警報・大津波警報）が最大 24 時間、他は 10 時間。
         const TsunamiData* t = static_cast<const TsunamiData*>(payload);
@@ -38,9 +40,11 @@ constexpr uint32_t dedupWindowMs(uint32_t fallback_ms, uint8_t disaster_category
                    ? kDayMs
                    : 10UL * kHourMs;
     }
+#endif
     case 6: return 10UL * kHourMs;                         // 北西太平洋津波 10 時間
     case 8: return kDayMs;                                 // 火山 24 時間
     case 9: return kHourMs;                                // 降灰 最大 1 時間
+#if AZARAC_ENABLE_WEATHER
     case 10: {                                             // 気象
         // 24 時間は発表状況 Ar=1 かつ Ww=1..6 or 23（特別警報系・土砂災害警戒情報）のときだけ。Ww=21/22（大雨・竜巻注意情報）や解除は 3 時間。
         const WeatherData* w = static_cast<const WeatherData*>(payload);
@@ -53,6 +57,8 @@ constexpr uint32_t dedupWindowMs(uint32_t fallback_ms, uint8_t disaster_category
                    ? kDayMs
                    : 3UL * kHourMs;
     }
+#endif
+#if AZARAC_ENABLE_FLOOD
     case 11: {                                             // 洪水
         // 24 時間は発表/訂正（It≠2）かつ警戒レベル 2..4（氾濫警戒/危険/発生）。解除・取消は 3 時間。
         const FloodData* f = static_cast<const FloodData*>(payload);
@@ -64,7 +70,9 @@ constexpr uint32_t dedupWindowMs(uint32_t fallback_ms, uint8_t disaster_category
         return (information_type != 2 && warn) ? kDayMs
                                                : 3UL * kHourMs;
     }
+#endif
     case 12: return 3UL * kHourMs;                         // 台風 3 時間
+#if AZARAC_ENABLE_MARINE
     case 14: {                                             // 海上
         // 各警報コード 10/11/12/20/21/22/23 が最大 24 時間、解除 Dw=0 は最大 3 時間。Dw は 5 bit（0..31）で、定義表は {0,10,11,12,20,21,22,23,31} を持つ。
         const MarineData* mi = static_cast<const MarineData*>(payload);
@@ -78,6 +86,7 @@ constexpr uint32_t dedupWindowMs(uint32_t fallback_ms, uint8_t disaster_category
         return warn ? kDayMs
                     : 3UL * kHourMs;
     }
+#endif
     default: return fallback_ms;
     }
 }
@@ -111,10 +120,18 @@ inline uint32_t dedupWindowMs(const Message& m) {
     if (!d) return AZARAC_DEDUP_WINDOW_MS;
     const void* payload = nullptr;
     switch (d->active_type) {
+#if AZARAC_ENABLE_TSUNAMI
     case Mt43Data::ActiveType::Tsunami:     payload = d->getTsunami(); break;
+#endif
+#if AZARAC_ENABLE_WEATHER
     case Mt43Data::ActiveType::Weather:     payload = d->getWeather(); break;
+#endif
+#if AZARAC_ENABLE_FLOOD
     case Mt43Data::ActiveType::Flood:       payload = d->getFlood(); break;
+#endif
+#if AZARAC_ENABLE_MARINE
     case Mt43Data::ActiveType::Marine:      payload = d->getMarine(); break;
+#endif
     default: break;
     }
     return dedupWindowMs(AZARAC_DEDUP_WINDOW_MS, d->disaster_category,

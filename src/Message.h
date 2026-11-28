@@ -58,6 +58,9 @@ struct Message {
         memset(payload_storage_, 0, sizeof(payload_storage_));
     }
 
+    // payload_storage_ を値初期化してから payload を配置する。copyPayloadFrom() が書くのは有効な payload 型の
+    // 分だけなので、ゼロ埋めが実際に効くのは payload_type == Empty のときの全体と、有効な型より後ろの
+    // スラック部だけ（どちらも誰も読まない）。未初期化バイトを残さないための処置。
     Message(const Message& other)
         : svid(other.svid)
         , msg_type(other.msg_type)
@@ -70,6 +73,9 @@ struct Message {
         copyPayloadFrom(other);
     }
 
+    // payload_storage_ はゼロ化しない: copyPayloadFrom() が書くのは有効な payload 型の分だけで、残るのは
+    // 前の内容（payload_type == Empty なら全体）だが、payload_type が示す型の外は誰も読まない。
+    // examples/rtos_freertos はメッセージごとにコピー代入するので、毎回の memset はその分だけ遅くなる。
     Message& operator=(const Message& other) {
         if (this != &other) {
             destroyPayload();

@@ -7,6 +7,7 @@
 #include "doctest.h"
 #include <cstring>
 #include <string>
+#include <vector>
 
 using namespace azaraC;
 
@@ -67,18 +68,36 @@ static void initMt43As(Message& m, uint8_t dc) {
 #if (AZARAC_ENABLE_HYPOCENTER)
         case 2: mt43->initAs<HypocenterData>(); break;
 #endif
+#if (AZARAC_ENABLE_SEISMIC)
         case 3: mt43->initAs<SeismicData>(); break;
+#endif // AZARAC_ENABLE_SEISMIC
 #if (AZARAC_ENABLE_NANKAI)
         case 4: mt43->initAs<NankaiData>(); break;
 #endif
+#if (AZARAC_ENABLE_TSUNAMI)
         case 5: mt43->initAs<TsunamiData>(); break;
+#endif // AZARAC_ENABLE_TSUNAMI
+#if (AZARAC_ENABLE_NW_PAC_TSUNAMI)
         case 6: mt43->initAs<NwPacTsunamiData>(); break;
+#endif // AZARAC_ENABLE_NW_PAC_TSUNAMI
+#if (AZARAC_ENABLE_VOLCANO)
         case 8: mt43->initAs<VolcanoData>(); break;
+#endif // AZARAC_ENABLE_VOLCANO
+#if (AZARAC_ENABLE_ASH_FALL)
         case 9: mt43->initAs<AshFallData>(); break;
+#endif // AZARAC_ENABLE_ASH_FALL
+#if (AZARAC_ENABLE_WEATHER)
         case 10: mt43->initAs<WeatherData>(); break;
+#endif // AZARAC_ENABLE_WEATHER
+#if (AZARAC_ENABLE_FLOOD)
         case 11: mt43->initAs<FloodData>(); break;
+#endif // AZARAC_ENABLE_FLOOD
+#if (AZARAC_ENABLE_TYPHOON)
         case 12: mt43->initAs<TyphoonData>(); break;
+#endif // AZARAC_ENABLE_TYPHOON
+#if (AZARAC_ENABLE_MARINE)
         case 14: mt43->initAs<MarineData>(); break;
+#endif // AZARAC_ENABLE_MARINE
         default: break;
     }
 }
@@ -686,6 +705,55 @@ TEST_CASE("JSON Serialization: MT=43 NW Pacific Tsunami") {
     CHECK(hasField(s, "\"height_lower\":10.0,\"height_upper\":null"));
     // coastal_region_en の疎キーテーブル（code 1 → Ust-Kamchatsk）
     CHECK(hasField(s, "\"region\":1,\"region_label\":\"Ust-Kamchatsk (East Coasts of Kamchatka Peninsula)\""));
+}
+
+// 到着時刻が未解決になるコードは arrival_time を null にし、状態を arrival_status で出す。
+// （Print の出し分けなので、値をそのまま書くと JSON の型が変わってしまう。）
+TEST_CASE("JSON Serialization: MT=43 NW Pacific Tsunami 未解決の到着時刻") {
+    Message m{};
+    initMt43As(m, 6);
+    NwPacTsunamiData* nw = m.getMt43()->getNwPac();
+    REQUIRE(nw != nullptr);
+
+    nw->potential = 2;
+    nw->count = 3;
+    // hour=31, min=63 → 到着済み/不明
+    nw->entries[0].region_code = 1;
+    nw->entries[0].height_code = 3;
+    nw->entries[0].arrival_time_raw = static_cast<uint16_t>((31u << 6) | 63u);
+    // hour=24 は範囲外 → 未認識コード
+    nw->entries[1].region_code = 2;
+    nw->entries[1].height_code = 3;
+    nw->entries[1].arrival_time_raw = static_cast<uint16_t>(24u << 6);
+    // 通常時刻は今までどおりオブジェクトで出る（対象行）
+    nw->entries[2].region_code = 1;
+    nw->entries[2].height_code = 1;
+    nw->entries[2].arrival_time_raw = static_cast<uint16_t>((7u << 6) | 40u);
+
+    StringPrint sp;
+    internal::JsonSerializer::serialize(m, sp);
+    const auto& s = sp.str();
+
+    CHECK(hasField(s, "\"arrival_status\":\"arrived_or_unknown\""));
+    CHECK(hasField(s, "\"arrival_status\":\"unrecognized_code\""));
+    CHECK(has(s, "\"arrival_time\":null"));
+    CHECK_FALSE(has(s, "\"arrival_status\":\"arrival_estimated\""));
+}
+
+// 表に無い高さコード（北西太平洋）は両端 null になる（NW-PAC の default 分岐）。
+TEST_CASE("JSON Serialization: MT=43 NW Pacific Tsunami 表に無い高さコード") {
+    Message m{};
+    initMt43As(m, 6);
+    NwPacTsunamiData* nw = m.getMt43()->getNwPac();
+    REQUIRE(nw != nullptr);
+    nw->potential = 2;
+    nw->count = 1;
+    nw->entries[0].region_code = 1;
+    nw->entries[0].height_code = 7;   // 仕様表に無いコード
+
+    StringPrint sp;
+    internal::JsonSerializer::serialize(m, sp);
+    CHECK(hasField(sp.str(), "\"height_lower\":null,\"height_upper\":null"));
 }
 
 // 北西太平洋も全コード（508 は上端なし）。
@@ -1412,8 +1480,31 @@ TEST_CASE("JSON Serialization: Nankai aggregated text_utf8 output") {
     CHECK(s.find("\"text_utf8\":") != std::string::npos);
     CHECK(s.find("\"text_hex\"") == std::string::npos);
     CHECK(has(s, aggregated));
+    // truncated は既定 false。集約済みでも打ち切られていなければ 0。
+    CHECK(hasField(s, "\"truncated\":0"));
 }
 #endif // AZARAC_ENABLE_NANKAI
+
+#if (AZARAC_ENABLE_WEATHER) && (AZARAC_ENABLE_VOLCANO)
+TEST_CASE("JSON Serialization: MT=43 category without its payload is unsupported") {
+    // disaster_category と payload の型が食い違う（防御経路）: serializer は false を返し、
+    // 呼び出し側は data の代わりに note を出す。
+    Message m{};
+    m.msg_type = 43;
+    m.initPayload<Mt43Data>();
+    Mt43Data* mt43 = m.getMt43();
+    REQUIRE(mt43 != nullptr);
+    mt43->initAs<VolcanoData>();
+    mt43->disaster_category = 10;      // Weather を名乗るが payload は Volcano
+    REQUIRE(mt43->getWeather() == nullptr);
+
+    StringPrint sp;
+    internal::JsonSerializer::serialize(m, sp);
+    const std::string& s = sp.str();
+    CHECK(has(s, "\"data\":{"));
+    CHECK(has(s, "\"note\":\"unsupported_category\""));
+}
+#endif
 
 #if (AZARAC_ENABLE_NANKAI)
 TEST_CASE("JSON Serialization: Nankai incomplete text_hex output") {
@@ -1430,7 +1521,8 @@ TEST_CASE("JSON Serialization: Nankai incomplete text_hex output") {
     nankai->total_page = 27;
     const uint8_t known[18] = {0x00, 0x0A, 0xA5, 0xFF, 0x10, 0x2F, 0x30, 0x4B, 0x50,
                                0x6D, 0x70, 0x8E, 0x90, 0xAB, 0xB0, 0xCD, 0xD0, 0xEF};
-    memcpy(nankai->text, known, sizeof(known));
+    // known と text はどちらも 18 バイトで、コピー長は sizeof(known) に固定される。
+    memcpy(nankai->text, known, sizeof(known));  // nosemgrep
 
     StringPrint sp;
     internal::JsonSerializer::serialize(m, sp);
@@ -1771,3 +1863,96 @@ TEST_CASE("JSON v2: J-Alert objects") {
     }
 }
 #endif // AZARAC_ENABLE_DCX_CAMF
+
+// 境界付きバッファ版 toJson()（Print を持たない呼び出し側向け）。
+// カテゴリに依存しないよう、未対応 MT の診断 JSON で検証する。
+TEST_CASE("toJson(buffer): Print 出力とバイト一致し、境界を越えない") {
+    Message m{};
+    m.svid = 193;
+    m.msg_type = 49;   // 43/44 以外
+    m.crc24 = 0x123456;
+
+    StringPrint sp;
+    toJson(m, sp);
+    const std::string full = sp.str();
+    REQUIRE(!full.empty());
+
+    char buf[256];
+    const size_t n = toJson(m, buf, sizeof(buf));
+    CHECK(n == full.size());
+    CHECK(buf[n] == '\0');
+    CHECK(std::string(buf, n) == full);
+}
+
+TEST_CASE("toJson(buffer): 切り詰めでも NUL 終端しバッファ外へ書かない") {
+    Message m{};
+    m.svid = 193;
+    m.msg_type = 49;
+    m.crc24 = 0x123456;
+
+    StringPrint sp;
+    toJson(m, sp);
+    const std::string full = sp.str();
+
+    char buf[18];
+    memset(buf, 'X', sizeof(buf));
+    const size_t n = toJson(m, buf, 16);
+    CHECK(n == 15);
+    CHECK(buf[15] == '\0');
+    CHECK(std::string(buf, n) == full.substr(0, 15));
+    CHECK(buf[16] == 'X');   // 番兵（境界の外）は不変
+
+    // len=1 は空文字列、len=0 / nullptr は何も書かない。
+    char one[2] = {'Z', 'Z'};
+    CHECK(toJson(m, one, 1) == 0);
+    CHECK(one[0] == '\0');
+    CHECK(one[1] == 'Z');
+
+    char tiny[1] = {'Y'};
+    CHECK(toJson(m, tiny, 0) == 0);
+    CHECK(tiny[0] == 'Y');
+    CHECK(toJson(m, nullptr, 10) == 0);
+}
+
+TEST_CASE("toJson(buffer): required で完全な長さと切り詰めを判別できる") {
+    Message m{};
+    m.svid = 193;
+    m.msg_type = 49;
+    m.crc24 = 0x123456;
+
+    StringPrint sp;
+    toJson(m, sp);
+    const size_t full = sp.str().size();
+    REQUIRE(full > 16);
+
+    // 長さだけ測る: nullptr / len=0 でも required は埋まり、何も書かない。
+    size_t need = 0;
+    CHECK(toJson(m, nullptr, 0, &need) == 0);
+    CHECK(need == full);
+    char tiny[1] = {'Y'};
+    need = 0;
+    CHECK(toJson(m, tiny, 0, &need) == 0);
+    CHECK(need == full);
+    CHECK(tiny[0] == 'Y');
+
+    // 切り詰め: required > 戻り値。
+    char small[16];
+    need = 0;
+    const size_t n = toJson(m, small, sizeof(small), &need);
+    CHECK(n == 15);
+    CHECK(need == full);
+    CHECK(need > n);
+
+    // ちょうど収まる（required + 1 バイト）: required == 戻り値。
+    std::vector<char> exact(full + 1, 'X');
+    need = 0;
+    CHECK(toJson(m, exact.data(), exact.size(), &need) == full);
+    CHECK(need == full);
+    CHECK(std::string(exact.data()) == sp.str());
+
+    // 1 バイト足りない: 切り詰めとして判別できる。
+    std::vector<char> short1(full, 'X');
+    need = 0;
+    CHECK(toJson(m, short1.data(), short1.size(), &need) == full - 1);
+    CHECK(need == full);
+}
