@@ -4,6 +4,8 @@
 #include <chrono>
 #include "doctest.h"
 #include "../src/internal/NankaiPageBuffer.h"
+#include "../src/internal/Dedup.h"
+#include "../src/internal/DedupWindow.h"
 #include "../src/Parser.h"
 #include "../test_helpers.h"
 
@@ -462,6 +464,33 @@ TEST_CASE("NankaiPageBufferManager empty slots never match") {
     CHECK(manager.addPage(zero, 2, 2, text, 1000) != nullptr);
 }
 
+TEST_CASE("NankaiPageBufferManager separates training and real alerts") {
+    NankaiPageBufferManager manager;
+    const NankaiPageKey real(1, 4, 10, 30, 15, 0, 2);
+    const NankaiPageKey training(1, 4, 10, 30, 15, 0, 7);
+    CHECK_FALSE(real == training);
+    uint8_t real_text[18] = {'R', 0};
+    uint8_t training_text[18] = {'T', 0};
+    CHECK(manager.addPage(real, 1, 2, real_text, 1000) == nullptr);
+    // 訓練の 2 ページ目は実警報の 1 ページ目と混ざって完成してはならない。
+    CHECK(manager.addPage(training, 2, 2, training_text, 1000) == nullptr);
+}
+
+TEST_CASE("NankaiPageBufferManager rejects invalid pages before evicting") {
+    NankaiPageBufferManager manager;
+    uint8_t text[18] = {'P', 0};
+    for (uint8_t i = 0; i < NankaiPageBufferManager::MAX_BUFFERS; ++i) {
+        manager.addPage(NankaiPageKey(1, 4, 10, 30, static_cast<uint8_t>(i)), 1, 2, text, 1000);
+    }
+    const NankaiPageKey fresh(2, 4, 10, 30, 59);
+    CHECK(manager.addPage(fresh, 0, 2, text, 1001) == nullptr);
+    CHECK(manager.addPage(fresh, 3, 2, text, 1001) == nullptr);
+    CHECK(manager.getBuffer(fresh) == nullptr);
+    for (uint8_t i = 0; i < NankaiPageBufferManager::MAX_BUFFERS; ++i) {
+        CHECK(manager.getBuffer(NankaiPageKey(1, 4, 10, 30, static_cast<uint8_t>(i))) != nullptr);
+    }
+}
+
 TEST_CASE("NankaiPageBuffer expiry") {
     SUBCASE("isExpired boundary") {
         NankaiPageBuffer buffer;
@@ -469,6 +498,29 @@ TEST_CASE("NankaiPageBuffer expiry") {
         buffer.addPage(1, 2, text, 1000);
         CHECK_FALSE(buffer.isExpired(1000 + NankaiPageBuffer::TIMEOUT_MS));
         CHECK(buffer.isExpired(1000 + NankaiPageBuffer::TIMEOUT_MS + 1));
+    }
+
+    SUBCASE("duplicate page refreshes the timeout") {
+        NankaiPageBuffer buffer;
+        uint8_t text[18] = {'P', 0};
+        buffer.addPage(1, 2, text, 1000);
+        const uint64_t resend = 1000 + NankaiPageBuffer::TIMEOUT_MS - 1;
+        CHECK_FALSE(buffer.addPage(1, 2, text, resend));
+        CHECK(buffer.received_count == 1);
+        CHECK_FALSE(buffer.isExpired(1000 + NankaiPageBuffer::TIMEOUT_MS + 1));
+        CHECK(buffer.isExpired(resend + NankaiPageBuffer::TIMEOUT_MS + 1));
+    }
+
+    SUBCASE("duplicate page extends a completed buffer without adding text") {
+        NankaiPageBuffer buffer;
+        uint8_t text[18] = {'P', 0};
+        buffer.addPage(1, 1, text, 1000);
+        REQUIRE(buffer.isComplete());
+        const uint64_t resend = 1000 + NankaiPageBuffer::TIMEOUT_MS - 1;
+        CHECK_FALSE(buffer.addPage(1, 1, text, resend));
+        CHECK(buffer.received_count == 1);
+        CHECK_FALSE(buffer.isExpired(1000 + NankaiPageBuffer::TIMEOUT_MS + 1));
+        CHECK(buffer.isExpired(resend + NankaiPageBuffer::TIMEOUT_MS + 1));
     }
 
     SUBCASE("expireBuffers drops a stale buffer") {
@@ -484,6 +536,35 @@ TEST_CASE("NankaiPageBuffer expiry") {
         CHECK(manager.getBuffer(key) == nullptr);
     }
 }
+
+#if AZARAC_ENABLE_DEDUP
+TEST_CASE("Nankai cancel: resends keep dedup anchored to the last receipt") {
+    // Parser::postDecode と同様、完成済みバッファへの再送は本文を再出力せず dedup 履歴を更新する。
+    NankaiPageBufferManager manager;
+    DedupFilter dedup;
+    const NankaiPageKey key = {1, 4, 10, 3, 30, 2, 2};   // 取消・実警報
+    const DedupKey dkey = dedupEventKey(dedupEventToken(1, 2, 4, 10, 3, 30, 2));
+    const uint32_t window_ms = dedupWindowMs(AZARAC_DEDUP_WINDOW_MS, 4, 2, nullptr);
+    REQUIRE(window_ms == 2UL * 3600UL * 1000UL);
+    uint8_t text[18] = {'P', 0};
+
+    // 通知されるなら true を返す（Parser が true を返す経路）。
+    auto receive = [&](uint64_t t_ms) {
+        const auto result = manager.addPageEx(key, 1, 1, text, t_ms, nullptr);
+        if (result != NankaiAggregateResult::Complete &&
+            result != NankaiAggregateResult::DuplicateComplete) return false;
+        const bool duplicate = dedup.isDuplicate(dkey, static_cast<uint32_t>(t_ms), window_ms);
+        return result == NankaiAggregateResult::Complete && !duplicate;
+    };
+
+    CHECK(receive(0));                                    // 初回は通知する
+    for (uint64_t t = 30000; t <= 600000; t += 30000) {   // 10 分間、30 秒ごとの再送はすべて抑止
+        CHECK_FALSE(receive(t));
+    }
+    // 初回から 2 時間 5 分後でも、最終受信（10 分後）からは 2 時間以内なので抑止される。
+    CHECK_FALSE(receive(2ULL * 3600 * 1000 + 5ULL * 60 * 1000));
+}
+#endif
 
 #if AZARAC_NANKAI_BUFFERS >= 2
 TEST_CASE("NankaiPageBufferManager expiry is not LRU eviction") {

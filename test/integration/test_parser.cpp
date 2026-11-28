@@ -65,6 +65,7 @@ TEST_CASE("Parser: bulk feed reports no message for incomplete input") {
     CHECK_FALSE(parser.feed(reinterpret_cast<const uint8_t*>(partial), sizeof(partial) - 1, msg, 0));
     // nullptr / len=0 は何もせず false。
     CHECK_FALSE(parser.feed(nullptr, 0, msg, 0));
+    CHECK_FALSE(parser.feed(nullptr, 10, msg, 0));
     CHECK_FALSE(parser.feed(reinterpret_cast<const uint8_t*>(""), 0, msg, 0));
 }
 

@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.1] - 2026-11-21
+
+2.0.0 以降に main へ入った未リリースの変更（下の Added / 2 つ目の Fixed / Changed）に、v3 に向けた開発ブランチ（PR #45）のバグ修正を加えたパッチ。#45 の新しい設定マクロと CI の拡張は含めない。
+
+### Migration
+
+- **`getNankaiBuffer()` の鍵に Rc が加わった**: `NankaiPageKey` は `report_classification`（Rc）も照合する。既定値の 0 は実警報（Rc=2）にも訓練・試験（Rc=7）にも一致しないので、`NankaiPageKey{info_code, month, day, hour, minute, information_type, report_classification}` で作り、Rc は電文の `Mt43Data::report_classification` に合わせる。
+
+### Fixed
+
+- **南海トラフの訓練と実警報が混ざる**: `NankaiPageKey` と `dedupEventToken` に `report_classification`（Rc）を追加し、訓練（Rc=7）と実警報（Rc=2）を別の事象として集約・重複判定する。`NankaiPageKey` は 7 B、`NankaiPageBuffer` は AVR 1,158 B になる。
+- **重複ページの再送で集約が失効する**: 受信済みページの再送でも `last_update_ms` を更新し、1 ページ欠落時の 2 巡目で途中の集約が 60 秒で捨てられないようにした。
+- **不正ページが進行中の集約を追い出す**: ページ番号の検証をバッファ割り当て（最古の追い出し）より前に行う。
+- **約 49.7 日の連続運転後に新規警報が重複扱いになる**: `getMillis()` の上位 32 bit（世代）が変わったときと 1 秒を超える時計の後退で、dedup と南海トラフの履歴を捨てる。1 秒以内の後退は丸める。
+- **dedup の LRU**: 追い出し対象を最初の有効エントリで初期化する。
+- **`Message` のコピー**: コピー ctor で `payload_storage_` を値初期化する。
+- **`feed()` が false のとき**: 壊れたフレームの svid を残さない。
+- **`compactText()` 後の `getTextLength()`**: 連続した本文の長さを返す。
+- **J-Alert 市区町村コード**: 送信順（MSB 先頭）で復号する。
+- **津波リストの終端**: エントリが全 0 のときを終端とする。
+- **暦に存在しない日付**: 未解決として扱う。
+- **`getBits` の幅検証と u32 epoch**: 戻り値型を超える幅を拒否し、2106 年超は `unix_time` だけ 0 にする。
+- **南海トラフ集約本文の不正 UTF-8**: JSON 出力で U+FFFD に置換する。
+- **`getMillis()`**: 外部リンケージの inline にして、翻訳単位ごとに別のカウンタを持たないようにした。
+
 ### Added
 
 - **`toJson(msg, buf, len, &required)` で完全な JSON の長さを受け取れるようにした**: 省略可能な第4引数 `size_t* required` に NUL を除く完全な長さが入る。`required > 戻り値` なら切り詰めで、ちょうど収まった場合と区別できる。`buf == nullptr` / `len == 0` でも埋まるので、長さだけ測ってからバッファを用意できる。既存の3引数呼び出しの挙動は不変。
