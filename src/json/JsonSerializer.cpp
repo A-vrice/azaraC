@@ -174,7 +174,9 @@ public:
         const size_t room = (cap_ - 1) - used_;
         const size_t n = (size < room) ? size : room;
         if (n) {
-            memcpy(buf_ + used_, data, n);
+            for (size_t i = 0; i < n; ++i) {
+                buf_[used_ + i] = static_cast<char>(data[i]);
+            }
             used_ += n;
         }
         return size;
