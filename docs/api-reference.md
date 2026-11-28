@@ -479,6 +479,18 @@ if (client.connect(server, port)) {
 
 ---
 
+### `crc24q()`
+
+```cpp
+uint32_t crc24q(const uint8_t* data, uint16_t bit_len);
+```
+
+受信経路と同じ CRC-24Q 実装を公開します。`data[0]` の MSB から `bit_len` ビットを処理し、下位 24 ビットに CRC を返します（初期値 0、最終 XOR なし）。長さはバイト数ではありません。
+`bit_len == 0` は 0 を返します。それ以外では `data` に少なくとも `ceil(bit_len / 8)` バイトの読み出せる領域が必要です。ポインタや容量の検証は行いません。
+L1S フレームでは bit 0〜225 の CRC を計算し、bit 226〜249 の受信 CRC と照合します。通常の受信処理は `Parser` が行うため、自前の電文生成や検証向けです。
+
+---
+
 ## コンパイル時設定
 
 ビルドフラグ（`-DAZARAC_...=...`、PlatformIO の `build_flags`、arduino-cli の `--build-property compiler.cpp.extra_flags=...`）で指定します。
