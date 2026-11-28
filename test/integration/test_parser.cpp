@@ -864,3 +864,31 @@ TEST_CASE("DCX B3: 副楕円パラメータが camf に反映される") {
     CHECK(mt44->camf.b3_c10 == 0);
 }
 #endif
+
+#if (AZARAC_ENABLE_EEW)
+TEST_CASE("Parser: bulk feed returns exact consumed byte count (i + 1)") {
+    uint8_t bits[32] = {};
+    setBits(bits, 0, 8, 0x53);
+    setBits(bits, 8, 6, 43);
+    setBits(bits, 14, 3, 1);
+    setBits(bits, 17, 4, 1);
+    setBits(bits, 21, 4, 6);
+    setBits(bits, 25, 5, 15);
+    setBits(bits, 30, 5, 12);
+    setBits(bits, 35, 6, 0);
+    setBits(bits, 214, 6, 1);
+    setBits(bits, 226, 24, crc24qRef(bits, 226));
+
+    auto pkt = makeUbxSfrbx(2, bits);
+    const size_t expected_consumed = pkt.size();
+    // 末尾にゴミを足し、フレーム完了位置 (i + 1) がそのまま返ることを検証
+    pkt.push_back(0x00);
+    pkt.push_back(0x00);
+
+    Parser parser;
+    Message out{};
+    size_t consumed = parser.feedUntilMessage(pkt.data(), pkt.size(), out, 1718452800u);
+    CHECK(consumed == expected_consumed);
+    CHECK(out.valid);
+}
+#endif

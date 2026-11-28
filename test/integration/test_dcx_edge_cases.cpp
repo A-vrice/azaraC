@@ -297,4 +297,118 @@ TEST_CASE("DCX Edge: Vn boundaries are stored as-is") {
         CHECK(mt44->ex.ex_lalert_local.vn == c.vn);
     }
 }
+
+TEST_CASE("DCX Edge: onset_time on non-Monday, a7==0, and report_unix==2000-01-01") {
+    auto decodeWith = [](uint16_t a7, uint32_t report_unix) -> TimeFields {
+        uint8_t bits[32] = {};
+        setBits(bits, 0, 8, 0x53);
+        setBits(bits, 8, 6, 44);
+        setBits(bits, 14, 1, 0);
+        setBits(bits, 15, 9, 0);
+        setBits(bits, 24, 2, 1);
+        setBits(bits, 26, 9, 111); // Japan
+        setBits(bits, 35, 5, 1);   // L-Alert
+        setBits(bits, 40, 7, 10);
+        setBits(bits, 49, 1, 0);   // a6 = 0 (this week)
+        setBits(bits, 50, 14, a7); // a7
+        setBits(bits, 226, 24, crc24qRef(bits, 226));
+
+        Frame frame{};
+        for (size_t i = 0; i < 32; ++i) frame.bits[i] = bits[i];
+        frame.svid = 193;
+        Decoder dec;
+        Message msg{};
+        REQUIRE(dec.decode(frame, msg, report_unix));
+        return msg.getMt44()->onset_time;
+    };
+
+    // 2024-06-06 (Thu, dow=3): 今週月曜は 2024-06-03
+    const uint32_t thu = daysFromCivil(2024, 6, 6) * 86400u + 12u * 3600u;
+    TimeFields mon = decodeWith(1, thu);
+    CHECK(mon.unix_time == daysFromCivil(2024, 6, 3) * 86400u);
+    CHECK(mon.month == 6);
+    CHECK(mon.day == 3);
+    CHECK(mon.hour == 0);
+    CHECK(mon.minute == 0);
+
+    // a7 == 1441 → 火曜 2024-06-04 00:00
+    TimeFields tue = decodeWith(1441, thu);
+    CHECK(tue.unix_time == daysFromCivil(2024, 6, 4) * 86400u);
+    CHECK(tue.month == 6);
+    CHECK(tue.day == 4);
+
+    // a7 == 0 → onset_time は未設定 (unix_time == 0)
+    TimeFields none = decodeWith(0, thu);
+    CHECK(none.unix_time == 0);
+
+    // report_unix == 946684800 (2000-01-01, Sat, dow=5) ちょうどは有効扱い → 月曜 1999-12-27
+    TimeFields epoch2000 = decodeWith(1, 946684800u);
+    CHECK(epoch2000.unix_time == daysFromCivil(1999, 12, 27) * 86400u);
+    CHECK(epoch2000.month == 12);
+    CHECK(epoch2000.day == 27);
+}
+
+TEST_CASE("DCX Edge: LocalGovernment additional_area present iff any of ex2..ex7 is non-zero") {
+    auto decodeLocal = [](uint8_t ex2, uint32_t ex3, uint32_t ex4, uint8_t ex5, uint8_t ex6, uint8_t ex7) -> bool {
+        uint8_t bits[32] = {};
+        setBits(bits, 0, 8, 0x53);
+        setBits(bits, 8, 6, 44);
+        setBits(bits, 24, 2, 1);
+        setBits(bits, 26, 9, 111); // Japan
+        setBits(bits, 35, 5, 4);   // LocalGovernment (a3=4)
+        setBits(bits, 40, 7, 10);
+        // EX2(1)@162, EX3(17)@163, EX4(17)@180, EX5(5)@197, EX6(5)@202, EX7(7)@207
+        setBits(bits, 162, 1, ex2);
+        setBits(bits, 163, 17, ex3);
+        setBits(bits, 180, 17, ex4);
+        setBits(bits, 197, 5, ex5);
+        setBits(bits, 202, 5, ex6);
+        setBits(bits, 207, 7, ex7);
+        setBits(bits, 226, 24, crc24qRef(bits, 226));
+
+        Frame frame{};
+        for (size_t i = 0; i < 32; ++i) frame.bits[i] = bits[i];
+        frame.svid = 193;
+        Decoder dec;
+        Message msg{};
+        REQUIRE(dec.decode(frame, msg, 0));
+        const Mt44Data* mt44 = msg.getMt44();
+        REQUIRE(mt44 != nullptr);
+        REQUIRE(mt44->service_kind == Mt44ServiceKind::LocalGovernment);
+        return mt44->mt44_decoded.additional_area.present;
+    };
+
+    CHECK_FALSE(decodeLocal(0, 0, 0, 0, 0, 0));
+    CHECK(decodeLocal(1, 0, 0, 0, 0, 0));
+    CHECK(decodeLocal(0, 1, 0, 0, 0, 0));
+    CHECK(decodeLocal(0, 0, 1, 0, 0, 0));
+    CHECK(decodeLocal(0, 0, 0, 1, 0, 0));
+    CHECK(decodeLocal(0, 0, 0, 0, 1, 0));
+    CHECK(decodeLocal(0, 0, 0, 0, 0, 1));
+}
+
+TEST_CASE("DCX Edge: OutsideJapan decodes all 8 bytes of ex11_raw") {
+    uint8_t bits[32] = {};
+    setBits(bits, 0, 8, 0x53);
+    setBits(bits, 8, 6, 44);
+    setBits(bits, 24, 2, 1);
+    setBits(bits, 26, 9, 100); // OutsideJapan (a2 != 111)
+    for (int i = 0; i < 8; ++i) {
+        setBits(bits, static_cast<uint16_t>(146 + i * 8), 8, static_cast<uint32_t>(0x11 + i * 0x11));
+    }
+    setBits(bits, 226, 24, crc24qRef(bits, 226));
+
+    Frame frame{};
+    for (size_t i = 0; i < 32; ++i) frame.bits[i] = bits[i];
+    frame.svid = 193;
+    Decoder dec;
+    Message msg{};
+    REQUIRE(dec.decode(frame, msg, 0));
+    const Mt44Data* mt44 = msg.getMt44();
+    REQUIRE(mt44 != nullptr);
+    REQUIRE(mt44->service_kind == Mt44ServiceKind::OutsideJapan);
+    for (int i = 0; i < 8; ++i) {
+        CHECK(mt44->ex.ex_outside.ex11_raw[i] == static_cast<uint8_t>(0x11 + i * 0x11));
+    }
+}
 #endif

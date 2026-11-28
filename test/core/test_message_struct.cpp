@@ -747,3 +747,24 @@ TEST_CASE("getMillis: uint64_tを返す") {
     uint64_t ms = internal::getMillis();
     CHECK(ms > 0);
 }
+
+#if (AZARAC_ENABLE_EEW)
+TEST_CASE("EewData: region bitmap boundaries (1, 8, 9, 80, 81)") {
+    EewData eew{};
+    eew.addRegion(0);   // 範囲外: 無視
+    eew.addRegion(81);  // 範囲外: 無視
+    CHECK(eew.regionCount() == 0);
+
+    eew.addRegion(1);   // byt=0, bit=0
+    eew.addRegion(8);   // byt=0, bit=7
+    eew.addRegion(9);   // byt=1, bit=0
+    eew.addRegion(80);  // byt=9, bit=7 (上限ちょうど)
+
+    CHECK(eew.regionCount() == 4);
+    CHECK(eew.regionAt(0) == 1);
+    CHECK(eew.regionAt(1) == 8);
+    CHECK(eew.regionAt(2) == 9);
+    CHECK(eew.regionAt(3) == 80);
+    CHECK(eew.regionAt(4) == 0);
+}
+#endif
