@@ -551,13 +551,19 @@ utf8-trim:
 	@$(RM) utf8_trim_probe.o utf8_trim_error.log
 	@echo "utf8-trim: minimum buffer rejected"
 
+ifeq ($(shell uname -s),Darwin)
+CLOCK_IDLE_LDFLAGS = -Wl,-dead_strip
+else
+CLOCK_IDLE_LDFLAGS = -Wl,--gc-sections
+endif
+
 .PHONY: test-clock-idle
 test-clock-idle:
 	@set -e; for flags in "-D__AVR__ -DAZARAC_AVR_STUB" "-DESP32" "-DARDUINO_ARCH_ESP32"; do \
 		$(CXX) -std=c++17 -Wall -Wextra -Istub_arduino -Istub -I../src -DARDUINO=1 $$flags \
 			-ffunction-sections -fdata-sections tools/clock_idle_probe.cpp ../src/Parser.cpp ../src/internal/Dedup.cpp \
 			../src/framer/UbxFramer.cpp ../src/framer/NmeaFramer.cpp \
-			-Wl,--gc-sections -o clock_idle_probe; \
+			$(CLOCK_IDLE_LDFLAGS) -o clock_idle_probe; \
 		./clock_idle_probe; \
 	done; $(RM) clock_idle_probe clock_idle_probe.exe
 
