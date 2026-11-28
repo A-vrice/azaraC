@@ -130,7 +130,7 @@ VPATH = ../src:../src/decoder:../src/framer:../src/json:../src/internal
 LOCKABLE  := all run run-small-pages run-lto run-lang-defaults clean \
              test-no-alloc pgm-stub macro fuzz decode dedup-realday \
              bench bench-dedup bench-decode test-time-irq test-clock-idle test-macro-compile test-macro-sizes \
-             compare-realdata coverage check check-xml check-strict-compile utf8-trim
+             compare-realdata coverage check check-xml check-strict-compile utf8-trim config-policies
 USER_GOALS := $(if $(MAKECMDGOALS),$(MAKECMDGOALS),all)
 # 「ロック未保持」かつ「ユーザーが直接 LOCKABLE な目標を指定した」場合のみラップする。
 NEED_LOCK := $(if $(AZARAC_LOCK_HELD),,$(filter $(LOCKABLE),$(USER_GOALS)))
@@ -157,7 +157,7 @@ $(TEST_BIN): $(OBJS)
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) $(CXXFLAGS_EXTRA) -c $< -o $@
 
-run: all test-clock-idle utf8-trim
+run: all test-clock-idle utf8-trim config-policies
 	$(RUN_PREFIX)$(TEST_BIN)
 
 # 縮小バジェット経路の検証（既定は 63 = 仕様最大）。打ち切りを含む MAX_PAGES
@@ -511,6 +511,31 @@ pgm-stub:
 test-time-irq:
 	$(CXX) -std=c++17 -Wall -Wextra -Istub_arduino -I../src -DARDUINO=1 -D__AVR__ -DAZARAC_AVR_STUB internal/test_time_irq.cpp internal/test_time_irq_b.cpp -o time_irq_test
 	./time_irq_test; t=$$?; $(RM) time_irq_test time_irq_test.exe; exit $$t
+
+.PHONY: config-policies
+config-policies:
+	@set -e; for svid in 0 1 2; do for padding in 0 1; do \
+		$(CXX) -std=c++17 -Wall -Wextra -Werror -I../src \
+			-DAZARAC_NMEA_STRICT_SVID=$$svid -DAZARAC_NMEA_REJECT_NONZERO_PADDING=$$padding \
+			tools/nmea_policy_probe.cpp ../src/framer/NmeaFramer.cpp -o nmea_policy_probe; \
+		./nmea_policy_probe; \
+	done; done; $(RM) nmea_policy_probe nmea_policy_probe.exe
+	@set -e; for flags in "" "-DAZARAC_ENABLE_DEDUP=0 -DAZARAC_DEDUP_SLOTS=0 -DAZARAC_DEDUP_WAYS=0"; do \
+		$(CXX) -std=c++17 -Wall -Wextra -Werror -O1 -I../src -DARDUINO=0 $$flags \
+			tools/dedup_policy_probe.cpp $(LIB_SRCS) -o dedup_policy_probe; \
+		./dedup_policy_probe; \
+	done; $(RM) dedup_policy_probe dedup_policy_probe.exe
+	@set -e; for arduino in 0 1; do for macros in 0 1; do \
+		$(CXX) -std=c++17 -Wall -Wextra -Werror -Istub_arduino -I../src -DARDUINO=$$arduino \
+			-DAZARAC_TEST_CORE_MACROS=$$macros -fsyntax-only tools/macro_restore_probe.cpp; \
+	done; done; echo "macro-restore: OK"
+	@set -e; for svid in -1 3; do \
+		if $(CXX) -std=c++17 -I../src -DAZARAC_NMEA_STRICT_SVID=$$svid \
+			-fsyntax-only tools/nmea_policy_probe.cpp 2>nmea_policy_error.log; then \
+			echo "invalid SVID policy unexpectedly compiled"; exit 1; \
+		fi; \
+		$(PYTHON) -c "assert 'AZARAC_NMEA_STRICT_SVID must be' in open('nmea_policy_error.log').read()"; \
+	done; $(RM) nmea_policy_error.log; echo "nmea-policy: invalid settings rejected"
 
 .PHONY: utf8-trim
 utf8-trim:

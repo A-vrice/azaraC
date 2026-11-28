@@ -4,17 +4,14 @@
 #error "This tool requires C++17 or later"
 #endif
 
-// std の名前と衝突する Arduino コアの `abs`/`min`/`max` マクロを undef する（mbed の pinDefinitions.h は abs、Arduino.h は min/max を定義する）。
+// std と衝突する Arduino マクロを、このヘッダを読む間だけ退避する。
 #if defined(ARDUINO)
-#  if defined(abs)
-#    undef abs
-#  endif
-#  if defined(min)
-#    undef min
-#  endif
-#  if defined(max)
-#    undef max
-#  endif
+#  pragma push_macro("abs")
+#  pragma push_macro("min")
+#  pragma push_macro("max")
+#  undef abs
+#  undef min
+#  undef max
 #endif
 
 // この include より前に定義した AZARAC_* の上書きは azaraC_config.h で効く。
@@ -48,3 +45,9 @@ inline uint32_t crc24q(const uint8_t* data, uint16_t bit_len) {
 }
 
 } // namespace azaraC
+
+#if defined(ARDUINO)
+#  pragma pop_macro("max")
+#  pragma pop_macro("min")
+#  pragma pop_macro("abs")
+#endif

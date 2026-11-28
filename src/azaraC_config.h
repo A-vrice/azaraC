@@ -157,6 +157,24 @@
 #define AZARAC_ENABLE_DCX_CAMF 1
 #endif
 
+// 0 では履歴を持たず、同じ電文の再受信も新規として渡す。
+#ifndef AZARAC_ENABLE_DEDUP
+#define AZARAC_ENABLE_DEDUP 1
+#endif
+
+// 0: 00-63、1: PRN 181-191 に対応する 53-63、2: 仕様表の 55/56/57/58/61。
+#ifndef AZARAC_NMEA_STRICT_SVID
+#define AZARAC_NMEA_STRICT_SVID 0
+#endif
+#if AZARAC_NMEA_STRICT_SVID < 0 || AZARAC_NMEA_STRICT_SVID > 2
+#error "AZARAC_NMEA_STRICT_SVID must be 0 (00-63), 1 (53-63), or 2 (55/56/57/58/61)"
+#endif
+
+// 250 bit フレームの後ろの詰め物（bit 250-255）を、マスクせず拒否する。
+#ifndef AZARAC_NMEA_REJECT_NONZERO_PADDING
+#define AZARAC_NMEA_REJECT_NONZERO_PADDING 0
+#endif
+
 // 重複排除 AZARAC_DEDUP_WAYS: 1 セットあたりのエントリ数（連想度）。大きいほどハッシュ衝突に強く（生きている情報を誤って「新規」にしにくい）、小さいほど 1 判定が安い。
 // AZARAC_DEDUP_SLOTS は WAYS で割り切れること。
 #ifndef AZARAC_DEDUP_WAYS

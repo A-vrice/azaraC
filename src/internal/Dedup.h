@@ -15,7 +15,9 @@
 
 #include "../azaraC_config.h"  // AZARAC_DEDUP_SLOTS の単一の定義元
 #include "MtCommonTypes.h"      // 共通の整数型（cstdint の AVR 分岐はここ）
+#if AZARAC_ENABLE_DEDUP
 static_assert(AZARAC_DEDUP_SLOTS > 0, "AZARAC_DEDUP_SLOTS must be > 0");
+#endif
 #if defined(__AVR__)
 #include "avr_std/cstring"
 #else
@@ -71,6 +73,7 @@ constexpr inline uint32_t dedupEventToken(uint8_t info_code, uint8_t information
 // 固定長のセット連想テーブル: 1 セット WAYS エントリで、セットは内容の安価なハッシュで選ぶ。
 // 1 判定のコストは高々 WAYS で、AZARAC_DEDUP_SLOTS には比例しない（平坦走査は生きた情報が少数でも全容量を歩く — benchmark が CHURN_NANOS_PER_OP として報告する経路）。
 // セット内の追い出し対象は最終受信が最も古いもの。
+#if AZARAC_ENABLE_DEDUP
 static constexpr uint8_t  DEDUP_WAYS = AZARAC_DEDUP_WAYS;
 static constexpr uint16_t DEDUP_SETS = AZARAC_DEDUP_SLOTS / DEDUP_WAYS;
 static_assert(AZARAC_DEDUP_SLOTS % DEDUP_WAYS == 0,
@@ -105,6 +108,13 @@ private:
 
     Entry _ring[DEDUP_SETS][DEDUP_WAYS];
 };
+#else
+class DedupFilter {
+public:
+    bool isDuplicate(const DedupKey&, uint32_t, uint32_t) { return false; }
+    void reset() {}
+};
+#endif
 
 } // namespace internal
 } // namespace azaraC
