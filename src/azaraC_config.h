@@ -157,7 +157,8 @@
 #define AZARAC_ENABLE_DCX_CAMF 1
 #endif
 
-// 0 では履歴を持たず、同じ電文の再受信も新規として渡す。
+// 0 では dedup 履歴を持たない。南海トラフのページ集約は無効にならない。
+// 完成済み集約を保持中は再送ページを出力せず、完成から 60 秒超で失効した後に全ページを再受信すると再出力する。
 #ifndef AZARAC_ENABLE_DEDUP
 #define AZARAC_ENABLE_DEDUP 1
 #endif

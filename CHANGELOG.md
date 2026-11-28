@@ -17,7 +17,7 @@ v2 系の API と既定設定を維持し、開発ブランチから非破壊の
 - **境界付き JSON**: `toJson(msg, buf, len, &required)` で固定長バッファへ出力し、NUL を除く完全な必要長を取得できる。切り詰め・null バッファ・長さ 0 でも必要長を測定でき、既存の Print 出力は維持する。
 - **公開 CRC**: `crc24q(data, bit_len)` が受信経路と同じ CRC-24Q 実装を使う。長さはバイト数ではなくビット数。
 - **無受信時の時計観測**: `Parser::updateClock()` を追加。32 bit `millis()` を使うボードでは、無受信期間も 49.7 日未満の間隔で呼んで周回を観測する。
-- **受信ポリシー**: `AZARAC_ENABLE_DEDUP`（既定 1）、`AZARAC_NMEA_STRICT_SVID`（既定 0）、`AZARAC_NMEA_REJECT_NONZERO_PADDING`（既定 0）で重複排除や NMEA の受理条件を選べる。既定の挙動は変えない。
+- **受信ポリシー**: `AZARAC_ENABLE_DEDUP`（既定 1）、`AZARAC_NMEA_STRICT_SVID`（既定 0）、`AZARAC_NMEA_REJECT_NONZERO_PADDING`（既定 0）で重複排除や NMEA の受理条件を選べる。既定の挙動は変えない。dedup 無効でも南海トラフのページ集約は残り、完成済み集合を保持中は再送を出力しない。完成から 60 秒超で失効後に全ページを再受信すると再出力する（reset・追い出し等で集約状態を失う場合を除く）。
 - **使用例**: MCU から u-blox を設定する `ublox_config` と、MT=44 の要約・JSON を出す `basic_dcx` を追加。CI の全 example コンパイルにも含め、Mega の DCX 例は有効化フラグ付きで検証する。
 
 ### Fixed
