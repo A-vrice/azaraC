@@ -50,6 +50,9 @@ public:
 
     void reset();
 
+    // 無受信期間も定期的に呼び、32 bit millis() の折り返しを観測する。
+    void updateClock();
+
 #if AZARAC_ENABLE_NANKAI
     // 鍵に一致するバッファを返す（受信途中でも返る。完了判定は isComplete()）。無ければ nullptr。
     const internal::NankaiPageBuffer* getNankaiBuffer(const internal::NankaiPageKey& key) const;

@@ -132,6 +132,7 @@ void setup() {
 }
 
 void loop() {
+    parser.updateClock();  // 無受信期間も時計を観測する
     if (WiFi.status() != WL_CONNECTED) {
         setStatusLED(false);
         serverConnected = false;  // サーバー接続も切断

@@ -129,7 +129,7 @@ VPATH = ../src:../src/decoder:../src/framer:../src/json:../src/internal
 # その場合は test/.make-lock を手動で削除する（スクリプトのエラーにも記載）。
 LOCKABLE  := all run run-small-pages run-lto run-lang-defaults clean \
              test-no-alloc pgm-stub macro fuzz decode dedup-realday \
-             bench bench-dedup bench-decode test-time-irq test-macro-compile test-macro-sizes \
+             bench bench-dedup bench-decode test-time-irq test-clock-idle test-macro-compile test-macro-sizes \
              compare-realdata coverage check check-xml check-strict-compile
 USER_GOALS := $(if $(MAKECMDGOALS),$(MAKECMDGOALS),all)
 # 「ロック未保持」かつ「ユーザーが直接 LOCKABLE な目標を指定した」場合のみラップする。
@@ -157,7 +157,7 @@ $(TEST_BIN): $(OBJS)
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) $(CXXFLAGS_EXTRA) -c $< -o $@
 
-run: all
+run: all test-clock-idle
 	$(RUN_PREFIX)$(TEST_BIN)
 
 # 縮小バジェット経路の検証（既定は 63 = 仕様最大）。打ち切りを含む MAX_PAGES
@@ -506,6 +506,15 @@ pgm-stub:
 test-time-irq:
 	$(CXX) -std=c++17 -Wall -Wextra -Istub_arduino -I../src -DARDUINO=1 -D__AVR__ -DAZARAC_AVR_STUB internal/test_time_irq.cpp internal/test_time_irq_b.cpp -o time_irq_test
 	./time_irq_test; t=$$?; $(RM) time_irq_test time_irq_test.exe; exit $$t
+
+.PHONY: test-clock-idle
+test-clock-idle:
+	@set -e; for flags in "-D__AVR__ -DAZARAC_AVR_STUB" "-DESP32" "-DARDUINO_ARCH_ESP32"; do \
+		$(CXX) -std=c++17 -Wall -Wextra -Istub_arduino -I../src -DARDUINO=1 $$flags \
+			-ffunction-sections -fdata-sections tools/clock_idle_probe.cpp ../src/Parser.cpp ../src/internal/Dedup.cpp \
+			-Wl,--gc-sections -o clock_idle_probe; \
+		./clock_idle_probe; \
+	done; $(RM) clock_idle_probe clock_idle_probe.exe
 
 # 実規則セクション全体の条件の終わり（冒頭の並行 make 排他ロック参照）。
 # NEED_LOCK が空 = ロック保持済みか対象外の目標のときだけここまでパースされる。

@@ -52,6 +52,7 @@ void setup() {
 }
 
 void loop() {
+    parser.updateClock();  // 無受信期間も時計を観測する
     while (Serial1.available()) {
         // SNTP 同期の現在時刻を UNIX 秒で渡す。
         // 未同期で 2000 年以前の値でも、azaraC が年解決をスキップするので電文の生データ（月・日・時・分）は正しく取れる。

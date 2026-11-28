@@ -198,6 +198,10 @@ uint64_t Parser::observeClock(uint64_t now_ms64) {
     return now_ms64;
 }
 
+void Parser::updateClock() {
+    (void)observeClock(internal::getMillis());
+}
+
 void Parser::reset() {
     _ubx.reset();
     _nmea.reset();

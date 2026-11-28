@@ -44,6 +44,7 @@ void setup() {
 }
 
 void loop() {
+    parser.updateClock();  // 無受信期間も時計を観測する
     // AVR: GNSSはUARTのSerial、それ以外はSerial1
 #if defined(ARDUINO_ARCH_AVR)
     Stream& gnss = Serial;
