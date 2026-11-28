@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-11-28
+
+v2 系の API と既定設定を維持し、開発ブランチから非破壊の改善をバックポート。
+津波の `notifications` 追加は v3 へ延期し、このリリースには含めない。
+
+### Added
+
+- **境界付き JSON**: `toJson(msg, buf, len, &required)` で固定長バッファへ出力し、NUL を除く完全な必要長を取得できる。切り詰め・null バッファ・長さ 0 でも必要長を測定でき、既存の Print 出力は維持する。
+- **公開 CRC**: `crc24q(data, bit_len)` が受信経路と同じ CRC-24Q 実装を使う。長さはバイト数ではなくビット数。
+- **無受信時の時計観測**: `Parser::updateClock()` を追加。32 bit `millis()` を使うボードでは、無受信期間も 49.7 日未満の間隔で呼んで周回を観測する。
+- **受信ポリシー**: `AZARAC_ENABLE_DEDUP`（既定 1）、`AZARAC_NMEA_STRICT_SVID`（既定 0）、`AZARAC_NMEA_REJECT_NONZERO_PADDING`（既定 0）で重複排除や NMEA の受理条件を選べる。既定の挙動は変えない。
+- **使用例**: MCU から u-blox を設定する `ublox_config` と、MT=44 の要約・JSON を出す `basic_dcx` を追加。CI の全 example コンパイルにも含め、Mega の DCX 例は有効化フラグ付きで検証する。
+
+### Fixed
+
+- **パーサーの失敗出力**: 復号失敗時と一括 `feed()` で何も受理しなかった場合に `out.valid` を false にする。null / 長さ 0 の入力では `unsupported_reason` を変更しない。受理済みの最後のメッセージは後続の拒否・重複フレームで失わない。
+- **Print 互換性**: シムとシンクを実 Arduino コアの仮想 `write(const uint8_t*, size_t)` 契約に合わせ、バイト書き込みだけのシンクとバッファ版の仮想ディスパッチを検証する。
+- **FlashString**: ラベルを UTF-8 の文字境界で切り詰め、`-O1` の配列境界警告を解消する。`AZARAC_FLASH_BUF_SIZE < 64` はコンパイル時に拒否する。厳格コンパイルに `-O1` / `-O2` / `-Os` の検証を追加。
+- **Arduino マクロ**: `azaraC.h` が `abs` / `min` / `max` を取り込み中だけ退避し、利用側へ元の定義を復元する。
+- **使用例の所有権と配線**: FreeRTOS 例は `Message` のバイトコピーをやめ、静的スロットと静的なインデックスキューで受け渡す。ESP32 のボード別ピンを選び、C3 の GNSS は UART0 と衝突しない GPIO4/5 に変更する。
+
+### Changed
+
+- **ESP32 時計**: `getMillis()` は外部リンケージの inline を保ち、ESP32 では `esp_timer_get_time()` の 64 bit 時刻を使う。
+- **配布**: Arduino の `architectures=*` と PlatformIO パッケージへの `docs` 同梱を揃える。
+- **リリースゲート**: タグ先コミットに成功済みの CI 実行が無ければ、API エラーや未完了の場合も含めリリースを止める。
+- **v2 互換性**: `internal::IFramer` / `internal::Frame`、`getNankaiBuffer()`、既定 `AZARAC_NANKAI_BUFFERS=1` と aligned PROGMEM を維持する。v3 のフレーマー公開 API やカテゴリ型の除外は持ち込まない。
+
 ## [2.0.1] - 2026-11-21
 
 2.0.0 以降に main へ入った未リリースの変更（下の Added / 2 つ目の Fixed / Changed）に、v3 に向けた開発ブランチ（PR #45）のバグ修正を加えたパッチ。#45 の新しい設定マクロと CI の拡張は含めない。
