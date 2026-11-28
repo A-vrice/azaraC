@@ -48,3 +48,17 @@ TEST_CASE("Parser clock: an entry 2^32 ms old is not seen as recent") {
     Access::observe(parser, later);
     CHECK_FALSE(Access::seen(parser, static_cast<uint32_t>(later), 60000));
 }
+
+TEST_CASE("Parser clock: exact rollback tolerance boundary (1000ms kept, 1001ms dropped)") {
+    Parser parser;
+    CHECK(Access::observe(parser, 10000) == 10000);
+    CHECK_FALSE(Access::seen(parser, 10000, 60000));
+
+    // ちょうど 1000ms の巻き戻しは許容（履歴維持・クランプ）
+    CHECK(Access::observe(parser, 9000) == 10000);
+    CHECK(Access::seen(parser, 10000, 60000));
+
+    // 1001ms の巻き戻しは許容超過（履歴破棄・新時刻採用）
+    CHECK(Access::observe(parser, 8999) == 8999);
+    CHECK_FALSE(Access::seen(parser, 8999, 60000));
+}

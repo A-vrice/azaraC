@@ -1905,3 +1905,167 @@ TEST_CASE("JSON v2: J-Alert objects") {
     }
 }
 #endif // AZARAC_ENABLE_DCX_CAMF
+
+TEST_CASE("JSON: QZQSM multi-element arrays, EEW multi-byte regions, and 23:59 arrival time") {
+    auto serializeMsg = [](const Message& m) -> std::string {
+        StringPrint sp;
+        internal::JsonSerializer::serialize(m, sp);
+        return sp.str();
+    };
+
+#if (AZARAC_ENABLE_EEW)
+    {
+        Message m{};
+        m.valid = true; m.svid = 193;
+        initMt43As(m, 1);
+        EewData* eew = m.getMt43()->getEew();
+        eew->notification_count = 2;
+        eew->notification[0] = 101;
+        eew->notification[1] = 202;
+        eew->addRegion(1);
+        eew->addRegion(9);
+        eew->addRegion(80);
+        const std::string s = serializeMsg(m);
+        CHECK(has(s, "\"notifications\":[{\"code\":101,"));
+        CHECK(has(s, "},{\"code\":202,"));
+        CHECK(has(s, "\"regions\":[{\"code\":1,"));
+        CHECK(has(s, "{\"code\":9,"));
+        CHECK(has(s, "{\"code\":80,"));
+        CHECK(s.find("{\"code\":0,") == std::string::npos);
+    }
+#endif
+
+#if (AZARAC_ENABLE_HYPOCENTER)
+    {
+        Message m{};
+        m.valid = true; m.svid = 193;
+        initMt43As(m, 2);
+        HypocenterData* hypo = m.getMt43()->getHypocenter();
+        hypo->notification_count = 2;
+        hypo->notification[0] = 101;
+        hypo->notification[1] = 202;
+        const std::string s = serializeMsg(m);
+        CHECK(has(s, "\"notifications\":[{\"code\":101,"));
+        CHECK(has(s, "},{\"code\":202,"));
+        CHECK(s.find("{\"code\":0,") == std::string::npos);
+    }
+#endif
+
+    {
+        Message m{};
+        m.valid = true; m.svid = 193;
+        initMt43As(m, 3);
+        SeismicData* seis = m.getMt43()->getSeismic();
+        seis->count = 2;
+        seis->entries[0].intensity_code = 4; seis->entries[0].prefecture_code = 13;
+        seis->entries[1].intensity_code = 5; seis->entries[1].prefecture_code = 14;
+        const std::string s = serializeMsg(m);
+        CHECK(has(s, "\"prefecture\":13,"));
+        CHECK(has(s, "\"prefecture\":14,"));
+        CHECK(s.find("\"prefecture\":0,") == std::string::npos);
+    }
+
+#if (AZARAC_ENABLE_NANKAI)
+    {
+        Message m{};
+        m.valid = true; m.svid = 193;
+        initMt43As(m, 4);
+        NankaiData* nk = m.getMt43()->getNankai();
+        nk->is_aggregated = true;
+        nk->aggregated_len = 0;
+        nk->page = 1;
+        nk->total_page = 1;
+        nk->text[0] = 'A';
+        const std::string s = serializeMsg(m);
+        CHECK(has(s, "\"text_hex\":["));
+        CHECK(s.find("\"text_utf8\"") == std::string::npos);
+    }
+#endif
+
+    {
+        Message m{};
+        m.valid = true; m.svid = 193;
+        initMt43As(m, 6);
+        NwPacTsunamiData* nw = m.getMt43()->getNwPac();
+        nw->count = 2;
+        nw->entries[0].arrival_time_raw = static_cast<uint16_t>((23u << 6) | 59u);
+        nw->entries[0].region_code = 10;
+        nw->entries[1].arrival_time_raw = static_cast<uint16_t>((12u << 6) | 30u);
+        nw->entries[1].region_code = 20;
+        const std::string s = serializeMsg(m);
+        CHECK(s.find("unrecognized_code") == std::string::npos);
+        CHECK(has(s, "\"region\":10,"));
+        CHECK(has(s, "\"region\":20,"));
+        CHECK(s.find("\"region\":0,") == std::string::npos);
+    }
+
+    {
+        Message m{};
+        m.valid = true; m.svid = 193;
+        initMt43As(m, 8);
+        VolcanoData* vol = m.getMt43()->getVolcano();
+        vol->lg_count = 2;
+        vol->local_govs[0] = 13101;
+        vol->local_govs[1] = 14100;
+        const std::string s = serializeMsg(m);
+        CHECK(has(s, "{\"code\":13101,"));
+        CHECK(has(s, "{\"code\":14100,"));
+        CHECK(s.find("{\"code\":0,") == std::string::npos);
+    }
+
+    {
+        Message m{};
+        m.valid = true; m.svid = 193;
+        initMt43As(m, 9);
+        AshFallData* ash = m.getMt43()->getAshFall();
+        ash->count = 2;
+        ash->entries_time[0] = 1; ash->entries_code[0] = 1; ash->entries_lg[0] = 13101;
+        ash->entries_time[1] = 2; ash->entries_code[1] = 2; ash->entries_lg[1] = 14100;
+        const std::string s = serializeMsg(m);
+        CHECK(has(s, "\"local_gov\":13101,"));
+        CHECK(has(s, "\"local_gov\":14100,"));
+        CHECK(s.find("\"local_gov\":0,") == std::string::npos);
+    }
+
+    {
+        Message m{};
+        m.valid = true; m.svid = 193;
+        initMt43As(m, 10);
+        WeatherData* wx = m.getMt43()->getWeather();
+        wx->count = 2;
+        wx->entries[0].sub_category = 1; wx->entries[0].region_code = 130010;
+        wx->entries[1].sub_category = 2; wx->entries[1].region_code = 140010;
+        const std::string s = serializeMsg(m);
+        CHECK(has(s, "\"region\":130010,"));
+        CHECK(has(s, "\"region\":140010,"));
+        CHECK(s.find("\"region\":0,") == std::string::npos);
+    }
+
+    {
+        Message m{};
+        m.valid = true; m.svid = 193;
+        initMt43As(m, 11);
+        FloodData* fl = m.getMt43()->getFlood();
+        fl->count = 2;
+        fl->entries[0].warning_level = 1; fl->entries[0].region_code = 1001;
+        fl->entries[1].warning_level = 2; fl->entries[1].region_code = 1002;
+        const std::string s = serializeMsg(m);
+        CHECK(has(s, "\"region\":1001,"));
+        CHECK(has(s, "\"region\":1002,"));
+        CHECK(s.find("\"region\":0,") == std::string::npos);
+    }
+
+    {
+        Message m{};
+        m.valid = true; m.svid = 193;
+        initMt43As(m, 14);
+        MarineData* mr = m.getMt43()->getMarine();
+        mr->count = 2;
+        mr->entries[0].warning_code = 1; mr->entries[0].region_code = 101;
+        mr->entries[1].warning_code = 2; mr->entries[1].region_code = 102;
+        const std::string s = serializeMsg(m);
+        CHECK(has(s, "\"region\":101,"));
+        CHECK(has(s, "\"region\":102,"));
+        CHECK(s.find("\"region\":0,") == std::string::npos);
+    }
+}

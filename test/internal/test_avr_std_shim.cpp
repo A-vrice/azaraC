@@ -111,6 +111,16 @@ TEST_CASE("avr_std string_view operations") {
     CHECK(s != std::string_view("abcde", 5));
     CHECK(s < std::string_view("abcdez", 6));
     CHECK(s > std::string_view("abcde", 5));
+    // 等値・接頭辞・末尾文字差の境界
+    CHECK_FALSE(s < std::string_view("abcdef", 6));
+    CHECK_FALSE(s > std::string_view("abcdef", 6));
+    CHECK(std::string_view("ab", 2) < std::string_view("abc", 3));
+    CHECK_FALSE(std::string_view("abc", 3) < std::string_view("ab", 2));
+    CHECK(std::string_view("abc", 3) > std::string_view("ab", 2));
+    CHECK_FALSE(std::string_view("ab", 2) > std::string_view("abc", 3));
+    CHECK(std::string_view("ab", 2) < std::string_view("ac", 2));
+    CHECK(std::string_view("ac", 2) > std::string_view("ab", 2));
+    CHECK_FALSE(std::string_view("ac", 2) < std::string_view("ab", 2));
 }
 
 // avr_std/new による placement new

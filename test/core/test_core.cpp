@@ -918,3 +918,180 @@ TEST_CASE("Memory: sizeof guards for embedded targets") {
 
 // CHECK 無しのスモークは置かない（クラッシュを検出できない。CI は sanitizer 無しでビルドする）。
 // 実ファズは test/fuzz/fuzz_decoder.cpp（make fuzz）。
+
+TEST_CASE("Decoder: getBits64 unaligned, multi-byte, tail, and 64-bit/256-bit boundaries") {
+    uint8_t buf[32] = {};
+    for (uint8_t i = 0; i < 32; ++i) buf[i] = static_cast<uint8_t>(0xA0u ^ (i * 17u + 3u));
+
+    auto refBits64 = [&](uint16_t start, uint8_t len) -> uint64_t {
+        uint64_t v = 0;
+        for (uint8_t i = 0; i < len; ++i) {
+            uint16_t pos = static_cast<uint16_t>(start + i);
+            uint8_t bit = static_cast<uint8_t>((buf[pos >> 3] >> (7u - (pos & 7u))) & 1u);
+            v = (v << 1) | bit;
+        }
+        return v;
+    };
+
+    // len == 64 (最大長) と start + len == 256 (末尾ちょうど) は OOB にならない
+    TestDecoder::clearOob();
+    CHECK(TestDecoder::extractBits64(buf, 0, 64) == refBits64(0, 64));
+    CHECK_FALSE(TestDecoder::checkOob());
+
+    TestDecoder::clearOob();
+    CHECK(TestDecoder::extractBits64(buf, 192, 64) == refBits64(192, 64));
+    CHECK_FALSE(TestDecoder::checkOob());
+
+    // 非バイト境界: head のみ (rem < take, rem == take)、head + 複数バイト (rem >= 8) + tail (rem != 0)
+    struct Case { uint16_t start; uint8_t len; };
+    const Case cases[] = {
+        {3, 4},   // head のみ、rem < take
+        {3, 5},   // head のみ、rem == take
+        {3, 13},  // head(5) + 1 byte(8)
+        {3, 47},  // head(5) + 5 bytes(40) + tail(2)
+        {5, 59},  // head(3) + 7 bytes(56)
+        {7, 17},  // head(1) + 2 bytes(16)
+        {1, 63},  // head(7) + 7 bytes(56)
+        {8, 13},  // aligned + 1 byte + tail(5)
+    };
+    for (const auto& c : cases) {
+        TestDecoder::clearOob();
+        CHECK(TestDecoder::extractBits64(buf, c.start, c.len) == refBits64(c.start, c.len));
+        CHECK_FALSE(TestDecoder::checkOob());
+    }
+}
+
+#if (AZARAC_ENABLE_VOLCANO)
+TEST_CASE("Decoder: Volcano decodes multiple local_govs and stops at zero") {
+    uint8_t b[32] = {};
+    setBits(b, 0, 8, 0x53);
+    setBits(b, 8, 6, 43);
+    setBits(b, 14, 3, 1);   // rc
+    setBits(b, 17, 4, 8);   // dc = Volcano
+    setBits(b, 21, 4, 6);   // month
+    setBits(b, 25, 5, 15);  // day
+    setBits(b, 30, 5, 12);  // hour
+    setBits(b, 35, 6, 30);  // min
+    setBits(b, 50, 3, 2);   // ambiguity
+    setBits(b, 69, 7, 11);  // warning_code
+    setBits(b, 76, 12, 306); // volcano_name
+    setBits(b, 88 + 0 * 23, 23, 13101);
+    setBits(b, 88 + 1 * 23, 23, 14100);
+    setBits(b, 88 + 2 * 23, 23, 22100);
+    // slot 3 = 0 (終端)
+    setBits(b, 214, 6, 1); // Vn = 1
+    setBits(b, 226, 24, crc24qRef(b, 226));
+
+    Frame frame{};
+    for (size_t i = 0; i < 32; ++i) frame.bits[i] = b[i];
+    frame.svid = 193;
+    Decoder dec;
+    Message msg{};
+    REQUIRE(dec.decode(frame, msg, 1718452800u));
+    const Mt43Data* mt43 = msg.getMt43();
+    REQUIRE(mt43 != nullptr);
+    const VolcanoData* vol = mt43->getVolcano();
+    REQUIRE(vol != nullptr);
+    REQUIRE(vol->lg_count == 3);
+    CHECK(vol->local_govs[0] == 13101);
+    CHECK(vol->local_govs[1] == 14100);
+    CHECK(vol->local_govs[2] == 22100);
+}
+#endif
+
+#if (AZARAC_ENABLE_NW_PAC_TSUNAMI)
+TEST_CASE("Decoder: NwPacTsunami decodes height_code and multiple entries") {
+    uint8_t b[32] = {};
+    setBits(b, 0, 8, 0x53);
+    setBits(b, 8, 6, 43);
+    setBits(b, 14, 3, 1);
+    setBits(b, 17, 4, 6);   // dc = NwPacTsunami
+    setBits(b, 21, 4, 6);
+    setBits(b, 25, 5, 15);
+    setBits(b, 30, 5, 12);
+    setBits(b, 35, 6, 0);
+    setBits(b, 53, 3, 2);   // potential
+    // Entry 0: Ta=0x123, Th=0x155, Pl=12
+    setBits(b, 56 + 0 * 28, 12, 0x123);
+    setBits(b, 56 + 0 * 28 + 12, 9, 0x155);
+    setBits(b, 56 + 0 * 28 + 21, 7, 12);
+    // Entry 1: Ta=0x234, Th=0x0AA, Pl=34
+    setBits(b, 56 + 1 * 28, 12, 0x234);
+    setBits(b, 56 + 1 * 28 + 12, 9, 0x0AA);
+    setBits(b, 56 + 1 * 28 + 21, 7, 34);
+    setBits(b, 214, 6, 1); // Vn = 1
+    setBits(b, 226, 24, crc24qRef(b, 226));
+
+    Frame frame{};
+    for (size_t i = 0; i < 32; ++i) frame.bits[i] = b[i];
+    frame.svid = 193;
+    Decoder dec;
+    Message msg{};
+    REQUIRE(dec.decode(frame, msg, 1718452800u));
+    const NwPacTsunamiData* nw = msg.getMt43()->getNwPac();
+    REQUIRE(nw != nullptr);
+    REQUIRE(nw->count == 2);
+    CHECK(nw->entries[0].arrival_time_raw == 0x123);
+    CHECK(nw->entries[0].height_code == 0x155);
+    CHECK(nw->entries[0].region_code == 12);
+    CHECK(nw->entries[1].arrival_time_raw == 0x234);
+    CHECK(nw->entries[1].height_code == 0x0AA);
+    CHECK(nw->entries[1].region_code == 34);
+}
+#endif
+
+#if (AZARAC_ENABLE_SEISMIC)
+TEST_CASE("Decoder: Seismic decodes multiple entries up to 16") {
+    uint8_t b[32] = {};
+    setBits(b, 0, 8, 0x53);
+    setBits(b, 8, 6, 43);
+    setBits(b, 14, 3, 1);
+    setBits(b, 17, 4, 3);   // dc = Seismic
+    setBits(b, 21, 4, 6);
+    setBits(b, 25, 5, 15);
+    setBits(b, 30, 5, 12);
+    setBits(b, 35, 6, 0);
+    for (uint8_t i = 0; i < 16; ++i) {
+        setBits(b, 69 + i * 9, 3, static_cast<uint32_t>((i % 7) + 1));
+        setBits(b, 69 + i * 9 + 3, 6, static_cast<uint32_t>(i + 1));
+    }
+    setBits(b, 214, 6, 1); // Vn = 1
+    setBits(b, 226, 24, crc24qRef(b, 226));
+
+    Frame frame{};
+    for (size_t i = 0; i < 32; ++i) frame.bits[i] = b[i];
+    frame.svid = 193;
+    Decoder dec;
+    Message msg{};
+    REQUIRE(dec.decode(frame, msg, 1718452800u));
+    const SeismicData* seis = msg.getMt43()->getSeismic();
+    REQUIRE(seis != nullptr);
+    REQUIRE(seis->count == 16);
+    CHECK(seis->entries[0].prefecture_code == 1);
+    CHECK(seis->entries[15].prefecture_code == 16);
+}
+#endif
+
+TEST_CASE("Dedup: LRU evicts strictly oldest timestamp among full ways") {
+    DedupFilter filter;
+    // 同一セットに衝突する AZARAC_DEDUP_WAYS 件を異なる時刻で挿入 (bit 20..23 は fold しても下位 8bit へ届かない)
+    const uint32_t base_t = 100000u;
+    std::vector<DedupKey> keys;
+    for (int i = 0; i < AZARAC_DEDUP_WAYS; ++i) {
+        DedupKey k{43, static_cast<uint32_t>(i + 1u) << 20};
+        keys.push_back(k);
+        CHECK_FALSE(filter.isDuplicate(k, base_t + static_cast<uint32_t>(i) * 100u, 60000u));
+    }
+    // 最古 (index 0) を再アクセスして最新にし、index 1 が最古になるようにする
+    CHECK(filter.isDuplicate(keys[0], base_t + 1000u, 60000u));
+
+    // 新規キーを挿入すると最古の keys[1] が追い出される
+    DedupKey extra{43, static_cast<uint32_t>(AZARAC_DEDUP_WAYS + 1u) << 20};
+    CHECK_FALSE(filter.isDuplicate(extra, base_t + 1100u, 60000u));
+
+    // keys[0] は残り、keys[1] は追い出されている
+    CHECK(filter.isDuplicate(keys[0], base_t + 1200u, 60000u));
+    if (AZARAC_DEDUP_WAYS >= 2) {
+        CHECK_FALSE(filter.isDuplicate(keys[1], base_t + 1300u, 60000u));
+    }
+}
