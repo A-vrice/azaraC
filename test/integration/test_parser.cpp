@@ -764,6 +764,7 @@ TEST_CASE("Parser: MT44 は SDMT/SDM が違っても同一内容を 1 回だけ�
 #endif // AZARAC_ENABLE_DEDUP
 #endif // AZARAC_ENABLE_DCX_CAMF
 
+#if (AZARAC_ENABLE_EEW)
 TEST_CASE("Parser: bulk feed returns exact consumed byte count (i + 1)") {
     uint8_t bits[32] = {};
     setBits(bits, 0, 8, 0x53);
@@ -788,3 +789,4 @@ TEST_CASE("Parser: bulk feed returns exact consumed byte count (i + 1)") {
     CHECK(consumed == expected_consumed);
     CHECK(out.valid);
 }
+#endif

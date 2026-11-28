@@ -1100,6 +1100,7 @@ TEST_CASE("Decoder: Seismic decodes multiple entries up to 16") {
 }
 #endif
 
+#if (AZARAC_ENABLE_DEDUP)
 TEST_CASE("Dedup: LRU evicts strictly oldest timestamp among full ways") {
     DedupFilter filter;
     // 同一セットに衝突する AZARAC_DEDUP_WAYS 件を異なる時刻で挿入 (bit 20..23 は fold しても下位 8bit へ届かない)
@@ -1123,3 +1124,4 @@ TEST_CASE("Dedup: LRU evicts strictly oldest timestamp among full ways") {
         CHECK_FALSE(filter.isDuplicate(keys[1], base_t + 1300u, 60000u));
     }
 }
+#endif
