@@ -176,6 +176,7 @@ jobs:
           LIB_DIR=$(arduino-cli config get directories.user)/libraries
           mkdir -p "$LIB_DIR"
           ln -s "$GITHUB_WORKSPACE" "$LIB_DIR/azaraC"
+          # 新しい ublox_config / basic_dcx も含め全 example を検証する。
           for sketch in examples/*/; do
             echo "--- $sketch ---"
             sketch_name=$(basename "$sketch")
@@ -196,6 +197,9 @@ jobs:
               continue
             fi
             CPP_EXTRA_FLAGS="-std=gnu++17 ${{ matrix.build_flags }}"
+            if [[ "$sketch_name" == "basic_dcx" && "${{ matrix.name }}" == "Arduino Mega 2560" ]]; then
+              CPP_EXTRA_FLAGS="$CPP_EXTRA_FLAGS -DAZARAC_ENABLE_DCX_CAMF=1"
+            fi
             # Added --clean to invalidate build cache
             arduino-cli compile --clean --fqbn "${{ matrix.fqbn }}" "$sketch" --build-property "compiler.cpp.extra_flags=$CPP_EXTRA_FLAGS"
           done

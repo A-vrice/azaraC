@@ -25,9 +25,12 @@ NMEAフォーマットの$QZQSMメッセージを受信し、JSONに変換して
 **配線 (ESP32-C3 DevKitM-1)**:
 | GNSS | ESP32-C3 |
 |------|----------|
-| TX | GPIO20 |
-| RX | GPIO21 |
+| TX | GPIO4 (Serial1 RX) |
+| RX | GPIO5 (Serial1 TX) |
 | GND | GND |
+
+ESP32 のピンは C3=GPIO4/5、C6=GPIO4/5、classic=GPIO16/17 です。S3/WROVER 等は配線に合わせて変更してください。
+C3 DevKitM-1 の GPIO20/21 は USB-UART ブリッジ経由の UART0（シリアルモニタ）用なので、GNSS と共有しません。
 
 ---
 
@@ -49,6 +52,39 @@ CFG-UART1-BAUDRATE              = 9600
 ```
 
 ---
+
+### ublox_config - MCU から u-blox を設定して UBX 入力
+
+起動時に Serial1 から u-blox の UART1 へ UBX 設定を送り、その後は `basic_ubx` と同様に JSON を出力します。
+`UBLOX_GENERATION` は M10=`10`（既定）、F9=`9`、M8=`8` から選びます。UART1 の UBX 入出力が有効であることが前提です。
+GNSS UART1 TX → MCU RX1、GNSS UART1 RX ← MCU TX1、GND を共通に接続します。ESP32 のピンは上記と同じです。Uno は Serial1 が無いため対象外です。
+`GNSS_BAUD` は受信機の現在の速度（既定 9600）に合わせます。この例では受信機の速度を変更しません。電源・I/O 電圧はモジュール仕様に従ってください。
+
+**M10 / F9（CFG-VALSET 対応 FW）**: RAM レイヤーへ次のキーをすべて 1 として送ります。
+
+| キー | ID | 型 |
+| --- | --- | --- |
+| CFG-MSGOUT-UBX_RXM_SFRBX_UART1 | `0x20910232` | U1 |
+| CFG-SIGNAL-QZSS_ENA | `0x10310024` | L |
+| CFG-SIGNAL-QZSS_L1S_ENA | `0x10310014` | L |
+
+出典: [u-blox M10 SPG 5.10 Interface description (UBX-21035062 R03)](https://content.u-blox.com/sites/default/files/u-blox-M10-SPG-5.10_InterfaceDescription_UBX-21035062.pdf)、CFG-MSGOUT / CFG-SIGNAL / UBX-CFG-VALSET。
+電源断後は再設定します。BBR にも保持する場合は payload の layers を 1 から 3（RAM + BBR）に変更し、バックアップ電源等の条件を確認してください。Flash 保存は行いません。
+機種・FW の Interface description で CFG-VALSET と L1S 対応を確認してください。**F9P は型番・FW によって L1S 非対応の場合があり、QZSS L1C/A 対応だけでは不十分です。** GPS 等の既存信号設定は変更しません。
+
+**M8**: CFG-MSG で RXM-SFRBX の UART1 rate を 1（他ポートは 0）にします。
+QZSS L1SAIF の有効化は別途必要です。CFG-GNSS を poll し、他 GNSS のブロックやチャネル割り当てを保持して QZSS（gnssId=5）の enable と sigCfgMask=`0x05`（L1C/A + L1SAIF、flags bits 16–23）を設定します。
+この例は他の測位設定を壊さないよう CFG-GNSS を自動変更しません。FW・GPS との組み合わせ・チャネル数等の条件を確認してください。
+出典: [u-blox 8 / M8 Receiver description (UBX-13003221 R28)](https://content.u-blox.com/sites/default/files/products/documents/u-blox8-M8_ReceiverDescrProtSpec_UBX-13003221.pdf)、§4.2.2 / UBX-CFG-GNSS / UBX-CFG-MSG。
+
+送信後は対象 class/id とチェックサムが一致する ACK / NAK を最大 3 秒待ちます。NAK は機種・FW・信号設定、timeout は配線・速度・UBX 入出力や起動待ちを確認してください。
+世代の自動フォールバックは行いません。設定中の受信データは破棄されます。ACK はコマンド受理を示すだけで、L1S の受信や災害電文の到来を保証しません。
+
+### basic_dcx - MT=44 の要約と JSON
+
+DCX/CAMF のサービス種別、地域、楕円中心などの要約と JSON を出力します。GNSS の UNIX 時刻があれば `cached_gnss_unix_time` を更新してください。0 のままなら年は未解決です。
+AVR では DCX/CAMF が既定で無効なので、Mega 等の大型品で `-DAZARAC_ENABLE_DCX_CAMF=1`（または `-DAZARAC_AVR_LARGE_FLASH=1`）をライブラリを含む全 TU に指定します。Uno は容量不足のため対象外です。
+AVR のこの例は GNSS 入力と JSON 出力が同じ Serial（9600 baud）になります。その他は Serial1 入力です。
 
 ### basic_uno - Arduino Uno (AVR) 入力
 
@@ -232,6 +268,10 @@ public:
 
 ESP32 で UART RX タスクと出力タスクを分離し、キューでメッセージを渡すサンプルです。`loop()` を使いません。
 
+`Message` をキューのバイトコピーへ直接載せず、静的スロットをコピー代入して ready/free キューではインデックスだけを渡します。キューも静的確保します。
+南海トラフ集約本文は Parser への借用ポインタなので、RX タスクで同期出力しスロットへは渡しません。スロット満杯時は新しい出力を捨て、統計へ記録します。
+FreeRTOS タスク生成は従来どおり起動時の動的 API を使います（アプリ全体のゼロヒープを保証する例ではありません）。
+
 ```bash
 # Arduino IDE で examples/rtos_freertos/rtos_freertos.ino を開いて書き込み
 ```
@@ -246,6 +286,8 @@ ESP32 で UART RX タスクと出力タスクを分離し、キューでメッ�
 | ------------------ | ------------- | ---------------------- | ------------------ |
 | basic_nmea         | NMEA $QZQSM   | Serial JSON            | 最もシンプル       |
 | basic_ubx          | UBX-RXM-SFRBX | Serial JSON            | u-bloxバイナリ     |
+| ublox_config       | UBX-RXM-SFRBX | Serial JSON + 設定結果 | MCU から u-blox 設定 |
+| basic_dcx          | NMEA/UBX      | Serial JSON + MT44 要約 | DCX/CAMF 有効化が必要 |
 | with_sntp          | NMEA $QZQSM   | Serial JSON + 詳細ログ | SNTP時刻解決       |
 | filter_by_category | NMEA/UBX      | Serial JSON            | カテゴリフィルタ   |
 | error_handling     | NMEA/UBX      | Serial JSON + 統計     | エラーハンドリング |
@@ -262,8 +304,8 @@ ESP32 で UART RX タスクと出力タスクを分離し、キューでメッ�
 ```
 GNSS Module          ESP32-C3 DevKitM-1
 +--------+          +------------------+
-| TX  ---+--------→ | GPIO20 (Serial1 RX)
-| RX  ---+--------← | GPIO21 (Serial1 TX)
+| TX  ---+--------→ | GPIO4 (Serial1 RX)
+| RX  ---+--------← | GPIO5 (Serial1 TX)
 | GND ---+--------→ | GND
 | VCC ---+--------→ | 3.3V
 +--------+          +------------------+
@@ -272,8 +314,8 @@ GNSS Module          ESP32-C3 DevKitM-1
 ### ピン配置のカスタマイズ
 
 ```cpp
-// デフォルト (GPIO20, GPIO21)
-Serial1.begin(9600, SERIAL_8N1, 20, 21);
+// ESP32-C3 のデフォルト (GPIO4, GPIO5)
+Serial1.begin(9600, SERIAL_8N1, 4, 5);
 
 // カスタムピン (例: GPIO10, GPIO11)
 Serial1.begin(9600, SERIAL_8N1, 10, 11);

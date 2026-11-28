@@ -44,7 +44,7 @@ void setup() {
     Serial.println(F(" OK"));
 
 #if defined(ESP32)
-    Serial1.begin(9600, SERIAL_8N1, /*rx=*/20, /*tx=*/21);
+    Serial1.begin(9600, SERIAL_8N1, /*rx=*/4, /*tx=*/5);
 #else
     Serial1.begin(9600, SERIAL_8N1);
 #endif

@@ -1,6 +1,6 @@
 // エラーハンドリングと状態監視の例 CRCエラー、フレームエラーの統計を表示する※ 重複排除はParser内部で自動的に行われるため、example側では検出できません配線 (ESP32-C3 DevKitM-1):
-//   GNSS TX → GPIO20 (Serial1 RX)
-//   GNSS RX → GPIO21 (Serial1 TX)
+//   GNSS TX → GPIO4 (Serial1 RX)
+//   GNSS RX → GPIO5 (Serial1 TX)
 //   GND     → GND
 
 #include <azaraC.h>
@@ -157,7 +157,7 @@ void setup() {
     while (!Serial && (millis() - start < 5000)) { delay(10); } // 5秒タイムアウト
 
     #if defined(ESP32)
-        Serial1.begin(9600, SERIAL_8N1, /*rx=*/20, /*tx=*/21);
+        Serial1.begin(9600, SERIAL_8N1, /*rx=*/4, /*tx=*/5);
     #else
         Serial1.begin(9600, SERIAL_8N1);
     #endif

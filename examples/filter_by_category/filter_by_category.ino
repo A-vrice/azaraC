@@ -13,8 +13,8 @@
 //   14 = 海上警報 (Marine)
 //
 // 配線 (ESP32-C3 DevKitM-1):
-//   GNSS TX → GPIO20 (Serial1 RX)
-//   GNSS RX → GPIO21 (Serial1 TX)
+//   GNSS TX → GPIO4 (Serial1 RX)
+//   GNSS RX → GPIO5 (Serial1 TX)
 //   GND     → GND
 
 #include <azaraC.h>
@@ -154,7 +154,7 @@ void setup() {
     while (!Serial && (millis() - start < 5000)) { delay(10); } // 5秒タイムアウト
 
     #if defined(ESP32)
-        Serial1.begin(9600, SERIAL_8N1, /*rx=*/20, /*tx=*/21);
+        Serial1.begin(9600, SERIAL_8N1, /*rx=*/4, /*tx=*/5);
     #else
         Serial1.begin(9600, SERIAL_8N1);
     #endif
