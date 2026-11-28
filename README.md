@@ -69,6 +69,7 @@ git clone https://github.com/A-vrice/azaraC <PROJECT_DIR>/.pio/libdeps/<TARGET_B
 
 - [はじめに（クイックスタート・Examples・コンパイル時設定）](docs/getting-started.md)
 - [APIリファレンス](docs/api-reference.md)
+- [v2 から v3 への移行ガイド](docs/migration-v3.md)
 - [アーキテクチャ](docs/architecture.md)
 - [JSON出力フォーマット（azarashiとの差分）](docs/json-formats.md)
 - [Examples一覧](examples/README.md)

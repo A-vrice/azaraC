@@ -5,32 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
-## [2.0.1] - 2026-11-21
-
-2.0.0 以降に main へ入った未リリースの変更（下の Added / 2 つ目の Fixed / Changed）に、v3 に向けた開発ブランチ（PR #45）のバグ修正を加えたパッチ。#45 の新しい設定マクロと CI の拡張は含めない。
+## [Unreleased] — 3.0.0
 
 ### Migration
 
-- **`getNankaiBuffer()` の鍵に Rc が加わった**: `NankaiPageKey` は `report_classification`（Rc）も照合する。既定値の 0 は実警報（Rc=2）にも訓練・試験（Rc=7）にも一致しないので、`NankaiPageKey{info_code, month, day, hour, minute, information_type, report_classification}` で作り、Rc は電文の `Mt43Data::report_classification` に合わせる。
+- カスタムフレーマは公開ヘッダ `<IFramer.h>` と `<Frame.h>` の `azaraC::IFramer` / `azaraC::Frame` に切り替える。
+- 南海トラフの集約進捗は `getNankaiBuffer()` ではなく `getNankaiProgress()` で取得する。
+- `AZARAC_ENABLE_*` で無効化した MT=43 カテゴリの型とアクセサはコンパイルから除外される。
+- 非 AVR の `AZARAC_NANKAI_BUFFERS` の既定値は 1 → 2。既定構成の `Parser` は約 5.4 KB → ホスト実測 6,624 B となるため、対象ボードとビルド設定で RAM を再計測する。
 
-### Fixed
-
-- **南海トラフの訓練と実警報が混ざる**: `NankaiPageKey` と `dedupEventToken` に `report_classification`（Rc）を追加し、訓練（Rc=7）と実警報（Rc=2）を別の事象として集約・重複判定する。`NankaiPageKey` は 7 B、`NankaiPageBuffer` は AVR 1,158 B になる。
-- **重複ページの再送で集約が失効する**: 受信済みページの再送でも `last_update_ms` を更新し、1 ページ欠落時の 2 巡目で途中の集約が 60 秒で捨てられないようにした。
-- **不正ページが進行中の集約を追い出す**: ページ番号の検証をバッファ割り当て（最古の追い出し）より前に行う。
-- **約 49.7 日の連続運転後に新規警報が重複扱いになる**: `getMillis()` の上位 32 bit（世代）が変わったときと 1 秒を超える時計の後退で、dedup と南海トラフの履歴を捨てる。1 秒以内の後退は丸める。
-- **dedup の LRU**: 追い出し対象を最初の有効エントリで初期化する。
-- **`Message` のコピー**: コピー ctor で `payload_storage_` を値初期化する。
-- **`feed()` が false のとき**: 壊れたフレームの svid を残さない。
-- **`compactText()` 後の `getTextLength()`**: 連続した本文の長さを返す。
-- **J-Alert 市区町村コード**: 送信順（MSB 先頭）で復号する。
-- **津波リストの終端**: エントリが全 0 のときを終端とする。
-- **暦に存在しない日付**: 未解決として扱う。
-- **`getBits` の幅検証と u32 epoch**: 戻り値型を超える幅を拒否し、2106 年超は `unix_time` だけ 0 にする。
-- **南海トラフ集約本文の不正 UTF-8**: JSON 出力で U+FFFD に置換する。
-- **`getMillis()`**: 外部リンケージの inline にして、翻訳単位ごとに別のカウンタを持たないようにした。
+詳しくは [v3 移行ガイド](docs/migration-v3.md) を参照。
 
 ### Added
 
@@ -53,8 +37,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **v3の公開API（破壊的変更）**: カスタムフレーマは `azaraC::IFramer` と `azaraC::Frame` を使う。南海トラフの集約状況は `getNankaiBuffer()` の代わりに `getNankaiProgress()` で取得する。進捗は値としてコピーされ、集約バッファを公開しない。
 - **ClusterFuzzLiteのfuzzを3つのコンパイル時構成で実行する**: `.clusterfuzzlite/build.sh` が既定構成に加え、AVR相当の縮小構成（Nankaiバッファ1個・最大4ページ、dedup 64スロット、有効カテゴリは震度・南海トラフ・津波のみ）と検証厳格構成（dedup無効、SVID検証レベル2、NMEAの非0パディングを拒否）を別ターゲットとしてビルドする。バッファ追い出しや受理/拒否の分岐は構成で変わるため、既定構成だけでは届かない経路をfuzzで踏む。既定ターゲットの名前と定義は不変で、corpusの継続性は保たれる。fuzz時間はターゲットあたりPR 300秒・週次batch 1200秒とし、ジョブ合計は従来と同程度に保った。
 - **CIのArduino coreをバージョン固定し、Renovateで更新する**: ci.ymlとupdate-definitions.ymlの `arduino-cli core install` はバージョン未指定で、実行時点の最新coreが常に入っていた。8種のcore（esp32:esp32、arduino:avr、arduino:samd、arduino:mbed_giga、arduino:mbed_nano、rp2040:rp2040、STMicroelectronics:stm32、teensy:avr）を現在の最新安定版にピン留めし、renovate.jsonのカスタムマネージャで更新PRを出すようにした。バージョンの参照先は各coreのGitHub Releasesで、teensyだけは配布元のpackage indexを使う。coreの新版がCIに無断で入らなくなり、ESP32 core 4.0のような大きな更新はPRで判断できる。
-
-## [2.1.0] - 2026-11-15
 
 ### Added
 
@@ -395,6 +377,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `autoresearch.sh` がコア模擬オブジェクト（`test/bench/avr/core_progmem.c`）を最後にリンクしてこのアドレスをゲートする。
 - **`gen_definitions.py` の書き込みが一過性のOSErrorで落ちると、生成が途中で止まったまま古いヘッダが残る**: ファイルスキャナが新規ファイルを一時的に掴むWindowsで `OSError(EINVAL)` が出るため、5回まで再試行する（`write_file`）。
   CI（Linux）では発生しない。
+
+## [2.0.1] - 2026-11-21
+
+2.0.0 以降に main へ入った未リリースの変更（下の Added / 2 つ目の Fixed / Changed）に、v3 に向けた開発ブランチ（PR #45）のバグ修正を加えたパッチ。#45 の新しい設定マクロと CI の拡張は含めない。
+
+### Migration
+
+- **`getNankaiBuffer()` の鍵に Rc が加わった**: `NankaiPageKey` は `report_classification`（Rc）も照合する。既定値の 0 は実警報（Rc=2）にも訓練・試験（Rc=7）にも一致しないので、`NankaiPageKey{info_code, month, day, hour, minute, information_type, report_classification}` で作り、Rc は電文の `Mt43Data::report_classification` に合わせる。
+
+### Fixed
+
+- **南海トラフの訓練と実警報が混ざる**: `NankaiPageKey` と `dedupEventToken` に `report_classification`（Rc）を追加し、訓練（Rc=7）と実警報（Rc=2）を別の事象として集約・重複判定する。`NankaiPageKey` は 7 B、`NankaiPageBuffer` は AVR 1,158 B になる。
+- **重複ページの再送で集約が失効する**: 受信済みページの再送でも `last_update_ms` を更新し、1 ページ欠落時の 2 巡目で途中の集約が 60 秒で捨てられないようにした。
+- **不正ページが進行中の集約を追い出す**: ページ番号の検証をバッファ割り当て（最古の追い出し）より前に行う。
+- **約 49.7 日の連続運転後に新規警報が重複扱いになる**: `getMillis()` の上位 32 bit（世代）が変わったときと 1 秒を超える時計の後退で、dedup と南海トラフの履歴を捨てる。1 秒以内の後退は丸める。
+- **dedup の LRU**: 追い出し対象を最初の有効エントリで初期化する。
+- **`Message` のコピー**: コピー ctor で `payload_storage_` を値初期化する。
+- **`feed()` が false のとき**: 壊れたフレームの svid を残さない。
+- **`compactText()` 後の `getTextLength()`**: 連続した本文の長さを返す。
+- **J-Alert 市区町村コード**: 送信順（MSB 先頭）で復号する。
+- **津波リストの終端**: エントリが全 0 のときを終端とする。
+- **暦に存在しない日付**: 未解決として扱う。
+- **`getBits` の幅検証と u32 epoch**: 戻り値型を超える幅を拒否し、2106 年超は `unix_time` だけ 0 にする。
+- **南海トラフ集約本文の不正 UTF-8**: JSON 出力で U+FFFD に置換する。
+- **`getMillis()`**: 外部リンケージの inline にして、翻訳単位ごとに別のカウンタを持たないようにした。
 
 ## [2.0.0] - 2026-10-13
 

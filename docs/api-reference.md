@@ -2,6 +2,8 @@
 
 対象バージョン: v3（開発中）
 
+v2 からの変更点は [v3 移行ガイド](migration-v3.md) を参照してください。
+
 すべてのAPIは `azaraC` 名前空間にあります。取り込みは `#include <azaraC.h>` です。
 
 並びは使う順番に合わせてあります。`Parser` で受けて `Message` から取り出すのが基本で、南海トラフのページ集約とカスタムフレーマは後ろに置きました。内部の設計は [アーキテクチャ](architecture.md)、JSONの形式は [JSON出力仕様](json-formats.md) にあります。
