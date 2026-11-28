@@ -1,11 +1,49 @@
-// UBX/NMEA フレーマーの統合テスト
+// UBX/NMEA とカスタムフレーマーの統合テスト
 
 #define ARDUINO 0
+#include <azaraC.h>
 #include "../test_helpers.h"
 #include "doctest.h"
 #include <cstring>
 
 using namespace azaraC;
+
+namespace custom_framer_example {
+class SerialStub : public Print {
+public:
+    void begin(unsigned long) {}
+    explicit operator bool() const { return true; }
+    int available() const { return 0; }
+    int read() const { return -1; }
+};
+
+SerialStub Serial;
+uint32_t millis() { return 0; }
+void delay(uint32_t) {}
+
+#include "../../examples/custom_framer/custom_framer.ino"
+}
+
+TEST_CASE("Custom framer discards overlong lines and recovers") {
+    custom_framer_example::AzcLineFramer framer;
+    Frame out{};
+    const std::string valid = "AZC,184,53" + std::string(62, '0');
+    const std::string overlong = valid + '\0' + std::string(80, 'x');
+    for (uint8_t byte : overlong) CHECK_FALSE(framer.feed(byte, out));
+
+    SUBCASE("newline discards the overlong line") {
+        CHECK_FALSE(framer.feed('\n', out));
+    }
+    SUBCASE("reset discards the partial overlong line") {
+        framer.reset();
+    }
+
+    for (uint8_t byte : valid) CHECK_FALSE(framer.feed(byte, out));
+    CHECK_FALSE(framer.feed('\r', out));
+    REQUIRE(framer.feed('\n', out));
+    CHECK(out.svid == 184);
+    CHECK(out.bits[0] == 0x53);
+}
 
 // UBX テスト
 

@@ -19,6 +19,14 @@ TEST_CASE("Time: resolveTime with valid report_unix (2024-06-15)") {
     CHECK(t.unix_time == now + 30 * 60);
 }
 
+TEST_CASE("Time: resolveTime DHM picks the nearest day past the u32 epoch") {
+    // report_unix = 0xFFFFFFFF = 2106-02-07 06:28:15 UTC。最寄りは翌日 2/8 00:00（u32 超過）で、前月 1/8 ではない。
+    TimeFields t = TestDecoder::testResolveTime(0, 8, 0, 0, 0xFFFFFFFFu);
+    CHECK(t.month == 2);
+    CHECK(t.day == 8);
+    CHECK(t.unix_time == 0);
+}
+
 TEST_CASE("Time: resolveTime with year boundary crossing") {
     // report_unix = 2024-01-01 00:00:00 UTC
     uint32_t now = 1704067200u;

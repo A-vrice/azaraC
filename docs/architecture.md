@@ -183,7 +183,7 @@ Satellite IDは「PRNを表す8bitの下位6bit」（IS-QZSS-DCR-017 §4.3.1）�
 
 [`NankaiPageBuffer`](https://github.com/A-vrice/azaraC/tree/main/src/internal/NankaiPageBuffer.h)は最大63ページに分割される南海トラフ地震メッセージを集約する。
 `MAX_PAGES×18+1` バイトを確保し、受信したページをビットマップで管理しながら直接書き込む（ソート不要）。
-管理は `NankaiPageBufferManager` が担い、集約キーは `{info_code, information_type, report_classification, report_time（month/day/hour/minute）}` である（訓練/実警報の分離はPR #45のF-1/F-2を参照）。
+管理は `NankaiPageBufferManager` が担い、集約キーは `{info_code, information_type, report_classification, report_time（month/day/hour/minute）}` である。報告時刻は正規化前の値を使い、ほかの値が同じでも実警報（Rc=2）と訓練・試験（Rc=7）のページは混ぜない。受信済みページの再送は本文や受信数を変えず、集約の有効期限を更新する。
 
 | マクロ | 既定 | 説明 |
 |--------|------|------|
