@@ -35,4 +35,10 @@ inline void toJson(const Message& msg, Print& out) {
     internal::JsonSerializer::serialize(msg, out);
 }
 
+// 固定長バッファへ書き、NUL を除く書き込み長を返す。buf が非 nullptr かつ len > 0 なら NUL 終端する。
+// required は切り詰め前の長さ（NUL を除く）。nullptr / len == 0 でも必要長を取得できる。
+inline size_t toJson(const Message& msg, char* buf, size_t len, size_t* required = nullptr) {
+    return internal::JsonSerializer::serialize(msg, buf, len, required);
+}
+
 } // namespace azaraC

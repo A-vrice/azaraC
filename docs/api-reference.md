@@ -435,6 +435,7 @@ MessageをJSON形式で出力します。
 
 ```cpp
 void toJson(const Message& msg, Print& out);
+size_t toJson(const Message& msg, char* buf, size_t len, size_t* required = nullptr);
 ```
 
 **パラメータ:**
@@ -442,6 +443,22 @@ void toJson(const Message& msg, Print& out);
 |-----------|-----|------|
 | `msg` | `const Message&` | シリアライズするメッセージ |
 | `out` | `Print&` | 出力先 (Serial, WiFiClient等) |
+| `buf` | `char*` | 固定長の出力バッファ（`nullptr` は書き込みなし） |
+| `len` | `size_t` | `buf` の容量（NUL 終端を含む）。0 は書き込みなし |
+| `required` | `size_t*` | 省略可。完全な JSON の長さ（NUL を除く）を格納する |
+
+`Print&` 版の出力は従来どおりです。バッファ版も同じ JSON を生成し、実際に格納したバイト数（NUL を除く）を返します。
+`buf != nullptr && len > 0` なら必ず `buf[戻り値]` を NUL 終端し、容量を超える部分は捨てます。`*required > 戻り値` なら切り詰められています。完全な JSON には `*required + 1` バイトが必要です。
+`buf == nullptr` または `len == 0` の場合は何も書かず 0 を返しますが、`required` が非 `nullptr` なら完全な長さを計算します。ヒープ確保は行いません。切り詰めた出力は有効な JSON や UTF-8 とは限らないため、そのまま送信しないでください。
+
+```cpp
+char json[512];
+size_t required = 0;
+const size_t written = azaraC::toJson(msg, json, sizeof(json), &required);
+if (written == required) {
+    Serial.write(reinterpret_cast<const uint8_t*>(json), written);
+}
+```
 
 **スレッド安全性:** AVR / 非 AVR のどちらもラベル用の共有バッファ（`AZARAC_FLASH_BUF_SIZE` の 1 本）を使うため、`toJson()` と定義テーブルの lookup を複数のタスク/スレッドから同時に呼ばないこと。AVR では lookup のたびに Flash からこのバッファへコピーする。
 FreeRTOS では呼び出し側で排他する（`examples/rtos_freertos` の `printJson()` を参照）。

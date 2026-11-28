@@ -107,6 +107,33 @@ TEST_CASE("No allocation: MT43 feed + JSON") {
 #endif
 }
 
+TEST_CASE("No allocation: bounded JSON and required length") {
+    Message msg;
+    msg.msg_type = 49;
+    char buffer[4096];
+    char tiny[1] = {'Y'};
+    size_t required = 0;
+    size_t truncated_required = 0;
+    size_t measured = 0;
+    size_t zero_required = 0;
+    const unsigned long base = noalloc::snapshot();
+    const size_t written = toJson(msg, buffer, sizeof(buffer), &required);
+    const size_t truncated = toJson(msg, tiny, sizeof(tiny), &truncated_required);
+    const size_t null_written = toJson(msg, nullptr, 10, &measured);
+    const size_t zero_written = toJson(msg, tiny, 0, &zero_required);
+    const unsigned long allocations = noalloc::delta(base);
+    CHECK(allocations == 0);
+    CHECK(written > 0);
+    CHECK(written == required);
+    CHECK(truncated == 0);
+    CHECK(tiny[0] == '\0');
+    CHECK(truncated_required == required);
+    CHECK(null_written == 0);
+    CHECK(measured == required);
+    CHECK(zero_written == 0);
+    CHECK(zero_required == required);
+}
+
 TEST_CASE("No allocation: MT44 feed + JSON") {
     CountingPrint sink;
     CHECK(measureNmea(kMt44Outside, sink) == 0);
