@@ -7,6 +7,89 @@
 using namespace azaraC;
 
 #if (AZARAC_ENABLE_SEISMIC)
+namespace {
+class ParserTestFramer : public internal::IFramer {
+public:
+    bool feed(uint8_t byte, internal::Frame& out) override {
+        if (byte == 0) return false;
+        out = internal::Frame{};
+        out.svid = 186;
+        setBits(out.bits, 0, 8, byte == 6 ? 0 : 0x53);
+        setBits(out.bits, 8, 6, byte == 3 ? 50 : 43);
+        setBits(out.bits, 14, 3, 2);
+        setBits(out.bits, 17, 4, 3);
+        setBits(out.bits, 69, 3, byte == 2 ? 5 : 3);
+        setBits(out.bits, 72, 6, 13);
+        setBits(out.bits, 214, 6, byte == 4 ? 2 : 1);
+        const uint32_t crc = crc24qRef(out.bits, 226);
+        setBits(out.bits, 226, 24, byte == 5 ? crc ^ 1u : crc);
+        return true;
+    }
+
+    void reset() override {}
+};
+} // namespace
+
+TEST_CASE("Parser: bulk empty input clears validity and preserves rejection reason") {
+    Parser parser;
+    Message msg;
+    msg.valid = true;
+    msg.unsupported_reason = UnsupportedReason::UnsupportedVersion;
+    const uint8_t input[] = {0};
+    SUBCASE("null empty input") { CHECK_FALSE(parser.feed(nullptr, 0, msg)); }
+    SUBCASE("null nonempty input") { CHECK_FALSE(parser.feed(nullptr, 10, msg)); }
+    SUBCASE("nonnull empty input") { CHECK_FALSE(parser.feed(input, 0, msg)); }
+    CHECK_FALSE(msg.valid);
+    CHECK(msg.unsupported_reason == UnsupportedReason::UnsupportedVersion);
+}
+
+TEST_CASE("Parser: bulk input without an accepted message clears stale validity") {
+    ParserTestFramer framer;
+    Parser parser(framer);
+    Message msg;
+    msg.valid = true;
+    uint8_t input[] = {0};
+    SUBCASE("incomplete frame") {}
+    SUBCASE("unknown MT") { input[0] = 3; }
+    SUBCASE("unsupported version") { input[0] = 4; }
+    SUBCASE("invalid CRC") { input[0] = 5; }
+    SUBCASE("invalid preamble") { input[0] = 6; }
+    CHECK_FALSE(parser.feed(input, sizeof(input), msg));
+    CHECK_FALSE(msg.valid);
+    const UnsupportedReason expected = input[0] == 3 ? UnsupportedReason::UnknownCategory
+        : input[0] == 4 ? UnsupportedReason::UnsupportedVersion : UnsupportedReason::None;
+    CHECK(msg.unsupported_reason == expected);
+}
+
+TEST_CASE("Parser: decoder rejection leaves byte output invalid") {
+    ParserTestFramer framer;
+    Parser parser(framer);
+    Message msg;
+    uint8_t input = 3;
+    SUBCASE("unknown MT") {}
+    SUBCASE("unsupported version") { input = 4; }
+    SUBCASE("invalid CRC") { input = 5; }
+    SUBCASE("invalid preamble") { input = 6; }
+    msg.valid = true;
+    CHECK_FALSE(parser.feed(input, msg));
+    CHECK_FALSE(msg.valid);
+}
+
+TEST_CASE("Parser: bulk failure after success invalidates output without losing retention") {
+    ParserTestFramer framer;
+    Parser parser(framer);
+    Message msg;
+    const uint8_t input[] = {1, 2, 2, 3};
+    REQUIRE(parser.feed(input, sizeof(input), msg));
+    REQUIRE(msg.valid);
+    REQUIRE(msg.getMt43() != nullptr);
+    REQUIRE(msg.getMt43()->getSeismic() != nullptr);
+    CHECK(msg.getMt43()->getSeismic()->entries[0].intensity_code == 5);
+    const uint8_t incomplete[] = {0};
+    CHECK_FALSE(parser.feed(incomplete, sizeof(incomplete), msg));
+    CHECK_FALSE(msg.valid);
+}
+
 TEST_CASE("Parser: bulk feed is equivalent to byte-by-byte feed") {
     uint8_t bits[32] = {};
     setBits(bits, 0, 8, 0x53);

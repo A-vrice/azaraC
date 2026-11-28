@@ -91,7 +91,8 @@ bool feed(const uint8_t* data, size_t len, Message& out, uint32_t report_unix = 
 **戻り値:** `bool` - 1 通以上成立したら `true`。最初の成立で停止せず、全バイトを処理します。`out` には最後に成立した電文が残り、後続の重複や43/44以外のMTでは消えません。
 複数の電文を取りこぼしたくないときは `feedUntilMessage()` を使ってください。
 南海トラフ集約の `aggregated_text_ptr` は、同じ呼び出しの後続フレームで借用先のバッファが再利用されると無効になることがあります。
-成立しなかったときも、復号器の拒否理由は `out.unsupported_reason` に残ります（`nullptr` 入力は変更しません）。
+成立しなかったときは `false` を返し、`out.valid` は `false` になります（`nullptr`・長さ 0 の入力を含む）。
+復号器の拒否理由は `out.unsupported_reason` に残ります。`nullptr` または長さ 0 の入力ではこの理由を変更しません。それ以外の出力フィールドは `false` のとき未定義です。
 
 ```cpp
 uint8_t buf[512];
@@ -190,7 +191,7 @@ const internal::NankaiPageBuffer* getNankaiBuffer(const internal::NankaiPageKey&
 | `msg_type` | `uint8_t` | メッセージタイプ (43=DCR, 44=DCX) |
 | `crc24` | `uint32_t` | CRC-24Qチェックサム |
 | `valid` | `bool` | メッセージの妥当性フラグ。`feed()` が `true` を返したときは常に `true` |
-| `unsupported_reason` | `UnsupportedReason` | 復号器が完成フレームを拒否した理由（`None` / `DisabledAtCompileTime` / `UnknownCategory` / `UnsupportedVersion`）。`UnknownCategory` は仕様上未定義のカテゴリと 43/44 以外の MT。`feed()` が `false` でも診断用に入ることがあるが、`out` の他のフィールドは未定義（`feed()` の戻り値の説明を参照） |
+| `unsupported_reason` | `UnsupportedReason` | 復号器が完成フレームを拒否した理由（`None` / `DisabledAtCompileTime` / `UnknownCategory` / `UnsupportedVersion`）。`UnknownCategory` は仕様上未定義のカテゴリと 43/44 以外の MT。`feed()` が `false` でも診断用に入ることがあるが、`out` の他のフィールドは一括版の `valid == false` を除き未定義（`feed()` の戻り値の説明を参照） |
 | `payload_type` | `MsgPayloadType` | ペイロードタイプ |
 
 #### 安全なアクセサ

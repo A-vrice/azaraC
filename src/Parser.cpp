@@ -40,7 +40,8 @@ size_t Parser::feedUntilMessage(const uint8_t* data, size_t len, Message& out, u
 }
 
 bool Parser::feed(const uint8_t* data, size_t len, Message& out, uint32_t report_unix) {
-    if (!data) return false;
+    out.valid = false;
+    if (!data || len == 0) return false;
     Message scratch;
     bool any = false;
     while (len > 0) {
@@ -57,7 +58,10 @@ bool Parser::feed(const uint8_t* data, size_t len, Message& out, uint32_t report
 }
 
 bool Parser::handleFrame(internal::Frame& frame, Message& out, uint32_t report_unix) {
-    if (!_decoder.decode(frame, out, report_unix)) return false;
+    if (!_decoder.decode(frame, out, report_unix)) {
+        out.valid = false;
+        return false;
+    }
     // 手順③ の照合範囲は MT～VN（bit 8..219 = 212 bit、bit 220..225 は Reserved）。
     // プリアンブルと Reserved は放送で巡回し、受信衛星はフレームに無く NMEA/UBX ヘッダ由来なので鍵に含めない。
     // MT=44 の SD は事務局回答の照合範囲（MT および CAMF〜EM）に無く、Decoder::messageIdentity がゼロにしてから digest を取る。
