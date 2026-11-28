@@ -510,8 +510,9 @@ test-time-irq:
 .PHONY: test-clock-idle
 test-clock-idle:
 	@set -e; for flags in "-D__AVR__ -DAZARAC_AVR_STUB" "-DESP32" "-DARDUINO_ARCH_ESP32"; do \
-		$(CXX) -std=c++17 -Wall -Wextra -Istub_arduino -I../src -DARDUINO=1 $$flags \
+		$(CXX) -std=c++17 -Wall -Wextra -Istub_arduino -Istub -I../src -DARDUINO=1 $$flags \
 			-ffunction-sections -fdata-sections tools/clock_idle_probe.cpp ../src/Parser.cpp ../src/internal/Dedup.cpp \
+			../src/framer/UbxFramer.cpp ../src/framer/NmeaFramer.cpp \
 			-Wl,--gc-sections -o clock_idle_probe; \
 		./clock_idle_probe; \
 	done; $(RM) clock_idle_probe clock_idle_probe.exe
