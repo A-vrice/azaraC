@@ -21,15 +21,19 @@ public:
     bool feed(uint8_t byte, azaraC::Frame& out) override {
         if (byte == '\r') return false;
         if (byte != '\n') {
-            if (len_ < sizeof(buf_)) buf_[len_++] = static_cast<char>(byte);
+            if (len_ < sizeof(buf_) - 1) buf_[len_++] = static_cast<char>(byte);
+            else overflow_ = true;
             return false;
         }
-        const bool ok = parseLine(out);
-        len_ = 0;
+        const bool ok = !overflow_ && parseLine(out);
+        reset();
         return ok;
     }
 
-    void reset() override { len_ = 0; }
+    void reset() override {
+        len_ = 0;
+        overflow_ = false;
+    }
 
 private:
     // "AZC,<svid>,<64 hex>" を Frame へ。壊れていれば false。
@@ -69,6 +73,7 @@ private:
 
     char   buf_[80] = {};
     size_t len_ = 0;
+    bool   overflow_ = false;
 };
 
 AzcLineFramer framer;
