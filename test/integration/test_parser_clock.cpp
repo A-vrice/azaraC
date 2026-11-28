@@ -149,6 +149,18 @@ TEST_CASE("Parser clock: 32-bit generation boundary resets history and re-notifi
     CHECK(feedAt(parser, event_a, out, 0, (1ULL << 32) + 0x100));   // 世代 1
 }
 
+TEST_CASE("Parser clock: exact rollback tolerance boundary (1000ms kept, 1001ms dropped)") {
+    azaraC::Parser parser;
+    Message out;
+    const Message event_a = makeNankai(6, 1, 1, 2, "A", 1);
+
+    CHECK(feedAt(parser, event_a, out, 0, 10000));
+    // ちょうど 1000ms の巻き戻しは許容（履歴維持 → 重複抑止）
+    CHECK_FALSE(feedAt(parser, event_a, out, 0, 9000));
+    // 1001ms の巻き戻しは許容超過（履歴破棄 → 再通知）
+    CHECK(feedAt(parser, event_a, out, 0, 8999));
+}
+
 TEST_CASE("Parser clock: observing a new generation clears Nankai buffers without a frame") {
     // updateClock() が受信ゼロでも同じ epoch guard を通ることを固定する。
     azaraC::Parser parser;

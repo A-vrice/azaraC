@@ -4,6 +4,7 @@
 
 #define ARDUINO 0
 #include "../src/azaraC.h"
+#include "../src/internal/FlashString.h"
 #include "../src/internal/PrintShim.h"
 #include "../src/json/JsonWriter.h"
 #include "../test_helpers.h"
@@ -175,3 +176,65 @@ TEST_CASE("UTF-8: Nankai aggregated text with invalid bytes serializes to valid 
 }
 
 #endif // AZARAC_ENABLE_NANKAI
+
+TEST_CASE("JsonWriter: exact UTF-8 boundary codepoints and control char 0x1F vs 0x20") {
+    auto encodeStr = [](const char* data, size_t len) -> std::string {
+        StringPrint sp;
+        internal::writeStrUtf8(sp, std::string_view(data, len));
+        return sp.str();
+    };
+
+    // 制御文字境界: writeStrUtf8 と writeStr の両方で 0x1F はエスケープ、0x20 (空白) はそのまま
+    CHECK(encodeStr("\x1F", 1) == "\"\\u001F\"");
+    CHECK(encodeStr(" ", 1) == "\" \"");
+    {
+        StringPrint sp;
+        internal::writeStr(sp, std::string_view("\x1F ", 2));
+        CHECK(sp.str() == "\"\\u001F \"");
+    }
+
+    // 末尾が NUL でないバッファでも len 境界で安全に打ち切ること (L92/L100 境界)
+    {
+        const char buf_e0[2] = {static_cast<char>(0xE0), static_cast<char>(0xA0)};
+        CHECK(encodeStr(buf_e0, 1) == "\"\xEF\xBF\xBD\"");
+        const char buf_f0[2] = {static_cast<char>(0xF0), static_cast<char>(0x90)};
+        CHECK(encodeStr(buf_f0, 1) == "\"\xEF\xBF\xBD\"");
+    }
+
+    // FlashString::azarac_utf8_trim_len の 1..4 バイト境界・不正先頭バイト・切り詰め
+    {
+        // 完全な 4 バイト文字 (U+1F600: F0 9F 98 80)
+        const char emoji[4] = {static_cast<char>(0xF0), static_cast<char>(0x9F), static_cast<char>(0x98), static_cast<char>(0x80)};
+        CHECK(azaraC::def::azarac_utf8_trim_len(emoji, 4) == 4);
+        CHECK(azaraC::def::azarac_utf8_trim_len(emoji, 3) == 0);
+        // "A" + 不正先頭バイト 0xF8 + continuation -> "A" のみ残す
+        const char bad_lead[3] = {'A', static_cast<char>(0xF8), static_cast<char>(0x80)};
+        CHECK(azaraC::def::azarac_utf8_trim_len(bad_lead, 3) == 1);
+        // 4 バイト文字の前に ASCII 2 文字 + 末尾切り詰め
+        const char prefix_emoji[5] = {'a', 'b', static_cast<char>(0xF0), static_cast<char>(0x9F), static_cast<char>(0x98)};
+        CHECK(azaraC::def::azarac_utf8_trim_len(prefix_emoji, 5) == 2);
+    }
+
+    // 2 バイト境界: C2 80 (U+0080) と DF BF (U+07FF) は有効
+    CHECK(encodeStr("\xC2\x80", 2) == "\"\xC2\x80\"");
+    CHECK(encodeStr("\xDF\xBF", 2) == "\"\xDF\xBF\"");
+
+    // 3 バイト境界: E0 A0 80 (U+0800), ED 9F BF (U+D7FF), EF BF BF (U+FFFF) は有効
+    CHECK(encodeStr("\xE0\xA0\x80", 3) == "\"\xE0\xA0\x80\"");
+    CHECK(encodeStr("\xED\x9F\xBF", 3) == "\"\xED\x9F\xBF\"");
+    CHECK(encodeStr("\xEF\xBF\xBF", 3) == "\"\xEF\xBF\xBF\"");
+    // 不正 3 バイト: E0 9F 80 (overlong), ED A0 80 (サロゲート) → U+FFFD 置換
+    CHECK(encodeStr("\xE0\x9F\x80", 3) == "\"\xEF\xBF\xBD\xEF\xBF\xBD\xEF\xBF\xBD\"");
+    CHECK(encodeStr("\xED\xA0\x80", 3) == "\"\xEF\xBF\xBD\xEF\xBF\xBD\xEF\xBF\xBD\"");
+
+    // 4 バイト境界: F0 90 80 80 (U+10000), F4 8F BF BF (U+10FFFF) は有効
+    CHECK(encodeStr("\xF0\x90\x80\x80", 4) == "\"\xF0\x90\x80\x80\"");
+    CHECK(encodeStr("\xF4\x8F\xBF\xBF", 4) == "\"\xF4\x8F\xBF\xBF\"");
+    // 不正 4 バイト: F0 8F 80 80 (overlong), F4 90 80 80 (> U+10FFFF) → U+FFFD 置換
+    CHECK(encodeStr("\xF0\x8F\x80\x80", 4) == "\"\xEF\xBF\xBD\xEF\xBF\xBD\xEF\xBF\xBD\xEF\xBF\xBD\"");
+    CHECK(encodeStr("\xF4\x90\x80\x80", 4) == "\"\xEF\xBF\xBD\xEF\xBF\xBD\xEF\xBF\xBD\xEF\xBF\xBD\"");
+
+    // 1 バイトのみの切断先頭バイト (n == 1)
+    CHECK(encodeStr("\xE0", 1) == "\"\xEF\xBF\xBD\"");
+    CHECK(encodeStr("\xF0", 1) == "\"\xEF\xBF\xBD\"");
+}

@@ -449,3 +449,94 @@ TEST_CASE("Time: resolveTime invariants sweep (no silent date change, no future 
     CHECK(TestDecoder::testResolveTime(1, 1, 24, 0, base).unix_time == 0);
     CHECK(TestDecoder::testResolveTime(1, 1, 12, 60, base).unix_time == 0);
 }
+
+TEST_CASE("Time: century leap year boundaries (2000 valid, 2100 invalid)") {
+    // 2000 年は 400 の倍数 → 2/29 有効
+    const uint32_t base2000 = daysFromCivil(2000, 2, 28) * 86400u;
+    TimeFields t2000 = TestDecoder::testResolveTime(2, 29, 12, 0, base2000);
+    CHECK(t2000.unix_time == daysFromCivil(2000, 2, 29) * 86400u + 12u * 3600u);
+
+    // 2100 年は 100 の倍数かつ 400 の倍数でない → 2/29 は暦外で未解決
+    const uint32_t base2100 = daysFromCivil(2100, 2, 28) * 86400u;
+    TimeFields t2100 = TestDecoder::testResolveTime(2, 29, 12, 0, base2100);
+    CHECK(t2100.unix_time == 0);
+}
+
+TEST_CASE("Time: MDHM diff == ±6 vs ±7 year wrap-around") {
+    // base = 2024-06-15 (m=6): month=12 → diff = +6 (同年 2024)
+    const uint32_t base6 = daysFromCivil(2024, 6, 15) * 86400u;
+    CHECK(TestDecoder::testResolveTime(12, 1, 0, 0, base6).unix_time == daysFromCivil(2024, 12, 1) * 86400u);
+
+    // base = 2024-05-15 (m=5): month=12 → diff = +7 > 6 (前年 2023)
+    const uint32_t base5 = daysFromCivil(2024, 5, 15) * 86400u;
+    CHECK(TestDecoder::testResolveTime(12, 1, 0, 0, base5).unix_time == daysFromCivil(2023, 12, 1) * 86400u);
+
+    // base = 2024-07-15 (m=7): month=1 → diff = -6 (同年 2024)
+    const uint32_t base7 = daysFromCivil(2024, 7, 15) * 86400u;
+    CHECK(TestDecoder::testResolveTime(1, 1, 0, 0, base7).unix_time == daysFromCivil(2024, 1, 1) * 86400u);
+
+    // base = 2024-08-15 (m=8): month=1 → diff = -7 < -6 (翌年 2025)
+    const uint32_t base8 = daysFromCivil(2024, 8, 15) * 86400u;
+    CHECK(TestDecoder::testResolveTime(1, 1, 0, 0, base8).unix_time == daysFromCivil(2025, 1, 1) * 86400u);
+}
+
+TEST_CASE("Time: DHM year wrap-around, MARGIN_SEC boundary, and 13-month lookback") {
+    // Dec 31 23:00 + Jan 1 01:00 → 翌年 1 月 (cm >= 13)
+    const uint32_t dec31 = daysFromCivil(2024, 12, 31) * 86400u + 23u * 3600u;
+    TimeFields jan1 = TestDecoder::testResolveTime(0, 1, 1, 0, dec31);
+    CHECK(jan1.month == 1);
+    CHECK(jan1.unix_time == daysFromCivil(2025, 1, 1) * 86400u + 1u * 3600u);
+
+    // Jan 1 01:00 + Dec 31 23:00 → 前年 12 月 (cm <= 0)
+    const uint32_t jan1_base = daysFromCivil(2025, 1, 1) * 86400u + 1u * 3600u;
+    TimeFields dec31_ev = TestDecoder::testResolveTime(0, 31, 23, 0, jan1_base);
+    CHECK(dec31_ev.month == 12);
+    CHECK(dec31_ev.unix_time == daysFromCivil(2024, 12, 31) * 86400u + 23u * 3600u);
+
+    // MARGIN_SEC = 3 日ちょうど: 2024-06-10 12:30 基準で 6/13 12:30 はマージン内 (6月)、6/13 12:31 は超過で前月 (5月)
+    const uint32_t june10 = daysFromCivil(2024, 6, 10) * 86400u + 12u * 3600u + 30u * 60u;
+    TimeFields within = TestDecoder::testResolveTime(0, 13, 12, 30, june10);
+    CHECK(within.month == 6);
+    CHECK(within.unix_time == june10 + 3u * 86400u);
+
+    TimeFields beyond = TestDecoder::testResolveTime(0, 13, 12, 31, june10);
+    CHECK(beyond.month == 5);
+    CHECK(beyond.unix_time == daysFromCivil(2024, 5, 13) * 86400u + 12u * 3600u + 31u * 60u);
+
+    // 13 か月遡りループでの時刻比較 (ts64 <= base_unix と hour/minute の寄与)
+    const uint32_t june20 = daysFromCivil(2024, 6, 20) * 86400u + 10u * 3600u + 15u * 60u;
+    TimeFields past = TestDecoder::testResolveTime(0, 28, 14, 45, june20);
+    CHECK(past.month == 5);
+    CHECK(past.unix_time == daysFromCivil(2024, 5, 28) * 86400u + 14u * 3600u + 45u * 60u);
+}
+
+TEST_CASE("Time: resolveArrivalTime 23:59 valid and 2000-01-01 base_unix boundary") {
+    // hour=23, min=59 は有効な上限値
+    const uint16_t raw_2359 = static_cast<uint16_t>((0u << 11) | (23u << 6) | 59u);
+    // base_unix == 946684800u (2000-01-01 00:00:00 UTC) ちょうどは有効扱い
+    TimeFields t = TestDecoder::testResolveArrivalTime(raw_2359, 946684800u);
+    CHECK(t.month == 1);
+    CHECK(t.day == 1);
+    CHECK(t.hour == 23);
+    CHECK(t.minute == 59);
+    CHECK(t.unix_time == 946684800u + 23u * 3600u + 59u * 60u);
+
+    // base_unix == 946684799u は基準時刻無効 → month/day/unix_time は 0、hour/minute のみ保持
+    TimeFields t_old = TestDecoder::testResolveArrivalTime(raw_2359, 946684799u);
+    CHECK(t_old.month == 0);
+    CHECK(t_old.day == 0);
+    CHECK(t_old.hour == 23);
+    CHECK(t_old.minute == 59);
+    CHECK(t_old.unix_time == 0);
+
+    // readNotifications: 3 件満杯
+    uint8_t nb[32] = {};
+    setBits(nb, 0, 9, 101);
+    setBits(nb, 9, 9, 202);
+    setBits(nb, 18, 9, 303);
+    uint16_t notes[3] = {};
+    CHECK(TestDecoder::testReadNotifications(nb, 0, notes) == 3);
+    CHECK(notes[0] == 101);
+    CHECK(notes[1] == 202);
+    CHECK(notes[2] == 303);
+}
