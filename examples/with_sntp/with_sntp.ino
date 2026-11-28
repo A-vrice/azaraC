@@ -1,4 +1,5 @@
 // Wi-Fi + SNTP で UNIX 時刻を取得し DCR/DCX の「年」を解決する例。すべてのメッセージを JSON で出力し、EEW と MT=44 DCX は詳細ログも出す。
+// GNSS TX/RX → C3/C6 の GPIO4/5、classic ESP32 の GPIO16/17。GND 共通。S3/WROVER 等は配線に合わせて変更する。
 
 // (AZARAC_DEDUP_SLOTS: 上書き不要 — 既定値は QZSS アーカイブ 30 日分から決めている。src/azaraC_config.h を参照。)
 #include <azaraC.h>
@@ -43,8 +44,12 @@ void setup() {
     }
     Serial.println(F(" OK"));
 
-#if defined(ESP32)
+#if defined(ARDUINO_ESP32C3_DEV) || defined(CONFIG_IDF_TARGET_ESP32C3)
     Serial1.begin(9600, SERIAL_8N1, /*rx=*/4, /*tx=*/5);
+#elif defined(CONFIG_IDF_TARGET_ESP32C6) || defined(ARDUINO_ESP32C6_DEV)
+    Serial1.begin(9600, SERIAL_8N1, /*rx=*/4, /*tx=*/5);
+#elif defined(ESP32)
+    Serial1.begin(9600, SERIAL_8N1, /*rx=*/16, /*tx=*/17);
 #else
     Serial1.begin(9600, SERIAL_8N1);
 #endif
